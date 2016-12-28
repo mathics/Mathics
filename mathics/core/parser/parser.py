@@ -4,6 +4,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+import string
+
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
 from mathics.core.parser.tokeniser import Tokeniser, is_symbol_name
 from mathics.core.parser.errors import InvalidSyntaxError, TranslateError
@@ -305,11 +307,36 @@ class Parser(object):
             assert len(s) == 2
             base, s = int(s[0]), s[1]
             if not 2 <= base <= 36:
-                self.tokeniser.feeder.message('General', 'base', str(base), s)
+                self.tokeniser.feeder.message('General', 'base', base, token.text, 36)
                 self.tokeniser.sntx_message(token.pos)
                 raise InvalidSyntaxError()
 
-        result = Number(token.text)
+        # mantissa
+        s = s.split('*^')
+        if len(s) == 1:
+            exp, s = 0, s[0]
+        else:
+            # TODO modify regex and provide error if `exp` is not an int
+            exp, s = int(s[1]), s[0]
+
+        # precision/accuracy
+        prec, acc = None, None
+        s = s.split('`', 1)
+        if len(s) == 1:
+            s, suffix = s[0], None
+        else:
+            s, suffix = s[0], s[1]
+
+        # check digits are less than base
+        # TODO if base == 10 optimisation
+        permitted = '.' + (string.digits + string.ascii_lowercase)[:base]
+        for i, c in enumerate(s.lower()):
+            if c not in permitted:
+                self.tokeniser.feeder.message('General', 'digit', i + 1, s, base)
+                self.tokeniser.sntx_message(token.pos)
+                raise InvalidSyntaxError()
+
+        result = Number(s, sign=sign, base=base, suffix=suffix, exp=exp)
         self.consume()
         return result
 
@@ -374,7 +401,7 @@ class Parser(object):
             expr.value = '-' + expr.value
             return expr
         else:
-            return Node('Times', Number('-1'), expr).flatten()
+            return Node('Times', Number('1', sign=-1), expr).flatten()
 
     def p_Plus(self, token):
         self.consume()
@@ -597,7 +624,7 @@ class Parser(object):
         if isinstance(expr2, Number) and not expr2.value.startswith('-'):
             expr2.value = '-' + expr2.value
         else:
-            expr2 = Node('Times', Number('-1'), expr2).flatten()
+            expr2 = Node('Times', Number('1', sign=-1), expr2).flatten()
         return Node('Plus', expr1, expr2).flatten()
 
     def e_TagSet(self, expr1, token, p):
@@ -648,7 +675,7 @@ class Parser(object):
             return None
         self.consume()
         expr2 = self.parse_exp(q + 1)
-        return Node('Times', expr1, Node('Power', expr2, Number('-1'))).flatten()
+        return Node('Times', expr1, Node('Power', expr2, Number('1', sign=-1))).flatten()
 
     def e_Alternatives(self, expr1, token, p):
         q = flat_binary_ops['Alternatives']

@@ -31,12 +31,18 @@ class LineFeeder(object):
         return
 
     def message(self, sym, tag, *args):
-        args = ['"' + args[i] + '"' if i < len(args) else '""'
-                for i in range(3)]
-        args.append(self.lineno)
-        args.append('"' + self.filename + '"')
-        assert len(args) == 5
-        self.messages.append([sym, tag] + args)
+        if len(args) > 3:
+            raise ValueError('Too many args.')
+        message = [sym, tag]
+        for i in range(3):
+            if i < len(args):
+                message.append(args[i])
+            else:
+                message.append('""')
+        message.append(self.lineno)
+        message.append('"' + self.filename + '"')
+        assert len(message) == 7
+        self.messages.append(message)
 
     def send_messages(self, evaluation):
         for message in self.messages:

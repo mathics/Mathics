@@ -1571,10 +1571,12 @@ class General(Builtin):
                  "`3` or `4` arguments are expected."),
         'argtu': (
             "`1` called with 1 argument; `2` or `3` arguments are expected."),
+        'base': 'Requested base `1` in `2` should be between 2 and `3`.',
         'boxfmt': "`1` is not a box formatting type.",
         'color': "`1` is not a valid color or gray-level specification.",
         'cxt': "`1` is not a valid context name.",
         'divz': "The argument `1` should be nonzero.",
+        'digit': 'Digit at position `1` in `2` is too large to be used in base `3`.',
         'exact': "Argument `1` is not an exact number.",
         'fnsym': ("First argument in `1` is not a symbol "
                   "or a string naming a symbol."),

@@ -37,7 +37,7 @@ class Prescanner(object):
     def incomplete(self):
         line = self.feed()
         if not line:
-            self.feeder.message('Syntax', 'sntxi', self.code[self.pos:].rstrip())
+            self.feeder.message('Syntax', 'sntxi', '"' + self.code[self.pos:].rstrip() + '"')
             raise IncompleteSyntaxError()
         self.code += line
 
@@ -94,7 +94,7 @@ class Prescanner(object):
                 self.feeder.message('Syntax', 'snthex')
             else:
                 raise ValueError()
-            self.feeder.message('Syntax', 'sntxb', self.code[self.pos:].rstrip('\n'))
+            self.feeder.message('Syntax', 'sntxb', '"' + self.code[self.pos:].rstrip('\n') + '"')
             raise ScanError()
         self.stubs.append(self.code[self.start:self.pos])
         self.stubs.append(unichr(result))
@@ -113,7 +113,7 @@ class Prescanner(object):
         if longname.isalpha():
             char = named_characters.get(longname)
             if char is None:
-                self.feeder.message('Syntax', 'sntufn', longname)
+                self.feeder.message('Syntax', 'sntufn', '"' + longname + '"')
                 pass    # stay in same stub
             else:
                 self.stubs.append(self.code[self.start:self.pos])
