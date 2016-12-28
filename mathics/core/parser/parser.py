@@ -287,6 +287,28 @@ class Parser(object):
         return result
 
     def p_Number(self, token):
+        s = token.text
+
+        # sign
+        if s[0] == '-':
+            sign_prefix, s = s[0], s[1:]
+            sign = -1
+        else:
+            sign_prefix = ''
+            sign = 1
+
+        # base
+        s = s.split('^^')
+        if len(s) == 1:
+            base, s = 10, s[0]
+        else:
+            assert len(s) == 2
+            base, s = int(s[0]), s[1]
+            if not 2 <= base <= 36:
+                self.tokeniser.feeder.message('General', 'base', str(base), s)
+                self.tokeniser.sntx_message(token.pos)
+                raise InvalidSyntaxError()
+
         result = Number(token.text)
         self.consume()
         return result
