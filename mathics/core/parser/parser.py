@@ -25,6 +25,10 @@ special_symbols = {
 }
 
 
+permitted_digits = {c: i for i, c in enumerate(string.digits + string.ascii_lowercase)}
+permitted_digits['.'] = 0
+
+
 class Parser(object):
     def __init__(self):
         # no implicit times on these tokens
@@ -325,11 +329,8 @@ class Parser(object):
         else:
             s, suffix = s[0], s[1]
 
-        # check digits are less than base
-        # TODO if base == 10 optimisation
-        permitted = '.' + (string.digits + string.ascii_lowercase)[:base]
         for i, c in enumerate(s.lower()):
-            if c not in permitted:
+            if permitted_digits[c] >= base:
                 self.tokeniser.feeder.message('General', 'digit', i + 1, s, base)
                 self.tokeniser.sntx_message(token.pos)
                 raise InvalidSyntaxError()
