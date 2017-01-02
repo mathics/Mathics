@@ -1047,8 +1047,9 @@ class B64Decode(Builtin):
             return Symbol("$Failed")
         try:
             retval = Expression('ToExpression', clearstring).evaluate(evaluation)
+            if retval == Symbol("$Failed"):
+                evaluation.message("B64Decode", "b64invalidexpr", clearstring)    
         except Exception as e:
-            evaluation.message("B64Decode", "b64invalidexpr", clearstring)
             return Symbol("$Failed")
         return retval 
 
