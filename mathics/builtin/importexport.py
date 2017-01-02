@@ -1005,7 +1005,7 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Encode["∫ f  x"]
      = IuKIqyBmIO+djCB4Ig==
     >> System`Convert`B64Dump`B64Decode[%]
-     = "∫ f  x"
+     = ∫ f  x
     """
     
     context = "System`Convert`B64Dump`"
