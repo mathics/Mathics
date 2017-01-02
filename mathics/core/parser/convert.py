@@ -4,26 +4,15 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import re
 from math import log10
 import sympy
 
 import mathics.core.expression as ma
 from mathics.core.parser.ast import Symbol, String, Number, Filename
 from mathics.core.numbers import machine_precision, reconstruct_digits
-from mathics.core.numbers import prec as _prec
 
 
-class Converter(object):
-    def __init__(self):
-        self.definitions = None
-
-    def convert(self, node, definitions):
-        self.definitions = definitions
-        result = self.do_convert(node)
-        self.definitions = None
-        return result
-
+class GenericConverter(object):
     def do_convert(self, node):
         if isinstance(node, Symbol):
             return self.convert_Symbol(node)
@@ -36,7 +25,7 @@ class Converter(object):
         else:
             head = self.do_convert(node.head)
             children = [self.do_convert(child) for child in node.children]
-            return ma.Expression(head, *children)
+            return 'Expression', head, children
 
     @staticmethod
     def string_escape(s):
@@ -44,17 +33,18 @@ class Converter(object):
         s = s.replace('\\r\\n', '\r\n')
         s = s.replace('\\r', '\r')
         s = s.replace('\\n', '\n')
+        s = s.replace('\\t', '\t')
         return s
 
     def convert_Symbol(self, node):
         if node.context is not None:
-            return ma.Symbol(node.context + '`' + node.value)
-        value = self.definitions.lookup_name(node.value)
-        return ma.Symbol(value)
+            return 'Symbol', node.context + '`' + node.value
+        else:
+            return 'Lookup', node.value
 
     def convert_String(self, node):
         value = self.string_escape(node.value)
-        return ma.String(value)
+        return 'String', value
 
     def convert_Filename(self, node):
         s = node.value
@@ -63,53 +53,22 @@ class Converter(object):
             s = s[1:-1]
         s = self.string_escape(s)
         s = s.replace('\\', '\\\\')
-        return ma.String(s)
+        return 'String', s
 
     def convert_Number(self, node):
         s = node.value
-        if s[0] == '-':
-            sign_prefix, s = s[0], s[1:]
-            sign = -1
-        else:
-            sign_prefix = ''
-            sign = 1
-
-        # fast exit
-        if s.isdigit():
-            return ma.Integer(sign * int(s))
-
-        # Look for base
-        s = s.split('^^')
-        if len(s) == 1:
-            base, s = 10, s[0]
-        else:
-            assert len(s) == 2
-            base, s = int(s[0]), s[1]
-            assert 2 <= base <= 36
-
-        # Look for mantissa
-        s = s.split('*^')
-        if len(s) == 1:
-            n, s = 0, s[0]
-        else:
-            # TODO: modify regex and provide error message if n not an int
-            n, s = int(s[1]), s[0]
-
-        # Look at precision ` suffix to get precision/accuracy
-        prec, acc = None, None
-        s = s.split('`', 1)
-        if len(s) == 1:
-            s, suffix = s[0], None
-        else:
-            s, suffix = s[0], s[1]
+        sign = node.sign
+        base = node.base
+        suffix = node.suffix
+        n = node.exp
 
         # Look for decimal point
         if '.' not in s:
             if suffix is None:
                 if n < 0:
-                    return ma.Rational(sign * int(s, base), base ** abs(n))
+                    return 'Rational', sign * int(s, base), base ** abs(n)
                 else:
-                    return ma.Integer(sign * int(s, base) * (base ** n))
+                    return 'Integer', sign * int(s, base) * (base ** n)
             else:
                 s = s + '.'
 
@@ -123,11 +82,11 @@ class Converter(object):
                 # in the mantissa
                 d = len(man) - 2    # one less for decimal point
                 if d < reconstruct_digits(machine_precision):
-                    result = float(sign_prefix + s)
+                    return 'MachineReal', sign * float(s)
                 else:
-                    result = sympy.Float(str(sign_prefix + s), d)
+                    return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), d
             elif suffix == '':
-                result = float(sign_prefix + s)
+                return 'MachineReal', sign * float(s)
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
                 x = float(s)
@@ -135,14 +94,9 @@ class Converter(object):
                     prec10 = acc
                 else:
                     prec10 = acc + log10(x)
-                result = sympy.Float(str(sign_prefix + s), prec10)
+                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), prec10
             else:
-                result = sympy.Float(str(sign_prefix + s), float(suffix))
-
-            if isinstance(result, float):
-                return ma.MachineReal(result)
-            elif isinstance(result, sympy.Float):
-                return ma.PrecisionReal(result)
+                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), float(suffix)
 
         # Put into standard form mantissa * base ^ n
         s = s.split('.')
@@ -153,11 +107,13 @@ class Converter(object):
             man = s[0] + s[1]
         man = sign * int(man, base)
         if n >= 0:
-            result = sympy.Integer(man * base ** n)
+            p = man * base ** n
+            q = 1
         else:
-            result = sympy.Rational(man, base ** -n)
-
-        x = float(result)
+            p = man
+            q = base ** -n
+        result = 'Rational', p, q
+        x = float(sympy.Rational(p, q))
 
         # determine `prec10` the digits of precision in base 10
         if suffix is None:
@@ -183,10 +139,57 @@ class Converter(object):
             prec10 = prec * log10(base)
 
         if prec10 is None:
-            return ma.MachineReal(x)
+            return 'MachineReal', x
         else:
-            result = sympy.Float(result, prec10)
-            return ma.PrecisionReal(result)
+            return 'PrecisionReal', result, prec10
+
+
+class Converter(GenericConverter):
+    def __init__(self):
+        self.definitions = None
+
+    def convert(self, node, definitions):
+        self.definitions = definitions
+        result = self.do_convert(node)
+        self.definitions = None
+        return result
+
+    def do_convert(self, node):
+        result = GenericConverter.do_convert(self, node)
+        return getattr(self, '_make_' + result[0])(*result[1:])
+
+    def _make_Symbol(self, s):
+        return ma.Symbol(s)
+
+    def _make_Lookup(self, s):
+        value = self.definitions.lookup_name(s)
+        return ma.Symbol(value)
+
+    def _make_String(self, s):
+        return ma.String(s)
+
+    def _make_Integer(self, x):
+        return ma.Integer(x)
+
+    def _make_Rational(self, x, y):
+        return ma.Rational(x, y)
+
+    def _make_MachineReal(self, x):
+        return ma.MachineReal(x)
+
+    def _make_PrecisionReal(self, value, prec):
+        if value[0] == 'Rational':
+            assert len(value) == 3
+            x = sympy.Rational(*value[1:])
+        elif value[0] == 'DecimalString':
+            assert len(value) == 2
+            x = value[1]
+        else:
+            assert False
+        return ma.PrecisionReal(sympy.Float(x, prec))
+
+    def _make_Expression(self, head, children):
+        return ma.Expression(head, *children)
 
 
 converter = Converter()

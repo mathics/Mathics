@@ -11,6 +11,7 @@ import six
 
 from mathics.core.expression import Expression, from_python, strip_context
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
+from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
 import mimetypes
@@ -405,8 +406,8 @@ class FetchURL(Builtin):
         'httperr': '`1` could not be retrieved; `2`.',
     }
 
-    def apply(self, url, elements, evaluation):
-        'FetchURL[url_String, elements_]'
+    def apply(self, url, elements, evaluation, options={}):
+        'FetchURL[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -415,7 +416,10 @@ class FetchURL(Builtin):
 
         temp_handle, temp_path = tempfile.mkstemp(suffix='')
         try:
-            f = urllib2.urlopen(py_url)
+            # some pages need cookies or they will end up in an infinite redirect (i.e. HTTP 303)
+            # loop, which prevents the page from getting loaded.
+            f = urllib2.build_opener(urllib2.HTTPCookieProcessor).open(py_url)
+
             try:
                 if sys.version_info >= (3, 0):
                     content_type = f.info().get_content_type()
@@ -433,7 +437,7 @@ class FetchURL(Builtin):
             def determine_filetype():
                 return mimetype_dict.get(content_type)
 
-            result = Import._import(temp_path, determine_filetype, elements, evaluation, {})
+            result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
                 'FetchURL', 'httperr', url,
@@ -534,7 +538,7 @@ class Import(Builtin):
         # Download via URL
         if isinstance(filename, String):
             if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements)
+                return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
@@ -963,6 +967,11 @@ class FileFormat(Builtin):
         for key in mimetype_dict.keys():
             if key in mime:
                 result.append(mimetype_dict[key])
+
+        # the following fixes an extremely annoying behaviour on some (not all)
+        # installations of Windows, where we end up classifying .csv files als XLS.
+        if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
+            return String('CSV')
 
         if len(result) == 0:
             result = 'Binary'

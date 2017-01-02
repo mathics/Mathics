@@ -1367,6 +1367,24 @@ class Real_(Builtin):
      : "1.5 *" cannot be followed by "^10" (line 1 of "<test>").
     #> 1.5*^ 10
      : "1.5*" cannot be followed by "^ 10" (line 1 of "<test>").
+
+    ## Issue654
+    #> 1^^2
+     : Requested base 1 in 1^^2 should be between 2 and 36.
+     : Expression cannot begin with "1^^2" (line 1 of "<test>").
+    #> 2^^0101
+     = 5
+    #> 2^^01210
+     : Digit at position 3 in 01210 is too large to be used in base 2.
+     : Expression cannot begin with "2^^01210" (line 1 of "<test>").
+    #> 16^^5g
+     : Digit at position 2 in 5g is too large to be used in base 16.
+     : Expression cannot begin with "16^^5g" (line 1 of "<test>").
+    #> 36^^0123456789abcDEFxyzXYZ
+     = 14142263610074677021975869033659
+    #> 37^^3
+     : Requested base 37 in 37^^3 should be between 2 and 36.
+     : Expression cannot begin with "37^^3" (line 1 of "<test>").
     """
 
     name = 'Real'
