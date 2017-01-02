@@ -109,6 +109,12 @@ class AtomTests(ParserTests):
         self.check_number('10*^3')
         self.check_number('10*^-3')
         self.check_number('8^^23*^2')
+        self.invalid_error('2^^102')
+        self.invalid_error('2^^10.2')
+        self.invalid_error('1^^0')
+        self.invalid_error('37^^0')
+        self.check_number('36^^abcxyz01239')
+        self.check_number('6^^5023`307*^-720')
 
     def testNumberBig(self):
         for _ in range(10):
