@@ -149,7 +149,14 @@ def parse_xml_stream(f):
         except ET.XMLSyntaxError as e:
             # note: iterparse.error_log, e.g. iterparse.error_log[-1].type_name contains the exact error code. this
             # might be useful for further error handling in the future.
-            raise ParseError(str(e))
+            msg = str(e)
+
+            # Different versions of lxml include different suffixes so trim.
+            m = re.search('line \d+, column \d+', msg)
+            if m is not None:
+                msg = msg[:m.end()]
+
+            raise ParseError(msg)
     else:
         try:
             return parse(ET.iterparse(f, ("start", "start-ns")))

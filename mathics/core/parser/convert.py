@@ -4,7 +4,6 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import re
 from math import log10
 import sympy
 
@@ -58,41 +57,10 @@ class GenericConverter(object):
 
     def convert_Number(self, node):
         s = node.value
-        if s[0] == '-':
-            sign_prefix, s = s[0], s[1:]
-            sign = -1
-        else:
-            sign_prefix = ''
-            sign = 1
-
-        # fast exit
-        if s.isdigit():
-            return 'Integer', sign * int(s)
-
-        # Look for base
-        s = s.split('^^')
-        if len(s) == 1:
-            base, s = 10, s[0]
-        else:
-            assert len(s) == 2
-            base, s = int(s[0]), s[1]
-            assert 2 <= base <= 36
-
-        # Look for mantissa
-        s = s.split('*^')
-        if len(s) == 1:
-            n, s = 0, s[0]
-        else:
-            # TODO: modify regex and provide error message if n not an int
-            n, s = int(s[1]), s[0]
-
-        # Look at precision ` suffix to get precision/accuracy
-        prec, acc = None, None
-        s = s.split('`', 1)
-        if len(s) == 1:
-            s, suffix = s[0], None
-        else:
-            s, suffix = s[0], s[1]
+        sign = node.sign
+        base = node.base
+        suffix = node.suffix
+        n = node.exp
 
         # Look for decimal point
         if '.' not in s:
@@ -114,11 +82,11 @@ class GenericConverter(object):
                 # in the mantissa
                 d = len(man) - 2    # one less for decimal point
                 if d < reconstruct_digits(machine_precision):
-                    return 'MachineReal', float(sign_prefix + s)
+                    return 'MachineReal', sign * float(s)
                 else:
-                    return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), d
+                    return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), d
             elif suffix == '':
-                return 'MachineReal', float(sign_prefix + s)
+                return 'MachineReal', sign * float(s)
             elif suffix.startswith('`'):
                 acc = float(suffix[1:])
                 x = float(s)
@@ -126,9 +94,9 @@ class GenericConverter(object):
                     prec10 = acc
                 else:
                     prec10 = acc + log10(x)
-                return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), prec10
+                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), prec10
             else:
-                return 'PrecisionReal', ('DecimalString', str(sign_prefix + s)), float(suffix)
+                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), float(suffix)
 
         # Put into standard form mantissa * base ^ n
         s = s.split('.')
