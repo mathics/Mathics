@@ -8,7 +8,8 @@ Options[B64Import] = {
 B64Import[filename_, OptionsPattern[]] := 
     Module[{strm,data, grid},
 	strm = OpenRead[filename];
-        data = Read[strm, Record, RecordSeparator->{}];
+	If[strm === $Failed, Return[$Failed]];
+	data = Read[strm, Record, RecordSeparator->{}];
 	Close[strm];
         { "Data" -> B64Decode[data] }
 ]
