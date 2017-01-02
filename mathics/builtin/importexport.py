@@ -1014,8 +1014,6 @@ class B64Encode(Builtin):
         else:
             stringtocodify = Expression('ToString',expr).evaluate(evaluation).get_string_value()
         return String(base64.b64encode(bytearray(stringtocodify, 'utf8')).decode('utf8'))
-            
-
 
 
 class B64Decode(Builtin):
@@ -1030,14 +1028,25 @@ class B64Decode(Builtin):
     context = "System`Convert`B64Dump`"
     name = "B64Decode"
 
+    messages = {
+        'b64invalidstr': 'String `1` is not a valid b64 encoded expression.',
+        'b64invalidexpr': 'Decoded string `1` is not a valid expression.',
+    }
+
     def apply(self, expr, evaluation):
         'System`Convert`B64Dump`B64Decode[expr_String]'
         try:
             clearstring = base64.b64decode(bytearray(expr.get_string_value(), 'utf8')).decode('utf8')
+            clearstring = String(six.text_type(clearstring))
         except Exception as e:
-            print(e.__repr__())
+            evaluation.message("B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")
-        return Expression('ToExpression', String(six.text_type(clearstring))).evaluate(evaluation)
+        try:
+            retval = Expression('ToExpression', clearstring).evaluate(evaluation)
+        except Exception as e:
+            evaluation.message("B64Decode", "b64invalidexpr", clearstring)
+            return Symbol("$Failed")
+        return retval 
 
 
 
