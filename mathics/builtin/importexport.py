@@ -1325,7 +1325,7 @@ class B64Encode(Builtin):
     def apply(self, expr, evaluation):
         'System`Convert`B64Dump`B64Encode[expr_]'
         if isinstance(expr,String):
-            stringtocodify = "\"" + expr.get_string_value() + "\""
+            stringtocodify = expr.get_string_value()
         else:
             stringtocodify = Expression('ToString',expr).evaluate(evaluation).get_string_value()
         return String(base64.b64encode(bytearray(stringtocodify, 'utf8')).decode('utf8'))
@@ -1341,10 +1341,6 @@ class B64Decode(Builtin):
     >> System`Convert`B64Dump`B64Decode["R!="]
      : System`Convert`B64Dump`B64Decode::b64invalidstr: String "R!=" is not a valid b64 encoded string.
      = $Failed
-    >> System`Convert`B64Dump`B64Decode["Rls="]
-     : Incomplete expression; more input is needed (line 1 of "").
-     : Decoded string "F[" is not a valid expression
-     = $Failed
     """
     
     context = "System`Convert`B64Dump`"
@@ -1352,7 +1348,6 @@ class B64Decode(Builtin):
 
     messages = {
         'b64invalidstr': 'String "`1`" is not a valid b64 encoded string.',
-        'b64invalidexpr': 'Decoded string "`1`" is not a valid expression.',
     }
 
     def apply(self, expr, evaluation):
@@ -1363,13 +1358,5 @@ class B64Decode(Builtin):
         except Exception as e:
             evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")
-        try:
-            retval = Expression('ToExpression', clearstring).evaluate(evaluation)
-            if retval == Symbol("$Failed"):
-                evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidexpr", clearstring)    
-        except Exception as e:
-            return Symbol("$Failed")
-        return retval 
-
-
+        return clearstring
 
