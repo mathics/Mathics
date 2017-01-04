@@ -995,7 +995,7 @@ class B64Encode(Builtin):
     </dl>
 
     >> System`Convert`B64Dump`B64Encode["Hello world"]
-     = IkhlbGxvIHdvcmxkIg==
+     = SGVsbG8gd29ybGQ=
     >> System`Convert`B64Dump`B64Decode[%]
      = Hello world
     >> System`Convert`B64Dump`B64Encode[Integrate[f[x],{x,0,2}]]
@@ -1028,7 +1028,7 @@ class B64Decode(Builtin):
     </dl>
     
     >> System`Convert`B64Dump`B64Decode["R!="]
-     : System`Convert`B64Dump`B64Decode::b64invalidstr: String "R!=" is not a valid b64 encoded string.
+     : String "R!=" is not a valid b64 encoded string.
      = $Failed
     """
     
