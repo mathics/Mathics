@@ -904,7 +904,7 @@ class Information(PrefixOperator):
             lines.append(String(usagetext))
 #            evaluation.print_out(String(usagetext))
 
-        if self.get_option(options['options'], 'LongForm', evaluation).to_python():
+        if self.get_option(options['options'], 'System`LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
 
         if grid:
@@ -986,8 +986,8 @@ class Information(PrefixOperator):
                         for name, value in options)))))
         return 
 
-    def format_definition_input(self, symbol, evaluation):
-        'InputForm: Information[symbol_]'
+    def format_definition_input(self, symbol, evaluation, **options):
+        'InputForm: Information[symbol_, OptionsPattern[Information]]'
         return self.format_definition(symbol, evaluation, grid=False)
 
 
