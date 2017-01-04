@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+#cython: language_level=3
 # -*- coding: utf-8 -*-
+
 
 import sympy
 import mpmath
