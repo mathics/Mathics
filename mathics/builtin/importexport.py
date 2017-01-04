@@ -1003,7 +1003,7 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Decode[%]
      = Integrate[f[x], {x, 0, 2}]
     >> System`Convert`B64Dump`B64Encode["∫ f  x"]
-     = IuKIqyBmIO+djCB4Ig==
+     = 4oirIGYg752MIHg=
     >> System`Convert`B64Dump`B64Decode[%]
      = ∫ f  x
     """
