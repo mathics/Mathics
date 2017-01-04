@@ -887,7 +887,7 @@ class Information(PrefixOperator):
     messages = {'notfound': 'Expression `1` is not a symbol'}
     options = {'LongForm': 'True', }
 
-    def format_definition(self, symbol, evaluation, grid=True, **options):
+    def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
         from mathics.core.expression import from_python
         lines = []
@@ -902,9 +902,8 @@ class Information(PrefixOperator):
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
             lines.append(String(usagetext))
-#            evaluation.print_out(String(usagetext))
-
-        if self.get_option(options['options'], 'System`LongForm', evaluation).to_python():
+        
+        if self.get_option(options, 'LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
 
         if grid:
@@ -986,9 +985,9 @@ class Information(PrefixOperator):
                         for name, value in options)))))
         return 
 
-    def format_definition_input(self, symbol, evaluation, **options):
+    def format_definition_input(self, symbol, evaluation, options):
         'InputForm: Information[symbol_, OptionsPattern[Information]]'
-        return self.format_definition(symbol, evaluation, grid=False)
+        return self.format_definition(symbol, evaluation, options, grid=False)
 
 
 class Clear(Builtin):
