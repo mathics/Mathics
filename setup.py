@@ -67,7 +67,7 @@ else:
 # General Requirements
 INSTALL_REQUIRES += [
     "sympy>=1.6, < 1.7",
-    "django >= 1.8, < 1.12",
+    "django >= 3.0, < 3.2",
     "mpmath>=1.1.0",
     "numpy",
     "palettable", # For bar charts, and portable, no-proprietary color palletes
