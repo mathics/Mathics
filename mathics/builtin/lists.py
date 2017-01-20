@@ -246,7 +246,7 @@ def get_part(list, indices):
             return rec(part, rest[1:])
         else:
             return cur
-    return rec(list, indices)
+    return rec(list, indices).copy()
 
 
 def set_part(list, indices, new):
