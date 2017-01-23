@@ -92,6 +92,36 @@ class TrueQ(Builtin):
         'TrueQ[expr_]': 'If[expr, True, False, False]',
     }
 
+class BooleanQ(Builtin):
+    """
+    <dl>
+    <dt>'BooleanQ[$expr$]'
+        <dd>returns 'True' if $expr$ is either 'True' or 'False'.
+    </dl>
+
+    >> BooleanQ[True]
+     = True
+
+    >> BooleanQ[False]
+     = True
+
+    >> BooleanQ[a]
+     = False
+
+    >> BooleanQ[1 < 2]
+     = True
+
+    #> BooleanQ["string"]
+     = False
+
+    #> BooleanQ[Together[x/y + y/x]]
+     = False
+    """
+
+    rules = {
+        'BooleanQ[expr_]': 'If[expr, True, True, False]',
+    }
+
 
 class ValueQ(Builtin):
     """
