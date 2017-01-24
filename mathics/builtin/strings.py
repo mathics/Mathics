@@ -623,6 +623,70 @@ class HexidecimalCharacter(Builtin):
     """
 
 
+class DigitQ(Builtin):
+    """
+    <dl>
+    <dt>'DigitQ[$string$]'
+        yields 'True' if all the characters in the $string$ are digits, and yields 'False' otherwise. 
+    </dl>
+
+    >> DigitQ["9"]
+     = True
+
+    >> DigitQ["a"]
+     = False
+
+    >> DigitQ["01001101011000010111010001101000011010010110001101110011"]
+     = True
+
+    >> DigitQ["-123456789"]
+     = False
+
+    #> DigitQ["."]
+     = False
+
+    #> DigitQ[1==2]
+     = False
+
+    #> DigitQ[a=1]
+     = False
+    """
+
+    rules = {
+        'DigitQ[string_]': (
+            'If[StringQ[string], StringMatchQ[string, DigitCharacter..], False, False]'),
+    }
+
+
+class LetterQ(Builtin):
+    """
+    <dl>
+    <dt>'LetterQ[$string$]'
+        yields 'True' if all the characters in the $string$ are letters, and yields 'False' otherwise. 
+    </dl>
+
+    >> LetterQ["m"]
+     = True
+
+    >> LetterQ["9"]
+     = False
+
+    >> LetterQ["Mathics"]
+     = True
+
+    >> LetterQ["Welcome to Mathics"]
+     = False
+
+    #> LetterQ["\[Alpha]\[Beta]\[Gamma]\[Delta]\[Epsilon]\[Zeta]\[Eta]\[Theta]"]
+     = True
+    """
+
+    rules = {
+        'LetterQ[string_]': (
+            'If[StringQ[string], StringMatchQ[string, LetterCharacter..], False, False]'),
+    }
+
+
 class StringMatchQ(Builtin):
     r"""
     >> StringMatchQ["abc", "abc"]
