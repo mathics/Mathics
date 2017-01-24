@@ -641,6 +641,9 @@ class DigitQ(Builtin):
 
     >> DigitQ["-123456789"]
      = False
+    
+    #> DigitQ[""]
+     = True
 
     #> DigitQ["."]
      = False
@@ -654,7 +657,7 @@ class DigitQ(Builtin):
 
     rules = {
         'DigitQ[string_]': (
-            'If[StringQ[string], StringMatchQ[string, DigitCharacter..], False, False]'),
+            'If[StringQ[string], StringMatchQ[string, DigitCharacter...], False, False]'),
     }
 
 
@@ -677,13 +680,16 @@ class LetterQ(Builtin):
     >> LetterQ["Welcome to Mathics"]
      = False
 
+    #> LetterQ[""]
+     = True
+
     #> LetterQ["\[Alpha]\[Beta]\[Gamma]\[Delta]\[Epsilon]\[Zeta]\[Eta]\[Theta]"]
      = True
     """
 
     rules = {
         'LetterQ[string_]': (
-            'If[StringQ[string], StringMatchQ[string, LetterCharacter..], False, False]'),
+            'If[StringQ[string], StringMatchQ[string, LetterCharacter...], False, False]'),
     }
 
 
