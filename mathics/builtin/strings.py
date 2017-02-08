@@ -2459,3 +2459,202 @@ class StringTrim(Builtin):
         right = m.start(0) if m else len(text)
 
         return String(text[left:right])
+
+
+class StringInsert(Builtin):
+    """
+    <dl>
+    <dt>'StringInsert["$strsource$", "$strnew$", pos]'
+        <dd>returns a string with $strnew$ inserted starting at position $pos$ in $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", -pos]'
+        <dd>returns a string with $strnew$ inserted at position $pos$ from the end of $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", {pos_1, pos_2, ...}]'
+        <dd>returns a string with $strnew$ inserted at each position $pos_i$ in $strsource$,
+            the $pos_i$ are taken before any insertion is done.
+    <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$strnew$", pos]'
+        <dd>inserts $strnew$ to each of $s_i$ at the position $pos$
+    </dl>
+
+    >> StringInsert["abcdefghijklm", "X", 4]
+     = abcXdefghijklm
+     
+    >> StringInsert["abcdefghijklm", "X", 1]
+     = Xabcdefghijklm
+    
+    >> StringInsert["abcdefghijklm", "X", 14]
+     = abcdefghijklmX
+     
+    #> StringInsert["abcdefghijklm", "X", 15]
+     : Cannot insert at position 15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, 15]
+    
+    #> StringInsert["", "X", 1]
+     = X
+     
+    #> StringInsert["abcdefghijklm", "", 1]
+     = abcdefghijklm
+     
+    #> StringInsert["", "", 1]
+     = 
+
+    #> StringInsert[abcdefghijklm, "X", 4]
+     : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+     
+    #> StringInsert["abcdefghijklm", X, 4]
+     : String expected at position 2 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+     
+    #> StringInsert["abcdefghijklm", "X", a]
+     : Position specification a in StringInsert[abcdefghijklm, X, a] is not a machine-sized integer or a list of machine-sized integers.
+     = StringInsert[abcdefghijklm, X, a]
+    
+    #> StringInsert["abcdefghijklm", "X", 0]
+     : Cannot insert at position 0 in abcdefghijklm.
+     =  StringInsert[abcdefghijklm, X, 0]
+     
+    >> StringInsert["abcdefghijklm", "X", -1]
+     = abcdefghijklmX
+     
+    >> StringInsert["abcdefghijklm", "X", -14]
+     = Xabcdefghijklm
+    
+    #> StringInsert["abcdefghijklm", "X", -15]
+     : Cannot insert at position -15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, -15]
+    
+    #> StringInsert["", "X", -1]
+     = X
+    
+    #> StringInsert["", "", -1]
+     = 
+    #> StringInsert["abcdefghijklm", "", -1]
+     = abcdefghijklm
+     
+    >> StringInsert["abcdefghijklm", "X", {1, 4, 9}]
+     = XabcXdefghXijklm
+
+    #> StringInsert["abcdefghijklm", "X", {1, -1, 14, -14}]
+     = XXabcdefghijklmXX
+     
+    #> StringInsert["abcdefghijklm", "X", {1, 0}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, {1, 0}]
+     
+    #> StringInsert["", "X", {1}]
+     = X
+
+    #> StringInsert["", "X", {1, -1}]
+     = XX
+    
+    #> StringInsert["", "", {1}]
+     = 
+    
+    #> StringInsert["", "X", {1, 2}]
+     : Cannot insert at position 2 in .
+     = StringInsert[, X, {1, 2}]
+    
+    #> StringInsert["abcdefghijklm", "", {1, 2, 3, 4 ,5, -6}]
+     = abcdefghijklm
+    
+    #> StringInsert["abcdefghijklm", "X", {}]
+     = abcdefghijklm
+     
+    >> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 4]
+     = {abcXdefghijklm, MatXhics}
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 13]
+     : Cannot insert at position 13 in Mathics.
+     = {abcdefghijklXm, StringInsert[Mathics, X, 13]}
+    
+    #> StringInsert[{"", ""}, "", {1, 1, 1, 1}]
+     = {, }
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {0, 2}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     : Cannot insert at position 0 in Mathics.
+     = {StringInsert[abcdefghijklm, X, {0, 2}], StringInsert[Mathics, X, {0, 2}]}
+
+    #> StringInsert[{"abcdefghijklm", Mathics}, "X", {1, 2}]
+     : String or list of strings expected at position 1 in StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}].
+     = StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}]
+    
+    #> StringInsert[{"", "Mathics"}, "X", {1, 1, -1}]
+     = {XXX, XXMathicsX}
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]
+     = {abcdefghijklm, Mathics}
+    
+    >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
+     = 1.234.567.890.123.456    """
+
+    messages = {
+        'strse':  'String or list of strings expected at position `1` in `2`.',
+        'string': 'String expected at position `1` in `2`.',
+        'ins':    'Cannot insert at position `1` in `2`.',
+        'psl':    'Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.',
+    }
+
+    def _insert(self, str, add, lpos, evaluation):
+        for pos in lpos:
+            if abs(pos) < 1 or abs(pos) > len(str)+1:
+                evaluation.message('StringInsert', 'ins', Integer(pos), String(str))
+                return evaluation.format_output(Expression('StringInsert', str, add, lpos[0] if len(lpos) == 1 else lpos))
+                
+        # Create new list of position which are rearranged
+        pos_limit = len(str) + 2
+        listpos = [p if p > 0 else pos_limit+p for p in lpos]
+        listpos.sort()
+        
+        result = ''
+        start = 0
+        for pos in listpos:
+            stop = pos - 1
+            result += str[start:stop] + add
+            start = stop
+        else:
+            result += str[start:len(str)]
+        
+        return result
+
+    def apply(self, strsource, strnew, pos, evaluation):
+        'StringInsert[strsource_, strnew_, pos_]'
+        
+        exp = Expression('StringInsert', strsource, strnew, pos)
+
+        py_strnew = strnew.get_string_value()
+        if py_strnew is None:
+            return evaluation.message('StringInsert', 'string', Integer(2), exp)
+        
+        # Check and create list of position
+        listpos = []
+        if pos.has_form('List', None):
+            leaves = pos.get_leaves()
+            if not leaves:
+                return strsource
+            else:
+                for i, posi in enumerate(leaves):
+                    py_posi = posi.get_int_value()
+                    if py_posi is None:
+                        return evaluation.message('StringInsert', 'psl', pos, exp)
+                    listpos.append(py_posi)
+        else:
+            py_pos = pos.get_int_value()
+            if py_pos is None:
+                return evaluation.message('StringInsert', 'psl', pos, exp)
+            listpos.append(py_pos)
+        
+        # Check and perform the insertion
+        if strsource.has_form('List', None):
+            py_strsource = [sub.get_string_value() 
+                            for sub in strsource.leaves]
+            if any(sub is None for sub in py_strsource):
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return Expression('List', *[String(self._insert(s, py_strnew, listpos, evaluation)) for s in py_strsource])
+        else:
+            py_strsource = strsource.get_string_value()
+            if py_strsource is None:
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
+
+
