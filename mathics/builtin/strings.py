@@ -2658,3 +2658,129 @@ class StringInsert(Builtin):
             return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
 
 
+class StringContainsQ(Builtin):
+    """
+    <dl>
+    <dt>'StringContainsQ["$string$", $patt$]'
+        <dd>returns True if any part of $string$ matches $patt$, and returns False otherwise.
+    <dt>'StringContainsQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringContainsQ[patt]'
+        <dd>represents an operator form of StringContainsQ that can be applied to an expression.
+    </dl>
+
+    >> StringContainsQ["mathics", "m" ~~ __ ~~ "s"]
+     = True
+
+    >> StringContainsQ["mathics", "a" ~~ __ ~~ "m"]
+     = False
+
+    #> StringContainsQ["Hello", "o"]
+     = True
+
+    #> StringContainsQ["a"]["abcd"]
+     = True
+
+    #> StringContainsQ["Mathics", "ma", IgnoreCase -> False]
+     = False
+
+    >> StringContainsQ["Mathics", "MA" , IgnoreCase -> True]
+     = True
+
+    #> StringContainsQ["", "Empty String"]
+     = False
+
+    #> StringContainsQ["", ___]
+     = True
+
+    #> StringContainsQ["Empty Pattern", ""]
+     = True
+     
+    #> StringContainsQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringContainsQ[notastring, n].
+     = StringContainsQ[notastring, n]
+
+    #> StringContainsQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringContainsQ[Welcome, notapattern]
+
+    >> StringContainsQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {False, False, False, True, True}
+
+    #> StringContainsQ[{}, "list of string is empty"]
+     = {}
+    
+    >> StringContainsQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {True, True, True, False, False, False, False, False, True}
+
+    ## special cases, Mathematica allows list of patterns
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {False, False, True, True, False}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {False, False, True, True, True}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {False, False, False, False, False}
+
+    #> StringContainsQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+    
+    options = {
+        'IgnoreCase': 'False',
+    }
+    
+    rules = {
+        'StringContainsQ[patt_][expr_]': 'StringContainsQ[expr, patt]',
+    }
+    
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+    
+    def apply(self, string, patt, evaluation, options):
+        'StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]'
+        # Get the pattern list and check validity for each
+        if patt.has_form('List', None):
+            patts = patt.get_leaves()
+        else:
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = to_regex(p, evaluation)
+            if py_p is None:
+                return evaluation.message('StringExpression', 'invld', p, patt)
+            re_patts.append(py_p)
+
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
+        
+        def pattern_search(patts, str, flags):
+            if any(re.search(p, str, flags=flags) for p in patts):
+                return Symbol('True')
+            return Symbol('False')
+            
+        # Check string validity and perform regex searchhing
+        if string.has_form('List', None):
+            py_s = [s.get_string_value() for s in string.leaves]
+            if any(s is None for s in py_s):
+                return evaluation.message('StringContainsQ', 'strse', Integer(1),
+                                          Expression('StringContainsQ', string, patt))
+            return Expression('List', *[pattern_search(re_patts, s, flags) for s in py_s])
+        else:
+            py_s = string.get_string_value()
+            if py_s is None:
+                return evaluation.message('StringContainsQ', 'strse', Integer(1),
+                                          Expression('StringContainsQ', string, patt))
+            return pattern_search(re_patts, py_s, flags)
+            
+    
