@@ -2658,6 +2658,43 @@ class StringInsert(Builtin):
             return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
 
 
+def _pattern_search(name, string, patt, evaluation, options, matched):
+    # Get the pattern list and check validity for each
+    if patt.has_form('List', None):
+        patts = patt.get_leaves()
+    else:
+        patts = [patt]
+    re_patts = []
+    for p in patts:
+        py_p = to_regex(p, evaluation)
+        if py_p is None:
+            return evaluation.message('StringExpression', 'invld', p, patt)
+        re_patts.append(py_p)
+
+    flags = re.MULTILINE
+    if options['System`IgnoreCase'] == Symbol('True'):
+        flags = flags | re.IGNORECASE
+    
+    def _search(patts, str, flags, matched):
+        if any(re.search(p, str, flags=flags) for p in patts):
+            return Symbol('True') if matched else Symbol('False')
+        return Symbol('False') if matched else Symbol('True')
+        
+    # Check string validity and perform regex searchhing
+    if string.has_form('List', None):
+        py_s = [s.get_string_value() for s in string.leaves]
+        if any(s is None for s in py_s):
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return Expression('List', *[_search(re_patts, s, flags, matched) for s in py_s])
+    else:
+        py_s = string.get_string_value()
+        if py_s is None:
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return _search(re_patts, py_s, flags, matched)
+
+
 class StringContainsQ(Builtin):
     """
     <dl>
@@ -2748,39 +2785,100 @@ class StringContainsQ(Builtin):
     
     def apply(self, string, patt, evaluation, options):
         'StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]'
-        # Get the pattern list and check validity for each
-        if patt.has_form('List', None):
-            patts = patt.get_leaves()
-        else:
-            patts = [patt]
-        re_patts = []
-        for p in patts:
-            py_p = to_regex(p, evaluation)
-            if py_p is None:
-                return evaluation.message('StringExpression', 'invld', p, patt)
-            re_patts.append(py_p)
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, True)
 
-        flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
-            flags = flags | re.IGNORECASE
-        
-        def pattern_search(patts, str, flags):
-            if any(re.search(p, str, flags=flags) for p in patts):
-                return Symbol('True')
-            return Symbol('False')
-            
-        # Check string validity and perform regex searchhing
-        if string.has_form('List', None):
-            py_s = [s.get_string_value() for s in string.leaves]
-            if any(s is None for s in py_s):
-                return evaluation.message('StringContainsQ', 'strse', Integer(1),
-                                          Expression('StringContainsQ', string, patt))
-            return Expression('List', *[pattern_search(re_patts, s, flags) for s in py_s])
-        else:
-            py_s = string.get_string_value()
-            if py_s is None:
-                return evaluation.message('StringContainsQ', 'strse', Integer(1),
-                                          Expression('StringContainsQ', string, patt))
-            return pattern_search(re_patts, py_s, flags)
-            
+
+class StringFreeQ(Builtin):
+    """
+    <dl>
+    <dt>'StringFreeQ["$string$", $patt$]'
+        <dd>returns True if no substring in $string$ matches the string expression $patt$, and returns False otherwise.
+    <dt>'StringFreeQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringFreeQ["string", {p1, p2, ...}]'
+        <dd>returns True if no substring matches any of the $pi$.
+    <dt>'StringFreeQ[patt]'
+        <dd>represents an operator form of StringFreeQ that can be applied to an expression.
+    </dl>
+
+    >> StringFreeQ["mathics", "m" ~~ __ ~~ "s"]
+     = False
+
+    >> StringFreeQ["mathics", "a" ~~ __ ~~ "m"]
+     = True
+
+    #> StringFreeQ["Hello", "o"]
+     = False
+
+    #> StringFreeQ["a"]["abcd"]
+     = False
+
+    #> StringFreeQ["Mathics", "ma", IgnoreCase -> False]
+     = True
+
+    >> StringFreeQ["Mathics", "MA" , IgnoreCase -> True]
+     = False
+
+    #> StringFreeQ["", "Empty String"]
+     = True
+
+    #> StringFreeQ["", ___]
+     = False
+
+    #> StringFreeQ["Empty Pattern", ""]
+     = False
+     
+    #> StringFreeQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringFreeQ[notastring, n].
+     = StringFreeQ[notastring, n]
+
+    #> StringFreeQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringFreeQ[Welcome, notapattern]
+
+    >> StringFreeQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {True, True, True, False, False}
+
+    #> StringFreeQ[{}, "list of string is empty"]
+     = {}
     
+    >> StringFreeQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {False, False, False, True, True, True, True, True, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {True, True, False, False, True}
+
+    >> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {True, True, False, False, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {True, True, True, True, True}
+
+    #> StringFreeQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+    
+    options = {
+        'IgnoreCase': 'False',
+    }
+    
+    rules = {
+        'StringFreeQ[patt_][expr_]': 'StringFreeQ[expr, patt]',
+    }
+    
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+    
+    def apply(self, string, patt, evaluation, options):
+        'StringFreeQ[string_, patt_, OptionsPattern[%(name)s]]'
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, False)
+
+
