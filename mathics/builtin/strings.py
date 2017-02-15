@@ -2882,3 +2882,120 @@ class StringFreeQ(Builtin):
         return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, False)
 
 
+class StringRiffle(Builtin):
+    """
+    <dl>
+    <dt>'StringRiffle[{s1, s2, s3, ...}]'
+      <dd>returns a new string by concatenating all the $si$, with spaces inserted between them.
+    <dt>'StringRiffle[list, sep]'
+      <dd>inserts the separator $sep$ between all elements in $list$.
+    <dt>'StringRiffle[list, {"left", "sep", "right"}]'
+      <dd>use $left$ and $right$ as delimiters after concatenation.
+    
+    ## These 2 forms are not currently implemented
+    ## <dt>'StringRiffle[{{s11, s12, ...}, {s21, s22, ...}, ...}]'
+    ##   <dd>returns a new string by concatenating the $sij$, and inserting spaces at the lowest level and newlines at the higher level.
+    ## <dt>'StringRiffle[list, sep1, sep2, ...]'
+    ##   <dd>inserts separator $sepi$ between elements of list at level i.
+    </dl>
+    
+    >> StringRiffle[{"a", "b", "c", "d", "e"}]
+     = a b c d e
+
+    #> StringRiffle[{a, b, c, "d", e, "f"}]
+     = a b c d e f
+     
+    ## 1st is not a list
+    #> StringRiffle["abcdef"]
+     : List expected at position 1 in StringRiffle[abcdef].
+     : StringRiffle called with 1 argument; 2 or more arguments are expected.
+     = StringRiffle[abcdef]
+
+    #> StringRiffle[{"", "", ""}] // FullForm
+     = "  "
+     
+    ## This form is not supported
+    #> StringRiffle[{{"a", "b"}, {"c", "d"}}]
+     : Sublist form in position 1 is is not implemented yet.
+     = StringRiffle[{{a, b}, {c, d}}]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, ", "]
+     = a, b, c, d, e
+     
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, sep]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, sep].
+     = StringRiffle[{a, b, c, d, e}, sep]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, {"(", " ", ")"}]
+     = (a b c d e)
+    
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {" ", ")"}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, { , )}].
+     = StringRiffle[{a, b, c, d, e}, { , )}]
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {left, " ", "."}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, {left,  , .}].
+     = StringRiffle[{a, b, c, d, e}, {left,  , .}]
+     
+    ## This form is not supported
+    #> StringRiffle[{"a", "b", "c"}, "+", "-"]
+    ## Mathematica result: a+b+c, but we are not support multiple separators
+     :  Multiple separators form is not implemented yet.
+     = StringRiffle[{a, b, c}, +, -]
+    """
+
+    attributes = ('ReadProtected', )
+    
+    messages = {
+        'list': 'List expected at position `1` in `2`.',
+        'argmu': 'StringRiffle called with 1 argument; 2 or more arguments are expected.',
+        'argm':  'StringRiffle called with 0 arguments; 2 or more arguments are expected.',
+        'string': 'String expected at position `1` in `2`.',
+        'sublist': 'Sublist form in position 1 is is not implemented yet.',
+        'mulsep':  'Multiple separators form is not implemented yet.',
+    }
+    
+    def apply(self, liststr, seps, evaluation):
+        'StringRiffle[liststr_, seps___]'
+        separators = seps.get_sequence()
+        exp = Expression('StringRiffle', liststr, seps) if separators else Expression('StringRiffle', liststr)
+        
+        # Validate separators
+        if len(separators) > 1:
+            return evaluation.message('StringRiffle', 'mulsep')
+        elif len(separators) == 1:
+            if separators[0].has_form('List', None):
+                if len(separators[0].leaves) != 3 or any(not isinstance(s, String) for s in separators[0].leaves):
+                    return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+            elif not isinstance(separators[0], String):
+                return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+        
+        # Validate list of string
+        if not liststr.has_form('List', None):
+            evaluation.message('StringRiffle', 'list', Integer(1), exp)
+            return evaluation.message('StringRiffle', 'argmu', exp)
+        elif any(leaf.has_form('List', None) for leaf in liststr.leaves):
+            return evaluation.message('StringRiffle', 'sublist')
+        
+        # Determine the separation token
+        left, right = '', ''
+        if len(separators) == 0:
+            sep = ' '
+        else:
+            if separators[0].has_form('List', None):
+                left  = separators[0].leaves[0].value
+                sep   = separators[0].leaves[1].value
+                right = separators[0].leaves[2].value
+            else:
+                sep   = separators[0].get_string_value()
+
+        # Getting all together
+        result = left
+        for i in range(len(liststr.leaves)):
+            text = liststr.leaves[i].format(evaluation, 'System`OutputForm').boxes_to_text(evaluation=evaluation)
+            if i == len(liststr.leaves) - 1:
+                result += text + right
+            else:
+                result += text + sep
+
+        return String(result)
+
