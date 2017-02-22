@@ -651,3 +651,59 @@ class UpTo(Builtin):
 
 class Missing(Builtin):
     pass
+    
+    
+class MinimalPolynomial(Builtin):
+    """
+    <dl>
+    <dt>'MinimalPolynomial[s, x]'
+        <dd>gives the minimal polynomial in $x$ for which the algebraic number $s$ is a root.
+    </dl>
+
+    >> MinimalPolynomial[7, x]
+     = -7 + x
+    >> MinimalPolynomial[Sqrt[2] + Sqrt[3], x]
+     = 1 - 10 x ^ 2 + x ^ 4
+    >> MinimalPolynomial[Sqrt[1 + Sqrt[3]], x]
+     = -2 - 2 x ^ 2 + x ^ 4
+    >> MinimalPolynomial[Sqrt[I + Sqrt[6]], x]
+     = 49 - 10 x ^ 4 + x ^ 8
+    
+    #> MinimalPolynomial[7a, x]
+     : 7 a is not an explicit algebraic number.
+     = MinimalPolynomial[7 a, x]
+    #> MinimalPolynomial[3x^3 + 2x^2 + y^2 + ab, x]
+     : ab + 2 x ^ 2 + 3 x ^ 3 + y ^ 2 is not an explicit algebraic number.
+     = MinimalPolynomial[ab + 2 x ^ 2 + 3 x ^ 3 + y ^ 2, x]
+    
+    ## PurePoly
+    #> MinimalPolynomial[Sqrt[2 + Sqrt[3]]]
+     = 1 - 4 #1 ^ 2 + #1 ^ 4
+    """
+    
+    attributes = ('Listable',)
+    
+    messages = {
+        'nalg': '`1` is not an explicit algebraic number.',
+    }
+
+    def apply_novar(self, s, evaluation):
+        'MinimalPolynomial[s_]'
+        x = Symbol('#1')
+        return self.apply(s, x, evaluation)
+        
+    def apply(self, s, x, evaluation):
+        'MinimalPolynomial[s_, x_]'
+        variables = find_all_vars(s)
+        if len(variables) > 0:
+            return evaluation.message('MinimalPolynomial', 'nalg', s)
+        
+        if s == Symbol('Null'):
+            return evaluation.message('MinimalPolynomial', 'nalg', s)
+        
+        sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
+        if sympy_s is None or sympy_x is None:
+            return None
+        sympy_result = sympy.minimal_polynomial(sympy_s, sympy_x)
+        return from_sympy(sympy_result)
+
