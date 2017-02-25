@@ -2459,3 +2459,543 @@ class StringTrim(Builtin):
         right = m.start(0) if m else len(text)
 
         return String(text[left:right])
+
+
+class StringInsert(Builtin):
+    """
+    <dl>
+    <dt>'StringInsert["$strsource$", "$strnew$", pos]'
+        <dd>returns a string with $strnew$ inserted starting at position $pos$ in $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", -pos]'
+        <dd>returns a string with $strnew$ inserted at position $pos$ from the end of $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", {pos_1, pos_2, ...}]'
+        <dd>returns a string with $strnew$ inserted at each position $pos_i$ in $strsource$,
+            the $pos_i$ are taken before any insertion is done.
+    <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$strnew$", pos]'
+        <dd>inserts $strnew$ to each of $s_i$ at the position $pos$
+    </dl>
+
+    >> StringInsert["abcdefghijklm", "X", 4]
+     = abcXdefghijklm
+     
+    >> StringInsert["abcdefghijklm", "X", 1]
+     = Xabcdefghijklm
+    
+    >> StringInsert["abcdefghijklm", "X", 14]
+     = abcdefghijklmX
+     
+    #> StringInsert["abcdefghijklm", "X", 15]
+     : Cannot insert at position 15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, 15]
+    
+    #> StringInsert["", "X", 1]
+     = X
+     
+    #> StringInsert["abcdefghijklm", "", 1]
+     = abcdefghijklm
+     
+    #> StringInsert["", "", 1]
+     = 
+
+    #> StringInsert[abcdefghijklm, "X", 4]
+     : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+     
+    #> StringInsert["abcdefghijklm", X, 4]
+     : String expected at position 2 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+     
+    #> StringInsert["abcdefghijklm", "X", a]
+     : Position specification a in StringInsert[abcdefghijklm, X, a] is not a machine-sized integer or a list of machine-sized integers.
+     = StringInsert[abcdefghijklm, X, a]
+    
+    #> StringInsert["abcdefghijklm", "X", 0]
+     : Cannot insert at position 0 in abcdefghijklm.
+     =  StringInsert[abcdefghijklm, X, 0]
+     
+    >> StringInsert["abcdefghijklm", "X", -1]
+     = abcdefghijklmX
+     
+    >> StringInsert["abcdefghijklm", "X", -14]
+     = Xabcdefghijklm
+    
+    #> StringInsert["abcdefghijklm", "X", -15]
+     : Cannot insert at position -15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, -15]
+    
+    #> StringInsert["", "X", -1]
+     = X
+    
+    #> StringInsert["", "", -1]
+     = 
+    #> StringInsert["abcdefghijklm", "", -1]
+     = abcdefghijklm
+     
+    >> StringInsert["abcdefghijklm", "X", {1, 4, 9}]
+     = XabcXdefghXijklm
+
+    #> StringInsert["abcdefghijklm", "X", {1, -1, 14, -14}]
+     = XXabcdefghijklmXX
+     
+    #> StringInsert["abcdefghijklm", "X", {1, 0}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, {1, 0}]
+     
+    #> StringInsert["", "X", {1}]
+     = X
+
+    #> StringInsert["", "X", {1, -1}]
+     = XX
+    
+    #> StringInsert["", "", {1}]
+     = 
+    
+    #> StringInsert["", "X", {1, 2}]
+     : Cannot insert at position 2 in .
+     = StringInsert[, X, {1, 2}]
+    
+    #> StringInsert["abcdefghijklm", "", {1, 2, 3, 4 ,5, -6}]
+     = abcdefghijklm
+    
+    #> StringInsert["abcdefghijklm", "X", {}]
+     = abcdefghijklm
+     
+    >> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 4]
+     = {abcXdefghijklm, MatXhics}
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 13]
+     : Cannot insert at position 13 in Mathics.
+     = {abcdefghijklXm, StringInsert[Mathics, X, 13]}
+    
+    #> StringInsert[{"", ""}, "", {1, 1, 1, 1}]
+     = {, }
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {0, 2}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     : Cannot insert at position 0 in Mathics.
+     = {StringInsert[abcdefghijklm, X, {0, 2}], StringInsert[Mathics, X, {0, 2}]}
+
+    #> StringInsert[{"abcdefghijklm", Mathics}, "X", {1, 2}]
+     : String or list of strings expected at position 1 in StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}].
+     = StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}]
+    
+    #> StringInsert[{"", "Mathics"}, "X", {1, 1, -1}]
+     = {XXX, XXMathicsX}
+    
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]
+     = {abcdefghijklm, Mathics}
+    
+    >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
+     = 1.234.567.890.123.456    """
+
+    messages = {
+        'strse':  'String or list of strings expected at position `1` in `2`.',
+        'string': 'String expected at position `1` in `2`.',
+        'ins':    'Cannot insert at position `1` in `2`.',
+        'psl':    'Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.',
+    }
+
+    def _insert(self, str, add, lpos, evaluation):
+        for pos in lpos:
+            if abs(pos) < 1 or abs(pos) > len(str)+1:
+                evaluation.message('StringInsert', 'ins', Integer(pos), String(str))
+                return evaluation.format_output(Expression('StringInsert', str, add, lpos[0] if len(lpos) == 1 else lpos))
+                
+        # Create new list of position which are rearranged
+        pos_limit = len(str) + 2
+        listpos = [p if p > 0 else pos_limit+p for p in lpos]
+        listpos.sort()
+        
+        result = ''
+        start = 0
+        for pos in listpos:
+            stop = pos - 1
+            result += str[start:stop] + add
+            start = stop
+        else:
+            result += str[start:len(str)]
+        
+        return result
+
+    def apply(self, strsource, strnew, pos, evaluation):
+        'StringInsert[strsource_, strnew_, pos_]'
+        
+        exp = Expression('StringInsert', strsource, strnew, pos)
+
+        py_strnew = strnew.get_string_value()
+        if py_strnew is None:
+            return evaluation.message('StringInsert', 'string', Integer(2), exp)
+        
+        # Check and create list of position
+        listpos = []
+        if pos.has_form('List', None):
+            leaves = pos.get_leaves()
+            if not leaves:
+                return strsource
+            else:
+                for i, posi in enumerate(leaves):
+                    py_posi = posi.get_int_value()
+                    if py_posi is None:
+                        return evaluation.message('StringInsert', 'psl', pos, exp)
+                    listpos.append(py_posi)
+        else:
+            py_pos = pos.get_int_value()
+            if py_pos is None:
+                return evaluation.message('StringInsert', 'psl', pos, exp)
+            listpos.append(py_pos)
+        
+        # Check and perform the insertion
+        if strsource.has_form('List', None):
+            py_strsource = [sub.get_string_value() 
+                            for sub in strsource.leaves]
+            if any(sub is None for sub in py_strsource):
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return Expression('List', *[String(self._insert(s, py_strnew, listpos, evaluation)) for s in py_strsource])
+        else:
+            py_strsource = strsource.get_string_value()
+            if py_strsource is None:
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
+
+
+def _pattern_search(name, string, patt, evaluation, options, matched):
+    # Get the pattern list and check validity for each
+    if patt.has_form('List', None):
+        patts = patt.get_leaves()
+    else:
+        patts = [patt]
+    re_patts = []
+    for p in patts:
+        py_p = to_regex(p, evaluation)
+        if py_p is None:
+            return evaluation.message('StringExpression', 'invld', p, patt)
+        re_patts.append(py_p)
+
+    flags = re.MULTILINE
+    if options['System`IgnoreCase'] == Symbol('True'):
+        flags = flags | re.IGNORECASE
+    
+    def _search(patts, str, flags, matched):
+        if any(re.search(p, str, flags=flags) for p in patts):
+            return Symbol('True') if matched else Symbol('False')
+        return Symbol('False') if matched else Symbol('True')
+        
+    # Check string validity and perform regex searchhing
+    if string.has_form('List', None):
+        py_s = [s.get_string_value() for s in string.leaves]
+        if any(s is None for s in py_s):
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return Expression('List', *[_search(re_patts, s, flags, matched) for s in py_s])
+    else:
+        py_s = string.get_string_value()
+        if py_s is None:
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return _search(re_patts, py_s, flags, matched)
+
+
+class StringContainsQ(Builtin):
+    """
+    <dl>
+    <dt>'StringContainsQ["$string$", $patt$]'
+        <dd>returns True if any part of $string$ matches $patt$, and returns False otherwise.
+    <dt>'StringContainsQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringContainsQ[patt]'
+        <dd>represents an operator form of StringContainsQ that can be applied to an expression.
+    </dl>
+
+    >> StringContainsQ["mathics", "m" ~~ __ ~~ "s"]
+     = True
+
+    >> StringContainsQ["mathics", "a" ~~ __ ~~ "m"]
+     = False
+
+    #> StringContainsQ["Hello", "o"]
+     = True
+
+    #> StringContainsQ["a"]["abcd"]
+     = True
+
+    #> StringContainsQ["Mathics", "ma", IgnoreCase -> False]
+     = False
+
+    >> StringContainsQ["Mathics", "MA" , IgnoreCase -> True]
+     = True
+
+    #> StringContainsQ["", "Empty String"]
+     = False
+
+    #> StringContainsQ["", ___]
+     = True
+
+    #> StringContainsQ["Empty Pattern", ""]
+     = True
+     
+    #> StringContainsQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringContainsQ[notastring, n].
+     = StringContainsQ[notastring, n]
+
+    #> StringContainsQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringContainsQ[Welcome, notapattern]
+
+    >> StringContainsQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {False, False, False, True, True}
+
+    #> StringContainsQ[{}, "list of string is empty"]
+     = {}
+    
+    >> StringContainsQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {True, True, True, False, False, False, False, False, True}
+
+    ## special cases, Mathematica allows list of patterns
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {False, False, True, True, False}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {False, False, True, True, True}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {False, False, False, False, False}
+
+    #> StringContainsQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+    
+    options = {
+        'IgnoreCase': 'False',
+    }
+    
+    rules = {
+        'StringContainsQ[patt_][expr_]': 'StringContainsQ[expr, patt]',
+    }
+    
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+    
+    def apply(self, string, patt, evaluation, options):
+        'StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]'
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, True)
+
+
+class StringFreeQ(Builtin):
+    """
+    <dl>
+    <dt>'StringFreeQ["$string$", $patt$]'
+        <dd>returns True if no substring in $string$ matches the string expression $patt$, and returns False otherwise.
+    <dt>'StringFreeQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringFreeQ["string", {p1, p2, ...}]'
+        <dd>returns True if no substring matches any of the $pi$.
+    <dt>'StringFreeQ[patt]'
+        <dd>represents an operator form of StringFreeQ that can be applied to an expression.
+    </dl>
+
+    >> StringFreeQ["mathics", "m" ~~ __ ~~ "s"]
+     = False
+
+    >> StringFreeQ["mathics", "a" ~~ __ ~~ "m"]
+     = True
+
+    #> StringFreeQ["Hello", "o"]
+     = False
+
+    #> StringFreeQ["a"]["abcd"]
+     = False
+
+    #> StringFreeQ["Mathics", "ma", IgnoreCase -> False]
+     = True
+
+    >> StringFreeQ["Mathics", "MA" , IgnoreCase -> True]
+     = False
+
+    #> StringFreeQ["", "Empty String"]
+     = True
+
+    #> StringFreeQ["", ___]
+     = False
+
+    #> StringFreeQ["Empty Pattern", ""]
+     = False
+     
+    #> StringFreeQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringFreeQ[notastring, n].
+     = StringFreeQ[notastring, n]
+
+    #> StringFreeQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringFreeQ[Welcome, notapattern]
+
+    >> StringFreeQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {True, True, True, False, False}
+
+    #> StringFreeQ[{}, "list of string is empty"]
+     = {}
+    
+    >> StringFreeQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {False, False, False, True, True, True, True, True, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {True, True, False, False, True}
+
+    >> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {True, True, False, False, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {True, True, True, True, True}
+
+    #> StringFreeQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+    
+    options = {
+        'IgnoreCase': 'False',
+    }
+    
+    rules = {
+        'StringFreeQ[patt_][expr_]': 'StringFreeQ[expr, patt]',
+    }
+    
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+    
+    def apply(self, string, patt, evaluation, options):
+        'StringFreeQ[string_, patt_, OptionsPattern[%(name)s]]'
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, False)
+
+
+class StringRiffle(Builtin):
+    """
+    <dl>
+    <dt>'StringRiffle[{s1, s2, s3, ...}]'
+      <dd>returns a new string by concatenating all the $si$, with spaces inserted between them.
+    <dt>'StringRiffle[list, sep]'
+      <dd>inserts the separator $sep$ between all elements in $list$.
+    <dt>'StringRiffle[list, {"left", "sep", "right"}]'
+      <dd>use $left$ and $right$ as delimiters after concatenation.
+    
+    ## These 2 forms are not currently implemented
+    ## <dt>'StringRiffle[{{s11, s12, ...}, {s21, s22, ...}, ...}]'
+    ##   <dd>returns a new string by concatenating the $sij$, and inserting spaces at the lowest level and newlines at the higher level.
+    ## <dt>'StringRiffle[list, sep1, sep2, ...]'
+    ##   <dd>inserts separator $sepi$ between elements of list at level i.
+    </dl>
+    
+    >> StringRiffle[{"a", "b", "c", "d", "e"}]
+     = a b c d e
+
+    #> StringRiffle[{a, b, c, "d", e, "f"}]
+     = a b c d e f
+     
+    ## 1st is not a list
+    #> StringRiffle["abcdef"]
+     : List expected at position 1 in StringRiffle[abcdef].
+     : StringRiffle called with 1 argument; 2 or more arguments are expected.
+     = StringRiffle[abcdef]
+
+    #> StringRiffle[{"", "", ""}] // FullForm
+     = "  "
+     
+    ## This form is not supported
+    #> StringRiffle[{{"a", "b"}, {"c", "d"}}]
+     : Sublist form in position 1 is is not implemented yet.
+     = StringRiffle[{{a, b}, {c, d}}]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, ", "]
+     = a, b, c, d, e
+     
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, sep]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, sep].
+     = StringRiffle[{a, b, c, d, e}, sep]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, {"(", " ", ")"}]
+     = (a b c d e)
+    
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {" ", ")"}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, { , )}].
+     = StringRiffle[{a, b, c, d, e}, { , )}]
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {left, " ", "."}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, {left,  , .}].
+     = StringRiffle[{a, b, c, d, e}, {left,  , .}]
+     
+    ## This form is not supported
+    #> StringRiffle[{"a", "b", "c"}, "+", "-"]
+    ## Mathematica result: a+b+c, but we are not support multiple separators
+     :  Multiple separators form is not implemented yet.
+     = StringRiffle[{a, b, c}, +, -]
+    """
+
+    attributes = ('ReadProtected', )
+    
+    messages = {
+        'list': 'List expected at position `1` in `2`.',
+        'argmu': 'StringRiffle called with 1 argument; 2 or more arguments are expected.',
+        'argm':  'StringRiffle called with 0 arguments; 2 or more arguments are expected.',
+        'string': 'String expected at position `1` in `2`.',
+        'sublist': 'Sublist form in position 1 is is not implemented yet.',
+        'mulsep':  'Multiple separators form is not implemented yet.',
+    }
+    
+    def apply(self, liststr, seps, evaluation):
+        'StringRiffle[liststr_, seps___]'
+        separators = seps.get_sequence()
+        exp = Expression('StringRiffle', liststr, seps) if separators else Expression('StringRiffle', liststr)
+        
+        # Validate separators
+        if len(separators) > 1:
+            return evaluation.message('StringRiffle', 'mulsep')
+        elif len(separators) == 1:
+            if separators[0].has_form('List', None):
+                if len(separators[0].leaves) != 3 or any(not isinstance(s, String) for s in separators[0].leaves):
+                    return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+            elif not isinstance(separators[0], String):
+                return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+        
+        # Validate list of string
+        if not liststr.has_form('List', None):
+            evaluation.message('StringRiffle', 'list', Integer(1), exp)
+            return evaluation.message('StringRiffle', 'argmu', exp)
+        elif any(leaf.has_form('List', None) for leaf in liststr.leaves):
+            return evaluation.message('StringRiffle', 'sublist')
+        
+        # Determine the separation token
+        left, right = '', ''
+        if len(separators) == 0:
+            sep = ' '
+        else:
+            if separators[0].has_form('List', None):
+                left  = separators[0].leaves[0].value
+                sep   = separators[0].leaves[1].value
+                right = separators[0].leaves[2].value
+            else:
+                sep   = separators[0].get_string_value()
+
+        # Getting all together
+        result = left
+        for i in range(len(liststr.leaves)):
+            text = liststr.leaves[i].format(evaluation, 'System`OutputForm').boxes_to_text(evaluation=evaluation)
+            if i == len(liststr.leaves) - 1:
+                result += text + right
+            else:
+                result += text + sep
+
+        return String(result)
+
