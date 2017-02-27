@@ -789,4 +789,108 @@ class PolynomialQ(Builtin):
         return Symbol('True') if sympy_result else Symbol('False')
 
 
-
+class Coefficient(Builtin):
+    """
+    <dl>
+    <dt>'Coefficient[expr, form]'
+        <dd>returns the coefficient of $form$ in the polynomial $expr$.
+    <dt>'Coefficient[expr, form, n]'
+        <dd>return the coefficient of $form$^$n$ in $expr$.
+    </dl>
+    
+    ## Form 1
+    >> Coefficient[(x + y)^4, (x^2) * (y^2)]
+     = 6
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x]
+     = c
+    >> Coefficient[(x + 3 y)^5, x]
+     = 405 y ^ 4
+    >> Coefficient[(x + 3 y)^5, x * y^4]
+     = 405
+    >> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), x]
+     = 1 / (-3 + y) + 1 / (-2 + y)
+    #> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), z, 0]
+     = (2 + x) / (-3 + y) + (3 + x) / (-2 + y)
+     ## Sympy 1.0 returns 0, but Sympy 1.0.1.dev does correctly
+     
+    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), x]
+     = y / (-9 + y ^ 2) + 1 / (2 + y)
+    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), y]
+     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
+     ## MMA returns better one: (-2 + x) / (-9 + y ^ 2)
+    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), x]
+     = y / (-9 + y ^ 2) + 1 / (2 + y)
+    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), y]
+     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
+     ## MMA returns better one: (-2 + x) / ((-3 + y) (3 + y))
+    #> Coefficient[x^3 - 2 x/y + 3 x z, y]
+     = 0
+    #> Coefficient[x^2 + axy^2 - bSin[c], c]
+     = 0
+    >> Coefficient[x*Cos[x + 3] + 6*y, x]
+     = Cos[3 + x]
+     
+    ## Form 2
+    >> Coefficient[(x + 1)^3, x, 2]
+     = 3
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, y, 3]
+     = b
+    ## Find the free term in a polynomial
+    >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0]
+     = 17
+    >> Coefficient[(x + 2)^3 + (x + 3)^2, y, 0]
+     = (2 + x) ^ 3 + (3 + x) ^ 2
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x, 0]
+     = 5 + b y ^ 3 + d y
+     ## Sympy 1.0 return 5, but Sympy 1.0.1.dev does correctly
+     
+    ## Errors:
+    #> Coefficient[x + y + 3]
+     : Coefficient called with 1 argument; 2 or 3 arguments are expected.
+     = Coefficient[3 + x + y]
+    #> Coefficient[x + y + 3, 5]
+     : 5 is not a valid variable.
+     = Coefficient[3 + x + y, 5]
+    
+    ## ## TODO: Support Modulus
+    ## >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0, Modulus -> 3]
+    ##  = 2
+    ## #> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0, {Modulus -> 3, Modulus -> 2, Modulus -> 10}]
+    ##  = {2, 1, 7}
+    """
+    
+    messages = {
+        'argtu':  'Coefficient called with 1 argument; 2 or 3 arguments are expected.',
+        'ivar':   '`1` is not a valid variable.',
+    }
+    
+    attributes = ('Listable',)
+    
+    def apply_noform(self, expr, evaluation):
+        'Coefficient[expr_]'
+        return evaluation.message('Coefficient', 'argtu')
+        
+    def apply(self, expr, form, evaluation):
+        'Coefficient[expr_, form_]'
+        return self.apply_n(expr, form, Integer(1), evaluation)
+    
+    def apply_n(self, expr, form, n, evaluation):
+        'Coefficient[expr_, form_, n_]'
+        if expr == Symbol('Null') or form == Symbol('Null') or n == Symbol('Null'):
+            return Integer(0)
+        
+        if not(isinstance(form, Symbol)) and not(isinstance(form, Expression)):
+            return evaluation.message('Coefficient', 'ivar', form)
+        
+        sympy_exprs = expr.to_sympy().as_ordered_terms()
+        sympy_var = form.to_sympy()
+        sympy_n = n.to_sympy()
+        
+        sympy_result = 0
+        for e in sympy_exprs:
+            if sympy_var.free_symbols.issubset(e.free_symbols):
+                e = sympy.expand(e)
+            sympy_result += e.coeff(sympy_var, sympy_n)
+        
+        return from_sympy(sympy_result)
+    
