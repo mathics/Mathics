@@ -811,8 +811,6 @@ class Coefficient(Builtin):
      = 1 / (-3 + y) + 1 / (-2 + y)
     #> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), z, 0]
      = (2 + x) / (-3 + y) + (3 + x) / (-2 + y)
-     ## Sympy 1.0 returns 0, but Sympy 1.0.1.dev does correctly
-     
     #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), x]
      = y / (-9 + y ^ 2) + 1 / (2 + y)
     #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), y]
@@ -842,7 +840,6 @@ class Coefficient(Builtin):
      = (2 + x) ^ 3 + (3 + x) ^ 2
     >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x, 0]
      = 5 + b y ^ 3 + d y
-     ## Sympy 1.0 return 5, but Sympy 1.0.1.dev does correctly
      
     ## Errors:
     #> Coefficient[x + y + 3]
@@ -851,6 +848,12 @@ class Coefficient(Builtin):
     #> Coefficient[x + y + 3, 5]
      : 5 is not a valid variable.
      = Coefficient[3 + x + y, 5]
+     
+    ## This is known bug of Sympy 1.0, next Sympy version will fix it by this commit
+    ## https://github.com/sympy/sympy/commit/25bf64b64d4d9a2dc563022818d29d06bc740d47
+    ## #> Coefficient[x * y, z, 0]
+    ##  = x y
+    ##  ## Sympy 1.0 retuns 0
     
     ## ## TODO: Support Modulus
     ## >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0, Modulus -> 3]
@@ -886,11 +889,16 @@ class Coefficient(Builtin):
         sympy_var = form.to_sympy()
         sympy_n = n.to_sympy()
         
-        sympy_result = 0
-        for e in sympy_exprs:
-            if sympy_var.free_symbols.issubset(e.free_symbols):
-                e = sympy.expand(e)
-            sympy_result += e.coeff(sympy_var, sympy_n)
+        def combine_exprs(exprs):
+            result = 0
+            for e in exprs:
+                result += e
+            return result
+        
+        # expand sub expressions if they contain variables
+        sympy_exprs = [sympy.expand(e) if sympy_var.free_symbols.issubset(e.free_symbols) else e for e in sympy_exprs]
+        sympy_expr = combine_exprs(sympy_exprs)
+        sympy_result = sympy_expr.coeff(sympy_var, sympy_n)
         
         return from_sympy(sympy_result)
     
