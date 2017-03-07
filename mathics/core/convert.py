@@ -243,6 +243,8 @@ def from_sympy(expr):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
             name = 'Derivative'
+        elif isinstance(expr, sympy.sign):
+            name = 'Sign'
         else:
             name = expr.func.__name__
             if is_Cn_expr(name):
