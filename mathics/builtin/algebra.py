@@ -988,10 +988,10 @@ class CoefficientList(Builtin):
         'CoefficientList[expr_, form_]'
         vars = [form] if not form.has_form('List', None) else [v for v in form.leaves]
         
-        # form is not a variable
+        # check form is not a variable
         for v in vars:
-          if not(isinstance(v, Symbol)) and not(isinstance(v, Expression)):
-              return evaluation.message('CoefficientList', 'ivar', v)
+            if not(isinstance(v, Symbol)) and not(isinstance(v, Expression)):
+                return evaluation.message('CoefficientList', 'ivar', v)
         
         # special cases for expr and form
         e_null = expr == Symbol('Null')
@@ -1020,16 +1020,16 @@ class CoefficientList(Builtin):
             # single & multiple variables cases
             if not form.has_form('List', None):
                 return Expression('List', 
-                        *[_coefficient(self.__class__.__name__,expr, form, Integer(n), evaluation)
-                          for n in range(dimensions[0]+1)])
+                    *[_coefficient(self.__class__.__name__,expr, form, Integer(n), evaluation)
+                    for n in range(dimensions[0]+1)])
             elif form.has_form('List', 1):
                 form = form.leaves[0]
                 return Expression('List',
-                        *[_coefficient(self.__class__.__name__, expr, form, Integer(n), evaluation)
-                          for n in range(dimensions[0]+1)])
+                    *[_coefficient(self.__class__.__name__, expr, form, Integer(n), evaluation)
+                    for n in range(dimensions[0]+1)])
             else:
                 def _nth(poly, dims, exponents):
-                    if len(dims) == 0:
+                    if not dims:
                         return from_sympy(poly.nth(*[i for i in exponents]))
                     
                     result = Expression('List')
@@ -1038,7 +1038,7 @@ class CoefficientList(Builtin):
                         exponents.append(i)
                         subs = _nth(poly, dims[1:], exponents)
                         result.leaves.append(subs)
-                        if len(exponents): exponents.pop()
+                        exponents.pop()
                     return result
                 
                 return _nth(sympy_poly, dimensions, [])
