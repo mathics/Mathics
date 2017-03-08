@@ -178,6 +178,26 @@ def find_all_vars(expr):
     return variables
 
 
+def exponent(expr, var):
+    f = expr.to_sympy()
+    x = var.to_sympy()
+    list = [i.as_coeff_exponent(x) for i in f.expand(power_exp=False).as_ordered_terms()]
+    result = set()
+    for item in list:
+        coeff = item[0]
+        exponent = item[1]
+        if exponent:
+            result.add(from_sympy(exponent))
+        else:
+            # find exponent of terms multiplied with functions: sin, cos, log, exp, ...
+            # e.g: x^3 * Sin[x^2] should give 3
+            muls = [term.as_coeff_mul(x)[1] if term.as_coeff_mul(x)[1] else (sympy.Integer(0),)
+                    for term in coeff.as_ordered_terms()]
+            expos = [term.as_coeff_exponent(x)[1] for mul in muls for term in mul]
+            result.add(from_sympy(sympy.Max(*[e for e in expos])))
+    return sorted(result)
+
+
 class Cancel(Builtin):
     """
     <dl>
@@ -1044,5 +1064,96 @@ class CoefficientList(Builtin):
                 return _nth(sympy_poly, dimensions, [])
         except sympy.PolificationFailed:
             return evaluation.message('CoefficientList', 'poly', expr)
+
+
+class Exponent(Builtin):
+    """
+    <dl>
+    <dt>'Exponent[expr, form]'
+        <dd>returns the maximum power with which $form$ appears in the expanded form of $expr$.
+    <dt>'Exponent[expr, form, h]'
+        <dd>applies $h$ to the set of exponents with which $form$ appears in $expr$.
+    </dl>
+
+    >> Exponent[5 x^2 - 3 x + 7, x]
+     = 2
+    #> Exponent[5 x^2 - 3 x + 7, x, List]
+     = {0, 1, 2}
+    >> Exponent[(x^3 + 1)^2 + 1, x]
+     = 6
+    #> Exponent[(x^3 + 1)^2 + 1, x, List]
+     = {0, 3, 6}
+    #> Exponent[Sqrt[I + Sqrt[6]], x]
+     = 0
+    >> Exponent[x^(n + 1) + Sqrt[x] + 1, x]
+     = Max[1 / 2, 1 + n]
+    #> Exponent[x^(n + 1) + Sqrt[x] + 1, x, List]
+     = {0, 1 / 2, 1 + n}
+    #> Exponent[(x + y)^n - 1, x, List]
+     = {0}
+    #> Exponent[(x + 3 y)^5, x*y^4]
+     = 0
+    >> Exponent[x / y, y]
+     = -1
+    
+    >> Exponent[(x^2 + 1)^3 - 1, x, Min]
+     = 2
+    #> Exponent[(x^2 + 1)^3 - 1, x, List]
+     = {2, 4, 6}
+    >> Exponent[1 - 2 x^2 + a x^3, x, List]
+     = {0, 2, 3}
+    #> Exponent[(x + 1) + (x + 1)^2, x, List]
+     = {0, 1, 2}
+    
+    #> Exponent[(x + 3 y  - 2 z)^3 * (5 y + z), {x, y}, List]
+     = {{0, 1, 2, 3}, {0, 1, 2, 3, 4}}
+    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {}]
+     = {}
+    #> Exponent[x^a + b y^3 + c x + 2 y^e + 5, {x, y}, List]
+     = {{0, 1, a}, {0, 3, e}}
+    #> Exponent[x^2 / y^3, {x, y}]
+     = {2, -3}
+    #> Exponent[(x + 2)/(y - 3) + (x + 3)/(y - 2), {x, y, z}, List]
+     = {{0, 1}, {0}, {0}}
+    #> Exponent[x + 6 x^3 y^2 - 3/((x^2) (y^2)), {x, y}, List]
+     = {{-2, 1, 3}, {-2, 0, 2}}
+    #> Exponent[x^5 Sin[x^2] + x * x^3 Cos[x], x, List]
+     = {4, 5}
+    #> Exponent[x^5 Sin[x^2] + y Cos[y^2] + Log[x^3] + 6 y^4, {x, y}, List]
+     = {{0, 5}, {0, 1, 4}}
+     
+    >> Exponent[0, x]
+     = -Infinity
+    >> Exponent[1, x]
+     = 0
+     
+    ## errors:
+    #> Exponent[x^2]
+     : Exponent called with 1 argument; 2 or 3 arguments are expected.
+     = Exponent[x ^ 2]
+    """
+    
+    messages = {
+        'argtu': 'Exponent called with `1` argument; 2 or 3 arguments are expected.',
+    }
+    
+    rules = {
+        'Exponent[expr_, form_]': 'Exponent[expr, form, Max]',
+    }
+    
+    def apply_novar(self, expr, evaluation):
+        'Exponent[expr_]'
+        return evaluation.message('Exponent', 'argtu', Integer(1))
+    
+    def apply(self, expr, form, h, evaluation):
+        'Exponent[expr_, form_, h_]'
+        if expr == Integer(0):
+            return Expression('DirectedInfinity', Integer(-1))
         
+        if not form.has_form('List', None):
+            return Expression(h, *[i for i in exponent(expr, form)])
+        else:
+            exponents = [exponent(expr, var) for var in form.leaves]
+            return Expression('List', *[Expression(h, *[i for i in s]) for s in exponents])
+
 
