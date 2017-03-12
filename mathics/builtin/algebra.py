@@ -789,4 +789,260 @@ class PolynomialQ(Builtin):
         return Symbol('True') if sympy_result else Symbol('False')
 
 
+# Get a coefficient of form in an expression
+def _coefficient(name, expr, form, n, evaluation):
+    if expr == Symbol('Null') or form == Symbol('Null') or n == Symbol('Null'):
+        return Integer(0)
+    
+    if not(isinstance(form, Symbol)) and not(isinstance(form, Expression)):
+        return evaluation.message(name, 'ivar', form)
+    
+    sympy_exprs = expr.to_sympy().as_ordered_terms()
+    sympy_var = form.to_sympy()
+    sympy_n = n.to_sympy()
+    
+    def combine_exprs(exprs):
+        result = 0
+        for e in exprs:
+            result += e
+        return result
+    
+    # expand sub expressions if they contain variables
+    sympy_exprs = [sympy.expand(e) if sympy_var.free_symbols.issubset(e.free_symbols) else e for e in sympy_exprs]
+    sympy_expr = combine_exprs(sympy_exprs)
+    sympy_result = sympy_expr.coeff(sympy_var, sympy_n)
+    return from_sympy(sympy_result)
+
+
+class Coefficient(Builtin):
+    """
+    <dl>
+    <dt>'Coefficient[expr, form]'
+        <dd>returns the coefficient of $form$ in the polynomial $expr$.
+    <dt>'Coefficient[expr, form, n]'
+        <dd>return the coefficient of $form$^$n$ in $expr$.
+    </dl>
+    
+    ## Form 1
+    >> Coefficient[(x + y)^4, (x^2) * (y^2)]
+     = 6
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x]
+     = c
+    >> Coefficient[(x + 3 y)^5, x]
+     = 405 y ^ 4
+    >> Coefficient[(x + 3 y)^5, x * y^4]
+     = 405
+    >> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), x]
+     = 1 / (-3 + y) + 1 / (-2 + y)
+    #> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), z, 0]
+     = (2 + x) / (-3 + y) + (3 + x) / (-2 + y)
+    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), x]
+     = y / (-9 + y ^ 2) + 1 / (2 + y)
+    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), y]
+     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
+     ## MMA returns better one: (-2 + x) / (-9 + y ^ 2)
+    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), x]
+     = y / (-9 + y ^ 2) + 1 / (2 + y)
+    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), y]
+     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
+     ## MMA returns better one: (-2 + x) / ((-3 + y) (3 + y))
+    #> Coefficient[x^3 - 2 x/y + 3 x z, y]
+     = 0
+    #> Coefficient[x^2 + axy^2 - bSin[c], c]
+     = 0
+    >> Coefficient[x*Cos[x + 3] + 6*y, x]
+     = Cos[3 + x]
+     
+    ## Form 2
+    >> Coefficient[(x + 1)^3, x, 2]
+     = 3
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, y, 3]
+     = b
+    ## Find the free term in a polynomial
+    >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0]
+     = 17
+    >> Coefficient[(x + 2)^3 + (x + 3)^2, y, 0]
+     = (2 + x) ^ 3 + (3 + x) ^ 2
+    >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x, 0]
+     = 5 + b y ^ 3 + d y
+     
+    ## Errors:
+    #> Coefficient[x + y + 3]
+     : Coefficient called with 1 argument; 2 or 3 arguments are expected.
+     = Coefficient[3 + x + y]
+    #> Coefficient[x + y + 3, 5]
+     : 5 is not a valid variable.
+     = Coefficient[3 + x + y, 5]
+     
+    ## This is known bug of Sympy 1.0, next Sympy version will fix it by this commit
+    ## https://github.com/sympy/sympy/commit/25bf64b64d4d9a2dc563022818d29d06bc740d47
+    ## #> Coefficient[x * y, z, 0]
+    ##  = x y
+    ##  ## Sympy 1.0 retuns 0
+    
+    ## ## TODO: Support Modulus
+    ## >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0, Modulus -> 3]
+    ##  = 2
+    ## #> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0, {Modulus -> 3, Modulus -> 2, Modulus -> 10}]
+    ##  = {2, 1, 7}
+    """
+    
+    messages = {
+        'argtu':  'Coefficient called with 1 argument; 2 or 3 arguments are expected.',
+        'ivar':   '`1` is not a valid variable.',
+    }
+    
+    attributes = ('Listable',)
+    
+    def apply_noform(self, expr, evaluation):
+        'Coefficient[expr_]'
+        return evaluation.message('Coefficient', 'argtu')
+        
+    def apply(self, expr, form, evaluation):
+        'Coefficient[expr_, form_]'
+        return _coefficient(self.__class__.__name__, expr, form, Integer(1), evaluation)
+    
+    def apply_n(self, expr, form, n, evaluation):
+        'Coefficient[expr_, form_, n_]'
+        return _coefficient(self.__class__.__name__, expr, form, n, evaluation)
+
+        
+class CoefficientList(Builtin):
+    """
+    <dl>
+    <dt>'CoefficientList[poly, var]'
+        <dd>returns a list of coefficients of powers of $var$ in $poly$, starting with power 0.
+    <dt>'CoefficientList[poly, {var1, var2, ...}]'
+        <dd>returns an array of coefficients of the $vari$.
+    </dl>
+    
+    ## Form 1
+    >> CoefficientList[(x + 3)^5, x]
+     = {243, 405, 270, 90, 15, 1}
+    >> CoefficientList[(x + y)^4, x]
+     = {y ^ 4, 4 y ^ 3, 6 y ^ 2, 4 y, 1}
+    >> CoefficientList[a x^2 + b y^3 + c x + d y + 5, x]
+     = {5 + b y ^ 3 + d y, c, a}
+    >> CoefficientList[(x + 2)/(y - 3) + x/(y - 2), x]
+     = {2 / (-3 + y), 1 / (-3 + y) + 1 / (-2 + y)}
+    >> CoefficientList[(x + y)^3, z]
+     = {(x + y) ^ 3}
+    #> CoefficientList[x + y]
+     : CoefficientList called with 1 argument; 2 or 3 arguments are expected.
+     = CoefficientList[x + y]
+    #> CoefficientList[x^2 + a x y^2 - b Sin[c], y]
+     = {-b Sin[c] + x ^ 2, 0, a x}
+    #> CoefficientList[1/y, y]
+     : 1 / y is not a polynomial.
+     = CoefficientList[1 / y, y]
+    #> CoefficientList[0, x]
+     = {}
+    #> CoefficientList[1, x]
+     = {1}
+    #> CoefficientList[x + y, 5]
+     : 5 is not a valid variable.
+     = CoefficientList[x + y, 5]
+    #> CoefficientList[x + 1, {}]
+     = 1 + x
+     
+    ## Form 2
+    >> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x, y}]
+     = {{5, d, 0, b}, {c, 0, 0, 0}, {a, 0, 0, 0}}
+    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x}]
+     = {5 + b y ^ 3 + d y, c, a}
+    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {}]
+     = 5 + a x ^ 2 + b y ^ 3 + c x + d y
+    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x, y + 1}]
+     = {{5 + b y ^ 3 + d y}, {c}, {a}}
+    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x + 1, y}]
+     = {{5 + a x ^ 2 + c x, d, 0, b}}
+    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x + 1, y + 1}]
+     = {{5 + a x ^ 2 + b y ^ 3 + c x + d y}}
+    >> CoefficientList[(x - 2 y + 3 z)^3, {x, y, z}]
+     = {{{0, 0, 0, 27}, {0, 0, -54, 0}, {0, 36, 0, 0}, {-8, 0, 0, 0}}, {{0, 0, 27, 0}, {0, -36, 0, 0}, {12, 0, 0, 0}, {0, 0, 0, 0}}, {{0, 9, 0, 0}, {-6, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}, {{1, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}}
+    #> CoefficientList[(x - 2 y)^4, {x, 2}]
+     : 2 is not a valid variable.
+     = CoefficientList[(x - 2 y) ^ 4, {x, 2}]
+    #> CoefficientList[x / y, {x, y}]
+     : x / y is not a polynomial.
+     = CoefficientList[x / y, {x, y}]
+    #> CoefficientList[y (x - 2)/((z - 3) (z + 3)) + (x + 5)/(z + 2), {x, y}]
+     = {{5 / (2 + z), -2 / (-9 + z ^ 2)}, {1 / (2 + z), 1 / (-9 + z ^ 2)}}
+    #> CoefficientList[0, {x, y}]
+     = {}
+    #> CoefficientList[1, {x, y}]
+     = {{1}}
+    """
+    
+    messages = {
+        'argtu':  'CoefficientList called with 1 argument; 2 or 3 arguments are expected.',
+        'ivar':   '`1` is not a valid variable.',
+        'poly':   '`1` is not a polynomial.',
+    }
+    
+    def apply_noform(self, expr, evaluation):
+        'CoefficientList[expr_]'
+        return evaluation.message('CoefficientList', 'argtu')
+    
+    def apply(self, expr, form, evaluation):
+        'CoefficientList[expr_, form_]'
+        vars = [form] if not form.has_form('List', None) else [v for v in form.leaves]
+        
+        # check form is not a variable
+        for v in vars:
+            if not(isinstance(v, Symbol)) and not(isinstance(v, Expression)):
+                return evaluation.message('CoefficientList', 'ivar', v)
+        
+        # special cases for expr and form
+        e_null = expr == Symbol('Null')
+        f_null = form == Symbol('Null')
+        if expr == Integer(0):
+            return Expression('List')
+        elif e_null and f_null:
+            return Expression('List', Integer(0), Integer(0))
+        elif e_null and not f_null:
+            return Expression('List', Symbol('Null'))
+        elif f_null:
+            return Expression('List', expr)
+        elif form.has_form('List', 0):
+            return expr
+        
+        sympy_expr = expr.to_sympy()
+        sympy_vars = [v.to_sympy() for v in vars]
+        
+        if not sympy_expr.is_polynomial(*[x for x in sympy_vars]):
+            return evaluation.message('CoefficientList', 'poly', expr)
+        
+        try:
+            sympy_poly, sympy_opt = sympy.poly_from_expr(sympy_expr, sympy_vars)
+            dimensions = [sympy_poly.degree(x) if x in sympy_poly.gens else 0 for x in sympy_vars]
+            
+            # single & multiple variables cases
+            if not form.has_form('List', None):
+                return Expression('List', 
+                    *[_coefficient(self.__class__.__name__,expr, form, Integer(n), evaluation)
+                    for n in range(dimensions[0]+1)])
+            elif form.has_form('List', 1):
+                form = form.leaves[0]
+                return Expression('List',
+                    *[_coefficient(self.__class__.__name__, expr, form, Integer(n), evaluation)
+                    for n in range(dimensions[0]+1)])
+            else:
+                def _nth(poly, dims, exponents):
+                    if not dims:
+                        return from_sympy(poly.nth(*[i for i in exponents]))
+                    
+                    result = Expression('List')
+                    first_dim = dims[0]
+                    for i in range(first_dim+1):
+                        exponents.append(i)
+                        subs = _nth(poly, dims[1:], exponents)
+                        result.leaves.append(subs)
+                        exponents.pop()
+                    return result
+                
+                return _nth(sympy_poly, dimensions, [])
+        except sympy.PolificationFailed:
+            return evaluation.message('CoefficientList', 'poly', expr)
+        
 
