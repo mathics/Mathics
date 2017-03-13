@@ -8,7 +8,7 @@ from __future__ import absolute_import
 import sys
 import traceback
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext, loader
 from django.http import (HttpResponse, HttpResponseNotFound,
                          HttpResponseServerError, Http404)
@@ -36,11 +36,6 @@ else:
     JSON_CONTENT_TYPE = 'application/json'
 
 
-def get_content_type(request):
-    return ('text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '')
-            else 'application/xhtml+xml')
-
-
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):
         response = json.dumps(result)
@@ -66,12 +61,12 @@ def require_ajax_login(f):
 
 
 def main_view(request):
-    content_type = get_content_type(request)
-    return render_to_response('main.html', {
+    context = {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'require_login': settings.REQUIRE_LOGIN,
-    }, context_instance=RequestContext(request), content_type=content_type)
+    }
+    return render(request, 'main.html', context)
 
 
 def error_404_view(request):
@@ -317,23 +312,21 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         'prev': object.get_prev() if object else None,
         'next': object.get_next() if object else None,
     })
-    if ajax:
-        template = loader.get_template('doc/%s' % template_name)
-        result = template.render(RequestContext(request, context))
-        result = {
-            'content': result,
-        }
-        if data is not None:
-            result['data'] = data
-        return JsonResponse(result)
-    else:
+    if not ajax:
         context.update({
             'data': data,
         })
-        return render_to_response(
-            'doc/%s' % template_name, context,
-            context_instance=RequestContext(request),
-            content_type=get_content_type(request))
+
+    result = render(request, 'doc/%s' % template_name, context)
+    if not ajax:
+        return result
+
+    result = {
+        'content': unicode(result),
+    }
+    if data is not None:
+        result['data'] = data
+    return JsonResponse(result)
 
 
 def doc(request, ajax=''):
