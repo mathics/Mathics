@@ -17,6 +17,7 @@ from itertools import combinations
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
+from mathics.core.convert import from_sympy
 
 
 class PowerMod(Builtin):
@@ -272,6 +273,41 @@ class FactorInteger(Builtin):
                                         for factor, exp in factors))
         else:
             return evaluation.message('FactorInteger', 'exact', n)
+
+
+class Divisors(Builtin):
+    """
+    <dl>
+    <dt>'Divisors[$n$]'
+        <dd>returns a list of the integers that divide $n$.
+    </dl>
+
+    >> Divisors[96]
+     = {1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 96}
+    >> Divisors[704]
+     = {1, 2, 4, 8, 11, 16, 22, 32, 44, 64, 88, 176, 352, 704}
+    >> Divisors[{87, 106, 202, 305}]
+     = {{1, 3, 29, 87}, {1, 2, 53, 106}, {1, 2, 101, 202}, {1, 5, 61, 305}}
+    #> Divisors[0]
+     = Divisors[0]
+    #> Divisors[{-206, -502, -1702, 9}]
+     = {{1, 2, 103, 206}, {1, 2, 251, 502}, {1, 2, 23, 37, 46, 74, 851, 1702}, {1, 3, 9}}
+    #> Length[Divisors[1000*369]]
+     = 96
+    #> Length[Divisors[305*176*369*100]]
+     = 672
+    """
+
+    # TODO: support GaussianIntegers
+    # e.g. Divisors[2, GaussianIntegers -> True]
+    
+    attributes = ('Listable',)
+
+    def apply(self, n, evaluation):
+        'Divisors[n_Integer]'
+        if n == Integer(0):
+            return None
+        return Expression('List', *[from_sympy(i) for i in sympy.divisors(n.to_sympy())])
 
 
 class IntegerExponent(Builtin):
