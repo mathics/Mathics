@@ -743,3 +743,51 @@ class Quotient(Builtin):
             evaluation.message('Quotient', 'infy', Expression('Quotient', m, n))
             return Symbol('ComplexInfinity')
         return Integer(py_m // py_n)
+
+
+class QuotientRemainder(Builtin):
+    '''
+    <dl>
+    <dt>'QuotientRemainder[m, n]'
+      <dd>computes a list of the quotient and remainder from division of $m$ by $n$.
+    </dl>
+
+    >> QuotientRemainder[23, 7]
+     = {3, 2}
+
+    #> QuotientRemainder[13, 0]
+     : The argument 0 in QuotientRemainder[13, 0] should be nonzero.
+     = QuotientRemainder[13, 0]
+    #> QuotientRemainder[-17, 7]
+     = {-3, 4}
+    #> QuotientRemainder[-17, -4]
+     = {4, -1}
+    #> QuotientRemainder[19, -4]
+     = {-5, -1}
+    #> QuotientRemainder[a, 0]
+     = QuotientRemainder[a, 0]
+    #> QuotientRemainder[a, b]
+     = QuotientRemainder[a, b]
+    #> QuotientRemainder[5.2,2.5]
+     = {2, 0.2}
+    #> QuotientRemainder[5, 2.]
+     = {2, 1.}
+    '''
+
+    attributes = ('Listable', 'NumericFunction')
+
+    messages = {
+        'divz': 'The argument 0 in `1` should be nonzero.',
+    }
+
+    def apply(self, m, n, evaluation):
+        'QuotientRemainder[m_, n_]'
+        if m.is_numeric() and n.is_numeric():
+            py_m = m.to_python()
+            py_n = n.to_python()
+            if py_n == 0:
+                return evaluation.message('QuotientRemainder', 'divz', Expression('QuotientRemainder', m, n))
+            return Expression('List', Integer(py_m // py_n), (py_m % py_n))
+        else:
+            return Expression('QuotientRemainder', m, n)
+
