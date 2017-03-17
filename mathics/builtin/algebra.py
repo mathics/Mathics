@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
@@ -330,6 +330,148 @@ class Factor(Builtin):
         except sympy.PolynomialError:
             return expr
         return from_sympy(result)
+
+
+class FactorTermsList(Builtin):
+    """
+    <dl>
+    <dt>'FactorTermsList[poly]'
+        <dd>returns a list in which the first element is the overall numerical factor in $poly$,
+        and the second element is the polynomial with the overall factor removed.
+    <dt>'FactorTermsList[poly,{x1, x2, ...}]'
+        <dd>returns a list of factors of $poly$.
+        The first element in the list is the overall numerical factor.
+        The second element is a factor that does not depend on any of the $xi$.
+        Subsequent elements are factors which depend on progressively more of the $xi$.
+    </dl>
+
+    >> FactorTermsList[2 x^2 - 2]
+     = {2, -1 + x ^ 2}
+    >> FactorTermsList[x^2 - 2 x + 1]
+     = {1, 1 - 2 x + x ^ 2}
+    #> FactorTermsList[2 x^2 - 2, x]
+     = {2, 1, -1 + x ^ 2}
+    
+    >> f = 3 (-1 + 2 x) (-1 + y) (1 - a)
+     = 3 (-1 + 2 x) (-1 + y) (1 - a)
+    >> FactorTermsList[f]
+     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+    >> FactorTermsList[f, x]
+     = {-3, 1 - a - y + a y, -1 + 2 x}
+    #> FactorTermsList[f, y]
+     = {-3, 1 - a - 2 x + 2 a x, -1 + y}
+    >> FactorTermsList[f, {x, y}]
+     = {-3, -1 + a, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, {y, x}]
+     = {-3, -1 + a, -1 + 2 x, -1 + y}
+    #> FactorTermsList[f, {x, y, z}]
+     = {-3, -1 + a, 1, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, {x, y, z, t}]
+     = {-3, -1 + a, 1, 1, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, 3/5]
+     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+    #> FactorTermsList[f, {x, 3, y}]
+     = {-3, -1 + a, -1 + y, -1 + 2 x}
+    
+    #> FactorTermsList[f/c]
+     = {-3, -1 / c + a / c - 2 a x / c - a y / c + 2 x / c + y / c - 2 x y / c + 2 a x y / c}
+    #> FactorTermsList[f/c, x] == FactorTermsList[f/c, {x, y}]
+     = True
+    
+    #> g = Sin[x]*Cos[y]*(1 - 2 a)
+     = Cos[y] (1 - 2 a) Sin[x]
+    #> FactorTermsList[g]
+     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
+    #> FactorTermsList[g, x]
+     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
+    #> FactorTermsList[g, x] == FactorTermsList[g, y] == FactorTermsList[g, {x, y}]
+     = True
+    
+    #> v = 3 * y * (1 - b) a^x
+     = 3 y (1 - b) a ^ x
+    #> FactorTermsList[v]
+     = {-3, -y a ^ x + b y a ^ x}
+    #> FactorTermsList[v, x]
+     = {-3, -y a ^ x + b y a ^ x}
+    #> FactorTermsList[v, y]
+     = {-3, b a ^ x - a ^ x, y}
+    
+    #> FactorTermsList[7]
+     = {7, 1}
+    #> FactorTermsList[0]
+     = {1, 0}
+    #> FactorTermsList[-3]
+     = {-3, 1}
+    #> FactorTermsList[7, {y, x}]
+     = {7, 1}
+    #> FactorTermsList[7, x]
+     = {7, 1}
+    #> FactorTermsList[7 - I, x]
+     = {7 - I, 1}
+    #> FactorTermsList[(x - 1) (1 + a), {c, d}]
+     = {1, -1 - a + x + a x}
+    #> FactorTermsList[(x - 1) (1 + a), {c, x}]
+     = {1, 1 + a, -1 + x, 1}
+    #> FactorTermsList[(x - 1) (1 + a), {}] == FactorTermsList[(x - 1) (1 + a)]
+     = True
+    
+    #> FactorTermsList[x]
+     = {1, x}
+    """
+    
+    rules = {
+        'FactorTermsList[expr_]': 'FactorTermsList[expr, {}]',
+        'FactorTermsList[expr_, var_]': 'FactorTermsList[expr, {var}]',
+    }
+    
+    messages = {
+        # 'poly': '`1` is not a polynomial.',
+        'ivar': '`1` is not a valid variable.',
+    }
+    
+    def apply_list(self, expr, vars, evaluation):
+        'FactorTermsList[expr_, vars_List]'
+        if expr == Integer(0):
+            return Expression('List', Integer(1), Integer(0))
+        elif isinstance(expr, Number):
+            return Expression('List', expr, Integer(1))
+        
+        for x in vars.leaves:
+            if not(isinstance(x, Atom)):
+                return evaluation.message('CoefficientList', 'ivar', x)
+        
+        sympy_expr = sympy.together(expr.to_sympy())
+        sympy_vars = [x.to_sympy() for x in vars.leaves if isinstance(x, Symbol) and sympy_expr.is_polynomial(x.to_sympy())]
+        
+        result = []
+        numer, denom = sympy_expr.as_numer_denom()
+        try:
+            from sympy import factor, factor_list, Poly
+            if denom == 1:
+                # Get numerical part
+                num_coeff, num_polys = factor_list(Poly(numer))
+                result.append(num_coeff)
+                
+                # Get factors are independent of sub list of variables
+                if (sympy_vars and isinstance(expr, Expression) 
+                    and any(x.free_symbols.issubset(sympy_expr.free_symbols) for x in sympy_vars)):
+                    for i in reversed(range(len(sympy_vars))):
+                        numer = factor(numer) / factor(num_coeff)
+                        num_coeff, num_polys = factor_list(Poly(numer), *[x for x in sympy_vars[:(i+1)]])
+                        result.append(sympy.expand(num_coeff))
+                
+                # Last factor
+                numer = factor(numer) / factor(num_coeff)
+                result.append(sympy.expand(numer))
+            else:
+                num_coeff, num_polys = factor_list(Poly(numer))
+                den_coeff, den_polys = factor_list(Poly(denom))
+                result = [num_coeff / den_coeff, sympy.expand(factor(numer)/num_coeff / (factor(denom)/den_coeff))]
+        except sympy.PolynomialError: # MMA does not raise error for non poly
+            result.append(sympy.expand(numer))
+            # evaluation.message(self.get_name(), 'poly', expr)
+        
+        return Expression('List', *[from_sympy(i) for i in result])
 
 
 class Apart(Builtin):
