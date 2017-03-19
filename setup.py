@@ -34,7 +34,7 @@ import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
+if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 3):
     print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
 
@@ -209,10 +209,9 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering',

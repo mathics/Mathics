@@ -2,10 +2,9 @@ language: python
 python:
   - 2.7
   - pypy
+  - 3.6
   - 3.5
   - 3.4
-  - 3.3
-  - 3.2
   - pypy3
 env:
   global:
@@ -18,28 +17,27 @@ matrix:
   include:
     - python: 2.7
       env: DOC="true"
-    - python: 3.5
+    - python: 3.6
       env: DOC="true"
     - python: 2.7
       env: SYMPY_SRC=master
-    - python: 3.5
+    - python: 3.6
       env: SYMPY_SRC=master
     - python: 2.7
       env: ALL_MODULES="true"
-    - python: 3.5
+    - python: 3.6
       env: ALL_MODULES="true"
     - python: pypy
       env: ALL_MODULES="true"
     - python: 2.7
       env: CYTHON="true"
-    - python: 3.5
+    - python: 3.6
       env: CYTHON="true"
     - python: 2.7
       env: ALL_MODULES="true" CYTHON="true"
-    - python: 3.5
+    - python: 3.6
       env: ALL_MODULES="true" CYTHON="true"
   allow_failures:
-    - python: 3.2
     - python: pypy3
     - env: SYMPY_SRC=master
     - env: DOC="true"
