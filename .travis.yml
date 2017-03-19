@@ -2,6 +2,7 @@ language: python
 python:
   - 2.7
   - pypy
+  - 3.6
   - 3.5
   - pypy3
 env:
@@ -15,7 +16,7 @@ matrix:
   include:
     - python: 2.7
       env: DOC="true"
-    - python: 3.5
+    - python: 3.6
       env: DOC="true"
     # Useless to test with master for now
     # - python: 2.7
@@ -24,17 +25,17 @@ matrix:
     #   env: SYMPY_SRC=master
     - python: 2.7
       env: ALL_MODULES="true"
-    - python: 3.5
+    - python: 3.6
       env: ALL_MODULES="true"
     - python: pypy
       env: ALL_MODULES="true"
     - python: 2.7
       env: CYTHON="true"
-    - python: 3.5
+    - python: 3.6
       env: CYTHON="true"
     - python: 2.7
       env: ALL_MODULES="true" CYTHON="true"
-    - python: 3.5
+    - python: 3.6
       env: ALL_MODULES="true" CYTHON="true"
   allow_failures:
     - python: pypy
