@@ -2420,8 +2420,8 @@ class WordCloud(Builtin):
         for py_weight, py_word in words:
             if py_word is None or py_weight is None:
                 return
-            key =  py_word.lower() if ignore_case else py_word
-            freq[key] +=  py_weight
+            key = py_word.lower() if ignore_case else py_word
+            freq[key] += py_weight
 
         max_items = self.get_option(options, 'MaxItems', evaluation)
         if isinstance(max_items, Integer):
