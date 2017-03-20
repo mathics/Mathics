@@ -1158,6 +1158,8 @@ class Sign(Builtin):
     #> Sign[4, 5, 6]
      : Sign called with 3 arguments; 1 argument is expected.
      = Sign[4, 5, 6]
+    #> Sign["20"]
+     = Sign[20]
     """
     
     # Sympy and mpmath do not give the desired form of complex number
@@ -1176,6 +1178,8 @@ class Sign(Builtin):
             return Expression('Times', x, Expression('Power', Expression('Abs', x), -1))
         
         sympy_x = x.to_sympy()
+        if sympy_x is None:
+            return None
         return from_sympy(sympy.sign(sympy_x))
     
     def apply_error(self, x, seqs, evaluation):

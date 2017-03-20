@@ -423,6 +423,8 @@ class FactorTermsList(Builtin):
     
     #> FactorTermsList[x]
      = {1, x}
+    #> FactorTermsList["x"]
+     = {1, x}
     """
     
     rules = {
@@ -446,7 +448,11 @@ class FactorTermsList(Builtin):
             if not(isinstance(x, Atom)):
                 return evaluation.message('CoefficientList', 'ivar', x)
         
-        sympy_expr = sympy.together(expr.to_sympy())
+        sympy_expr = expr.to_sympy()
+        if sympy_expr is None:
+            return Expression('List', Integer(1), expr)
+        sympy_expr = sympy.together(sympy_expr)
+        
         sympy_vars = [x.to_sympy() for x in vars.leaves if isinstance(x, Symbol) and sympy_expr.is_polynomial(x.to_sympy())]
         
         result = []
