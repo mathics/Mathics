@@ -178,14 +178,18 @@ def find_all_vars(expr):
     return variables
 
 
-def exponent(expr, var):
+def find_exponents(expr, var):
+    """
+    Find all exponents of var in expr
+    """
     f = expr.to_sympy()
     x = var.to_sympy()
-    list = [i.as_coeff_exponent(x) for i in f.expand(power_exp=False).as_ordered_terms()]
+    if f is None or x is None:
+        return {0}
+    
     result = set()
-    for item in list:
-        coeff = item[0]
-        exponent = item[1]
+    for t in f.expand(power_exp=False).as_ordered_terms():
+        coeff, exponent = t.as_coeff_exponent(x)
         if exponent:
             result.add(from_sympy(exponent))
         else:
@@ -1249,6 +1253,8 @@ class Exponent(Builtin):
     
     #> Exponent[(x + 3 y  - 2 z)^3 * (5 y + z), {x, y}, List]
      = {{0, 1, 2, 3}, {0, 1, 2, 3, 4}}
+    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {"x", "y"}, List]
+     = {{0}, {0}}
     #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {}]
      = {}
     #> Exponent[x^a + b y^3 + c x + 2 y^e + 5, {x, y}, List]
@@ -1293,9 +1299,9 @@ class Exponent(Builtin):
             return Expression('DirectedInfinity', Integer(-1))
         
         if not form.has_form('List', None):
-            return Expression(h, *[i for i in exponent(expr, form)])
+            return Expression(h, *[i for i in find_exponents(expr, form)])
         else:
-            exponents = [exponent(expr, var) for var in form.leaves]
+            exponents = [find_exponents(expr, var) for var in form.leaves]
             return Expression('List', *[Expression(h, *[i for i in s]) for s in exponents])
 
 
