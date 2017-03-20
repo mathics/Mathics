@@ -340,13 +340,15 @@ class FactorTermsList(Builtin):
     """
     <dl>
     <dt>'FactorTermsList[poly]'
-        <dd>returns a list in which the first element is the overall numerical factor in $poly$,
-        and the second element is the polynomial with the overall factor removed.
-    <dt>'FactorTermsList[poly,{x1, x2, ...}]'
-        <dd>returns a list of factors of $poly$.
-        The first element in the list is the overall numerical factor.
-        The second element is a factor that does not depend on any of the $xi$.
-        Subsequent elements are factors which depend on progressively more of the $xi$.
+        <dd>returns a list of 2 elements.
+        The first element is the numerical factor in $poly$.
+        The second one is the remaining of the polynomial with numerical factor removed
+    <dt>'FactorTermsList[poly, {x1, x2, ...}]'
+        <dd>returns a list of factors in $poly$.
+        The first element is the numerical factor in $poly$.
+        The next ones are factors that are independent of variables lists which
+        are created by removing each variable $xi$ from right to left.
+        The last one is the remaining of polynomial after dividing $poly$ to all previous factors
     </dl>
 
     >> FactorTermsList[2 x^2 - 2]
