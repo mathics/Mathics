@@ -17,6 +17,7 @@ import base64
 import functools
 import itertools
 import math
+from collections import defaultdict
 
 _image_requires = (
     'numpy',
@@ -2415,21 +2416,12 @@ class WordCloud(Builtin):
         ignore_case = self.get_option(
             options, 'IgnoreCase', evaluation) == Symbol('True')
 
-        freq = dict()
+        freq = defaultdict(int)
         for py_weight, py_word in words:
             if py_word is None or py_weight is None:
                 return
-
-            if ignore_case:
-                key = py_word.lower()
-            else:
-                key = py_word
-
-            record = freq.get(key, None)
-            if record is None:
-                freq[key] = [py_word, py_weight]
-            else:
-                record[1] += py_weight
+            key = py_word.lower() if ignore_case else py_word
+            freq[key] += py_weight
 
         max_items = self.get_option(options, 'MaxItems', evaluation)
         if isinstance(max_items, Integer):
@@ -2471,7 +2463,7 @@ class WordCloud(Builtin):
             font_path=font_path, max_font_size=300, mode='RGB',
             background_color='white', max_words=py_max_items,
             color_func=color_func, random_state=42, stopwords=set())
-        wc.generate_from_frequencies(freq.values())
+        wc.generate_from_frequencies(freq)
 
         image = wc.to_image()
         return Image(numpy.array(image), 'RGB')
