@@ -9,6 +9,7 @@ import mpmath
 import math
 import re
 from itertools import chain
+from bisect import bisect_left
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -513,10 +514,34 @@ class Expression(BaseExpression):
         self._sequences = None
         return self
 
+    def slice(self, head, py_slice, evaluation):
+        # faster equivalent to: Expression(head, *self.leaves[py_slice])
+        return Structure(head, self, evaluation).slice(self, py_slice)
+
+    def filter(self, head, cond, evaluation):
+        # faster equivalent to: Expression(head, [leaf in self.leaves if cond(leaf)])
+        return Structure(head, self, evaluation).filter(self, cond)
+
+    def restructure(self, head, leaves, evaluation, cache=None, deps=None):
+        # faster equivalent to: Expression(head, *leaves)
+
+        # the caller guarantees that _all_ elements in leaves are either from
+        # self.leaves (or its sub trees) or from one of the expression given
+        # in the tuple "deps" (or its sub trees).
+
+        # if this method is called repeatedly, and the caller guarantees
+        # that no definitions change between subsequent calls, then cache
+        # may be passed an initially empty dict to speed up calls.
+
+        if deps is None:
+            deps = self
+        s = Structure(head, deps, evaluation, cache=cache)
+        return s(list(leaves))
+
     def sequences(self):
         seq = self._sequences
         if seq is None:
-            seq = list(_sequences(self.leaves))
+            seq = tuple(_sequences(self.leaves))
             self._sequences = seq
         return seq
 
@@ -2310,3 +2335,89 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
+
+
+def _is_safe_head(head, cache, evaluation):
+    if not isinstance(head, Symbol):
+        return False
+
+    head_name = head.get_name()
+
+    if cache:
+        r = cache.get(head_name)
+        if r is not None:
+            return r
+
+    definitions = evaluation.definitions
+
+    definition = definitions.get_definition(head_name, only_if_exists=True)
+    if definition is None:
+        r = True
+    else:
+        r = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+
+    if cache:
+        cache[head_name] = r
+
+    return r
+
+
+class Structure:
+    # performance test case: x = Range[50000]; First[Timing[Partition[x, 15, 1]]]
+
+    def __init__(self, head, orig, evaluation, cache=None):
+        if isinstance(head, six.string_types):
+            head = Symbol(head)
+        self.head = head
+
+        if isinstance(orig, (Expression, Structure)):
+            last_evaluated = orig.last_evaluated
+            if last_evaluated is not None and not _is_safe_head(head, cache, evaluation):
+                last_evaluated = None
+        elif isinstance(orig, (list, tuple)):
+            if _is_safe_head(head, cache, evaluation):
+                definitions = evaluation.definitions
+                last_evaluated = definitions.now
+                for expr in orig:
+                    if expr.last_evaluated is None or definitions.last_changed(expr) > expr.last_evaluated:
+                        last_evaluated = None
+                        break
+            else:
+                last_evaluated = None
+        else:
+            raise ValueError('expected Expression, Structure, tuple or list as orig param')
+
+        self.last_evaluated = last_evaluated
+
+    def __call__(self, leaves):  # create from leaves
+        # IMPORTANT: caller guarantees that leaves originate from orig.leaves or its sub trees!
+
+        expr = Expression(self.head)
+        expr.leaves = list(leaves)
+        expr.last_evaluated = self.last_evaluated
+        return expr
+
+    def filter(self, expr, cond):
+        # IMPORTANT: caller guarantees that expr is from origins!
+        return self([leaf for leaf in expr.leaves if cond(leaf)])
+
+    def slice(self, expr, py_slice):
+        # IMPORTANT: caller guarantees that expr is from origins!
+
+        leaves = expr.leaves
+        lower, upper, step = py_slice.indices(len(leaves))
+        if step != 1:
+            raise ValueError('Structure.slice only supports slice steps of 1')
+
+        expr = self(leaves[lower:upper])
+
+        seq = expr._sequences
+        if seq:
+            a = bisect_left(seq, lower)  # all(val >= i for val in seq[a:])
+            b = bisect_left(seq, upper)  # all(val >= j for val in seq[b:])
+
+            expr._sequences = tuple(x - lower for x in seq[a:b])  # (O2)
+        elif seq is not None:
+            expr._sequences = ()
+
+        return expr
