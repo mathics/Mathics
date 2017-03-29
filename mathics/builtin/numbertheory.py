@@ -459,6 +459,66 @@ class MantissaExponent(Builtin):
         exp = int(mpmath.log10(py_n) + 1)
          
         return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
+    
+def _fractional_part(self, n, expr, evaluation):
+    n_sympy = n.to_sympy()
+    if n_sympy.is_constant():
+        if (n_sympy >= 0):
+            positive_integer_part = Expression("Floor", n).evaluate(evaluation).to_python()
+            result = n - positive_integer_part
+        else:
+            negative_integer_part = Expression("Ceiling", n).evaluate(evaluation).to_python()
+            result = n - negative_integer_part
+    else:
+        return expr
+        
+    return from_python(result)
+    
+class FractionalPart(Builtin):
+    """
+    <dl>
+    <dt>'FractionalPart[$n$]'
+        <dd>finds the fractional part of $n$.
+    </dl>
+
+    >> FractionalPart[4.1]
+     = 0.1
+
+    >> FractionalPart[-5.25]
+     = -0.25
+
+    #> FractionalPart[b]
+     = FractionalPart[b]
+    
+    #> FractionalPart[{-2.4, -2.5, -3.0}]
+     = {-0.4, -0.5, 0.}
+    
+    #> FractionalPart[14/32]
+     = 7 / 16
+      
+    #> FractionalPart[4/(1 + 3 I)]
+     = 2 / 5 - I / 5
+     
+    #> FractionalPart[Pi^20]
+     = -8769956796 + Pi ^ 20
+    """
+    
+    attributes = ('Listable', 'NumericFunction', 'ReadProtected')
+  
+    def apply(self, n, evaluation):
+        'FractionalPart[n_]'
+        expr = Expression('FractionalPart', n)
+        return _fractional_part(self.__class__.__name__, n, expr, evaluation)
+        
+    def apply_2(self, n, evaluation):
+        'FractionalPart[n_Complex]'
+        expr = Expression('FractionalPart', n)
+        n_real  = Expression("Re", n).evaluate(evaluation)
+        n_image  = Expression("Im", n).evaluate(evaluation)
+        
+        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation) 
+        image_fractional_part = _fractional_part(self.__class__.__name__, n_image, expr, evaluation)
+        return Expression('Complex', real_fractional_part, image_fractional_part)
 
 class Prime(Builtin):
     """
