@@ -12,6 +12,7 @@ from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
 from mathics.core.convert import from_sympy
+import mpmath
 
 
 class PowerMod(Builtin):
@@ -352,6 +353,112 @@ class IntegerExponent(Builtin):
 
         return from_python(result - 1)
 
+class MantissaExponent(Builtin):
+    """
+    <dl>
+    <dt>'MantissaExponent[$n$]'
+        <dd>finds a list containing the mantissa and exponent of a given number $n$.
+    <dt>'MantissaExponent[$n$, $b$]'
+        <dd>finds the base‐b mantissa and exponent of $n$.
+    </dl>
+
+    >> MantissaExponent[2.5*10^20]
+     = {0.25, 21}
+
+    >> MantissaExponent[125.24]
+     = {0.12524, 3}
+
+    >> MantissaExponent[125., 2]
+     = {0.976563, 7}
+      
+    >> MantissaExponent[10, b]
+     = MantissaExponent[10, b]
+     
+    #> MantissaExponent[E, Pi]
+     = {E / Pi, 1}
+     
+    #> MantissaExponent[Pi, Pi]
+     = {1 / Pi, 2}
+     
+    #> MantissaExponent[5/2 + 3, Pi]
+     = {11 / (2 Pi ^ 2), 2}
+     
+    #> MantissaExponent[b]
+     = MantissaExponent[b]
+     
+    #> MantissaExponent[17, E]
+     = {17 / E ^ 3, 3}
+     
+    #> MantissaExponent[17., E]
+     = {0.84638, 3}
+     
+    #> MantissaExponent[Exp[Pi], 2]
+     = {E ^ Pi / 32, 5}
+     
+    #> MantissaExponent[3 + 2 I, 2]
+     : The value 3 + 2 I is not a real number
+     = MantissaExponent[3 + 2 I, 2]
+     
+    #> MantissaExponent[25, 0.4]
+     : Base 0.4 is not a real number greater than 1.
+     = MantissaExponent[25, 0.4]
+    """
+    
+    attributes = ('Listable',)
+    messages = {
+        'realx': 'The value `1` is not a real number',
+        'rbase': 'Base `1` is not a real number greater than 1.',
+    }
+    
+    def apply(self, n, b, evaluation):
+        'MantissaExponent[n_, b_]'
+        # Handle Input with special cases such as PI and E
+        n_sympy, b_sympy = n.to_sympy(), b.to_sympy()
+        
+        expr = Expression('MantissaExponent', n, b)
+        
+        if isinstance(n.to_python(), complex):
+            evaluation.message('MantissaExponent', 'realx', n)
+            return expr
+         
+        if n_sympy.is_constant():
+            temp_n = Expression('N', n).evaluate(evaluation)
+            py_n = temp_n.to_python()
+        else:
+            return expr
+              
+        if b_sympy.is_constant():
+            temp_b = Expression('N', b).evaluate(evaluation)
+            py_b = temp_b.to_python()
+        else:
+            return expr
+        
+        if not py_b > 1:
+            evaluation.message('MantissaExponent', 'rbase', b)
+            return expr
+            
+        exp = int(mpmath.log(py_n, py_b) + 1)
+
+        return Expression('List', Expression('Divide', n , b ** exp), exp)
+                                 
+    def apply_2(self, n, evaluation):
+        'MantissaExponent[n_]'
+        n_sympy = n.to_sympy()
+        expr = Expression('MantissaExponent', n)
+        
+        if isinstance(n.to_python(), complex):
+            evaluation.message('MantissaExponent', 'realx', n)
+            return expr
+        # Handle Input with special cases such as PI and E
+        if n_sympy.is_constant():
+            temp_n = Expression('N', n).evaluate(evaluation)
+            py_n = temp_n.to_python()
+        else:
+            return expr
+            
+        exp = int(mpmath.log10(py_n) + 1)
+         
+        return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
 
 class Prime(Builtin):
     """
@@ -380,7 +487,6 @@ class Prime(Builtin):
         expr = Expression('Prime', n)
         evaluation.message('Prime', 'intpp', expr)
         return
-
 
 class PrimeQ(Builtin):
     """
