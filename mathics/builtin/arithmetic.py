@@ -885,6 +885,37 @@ class Sqrt(SympyFunction):
             'SqrtBox[MakeBoxes[x, f]]'),
     }
 
+class CubeRoot(Builtin):
+    """
+    <dl>
+    <dt>'CubeRoot[$n$]'
+        <dd>finds the real-valued cube root of the given $n$.
+    </dl>
+
+    >> CubeRoot[16]
+     = 2 2 ^ (1 / 3)
+
+    #> CubeRoot[-5]
+     = -5 ^ (1 / 3)
+    
+    #> CubeRoot[-510000]
+     = -10 510 ^ (1 / 3)
+     
+    #> CubeRoot[-5.1]
+     = -1.7213 
+    
+    #> CubeRoot[b]
+     = b ^ (1 / 3)
+     
+    #> CubeRoot[-0.5]
+     = -0.793701
+    """
+    
+    attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
+    
+    rules = {
+        'CubeRoot[n_]': 'If[NumericQ[n] == True, If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]], Power[n, Divide[1, 3]]], Power[n, Divide[1, 3]]]',
+    }
 
 class Infinity(SympyConstant):
     """
