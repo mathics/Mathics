@@ -9,7 +9,7 @@ import sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol
 from mathics.builtin.arithmetic import _MPMathFunction
-
+from itertools import combinations
 
 class Fibonacci(Builtin):
     """
@@ -270,3 +270,172 @@ class RogersTanimotoDissimilarity(_BooleanDissimilarity):
     def _compute(self, n, c_ff, c_ft, c_tf, c_tt):
         r = 2 * (c_tf + c_ft)
         return Expression('Divide', r, c_tt + c_ff + r)
+    
+class Subsets(Builtin):
+    """
+    <dl>
+    <dt>'Subsets[$list$]'
+        <dd>finds a list of all possible subsets of $list$.
+        
+    <dt>'Subsets[$list$, $n$]'
+        <dd>finds a list of all possible subsets containing at most $n$ elements.
+        
+    <dt>'Subsets[$list$, {$n$}]'
+        <dd>finds a list of all possible subsets containing exactly $n$ elements.
+        
+    <dt>'Subsets[$list$, {$min$, $max$}]'
+        <dd>finds a list of all possible subsets containing between $min$ and $max$ elements.
+        
+    <dt>'Subsets[$list$, $spec$, $n$]'
+        <dd>finds a list of the first $n$ possible subsets.
+        
+    <dt>'Subsets[$list$, $spec$, {$n$}]'
+        <dd>finds the $n$th possible subset.
+    </dl>
+    
+    >> Subsets[{a, b, c}]
+     = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}
+     
+    >> Subsets[{a, b, c}, 2]
+     = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}}
+     
+    >> Subsets[{a, b, c}, {2}]
+     = {{a, b}, {a, c}, {b, c}}
+     
+    #> Subsets[{a, b, c, d, e}, {3}, 5]
+     = {{a, b, c}, {a, b, d}, {a, b, e}, {a, c, d}, {a, c, e}}
+    
+    #> Subsets[{a, b, c, d, e}, {0, 5, 2}]
+     = {{}, {a, b}, {a, c}, {a, d}, {a, e}, {b, c}, {b, d}, {b, e}, {c, d}, {c, e}, {d, e}, {a, b, c, d}, {a, b, c, e}, {a, b, d, e}, {a, c, d, e}, {b, c, d, e}}
+        
+    #> Subsets[Range[5], All, {25}]
+     = {{2, 4, 5}}
+     
+    #> Subsets[{a, b, c, d}, All, {15, 1, -2}]
+     = {{b, c, d}, {a, b, d}, {c, d}, {b, c}, {a, c}, {d}, {b}, {}}
+    
+    #> Subsets[{}]
+     = {{}}
+     
+    #> Subsets[]
+     = Subsets[]
+     
+    #> Subsets[{a, b, c}, 2.5]
+     : Position 2 of Subsets[{a, b, c}, 2.5] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, 2.5]
+     
+    #> Subsets[{a, b, c}, -1]
+     : Position 2 of Subsets[{a, b, c}, -1] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, -1]
+    
+    #> Subsets[{a, b, c}, {3, 4, 5, 6}]
+     : Position 2 of Subsets[{a, b, c}, {3, 4, 5, 6}] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, {3, 4, 5, 6}]
+     
+    #> Subsets[{a, b, c}, {-1, 2}]
+     : Position 2 of Subsets[{a, b, c}, {-1, 2}] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, {-1, 2}]
+    
+    #> Subsets[{a, b, c}, All]
+     = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}
+     
+    #> Subsets[{a, b, c}, Infinity]
+     = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}
+     
+    #> Subsets[{a, b, c}, ALL]
+     : Position 2 of Subsets[{a, b, c}, ALL] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, ALL]
+     
+    #> Subsets[{a, b, c}, {a}]
+     : Position 2 of Subsets[{a, b, c}, {a}] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, {a}]
+    
+    #> Subsets[{a, b, c}, {}]
+     : Position 2 of Subsets[{a, b, c}, {}] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{a, b, c}, {}]
+    """
+
+    rules = {
+        'Subsets[list_?ListQ , Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]':'Take[Subsets[list, n], spec]'
+        }
+    messages = {
+        'nninfseq': 'Position 2 of `1` must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer',
+    }
+    
+    def apply(self, list, evaluation):
+        'Subsets[list_?ListQ]'
+    
+        return self.apply_1(list, Integer(len(list.to_python())), evaluation)
+    
+    def apply_1(self, list, n, evaluation):
+        'Subsets[list_?ListQ, n_]'
+        
+        tlist = [x for x in list.leaves]
+        expr = Expression('Subsets', list, n)
+        
+        if not n.get_head_name() == 'System`Integer' or n.to_python() < 0 :
+            return evaluation.message('Subsets', 'nninfseq', expr)
+        
+        tlen = int(n.to_python())
+        
+        nested_list = [Expression('List', *c) for i in range(0, tlen + 1) for c in combinations(tlist, i)]
+        
+        result = Expression('List', *nested_list)
+        
+        return result
+    
+    def apply_2(self, list, n, evaluation):
+        'Subsets[list_?ListQ , Pattern[n,_?ListQ|All|DirectedInfinity[1]]]'
+        
+        tlist = [x for x in list.leaves]
+        expr = Expression('Subsets', list, n)
+        
+        if n.get_name() == 'System`All' or n.has_form('DirectedInfinity', 1):
+            tlen = len(tlist)
+            return self.apply(list, evaluation)
+        
+        n_python = n.to_python()
+        n_len =  len(n_python)
+        
+        if n_len > 3:
+            return evaluation.message('Subsets', 'nninfseq', expr)
+        
+        if n_len == 0:
+            return evaluation.message('Subsets', 'nninfseq', expr)
+        
+        if n_len == 1:
+            elem1 = n_python[0]
+            if elem1 < 0 or not n.leaves[0].get_head_name() == "System`Integer":
+                return evaluation.message('Subsets', 'nninfseq', expr)
+            min_n = elem1
+            max_n = min_n + 1
+            step_n = 1
+        
+        if n_len == 2:
+            elem1 = n_python[0]
+            elem2 = n_python[1]
+            if elem1 < 0 or elem2 < 0 or not n.leaves[0].get_head_name() == "System`Integer" or not n.leaves[1].get_head_name() == "System`Integer" :
+                return evaluation.message('Subsets', 'nninfseq', expr)
+            min_n = elem1
+            max_n = elem2 + 1
+            step_n = 1
+            
+        if n_len == 3:
+            if not n.leaves[0].get_head_name() == "System`Integer" or not n.leaves[1].get_head_name() == "System`Integer" or not n.leaves[2].get_head_name() == "System`Integer" :
+                return evaluation.message('Subsets', 'nninfseq', expr)
+            step_n = n_python[2]
+            if step_n > 0:
+                min_n = n_python[0]
+                max_n = n_python[1] + 1
+            elif step_n < 0:
+                min_n = n_python[0]
+                max_n = n_python[1] - 1
+            else:
+                return evaluation.message('Subsets', 'nninfseq', expr)
+            
+        nested_list = [Expression('List', *c) for i in range(min_n, max_n, step_n) for c in combinations(tlist, i)]
+        
+        result = Expression('List', *nested_list)
+        
+        return result
+    
