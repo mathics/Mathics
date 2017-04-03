@@ -405,7 +405,7 @@ class Subsets(Builtin):
         
         if n_len == 1:
             elem1 = n_python[0]
-            if elem1 < 0 or not n.leaves[0].get_head_name() == "System`Integer":
+            if not n.leaves[0].get_head_name() == "System`Integer" or elem1 < 0 :
                 return evaluation.message('Subsets', 'nninfseq', expr)
             min_n = elem1
             max_n = min_n + 1
@@ -414,7 +414,7 @@ class Subsets(Builtin):
         if n_len == 2:
             elem1 = n_python[0]
             elem2 = n_python[1]
-            if elem1 < 0 or elem2 < 0 or not n.leaves[0].get_head_name() == "System`Integer" or not n.leaves[1].get_head_name() == "System`Integer" :
+            if not n.leaves[0].get_head_name() == "System`Integer" or not n.leaves[1].get_head_name() == "System`Integer" or elem1 < 0 or elem2 < 0 :
                 return evaluation.message('Subsets', 'nninfseq', expr)
             min_n = elem1
             max_n = elem2 + 1
