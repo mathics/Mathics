@@ -402,9 +402,27 @@ class MantissaExponent(Builtin):
     #> MantissaExponent[25, 0.4]
      : Base 0.4 is not a real number greater than 1.
      = MantissaExponent[25, 0.4]
+     
+    #> MantissaExponent[0.0000124]
+     = {0.124, -4}
+    
+    #> MantissaExponent[0.0000124, 2]
+     = {0.812646, -16}
+    
+    #> MantissaExponent[0]
+     = {0, 0}
+     
+    #> MantissaExponent[0, 2]
+     = {0, 0}
     """
     
     attributes = ('Listable',)
+    
+    rules = {
+        'MantissaExponent[0]': '{0, 0}',
+        'MantissaExponent[0, n_]': '{0, 0}',
+        }
+    
     messages = {
         'realx': 'The value `1` is not a real number',
         'rbase': 'Base `1` is not a real number greater than 1.',
@@ -437,7 +455,9 @@ class MantissaExponent(Builtin):
             evaluation.message('MantissaExponent', 'rbase', b)
             return expr
             
-        exp = int(mpmath.log(py_n, py_b) + 1)
+        base_exp = int(mpmath.log(py_n, py_b))
+        
+        exp = (base_exp + 1) if base_exp >= 0 else base_exp
 
         return Expression('List', Expression('Divide', n , b ** exp), exp)
                                  
@@ -455,8 +475,9 @@ class MantissaExponent(Builtin):
             py_n = temp_n.to_python()
         else:
             return expr
-            
-        exp = int(mpmath.log10(py_n) + 1)
+        
+        base_exp = int(mpmath.log10(py_n))    
+        exp = (base_exp + 1) if base_exp >= 0 else base_exp
          
         return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
     
