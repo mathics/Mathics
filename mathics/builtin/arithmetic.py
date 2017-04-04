@@ -909,13 +909,28 @@ class CubeRoot(Builtin):
      
     #> CubeRoot[-0.5]
      = -0.793701
+     
+    #> CubeRoot[3 + 4 I]
+     : The parameter 3 + 4 I should be real valued.
+     = (3 + 4 I) ^ (1 / 3)
     """
     
     attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
     
-    rules = {
-        'CubeRoot[n_]': 'If[NumericQ[n] == True, If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]], Power[n, Divide[1, 3]]], Power[n, Divide[1, 3]]]',
+    messages = {
+        'preal': 'The parameter `1` should be real valued.',
     }
+    
+    rules = {
+        'CubeRoot[n_?NumericQ]': 'If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]]]',
+        'CubeRoot[n_]': 'Power[n, Divide[1, 3]]',
+    }
+    
+    def apply(self, n, evaluation):
+        'CubeRoot[n_Complex]'
+         
+        evaluation.message('CubeRoot', 'preal', n)
+        return Expression('Power', n, Expression('Divide', 1, 3))
 
 class Infinity(SympyConstant):
     """
