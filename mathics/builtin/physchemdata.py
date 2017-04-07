@@ -72,6 +72,9 @@ class ElementData(Builtin):
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
+
+    ## Ensure all data parses #664
+    #> Outer[ElementData, Range[118], ElementData["Properties"]];
     """
 
     rules = {

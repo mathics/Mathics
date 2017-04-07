@@ -246,6 +246,15 @@ class Inner(Builtin):
     Inner works with tensors of any depth:
     >> Inner[f, {{{a, b}}, {{c, d}}}, {{1}, {2}}, g]
      = {{{g[f[a, 1], f[b, 2]]}}, {{g[f[c, 1], f[d, 2]]}}}
+
+
+    ## Issue #670
+    #> A = {{ b ^ ( -1 / 2), 0}, {a * b ^ ( -1 / 2 ), b ^ ( 1 / 2 )}}
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
+    #> A . Inverse[A]
+     = {{1, 0}, {0, 1}}
+    #> A
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
     """
 
     rules = {
