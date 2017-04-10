@@ -356,6 +356,22 @@ class Subsets(Builtin):
     
     #> Subsets[{a, b}, 0]
      = {{}}
+    
+    #> Subsets[{1, 2}, x]
+     : Position 2 of Subsets[{1, 2}, x] must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer
+     = Subsets[{1, 2}, x]
+     
+    #> Subsets[x]
+     : Nonatomic expression expected at position 1 in Subsets[x].
+     = Subsets[x]
+     
+    #> Subsets[x, {1, 2}]
+     : Nonatomic expression expected at position 1 in Subsets[x, {1, 2}].
+     = Subsets[x, {1, 2}]
+     
+    #> Subsets[x, {1, 2, 3}, {1, 3}]
+     : Nonatomic expression expected at position 1 in Subsets[x, {1, 2, 3}, {1, 3}].
+     = Subsets[x, {1, 2, 3}, {1, 3}]
     """
 
     rules = {
@@ -363,78 +379,89 @@ class Subsets(Builtin):
         }
     messages = {
         'nninfseq': 'Position 2 of `1` must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer',
+        'normal': 'Nonatomic expression expected at position 1 in `1`.'
     }
     
     def apply(self, list, evaluation):
-        'Subsets[list_?ListQ]'
-    
-        return self.apply_1(list, Integer(len(list.to_python())), evaluation)
+        'Subsets[list_]'
+        expr = Expression('Subsets', list)
+        return evaluation.message('Subsets', 'normal', expr) if not list.has_form('List', None) else self.apply_1(list, Integer(len(list.to_python())), evaluation)
     
     def apply_1(self, list, n, evaluation):
-        'Subsets[list_?ListQ, n_]'
+        'Subsets[list_, n_]'
         
         expr = Expression('Subsets', list, n)
         
-        n_value = n.get_int_value() 
-        if n_value == 0:
-            return Expression('List', Expression('List'))
-        if n_value is None or n_value < 0:
-            return evaluation.message('Subsets', 'nninfseq', expr)
-        
-        nested_list = [Expression('List', *c) for i in range(n_value + 1) for c in combinations([x for x in list.leaves], i)]
-        
-        return Expression('List', *nested_list)
+        if not list.has_form('List', None):
+            return evaluation.message('Subsets', 'normal', expr)
+        else:
+            n_value = n.get_int_value() 
+            if n_value == 0:
+                return Expression('List', Expression('List'))
+            if n_value is None or n_value < 0:
+                return evaluation.message('Subsets', 'nninfseq', expr)
+            
+            nested_list = [Expression('List', *c) for i in range(n_value + 1) for c in combinations(list.leaves, i)]
+            
+            return Expression('List', *nested_list)
         
     def apply_2(self, list, n, evaluation):
-        'Subsets[list_?ListQ , Pattern[n,_?ListQ|All|DirectedInfinity[1]]]'
+        'Subsets[list_, Pattern[n,_?ListQ|All|DirectedInfinity[1]]]'
         
         expr = Expression('Subsets', list, n)
         
-        if n.get_name() == 'System`All' or n.has_form('DirectedInfinity', 1):
-            return self.apply(list, evaluation)
-        
-        n_len = n.leaves.__len__()
-        
-        if n_len > 3:
-            return evaluation.message('Subsets', 'nninfseq', expr)
-        
-        if n_len == 0:
-            return evaluation.message('Subsets', 'nninfseq', expr)
-        
-        if n_len == 1:
-            elem1 = n.leaves[0].get_int_value()
-            if not elem1 or elem1 < 0 :
-                return evaluation.message('Subsets', 'nninfseq', expr)
-            min_n = elem1
-            max_n = min_n + 1
-            step_n = 1
-        
-        if n_len == 2:
-            elem1 = n.leaves[0].get_int_value()
-            elem2 = n.leaves[1].get_int_value()
-            if elem1 is None or elem2 is None or elem1 < 0 or elem2 < 0 :
-                return evaluation.message('Subsets', 'nninfseq', expr)
-            min_n = elem1
-            max_n = elem2 + 1
-            step_n = 1
+        if not list.has_form('List', None):
+            return evaluation.message('Subsets', 'normal', expr)
+        else:
+            if n.get_name() == 'System`All' or n.has_form('DirectedInfinity', 1):
+                return self.apply(list, evaluation)
             
-        if n_len == 3:
-            elem1 = n.leaves[0].get_int_value()
-            elem2 = n.leaves[1].get_int_value()
-            elem3 = n.leaves[2].get_int_value()
-            if elem1 is None or elem2 is None or elem3 is None :
+            n_len = len(n.leaves)
+            
+            if n_len == 0:
                 return evaluation.message('Subsets', 'nninfseq', expr)
-            step_n = elem3
-            if step_n > 0:
+            
+            elif n_len == 1:
+                elem1 = n.leaves[0].get_int_value()
+                if elem1 is None or elem1 < 0 :
+                    return evaluation.message('Subsets', 'nninfseq', expr)
+                min_n = elem1
+                max_n = min_n + 1
+                step_n = 1
+            
+            elif n_len == 2:
+                elem1 = n.leaves[0].get_int_value()
+                elem2 = n.leaves[1].get_int_value()
+                if elem1 is None or elem2 is None or elem1 < 0 or elem2 < 0 :
+                    return evaluation.message('Subsets', 'nninfseq', expr)
                 min_n = elem1
                 max_n = elem2 + 1
-            elif step_n < 0:
-                min_n = elem1
-                max_n = elem2 - 1
+                step_n = 1
+                
+            elif n_len == 3:
+                elem1 = n.leaves[0].get_int_value()
+                elem2 = n.leaves[1].get_int_value()
+                elem3 = n.leaves[2].get_int_value()
+                if elem1 is None or elem2 is None or elem3 is None :
+                    return evaluation.message('Subsets', 'nninfseq', expr)
+                step_n = elem3
+                if step_n > 0:
+                    min_n = elem1
+                    max_n = elem2 + 1
+                elif step_n < 0:
+                    min_n = elem1
+                    max_n = elem2 - 1
+                else:
+                    return evaluation.message('Subsets', 'nninfseq', expr)
             else:
                 return evaluation.message('Subsets', 'nninfseq', expr)
             
-        nested_list = [Expression('List', *c) for i in range(min_n, max_n, step_n) for c in combinations([x for x in list.leaves], i)]
+            nested_list = [Expression('List', *c) for i in range(min_n, max_n, step_n) for c in combinations(list.leaves, i)]
+            
+            return Expression('List', *nested_list)
         
-        return Expression('List', *nested_list)
-        
+    def apply_3(self, list, n, spec, evaluation):
+        'Subsets[list_, Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]'
+        expr = Expression('Subsets', list, n, spec)
+        return evaluation.message('Subsets', 'normal', expr)
+       
