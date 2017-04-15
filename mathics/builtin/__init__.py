@@ -24,8 +24,8 @@ modules = [
     specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
 
 if ENABLE_FILES_MODULE:
-    from mathics.builtin import files, importexport
-    modules += [files, importexport]
+    from mathics.builtin import files, importexport, external
+    modules += [files, importexport, external]
 
 builtins = []
 builtins_by_module = {}
