@@ -162,6 +162,15 @@ class ExpressionPattern(Pattern):
             #    next_leaf = self.leaves[0]
             #    next_leaves = self.leaves[1:]
 
+            # early exit if the number of leaves does not match the predetermined length
+            if self._fixed_nargs is not None:
+                if 'System`Flat' in attributes:
+                    if len(expression.get_leaves()) < self._fixed_nargs:
+                        return
+                else:
+                    if len(expression.get_leaves()) != self._fixed_nargs:
+                        return
+
             def yield_choice(pre_vars):
                 next_leaf = self.leaves[0]
                 next_leaves = self.leaves[1:]
@@ -324,6 +333,7 @@ class ExpressionPattern(Pattern):
         self.head = Pattern.create(expr.head)
         self.leaves = [Pattern.create(leaf) for leaf in expr.leaves]
         self.expr = expr
+        self._fixed_nargs = self.predetermined_match_length()
 
     def filter_leaves(self, head_name):
         head_name = ensure_context(head_name)
@@ -509,3 +519,21 @@ class ExpressionPattern(Pattern):
 
     def sort(self):
         self.leaves.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+
+
+    def predetermined_match_length(self):
+        '''
+        If the length of a match is predetermined then return it, otherwise return None
+        '''
+        result = 0
+        for leaf in self.get_leaves():
+            if leaf.is_atom():
+                result += 1
+            elif leaf.get_head_name() == 'System`Blank':
+                result += 1
+            elif leaf.has_form('System`Pattern', 2) and leaf.leaves[1].get_head_name() == 'System`Blank':
+                result += 1
+            else:
+                result = None
+                break
+        return result
