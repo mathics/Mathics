@@ -15,6 +15,9 @@ import subprocess
 import mathics
 from mathics import server_version_string, license_string
 from mathics import settings as mathics_settings  # Prevents UnboundLocalError
+from mathics.layout.client import WebEngine
+
+web_engine = None
 
 
 def check_database():
@@ -86,6 +89,9 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
     else:
         addr = '127.0.0.1'
 
+    global web_engine
+    web_engine = WebEngine()
+
     try:
         from django.core.servers.basehttp import (
             run, get_internal_wsgi_application)
@@ -103,10 +109,14 @@ http://localhost:%d\nin Firefox, Chrome, or Safari to use Mathics\n""" % port)
         except KeyError:
             error_text = str(e)
         sys.stderr.write("Error: %s" % error_text + '\n')
+        if web_engine is not None:
+            web_engine.terminate()
         # Need to use an OS exit because sys.exit doesn't work in a thread
         os._exit(1)
     except KeyboardInterrupt:
         print("\nGoodbye!\n")
+        if web_engine is not None:
+            web_engine.terminate()
         sys.exit(0)
 
 

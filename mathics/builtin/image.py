@@ -11,6 +11,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
+from mathics.layout.client import WebEngineError
 
 import six
 import base64
@@ -2467,3 +2468,42 @@ class WordCloud(Builtin):
 
         image = wc.to_image()
         return Image(numpy.array(image), 'RGB')
+
+
+class Rasterize(Builtin):
+    requires = _image_requires
+
+    options = {
+        'RasterSize': '300',
+    }
+
+    def apply(self, expr, evaluation, options):
+        'Rasterize[expr_, OptionsPattern[%(name)s]]'
+
+        raster_size = self.get_option(options, 'RasterSize', evaluation)
+        if isinstance(raster_size, Integer):
+            s = raster_size.get_int_value()
+            py_raster_size = (s, s)
+        elif raster_size.has_form('List', 2) and all(isinstance(s, Integer) for s in raster_size.leaves):
+            py_raster_size = tuple(s.get_int_value for s in raster_size.leaves)
+        else:
+            return
+
+        mathml = evaluation.format_output(expr, 'xml')
+        try:
+            svg = evaluation.output.mathml_to_svg(mathml)
+            png = evaluation.output.rasterize(svg, py_raster_size)
+
+            stream = BytesIO()
+            stream.write(png)
+            stream.seek(0)
+            im = PIL.Image.open(stream)
+            # note that we need to get these pixels as long as stream is still open,
+            # otherwise PIL will generate an IO error.
+            pixels = numpy.array(im)
+            stream.close()
+
+            return Image(pixels, 'RGB')
+        except WebEngineError as e:
+            evaluation.message(
+                'General', 'nowebeng', 'Rasterize[] did not succeed: ' + str(e), once=True)

@@ -1634,6 +1634,7 @@ class General(Builtin):
         'notboxes': "`1` is not a valid box structure.",
 
         'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
+        'nowebeng': "Web Engine is not available: `1`",
     }
 
 
@@ -1775,8 +1776,10 @@ class MathMLForm(Builtin):
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        mathml = '<math>%s</math>' % xml  # convert_box(boxes)
-        return Expression('RowBox', Expression('List', String(mathml)))
+
+        result = '<math>%s</math>' % xml
+
+        return Expression('RowBox', Expression('List', String(result)))
 
 
 class TeXForm(Builtin):

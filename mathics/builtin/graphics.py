@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
+import re
 import json
 import base64
 from six.moves import map
@@ -21,6 +22,7 @@ from math import sin, cos, pi
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
 from mathics.builtin.options import options_to_rules
+from mathics.layout.client import WebEngineUnavailable
 from mathics.core.expression import (
     Expression, Integer, Rational, Real, String, Symbol, strip_context,
     system_symbols, system_symbols_dict, from_python)
@@ -179,48 +181,48 @@ def _euclidean_distance(a, b):
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
 
-	
+
 def _cie2000_distance(lab1, lab2):
     #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
     kL = kC = kH = 1 #common values
-    
+
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL = L2 - L1
     Lm = (L1 + L2)/2
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2;
-    
+
     a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
     a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-    
+
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2
     dC = C2 - C1
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360
     h2 = (180 * atan2(b2, a2 + e))/pi % 360
     if abs(h2 - h1) <= 180:
-        dh = h2 - h1 
+        dh = h2 - h1
     elif abs(h2 - h1) > 180 and h2 <= h1:
         dh = h2 - h1 + 360
     elif abs(h2 - h1) > 180 and h2 > h1:
         dh = h2 - h1 - 360
-                    
+
     dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
-    
+
     Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
     T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
-    
+
     SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
     SC = 1 + 0.045*Cm
     SH = 1 + 0.015*Cm*T
-    
+
     rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
     return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
@@ -230,19 +232,19 @@ def _CMC_distance(lab1, lab2, l, c):
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL, da, db = L2-L1, a2-a1, b2-b1
     e = machine_epsilon
-    
+
     C1 = sqrt(a1**2 + b1**2);
     C2 = sqrt(a2**2 + b2**2);
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360;
     dC = C2 - C1;
     dH2 = da**2 + db**2 - dC**2;
     F = C1**2/sqrt(C1**4 + 1900);
     T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
-    
+
     SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
     SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
     SH = SC*(F*T + 1 - F);
@@ -746,7 +748,7 @@ class ColorDistance(Builtin):
      = 0.557976
     #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
      = 0.542917
-    
+
     """
 
     options = {
@@ -757,17 +759,17 @@ class ColorDistance(Builtin):
         'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
-        
+
     }
-    
-    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
-    
+
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
         "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
@@ -792,7 +794,7 @@ class ColorDistance(Builtin):
                                                             100*c2.to_color_space('LAB')[:3], 2, 1)/100
                 elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
                     compute = ColorDistance._distances.get("CMC")
-                    
+
                 elif distance_function.leaves[1].has_form('List', 2):
                     if (isinstance(distance_function.leaves[1].leaves[0], Integer)
                     and isinstance(distance_function.leaves[1].leaves[1], Integer)):
@@ -938,6 +940,54 @@ class FontColor(Builtin):
         <dd>is an option for Style to set the font color.
     </dl>
     """
+    pass
+
+
+class FontSize(_GraphicsElement):
+    """
+    <dl>
+    <dt>'FontSize[$s$]'
+        <dd>sets the font size to $s$ printer's points.
+    </dl>
+    """
+
+    def init(self, graphics, item=None, value=None):
+        super(FontSize, self).init(graphics, item)
+
+        self.scaled = False
+        if item is not None and len(item.leaves) == 1:
+            if item.leaves[0].get_head_name() == 'System`Scaled':
+                scaled = item.leaves[0]
+                if len(scaled.leaves) == 1:
+                    self.scaled = True
+                    self.value = scaled.leaves[0].round_to_float()
+
+        if self.scaled:
+            pass
+        elif item is not None:
+            self.value = item.leaves[0].round_to_float()
+        elif value is not None:
+            self.value = value
+        else:
+            raise BoxConstructError
+
+        if self.value < 0:
+            raise BoxConstructError
+
+    def get_size(self):
+        if self.scaled:
+            if self.graphics.view_width is None:
+                return 1.
+            else:
+                return self.graphics.view_width * self.value
+        else:
+            if self.graphics.view_width is None or self.graphics.pixel_width is None:
+                return 1.
+            else:
+                return (96. / 72.) * (self.value * self.graphics.pixel_width) / self.graphics.view_width
+
+
+class Scaled(Builtin):
     pass
 
 
@@ -2214,12 +2264,19 @@ class ArrowBox(_Polyline):
 
 class InsetBox(_GraphicsElement):
     def init(self, graphics, style, item=None, content=None, pos=None,
-             opos=(0, 0)):
+             opos=(0, 0), font_size=None):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option('System`FontColor')
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
+
+        if font_size is not None:
+            self.font_size = FontSize(self.graphics, value=font_size)
+        else:
+            self.font_size, _ = self.style.get_style(FontSize, face_element=False)
+            if self.font_size is None:
+                self.font_size = FontSize(self.graphics, value=10.)
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2239,29 +2296,105 @@ class InsetBox(_GraphicsElement):
             self.content = content
             self.pos = pos
             self.opos = opos
-        self.content_text = self.content.boxes_to_text(
-            evaluation=self.graphics.evaluation)
+
+        try:
+            self._prepare_text_svg()
+        except WebEngineUnavailable as e:
+            self.svg = None
+
+            self.content_text = self.content.boxes_to_text(
+                evaluation=self.graphics.evaluation)
+
+            if self.graphics.evaluation.output.warn_about_web_engine():
+                self.graphics.evaluation.message(
+                    'General', 'nowebeng', str(e), once=True)
+        except Exception as e:
+            self.svg = None
+
+            self.graphics.evaluation.message(
+                'General', 'nowebeng', str(e), once=True)
 
     def extent(self):
         p = self.pos.pos()
-        h = 25
-        w = len(self.content_text) * \
-            7  # rough approximation by numbers of characters
+
+        if not self.svg:
+            h = 25
+            w = len(self.content_text) * \
+                7  # rough approximation by numbers of characters
+        else:
+            _, w, h = self.svg
+            scale = self._text_svg_scale(h)
+            w *= scale
+            h *= scale
+
         opos = self.opos
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
 
-    def to_svg(self):
-        x, y = self.pos.pos()
+    def _prepare_text_svg(self):
+        self.graphics.evaluation.output.assume_web_engine()
+
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
+
+        svg = self.graphics.evaluation.output.mathml_to_svg(
+            '<math>%s</math>' % content)
+
+        svg = svg.replace('style', 'data-style', 1)  # HACK
+
+        # we could parse the svg and edit it. using regexps here should be
+        # a lot faster though.
+
+        def extract_dimension(svg, name):
+            values = [0.]
+
+            def replace(m):
+                value = m.group(1)
+                values.append(float(value))
+                return '%s="%s"' % (name, value)
+
+            svg = re.sub(name + r'="([0-9\.]+)ex"', replace, svg, 1)
+            return svg, values[-1]
+
+        svg, width = extract_dimension(svg, 'width')
+        svg, height = extract_dimension(svg, 'height')
+
+        self.svg = (svg, width, height)
+
+    def _text_svg_scale(self, height):
+        size = self.font_size.get_size()
+        return size / height
+
+    def _text_svg_xml(self, style, x, y):
+        svg, width, height = self.svg
+        svg = re.sub(r'<svg ', '<svg style="%s" ' % style, svg, 1)
+
+        scale = self._text_svg_scale(height)
+        ox, oy = self.opos
+
+        return '<g transform="translate(%f,%f) scale(%f) translate(%f, %f)">%s</g>' % (
+            x,
+            y,
+            scale,
+            -width / 2 - ox * width / 2,
+            -height / 2 + oy * height / 2,
+            svg)
+
+    def to_svg(self):
+        evaluation = self.graphics.evaluation
+        x, y = self.pos.pos()
+        content = self.content.boxes_to_xml(
+            evaluation=evaluation)
         style = create_css(font_color=self.color)
-        svg = (
-            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            '<math>%s</math></foreignObject>') % (
-                x, y, self.opos[0], self.opos[1], style, content)
-        return svg
+
+        if not self.svg:
+            return (
+                '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
+                '<math>%s</math></foreignObject>') % (
+                    x, y, self.opos[0], self.opos[1], style, content)
+        else:
+            return self._text_svg_xml(style, x, y)
 
     def to_asy(self):
         x, y = self.pos.pos()
@@ -2420,6 +2553,8 @@ class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
         self.elements = []
+        self.view_width = None
+        self.web_engine_warning_issued = False
 
         builtins = evaluation.definitions.builtin
         def get_options(name):
@@ -2827,14 +2962,8 @@ clip(%s);
         w += 2
         h += 2
 
-        svg_xml = '''
-            <svg xmlns:svg="http://www.w3.org/2000/svg"
-                xmlns="http://www.w3.org/2000/svg"
-                version="1.1"
-                viewBox="%s">
-                %s
-            </svg>
-        ''' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), svg)
+        svg_xml = '<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" ' \
+            'version="1.1" viewBox="%s">%s</svg>' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), svg)
 
         return '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>' % (
             int(width),
@@ -2939,6 +3068,8 @@ clip(%s);
         tick_large_size = 5
         tick_label_d = 2
 
+        font_size = tick_large_size * 2.
+
         ticks_x_int = all(floor(x) == x for x in ticks_x)
         ticks_y_int = all(floor(x) == x for x in ticks_y)
 
@@ -2973,7 +3104,7 @@ clip(%s);
                         elements, tick_label_style,
                         content=content,
                         pos=Coords(elements, pos=p_origin(x),
-                                   d=p_self0(-tick_label_d)), opos=p_self0(1)))
+                                   d=p_self0(-tick_label_d)), opos=p_self0(1), font_size=font_size))
                 for x in ticks_small:
                     pos = p_origin(x)
                     ticks_lines.append([Coords(elements, pos=pos),
@@ -3385,6 +3516,7 @@ styles = system_symbols_dict({
     'Thick': Thick,
     'Thin': Thin,
     'PointSize': PointSize,
+    'FontSize': FontSize,
     'Arrowheads': Arrowheads,
 })
 
