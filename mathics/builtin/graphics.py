@@ -17,6 +17,7 @@ from six.moves import range
 from six.moves import zip
 from itertools import chain
 from math import sin, cos, pi
+from sympy.matrices import Matrix
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -59,10 +60,9 @@ def coords(value):
 
 
 class Coords(object):
-    def __init__(self, graphics, expr=None, pos=None, d=None):
+    def __init__(self, graphics, expr=None, pos=None):
         self.graphics = graphics
         self.p = pos
-        self.d = d
         if expr is not None:
             if expr.has_form('Offset', 1, 2):
                 self.d = coords(expr.leaves[0])
@@ -74,16 +74,38 @@ class Coords(object):
                 self.p = coords(expr)
 
     def pos(self):
-        p = self.graphics.translate(self.p)
+        p = self.p
         p = (cut(p[0]), cut(p[1]))
-        if self.d is not None:
-            d = self.graphics.translate_absolute(self.d)
-            return (p[0] + d[0], p[1] + d[1])
         return p
 
     def add(self, x, y):
         p = (self.p[0] + x, self.p[1] + y)
-        return Coords(self.graphics, pos=p, d=self.d)
+        return Coords(self.graphics, pos=p)
+
+    def is_absolute(self):
+        return False
+
+
+class AxisCoords(Coords):
+    def __init__(self, graphics, expr=None, pos=None, d=None):
+        super(AxisCoords, self).__init__(graphics, expr=expr, pos=pos)
+        self.d = d
+
+    def pos(self):
+        p = self.p
+        p = self.graphics.translate(p)
+        p = (cut(p[0]), cut(p[1]))
+        if self.d is not None:
+            d = self.graphics.translate_absolute_in_pixels(self.d)
+            return p[0] + d[0], p[1] + d[1]
+        else:
+            return p
+
+    def add(self, x, y):
+        raise NotImplementedError
+
+    def is_absolute(self):
+        return True
 
 
 def cut(value):
@@ -128,6 +150,7 @@ def _to_float(x):
     if x is None:
         raise BoxConstructError
     return x
+
 
 def create_pens(edge_color=None, face_color=None, stroke_width=None,
                 is_face_element=False):
@@ -179,48 +202,48 @@ def _euclidean_distance(a, b):
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
 
-	
+
 def _cie2000_distance(lab1, lab2):
     #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
     kL = kC = kH = 1 #common values
-    
+
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL = L2 - L1
     Lm = (L1 + L2)/2
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2;
-    
+
     a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
     a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-    
+
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2
     dC = C2 - C1
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360
     h2 = (180 * atan2(b2, a2 + e))/pi % 360
     if abs(h2 - h1) <= 180:
-        dh = h2 - h1 
+        dh = h2 - h1
     elif abs(h2 - h1) > 180 and h2 <= h1:
         dh = h2 - h1 + 360
     elif abs(h2 - h1) > 180 and h2 > h1:
         dh = h2 - h1 - 360
-                    
+
     dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
-    
+
     Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
     T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
-    
+
     SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
     SC = 1 + 0.045*Cm
     SH = 1 + 0.015*Cm*T
-    
+
     rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
     return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
@@ -230,19 +253,19 @@ def _CMC_distance(lab1, lab2, l, c):
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL, da, db = L2-L1, a2-a1, b2-b1
     e = machine_epsilon
-    
+
     C1 = sqrt(a1**2 + b1**2);
     C2 = sqrt(a2**2 + b2**2);
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360;
     dC = C2 - C1;
     dH2 = da**2 + db**2 - dC**2;
     F = C1**2/sqrt(C1**4 + 1900);
     T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
-    
+
     SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
     SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
     SH = SC*(F*T + 1 - F);
@@ -252,94 +275,123 @@ def _CMC_distance(lab1, lab2, l, c):
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression('MakeBoxes', graphics).evaluate(evaluation)
     builtin = GraphicsBox(expression=False)
+
     elements, calc_dimensions = builtin._prepare_elements(
         graphics_box.leaves, {'evaluation': evaluation}, neg_y=True)
-    xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
 
-    # xmin, xmax have always been moved to 0 here. the untransformed
-    # and unscaled bounds are found in elements.xmin, elements.ymin,
-    # elements.extent_width, elements.extent_height.
+    if not isinstance(elements.elements[0], GeometricTransformationBox):
+        raise ValueError('expected GeometricTransformationBox')
 
-    # now compute the position of origin (0, 0) in the transformed
-    # coordinate space.
-
-    ex = elements.extent_width
-    ey = elements.extent_height
-
-    sx = (xmax - xmin) / ex
-    sy = (ymax - ymin) / ey
-
-    ox = -elements.xmin * sx + xmin
-    oy = -elements.ymin * sy + ymin
+    contents = elements.elements[0].contents
 
     # generate code for svg or asy.
 
     if format == 'asy':
-        code = '\n'.join(element.to_asy() for element in elements.elements)
+        code = '\n'.join(element.to_asy() for element in contents)
     elif format == 'svg':
-        code = elements.to_svg()
+        code = ''.join(element.to_svg() for element in contents)
     else:
         raise NotImplementedError
 
-    return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
+    return code
 
 
-class _SVGTransform():
-    def __init__(self):
-        self.transforms = []
+def _to_float(x):
+    if isinstance(x, Integer):
+        return x.get_int_value()
+    else:
+        y = x.round_to_float()
+        if y is None:
+            raise BoxConstructError
+        return y
 
-    def matrix(self, a, b, c, d, e, f):
+
+class _Transform():
+    def __init__(self, f):
+        if not isinstance(f, Expression):
+            self.matrix = f
+            return
+
+        if f.get_head_name() != 'System`TransformationFunction':
+            raise BoxConstructError
+
+        if len(f.leaves) != 1 or f.leaves[0].get_head_name() != 'System`List':
+            raise BoxConstructError
+
+        rows = f.leaves[0].leaves
+        if len(rows) != 3:
+            raise BoxConstructError
+        if any(row.get_head_name() != 'System`List' for row in rows):
+            raise BoxConstructError
+        if any(len(row.leaves) != 3 for row in rows):
+            raise BoxConstructError
+
+        self.matrix = [[_to_float(x) for x in row.leaves] for row in rows]
+
+    def inverse(self):
+        return _Transform(Matrix(self.matrix).inv().tolist())
+
+    def multiply(self, other):
+        a = self.matrix
+        b = other.matrix
+        return _Transform([[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)])
+
+    def transform(self, p):
+        m = self.matrix
+
+        m11 = m[0][0]
+        m12 = m[0][1]
+        m13 = m[0][2]
+
+        m21 = m[1][0]
+        m22 = m[1][1]
+        m23 = m[1][2]
+
+        for x, y in p:
+            yield m11 * x + m12 * y + m13, m21 * x + m22 * y + m23
+
+    def to_svg(self, svg):
+        m = self.matrix
+
+        a = m[0][0]
+        b = m[1][0]
+        c = m[0][1]
+        d = m[1][1]
+        e = m[0][2]
+        f = m[1][2]
+
+        if m[2][0] != 0. or m[2][1] != 0. or m[2][2] != 1.:
+            raise BoxConstructError
+
         # a c e
         # b d f
         # 0 0 1
-        self.transforms.append('matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f))
 
-    def translate(self, x, y):
-        self.transforms.append('translate(%f, %f)' % (x, y))
+        t = 'matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f)
+        return '<g transform="%s">%s</g>' % (t, svg)
 
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
+    def to_asy(self, asy):
+        m = self.matrix
 
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
+        a = m[0][0]
+        b = m[1][0]
+        c = m[0][1]
+        d = m[1][1]
+        e = m[0][2]
+        f = m[1][2]
 
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (' '.join(self.transforms), svg)
+        if m[2][0] != 0. or m[2][1] != 0. or m[2][2] != 1.:
+            raise BoxConstructError
 
-
-class _ASYTransform():
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
-
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
         # a c e
         # b d f
         # 0 0 1
         # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
+        t = ','.join(map(asy_number, (e, f, a, c, b, d)))
 
-    def translate(self, x, y):
-        self.transforms.append('shift(%f, %f)' % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append('scale(%f, %f)' % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append('rotate(%f)' % x)
-
-    def apply(self, asy):
-        return self._template % (' * '.join(self.transforms), asy)
+        return ''.join(("add((", t, ")*(new picture(){",
+                        "picture s=currentpicture,t=new picture;currentpicture=t;", asy,
+                        "currentpicture=s;return t;})());"))
 
 
 class Graphics(Builtin):
@@ -368,7 +420,7 @@ class Graphics(Builtin):
      = 
      . \begin{asy}
      . size(5.8556cm, 5.8333cm);
-     . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
+     . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
 
@@ -402,6 +454,8 @@ class Graphics(Builtin):
                 return Expression('List', *[convert(item) for item in content.leaves])
             elif head == 'System`Style':
                 return Expression('StyleBox', *[convert(item) for item in content.leaves])
+            elif head == 'System`GeometricTransformation' and len(content.leaves) == 2:
+                return Expression('GeometricTransformationBox', convert(content.leaves[0]), content.leaves[1])
 
             if head in element_heads:
                 if head == 'System`Text':
@@ -746,7 +800,7 @@ class ColorDistance(Builtin):
      = 0.557976
     #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
      = 0.542917
-    
+
     """
 
     options = {
@@ -757,17 +811,17 @@ class ColorDistance(Builtin):
         'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
-        
+
     }
-    
-    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
-    
+
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
         "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
@@ -792,7 +846,7 @@ class ColorDistance(Builtin):
                                                             100*c2.to_color_space('LAB')[:3], 2, 1)/100
                 elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
                     compute = ColorDistance._distances.get("CMC")
-                    
+
                 elif distance_function.leaves[1].has_form('List', 2):
                     if (isinstance(distance_function.leaves[1].leaves[0], Integer)
                     and isinstance(distance_function.leaves[1].leaves[1], Integer)):
@@ -928,7 +982,7 @@ class PointSize(_Size):
     </dl>
     """
     def get_size(self):
-        return self.graphics.view_width * self.value
+        return self.graphics.extent_width * self.value
 
 
 class FontColor(Builtin):
@@ -1058,10 +1112,17 @@ class RectangleBox(_GraphicsElement):
     def extent(self):
         l = self.style.get_line_width(face_element=True) / 2
         result = []
-        for p in [self.p1, self.p2]:
-            x, y = p.pos()
-            result.extend([(x - l, y - l), (
-                x - l, y + l), (x + l, y - l), (x + l, y + l)])
+
+        tx1, ty1 = self.p1.pos()
+        tx2, ty2 = self.p2.pos()
+
+        x1 = min(tx1, tx2) - l
+        x2 = max(tx1, tx2) + l
+        y1 = min(ty1, ty2) - l
+        y2 = max(ty1, ty2) + l
+
+        result.extend([(x1, y1), (x1, y2), (x2, y1), (x2, y2)])
+
         return result
 
     def to_svg(self):
@@ -1124,7 +1185,7 @@ class _RoundBox(_GraphicsElement):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
-        ry = y - ry
+        ry = abs(y - ry)
         l = self.style.get_line_width(face_element=self.face_element)
         style = create_css(self.edge_color, self.face_color, stroke_width=l)
         return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
@@ -1134,7 +1195,7 @@ class _RoundBox(_GraphicsElement):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
-        ry -= y
+        ry = abs(ry - y)
         l = self.style.get_line_width(face_element=self.face_element)
         pen = create_pens(edge_color=self.edge_color,
                           face_color=self.face_color, stroke_width=l,
@@ -2128,24 +2189,28 @@ class ArrowBox(_Polyline):
             for s in render(transformed_points, heads):
                 yield s
 
-    def _custom_arrow(self, format, format_transform):
+    def _custom_arrow(self, format, transform):
         def make(graphics):
-            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
+            code = _extract_graphics(
                 graphics, format, self.graphics.evaluation)
-            boxw = xmax - xmin
-            boxh = ymax - ymin
+
+            half_pi = pi / 2.
 
             def draw(px, py, vx, vy, t1, s):
                 t0 = t1
-                cx = px + t0 * vx
-                cy = py + t0 * vy
 
-                transform = format_transform()
-                transform.translate(cx, cy)
-                transform.scale(-s / boxw * ex, -s / boxh * ey)
-                transform.rotate(90 + degrees(atan2(vy, vx)))
-                transform.translate(-ox, -oy)
-                yield transform.apply(code)
+                tx = px + t0 * vx
+                ty = py + t0 * vy
+
+                r = half_pi + atan2(vy, vx)
+
+                s = -s
+
+                cos_r = cos(r)
+                sin_r = sin(r)
+
+                # see TranslationTransform[{tx,ty}].ScalingTransform[{s,s}].RotationTransform[r]
+                yield transform([[s * cos_r, -s * sin_r, tx], [s * sin_r, s * cos_r, ty], [0, 0, 1]], code)
 
             return draw
 
@@ -2166,9 +2231,12 @@ class ArrowBox(_Polyline):
             yield ' '.join('%f,%f' % xy for xy in points)
             yield '" style="%s" />' % arrow_style
 
-        extent = self.graphics.view_width or 0
+        def svg_transform(m, code):
+            return _Transform(m).to_svg(code)
+
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('svg', _SVGTransform)
+        custom_arrow = self._custom_arrow('svg', svg_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def to_asy(self):
@@ -2186,9 +2254,12 @@ class ArrowBox(_Polyline):
             yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
             yield '--cycle, % s);' % arrow_pen
 
-        extent = self.graphics.view_width or 0
+        def asy_transform(m, code):
+            return _Transform(m).to_asy(code)
+
+        extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow('asy', _ASYTransform)
+        custom_arrow = self._custom_arrow('asy', asy_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
     def extent(self):
@@ -2212,9 +2283,174 @@ class ArrowBox(_Polyline):
         return list(self._draw(polyline, default_arrow, None, 0))
 
 
+class TransformationFunction(Builtin):
+    """
+    >> RotationTransform[Pi].TranslationTransform[{1, -1}]
+     = TransformationFunction[{{-1, 0, -1}, {0, -1, 1}, {0, 0, 1}}]
+
+    >> TranslationTransform[{1, -1}].RotationTransform[Pi]
+     = TransformationFunction[{{-1, 0, 1}, {0, -1, -1}, {0, 0, 1}}]
+    """
+
+    rules = {
+        'Dot[TransformationFunction[a_], TransformationFunction[b_]]': 'TransformationFunction[a . b]',
+        'TransformationFunction[m_][v_]': 'Take[m . Join[v, {0}], Length[v]]',
+    }
+
+
+class TranslationTransform(Builtin):
+    """
+    <dl>
+    <dt>'TranslationTransform[v]'
+        <dd>gives the translation by the vector $v$.
+    </dl>
+
+    >> TranslationTransform[{1, 2}]
+     = TransformationFunction[{{1, 0, 1}, {0, 1, 2}, {0, 0, 1}}]
+    """
+
+    rules = {
+        'TranslationTransform[v_]':
+            'TransformationFunction[IdentityMatrix[Length[v] + 1] + '
+            '(Join[ConstantArray[0, Length[v]], {#}]& /@ Join[v, {0}])]',
+    }
+
+
+class RotationTransform(Builtin):
+    rules = {
+        'RotationTransform[phi_]':
+            'TransformationFunction[{{Cos[phi], -Sin[phi], 0}, {Sin[phi], Cos[phi], 0}, {0, 0, 1}}]',
+        'RotationTransform[phi_, p_]':
+            'TranslationTransform[-p] . RotationTransform[phi] . TranslationTransform[p]',
+    }
+
+
+class ScalingTransform(Builtin):
+    rules = {
+        'ScalingTransform[v_]':
+            'TransformationFunction[DiagonalMatrix[Join[v, {1}]]]',
+        'ScalingTransform[v_, p_]':
+            'TranslationTransform[-p] . ScalingTransform[v] . TranslationTransform[p]',
+    }
+
+
+class Translate(Builtin):
+    """
+    <dl>
+    <dt>'Translate[g, {x, y}]'
+        <dd>translates an object by the specified amount.
+    <dt>'Translate[g, {{x1, y1}, {x2, y2}, ...}]'
+        <dd>creates multiple instances of object translated by the specified amounts.
+    </dl>
+
+    >> Graphics[{Circle[], Translate[Circle[], {1, 0}]}]
+     = -Graphics-
+    """
+
+    rules = {
+        'Translate[g_, v_?(Depth[#] > 2&)]': 'GeometricTransformation[g, TranslationTransform /@ v]',
+        'Translate[g_, v_?(Depth[#] == 2&)]': 'GeometricTransformation[g, TranslationTransform[v]]',
+    }
+
+
+class Rotate(Builtin):
+    """
+    <dl>
+    <dt>'Rotate[g, phi]'
+        <dd>rotates an object by the specified amount.
+    </dl>
+
+    >> Graphics[Rotate[Rectangle[], Pi / 3]]
+     = -Graphics-
+
+    >> Graphics[{Rotate[Rectangle[{0, 0}, {0.2, 0.2}], 1.2, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
+     = -Graphics-
+
+    >> Graphics[Table[Rotate[Scale[{RGBColor[i,1-i,1],Rectangle[],Black,Text["ABC",{0.5,0.5}]},1-i],Pi*i], {i,0,1,0.2}]]
+     = -Graphics-
+    """
+
+    rules = {
+        'Rotate[g_, phi_]': 'GeometricTransformation[g, RotationTransform[phi]]',
+        'Rotate[g_, phi_, p_]': 'GeometricTransformation[g, RotationTransform[phi, p]]',
+    }
+
+
+class Scale(Builtin):
+    """
+    <dl>
+    <dt>'Scale[g, phi]'
+        <dd>scales an object by the specified amount.
+    </dl>
+
+    >> Graphics[Rotate[Rectangle[], Pi / 3]]
+     = -Graphics-
+
+    >> Graphics[{Scale[Rectangle[{0, 0}, {0.2, 0.2}], 3, {0.1, 0.1}], Red, Disk[{0.1, 0.1}, 0.05]}]
+     = -Graphics-
+    """
+
+    rules = {
+        'Scale[g_, s_?ListQ]': 'GeometricTransformation[g, ScalingTransform[s]]',
+        'Scale[g_, s_]': 'GeometricTransformation[g, ScalingTransform[{s, s}]]',
+        'Scale[g_, s_?ListQ, p_]': 'GeometricTransformation[g, ScalingTransform[s, p]]',
+        'Scale[g_, s_, p_]': 'GeometricTransformation[g, ScalingTransform[{s, s}, p]]',
+    }
+
+
+class GeometricTransformation(Builtin):
+    """
+    <dl>
+    <dt>'GeometricTransformation[$g$, $tfm$]'
+        <dd>transforms an object $g$ with the transformation $tfm$.
+    </dl>
+    """
+    pass
+
+
+class GeometricTransformationBox(_GraphicsElement):
+    def init(self, graphics, style, contents, transform):
+        super(GeometricTransformationBox, self).init(graphics, None, style)
+        self.contents = contents
+        if transform.get_head_name() == 'System`List':
+            functions = transform.leaves
+        else:
+            functions = [transform]
+        evaluation = graphics.evaluation
+        self.transforms = [_Transform(Expression('N', f).evaluate(evaluation)) for f in functions]
+
+    def patch_transforms(self, transforms):
+        self.transforms = transforms
+
+    def extent(self):
+        def points():
+            for content in self.contents:
+                for transform in self.transforms:
+                    p = content.extent()
+                    for q in transform.transform(p):
+                        yield q
+        return list(points())
+
+    def to_svg(self):
+        def instances():
+            for content in self.contents:
+                content_svg = content.to_svg()
+                for transform in self.transforms:
+                    yield transform.to_svg(content_svg)
+        return ''.join(instances())
+
+    def to_asy(self):
+        def instances():
+            # graphics = self.graphics
+            for content in self.contents:
+                content_asy = content.to_asy()
+                for transform in self.transforms:
+                    yield transform.to_asy(content_asy)
+        return ''.join(instances())
+
+
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None,
-             opos=(0, 0)):
+    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option('System`FontColor')
@@ -2244,9 +2480,10 @@ class InsetBox(_GraphicsElement):
 
     def extent(self):
         p = self.pos.pos()
-        h = 25
+        s = 0.01  # .1 / (self.graphics.pixel_width or 1.)
+        h = s * 25
         w = len(self.content_text) * \
-            7  # rough approximation by numbers of characters
+            s * 7  # rough approximation by numbers of characters
         opos = self.opos
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
@@ -2254,13 +2491,23 @@ class InsetBox(_GraphicsElement):
 
     def to_svg(self):
         x, y = self.pos.pos()
+        absolute = self.pos.is_absolute()
+
         content = self.content.boxes_to_xml(
             evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
+
+        if not absolute:
+            x, y = list(self.graphics.local_to_screen.transform([(x, y)]))[0]
+
         svg = (
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
             '<math>%s</math></foreignObject>') % (
                 x, y, self.opos[0], self.opos[1], style, content)
+
+        if not absolute:
+            svg = self.graphics.inverse_local_to_screen.to_svg(svg)
+
         return svg
 
     def to_asy(self):
@@ -2393,7 +2640,7 @@ class Style(object):
         return self.options.get(name, None)
 
     def get_line_width(self, face_element=True):
-        if self.graphics.pixel_width is None:
+        if self.graphics.local_to_screen is None:
             return 0
         edge_style, _ = self.get_style(
             _Thickness, default_to_faces=face_element,
@@ -2401,6 +2648,35 @@ class Style(object):
         if edge_style is None:
             return 0
         return edge_style.get_thickness()
+
+    def to_axis_style(self):
+        return AxisStyle(self)
+
+
+class AxisStyle(object):
+    # used exclusively for graphics generated inside GraphicsBox.create_axes().
+    # wraps a Style instance for graphics and does not operate on local but on
+    # screen space, i.e. has to apply "local_to_screen" to all widths, sizes, ...
+
+    def __init__(self, style):
+        self.base = Style(style.graphics)
+        self.base.extend(style)
+        self.sx = style.graphics.local_to_screen.matrix[0][0]
+
+    def extend(self, style, pre=True):
+        self.base.extend(style.base, pre)
+
+    def clone(self):
+        return AxisStyle(self.base.clone())
+
+    def get_style(self, *args, **kwargs):
+        return self.base.get_style(*args, **kwargs)
+
+    def get_option(self, name):
+        return self.base.get_option(name)
+
+    def get_line_width(self, face_element=True):
+        return self.base.get_line_width(face_element) * self.sx
 
 
 def _flatten(leaves):
@@ -2419,7 +2695,6 @@ def _flatten(leaves):
 class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
-        self.elements = []
 
         builtins = evaluation.definitions.builtin
         def get_options(name):
@@ -2466,6 +2741,8 @@ class _GraphicsElements(object):
                         raise BoxConstructError
                     for element in convert(item.leaves[0], stylebox_style(style, item.leaves[1:])):
                         yield element
+                elif head == 'System`GeometricTransformationBox':
+                    yield GeometricTransformationBox(self, style, list(convert(item.leaves[0], style)), item.leaves[1])
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
                     element_class = get_class(head)
                     if element_class is not None:
@@ -2510,34 +2787,71 @@ class GraphicsElements(_GraphicsElements):
     def __init__(self, content, evaluation, neg_y=False):
         super(GraphicsElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
-        self.xmin = self.ymin = self.pixel_width = None
-        self.pixel_height = self.extent_width = self.extent_height = None
-        self.view_width = None
+        self.pixel_width = None
+        self.extent_width = self.extent_height = None
+        self.local_to_screen = None
+
+    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
+        self.pixel_width = pixel_width
+        self.extent_width = extent_width
+        self.extent_height = extent_height
+
+        tx = -xmin
+        ty = -ymin
+
+        w = extent_width if extent_width > 0 else 1
+        h = extent_height if extent_height > 0 else 1
+
+        sx = pixel_width / w
+        sy = pixel_height / h
+
+        qx = 0
+        if self.neg_y:
+            sy = -sy
+            qy = pixel_height
+        else:
+            qy = 0
+
+        # now build a transform matrix that mimics what used to happen in GraphicsElements.translate().
+        # m = TranslationTransform[{qx, qy}].ScalingTransform[{sx, sy}].TranslationTransform[{tx, ty}]
+
+        m = [[sx, 0, sx * tx + qx], [0, sy, sy * ty + qy], [0, 0, 1]]
+        transform = _Transform(m)
+
+        # update the GeometricTransformationBox, that always has to be the root element.
+
+        self.elements[0].patch_transforms([transform])
+        self.local_to_screen = transform
+        self.inverse_local_to_screen = transform.inverse()
+
+    def add_axis_element(self, e):
+        # axis elements are added after the GeometricTransformationBox and are thus not
+        # subject to the transformation from local to pixel space.
+        self.elements.append(e)
 
     def translate(self, coords):
-        if self.pixel_width is not None:
-            w = self.extent_width if self.extent_width > 0 else 1
-            h = self.extent_height if self.extent_height > 0 else 1
-            result = [(coords[0] - self.xmin) * self.pixel_width / w,
-                      (coords[1] - self.ymin) * self.pixel_height / h]
-            if self.neg_y:
-                result[1] = self.pixel_height - result[1]
-            return tuple(result)
+        if self.local_to_screen:
+            return list(self.local_to_screen.transform([coords]))[0]
         else:
-            return (coords[0], coords[1])
+            return coords[0], coords[1]
 
     def translate_absolute(self, d):
-        if self.pixel_width is None:
-            return (0, 0)
+        s = self.extent_width / self.pixel_width
+        x, y = self.translate_absolute_in_pixels(d)
+        return x * s, y * s
+
+    def translate_absolute_in_pixels(self, d):
+        if self.local_to_screen is None:
+            return 0, 0
         else:
-            l = 96.0 / 72
-            return (d[0] * l, (-1 if self.neg_y else 1) * d[1] * l)
+            l = 96.0 / 72  # d is measured in printer's points
+            return d[0] * l, (-1 if self.neg_y else 1) * d[1] * l
 
     def translate_relative(self, x):
-        if self.pixel_width is None:
+        if self.local_to_screen is None:
             return 0
         else:
-            return x * self.pixel_width
+            return x * self.extent_width
 
     def extent(self, completely_visible_only=False):
         if completely_visible_only:
@@ -2559,13 +2873,6 @@ class GraphicsElements(_GraphicsElements):
 
     def to_asy(self):
         return '\n'.join(element.to_asy() for element in self.elements)
-
-    def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width,
-                 pixel_height):
-
-        self.xmin, self.ymin = xmin, ymin
-        self.extent_width, self.extent_height = extent_width, extent_height
-        self.pixel_width, self.pixel_height = pixel_width, pixel_height
 
 
 class GraphicsBox(BoxConstruct):
@@ -2646,7 +2953,12 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-        elements = GraphicsElements(leaves[0], options['evaluation'], neg_y)
+        transformation = Expression('System`TransformationFunction', [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+        elements = GraphicsElements(
+            Expression('System`GeometricTransformationBox', leaves[0], transformation),
+            options['evaluation'], neg_y)
+
         axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
@@ -2774,7 +3086,6 @@ class GraphicsBox(BoxConstruct):
             leaves, options, max_width=450)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         asy_completely_visible = '\n'.join(
             element.to_asy() for element in elements.elements
@@ -2814,7 +3125,6 @@ clip(%s);
             leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
 
         svg = elements.to_svg()
 
@@ -2924,12 +3234,17 @@ clip(%s);
         ticks_style = [elements.create_style(s) for s in ticks_style]
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
+
+        ticks_style = [s.to_axis_style() for s in ticks_style]
+        axes_style = [s.to_axis_style() for s in axes_style]
+        label_style = label_style.to_axis_style()
+
         ticks_style[0].extend(axes_style[0])
         ticks_style[1].extend(axes_style[1])
 
         def add_element(element):
             element.is_completely_visible = True
-            elements.elements.append(element)
+            elements.add_axis_element(element)
 
         ticks_x, ticks_x_small, origin_x = self.axis_ticks(xmin, xmax)
         ticks_y, ticks_y_small, origin_y = self.axis_ticks(ymin, ymax)
@@ -2952,16 +3267,14 @@ clip(%s);
             if axes[index]:
                 add_element(LineBox(
                     elements, axes_style[index],
-                    lines=[[Coords(elements, pos=p_origin(min),
-                                   d=p_other0(-axes_extra)),
-                            Coords(elements, pos=p_origin(max),
-                                   d=p_other0(axes_extra))]]))
+                    lines=[[AxisCoords(elements, pos=p_origin(min), d=p_other0(-axes_extra)),
+                            AxisCoords(elements, pos=p_origin(max), d=p_other0(axes_extra))]]))
                 ticks_lines = []
                 tick_label_style = ticks_style[index].clone()
                 tick_label_style.extend(label_style)
                 for x in ticks:
-                    ticks_lines.append([Coords(elements, pos=p_origin(x)),
-                                        Coords(elements, pos=p_origin(x),
+                    ticks_lines.append([AxisCoords(elements, pos=p_origin(x)),
+                                        AxisCoords(elements, pos=p_origin(x),
                                                d=p_self0(tick_large_size))])
                     if ticks_int:
                         content = String(str(int(x)))
@@ -2972,12 +3285,12 @@ clip(%s);
                     add_element(InsetBox(
                         elements, tick_label_style,
                         content=content,
-                        pos=Coords(elements, pos=p_origin(x),
-                                   d=p_self0(-tick_label_d)), opos=p_self0(1)))
+                        pos=AxisCoords(elements, pos=p_origin(x),
+                        d=p_self0(-tick_label_d)), opos=p_self0(1)))
                 for x in ticks_small:
                     pos = p_origin(x)
-                    ticks_lines.append([Coords(elements, pos=pos),
-                                        Coords(elements, pos=pos,
+                    ticks_lines.append([AxisCoords(elements, pos=pos),
+                                        AxisCoords(elements, pos=pos,
                                                d=p_self0(tick_small_size))])
                 add_element(LineBox(elements, axes_style[0],
                                     lines=ticks_lines))
