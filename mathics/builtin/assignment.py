@@ -1029,6 +1029,14 @@ class Quit(Builtin):
     >> a = 3
      = 3
     >> Quit[]
+     = Null[]
+    >> a
+     = a
+
+
+    >> a = 3
+     = 3
+    >> Quit
     >> a
      = a
 
@@ -1036,12 +1044,18 @@ class Quit(Builtin):
     >> x = 5;
     >> Attributes[x] = {Locked, Protected};
     >> Quit[]
+     = Null[]
     >> x
      = x
     """
-
     def apply(self, evaluation):
         'Quit[]'
+
+        evaluation.definitions.set_user_definitions({})
+        return Symbol('Null')
+
+    def apply2(self, evaluation):
+        'Quit'
 
         evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
