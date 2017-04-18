@@ -33,7 +33,7 @@ import heapq
 
 from collections import defaultdict
 import functools
-
+from sets import Set
 
 class List(Builtin):
     """
@@ -4563,3 +4563,80 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+        
+class SubsetQ(Builtin):
+    """
+    <dl>
+    <dt>'SubsetQ[$list1$, $list2$]'
+        <dd>returns True if $list2$ is a subset of $list1$, and False otherwise.
+    </dl>
+
+    >> SubsetQ[{1, 2, 3}, {3, 1}]
+     = True
+
+    The empty list is a subset of every list:
+    >> SubsetQ[{}, {}]
+     = True
+
+    >> SubsetQ[{1, 2, 3}, {}]
+     = True
+
+    Every list is a subset of itself:
+    >> SubsetQ[{1, 2, 3}, {1, 2, 3}]
+     = True
+
+    #> SubsetQ[{1, 2, 3}, {0, 1}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}, {1, 2, 3, 4}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}]
+     : SubsetQ called with 1 argument; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}]
+
+    #> SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+     : SubsetQ called with 3 arguments; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+
+    #> SubsetQ[a + b + c, {1}]
+     : Heads Plus and List at positions 1 and 2 are expected to be the same.
+     = SubsetQ[a + b + c, {1}]
+
+    #> SubsetQ[{1, 2, 3}, n]
+     : Nonatomic expression expected at position 2 in SubsetQ[{1, 2, 3}, n].
+     = SubsetQ[{1, 2, 3}, n]
+
+    #> SubsetQ[f[a, b, c], f[a]]
+     = True
+    """
+
+    messages = {
+        'argr': "SubsetQ called with 1 argument; 2 arguments are expected.",
+        'argrx': "SubsetQ called with `1` arguments; 2 arguments are expected.",
+        'heads': "Heads `1` and `2` at positions 1 and 2 are expected to be the same.",
+        'normal': "Nonatomic expression expected at position `1` in `2`.",
+    }
+
+    def apply(self, expr, subset, evaluation):
+        'SubsetQ[expr_, subset___]'
+
+        if expr.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(1), Expression('SubsetQ', expr, subset))
+
+        subset = subset.get_sequence()
+        if len(subset) > 1:
+            return evaluation.message('SubsetQ', 'argrx', Integer(len(subset) + 1))
+        elif len(subset) == 0:
+            return evaluation.message('SubsetQ', 'argr')
+
+        subset = subset[0]
+        if subset.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(2), Expression('SubsetQ', expr, subset))
+        if expr.get_head_name() != subset.get_head_name():
+            return evaluation.message('SubsetQ', 'heads', expr.get_head(), subset.get_head())
+
+        if Set(subset.leaves).issubset(Set(expr.leaves)):
+            return Symbol('True')
+        else:
+            return Symbol('False')
