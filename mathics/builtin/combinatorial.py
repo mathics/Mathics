@@ -293,25 +293,32 @@ class Subsets(Builtin):
         <dd>finds the $n$th possible subset.
     </dl>
     
+    All possible subsets (power set):
     >> Subsets[{a, b, c}]
      = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}
-     
-    >> Subsets[{a, b, c}, 2]
-     = {{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}}
-     
-    >> Subsets[{a, b, c}, {2}]
-     = {{a, b}, {a, c}, {b, c}}
-     
-    #> Subsets[{a, b, c, d, e}, {3}, 5]
+    
+    All possible subsets containing up to 2 elements: 
+    >> Subsets[{a, b, c, d}, 2]
+     = {{}, {a}, {b}, {c}, {d}, {a, b}, {a, c}, {a, d}, {b, c}, {b, d}, {c, d}}
+    
+    Subsets containing exactly 2 elements: 
+    >> Subsets[{a, b, c, d}, {2}]
+     = {{a, b}, {a, c}, {a, d}, {b, c}, {b, d}, {c, d}}
+    
+    The first 5 subsets containing 3 elements: 
+    >> Subsets[{a, b, c, d, e}, {3}, 5]
      = {{a, b, c}, {a, b, d}, {a, b, e}, {a, c, d}, {a, c, e}}
     
-    #> Subsets[{a, b, c, d, e}, {0, 5, 2}]
+    All subsets with even length:
+    >> Subsets[{a, b, c, d, e}, {0, 5, 2}]
      = {{}, {a, b}, {a, c}, {a, d}, {a, e}, {b, c}, {b, d}, {b, e}, {c, d}, {c, e}, {d, e}, {a, b, c, d}, {a, b, c, e}, {a, b, d, e}, {a, c, d, e}, {b, c, d, e}}
-        
-    #> Subsets[Range[5], All, {25}]
-     = {{2, 4, 5}}
      
-    #> Subsets[{a, b, c, d}, All, {15, 1, -2}]
+    The 25th subset:    
+    >> Subsets[Range[5], All, {25}]
+     = {{2, 4, 5}}
+    
+    The odd-numbered subsets of {a,b,c,d} in reverse order: 
+    >> Subsets[{a, b, c, d}, All, {15, 1, -2}]
      = {{b, c, d}, {a, b, d}, {c, d}, {b, c}, {a, c}, {d}, {b}, {}}
     
     #> Subsets[{}]
@@ -372,11 +379,33 @@ class Subsets(Builtin):
     #> Subsets[x, {1, 2, 3}, {1, 3}]
      : Nonatomic expression expected at position 1 in Subsets[x, {1, 2, 3}, {1, 3}].
      = Subsets[x, {1, 2, 3}, {1, 3}]
+    
+    #> Subsets[a + b + c]
+     = {0, a, b, c, a + b, a + c, b + c, a + b + c}
+     
+    #> Subsets[f[a, b, c]]
+     = {f[], f[a], f[b], f[c], f[a, b], f[a, c], f[b, c], f[a, b, c]}
+     
+    #> Subsets[a + b + c, {1, 3, 2}]
+     = {a, b, c, a + b + c}
+     
+    #> Subsets[a* b * c, All, {6}]
+     = {a c}
+     
+    #> Subsets[{a, b, c}, {1, Infinity}]
+     = {{a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}
+     
+    #> Subsets[{a, b, c}, {1, Infinity, 2}]
+     = {{a}, {b}, {c}, {a, b, c}}
+     
+    #> Subsets[{a, b, c}, {3, Infinity, -1}]
+     = {}
     """
 
     rules = {
-        'Subsets[list_?ListQ , Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]':'Take[Subsets[list, n], spec]',
+        'Subsets[list_ , Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]':'Take[Subsets[list, n], spec]',
         }
+    
     messages = {
         'nninfseq': 'Position 2 of `1` must be All, Infinity, a non-negative integer, or a List whose first element (required) is a non-negative integer, second element (optional) is a non-negative integer or Infinity, and third element (optional) is a nonzero integer',
         'normal': 'Nonatomic expression expected at position 1 in `1`.'
@@ -384,24 +413,24 @@ class Subsets(Builtin):
     
     def apply(self, list, evaluation):
         'Subsets[list_]'
-        expr = Expression('Subsets', list)
-        return evaluation.message('Subsets', 'normal', expr) if not list.has_form('List', None) else self.apply_1(list, Integer(len(list.to_python())), evaluation)
-    
+
+        return evaluation.message('Subsets', 'normal', Expression('Subsets', list)) if list.is_atom() else self.apply_1(list, Integer(len(list.leaves)), evaluation)
+        
     def apply_1(self, list, n, evaluation):
         'Subsets[list_, n_]'
         
         expr = Expression('Subsets', list, n)
-        
-        if not list.has_form('List', None):
+        if list.is_atom():
             return evaluation.message('Subsets', 'normal', expr)
         else:
+            head_t = list.head
             n_value = n.get_int_value() 
             if n_value == 0:
                 return Expression('List', Expression('List'))
             if n_value is None or n_value < 0:
                 return evaluation.message('Subsets', 'nninfseq', expr)
             
-            nested_list = [Expression('List', *c) for i in range(n_value + 1) for c in combinations(list.leaves, i)]
+            nested_list = [Expression(head_t, *c) for i in range(n_value + 1) for c in combinations(list.leaves, i)]
             
             return Expression('List', *nested_list)
         
@@ -409,10 +438,11 @@ class Subsets(Builtin):
         'Subsets[list_, Pattern[n,_?ListQ|All|DirectedInfinity[1]]]'
         
         expr = Expression('Subsets', list, n)
-        
-        if not list.has_form('List', None):
+
+        if list.is_atom():
             return evaluation.message('Subsets', 'normal', expr)
         else:
+            head_t = list.head
             if n.get_name() == 'System`All' or n.has_form('DirectedInfinity', 1):
                 return self.apply(list, evaluation)
             
@@ -431,7 +461,7 @@ class Subsets(Builtin):
             
             elif n_len == 2:
                 elem1 = n.leaves[0].get_int_value()
-                elem2 = n.leaves[1].get_int_value()
+                elem2 = n.leaves[1].get_int_value() if not n.leaves[1].has_form('DirectedInfinity', 1) else len(list.leaves) + 1 
                 if elem1 is None or elem2 is None or elem1 < 0 or elem2 < 0 :
                     return evaluation.message('Subsets', 'nninfseq', expr)
                 min_n = elem1
@@ -440,9 +470,9 @@ class Subsets(Builtin):
                 
             elif n_len == 3:
                 elem1 = n.leaves[0].get_int_value()
-                elem2 = n.leaves[1].get_int_value()
+                elem2 = n.leaves[1].get_int_value() if not n.leaves[1].has_form('DirectedInfinity', 1) else len(list.leaves) + 1
                 elem3 = n.leaves[2].get_int_value()
-                if elem1 is None or elem2 is None or elem3 is None :
+                if elem1 is None or elem2 is None or elem3 is None or elem1 < 0 or elem2 < 0:
                     return evaluation.message('Subsets', 'nninfseq', expr)
                 step_n = elem3
                 if step_n > 0:
@@ -456,12 +486,12 @@ class Subsets(Builtin):
             else:
                 return evaluation.message('Subsets', 'nninfseq', expr)
             
-            nested_list = [Expression('List', *c) for i in range(min_n, max_n, step_n) for c in combinations(list.leaves, i)]
+            nested_list = [Expression(head_t, *c) for i in range(min_n, max_n, step_n) for c in combinations(list.leaves, i)]
             
             return Expression('List', *nested_list)
         
     def apply_3(self, list, n, spec, evaluation):
-        'Subsets[list_, Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]'
-        expr = Expression('Subsets', list, n, spec)
-        return evaluation.message('Subsets', 'normal', expr)
+        'Subsets[list_?AtomQ, Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]'
+         
+        return evaluation.message('Subsets', 'normal', Expression('Subsets', list, n, spec))
        
