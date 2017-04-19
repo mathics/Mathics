@@ -33,7 +33,6 @@ import heapq
 
 from collections import defaultdict
 import functools
-from sets import Set
 
 class List(Builtin):
     """
@@ -4669,7 +4668,7 @@ class SubsetQ(Builtin):
         if expr.get_head_name() != subset.get_head_name():
             return evaluation.message('SubsetQ', 'heads', expr.get_head(), subset.get_head())
 
-        if Set(subset.leaves).issubset(Set(expr.leaves)):
+        if set(subset.leaves).issubset(set(expr.leaves)):
             return Symbol('True')
         else:
             return Symbol('False')
