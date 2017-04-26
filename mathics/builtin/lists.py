@@ -2416,6 +2416,65 @@ class Prepend(Builtin):
                           *([item] + expr.get_leaves()))
 
 
+class PrependTo(Builtin):
+    """
+    <dl>
+    <dt>'PrependTo[$s$, $item$]'
+        <dd>prepends $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    Assign s to a list
+    >> s = {1, 2, 4, 9}
+     = {1, 2, 4, 9}
+    
+    Add a new value at the beginning of the list: 
+    >> PrependTo[s, 0]
+     = {0, 1, 2, 4, 9}
+    
+    The value assigned to s has changed: 
+    >> s
+     = {0, 1, 2, 4, 9}
+
+    'PrependTo' works with a head other than 'List':
+    >> y = f[a, b, c];
+    >> PrependTo[y, x]
+     = f[x, a, b, c]
+    >> y
+     = f[x, a, b, c]
+
+    #> PrependTo[{a, b}, 1]
+     :  {a, b} is not a variable with a value, so its value cannot be changed.
+     = PrependTo[{a, b}, 1]
+
+    #> PrependTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = PrependTo[a, b]
+
+    #> x = 1 + 2;
+    #> PrependTo[x, {3, 4}]
+     : Nonatomic expression expected at position 1 in PrependTo[x, {3, 4}].
+     =  PrependTo[x, {3, 4}]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+        'normal': 'Nonatomic expression expected at position 1 in `1`.'
+    }
+
+    def apply(self, s, item, evaluation):
+        'PrependTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Prepend', resolved_s, item))
+                return result.evaluate(evaluation)
+            if s != resolved_s:
+                return evaluation.message('PrependTo', 'normal', Expression('PrependTo', s, item))
+        return evaluation.message('PrependTo', 'rvalue', s)
+    
 def get_tuples(items):
     if not items:
         yield []
