@@ -522,7 +522,7 @@ class Solve(Builtin):
     <dt>'Solve[$equation$, $vars$]'
         <dd>attempts to solve $equation$ for the variables $vars$.
     <dt>'Solve[$equation$, $vars$, $domain$]'
-        <dd>restricts variables to $domain$, which can be 'Complexes' or 'Reals'.
+        <dd>restricts variables to $domain$, which can be 'Complexes' or 'Reals' or 'Integers'.
     </dl>
 
     >> Solve[x ^ 2 - 3 x == 4, x]
@@ -588,7 +588,9 @@ class Solve(Builtin):
      = {{x -> -1}, {x -> 1}}
     >> Solve[x^2 == -1, x, Complexes]
      = {{x -> -I}, {x -> I}}
-
+    >> Solve[4 - 4 * x^2 - x^4 + x^6 == 0, x, Integers]
+     = {{x -> -1}, {x -> 1}}
+     
     #> Solve[x^2 +1 == 0, x] // FullForm
      = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
 
@@ -631,6 +633,8 @@ class Solve(Builtin):
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
         'Solve[eqs_, vars_, Reals]': (
             'Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]'),
+        'Solve[eqs_, vars_, Integers]': (
+            'Cases[Solve[eqs, vars], {Rule[x_,y_?IntegerQ]}]'),
     }
 
     def apply(self, eqs, vars, evaluation):
@@ -767,7 +771,20 @@ class Solve(Builtin):
             if str(exc).startswith("expected Symbol, Function or Derivative"):
                 evaluation.message('Solve', 'ivar', vars_original)
 
+class Integers(Builtin):
+    """
+    <dl>
+    <dt>'Integers'
+        <dd>is the set of integer numbers.
+    </dl>
 
+    Limit a solution to integer numbers:
+    >> Solve[-4 - 4 x + x^4 + x^5 == 0, x, Integers]
+     = {{x -> -1}}
+    >> Solve[x^4 == 4, x, Integers]
+     = {}
+    """
+    
 class Reals(Builtin):
     """
     <dl>
