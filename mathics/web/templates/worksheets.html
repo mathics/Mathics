@@ -1,0 +1,88 @@
+{% extends "base_html.html" %}
+
+{% block title %}Mathics{% endblock %}
+
+{% block html_head %}
+  <!-- including scriptaculous main does not work in Safari -->
+  <script type="text/javascript" src="/media/js/scriptaculous/builder.js"></script>
+  <script type="text/javascript" src="/media/js/scriptaculous/effects.js"></script>
+  <script type="text/javascript" src="/media/js/scriptaculous/dragdrop.js"></script>
+  <script type="text/javascript" src="/media/js/scriptaculous/controls.js"></script>
+  <script type="text/javascript" src="/media/js/scriptaculous/slider.js"></script>
+  <script type="text/javascript" src="/media/js/scriptaculous/sound.js"></script>
+  <!--<script type="text/javascript" src="/media/js/scriptaculous/scriptaculous.js"></script>-->
+{% endblock %}
+
+{% block html_body %}
+
+  <header class="worksheetList">
+    <div id="headerleft">
+      <img id="logo" class="load" src="/media/img/logo-heptatom.svg" height="32" alt="Logo" />
+      <img id="logotext" class="load" src="/media/img/logo-text.svg" height="26" alt="Mathics" />
+
+      <div class="menu">
+        <a href="javascript:showCreate()" title="Create"><i class="fa fa-plus"></i></a>
+      </div>
+    </div>
+
+    <div id="headerright">
+      {% if require_login %}
+        <div id="notAuthenticated" class="login">
+          <a href="javascript:showLogin()" class="fa fa-lg fa-sign-in" title="Sign in"></a>
+        </div>
+      {% endif %}
+      <div id="authenticated" class="login" style="display: none">
+        <span id="username"></span><a id="logout" href="javascript:logout()" class="fa fa-lg fa-sign-out" title="Sign out"></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <script type="text/javascript">
+      var REQUIRE_LOGIN = {% if require_login %}true{% else %}false{% endif %};
+  </script>
+
+  {% if user.is_authenticated %}
+    <script type="text/javascript">
+        $(document).observe('dom:loaded', function() {
+            onLogin("{{ user.email }}");
+        });
+    </script>
+  {% endif %}
+
+  {% block main %}
+  {% endblock main %}
+
+  {% include "authentication.html" %}
+  {% include "inout.html" %}
+
+  <ul id="worksheetList">
+    <li>Loading...</li>
+  </ul>
+
+  <script>
+    $(document).observe('dom:loaded', function () {
+      requireLogin("You must login to open online worksheets.", function() {
+        new Ajax.Request('/ajax/getworksheets/', {
+          method: 'get',
+          onSuccess: function(transport) {
+            var response = transport.responseText.evalJSON();
+            var list = $('worksheetList');
+            list.deleteChildNodes();
+            response.worksheets.each(function (worksheet) {
+              var item = $E('li');
+              item.appendChild($E('a', {'href': '/worksheet/' + worksheet.name, 'class': 'sheetName'},
+                  $T(worksheet.name)
+              ));
+              item.appendChild($E('a', {'href': 'javascript:showDelete("' + worksheet.name + '")'},
+                  $E('i', {'class': 'fa fa-trash'})
+              ));
+              list.appendChild(item);
+            });
+          }
+        });
+      });
+    });
+  </script>
+
+{% endblock html_body %}

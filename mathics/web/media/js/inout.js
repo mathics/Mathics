@@ -1,6 +1,13 @@
-function showSave() {
+function showCreate() {
 	requireLogin("You must login to save worksheets online.", function() {
 		showPopup($('save'));
+	});
+}
+
+function showDelete(name) {
+	requireLogin("You must login to save worksheets online.", function() {
+		$('deleteSheetName').setText(name);
+		showPopup($('delete'));
 	});
 }
 
@@ -42,7 +49,7 @@ function showOpen() {
 	});
 }
 
-function cancelSave() {
+function cancelCreate() {
 	hidePopup();
 }
 
@@ -50,28 +57,77 @@ function cancelOpen() {
 	hidePopup();
 }
 
-function save(overwrite) {
-	if (!overwrite)
-		overwrite = '';
+function cancelDelete() {
+	hidePopup();
+}
+
+function createSheet() {
+	submitForm('saveForm', '/ajax/save/', function(response) {
+		if (!checkLogin(response))
+			return;
+		if (response.result == 'overwrite') {
+			alert('exists');
+		} else {
+			hidePopup();
+			location.href = '/worksheet/' + response.form.values.name;
+		}
+	}, {
+		'content': [{request: '', results: ''}],
+		'overwrite': ''
+	});
+}
+
+function saveSheet() {
+	if (saveSheet.saving)
+		return;
+
+	saveSheet.saving = true;
+	clearTimeout(saveSheet.timeoutHandler);
+
+	$$('.saveStatus').invoke('hide');
+	$('sheetSaving').show();
+
 	var content;
 	if ($('document').visible())
 		content = getContent();
 	else
 		content = $('codetext').value;
-	submitForm('saveForm', '/ajax/save/', function(response) {
+
+	new Ajax.Request('/ajax/save/', {
+		method: 'post',
+		parameters: {
+			'name': NAME,
+			'content': content,
+			'overwrite': true
+		},
+		onSuccess: function(response) {
+			$$('.saveStatus').invoke('hide');
+			$('sheetSaved').show();
+		},
+		onFailure: function(response) {
+			$$('.saveStatus').invoke('hide');
+			$('sheetUnsaved').show();
+		},
+		onComplete: function () {
+			saveSheet.saving = false;
+			saveSheet.timeoutHandler = setTimeout(function () {
+				$$('.saveStatus').invoke('hide');
+                        }, 1000);
+		}
+	});
+}
+
+function deleteSheet(name) {
+	submitForm('deleteForm', '/ajax/delete/', function(response) {
 		if (!checkLogin(response))
 			return;
-		cancelSave();
-		if (response.result == 'overwrite') {
-			showDialog("Overwrite worksheet", "There already exists a worksheet with the name '" +
-				response.form.values.name + "'. Do you want to overwrite it?",
-				'Yes, overwrite it', 'No, cancel', function() {
-					save(true);
-				});
+		if (response.result == 'confirm') {
+			alert('Enter correct worksheet name to confirm.');
+		} else {
+			location.reload();
 		}
 	}, {
-		'content': content,
-		'overwrite': overwrite
+		name: $('deleteSheetName').getText(name)
 	});
 }
 

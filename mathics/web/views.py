@@ -23,7 +23,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Message, Result, Output
 
 from mathics.web.models import Query, Worksheet
-from mathics.web.forms import LoginForm, SaveForm
+from mathics.web.forms import LoginForm, SaveForm, DeleteForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
 import six
@@ -65,11 +65,33 @@ def require_ajax_login(f):
     return f
 
 
-def main_view(request):
+def main_view(request, name):
+    if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
+        raise Http404
+    user = request.user
+
+    try:
+        if user.is_authenticated():
+            worksheet = user.worksheets.get(name=name)
+        else:
+            worksheet = Worksheet.objects.get(user__isnull=True, name=name)
+    except Worksheet.DoesNotExist:
+        raise Http404
+
     content_type = get_content_type(request)
     return render_to_response('main.html', {
         'login_form': LoginForm(),
+        'require_login': settings.REQUIRE_LOGIN,
+        'worksheet': name,
+    }, context_instance=RequestContext(request), content_type=content_type)
+
+
+def worksheets(request):
+    content_type = get_content_type(request)
+    return render_to_response('worksheets.html', {
+        'login_form': LoginForm(),
         'save_form': SaveForm(),
+        'delete_form': DeleteForm(),
         'require_login': settings.REQUIRE_LOGIN,
     }, context_instance=RequestContext(request), content_type=content_type)
 
@@ -288,6 +310,36 @@ def open(request):
 
     return JsonResponse({
         'content': content,
+    })
+
+
+@require_ajax_login
+def delete(request):
+    if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
+        raise Http404
+    user = request.user
+    name = request.POST.get('name', '')
+    confirm = request.POST.get('confirm', '').lower().strip()
+
+    if not confirm or name.lower().strip() != confirm:
+        return JsonResponse({
+            'result': 'confirm',
+            'form': '{}'
+        })
+
+    try:
+        if user.is_authenticated():
+            worksheet = user.worksheets.get(name=name)
+        else:
+            worksheet = Worksheet.objects.get(user__isnull=True, name=name)
+
+        worksheet.delete()
+    except Worksheet.DoesNotExist:
+        raise Http404
+
+    return JsonResponse({
+        'result': '',
+        'form': '{}'
     })
 
 

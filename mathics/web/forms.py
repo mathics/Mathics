@@ -41,3 +41,11 @@ class SaveForm(AjaxForm):
         help_text=('<p class="helptext">Worksheet names '
                    'are not case-sensitive.</p>')
     )
+
+
+class DeleteForm(AjaxForm):
+    confirm = forms.CharField(
+        required=True, max_length=30,
+        help_text=('<p class="helptext">Enter worksheet name '
+                   'to confirm.</p>')
+    )

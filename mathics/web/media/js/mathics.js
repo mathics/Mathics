@@ -666,7 +666,7 @@ function globalKeyUp(event) {
     // 	event.stop();
     // 	break;
     case 83: // S
-      showSave();
+      saveSheet();
       break;
     case 79: // O
       showOpen();

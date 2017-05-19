@@ -8,12 +8,14 @@ from django.conf.urls import *
 
 urlpatterns = patterns(
     'mathics.web.views',
-    ('^$', 'main_view'),
+    ('^$', 'worksheets'),
+    ('^worksheet/([0-9A-Za-z]+)/$', 'main_view'),
     ('^ajax/query/$', 'query'),
     ('^ajax/login/$', 'login'),
     ('^ajax/logout/$', 'logout'),
     ('^ajax/save/$', 'save'),
     ('^ajax/open/$', 'open'),
+    ('^ajax/delete/$', 'delete'),
     ('^ajax/getworksheets/$', 'get_worksheets'),
     ('^(?P<ajax>(?:ajax/)?)doc/$', 'doc'),
     ('^ajax/doc/search/$', 'doc_search'),

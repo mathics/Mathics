@@ -1,13 +1,29 @@
 <div id="save" class="dialog" style="display: none">
-	<h1>Save worksheet</h1>
+	<h1>Create worksheet</h1>
 	
 	<form id="saveForm" action="javascript:;">
 	<table>
 	{{ save_form }}
 	<tr>
 		<td class="submit" colspan="2">
-			<input type="button" class="submit" onclick="save()" value="Save" />
-			<input type="button" class="cancel" onclick="cancelSave()" value="Cancel" />
+			<input type="button" class="submit" onclick="createSheet()" value="Create" />
+			<input type="button" class="cancel" onclick="cancelCreate()" value="Cancel" />
+		</td>
+	</tr>
+	</table>
+	</form>
+</div>
+
+<div id="delete" class="dialog" style="display: none">
+	<h1>Delete worksheet: <span id="deleteSheetName"></span></h1>
+
+	<form id="deleteForm" action="javascript:;">
+	<table>
+	{{ delete_form }}
+	<tr>
+		<td class="submit" colspan="2">
+			<input type="button" class="submit" onclick="deleteSheet()" value="Delete" />
+			<input type="button" class="cancel" onclick="cancelDelete()" value="Cancel" />
 		</td>
 	</tr>
 	</table>
