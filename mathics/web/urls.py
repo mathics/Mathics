@@ -6,13 +6,14 @@ from django.conf.urls import url
 from mathics.web.views import query, main_view, login, logout, save, open, get_worksheets, doc_search, doc_part, doc_chapter, doc_section, doc
 
 urlpatterns = [
-    # 'mathics.web.views',
-    url('^$', main_view),
+    url('^$', worksheets),
+    url('^worksheet/([0-9A-Za-z]+)/$', main_view)
     url('^ajax/query/$', query),
     url('^ajax/login/$', login),
     url('^ajax/logout/$', logout),
     url('^ajax/save/$', save),
     url('^ajax/open/$', open),
+    url('^ajax/delete/$', delete),
     url('^ajax/getworksheets/$', get_worksheets),
     url('^(?P<ajax>(?:ajax/)?)doc/$', doc),
     url('^ajax/doc/search/$', doc_search),
