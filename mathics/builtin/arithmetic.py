@@ -934,12 +934,18 @@ class ComplexInfinity(SympyConstant):
 
     >> 1 / ComplexInfinity
      = 0
-    >> ComplexInfinity + ComplexInfinity
-     = ComplexInfinity
     >> ComplexInfinity * Infinity
      = ComplexInfinity
     >> FullForm[ComplexInfinity]
      = DirectedInfinity[]
+
+    ## Issue689
+    #> ComplexInfinity + ComplexInfinity
+     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
+     = Indeterminate
+    #> ComplexInfinity + Infinity
+     : Indeterminate expression ComplexInfinity + Infinity encountered.
+     = Indeterminate
     """
 
     sympy_name = 'ComplexInfinity'
@@ -990,6 +996,10 @@ class DirectedInfinity(SympyFunction):
         'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
             'Message[Infinity::indet,'
             '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
+        'DirectedInfinity[] + DirectedInfinity[args___]': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[] + DirectedInfinity[args]]];'
             'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
