@@ -681,6 +681,9 @@ class Eigenvalues(Builtin):
     #> Eigenvalues[{{1, 0}, {0}}]
      : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
      = Eigenvalues[{{1, 0}, {0}}]
+
+    #> Eigenvalues[{{1,-2},{2,1}}]
+     = {1 + 2 I, 1 - 2 I}
     """
 
     messages = {
@@ -701,9 +704,9 @@ class Eigenvalues(Builtin):
             eigenvalues = sorted(six.iteritems(eigenvalues),
                                  key=lambda v_c: (abs(v_c[0]), -v_c[0]), reverse=True)
         except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
+            # Cannot sort complex eigenvalues.
             eigenvalues = list(eigenvalues.items())
+            eigenvalues.reverse()
         return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
 
 
@@ -716,6 +719,9 @@ class Eigensystem(Builtin):
 
     >> Eigensystem[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
      = {{2, -1, 1}, {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}}
+
+    #> Eigensystem[{{1,-2},{2,1}}]
+     = {{1 + 2 I, 1 - 2 I}, {{I, 1}, {-I, 1}}}
     """
 
     rules = {
@@ -973,7 +979,12 @@ class Eigenvectors(Builtin):
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
         # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda val_c_vect: (abs(val_c_vect[0]), -val_c_vect[0]), reverse=True)
+        try:
+            eigenvects = sorted(eigenvects, key=lambda val_c_vect: (abs(val_c_vect[0]), -val_c_vect[0]), reverse=True)
+        except TypeError:
+            # complex eigenvalues.
+            eignevects = eigenvects.reverse()
+            pass
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
