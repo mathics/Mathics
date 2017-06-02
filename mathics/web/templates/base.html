@@ -50,13 +50,18 @@
   <img id="logotext" class="load" src="/media/img/logo-text.svg" height="26" alt="Mathics" />
 
   <div class="menu">
-    <a href="/" title="Worksheets"><i class="fa fa-list"></i>
-    </a><a href="javascript:saveSheet()" title="Save"><i class="fa fa-save"></i>
+    <a href="/worksheets" title="Worksheets"><i class="fa fa-list"></i>
+    {% if worksheet == '' %}
+      </a><a href="javascript:showSaveNew()" title="Save"><i class="fa fa-save"></i>
+    {% else %}
+      </a><a href="javascript:saveSheet()" title="Save"><i class="fa fa-save"></i>
+      </a><a href="javascript:showSaveNew()" title="Save As"><i class="fa fa-copy"></i>
+    {% endif %}
+    </a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-share-alt"></i>
     </a>
     <!--
     <a href="javascript:showOpen()" title="Open"><i class="fa fa-file-text"></i>
     </a><a href="javascript:showSave()" title="Save"><i class="fa fa-download"></i>
-    </a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-share-alt"></i>
     </a><a class="separate-left inactive" href="javascript:undo()" title="Undo"><i class="fa fa-undo"></i>
     </a><a class="inactive" href="javascript:redo()" title="Redo"><i class="fa fa-repeat"></i>
     </a>
@@ -107,24 +112,26 @@
 {% include "inout.html" %}
 
 <script type="text/javascript">
-  var NAME = '{{ worksheet }}';
-  $(document).observe('dom:loaded', function() {
-    requireLogin("You must login to open online worksheets.", function() {
-      new Ajax.Request('/ajax/open/', {
-        method: 'post',
-        parameters: {
-          'name': NAME
-        },
-        onSuccess: function (transport) {
-          var response = transport.responseText.evalJSON();
-          if ($('document').visible())
-            setContent(response.content);
-          else
-            $('codetext').value = response.content;
-        }
+  window.sheetName = '{{ worksheet }}';
+  if (window.sheetName) {
+    $(document).observe('dom:loaded', function () {
+      requireLogin("You must login to open online worksheets.", function () {
+        new Ajax.Request('/ajax/open/', {
+          method: 'post',
+          parameters: {
+            'name': window.sheetName
+          },
+          onSuccess: function (transport) {
+            var response = transport.responseText.evalJSON();
+            if ($('document').visible())
+              setContent(response.content);
+            else
+              $('codetext').value = response.content;
+          }
+        });
       });
     });
-  });
+  }
 </script>
 
 {% endblock html_body %}

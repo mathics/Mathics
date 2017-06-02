@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 import sys
 import traceback
+import re
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
@@ -23,7 +24,7 @@ from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Message, Result, Output
 
 from mathics.web.models import Query, Worksheet
-from mathics.web.forms import LoginForm, SaveForm, DeleteForm
+from mathics.web.forms import LoginForm, SaveForm, SaveNewForm, DeleteForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
 import six
@@ -81,8 +82,19 @@ def main_view(request, name):
     content_type = get_content_type(request)
     return render_to_response('main.html', {
         'login_form': LoginForm(),
+        'save_new_form': SaveNewForm(),
         'require_login': settings.REQUIRE_LOGIN,
         'worksheet': name,
+    }, context_instance=RequestContext(request), content_type=content_type)
+
+
+def blank_worksheet(request):
+    content_type = get_content_type(request)
+    return render_to_response('main.html', {
+        'login_form': LoginForm(),
+        'save_new_form': SaveNewForm(),
+        'require_login': settings.REQUIRE_LOGIN,
+        'worksheet': '',
     }, context_instance=RequestContext(request), content_type=content_type)
 
 
@@ -275,6 +287,10 @@ def save(request):
     if form.is_valid():
         content = request.POST.get('content', '')
         name = form.cleaned_data['name']
+
+        if re.match(r'^[0-9A-Za-z]+[0-9A-Za-z._()\-\[\] ]*$', name) is None:
+            pass
+
         user = request.user
         if not user.is_authenticated():
             user = None

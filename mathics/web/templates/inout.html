@@ -14,6 +14,22 @@
 	</form>
 </div>
 
+<div id="saveNew" class="dialog" style="display: none">
+	<h1>Save worksheet as</h1>
+
+	<form id="saveNewForm" action="javascript:;">
+	<table>
+	{{ save_new_form }}
+	<tr>
+		<td class="submit" colspan="2">
+			<input type="button" class="submit" onclick="saveNewSheet()" value="Save" />
+			<input type="button" class="cancel" onclick="cancelSaveNew()" value="Cancel" />
+		</td>
+	</tr>
+	</table>
+	</form>
+</div>
+
 <div id="delete" class="dialog" style="display: none">
 	<h1>Delete worksheet: <span id="deleteSheetName"></span></h1>
 

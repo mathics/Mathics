@@ -43,6 +43,15 @@ class SaveForm(AjaxForm):
     )
 
 
+class SaveNewForm(AjaxForm):
+    newName = forms.CharField(
+        required=True, max_length=30,
+        label='New name',
+        help_text=('<p class="helptext">Worksheet names '
+                   'are not case-sensitive.</p>')
+    )
+
+
 class DeleteForm(AjaxForm):
     confirm = forms.CharField(
         required=True, max_length=30,
