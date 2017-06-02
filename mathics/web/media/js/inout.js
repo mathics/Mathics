@@ -4,8 +4,14 @@ function showCreate() {
 	});
 }
 
-function showDelete(name) {
+function showSaveNew() {
 	requireLogin("You must login to save worksheets online.", function() {
+		showPopup($('saveNew'));
+	});
+}
+
+function showDelete(name) {
+	requireLogin("You must login to delete the worksheet.", function() {
 		$('deleteSheetName').setText(name);
 		showPopup($('delete'));
 	});
@@ -61,6 +67,10 @@ function cancelDelete() {
 	hidePopup();
 }
 
+function cancelSaveNew() {
+	hidePopup();
+}
+
 function createSheet() {
 	submitForm('saveForm', '/ajax/save/', function(response) {
 		if (!checkLogin(response))
@@ -78,11 +88,14 @@ function createSheet() {
 }
 
 function saveSheet() {
-	if (saveSheet.saving)
+	if (window.saving)
 		return;
 
-	saveSheet.saving = true;
-	clearTimeout(saveSheet.timeoutHandler);
+	if ( window.sheetName == '')
+		return showSaveNew();
+
+	window.saving = true;
+	clearTimeout(window.saveStatusTimeoutHandler);
 
 	$$('.saveStatus').invoke('hide');
 	$('sheetSaving').show();
@@ -96,7 +109,7 @@ function saveSheet() {
 	new Ajax.Request('/ajax/save/', {
 		method: 'post',
 		parameters: {
-			'name': NAME,
+			'name': window.sheetName,
 			'content': content,
 			'overwrite': true
 		},
@@ -109,10 +122,59 @@ function saveSheet() {
 			$('sheetUnsaved').show();
 		},
 		onComplete: function () {
-			saveSheet.saving = false;
-			saveSheet.timeoutHandler = setTimeout(function () {
+			window.saving = false;
+			window.saveStatusTimeoutHandler = setTimeout(function () {
 				$$('.saveStatus').invoke('hide');
-                        }, 1000);
+			}, 1000);
+		}
+	});
+}
+
+function saveNewSheet(name, override) {
+	clearTimeout(window.saveStatusTimeoutHandler);
+
+	$$('.saveStatus').invoke('hide');
+	$('sheetSaving').show();
+
+	name = name || $('id_newName').value;
+
+	var content;
+	if ($('document').visible())
+		content = getContent();
+	else
+		content = $('codetext').value;
+
+	new Ajax.Request('/ajax/save/', {
+		method: 'post',
+		parameters: {
+			'name': name,
+			'content': content,
+			'overwrite': override || false
+		},
+		onSuccess: function(response) {
+			if (response.result == 'confirm') {
+				var yes = confirm('Worksheet named ' + name + ' exists. Do you want to override it?');
+				if (yes)
+					return saveSheet(name, override)
+			}
+
+			$$('.saveStatus').invoke('hide');
+			$('sheetSaved').show();
+
+			$('id_newName').value = '';
+			hidePopup();
+
+			window.sheetName = name;
+			history.replaceState({}, 'Mathics', '/worksheet/' + name + '/' + location.hash)
+		},
+		onFailure: function(response) {
+			$$('.saveStatus').invoke('hide');
+			$('sheetUnsaved').show();
+		},
+		onComplete: function () {
+			window.saveStatusTimeoutHandler = setTimeout(function () {
+				$$('.saveStatus').invoke('hide');
+			}, 1000);
 		}
 	});
 }
