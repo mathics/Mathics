@@ -284,28 +284,29 @@ def save(request):
     form = SaveForm(request.POST)
     overwrite = request.POST.get('overwrite', False)
     result = ''
+    general_errors = []
     if form.is_valid():
         content = request.POST.get('content', '')
         name = form.cleaned_data['name']
 
         if re.match(r'^[0-9A-Za-z]+[0-9A-Za-z._()\-\[\] ]*$', name) is None:
-            pass
-
-        user = request.user
-        if not user.is_authenticated():
-            user = None
-        try:
-            worksheet = Worksheet.objects.get(user=user, name=name)
-            if overwrite:
-                worksheet.content = content
-            else:
-                result = 'overwrite'
-        except Worksheet.DoesNotExist:
-            worksheet = Worksheet(user=user, name=name, content=content)
-        worksheet.save()
+            general_errors = ["Worksheet name is invalid."]
+        else:
+            user = request.user
+            if not user.is_authenticated():
+                user = None
+            try:
+                worksheet = Worksheet.objects.get(user=user, name=name)
+                if overwrite:
+                    worksheet.content = content
+                else:
+                    result = 'overwrite'
+            except Worksheet.DoesNotExist:
+                worksheet = Worksheet(user=user, name=name, content=content)
+            worksheet.save()
 
     return JsonResponse({
-        'form': form.as_json(),
+        'form': form.as_json(general_errors=general_errors),
         'result': result,
     })
 

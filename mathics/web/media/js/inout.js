@@ -130,13 +130,8 @@ function saveSheet() {
 	});
 }
 
-function saveNewSheet(name, override) {
-	clearTimeout(window.saveStatusTimeoutHandler);
-
-	$$('.saveStatus').invoke('hide');
-	$('sheetSaving').show();
-
-	name = name || $('id_newName').value;
+function saveNewSheet(name, overwrite) {
+	name = (name || $('id_newName').value).trim();
 
 	var content;
 	if ($('document').visible())
@@ -144,38 +139,29 @@ function saveNewSheet(name, override) {
 	else
 		content = $('codetext').value;
 
-	new Ajax.Request('/ajax/save/', {
-		method: 'post',
-		parameters: {
-			'name': name,
-			'content': content,
-			'overwrite': override || false
-		},
-		onSuccess: function(response) {
-			if (response.result == 'confirm') {
-				var yes = confirm('Worksheet named ' + name + ' exists. Do you want to override it?');
-				if (yes)
-					return saveSheet(name, override)
-			}
-
-			$$('.saveStatus').invoke('hide');
-			$('sheetSaved').show();
-
-			$('id_newName').value = '';
-			hidePopup();
-
-			window.sheetName = name;
-			history.replaceState({}, 'Mathics', '/worksheet/' + name + '/' + location.hash)
-		},
-		onFailure: function(response) {
-			$$('.saveStatus').invoke('hide');
-			$('sheetUnsaved').show();
-		},
-		onComplete: function () {
-			window.saveStatusTimeoutHandler = setTimeout(function () {
-				$$('.saveStatus').invoke('hide');
-			}, 1000);
+	submitForm('saveNewForm', '/ajax/save/', function(response) {
+		console.log(response);
+		if (response.result == 'overwrite') {
+			var yes = confirm('Worksheet named ' + name + ' exists. Do you want to overwrite it?');
+			if (yes) saveSheet(name, overwrite);
+			return;
 		}
+
+		$$('.saveStatus').invoke('hide');
+		$('sheetSaved').show();
+		window.saveStatusTimeoutHandler = setTimeout(function () {
+			$$('.saveStatus').invoke('hide');
+		}, 1000);
+
+		$('id_newName').value = '';
+		hidePopup();
+
+		window.sheetName = name;
+		history.replaceState({}, 'Mathics', '/worksheet/' + name + '/' + location.hash)
+	}, {
+		'name': name,
+		'content': content,
+		'overwrite': overwrite || ''
 	});
 }
 
