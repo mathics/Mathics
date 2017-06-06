@@ -229,9 +229,10 @@ class Unique(Predefined):
     Create a unique symbol whose name begins with x:
     >> Unique["x"]
      = x2
-
+    
+    #> $3 = 3;
     #> Unique[]
-     = $3
+     = $4
 
     #> Unique[{}]
      = {}
@@ -262,9 +263,9 @@ class Unique(Predefined):
      = Unique[1]
 
     #> Unique[{m, "s", n}, {Flat, Listable, Orderless}]
-     = {m$7, s4, n$8}
+     = {m$7, s5, n$8}
      
-    #> Attributes[{m$7, s4, n$8}]
+    #> Attributes[{m$7, s5, n$8}]
      = {{Flat, Listable, Orderless}, {Flat, Listable, Orderless}, {Flat, Listable, Orderless}}
 
     #> Unique[{x, "s", 1}, {Flat ^ Listable ^ Orderless}]
@@ -272,9 +273,9 @@ class Unique(Predefined):
      = Unique[{x, s, 1}, {Flat ^ Listable ^ Orderless}]
 
     #> Unique[{"s"}, Flat]
-     = {s5}
+     = {s6}
      
-    #> Attributes[s5]
+    #> Attributes[s6]
      = {Flat}
     """
 
@@ -297,6 +298,10 @@ class Unique(Predefined):
 
         new_name = '$%d' % (self.seq_number)
         self.seq_number += 1
+        #Next symbol in case of new name is defined before
+        while evaluation.definitions.get_definition(new_name, True) is not None:
+            new_name = '$%d' % (self.seq_number)
+            self.seq_number += 1
         return Symbol(new_name)
 
     def apply_symbol(self, vars, attributes, evaluation):
@@ -332,8 +337,11 @@ class Unique(Predefined):
             else:
                 new_name = '%s%d' % (symbol.get_string_value(), self.seq_number)
                 self.seq_number += 1
-                list.append(Symbol(new_name))
-
+                # Next symbol in case of new name is defined before
+                while evaluation.definitions.get_definition(new_name, True) is not None:
+                    new_name = '%s%d' % (symbol.get_string_value(), self.seq_number)
+                    self.seq_number += 1
+                list.append(Symbol(new_name))    
         for symbol in list:
             for att in attrs:
                 evaluation.definitions.set_attribute(symbol.get_name(), att)
