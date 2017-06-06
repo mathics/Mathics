@@ -1114,9 +1114,8 @@ class RealDigits(Builtin):
         expr = Expression('RealDigits', n)
            
         py_n = abs(n.value)
-        py_b = b.to_python()
-        
-        if check_finite_decimal(n.denominator().to_python()) == True and not py_b % 2 :
+        py_b = b.get_int_value()
+        if check_finite_decimal(n.denominator().get_int_value()) and not py_b % 2 :
             return self.apply_2(n, b, evaluation)
         else:
             exp = int(mpmath.ceil(mpmath.log(py_n, py_b)))
@@ -1139,8 +1138,8 @@ class RealDigits(Builtin):
         'RealDigits[n_]'
         
         # Handling the testcases that throw the error message and return the ouput that doesn't include `base` argument
-        if isinstance(n, Symbol):
-            return evaluation.message('RealDigits', 'ndig', n) if n.name.startswith('System`')  else Expression('RealDigits', n)
+        if isinstance(n, Symbol)and n.name.startswith('System`'):
+            return evaluation.message('RealDigits', 'ndig', n)
         
         if n.is_numeric():
             return self.apply_2(n, from_python(10), evaluation)
@@ -1148,15 +1147,15 @@ class RealDigits(Builtin):
     def apply_2(self, n, b, evaluation, nr_elements=None, pos=None):
         'RealDigits[n_?NumericQ, b_Integer]'
         
-        rational_no = True if isinstance(n, Rational) else False
         expr = Expression('RealDigits', n)
-        py_b = b.to_python()
+        rational_no = True if isinstance(n, Rational) else False  #it is used for checking whether the input n is a rational or not 
+        py_b = b.get_int_value()
         if isinstance(n, (Expression, Symbol, Rational)):
             pos_len = abs(pos) + 1 if pos is not None and pos < 0 else 1
             if nr_elements is not None:
                 n = Expression('N', n, int(mpmath.log(py_b ** (nr_elements + pos_len), 10)) + 1).evaluate(evaluation)
             else:
-                if isinstance(n, Rational):
+                if rational_no:
                     n = Expression('N', n).evaluate(evaluation)
                 else:
                     return evaluation.message('RealDigits', 'ndig', expr)
@@ -1169,11 +1168,11 @@ class RealDigits(Builtin):
             return evaluation.message('RealDigits', 'realx', expr)
         
         if isinstance(n, Integer):
-            display_len = int(mpmath.floor(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else int(1)
+            display_len = int(mpmath.floor(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
         else:
             display_len = int(Expression('N', Expression('Round', Expression('Divide', Expression('Precision', py_n), Expression('Log', 10, py_b)))).evaluate(evaluation).to_python())
         
-        exp = int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else int(1)
+        exp = int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
         
         if py_n == 0 and nr_elements is not None:
             exp = 0
@@ -1182,11 +1181,10 @@ class RealDigits(Builtin):
         if not py_b == 10: 
             digits = convert_float_base(py_n, py_b, display_len - exp)
             # truncate all the leading 0's
-            for i in range(0, len(digits)):
-                if(digits[0] != 0):
-                    break
-                else:
-                    digits = digits[1:]
+            i = 0
+            while digits and digits[i] == 0:
+                i+=1
+            digits = digits[i:]
                     
             if not isinstance(n, Integer):
                 if len(digits) > display_len:
@@ -1215,7 +1213,8 @@ class RealDigits(Builtin):
             # Convert to Mathics' list format
             list_str.leaves.append(from_python(int(x)))  
         
-        if rational_no is not True:
+        
+        if not rational_no:
             while len(list_str.leaves) < display_len:
                 list_str.leaves.append(from_python(0))
         
@@ -1229,7 +1228,7 @@ class RealDigits(Builtin):
                     while(len(list_str.leaves) < nr_elements):
                         list_str.leaves.append(from_python(0))
                 else:
-                    # Adding Indeterminate if the lenght is greater than the precision
+                    # Adding Indeterminate if the length is greater than the precision
                     while(len(list_str.leaves) < nr_elements):
                         list_str.leaves.append(from_python(Symbol('Indeterminate')))
 
@@ -1242,7 +1241,7 @@ class RealDigits(Builtin):
         
         if pos is not None: 
             expr.leaves.append(from_python(pos))
-            
+        
         if not(isinstance(length, Integer) and length.get_int_value() >= 0):
             return evaluation.message('RealDigits', 'intnm', expr)
         
