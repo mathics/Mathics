@@ -653,7 +653,7 @@ class NonNegative(Builtin):
 class NonPositive(Builtin):
     """
     <dl>
-    <dt>'NonNegative[$x$]'
+    <dt>'NonPositive[$x$]'
         <dd>returns 'True' if $x$ is a negative real number or zero.
     </dl>
 
