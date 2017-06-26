@@ -4693,3 +4693,206 @@ class Association(Builtin):
             return None
 
         return result[key] if result else Expression('Missing', Symbol('KeyAbsent'), key)
+    
+class AssociationQ(Test):
+    """
+    <dl>
+    <dt>'AssociationQ[$expr$]'
+        <dd>return True if $expr$ is a valid Association object, and False otherwise.
+    </dl>
+
+    >> AssociationQ[<|a -> 1, b :> 2|>]
+     = True
+
+    >> AssociationQ[<|a, b|>]
+     = False
+    """
+
+    def test(self, expr):
+        def validate(leaves):
+            for leaf in leaves:
+                if leaf.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif leaf.has_form('List', None) or leaf.has_form('Association', None):
+                    if validate(leaf.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        return expr.get_head_name() == 'System`Association' and validate(expr.leaves)
+        
+class Keys(Builtin):
+    """
+    <dl>
+    <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the keys $keyi$ in an association.
+    <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $keyi$ in a list of rules.
+    </dl>
+
+    >> Keys[<|a -> x, b -> y|>]
+     = {a, b}
+
+    >> Keys[{a -> x, b -> y}]
+     = {a, b}
+
+    Keys automatically threads over lists:
+    >> Keys[{<|a -> x, b -> y|>, {w -> z, {}}}]
+     = {{a, b}, {w, {}}}
+
+    Keys are listed in the order of their appearance:
+    >> Keys[{c -> z, b -> y, a -> x}]
+     = {c, b, a}
+
+    #> Keys[a -> x]
+     = a
+
+    #> Keys[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {a, a, {a, {b}, {}, {}}}
+
+    #> Keys[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {a, a, {a, b}}
+
+    #> Keys[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, Association[a -> y, b]]]
+
+    #> Keys[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, {a -> y, b}]]
+
+    #> Keys[{a -> x, <|a -> y, b|>}]
+     : The argument Association[a -> y, b] is not a valid Association or a list of rules.
+     = Keys[{a -> x, Association[a -> y, b]}]
+
+    #> Keys[{a -> x, {a -> y, b}}]
+     : The argument b is not a valid Association or a list of rules.
+     = Keys[{a -> x, {a -> y, b}}]
+
+    #> Keys[a -> x, b -> y]
+     : Keys called with 2 arguments; 1 argument is expected.
+     = Keys[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Keys called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Keys[rules___]'
+
+        def get_keys(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[0]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_keys(leaf) for leaf in expr.leaves])
+            else:
+                evaluation.message('Keys', 'invrl', expr)
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Keys', 'argx', Integer(len(rules)))
+
+        try:
+            return get_keys(rules[0])
+        except:
+            return None
+            
+class Values(Builtin):
+    """
+    <dl>
+    <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the values $vali$ in an association.
+    <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $vali$ in a list of rules.
+    </dl>
+
+    >> Values[<|a -> x, b -> y|>]
+     = {x, y}
+
+    >> Values[{a -> x, b -> y}]
+     = {x, y}
+
+    Values automatically threads over lists:
+    >> Values[{<|a -> x, b -> y|>, {c -> z, {}}}]
+     = {{x, y}, {z, {}}}
+
+    Values are listed in the order of their appearance:
+    >> Values[{c -> z, b -> y, a -> x}]
+     = {z, y, x}
+
+    #> Values[a -> x]
+     = x
+
+    #> Values[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {x, y, {z, {t}, {}, {}}}
+
+    #> Values[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {x, y, {z, t}}
+
+    #> Values[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {z, t}
+
+    #> Values[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {z, t}
+
+    #> Values[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, Association[a -> y, b]]]
+
+    #> Values[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, {a -> y, b}]]
+
+    #> Values[{a -> x, <|a -> y, b|>}]
+     : The argument {a -> x, Association[a -> y, b]} is not a valid Association or a list of rules.
+     = Values[{a -> x, Association[a -> y, b]}]
+
+    #> Values[{a -> x, {a -> y, b}}]
+     : The argument {a -> x, {a -> y, b}} is not a valid Association or a list of rules.
+     = Values[{a -> x, {a -> y, b}}]
+
+    #> Values[a -> x, b -> y]
+     : Values called with 2 arguments; 1 argument is expected.
+     = Values[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Values called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Values[rules___]'
+
+        def get_values(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[1]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_values(leaf) for leaf in expr.leaves])
+            else:
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Values', 'argx', Integer(len(rules)))
+
+        try:
+            return get_values(rules[0])
+        except:
+            return evaluation.message('Values', 'invrl', rules[0])
