@@ -4563,3 +4563,133 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+
+class Association(Builtin):
+    """
+    <dl>
+    <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
+    <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
+        <dd> represents an association between keys and values.
+    </dl>
+
+    'Association' is the head of associations:
+    >> Head[<|a -> x, b -> y, c -> z|>]
+     = Association
+
+    >> <|a -> x, b -> y|>
+     = <|a -> x, b -> y|>
+
+    >> Association[{a -> x, b -> y}]
+     = <|a -> x, b -> y|>
+
+    Associations can be nested:
+    >> <|a -> x, b -> y, <|a -> z, d -> t|>|>
+     = <|a -> z, b -> y, d -> t|>
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|>
+     = <|a -> x, b -> y, c -> <|d -> t|>|>
+    #> %["s"]
+     = Missing[KeyAbsent, s]
+
+    #> <|a -> x, b + c -> y, {<|{}|>, a -> {z}}|>
+     = <|a -> {z}, b + c -> y|>
+    #> %[a]
+     = {z}
+
+    #> <|"x" -> 1, {y} -> 1|>
+     = <|x -> 1, {y} -> 1|>
+    #> %["x"]
+     = 1
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {}, <||>|>, {d}|>[c]
+     =  Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {}, Association[]], {d}][c]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {d}|>, {}, <||>|>[a]
+     = Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {d}], {}, Association[]][a]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z, {d}|>, {}, <||>|>, {}, <||>|>
+     = <|<|a -> v|> -> x, b -> y, a -> Association[c -> z, {d}]|>
+    #> %[a]
+     = Association[c -> z, {d}]
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|> // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{d, ->, t}], |>}]}]}], |>}]
+
+    #> Association[a -> x, b -> y, c -> Association[d -> t, Association[e -> u]]] // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{RowBox[{d, ->, t}], ,, RowBox[{e, ->, u}]}], |>}]}]}], |>}]
+    """
+
+    error_idx = 0
+
+    attributes = ('HoldAllComplete', 'Protected',)
+
+    def apply_makeboxes(self, rules, f, evaluation):
+        '''MakeBoxes[<|rules___|>,
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+
+        def validate(exprs):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    if validate(expr.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        rules = rules.get_sequence()
+        if self.error_idx == 0 and validate(rules) is True:
+            expr = Expression('RowBox', Expression('List', *list_boxes(rules, f, "<|", "|>")))
+        else:
+            self.error_idx += 1
+            symbol = Expression('MakeBoxes', Symbol('Association'), f)
+            expr = Expression('RowBox', Expression('List', symbol, *list_boxes(rules, f, "[", "]")))
+
+        expr = expr.evaluate(evaluation)
+        if self.error_idx > 0:
+            self.error_idx -= 1
+        return expr
+
+    def apply(self, rules, evaluation):
+        'Association[rules__]'
+
+        def make_flatten(exprs, dic={}, keys=[]):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    key = expr.leaves[0].evaluate(evaluation)
+                    value = expr.leaves[1].evaluate(evaluation)
+                    dic[key] = Expression(expr.get_head(), key, value)
+                    if key not in keys:
+                        keys.append(key)
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    make_flatten(expr.leaves, dic, keys)
+                else:
+                    raise
+            return [dic[key] for key in keys]
+
+        try:
+            return Expression('Association', *make_flatten(rules.get_sequence()))
+        except:
+            return None
+
+    def apply_key(self, rules, key, evaluation):
+        'Association[rules__][key_]'
+
+        def find_key(exprs, dic={}):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    if expr.leaves[0] == key:
+                        dic[key] = expr.leaves[1]
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    find_key(expr.leaves)
+                else:
+                    raise
+            return dic
+
+        try:
+            result = find_key(rules.get_sequence())
+        except:
+            return None
+
+        return result[key] if result else Expression('Missing', Symbol('KeyAbsent'), key)

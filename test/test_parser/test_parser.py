@@ -347,6 +347,9 @@ class GeneralTests(ParserTests):
         self.check('{, a, b}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b')))
         self.check('{,a,b,}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b'), Symbol('Null')))
 
+    def testAssociation(self):
+        self.check('<|x -> m|>', Node('Association', Node('Rule', Symbol('x'), Symbol('m'))))
+        
     def testSequence(self):
         self.check('Sin[x, y]', Node('Sin', Symbol('x'), Symbol('y')))
 
