@@ -1598,6 +1598,66 @@ class Count(Builtin):
         'Count[list_, arguments__]': 'Length[Cases[list, arguments]]',
     }
 
+class LeafCount(Builtin):
+    """
+    <dl>
+    <dt>'LeafCount[$expr$]'
+        <dd>returns the total number of indivisible subexpressions in $expr$.
+    </dl>
+
+    >> LeafCount[1 + x + y^a]
+     = 6
+
+    >> LeafCount[f[x, y]]
+     = 3
+
+    >> LeafCount[{1 / 3, 1 + I}]
+     = 7
+
+    >> LeafCount[Sqrt[2]]
+     = 5
+
+    >> LeafCount[100!]
+     = 1
+
+    #> LeafCount[f[a, b][x, y]]
+     = 5
+
+    #> NestList[# /. s[x_][y_][z_] -> x[z][y[z]] &, s[s][s][s[s]][s][s], 4];
+    #> LeafCount /@ %
+     = {7, 8, 8, 11, 11}
+
+    #> LeafCount[1 / 3, 1 + I]
+     : LeafCount called with 2 arguments; 1 argument is expected.
+     = LeafCount[1 / 3, 1 + I]
+    """
+
+    messages = {
+        'argx': 'LeafCount called with `1` arguments; 1 argument is expected.',
+    }
+
+    def apply(self, expr, evaluation):
+        'LeafCount[expr___]'
+
+        from mathics.core.expression import Rational, Complex
+        leaves = []
+
+        def callback(level):
+            if isinstance(level, Rational):
+                leaves.extend([level.get_head(), level.numerator(), level.denominator()])
+            elif isinstance(level, Complex):
+                leaves.extend([level.get_head(), level.real, level.imag])
+            else:
+                leaves.append(level)
+            return level
+
+        expr = expr.get_sequence()
+        if len(expr) != 1:
+            return evaluation.message('LeafCount', 'argx', Integer(len(expr)))
+
+        walk_levels(expr[0], start=-1, stop=-1, heads=True, callback=callback)
+        return Integer(len(leaves))
+
 
 class Position(Builtin):
     '''
