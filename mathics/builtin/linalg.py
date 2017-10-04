@@ -85,7 +85,7 @@ class Tr(Builtin):
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Tr', 'matsq', m)
-        tr = sympy.Trace(matrix)
+        tr = matrix.trace()
         return from_sympy(tr)
 
 
