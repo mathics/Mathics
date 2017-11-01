@@ -16,7 +16,6 @@ from six.moves import map
 from six.moves import range
 from six.moves import zip
 from itertools import chain
-from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
