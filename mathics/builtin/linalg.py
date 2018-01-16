@@ -77,7 +77,7 @@ class Tr(Builtin):
         'matsq': "The matrix `1` is not square."
     }
     
-    #TODO: generalize to vectors and higher-rank tensors, and allow function arguments
+    #TODO: generalize to vectors and higher-rank tensors, and allow function arguments for application
     
     def apply(self, m, evaluation):
         'Tr[m_]'
