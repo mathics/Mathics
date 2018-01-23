@@ -58,6 +58,37 @@ def to_mpmath_matrix(data, **kwargs):
         return None
 
 
+class Tr(Builtin):
+    """
+    <dl>
+    <dt>'Tr[$m$]'
+        <dd>computes the trace of the matrix $m$.
+    </dl>
+    
+    >> Tr[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}]
+     = 15
+    
+    Symbolic trace:
+    >> Tr[{{a, b, c}, {d, e, f}, {g, h, i}}]
+     = a + e + i
+    """
+    
+    messages = {
+        'matsq': "The matrix `1` is not square."
+    }
+    
+    #TODO: generalize to vectors and higher-rank tensors, and allow function arguments for application
+    
+    def apply(self, m, evaluation):
+        'Tr[m_]'
+        
+        matrix = to_sympy_matrix(m)
+        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+            return evaluation.message('Tr', 'matsq', m)
+        tr = matrix.trace()
+        return from_sympy(tr)
+
+
 class Det(Builtin):
     """
     <dl>
