@@ -1,8 +1,8 @@
 (* ****************************************************************************
 
     This is an extended transcription of Gries & Schnedier, "A Logical Approach
-    to Discrete Math" into mathics (https://goo.gl/wSm1wt), a free clone of
-    Mathematica (https://goo.gl/0uvLZ) written in Python. I got mathics to run
+    to Discrete Math," into mathics (https://goo.gl/wSm1wt), a free clone of
+    Mathematica (https://goo.gl/0uvLZ), written in Python. I got mathics to run
     on Python 3.5 and not on Python 3.6.
 
     @Book{gries1993a,
@@ -14,20 +14,20 @@
      isbn = {978-1-4757-3837-7}}
 
     Why are we doing this? Gries & Schnedier is a great example of a formal
-    method. Formal Methods help you write better software. Formal methods means
-    "machine-checked proofs." Such things can help you avoid billion-dollar
-    mistakes, like crashing the Mars Climate Observer because the units of
-    measure "newton" and "pound-force" were not checked by machine.
+    method. Formal methods means "machine-checked proofs." Formal Methods help
+    you write better software. They can help you avoid billion-dollar mistakes,
+    like crashing the Mars Climate Observer because the units of measure
+    "newton" and "pound-force" were not checked by machine.
 
-    Fall in love with formal methods, please! They're related to static type
-    checking (that's a little theorem prover in your compiler), and great things
-    like Clojure.spec (https://goo.gl/sttnFC). I think a lot of people know
-    those are good things, but there are lots of other formal methods like
+    Fall in love with formal methods, please! They're related to static
+    type-checking (that's a little formal method in your compiler, proving
+    little theorems about types in your code), and great things like
+    Clojure.spec (https://goo.gl/sttnFC). I think a lot of people know those are
+    good, but there are lots of other, lesser-known formal methods like
     Statecharts (https://statecharts.github.io/) and TLA+
-    (https://goo.gl/dx32Mw), and many more. Those are the best. TLA+ saved
-    Amazon's Dynamo DB a catastrophic failure (https://goo.gl/pTpZYT). Many
-    mistakes have been found in published protocols when subjected to formal
-    methods (no citation).
+    (https://goo.gl/dx32Mw). TLA+ saved Amazon's Dynamo DB a catastrophic
+    failure (https://goo.gl/pTpZYT). Many mistakes have been found in published
+    protocols when subjected to formal methods (no citation).
 
  *************************************************************************** *)
 (* Section 1.2 Textual substitution, page 8
@@ -36,7 +36,7 @@
   | |/ -_) \ /  _| || / _` | | \__ \ || | '_ (_-<  _| |  _| || |  _| / _ \ ' \
   |_|\___/_\_\\__|\_,_\__,_|_| |___/\_,_|_.__/__/\__|_|\__|\_,_|\__|_\___/_||_|
 
-    Gries & Scheider          Us                        Expected Output
+    Gries & Schneider         Us                        Expected Output
     ------------------------- ------------------------- ----------------------
     x[x := x + 2]             x /. {x -> x + 2}         x + 2
     (x+y)[x := z + 2]         x + y /. {x -> z + 2}     z + 2 + y
@@ -67,6 +67,8 @@
         y (2 + z)
         In[2]:=
 
+    at the top of the output.
+
     Just what Gries and Schneider said we should see, only with a little
     rearranging because mathics knows that '+' and '*' are commutative. This
     rearranging won't bother us until later, when we make a way to control it.
@@ -81,7 +83,7 @@ Print[ x * y /. {x -> z + 2} ]
 
 (* Bottom of page 8: *********************************************************
 
-    Gries & Scheider          Us                        Expected Output
+    Gries & Schneider         Us                        Expected Output
     ------------------------- ------------------------- ----------------------
     (z+y)[z,y := 5, 6]        z+y /. {z->5, y->6}       11
 
@@ -92,7 +94,7 @@ Print[ z+y /. {z->5, y->6} ]
 (* ***************************************************************************
 
     Let's do a little tooling so we can write 'expected' and 'actual' in our
-    examples.
+    examples. You don't need to understand this.
 
  *************************************************************************** *)
 
@@ -114,40 +116,40 @@ expect[expected_, actual_] := (* <~~~ Here's the API *)
        (* That's the return value of 'expect'. *) ];
 
 (* ~~~> Here's an example <~~~ *)
-expect[11, z+y /. {z->5, y->6}]
+
+expect[11,   z+y /. {z->5, y->6}]
 
 (* ***************************************************************************
 
     Note: You don't have to write stars for commutative multiplication in
     mathics: all the following are the same: 2 * y, y * 2, 2 y, 2y. You'll
     notice that even in the PRINTING of the expressions, the stars are removed
-    (despite my Holding these expression, mathics always does a little
-    simplification --- at parse time!). You do need to leave spaces between
-    symbols, however; 4a c is 4a*c, whereas 4ac is 4 * ac, where ac is a symbol
-    with two characters.
+    (despite my HoldAllComplete and HoldForm, mathics always does a little
+    simplification). You do need to leave spaces between symbols, however; 4a c
+    is 4*a*c, whereas 4ac is 4*ac, where ac is a symbol with two characters.
 
  *************************************************************************** *)
 
-expect[2y, 2 * y]
-expect[2y, 2 y]
-expect[2y, y * 2]
-expect[2y, y 2]
+expect[2y,   2 * y    ]
+expect[2y,   2 y      ]
+expect[2y,   y * 2    ]
+expect[2y,   y 2      ]
 expect[4a c, 4 * a * c]
-expect[4ac, 4 * ac]
+expect[4ac,  4 * ac   ]
 
 (* Top of page 10: ************************************************************
 
     Left Associativity:
 
-    Gries & Scheider          Us                        Expected Output
+    Gries & Schneider         Us                        Expected Output
     ------------------------- ------------------------- ----------------------
     (x + 2y)[x,y := y,x]      (x+2y)/.{x->y, y->x}      y + 2x
     (x + 2y)[x := y][y := x]  (x+2y)/.{x->y}/.{y->x}    3x
 
  *************************************************************************** *)
 
-expect[y + 2x, (x + 2y) /. {x -> y, y -> x}]
-expect[3x, (x+2y) /. {x -> y} /. {y -> x}]
+expect[y + 2x,   (x + 2y) /. {x -> y, y -> x}    ]
+expect[3x,       (x + 2y) /. {x -> y} /. {y -> x}]
 
 (* Textual Substitution and Hidden Variables, page 10 *************************
 
@@ -155,21 +157,21 @@ expect[3x, (x+2y) /. {x -> y} /. {y -> x}]
     Q: ------------------------
                  2a
 
-    Gries & Scheider          Us                        Expected Output
+    Gries & Schneider         Us                        Expected Output
     ------------------------- ------------------------- ----------------------
     (x = Q)[b := 5]           (x = Q)/.{b->5}           (-5+Sqrt[25-4a c])/(2a)
 
-    Be careful: as with most programming languages, 1/2a == a/2. This is counter
-    to the accepted typographical conventions of mathematics and physics (I
-    don't have the reference handy, but Author's manuals for both the American
-    Physical Society and the American Mathematical Society declare that 1/2a
-     means 1/(2a). This serious problem leads to subtle bugs!).
+    Be careful: in mathics, as with most programming languages, 1/2a == a/2.
+    This is counter to the accepted typographical conventions of mathematics and
+    physics (I don't have the reference handy, but Author's manuals for both the
+    American Physical Society and the American Mathematical Society declare that
+    1/2a means 1/(2a). This serious problem leads to subtle bugs!).
 
  *************************************************************************** *)
 
 Q = (-b + Sqrt[ b^2 - 4 a c ]) / (2a)
 
-expect[ (-5 + Sqrt[25-4a c]) / (2a), (x = Q)/.{b->5} ]
+expect[ (-5 + Sqrt[25-4a c]) / (2a),   (x = Q)/.{b->5} ]
 
 (* In the above, we have made assignments to Q and x. We have modified the
    global state of this session. We need to clear out those assignment so that
@@ -187,14 +189,14 @@ ClearAll[Q, x]
 expect[ 35, 35 /. {x -> 2} ]
 expect[ y,   y /. {x -> 2} ]
 expect[ 2,   x /. {x -> 2} ]
-expect[ (c + y) * (c + y) + y, (x*x + y) /. {x -> c + y} ]
+expect[ (c + y) * (c + y) + y,   (x*x + y) /. {x -> c + y} ]
 expect[ (x + y)^2 + y^2 + (x + y)^3,
         (x^2 + y^2 + x^3) /. {x -> x + y} ]
 
-expect[ z + w + w, (x + y + y) /. {x -> z, y -> w} ]
+expect[ z + w + w,      (x + y + y) /. {x -> z, y -> w}    ]
 expect[ 2y + x z + x z, (x + y + y) /. {x -> 2y, y -> x z} ]
-expect[ y + 2x, (x + 2y) /. {x -> y, y -> x} ]
-expect[ z + 2 x y, (x + 2 y z) /. {x->z, y->x, z->y} ]
+expect[ y + 2x,         (x + 2y)    /. {x -> y, y -> x}    ]
+expect[ z + 2 x y,      (x + 2 y z) /. {x->z, y->x, z->y}  ]
 
 (* Inference Rule Substitution (1.1), page 10
  ___       __                           ___      _
@@ -206,11 +208,10 @@ expect[ z + 2 x y, (x + 2 y z) /. {x->z, y->x, z->y} ]
 \__ \ || | '_ (_-<  _| |  _| || |  _| / _ \ ' \
 |___/\_,_|_.__/__/\__|_|\__|\_,_|\__|_\___/_||_|
 
-    The inference rule (scheme or template) 'Substitution' takes in a top-line
-    expression e, a list of variables v, and a corresponding list of replacement
-    expressions f, and spits out the bottom line conclusion e[v:=f]. The
-    following is the definition of the inference-rule scheme, followed by the
-    example on page 11.
+    The inference rule 'Substitution' takes in a top-line expression e, a list
+    of variables v, and a corresponding list of replacement expressions f, and
+    spits out the bottom line conclusion e[v:=f]. The following is the
+    definition of the inference-rule scheme, followed by the example on page 11.
 
     (we shouldn't use capital letters as the first characters of names in
     mathics because the system defines many of them. For example, E is defined
@@ -246,9 +247,10 @@ expect[ False, x === y ]
 
 (* ****************************************************************************
 
-    That's what we want almost all the time: the behavior of SameQ. So now we
-    can apply the inference rule. You'll see a beautiful proof when you run this
-    through mathics (or even Mathematica).
+    Almost all the time we want the behavior of SameQ. So now we can apply the
+    inference rule. You'll see a beautiful proof when you run this through
+    mathics (or even Mathematica). Notice that mathics does a little
+    rearranging, rewriting j + 5 as 5 + j. It's OK for now.
 
  *************************************************************************** *)
 
@@ -270,9 +272,9 @@ expect[ 2 (j + 5) / 2 === j + 5,
 \__,_|_||_\__,_| |___\__, |\_,_\__,_|_|_|\__|\_, |
                         |_|                  |__/
 
-    Now, we want more inference and less evaluation. This is tricky in mathics,
-    which is super aggressive about evaluation. Stopping it requires a large zoo
-    of "evaluation-control" functions. Here is a partial list:
+    Going forward, we want more inference and less evaluation. This is tricky in
+    mathics, which is super aggressive about evaluation. Stopping it requires a
+    large zoo of "evaluation-control" functions. Here is a partial list:
 
     Hold              HoldAll           HoldFirst         HoldRest
     HoldComplete      HoldAllComplete   HoldForm          Evaluate
@@ -282,8 +284,9 @@ expect[ 2 (j + 5) / 2 === j + 5,
     Most of the work of using an expression evaluator like mathics as a proof
     assistant is in preventing evaluation until the right time. Rules like
     Reflexivity (G&S 1.2), Symmetry (G&S 1.3), and Transitivity (G&S 1.4) are
-    hard-coded. Common factors in division expressions are canceled without
-    notification right in the middle of trying to prove cancellation; and so on.
+    hard-coded into mathics, which will apply the rules without notification.
+    Common factors in division expressions are canceled without notification
+    right in the middle of trying to prove cancellation; and so on.
 
     An "evaluation leak" is an inadvertent early evaluation. Evaluation leaks
     don't affect the truth value of a theorem, they affect display of steps of a
@@ -291,15 +294,18 @@ expect[ 2 (j + 5) / 2 === j + 5,
     our flow of human reasoning. We must control evaluation ourselves, watching
     our rules at work and putting them to work explicitly.
 
-    We can thwart evaluation with the zoo of Holds, or by not using built-ins,
-    at least not until we want to. It's a trade-off: using the zoo of Holds, we
-    can retain pretty infix syntax in expressions, but we risk evaluation leaks.
-    Experience shows that even the pros get this wrong often (search "evaluation
-    leak" on mathematica.stackexchange.com). It also forces us to learn more
-    than we want about the evaluator (see https://goo.gl/L7Gz3h). If we avoid
-    built-ins, we must write, for example, the inert expression div[2 (j+5), 2]
-    instead of 2 (j + 5) / 2 to prevent early cancellation. We lose pretty
-    syntax, at least until we do something like the following:
+    We can thwart evaluation either with the zoo of Holds, or by not using
+    built-ins, at least not until we want to. It's a trade-off: using the zoo of
+    Holds, we can retain pretty infix syntax in expressions, but we risk
+    evaluation leaks. Experience shows that even the pros get this wrong often
+    (search "evaluation leak" on mathematica.stackexchange.com). It also forces
+    us to learn more than we want about the evaluator (see
+    https://goo.gl/L7Gz3h), including its bugs, which we may have to fix.
+
+    On the other hand, if we avoid built-ins, we must write, for example, the
+    inert expression div[2 (j+5), 2] instead of 2 (j + 5) / 2 to prevent early
+    cancellation. We lose pretty syntax, at least until we do something like the
+    following:
 
 *************************************************************************** *)
 
@@ -317,24 +323,23 @@ expect [ j + 5,
     of a function or lambda expression in Python, but not exactly the same. The
     distinction shouldn't matter as we proceed.
 
-    I conduct, below, an extended experiment with inert sameq, plus, times, div,
-    etc., and replace them only explicitly with built-ins when desired using
-    rules like the one immediately above. We lose some pretty syntax. The
-    purpose of the experiment is to see whether losing that syntax is worth
-    avoiding struggles and bugs with evaluation leaks. We at least get the
-    mitigation that our work will be totally explicit.
+    So let's do an extended experiment with inert sameq, plus, times, div, etc.,
+    replacing them only explicitly with built-ins when desired using rules like
+    div immediately above. We lose some pretty syntax; the purpose of the
+    experiment is to see whether losing that syntax is worth avoiding struggles
+    and bugs with evaluation leaks. We at least get the mitigation that our work
+    will be totally explicit.
 
     Let's first redo the substitution rule (G&S 1.1). During this experiment, we
-    will avoid all use of the zoo of Holds, plus SetAttributes
-    (https://goo.gl/Zt3KbB), upvalues (https://goo.gl/4bgm65), and more arcana.
-    You will see some of those in the prior definition of
-    inferenceRuleSubstitution.
+    avoid the zoo of Holds, plus SetAttributes (https://goo.gl/Zt3KbB), upvalues
+    (https://goo.gl/4bgm65), and more arcana. We used some of those in the prior
+    definition of inferenceRuleSubstitution, which we're leaving behind now.
 
     So much for mathics (for now). The G&S "language" has fine distinctions
     between Laws, Inference Rules, and Axioms that are not always crystal-clear.
     It's clear that some Laws, like Transitivity (1.4) are Inference Rules.
-    However, there may be churn in my proof assistant as I discover subtleties
-    around these distinctions.
+    However, there may be churn as I discover subtleties around these
+    distinctions.
 
  *************************************************************************** *)
 
@@ -381,19 +386,18 @@ expect[ z, (x; y; z) ]
 
 (* ****************************************************************************
 
-    You will notice that in the printout from "expect" in Expression 25 above
-    that mathics aggressively rewrites "CompoundExpression[x, y, z]" as "x ; y ;
-    z" despite the fact that "expect" has attribute "HoldAllComplete" and that
-    the Print statement inside "expect" explicitly calls "HoldForm". This is an
-    example of an evaluation leak that would be very time-consuming to fix.
-    Mathematica does the same thing. We won't bother to fix it, because we're
-    trying to make the following point:
+    Notice in the printout from "expect" in Expression 25 above that mathics
+    aggressively rewrites "CompoundExpression[x, y, z]" as "x ; y ; z" despite
+    the fact that "expect" has attribute "HoldAllComplete" and "HoldForm". This
+    is an example of an evaluation leak that would be very time-consuming to
+    fix. Mathematica does the same thing. We won't bother to fix it, because
+    we're trying to make the following point:
 
-    We may absentmindedly put a semicolon after a global definition or a use of
+    We may absentmindedly put a semicolon after a global definition or a
     "ClearAll". The presence or absence of such terminal semicolons does not
-    make a difference at the global level, but it does inside Expressions. You
-    need not be too concerned about this point, just aware that semicolons are
-    sometimes superfluous and sometimes not.
+    make a difference at the global level, but it does inside Expressions. Don't
+    be too concerned about this, just be aware that semicolons are sometimes
+    important and sometimes not.
 
  *************************************************************************** *)
 
@@ -417,51 +421,57 @@ expect[ sameq[ x+y, 7 ],
 
     A nice victory, with no evaluation drama.
 
-    We now reproduce the theorem on page 4. This will require some more
-    machinery. Remember that these are all hard-coded in the mathics evaluator,
-    which we avoid on purpose. We supply our own rewrite rules.
+    We now reproduce the theorem on page 4. This will require more machinery.
+    Remember that all the laws above all hard-coded in the mathics evaluator, so
+    we need to avoid triggering them. We supply our own rewrite rules for plus,
+    times, sameq, and so on, leaving them inert symbolic expressions that
+    mathics doesn't know how to reduce until we tell it explicitly.
+
+    U N N A M E D   R U L E S
 
     We may write two kinds of rewrite rules: named and unnamed. Many of the ones
-    we see above are unnamed. Such rules have the form "pattern -> result", for
-    example "x -> 2y", where the pattern is "x" and must match the target of the
-    rule exactly (the target of such a rule is the left-hand side of a "/.",
+    above are unnamed. Such rules have the form "pattern -> result", for example
+    "x -> 2y", where the pattern is "x" and must match the target of the rule
+    exactly (the target of such a rule is the left-hand side of a "/.",
     "ReplaceAll", or of a "//.", "ReplaceAllRepeated").
 
     Another example of an unnamed rule is "div[a_, b_] -> a / b", where the
-    pattern is "div[a_, b_]", which contains pattern variables a_ and b_. Those
-    variables match anything, and they are replaced by the things they match on
-    the right-hand side of the arrow "->" when the rule is applied.
+    pattern is "div[a_, b_]", containing pattern variables a_ and b_. Those
+    variables match anything. When the rule is applied, the pattern variables
+    are replaced on the right-hand side of the arrow by the things they match.
 
     "a -> b" is syntax for "Rule". There is another kind of arrow, namely ":>",
     syntax for "RuleDelayed", which means "don't evaluate the right-hand side of
-    the rule now, only later, when we apply the rule." We may have use for such
-    rules later.
+    the rule now, only later, when we apply the rule."
 
-    We may also call unnamed rules "ad-hoc rules," because they're usually
-    created just to solve a problem that arises once in some computation, and
-    are therefore not worth naming and saving away for many uses.
+    Unnamed rules are usually "ad-hoc," created just to solve a problem that
+    arises once in some computation, and are therefore not worth naming and
+    saving away for many uses.
+
+    N A M E D   R U L E S
 
     A named rule has the form "head[pattern] := result". Search backwards for
     instances of ":=". Every place we used that, we defined a name, which
     becomes the head of the rule. For example, in "transitivityLaw[blahblah] :=
-    yaketyyak", the "head" is "transitivityLaw" and we invoke the rule by name
-    as in "transitivityLaw[and[sameq[x+y, blahblah]]]". The rest of the rule
-    works just like an unnamed rule with a ":>" arrow.
+    yaketyyak", the "head" is "transitivityLaw" and we invoke the rule as in
+    "transitivityLaw[and[sameq[x+y, blahblah]]]". The rest of the rule works
+    just like an unnamed rule with a ":>" arrow.
 
     We could write a named rule as "head[pattern] = result", syntax for "Set",
     when we want the result (right-hand side) evaluated at definition time (now)
     instead of at application time (later), but it's usually considered bad
     practice. Using ":=", syntax for "SetDelayed", instead of "=" sweeps a bunch
-    of unwanted evaluation drama under the rug.
+    of early-evaluation drama under the rug.
 
     By default, we write unnamed rules with an eager arrow, "->", and named
     rules with a lazy "SetDelayed", i.e., ":=", but we have the other options
-    when we need them. This issue is a "meta-evaluation leak", noise about
-    evaluation rising to our attention. But we can ignore the noise much of the
-    time.
+    when we need them.
+
+    This issue is a "meta-evaluation leak", noise about evaluation rising to our
+    attention. But we can ignore the noise much of the time.
 
     Back to our theorem from page 4, we'll write our new machinery with some
-    named rewrite rules:
+    named rewrite rules that don't trigger the built-in reductions:
 
  *************************************************************************** *)
 
@@ -493,9 +503,9 @@ cancelNonZeros                         [
     div [ a_, a_ ]                     ] := 1
 
 (* Rather than do a bunch more laws (at least eight) for associativity between
-div and times, it's easier to rewrite div _as_ times. G&S finesse over this
-point, but computers are stupid and must be told exactly what to do all the
-time. *)
+   div and times, it's easier to rewrite div _as_ times. G&S finesse over this
+   point, but computers are stupid and must be told exactly what to do all the
+   time. *)
 
 ClearAll[divAsTimes]
 divAsTimes                             [
@@ -510,11 +520,13 @@ timesAsDiv                             [
 (* ****************************************************************************
 
     Let's start by applying the rule "divideBothSidesByNonZero" and checking
-    that it meets our long-winded representation of e/c^2 === (m c^2)/c^2, which
-    is sameq [ div [ e, c^2 ], div [ times [ m, c^2 ], c^2 ] ]. We'll call this
-    expression "target" so we don't have to write it out long over and over
-    again, remembering to ClearAll it along with other definitions at the end of
-    this block of work:
+    that it meets our long-winded representation of e/c^2 === (m c^2)/c^2:
+
+        sameq [ div [ e, c^2 ], div [ times [ m, c^2 ], c^2 ] ].
+
+    Call this expression "target" so we don't have to write it out long over and
+    over again, remembering to ClearAll it along with other definitions at the
+    end of this block of work:
 
  *************************************************************************** *)
 
@@ -531,24 +543,25 @@ expect [ target,
 (* ****************************************************************************
 
     To avoid (1) deeply nesting expressions, and (2) copy-pasting expressions
-    over and over (https://goo.gl/4PJnbK), let's introduce "Postfix notation for
-    application of rules." Instead of divideBothSidesByNonZero[premise, c^2], we
-    can write
+    over and over (https://goo.gl/4PJnbK), introduce "Postfix notation for
+    application of rules." Instead of
+
+        divideBothSidesByNonZero[premise, c^2]
+
+    we can write
 
         premise // divideBothSidesByNonZero [ #1, c^2 ] &
 
     "x // f" means "apply function f to argument x"
 
     It chains nicely (associates to the left), as we see below. That will make
-    our proofs look like those in the book instead of like deeply nested
+    proofs look more like those in the book instead of like deeply nested
     function applications staircasing off to the right (https://goo.gl/MVBwaV).
 
-    "e[#1, blahblah] &" means "make e[#1, blahblah] a function, with slot #1 for
-    the first argument."
+        e[#1, blahblah] &
 
-    We'll still have to do a little parenthesizing to group up applications of
-    ad-hoc rules because "ReplaceAll" and "ReplaceAllRepeated" don't always
-    associate well with postfix application "//".
+    means "a function with body e[#1, blahblah], with slot #1 for the first
+    argument."
 
  *************************************************************************** *)
 
@@ -556,30 +569,49 @@ expect [ divideBothSidesByNonZero [ premise, c^2 ],
          premise // divideBothSidesByNonZero [ #1, c^2 ] &
        ]
 
-expect [ sameq [ div [ e, c^2 ], m ],
+(* ****************************************************************************
+
+    We still need a little parenthesizing to group up ad-hoc rules because
+    "ReplaceAll" and "ReplaceAllRepeated" don't always associate well with
+    postfix application "//". Here's the first shot at the theorem:
+
+ *************************************************************************** *)
+
+expect [
+
+sameq [ div [ e, c^2 ], m ],
+
 (premise                                                       //
+
      divideBothSidesByNonZero [ #1, c^2 ] &                    //
+
      Map[divAsTimes, #1] &                                   ) /. (* ad-hoc *)
+
      sameq[a_, b_] -> sameq[a, leftTimesIsAssociativeLaw[b]]   /.
-     sameq[a_, times[b_, c_]] ->
+
+     sameq[a_, times[b_, c_]] ->                                  (* ad-hoc *)
          sameq[timesAsDiv[a], times[b, timesAsDiv[c]]]         /.
-     sameq[a_, times[b_, c_]] ->
+
+     sameq[a_, times[b_, c_]] ->                                  (* ad-hoc *)
          sameq[a, times[b, cancelNonZeros[c]]]                 /.
-     sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]
+
+     sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]              (* ad-hoc *)
 ]
 
 (* ****************************************************************************
 
-    That recaps the theorem and is our first substantial proof. We had to make
-    several ad-hoc rules because we needed to apply some laws _inside_ other
+    That recaps the theorem and is our first substantial proof.
+
+    We made several ad-hoc rules because we needed to apply laws _inside_ other
     expressions. We'll make some ways to mitigate that below, because we want
     our proof assistant eventually to search for opportunities to apply rules,
     but we probably don't want to get into dynamically generating ad-hoc rules.
     Rather, we want to write higher-order rules that search inside nested
     expressions for ways to apply named and ad-hoc rules.
 
-    Let's add a little machinery to display intermediate results so we get a
-    display similar to but more detailed than that on page 4.
+    Let's add a little machinery to nicely display intermediate results so we
+    get a display similar to but more detailed than that on page 4. We need more
+    parentheses, unfortunately.
 
  *************************************************************************** *)
 
@@ -599,10 +631,10 @@ dump[e_] := (Print[e]; e)
 (* ****************************************************************************
 
     That works --- you should see a pretty display of all the steps when you
-    evaluate that expression, but is a little grotesque. We're not giving up,
-    yet. There will definitely be ways to make this better.
+    evaluate that expression. Look at the output and make sure you understand
+    both the input and output.
 
-    First, let's see what happens when we let mathics evaluate the intermediate
+    Let's see what happens when we let mathics evaluate the intermediate
     steps. We'll do that with a variation of "dump" called "eump" that replaces
     our inert operators "div", "times", and "power" with mathics's live
     versions. We'll have to use "ReplaceAllRepeated" in "eump", with syntax
@@ -639,7 +671,7 @@ Print["WITH MATHICS EVALUATION"]
 (* ****************************************************************************
 
     Mathics takes away all our fun, proving the theorem right away in the second
-    step. That's ok, we already knew that would happen, but we won't let it
+    step. That's ok, we already knew that would happen, and we won't let it
     interfere with our pedantic, detailed proofs.
 
     Don't forget to clear out defined symbols. If you leave them in, you can get
@@ -651,7 +683,7 @@ ClearAll[target, premise]
 
 (* ****************************************************************************
 
-    Now, the first version of Leibniz's law / rule:
+    The first version of Leibniz's law / rule:
 
  *************************************************************************** *)
 
@@ -719,65 +751,79 @@ expect [
 
     In the below, we modify "erules", adding a rule for "plus" and a rule for
     "apply". After that modification, erules doesn't mean the same thing as it
-    does above. This kind of modification of global variables is risky, in
-    general, because it introduces dependence on order of evaluation to our
-    script. If we accidentally use the new "erules" on expressions defined
-    above, we could conceivably have a problem. Not in this case, because we
-    didn't use "plus" and "apply" in exammples above. However, in general,
-    modifying things is "code smell" and should be avoided.
+    does above. Modification of global variables is risky, in general, because
+    it introduces global dependence on order of evaluation. If we accidentally
+    use the new "erules" on expressions defined above, we could conceivably have
+    a problem. Not in this case, because we didn't use "plus" and "apply" in
+    above. However, in general, modifying things is "code smell" to be avoided.
 
     We introduce our first use of "RuleDelayed", syntax ":>". It isn't really
     necessary; "->" would work just as well as ":>" in this rule for "apply".
-    But it's stylistically better because it makes our ad-hoc rules more like
-    our named rules, which use "SetDelayed", syntax ":=". We bring it up here
-    just start getting used to it.
+    But it's stylistically better because it makes ad-hoc rules more like named
+    rules, which use "SetDelayed", syntax ":=". We bring it up here just to
+    start getting used to it.
 
-    We also use a module to define the function "g" to avoid polluting the
-    global namespace with the name "g". A Module defines local names that vanish
-    when the evaluator finishes with it.
+    We also use a Module to define the function "g" to avoid polluting the
+    global namespace. A Module defines local names that vanish when the
+    evaluator finishes with it.
 
  *************************************************************************** *)
 
-Module[{g = Function[z, plus[times[3, z], 6]]}, apply[g, 5]]
+Module [{ g = Function[z, plus[times[3, z], 6]] },
+          apply[g, 5]
+       ]
 
-expect [ apply[Function[z, plus[times[3, z], 6]], 5],
-         Module[{g = Function[z, plus[times[3, z], 6]]}, apply[g, 5]] ]
+expect [ apply  [ Function[z, plus[times[3, z], 6]],
+                  5
+                ],
 
-erules = Join [ {plus->Plus, apply[f_, a_] :> Apply[f, {a}]},
-                erules ]
+         Module [{ g = Function[z, plus[times[3, z], 6]] },
+                   apply[g, 5]
+                ]
+       ]
+
+erules = Join [ { plus -> Plus,                  (* a list of new rules ...  *)
+                  apply[f_, a_] :> Apply[f, {a}] (* including this fancy     *)
+                },                               (*   delayed one            *)
+                erules                           (* to the old list of rules *)
+              ]
 
 expect [ 21,
-    Module[{g = Function[z, plus[times[3, z], 6]]}, apply[g, 5]] //. erules ]
+    Module [{ g = Function[z, plus[times[3, z], 6]] },
+              apply[g, 5]] //. erules
+       ]
 
 expect [ 3 (y + 2) + 6,
-    Module[{g = Function[z, plus[times[3, z], 6]]}, apply[g, y+2]] //. erules ]
+    Module[{ g = Function[z, plus[times[3, z], 6]] },
+             apply[g, y+2]] //. erules
+       ]
 
 (* ****************************************************************************
 
     To write the functional version of Leibiz's law / rule, we don't need to
-    delete (ClearAll) the old, substitution version. The reason is that mathics
-    can distinguish the old version, which has three arguments, from the new
-    version, which has two, when the rule is invoked. In some languages,
-    multiple, distinguishable versions of the same symbol with the same names
-    are called "overloads." Some languages distinguish the version based on the
-    types of arguments as well as on the numbers of arguments. So far, we're not
-    using any kind of types in mathics, though mathics is capable of that
-    through its "conditional" term rewriting. All rules we've define so far are
+    delete (ClearAll) the old, substitution version. Mathics can distinguish the
+    old version, which has three arguments, from the new version, which has two,
+    when the rule is invoked. In some languages, multiple, distinguishable
+    versions of the same symbol with the same names are called "overloads." Some
+    languages distinguish the overload based on the types of arguments as well
+    as on the numbers of arguments. So far, we're not using any kind of types in
+    mathics, though mathics is capable of type analysis through its
+    "conditional" term rewriting. All rules we've define so far are
     unconditional, with one exception. In defining "substitutionInferenceRule",
     we stipulated that the terms "f" and "v" must have type "List" (review the
     definition). We may make greater use of such conditions later. Mathic's
     conditional facility is very powerful, encompassing things like "dependent
     types," which are topics of current research.
 
-    We introduce a three-term overload for apply, which was inert heretofore, in
-    terms of substitution, following definition 1.7 on page 14 of the book. The
-    existing, two-term usages above will not be affected.
+    We introduce a three-term overload for "apply", which was inert, in terms of
+    substitution, following definition 1.7 on page 14 of the book. The existing,
+    two-term usages above will not be affected.
 
     Be aware that this practice, of introducing new overloads and definitions is
-    risky, generally a code smell because it's modifying the global state in a
-    way that depends on order of evaluation. We're being careful, here, but you
-    must be aware that subtle bugs often occur if terms prior to the new
-    definition are changed.
+    generally a code smell because it's modifying global state in a way that
+    depends on order of evaluation. We're being careful, here, but you must be
+    aware that subtle bugs often occur if terms prior to the new definition are
+    changed.
 
  *************************************************************************** *)
 
@@ -786,7 +832,7 @@ ClearAll[apply]
 apply[g_, z_, x_] := g /. {z :> x}
 
 expect [
-    plus[times[3, 5], 6],
+    plus [ times [ 3, 5 ], 6 ],
     apply [ plus[times[3, z], 6], z, 5 ] ]
 
 expect [
@@ -819,10 +865,10 @@ expect [
         hoareTriple[precondition, statement, postcondition]
 
     If we don't have a named rule bound to the name "hoareTriple", then mathics
-    can't reduce the head "hoareTriple" nor the entire expression. However, it
-    may reduce the arguments "precondition", "statement", and "postcondition" by
-    its usual aggressive (or eager) evaluation strategy. If we don't want them
-    reduced, we must take care that they're inert.
+    can't reduce "hoareTriple" nor the entire expression. However, it may reduce
+    the arguments "precondition", "statement", and "postcondition" by its usual
+    aggressive, eager evaluation strategy. If we don't want them reduced, we
+    must take care that they're inert.
 
     We can write rules like "isValid" that "dispatch on type" like Clojure
     multimethods or Python multimethods in my "locutius" package on PyPI.
@@ -855,10 +901,10 @@ assign[variables_:List, expressions_:List, postcondition_] :=
 (* Examples, page 18 ******************************************************* *)
 
 (* Notice we don't have to use inert forms of expressions when we know that
-   mathics can't reduce what we write. We've been extra pedantic about using
-   only inert forms, above, where we proving that (e === m c^2) === (e c^2 ===
-   m) because we didn't want mathics doing the proof for us. But there are
-   certainly several places where we could have been more lax. *)
+   mathics can't reduce what we write. We've been extra pedantic with inert
+   forms, proving that (e === m c^2) === (e c^2 === m), because we didn't want
+   mathics doing the proof for us. But there are certainly several places where
+   we could have been more lax. *)
 
 expect [
     hoareTriple [
@@ -936,3 +982,112 @@ expect [
 |___/_\_\___|_| \__|_/__/\___/__/  \___|_||_(_) |_|
 
  *************************************************************************** *)
+
+(* Exercise 1.7(a) ************************************************************
+
+   Here, we need a little chicanery to force mathics to do arithmetic inside our
+   inert "sameq"; "Expand /@ blahblah" means "Map[Expand, blahblah]" and forces
+   the arithmetic expander inside the "sameq" expression to yield our expected
+   result. With out it, mathics would not reduce 4(x+2) and we get a bogusly
+   failed example. None of this would be an issue if we were using our pedantic
+   inert forms for the arithmetic.
+
+ *************************************************************************** *)
+
+expect [
+
+    sameq [ 4x + y,   8 + 4x + y ], (* E[z:=X] === E[z:=Y] *)
+
+    Expand /@ leibniz [
+              sameq [ x,   x + 2 ], (* X === Y             *)
+              4z + y,               (* E(z)                *)
+              z ]                   (* z                   *)
+]
+
+(* Exercise 1.7(b) ********************************************************* *)
+
+expect [
+
+    sameq [ x + (2y+1) w,   x + 5w ], (* E[z:=X] === E[z:=Y] *)
+
+    leibniz [
+        sameq [ 2y + 1,   5 ],        (* X === Y             *)
+        x + z w,                      (* E(z)                *)
+        z ]                           (* z                   *)
+]
+
+(* Exercise 1.7(c) ********************************************************* *)
+
+expect [
+
+    sameq [ 3(x+1) + 3x + 1,   3y + 3(y-1) + 1 ], (* E[z:=X] === E[z:=Y] *)
+
+    leibniz [
+        sameq [ x + 1,   y ],                     (* X === Y             *)
+        3z + 3(z-1) + 1,                          (* E(z)                *)
+        z ]                                       (* z                   *)
+]
+
+(* Exercise 1.7(d) ********************************************************* *)
+
+expect [
+
+    sameq [ x + x,   x + y ],
+
+    leibniz [
+        sameq [ x,   y ],
+        z + x,
+        z ]
+]
+
+expect [
+
+    sameq [ x + x,   y + y ],
+
+    leibniz [
+        sameq [ x,   y ],
+        z + z,
+        z ]
+]
+
+expect [
+
+    sameq [ x + x,   y + x ],
+
+    leibniz [
+        sameq [ x,   y ],
+        x + z,
+        z ]
+]
+
+(* Exercise 1.7(e) ********************************************************* *)
+
+expect [
+
+    sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
+
+    leibniz [
+        sameq [ 7,   y + 1],
+        z x + z y,
+        z ]
+]
+
+expect [
+
+    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
+
+    Expand /@ leibniz [
+        sameq [ 7,   y + 1],
+        z ( x + y ),
+        z ]
+]
+
+expect [
+
+    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
+
+    Expand /@ leibniz [
+        sameq [ 7,   y + 1],
+        ( x + y ) z,
+        z ]
+]
