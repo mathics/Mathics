@@ -1,5 +1,11 @@
 (* ****************************************************************************
 
+    Please see
+
+    https://github.com/rebcabin/Mathics/blob/master/mathics/packages/GriesSchneider.m
+
+    for the most up-to-date version. Changes will be committed there from now on.
+
     This is an extended transcription of Gries & Schnedier, "A Logical Approach
     to Discrete Math," into mathics (https://goo.gl/wSm1wt), a free clone of
     Mathematica (https://goo.gl/0uvLZ), written in Python. I got mathics to run
@@ -106,7 +112,8 @@ expect[expected_, actual_] := (* <~~~ Here's the API *)
            evalExpectedOnce = expected},
       Print[ {"expression", HoldForm[actual],
               "\nexpected", HoldForm[expected],
-              "\nactual",   evalActualOnce,
+              "\neval'd expected", evalExpectedOnce,
+              "\neval'd actual  ", evalActualOnce,
               "\nright?",   evalExpectedOnce === evalActualOnce} ];
       Print[ "" ]; (* newline *)
       If[ evalExpectedOnce === evalActualOnce,
@@ -1050,6 +1057,9 @@ expect [
     assign [{i, x}, {i+1, x+i}, sameq [ x, 1 + 2 + ellipsis + (i - 1) ] ]
 ]
 
+(* A lot of these print out in an ugly way. Eventually, we'll write a
+PrettyPrint. See https://goo.gl/4txWex *)
+
 (* Exercises for Chapter 1, pages 21-23
  ___                _               ___ _        _
 | __|_ _____ _ _ __(_)___ ___ ___  / __| |_     / |
@@ -1165,4 +1175,34 @@ expect [
         sameq [ 7,   y + 1],
         ( x + y ) z,
         z ]
+]
+
+(* Exercise 1.8 ************************************************************ *)
+
+expect [
+
+    sameq [ x + y + w,              (* E[z := X]                             *)
+            b + c + y + w ],        (* E[z := Y] <~~~ answer to the exercise *)
+
+    leibniz [
+        sameq [ x, b + c ],         (* X === Y (hint)                        *)
+        z + y + w,                  (* E(z) <~~~ part of the answer         *)
+        z                           (*   z                                   *)
+    ]
+]
+
+(* "Simplify' is an alternative to "Expand": *)
+
+expect [
+
+    Simplify /@ sameq [
+        x + y + w,                  (* E[z := X]                             *)
+        x + 2(y + w) - b c       ], (* E[z := Y] <~~~ answer to the exercise *)
+
+    Simplify /@ leibniz [
+        sameq [ b c,                (* X <~~~ part of the hint               *)
+                y + w ],            (* Y <~~~ part of the hint               *)
+        z - b c + x + y + w,        (* E(z) <~~~ part of the answer          *)
+        z                           (*   z                                   *)
+    ]
 ]
