@@ -261,6 +261,21 @@ expect[ 2 (j + 5) / 2 === j + 5,
             {j + 5}
         ] ]
 
+(* ****************************************************************************
+
+    You should see something like this:
+
+    {inference rule, Substitution 1.1, page 11,
+            top line, 2 x / 2 === x,
+            rules, {x -> 5 + j},
+            output, 2 (5 + j) / 2 === 5 + j}
+    {expression, inferenceRuleSubstitution[2 x / 2 === x, {x}, {j + 5}],
+            expected, 2 (j + 5) / 2 === j + 5,
+            actual, True,
+            right?, True}
+
+ *************************************************************************** *)
+
 (* Section 1.3 Textual substitution and equality, page 11
  _____        _             _   ___      _       _   _ _        _   _
 |_   _|____ _| |_ _  _ __ _| | / __|_  _| |__ __| |_(_) |_ _  _| |_(_)___ _ _
@@ -345,8 +360,8 @@ expect [ j + 5,
 
 ClearAll[substitutionInferenceRule];
 substitutionInferenceRule[e_, v_:List, f_:List] :=
-    Module[{ rules = MapThread[ Rule, {v, f} ] },
-        Module [{ output = e /. rules },
+    Module[{ rules = MapThread[ Rule, {v, f} ] },  (* <~~~ don't use "With" *)
+        Module [{ output = e /. rules },           (* <~~~ don't use "With" *)
             Print[{
                 "inference rule", "Substitution 1.1, page 11",
                 "\ntop line", e,
@@ -361,6 +376,17 @@ expect[ sameq[ div[2(j+5), 2], j+5 ],
             {j + 5} ] ]
 
 (* ****************************************************************************
+
+    You should see something like this:
+
+    {inference rule, Substitution 1.1, page 11,
+            top line, sameq[div[2 x, 2], x],
+            rules, {x -> 5 + j},
+            output, sameq[div[2 (5 + j), 2], 5 + j]}
+    {expression, substitutionInferenceRule[sameq[div[2 x, 2], x], {x}, {j + 5}],
+            expected, sameq[div[2 (j + 5), 2], j + 5],
+            actual, sameq[div[2 (5 + j), 2], 5 + j],
+            right?, True}
 
     We found a difference between mathics and Mathematica, here: "With" instead
     of "Module" works in Mathematica but not in mathics. This should not be a
@@ -418,6 +444,13 @@ expect[ sameq[ x+y, 7 ],
                                 sameq [ w+1, 7 ] ] ] ]
 
 (* ****************************************************************************
+
+    You should see something like this:
+
+        {expression, transitivityLaw[and[sameq[x + y, w + 1], sameq[w + 1, 7]]],
+            expected, sameq[x + y, 7],
+            actual, sameq[x + y, 7],
+            right?, True}
 
     A nice victory, with no evaluation drama.
 
@@ -600,6 +633,20 @@ sameq [ div [ e, c^2 ], m ],
 
 (* ****************************************************************************
 
+    You should see something like this (the original indentation is ugly; I
+    reindented it):
+
+      {expression,
+        (divAsTimes /@ #1&)[(divideBothSidesByNonZero[#1, c ^ 2]&)[premise]] /.
+         sameq[a_, b_] -> sameq[a, leftTimesIsAssociativeLaw[b]] /.
+         sameq[a_, times[b_, c_]] ->
+           sameq[timesAsDiv[a], times[b, timesAsDiv[c]]] /.
+         sameq[a_, times[b_, c_]] -> sameq[a, times[b, cancelNonZeros[c]]] /.
+         sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]],
+        expected, sameq[div[e, c ^ 2], m],
+               actual, sameq[div[e, c ^ 2], m],
+               right?, True}
+
     That recaps the theorem and is our first substantial proof.
 
     We made several ad-hoc rules because we needed to apply laws _inside_ other
@@ -631,8 +678,17 @@ dump[e_] := (Print[e]; e)
 (* ****************************************************************************
 
     That works --- you should see a pretty display of all the steps when you
-    evaluate that expression. Look at the output and make sure you understand
-    both the input and output.
+    evaluate that expression like that below. Make sure you understand both the
+    input and output. These steps are not annotated. We'll fix that later. This
+    proof is short enough that lack of annotation should not matter.
+
+sameq[e, times[m, c ^ 2]]
+sameq[div[e, c ^ 2], div[times[m, c ^ 2], c ^ 2]]
+sameq[times[e, power[c ^ 2, -1]], times[times[m, c ^ 2], power[c ^ 2, -1]]]
+sameq[times[e, power[c ^ 2, -1]], times[m, times[c ^ 2, power[c ^ 2, -1]]]]
+sameq[div[e, c ^ 2], times[m, div[c ^ 2, c ^ 2]]]
+sameq[div[e, c ^ 2], times[m, 1]]
+sameq[div[e, c ^ 2], m]
 
     Let's see what happens when we let mathics evaluate the intermediate
     steps. We'll do that with a variation of "dump" called "eump" that replaces
@@ -667,8 +723,27 @@ Print["WITH MATHICS EVALUATION"]
      sameq[a_, times[b_, c_]] ->
          sameq[a, times[b, cancelNonZeros[c]]]                 // eump) /.
      sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]           // eump
+newline[]
 
 (* ****************************************************************************
+
+   Except for my manual indentation, you should see something like this;
+
+WITH MATHICS EVALUATION
+{sameq[e, c ^ 2 m],
+  sameq[e, times[m, c ^ 2]]}
+{sameq[e / c ^ 2, m],
+  sameq[div[e, c ^ 2], div[times[m, c ^ 2], c ^ 2]]}
+{sameq[e / c ^ 2, m],
+  sameq[times[e, power[c ^ 2, -1]], times[times[m, c ^ 2], power[c ^ 2, -1]]]}
+{sameq[e / c ^ 2, m],
+  sameq[times[e, power[c ^ 2, -1]], times[m, times[c ^ 2, power[c ^ 2, -1]]]]}
+{sameq[e / c ^ 2, m],
+  sameq[div[e, c ^ 2], times[m, div[c ^ 2, c ^ 2]]]}
+{sameq[e / c ^ 2, m],
+  sameq[div[e, c ^ 2], times[m, 1]]}
+{sameq[e / c ^ 2, m],
+  sameq[div[e, c ^ 2], m]}
 
     Mathics takes away all our fun, proving the theorem right away in the second
     step. That's ok, we already knew that would happen, and we won't let it
