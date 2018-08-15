@@ -704,9 +704,13 @@ sameq[div[e, c ^ 2], m]
     "//.", so we get every nested instance of our inert operators.
     "ReplaceAllRepeated" keeps applying the rules until nothing changes any more
     (technical jargon, "until normal-form is reached, via the 'confluence'
-    property of conditional term rewriting," which is the evaluation algorithm
-    of mathics). We don't use it in inference rules because a substitution like
+    property of conditional term rewriting, which is the evaluation algorithm
+    of mathics"). We don't use it in inference rules because a substitution like
     x -> x + 1 will loop forever.
+
+    You might be able to see that we are actually writing an evaluator for
+    mathics expressions in mathics itself. Such a thing is called a
+    'metacircular evaluator'. See https://goo.gl/VnyaiU.
 
  *************************************************************************** *)
 
@@ -1256,12 +1260,27 @@ expect [
 (* The next one is challenging. We will need the functional form of Leibniz.
    I am not going to do this one for you, but here is a hint:
 
-   leibniz[
-     sameq[
-       plus[x,y],
-       plus[y,x]
-     ],
-     plus[x_,y_]:>plus[y,x]
-   ] /. {apply[f_,a_] :> ReplaceAll[a,f]}
+       leibniz[
+         sameq[
+           plus[x,y],  (* Here is the problem; we need to pretend that     *)
+           plus[y,x]   (* 'plus' is not commutative for this exercise      *)
+         ],            (* to be meaningful, if I understand the authors.   *)
+         plus[x_,y_] :> plus[y,x]  (* think of this as a function!         *)
+       ] /. {apply[f_,a_] :> ReplaceAll[a,f]}  (* this is how to apply it! *)
+
+   Note that RuleDelayed, :>, is necessary here. Rule, ->, won't do. This is the
+   first time we have run across such a necessity.
+
+   I'm leaving the rest of the exercises in Ch. 1 to you, the reader, also.
+   You are advised to do them all!
 
 *)
+
+(* Chaper 2, Boolean Expressions, page 25
+   Section 2.1, Syntax and evaluation of Boolean expression, page 25
+ ___           _                 ___                        _
+| _ ) ___  ___| |___ __ _ _ _   | __|_ ___ __ _ _ ___ _____(_)___ _ _  ___
+| _ \/ _ \/ _ \ / -_) _` | ' \  | _|\ \ / '_ \ '_/ -_|_-<_-< / _ \ ' \(_-<
+|___/\___/\___/_\___\__,_|_||_| |___/_\_\ .__/_| \___/__/__/_\___/_||_/__/
+                                        |_|
+ *************************************************************************** *)
