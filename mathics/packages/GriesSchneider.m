@@ -1197,12 +1197,71 @@ expect [
 
     Simplify /@ sameq [
         x + y + w,                  (* E[z := X]                             *)
-        x + 2(y + w) - b c       ], (* E[z := Y] <~~~ answer to the exercise *)
-
+        x + 2(y + w) - b c          (* E[z := Y] <~~~ answer to the exercise *)
+    ],
     Simplify /@ leibniz [
         sameq [ b c,                (* X <~~~ part of the hint               *)
-                y + w ],            (* Y <~~~ part of the hint               *)
+                y + w               (* Y <~~~ part of the hint               *)
+        ],
         z - b c + x + y + w,        (* E(z) <~~~ part of the answer          *)
         z                           (*   z                                   *)
     ]
 ]
+
+expect [
+
+    Simplify /@ sameq [
+        x + y + w,                  (* E[z := X]                             *)
+        x + 2(y + w) - b c          (* E[z := Y] <~~~ answer to the exercise *)
+    ],
+    Simplify /@ leibniz [
+        sameq [ b c,                (* X <~~~ part of the hint               *)
+                y + w               (* Y <~~~ part of the hint               *)
+        ],
+        z - b c + x + y + w,        (* E(z) <~~~ part of the answer          *)
+        z                           (*   z                                   *)
+    ]
+]
+
+expect [
+
+    Simplify /@ sameq [
+        x (x + y),                  (* E[z := X]                             *)
+        x (y + x)                   (* E[z := Y] <~~~ answer to the exercise *)
+    ],
+    Simplify /@ leibniz [
+        sameq [ x + y,              (* X <~~~ part of the hint               *)
+                y + x               (* Y <~~~ part of the hint               *)
+        ],
+        x z,                        (* E(z) <~~~ part of the answer          *)
+        z                           (*   z                                   *)
+    ]
+]
+
+expect [
+
+    Simplify /@ sameq [
+        (x + y) w,                  (* E[z := X]                             *)
+        x y (x + y)                 (* E[z := Y] <~~~ answer to the exercise *)
+    ],
+    Simplify /@ leibniz [
+        sameq [ w,                  (* X <~~~ part of the hint               *)
+                x y                 (* Y <~~~ part of the hint               *)
+        ],
+        (x + y) z,                  (* E(z) <~~~ part of the answer          *)
+        z                           (*   z                                   *)
+    ]
+]
+
+(* The next one is challenging. We will need the functional form of Leibniz.
+   I am not going to do this one for you, but here is a hint:
+
+   leibniz[
+     sameq[
+       plus[x,y],
+       plus[y,x]
+     ],
+     plus[x_,y_]:>plus[y,x]
+   ] /. {apply[f_,a_] :> ReplaceAll[a,f]}
+
+*)
