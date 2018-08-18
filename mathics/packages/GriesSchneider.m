@@ -1639,3 +1639,7 @@ expect[p,
     dual @ dual @ randomBooleanExpression[]]
 expect[because[nfst[implies[p, implies[f, fconst[f, p]]], t], id[not[q]]],
     dual @ dual @ randomBooleanExpression[]]
+
+Module[{expressions = Table[randomBooleanExpression[], {20}]},
+  Module[{dduals = dual /@ dual /@ expressions},
+    MapThread[expect, {expressions, dduals}]]]
