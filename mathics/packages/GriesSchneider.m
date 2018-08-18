@@ -1196,7 +1196,8 @@ expect [
     ]
 ]
 
-(* "Simplify' is an alternative to "Expand": *)
+(* "Simplify' is an alternative to "Expand" (Mathematics produces different  *)
+(* but equally correct results                                               *)
 
 expect [
 
