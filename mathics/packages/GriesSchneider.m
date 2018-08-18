@@ -17,7 +17,7 @@
 
    ****************************************************************************
 
-This is an extended transcription of Gries & Schnedier, "A Logical Approach
+    This is an extended transcription of Gries & Schnedier, "A Logical Approach
     to Discrete Math," into mathics (https://goo.gl/wSm1wt), a free clone of
     Mathematica (https://goo.gl/0uvLZ), written in Python. I got mathics to run
     on Python 3.5 and not on Python 3.6.
@@ -1208,7 +1208,7 @@ expect [
 ]
 
 (* "Simplify' is an alternative to "Expand" (Mathematics produces different  *)
-(* but equally correct results                                               *)
+(* but equally correct results, here).                                       *)
 
 expect [
 
@@ -1347,6 +1347,19 @@ __   __    _ _    _ _ _                         _
     First, let's do the four unary operators and the sixteen binary operators on
     pages 25 and 26. I will give names to the operators that G&S leaves unnamed.
 
+    As an aside, the number of different functions from a set A to a set B is
+
+        ||B||  **  ||A||  =def=  ||A -> B||
+
+    where ||B|| is the size or cardinality or number-of-elements in set B, and
+    ||A|| is the size of set A, and the set of functions is denoted A->B.
+
+    For the unary functions, A is the set {true, false}, of size 2, and B is the
+    set {true, false}, of size two. Thus there are 2 ** 2 == four different
+    unary functions. For the binary functions, A is the set of pairs of true and
+    false, and there are four such pairs; and B is the set {true, false}. Thus,
+    there are 2 ** 4 == sixteen different binary functions.
+
     I start with inert "true" and "false" to avoid evaluation leaks, i.e., to
     prevent mathics from reducing expessions that have active "True" and
     "False".
@@ -1404,9 +1417,9 @@ expect [
 
     NEW EVALUATION RULES FOR EASIER COMPARISON WITH THE BOOK
 
-    We build up some rules in terms of other ones in a way that the book does
-    not. Our build-up therefore requires "//.", "ReplaceAllRepeated", to reduce
-    expressions, because some replacements cannot reduce in one step.
+    We build up rules in terms of other ones in a way that the book does not.
+    Our build-up requires "//.", "ReplaceAllRepeated", to reduce expressions,
+    because some built-up replacements cannot reduce in one step.
 
     We also see, here, the first need for mathics conditionals in the rewrite
     rules. When a replacement rule checks an argument against t or f with a
@@ -1421,7 +1434,7 @@ expect [
 
     bogusly produces f because not[f] doesn't "===" t before reduction by the
     rule for "not". Because we can't easily predict the order of application of
-    the rules, we must check that a and b each belong to the set {t, f}.
+    the rules, we check that a and b each belong to the set {t, f}.
 
     One syntax for the conditional part of a rule is as follows
 
@@ -1429,7 +1442,7 @@ expect [
         -- -------- ------------------------- -----------------------------
         and[a_, b_] /; (boolQ[a] && boolQ[b]) :> If[(a===t)&&(b===t), t, f]
 
-    It's safest to type-check arguments on all the functions, but there is a
+    It's safest to type-check all arguments on all functions, but there is a
     certain elegance to minimal type-checking, especially because the types are
     checked at run time in mathics and that's not free.
 
@@ -1500,3 +1513,65 @@ expect [
     Partition[Last @ Transpose @ Flatten[
         binaryTruthTable //. comparisonBoolRules, 2], 4]
 ]
+
+(* Dual: Definition 2.2, page 31
+ ___            _
+|   \ _  _ __ _| |
+| |) | || / _` | |
+|___/ \_,_\__,_|_|
+
+    The only interesting new feature of mathics illustrated here is the pattern
+    variable in dual[head_[args__]]. The pattern head_[args__] matches something
+    like and[p, q] with "head" bound to "and" and "{args}" bound to "{p, q}".
+    Args is bound to Sequence[p, q], a special form for argument splicing; we
+    don't need to get into that now. That rule for dual recursively dualizes the
+    head and the args. Rewriting proceeds until things stop changing, so the
+    recursion eventually bottoms out into one of the hard rules like dual[or].
+
+*)
+
+ClearAll[dual]
+
+dual[true]     = false
+dual[t]        = f
+dual[false]    = true
+dual[f]        = t
+
+dual[or]       = and
+dual[and]      = or
+
+dual[eqv]      = neqv
+dual[neqv]     = eqv
+
+dual[eq]       = neq
+dual[neq]      = eq
+
+dual[implies]  = nbecause
+dual[nimplies] = because
+dual[because]  = nimplies
+dual[nbecause] = implies
+
+(*
+
+   These last few are redundant. "implies[p, q]" means "we cannot have q without
+   p," or "p is a sufficient condition for q," or "q is a necessary condition of
+   p," or "~(p /\ ~q)", which reduces, by de Morgan's laws, to "(~p \/ q)", or
+   "or[not[p], q]".
+
+   The dual of "implies[p, q]" is "(~p /\ q)", which is "~(p \/ ~q)" (by de
+   Morgan), which is "not[because[p, q]]". So we can derive the rules above from
+   the duals of "or" and "and", and that's why they're redundant.
+
+*)
+
+dual[head_[args__]] := Apply[dual[head], dual /@ {args}]
+
+dual[var_] := var
+
+(* Table 2.1, page 31 *)
+
+expect[and[p, q],                   dual[or[p, q]]]
+expect[nbecause[p, q],              dual[implies[p, q]]]
+expect[neqv[p,not[p]],              dual[eqv[p,not[p]]]]
+expect[eqv[t, and[f, p]],           dual[neqv[f, or[t, p]]]]
+expect[neqv[or[not[p], not[q]], r], dual[eqv[and[not[p], not[q]], r]]]
