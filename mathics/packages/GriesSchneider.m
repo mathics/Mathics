@@ -1643,3 +1643,29 @@ expect[because[nfst[implies[p, implies[f, fconst[f, p]]], t], id[not[q]]],
 Module[{expressions = Table[randomBooleanExpression[], {20}]},
   Module[{dduals = dual /@ dual /@ expressions},
     MapThread[expect, {expressions, dduals}]]]
+
+(* The Superman example, page 37; we'll consider all 64 states. Mathics has a
+nice, rendered 'implication' arrow. The ASCII input syntax for it is
+"\[Implies]". This might render well on your screen if you have a good Unicode
+font and UTF-8 encoding. Also, we're using mathics logical operators and
+allowing them to reduce, rather than manipulating our own expressions. We'll do
+that later. *)
+
+expect [
+True,
+
+And @@
+Flatten @
+Table[( ( (a && w) \[Implies] p ) &&
+        ( (!a \[Implies] i) && (!w \[Implies] m) ) &&
+        ( !p ) &&
+        ( e \[Implies] (!i && !m) )
+      ) \[Implies] !e,
+  {a, {True, False}},
+  {w, {True, False}},
+  {i, {True, False}},
+  {m, {True, False}},
+  {p, {True, False}},
+  {e, {True, False}} ]
+]
+ (* You do the exercises in chapter 2. *)
