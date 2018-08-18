@@ -898,9 +898,9 @@ expect [ 3 (y + 2) + 6,
     "conditional" term rewriting. All rules we've define so far are
     unconditional, with one exception. In defining "substitutionInferenceRule",
     we stipulated that the terms "f" and "v" must have type "List" (review the
-    definition). We may make greater use of such conditions later. Mathic's
-    conditional facility is very powerful, encompassing things like "dependent
-    types," which are topics of current research.
+    definition). We make greater use of conditions below. Mathic's conditional
+    facility is very powerful, encompassing things like "dependent types,"
+    beyond all but experimental research programming languages.
 
     We introduce a three-term overload for "apply", which was inert, in terms of
     substitution, following definition 1.7 on page 14 of the book. The existing,
@@ -1327,7 +1327,7 @@ __   __    _ _    _ _ _                         _
 |___/ \_,_\__,_|_|_|\__|\_, |
                         |__/
 
-    We must make up prefix forms to explore duality. Mathics does not have
+    We must make up prefix forms for Boolean operations. Mathics does not have
     "Symbolize", Mathematica's way to define new notation.
 
     TODO: would be nice to add "Symbolize" to mathics.
@@ -1379,62 +1379,47 @@ boolRules = {tconst[_] :> True, id -> Identity, not -> Not, fconst[_] :> False,
     true -> True, false -> False}
 
 expect [
+
   { {True, True,  False, False},
     {True, False, True,  False} },
+
   unaryFunctionTruthTable //. boolRules
 ]
 
 (*
 
-    Truth table for the binary functions; different evaluation rules for easier
-    comparison with the book.
+    TRUTH TABLE FOR THE BINARY FUNCTIONS
 
-    Notice that we build up some rules in terms of other ones in a way that the
-    book does not. Our build-up also requires that we use "//.",
-    "ReplaceAllRepeated", to reduce expressions.
+    NEW EVALUATION RULES FOR EASIER COMPARISON WITH THE BOOK
 
-    These don't all check the "type" of their arguments, that is, they don't all
-    check that the arguments are either "t" or "f". Here is a "type-safe"
-    version of "id":
+    We build up some rules in terms of other ones in a way that the book does
+    not. Our build-up therefore requires "//.", "ReplaceAllRepeated", to reduce
+    expressions, because some replacements cannot reduce in one step.
 
-        g[x_/;((x === t) || (x === f))] := x
-
-    It reduces to t or f when its input is t or f, and doesn't reduce if its
-    input is something else (in fact, anything else):
-
-        In[10]:= g[t]
-        Out[10]= t
-
-        In[11]:= g[f]
-        Out[11]= f
-
-        In[12]:= g[g]
-        Out[12]= g[g]
-
-        In[13]:= g[{buncha, junk}]
-        Out[13]= g[{buncha, junk}]
-
-    We must type-check some of the rules, particularly the ones that employ
-    nesting like "implies" and "nand" or are nested like "not". We don't want
-    those reducing to t or f too early. For example, if we write
+    We also see, here, the first need for mathics conditionals in the rewrite
+    rules. When a replacement rule checks an argument against t or f with a
+    mathics "If", we must first confirm that the argument is t or f. If we
+    don't, then something like this
 
         and[a_, b_] := If[(a === t) && (b === t), t, f]
 
-    and then feed it
+    called as follows
 
         and[not[f], t]
 
-    it will produce f because not[f] doesn't "===" t, at least not before we
-    reduce it by applying the rule for "not". Because we can't easily predict
-    the order of application of the rules, we opt for safety for "and" and a few
-    others.
+    bogusly produces f because not[f] doesn't "===" t before reduction by the
+    rule for "not". Because we can't easily predict the order of application of
+    the rules, we must check that a and b each belong to the set {t, f}.
+
+    One syntax for the conditional part of a rule is as follows
+
+        fn   args           condition                 replacement
+        -- -------- ------------------------- -----------------------------
+        and[a_, b_] /; (boolQ[a] && boolQ[b]) :> If[(a===t)&&(b===t), t, f]
 
     It's safest to type-check arguments on all the functions, but there is a
     certain elegance to minimal type-checking, especially because the types are
-    checked at run time in mathics and that's not free. The price of that
-    elegance is that the rules, without type-checking, may not be truly
-    general-purpose. We may encounter some nesting situations later that reduce
-    incorrectly. We'll deal with them when we encounter them.
+    checked at run time in mathics and that's not free.
 
 *)
 
@@ -1442,26 +1427,28 @@ ClearAll[boolQ]
 boolQ[x_] := ((x === t) || (x === f))
 
 comparisonBoolRules = {
-  id -> Identity,
-  not[b_]/;boolQ[b] :> If[b === f, t, f],
-  tconst[a_, b_] :> t,
-  or[a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) || (b === t), t, f],
-  because[a_, b_] :> or[not[b], a],
-  fst[a_, b_] :> a,
-  implies[a_, b_] :> or[not[a], b],
-  snd[a_, b_] :> b,
-  eqv[a_, b_] :> If[a === b, t, f],
-  eq -> eqv,
-  and[a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) && (b === t), t, f],
-  nand[a_, b_] :> not[and[a, b]],
-  neqv[a_, b_] :> not[eqv[a, b]],
-  neq -> neqv,
-  nsnd[a_, b_] :> not[snd[a, b]],
-  nimplies[a_, b_] :> not[implies[a, b]],
-  nfst[a_, b_] :> not[fst[a, b]],
-  nbecause[a_, b_] :> not[because[a, b]],
-  nor[a_, b_] :> not[or[a, b]],
-  fconst[a_, b_] :> f
+(*fn      args    condition                replacement                        *)
+(*------- ------- ------------------------ -----------------------------------*)
+  id                                       -> Identity,
+  not     [b_]    /;boolQ[b]               :> If[b === f, t, f],
+  tconst  [a_, b_]                         :> t,
+  or      [a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) || (b === t), t, f],
+  because [a_, b_]                         :> or[not[b], a],
+  fst     [a_, b_]                         :> a,
+  implies [a_, b_]                         :> or[not[a], b],
+  snd     [a_, b_]                         :> b,
+  eqv     [a_, b_]/;(boolQ[a] && boolQ[b]) :> If[a === b, t, f],
+  eq                                       -> eqv,
+  and     [a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) && (b === t), t, f],
+  nand    [a_, b_]                         :> not[and[a, b]],
+  neqv    [a_, b_]                         :> not[eqv[a, b]],
+  neq                                      -> neqv,
+  nsnd    [a_, b_]                         :> not[snd[a, b]],
+  nimplies[a_, b_]                         :> not[implies[a, b]],
+  nfst    [a_, b_]                         :> not[fst[a, b]],
+  nbecause[a_, b_]                         :> not[because[a, b]],
+  nor     [a_, b_]                         :> not[or[a, b]],
+  fconst  [a_, b_]                         :> f
 }
 
 binaryFunctionList = {tconst, or, because, fst, implies, snd, eqv, eq, and,
@@ -1479,10 +1466,11 @@ nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
 
     Presumably, mathics doesn't properly evaluate "binaryFunctionList" in the
     "iterator" section of "Table", because it works if we paste the definition
-    in directly. We do a little massaging of the result with "Flatten",
-    "Transpose", "Last" and "Partition" so that they can be compared directly
-    with the table in the book. Remove that massaging if you want to see a more
-    verbose output.
+    in directly.
+
+    We do a little massaging of the result with "Flatten", "Transpose", "Last"
+    and "Partition" so that they can be compared directly with the table in the
+    book. Remove that massaging if you want to see a more verbose output.
 
 *)
 
