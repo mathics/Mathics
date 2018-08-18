@@ -1457,6 +1457,7 @@ comparisonBoolRules = {
   id                                       -> Identity,
   not     [b_]    /;boolQ[b]               :> If[b === f, t, f],
   tconst  [a_, b_]                         :> t,
+  tconst  [p_]                             :> t,
   or      [a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) || (b === t), t, f],
   because [a_, b_]                         :> or[not[b], a],
   fst     [a_, b_]                         :> a,
@@ -1473,7 +1474,8 @@ comparisonBoolRules = {
   nfst    [a_, b_]                         :> not[fst[a, b]],
   nbecause[a_, b_]                         :> not[because[a, b]],
   nor     [a_, b_]                         :> not[or[a, b]],
-  fconst  [a_, b_]                         :> f
+  fconst  [a_, b_]                         :> f,
+  fconst  [p_]                             :> f
 }
 
 binaryFunctionList = {tconst, or, because, fst, implies, snd, eqv, eq, and,
@@ -1575,3 +1577,65 @@ expect[nbecause[p, q],              dual[implies[p, q]]]
 expect[neqv[p,not[p]],              dual[eqv[p,not[p]]]]
 expect[eqv[t, and[f, p]],           dual[neqv[f, or[t, p]]]]
 expect[neqv[or[not[p], not[q]], r], dual[eqv[and[not[p], not[q]], r]]]
+
+(*
+
+   Let's have some fun making up random boolean expressions, then checking that
+   the duals of their duals reproduce the originals.
+
+   You must have numpy installed for the following to work in mathics.
+
+*)
+
+ClearAll[randomUnaryFunction, randomBinaryFunction, randomBooleanVariable]
+
+randomUnaryFunction[] := First @ RandomChoice[{tconst, id, not, fconst}]
+
+randomBinaryFunction[] := First @ RandomChoice[{ (* skip 'eq' and 'neq' *)
+    tconst,  or,       because, fst,
+    implies, snd,      eqv,     and,
+    nand,    neqv,     nsnd,    nimplies,
+    nfst,    nbecause, nor,     fconst}]
+
+randomBooleanVariableOrConstant[] :=
+    Symbol @ First @ RandomChoice[Characters["pqrsft"]]
+
+SeedRandom[45] (* for repeatability *)
+
+randomBooleanExpression[] :=
+    Module[{roll = RandomReal[]},
+        If[ roll < 0.40,
+            randomBooleanVariableOrConstant[],
+            If[ roll < 0.70,
+                randomBinaryFunction[][
+                    randomBooleanExpression[],
+                    randomBooleanExpression[]],
+                randomUnaryFunction[][
+                    randomBooleanExpression[]]]]]
+
+expect[fconst[fconst[s, tconst[t]]], randomBooleanExpression[]]
+expect[p, randomBooleanExpression[]]
+expect[p, randomBooleanExpression[]]
+expect[because[nfst[implies[p, implies[f, fconst[f, p]]], t], id[not[q]]],
+       randomBooleanExpression[]]
+
+(* check repeatability *)
+
+SeedRandom[45]
+expect[fconst[fconst[s, tconst[t]]], randomBooleanExpression[]]
+expect[p, randomBooleanExpression[]]
+expect[p, randomBooleanExpression[]]
+expect[because[nfst[implies[p, implies[f, fconst[f, p]]], t], id[not[q]]],
+       randomBooleanExpression[]]
+
+(* check that dual is self-inverse *)
+
+SeedRandom[45]
+expect[fconst[fconst[s, tconst[t]]],
+    dual @ dual @ randomBooleanExpression[]]
+expect[p,
+    dual @ dual @ randomBooleanExpression[]]
+expect[p,
+    dual @ dual @ randomBooleanExpression[]]
+expect[because[nfst[implies[p, implies[f, fconst[f, p]]], t], id[not[q]]],
+    dual @ dual @ randomBooleanExpression[]]
