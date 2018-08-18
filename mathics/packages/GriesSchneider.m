@@ -4,9 +4,20 @@
 
     https://github.com/rebcabin/Mathics/blob/master/mathics/packages/GriesSchneider.m
 
-    for the most up-to-date version. Changes will be committed there from now on.
+    for the most up-to-date version. Changes will be committed there from now
+    on.
 
-    This is an extended transcription of Gries & Schnedier, "A Logical Approach
+    When mathics itself is updated, you must reinstall it:
+
+        python setup.py install
+
+    You can run unit tests as follows:
+
+        python setup.py test
+
+   ****************************************************************************
+
+This is an extended transcription of Gries & Schnedier, "A Logical Approach
     to Discrete Math," into mathics (https://goo.gl/wSm1wt), a free clone of
     Mathematica (https://goo.gl/0uvLZ), written in Python. I got mathics to run
     on Python 3.5 and not on Python 3.6.
@@ -1457,19 +1468,7 @@ nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
 
 (*
 
-    Due to an undiagnosed bug in mathics, the following expression does not work
-    (it works fine in Mathematica):
-
-        binaryTruthTable =
-          Table[{ToString[fn], fn[a, b]},
-            {fn, binaryFunctionList},
-            {a, {t, f}}, {b, {t, f}}]
-
-    Presumably, mathics doesn't properly evaluate "binaryFunctionList" in the
-    "iterator" section of "Table", because it works if we paste the definition
-    in directly.
-
-    We do a little massaging of the result with "Flatten", "Transpose", "Last"
+    We do a littlen massaging of the result with "Flatten", "Transpose", "Last"
     and "Partition" so that they can be compared directly with the table in the
     book. Remove that massaging if you want to see a more verbose output.
 
@@ -1477,8 +1476,7 @@ nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
 
 binaryTruthTable =
   Table[{ToString[fn[a, b]], fn[a, b]},
-    {fn, {tconst, or, because, fst, implies, snd, eqv, eq, and,
-          nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}},
+    {fn, binaryFunctionList},
     {a, {t, f}}, {b, {t, f}}]
 
 expect [
