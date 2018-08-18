@@ -803,7 +803,7 @@ expect [
  \___|_||_\___\__,_|\__| |___/_||_\___\___|\__| /__/\___/ |_| \__,_|_|
 
     (* 1.1 *) substitutionInferenceRule[e_, v_:List, f_:List] :=
-        Module[{ rules = MapThread[ Rule, {v, f} ] }, output ]
+        Module[{ rules = MapThread[ Rule, {v, f} ] }, e /. rules ]
     (* 1.2 *) reflexivityLaw[x_] := sameq[x, x]
     (* 1.3 *) symmetryLaw[x_, y_] := sameq[ sameq[x, y], sameq[y, x] ]
     (* 1.4 *) transitivityLaw [ and [ sameq[x_, y_], sameq[y_, z_] ] ] :=
@@ -1326,7 +1326,7 @@ expect [
  ___       _   _     __ _      _    _ _ _ _
 / __| __ _| |_(_)___/ _(_)__ _| |__(_) (_) |_ _  _
 \__ \/ _` |  _| (_-<  _| / _` | '_ \ | | |  _| || |_
-|___/\__,_|\__|_/__/_| |_\__,_|_.__/_|_|_|\__|\_, ( )
+p|___/\__,_|\__|_/__/_| |_\__,_|_.__/_|_|_|\__|\_, ( )
                                               |__/|/
 __   __    _ _    _ _ _                         _
 \ \ / /_ _| (_)__| (_) |_ _  _     __ _ _ _  __| |
@@ -1668,4 +1668,160 @@ Table[( ( (a && w) \[Implies] p ) &&
   {p, {True, False}},
   {e, {True, False}} ]
 ]
- (* You do the exercises in chapter 2. *)
+
+(* Metatheorem 2.3, page 32 ***************************************************
+ __  __     _        _   _
+|  \/  |___| |_ __ _| |_| |_  ___ ___ _ _ ___ _ __
+| |\/| / -_)  _/ _` |  _| ' \/ -_) _ \ '_/ -_) '  \
+|_|  |_\___|\__\__,_|\__|_||_\___\___/_| \___|_|_|_|
+ ___            _ _ _
+|   \ _  _ __ _| (_) |_ _  _
+| |) | || / _` | | |  _| || |
+|___/ \_,_\__,_|_|_|\__|\_, |
+                        |__/
+ *************************************************************************** *)
+
+ClearAll[dualTheorem]
+dualTheorem[theorem_] := not[dual[theorem]]
+
+(* Table 2.2, Using Duality to Generate Valid Expressions ****************** *)
+
+expect[ dualTheorem[true],                    not[false] ]
+expect[ dualTheorem[or [p, true]],            not[and[p, false]] ]
+expect[ dualTheorem[or [p, not[p]]],          not[and[p, not[p]]] ]
+
+(* G&S slip a fast one on us, here, by implicitly reducing not[neqv[...]] to
+eqv[...] and vice versa. Computers are dumb, and must be told exactly what to
+do, so we need to tweak the output of "dualTheorem" with a ad-hoc rewrite rule.
+We may end up, later, having to do some more gymnastics like this. *)
+
+expect[ dualTheorem[eqv[true, true]] //. not[neqv[x_, y_]] :> eqv[x, y],
+        eqv[false, false] ]
+
+expect[ dualTheorem[eqv[or[p, q], or[q, p]]] //. not[neqv[x_, y_]] :> eqv[x, y],
+        eqv[and[p, q], and[q, p]] ]
+
+expect[ dualTheorem[eqv[eqv[p, q], eqv[q, p]]]
+            //. not[neqv[x_, y_]] :> eqv[x, y],
+        eqv[neqv[p, q], neqv[q, p]] ]
+
+expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
+            //. not[neqv[x_, y_]] :> eqv[x, y],
+        eqv[not[and[p, q]], or[not[p], not[q]]] ]
+
+(* You do the exercises in chapter 2. *)
+
+
+(* Chaper 3, Propositional Calculus, page 41 **********************************
+ ___                      _ _   _               _
+| _ \_ _ ___ _ __  ___ __(_) |_(_)___ _ _  __ _| |
+|  _/ '_/ _ \ '_ \/ _ (_-< |  _| / _ \ ' \/ _` | |
+|_| |_| \___/ .__/\___/__/_|\__|_\___/_||_\__,_|_|
+            |_|
+  ___      _         _
+ / __|__ _| |__ _  _| |_  _ ___
+| (__/ _` | / _| || | | || (_-<
+ \___\__,_|_\__|\_,_|_|\_,_/__/
+ *************************************************************************** *)
+
+(*
+
+   Equational logic, E
+
+   We've written the laws leibniz, substitutionInferenceRule, and
+   transitivityLaw a functions (from the cheat sheet above):
+
+    (* 1.1 *) substitutionInferenceRule[e_, v_:List, f_:List] :=
+        Module[{ rules = MapThread[ Rule, {v, f} ] }, output ]
+    (* 1.4 *) transitivityLaw [ and [ sameq[x_, y_], sameq[y_, z_] ] ] :=
+        sameq[x, z]
+    (* 1.5 *) leibniz[ sameq[x_, y_], e_, z_ ] :=
+        sameq[e /. {z -> x}, e /. {z -> y}]
+
+   because we want to drive expressions from premises above the line to
+   conclusions below the line, as in page 41.
+
+   In Chapter 2, we introduced the inert symbol "eqv" in preference to the old
+   "sameq" from Chapter 1. We'll write new versions of the three laws,
+   shortening the names, to make following through Chapter 3 easier.
+
+*)
+
+(* Section 3.1, Preliminaries ********************************************** *)
+
+(* new leibniz *)
+leibniz[ eqv[x_, y_], e_, z_ ] := eqv[e /. {z -> x}, e /. {z -> y}]
+
+(* new transitivity *)
+transitivityLaw [ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
+
+(* new substitution *)
+substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
+
+(* Associativity of eqv *)
+ClearAll[associativityAxiom]
+associativityAxiom[p_, q_] := eqv[ eqv[ eqv[p, q], r ], eqv[ p, eqv[q, r] ] ]
+
+(* Symmetry of eqv *)
+ClearAll[symmetryAxiom]
+symmetryAxiom[p_, q_] := eqv[ eqv[p, q], eqv[q, p] ]
+
+(* Identity of eqv, page 44 *)
+ClearAll[identityAxiom]
+identityAxiom[q_] := eqv[ true, eqv [q, q] ]
+
+(*
+
+   NOTES
+
+   The fact that we've parenthesized these in particular ways may get us into
+   trouble.
+
+   For any values of the pattern variables, they yield static expressions, but
+   the way they're used in proofs, they drive expressions from one form to
+   another, that is, as rewrite rules, replacing expressions with equivalents.
+   We will create those rewrite rules, named or unnamed as we go along. G&S is
+   not terribly explicit about this point, but it's critical in undestanding how
+   to encode proofs in mathics.
+
+   We note, in passing, that we can automate the associativity and symmetry
+   axioms with a couple of mathics Attributes: Flat and Orderless. Here is a
+   dummy eqv that demonstrates this:
+
+*)
+
+ClearAll[deqv]
+SetAttributes[deqv, {Flat, Orderless}]
+
+expect [
+    True,
+    deqv[p, q] === deqv[q, p]
+]
+
+expect [
+    True,
+    deqv[ deqv[p, q], r ] === deqv[ p, deqv[q, r] ]
+]
+
+(*
+
+   Checking this automation, however, requires us to use === instead of deqv
+   itself, so we're not yet sure whether or how we want to use it.
+
+*)
+
+ClearAll[deqv]
+
+(* Theorem 3.4, page 44 **************************************************** *)
+
+(*
+ _____ _          ___         _
+|_   _| |_  ___  | __|_ _  __| |
+  | | | ' \/ -_) | _|| ' \/ _` |
+  |_| |_||_\___| |___|_||_\__,_|
+*)
+
+(* We leave this at the very bottom so we can get a count of results during
+development. The final result of the script, no matter what its intermediate
+state, is the result of the following tautology. *)
+expect[ true, true ]
