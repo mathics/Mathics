@@ -337,7 +337,8 @@ expect [ j + 5,
 (* ****************************************************************************
 
     The mathics rule to the right of /. has pattern variables a_ and b_, which
-    are replaced by 2 (j+5) and 2, respectively, when /. is evaluated on the
+    are replaced by 2 (j+5) and 2, respectively, when /. is evaluated on t
+    he
     inert div[2(j+5), 2] and that rule.
 
     This is a new kind of rule we don't see above, but we will use rules like it
@@ -1277,10 +1278,238 @@ expect [
 *)
 
 (* Chaper 2, Boolean Expressions, page 25
+
    Section 2.1, Syntax and evaluation of Boolean expression, page 25
  ___           _                 ___                        _
 | _ ) ___  ___| |___ __ _ _ _   | __|_ ___ __ _ _ ___ _____(_)___ _ _  ___
 | _ \/ _ \/ _ \ / -_) _` | ' \  | _|\ \ / '_ \ '_/ -_|_-<_-< / _ \ ' \(_-<
 |___/\___/\___/_\___\__,_|_||_| |___/_\_\ .__/_| \___/__/__/_\___/_||_/__/
                                         |_|
+
+    Mathics has a full range of Boolean operators.
+
+    Look at the example at the bottom of page 28. Code This directly using ||
+    for \/ ('or') and && for /\ ('and'). Generate a table will all combinations
+    of truth values for the three variables x, y, and z, flatten the table and
+    apply And to the result. If any of the eight combinations of truth values
+    yielded False, the result would be False. "And @@ <list-of-truth-values>,"
+    syntax for "Apply[And, <list-of-truth-values>>]", is idiom for checking that
+    all the truth values are True.
+
+    That's an exhaustive test for equality of two symbolic Boolean expressions.
+
+    f @ x is shorthand for f[x] and is handy for avoiding the need to put
+    brackets on the ends of big expressions. Thus, "Flatten @ <long-expr>" is
+    syntax for "Flatten[<long-expr>]".
+
  *************************************************************************** *)
+
+expect [
+  True,
+  And @@ Flatten @ Table[(x || (y && z)) === ((x || y) && (x || z)),
+    {x, {True, False}}, {y, {True, False}}, {z, {True, False}}]
+]
+
+(* Section 2.3, Satisfiability, validity, and duality, page 31
+ ___       _   _     __ _      _    _ _ _ _
+/ __| __ _| |_(_)___/ _(_)__ _| |__(_) (_) |_ _  _
+\__ \/ _` |  _| (_-<  _| / _` | '_ \ | | |  _| || |_
+|___/\__,_|\__|_/__/_| |_\__,_|_.__/_|_|_|\__|\_, ( )
+                                              |__/|/
+__   __    _ _    _ _ _                         _
+\ \ / /_ _| (_)__| (_) |_ _  _     __ _ _ _  __| |
+ \ V / _` | | / _` | |  _| || |_  / _` | ' \/ _` |
+  \_/\__,_|_|_\__,_|_|\__|\_, ( ) \__,_|_||_\__,_|
+                          |__/|/
+ ___            _ _ _
+|   \ _  _ __ _| (_) |_ _  _
+| |) | || / _` | | |  _| || |
+|___/ \_,_\__,_|_|_|\__|\_, |
+                        |__/
+
+    We must make up prefix forms to explore duality. Mathics does not have
+    "Symbolize", Mathematica's way to define new notation.
+
+    TODO: would be nice to add "Symbolize" to mathics.
+
+    First, let's do the four unary operators and the sixteen binary operators on
+    pages 25 and 26. I will give names to the operators that G&S leaves unnamed.
+
+    I start with inert "true" and "false" to avoid evaluation leaks, i.e., to
+    prevent mathics from reducing expessions that have active "True" and
+    "False".
+
+*************************************************************************** *)
+
+ClearAll[
+  true,     (* inert version of True *)
+  t,        (* shorthand for "true"; easier to compare against the book *)
+  false,    (* inert version of False *)
+  f,        (* shorthand for "false"; easier to compare against the book *)
+  id,       (* function that returns its argument *)
+  not,      (* unary that negates its argument *)
+  tconst,   (* function that returns true on any input; first binary on p26 *)
+  or,       (* second binary on p26 *)
+  because,  (* left doublestruck arrow; G&S call this "consequence"; 3rd bin *)
+  fst,      (* function that returns its first argument; fourth binary on p26 *)
+  implies,  (* right-pointing doublestruck arrow; fifth binary on p26 *)
+  snd,      (* function that returns its second argument; sixth binary on p26 *)
+  eqv,      (* associative triple equals in G&S; seventh binary on p26 *)
+  eq,       (* conjunctive double equals in G&S; seventh binary on p26 *)
+  and,      (* eighth binary on p26 *)
+  nand,     (* ninth binary on p26 *)
+  neqv,     (* tenth binary on p26 *)
+  neq,      (* tenth binary on p26 *)
+  nsnd,     (* function that negates its second argumentn; 11th binary on p26 *)
+  nimplies, (* function that negates "implies"; 12th binary on p26 *)
+  nfst,     (* function that negates its first argument; 13th binary on p26 *)
+  nbecause, (* function that negates "because"; 14th binary on p26 *)
+  nor,      (* 15th binary on p26 *)
+  fconst    (* function that returns false on any input; 16th binary on p26 *)
+]
+
+(* Now the truth table for the unary functions *)
+
+unaryFunctionTruthTable =
+    Table[{tconst[b], id[b], not[b], fconst[b]}, {b, {true, false}}]
+
+(* Evaluation rules to drive mathics to reduce *)
+
+boolRules = {tconst[_] :> True, id -> Identity, not -> Not, fconst[_] :> False,
+    true -> True, false -> False}
+
+expect [
+  { {True, True,  False, False},
+    {True, False, True,  False} },
+  unaryFunctionTruthTable //. boolRules
+]
+
+(*
+
+    Truth table for the binary functions; different evaluation rules for easier
+    comparison with the book.
+
+    Notice that we build up some rules in terms of other ones in a way that the
+    book does not. Our build-up also requires that we use "//.",
+    "ReplaceAllRepeated", to reduce expressions.
+
+    These don't all check the "type" of their arguments, that is, they don't all
+    check that the arguments are either "t" or "f". Here is a "type-safe"
+    version of "id":
+
+        g[x_/;((x === t) || (x === f))] := x
+
+    It reduces to t or f when its input is t or f, and doesn't reduce if its
+    input is something else (in fact, anything else):
+
+        In[10]:= g[t]
+        Out[10]= t
+
+        In[11]:= g[f]
+        Out[11]= f
+
+        In[12]:= g[g]
+        Out[12]= g[g]
+
+        In[13]:= g[{buncha, junk}]
+        Out[13]= g[{buncha, junk}]
+
+    We must type-check some of the rules, particularly the ones that employ
+    nesting like "implies" and "nand" or are nested like "not". We don't want
+    those reducing to t or f too early. For example, if we write
+
+        and[a_, b_] := If[(a === t) && (b === t), t, f]
+
+    and then feed it
+
+        and[not[f], t]
+
+    it will produce f because not[f] doesn't "===" t, at least not before we
+    reduce it by applying the rule for "not". Because we can't easily predict
+    the order of application of the rules, we opt for safety for "and" and a few
+    others.
+
+    It's safest to type-check arguments on all the functions, but there is a
+    certain elegance to minimal type-checking, especially because the types are
+    checked at run time in mathics and that's not free. The price of that
+    elegance is that the rules, without type-checking, may not be truly
+    general-purpose. We may encounter some nesting situations later that reduce
+    incorrectly. We'll deal with them when we encounter them.
+
+*)
+
+ClearAll[boolQ]
+boolQ[x_] := ((x === t) || (x === f))
+
+comparisonBoolRules = {
+  id -> Identity,
+  not[b_]/;boolQ[b] :> If[b === f, t, f],
+  tconst[a_, b_] :> t,
+  or[a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) || (b === t), t, f],
+  because[a_, b_] :> or[not[b], a],
+  fst[a_, b_] :> a,
+  implies[a_, b_] :> or[not[a], b],
+  snd[a_, b_] :> b,
+  eqv[a_, b_] :> If[a === b, t, f],
+  eq -> eqv,
+  and[a_, b_]/;(boolQ[a] && boolQ[b]) :> If[(a === t) && (b === t), t, f],
+  nand[a_, b_] :> not[and[a, b]],
+  neqv[a_, b_] :> not[eqv[a, b]],
+  neq -> neqv,
+  nsnd[a_, b_] :> not[snd[a, b]],
+  nimplies[a_, b_] :> not[implies[a, b]],
+  nfst[a_, b_] :> not[fst[a, b]],
+  nbecause[a_, b_] :> not[because[a, b]],
+  nor[a_, b_] :> not[or[a, b]],
+  fconst[a_, b_] :> f
+}
+
+binaryFunctionList = {tconst, or, because, fst, implies, snd, eqv, eq, and,
+nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
+
+(*
+
+    Due to an undiagnosed bug in mathics, the following expression does not work
+    (it works fine in Mathematica):
+
+        binaryTruthTable =
+          Table[{ToString[fn], fn[a, b]},
+            {fn, binaryFunctionList},
+            {a, {t, f}}, {b, {t, f}}]
+
+    Presumably, mathics doesn't properly evaluate "binaryFunctionList" in the
+    "iterator" section of "Table", because it works if we paste the definition
+    in directly. We do a little massaging of the result with "Flatten",
+    "Transpose", "Last" and "Partition" so that they can be compared directly
+    with the table in the book. Remove that massaging if you want to see a more
+    verbose output.
+
+*)
+
+binaryTruthTable =
+  Table[{ToString[fn[a, b]], fn[a, b]},
+    {fn, {tconst, or, because, fst, implies, snd, eqv, eq, and,
+          nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}},
+    {a, {t, f}}, {b, {t, f}}]
+
+expect [
+    {{t, t, t, t},
+     {t, t, t, f},                   (* or *)
+     {t, t, f, t},                   (* because *)
+     {t, t, f, f},
+     {t, f, t, t},                   (* implies *)
+     {t, f, t, f},
+     {t, f, f, t}, {t, f, f, t},     (* eqv, eq *)
+     {t, f, f, f},                   (* and *)
+     {f, t, t, t},                   (* nand *)
+     {f, t, t, f}, {f, t, t, f},     (* neqv, neq *)
+     {f, t, f, t},
+     {f, t, f, f},
+     {f, f, t, t},
+     {f, f, t, f},
+     {f, f, f, t},                   (* nor *)
+     {f, f, f, f}},
+
+    Partition[Last @ Transpose @ Flatten[
+        binaryTruthTable //. comparisonBoolRules, 2], 4]
+]
