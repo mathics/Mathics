@@ -880,8 +880,8 @@ expect [ apply  [ Function[z, plus[times[3, z], 6]],
                 ]
        ]
 
-erules = Join [ { plus -> Plus,                  (* a list of new rules ...  *)
-                  apply[f_, a_] :> Apply[f, {a}] (* including this fancy     *)
+erules = Join [ { plus -> Plus,                  (* join a list of new rules *)
+                  apply[f_, a_] :> Apply[f, {a}] (* ... including this fancy *)
                 },                               (*   delayed one            *)
                 erules                           (* to the old list of rules *)
               ]
@@ -920,13 +920,14 @@ expect [ 3 (y + 2) + 6,
     Be aware that this practice, of introducing new overloads and definitions is
     generally a code smell because it's modifying global state in a way that
     depends on order of evaluation. We're being careful, here, but you must be
-    aware that subtle bugs often occur if terms prior to the new definition are
-    changed.
+    aware that subtle bugs often occur if you try to evaluate terms above the
+    change using the new definition.
 
  *************************************************************************** *)
 
 (* 1.7, page 14 *)
 ClearAll[apply]
+(* g applied to X (g.X) is E[z := X] if g.z : E defines g of z. *)
 apply[g_, z_, x_] := g /. {z :> x}
 
 expect [
@@ -948,7 +949,132 @@ expect [
     sameq [ times[42, 42], 1764 ] //. erules,
     leibniz [ sameq [ 42, times[6, 7] ], Function[x, x * x] ] //. erules ]
 
-(* Section 1.5, Reasoning with Leibniz's rule, INTENTIONALLY SKIPPED *)
+(* Section 1.5, Reasoning with Leibniz's rule, ********************************
+
+    G&S writes Leibniz as follows:
+
+                X = Y
+        ---------------------
+        E[z := X] = E[z := Y]
+
+    or, as
+
+           X = Y
+        -----------
+        g(X) = g(Y)
+
+    avoiding their notation g.X for function application (I don't like that
+    notation; that's all).
+
+    We write the same thing as follows
+
+        leibniz [ sameq[x_, y_], e_, z_ ] :=
+            sameq[ e /. {z -> x}, e /. {z -> y} ]
+
+    which is a rewrite rule that will drive an expression that matches the
+    pattern above the line, namely
+
+        sameq[x_, y_]
+
+    to the expression below the line, namely
+
+        sameq[ e /. {z -> x}, e /. {z -> y} ]
+
+    In a chain of reasoning, G&S write Leibniz like this:
+
+            E[z := X]
+        = < X = Y >
+            E[z := Y]
+
+    which means that they're using Leibniz to rewrite an expression like
+    E[z := X] into one like E[z := Y]. Why? To drive the proof forward.
+
+    First, we write a use of Leibniz like that at the bottom of page 14:
+
+ *************************************************************************** *)
+
+leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
+                                     (* ... instantiates X to m and Y to 2j  *)
+         sameq[div[z, 2], 2(j-1) ],  (* E[z] of Leibniz                      *)
+         z ]                         (* the independent variable in z        *)
+
+(* ****************************************************************************
+
+   Now, we write a new version of Leibniz that annotates a proof fragment with
+   Print statements to the console and returns only the right half of the
+   conclusion, namely E[z := Y], instead of returning the entire conculsion,
+   namely E[z := X] = E[z := y]. This new version has the same function
+   signature (the same API) as leibniz.
+
+   We also introduce the "[[1]]" and "[[2]]" syntax, shorthand for "Part", which
+   retrieves the first and second part of any expression, respectively. In the
+   case of sameq[x, y], the first part, sameq[x, y][[1]], is x, and the second
+   part, sameq[x, y][[2]], is y. The zeroth part, sameq[x, y][[0]], is the
+   "head", sameq.
+
+   In general, of course, expr[[i]] retrieves the i-th part of any expr.
+
+ *************************************************************************** *)
+
+leibnizE[ sameq[ x_, y_ ], e_, z_ ] :=
+  Module[{premise = sameq[x, y]},
+    Module[{conclusion = leibniz[premise, e, z]},
+        Print["antecedent: " <> ToString[conclusion[[1]]]];
+        Print["premise:    " <> ToString[premise]];
+        Print["consequent: " <> ToString[conclusion[[2]]]];
+        conclusion[[2]]]]
+
+expect[
+
+    sameq[div[2j, 2], 2(j-1)],
+
+    leibnizE[sameq[m, 2j],
+             sameq[div[z, 2], 2(j-1)], z]
+
+]
+
+(* ****************************************************************************
+
+    You should see something like this on the console
+
+        antecedent: sameq[div[m, 2], 2 (-1 + j)]
+        premise:    sameq[m, 2 j]
+        consequent: sameq[div[2 j, 2], 2 (-1 + j)]
+        Out[150]= sameq[div[2 j, 2], 2 (-1 + j)]
+
+    PHILOSOPHICAL NOTE:
+
+    Equivalences, theorem, axioms, and the like are permanent, immutable,
+    eternal; there is no aspect of "change" --- no time dependence, no
+    causality, no drive to rewrite one from the other.
+
+    We use equivalences, theorems, axioms to drive computations, rewrite one
+    expression into another. A rewrite rule has a preferred direction: it
+    converts one expression X into another, equivalent expression Y. If we wish
+    to go the other way, we need another rewrite rule. That's why computational
+    machinery is more verbose than logical machinery.
+
+    "Deduction" is an intermediate case: it's not merely "calculation" or
+    "computation" or rewriting, because its purpose is to derive a truth from a
+    truth, a tautology from a tautology. Still, it must use the machinery of
+    computation.
+
+    Forgetting that some calculation is just part of a deduction is a primary
+    source of mistakes. Many mere calculations are justified by inference rules,
+    such as "if c is not zero and a = b, then a/c = b/c." But careless
+    practitioners can forget the premises and blindly calculate "a/c = b/c" from
+    "a = b." That's because they memorize the mechanical machinery and forget
+    that it's only part of the deductive process. Such invalid calculations are
+    the source of many mathematical jokes, false paradoxes, and tricks for the
+    (tromps l'oeil) unwary.
+
+    Most mathematical authors aren't completely explicit and forthcoming, and
+    don't say when they're doing calculation, deduction, or just writing
+    expressions that happen to be true (or even false). However, this
+    distinction is always there in the philosophical atmosphere of all
+    mathematical activity.
+
+ *************************************************************************** *)
 
 (* Section 1.6, The assignment statement, page 16
    _          _                         _
@@ -1812,9 +1938,9 @@ expect [
 
 ClearAll[deqv]
 
-(* Theorems, page 44 **********************************************************
+(* Theorems, pages 43-44 ******************************************************
 
-   We invent a little more dumping machinery that prints out intermediate
+   We invent a little more display machinery that prints out intermediate
    results in a chain of derivations with annotations a little closer, though
    nowhere near close enough, to the book. As we develop, we will slim this down
    and make it more palatable. However, it is functional for the moment. You
@@ -1822,8 +1948,8 @@ ClearAll[deqv]
    printout in the console and convince yourself that the steps of the proof are
    being adequately presented.
 
-   We also introduce the "[[2]]" syntax, which retrieves the second part of any
-   expression. In general, of course, expr[[i]] retrieves the i-th part of expr.
+   Remember that "Reasoning with Leibniz," Section 1.5, page 14, allows us to
+   "replace equals with equals."
 
  *************************************************************************** *)
 
@@ -1835,6 +1961,12 @@ fump[x_] := (
 gump[x_, r_] := (
     Print[ToString[x] <> " /. " <> ToString[r] <> " ~~>\n" <> ToString[x/.r]];
     x /. r)
+
+(*expect [*)
+  (*eqv[ eqv[p, p], eqv[q, q] ],*)
+
+  (*fump[    symmetryAxiom[p, q] ] //*)
+(*]*)
 
 expect [
 
