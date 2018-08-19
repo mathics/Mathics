@@ -2033,10 +2033,18 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    for us because we're doing explicit calculations. However, it turns out that,
    in this case, we don't need to invoke explicit rules for associativity if
    we're willing, mentally, to accept eqv[p, eqv[p, q, q]] as the statement of
-   the proposition we're trying to prove and eqv[eqv[p, q, q], p] as the
+   the proposition we're trying to prove, and eqv[eqv[p, q, q], p] as the
    particular parenthization of the Axiom of Symmetry we reduce to, that is, if
-   we're satisfied that if we can reduce eqv[p, eqv[p, q, q]] to eqv[eqv[p, q,
-   q], p], then we have proved the theorem eqv[p, eqv[p, q, q]].
+   we're satisfied that if we can reduce
+
+       eqv[p, eqv[p, q, q]]
+
+   to
+
+       eqv[eqv[p, q, q], p],
+
+   then we have proved the theorem eqv[p, eqv[p, q, q]] by reducing it to an
+   axiom, one of the requirements for proof at the top of page 42.
 
    That leaves open the question of the meaning of eqv[a, b, c], a ternary eqv,
    which we have not defined. We define it now to mean eqv[eqv[a, b], c] or
