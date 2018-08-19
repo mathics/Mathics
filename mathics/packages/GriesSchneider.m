@@ -497,7 +497,7 @@ expect[ sameq[ x+y, 7 ],
 
     Unnamed rules are usually "ad-hoc," created just to solve a problem that
     arises once in some computation, and are therefore not worth naming and
-    saving away for many uses.
+    saving away for other uses.
 
     N A M E D   R U L E S
 
@@ -603,7 +603,9 @@ expect [ target,
 
         premise // divideBothSidesByNonZero [ #1, c^2 ] &
 
-    "x // f" means "apply function f to argument x"
+    "x // f" means "apply function (or rule) f to argument x"
+
+    (rules act just like functions much of the time).
 
     It chains nicely (associates to the left), as we see below. That will make
     proofs look more like those in the book instead of like deeply nested
@@ -611,8 +613,8 @@ expect [ target,
 
         e[#1, blahblah] &
 
-    means "a function with body e[#1, blahblah], with slot #1 for the first
-    argument."
+    means "a function (or rule) with body e[#1, blahblah], with slot #1 for the
+    first argument."
 
  *************************************************************************** *)
 
