@@ -149,17 +149,18 @@ def from_sympy(expr):
         elif isinstance(expr, sympy.numbers.ImaginaryUnit):
             return Complex(Integer(0), Integer(1))
         elif isinstance(expr, sympy.Integer):
-            return Integer(expr.p)
+            return Integer(int(expr))
         elif isinstance(expr, sympy.Rational):
-            if expr.q == 0:
-                if expr.p > 0:
+            numerator, denominator = map(int, expr.as_numer_denom())
+            if denominator == 0:
+                if numerator > 0:
                     return Symbol('Infinity')
-                elif expr.p < 0:
+                elif numerator < 0:
                     return Expression('Times', Integer(-1), Symbol('Infinity'))
                 else:
-                    assert expr.p == 0
+                    assert numerator == 0
                     return Symbol('Indeterminate')
-            return Rational(expr.p, expr.q)
+            return Rational(numerator, denominator)
         elif isinstance(expr, sympy.Float):
             if expr._prec == machine_precision:
                 return MachineReal(float(expr))
