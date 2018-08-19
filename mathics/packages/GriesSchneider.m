@@ -1016,13 +1016,13 @@ leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
 
  *************************************************************************** *)
 
-leibnizE[ sameq[ x_, y_ ], e_, z_ ] :=
-  Module[{premise = sameq[x, y]},
+ClearAll[leibnizE]
+leibnizE[ premise:sameq[ x_, y_ ], e_, z_ ] :=
     Module[{conclusion = leibniz[premise, e, z]},
         Print["antecedent: " <> ToString[conclusion[[1]]]];
         Print["premise:    " <> ToString[premise]];
         Print["consequent: " <> ToString[conclusion[[2]]]];
-        conclusion[[2]]]]
+        conclusion[[2]]]
 
 expect[
 
@@ -1030,7 +1030,6 @@ expect[
 
     leibnizE[sameq[m, 2j],
              sameq[div[z, 2], 2(j-1)], z]
-
 ]
 
 (* ****************************************************************************
