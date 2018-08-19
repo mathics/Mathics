@@ -381,11 +381,10 @@ ClearAll[substitutionInferenceRule];
 substitutionInferenceRule[e_, v_:List, f_:List] :=
     Module[{ rules = MapThread[ Rule, {v, f} ] },  (* <~~~ don't use "With" *)
         Module [{ output = e /. rules },           (* <~~~ don't use "With" *)
-            Print[{
-                "inference rule", "Substitution 1.1, page 11",
-                "\ntop line", e,
-                "\nrules", rules,
-                "\noutput", output}];
+            Print["inference: Substitution 1.1, page 11"];
+            Print["premise:   " <> ToString[e]];
+            Print["rules:     " <> ToString[rules]];
+            Print["result:    " <> ToString[output]];
             output ] ]
 
 expect[ sameq[ div[2(j+5), 2], j+5 ],
@@ -398,20 +397,20 @@ expect[ sameq[ div[2(j+5), 2], j+5 ],
 
     You should see something like this:
 
-    {inference rule, Substitution 1.1, page 11,
-            top line, sameq[div[2 x, 2], x],
-            rules, {x -> 5 + j},
-            output, sameq[div[2 (5 + j), 2], 5 + j]}
+    inference: Substitution 1.1, page 11
+    premise:   sameq[div[2 x, 2], x]
+    rules:     {x -> 5 + j}
+    result:    sameq[div[2 (5 + j), 2], 5 + j]
     {expression, substitutionInferenceRule[sameq[div[2 x, 2], x], {x}, {j + 5}],
             expected, sameq[div[2 (j + 5), 2], j + 5],
             actual, sameq[div[2 (5 + j), 2], 5 + j],
             right?, True}
 
-    We found a difference between mathics and Mathematica, here: "With" instead
-    of "Module" works in Mathematica but not in mathics. This should not be a
-    problem in the following because we will not rely on the differences between
-    "With" and "Module". If you wish to dig in, feel free, but you will be
-    debugging mathics itself rather than working on G&S.
+    We found a difference between mathics and Mathematica: "With" instead of
+    "Module" works in Mathematica but not in mathics. This should not be a
+    problem in the following because we will not use "With" --- mathics doesn't
+    implement it (yet). If you wish to dig in, feel free, but you will be
+    working on mathics itself rather than working on G&S.
 
     A point about semicolons. They are syntax for CompoundExpression:
 
@@ -494,7 +493,8 @@ expect[ sameq[ x+y, 7 ],
 
     "a -> b" is syntax for "Rule". There is another kind of arrow, namely ":>",
     syntax for "RuleDelayed", which means "don't evaluate the right-hand side of
-    the rule now, only later, when we apply the rule."
+    the rule now, only later, when we apply the rule." Sometimes, it doesn't
+    matter which of the two you use, and style prefers ":>".
 
     Unnamed rules are usually "ad-hoc," created just to solve a problem that
     arises once in some computation, and are therefore not worth naming and
@@ -1028,8 +1028,9 @@ expect[
 
     sameq[div[2j, 2], 2(j-1)],
 
-    leibnizE[sameq[m, 2j],
-             sameq[div[z, 2], 2(j-1)], z]
+    leibnizE[sameq[m, 2j],             (* premise, by 0.1 *)
+             sameq[div[z, 2], 2(j-1)], (* E(z)            *)
+             z]
 ]
 
 (* ****************************************************************************
@@ -1040,6 +1041,44 @@ expect[
         premise:    sameq[m, 2 j]
         consequent: sameq[div[2 j, 2], 2 (-1 + j)]
         Out[150]= sameq[div[2 j, 2], 2 (-1 + j)]
+
+    To use leibnizE with substitution, as on page 15, use an ad-hoc rule:
+
+ *************************************************************************** *)
+
+expect[
+
+    sameq[j, 2(j-1)],
+
+    leibnizE[sameq[div[2x, 2], x     ] /. {x :> j}, (* premise *)
+             sameq[z,          2(j-1)],             (* E(z)    *)
+             z]
+]
+
+(* ****************************************************************************
+
+    The best way to figure out E(z) is to examine the inputs and the outputs of
+    the deduction: G&S write, top of page 15:
+
+            2j/2 = 2(j-1)
+        =   <(1.9), with x := j>
+            j = 2(j-1)
+
+    The middle line is clear: it's theorem 1.9, namely 2x/2 = x (written with
+    inert "div", sameq[div[2x,2],x]) with a substitution: x :> j. So that middle
+    line is really "2j/2 = j", and we mentally rewrite the fragment as
+
+            2j/2 = 2(j-1)
+        =   <2j/2 = j>
+            j = 2(j-1)
+
+    Remember this premise is always of the form "X = Y". Now we clearly see that
+    X is 2j/2 and Y is j. The top line is X = 2(j-1); the bottom line is Y =
+    2(j-1). A suitable E(z), then, is z = 2(j-1), because the top line is always
+    E(z)[z := X] and the bottom line is always E(z)[z := Y].
+
+    That kind of thinking will be critical as you go through the exercises for
+    Chapter 2.
 
     PHILOSOPHICAL NOTE:
 
@@ -1834,7 +1873,7 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
             //. not[neqv[x_, y_]] :> eqv[x, y],
         eqv[not[and[p, q]], or[not[p], not[q]]] ]
 
-(* You do the exercises in chapter 2. *)
+(* You do the exercises in Chapter 2. *)
 
 
 (* Chaper 3, Propositional Calculus, page 41 **********************************
@@ -1870,48 +1909,49 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
    "sameq" from Chapter 1. We'll write new versions of the three laws,
    shortening the names, to make following through Chapter 3 easier.
 
+   We ClearAll the symbols before redefining them to avoid nasty surprises (and
+   lengthy debugging sessions) from lingering, prior definitions. This is a bit
+   of cheap paranoia, because "ClearAll" doesn't cost very much.
+
 *)
 
 (* Section 3.1, Preliminaries ********************************************** *)
 
-(* new leibniz *)
+ClearAll[leibniz]
 leibniz[ eqv[x_, y_], e_, z_ ] := eqv[e /. {z -> x}, e /. {z -> y}]
 
-(* new transitivity *)
-transitivityLaw [ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
+ClearAll[leibnizE]
+leibnizE[ premise:eqv[ x_, y_ ], e_, z_ ] :=
+    Module[{conclusion = leibniz[premise, e, z]},
+        Print["antecedent: " <> ToString[conclusion[[1]]]];
+        Print["premise:    " <> ToString[premise]];
+        Print["consequent: " <> ToString[conclusion[[2]]]];
+        conclusion[[2]]]
 
-(* new substitution *)
+ClearAll[transitivity]
+transitivity[ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
+
+ClearAll[substitution]
 substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
 
-(* Associativity of eqv *)
-ClearAll[associativityAxiom]
-associativityAxiom[p_, q_] := eqv[ eqv[ eqv[p, q], r ], eqv[ p, eqv[q, r] ] ]
+(* Associativity of eqv; both directions *)
+ClearAll[associativity]
+associativity[eqv[ eqv[p_, q_], r_ ]] := eqv[ p, eqv[q, r] ]
+associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
 
 (* Symmetry of eqv *)
-ClearAll[symmetryAxiom]
-symmetryAxiom[p_, q_] := eqv[ eqv[p, q], eqv[q, p] ]
+ClearAll[symmetry]
+symmetry[eqv[p_, q_]] := eqv[q, p]
 
 (* Identity of eqv, page 44 *)
-ClearAll[identityAxiom]
-identityAxiom[q_] := eqv[ true, eqv [q, q] ]
+ClearAll[identity]
+identity[eqv[q_, q_]] := true
 
 (*
 
-   NOTES
-
-   The fact that we've parenthesized these in particular ways may get us into
-   trouble.
-
-   For any values of the pattern variables, the axioms yield static expressions,
-   but the way they're used in proofs, they drive expressions from one form to
-   another, that is, as rewrite rules, replacing expressions with equivalents.
-   We will create those rewrite rules, named or unnamed as we go along. G&S is
-   not terribly explicit about this point, but it's critical in undestanding how
-   to encode proofs in mathics.
-
-   We note, in passing, that we can automate the associativity and symmetry
-   axioms with a couple of mathics Attributes: Flat and Orderless. Here is a
-   dummy eqv that demonstrates this:
+   Note, in passing, that we can automate the associativity and symmetry axioms
+   with mathics Attributes: Flat and Orderless. Here is a dummy eqv that
+   demonstrates this:
 
 *)
 
@@ -1930,8 +1970,8 @@ expect [
 
 (*
 
-   Checking this automation, however, requires us to use === instead of deqv
-   itself, so we're not yet sure whether or how we want to use it.
+   Checking this automation, however, requires === instead of deqv itself, so
+   it's often delegating too much to mathics and spoiling our fun.
 
 *)
 
@@ -1942,13 +1982,11 @@ ClearAll[deqv]
    We invent a little more display machinery that prints out intermediate
    results in a chain of derivations with annotations a little closer, though
    nowhere near close enough, to the book. As we develop, we will slim this down
-   and make it more palatable. However, it is functional for the moment. You
-   don't need to understand how "fump" and "gump" work; just look at the
-   printout in the console and convince yourself that the steps of the proof are
-   being adequately presented.
+   and make it more palatable. However, it works for now. You don't need to
+   understand how "fump" and "gump" work.
 
    Remember that "Reasoning with Leibniz," Section 1.5, page 14, allows us to
-   "replace equals with equals."
+   "replace equals with equals" via the rewrite rule "leibnizE."
 
  *************************************************************************** *)
 
@@ -1957,25 +1995,12 @@ SetAttributes[fump, HoldAllComplete]
 fump[x_] := (
     Print[ToString[Unevaluated[x]] <> " ~~>\n" <> ToString[x]];
     x)
-gump[x_, r_] := (
-    Print[ToString[x] <> " /. " <> ToString[r] <> " ~~>\n" <> ToString[x/.r]];
-    x /. r)
+gump[e_, rule_] :=
+  Module[{result = e/.rule},
+    Print[ToString[e] <> " /. " <> ToString[rule] <> " ~~>\n" <> ToString[result]];
+    result]
 
-(*expect [*)
-  (*eqv[ eqv[p, p], eqv[q, q] ],*)
 
-  (*fump[    symmetryAxiom[p, q] ] //*)
-(*]*)
-
-expect [
-
-  eqv[true, eqv[q, q]],
-
-  fump[    identityAxiom[true] ]  //
-  gump[#1, eqv[x_, y_] :> y    ]& //
-  gump[#1, eqv[true, true] :> eqv[true, identityAxiom[q][[2]]]]&
-
-]
 
 (* ****************************************************************************
  _____ _          ___         _
