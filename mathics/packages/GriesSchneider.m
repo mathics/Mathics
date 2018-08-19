@@ -348,8 +348,7 @@ expect [ j + 5,
 (* ****************************************************************************
 
     The mathics rule to the right of /. has pattern variables a_ and b_, which
-    are replaced by 2 (j+5) and 2, respectively, when /. is evaluated on t
-    he
+    are replaced by 2 (j+5) and 2, respectively, when /. is evaluated on the
     inert div[2(j+5), 2] and that rule.
 
     This is a new kind of rule we don't see above, but we will use rules like it
