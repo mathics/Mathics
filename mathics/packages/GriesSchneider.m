@@ -1990,10 +1990,10 @@ ClearAll[deqv]
 (* Theorems, pages 43-44 ******************************************************
 
    We invent a little more display machinery that prints out intermediate
-   results in a chain of derivations with annotations a little closer, though
-   nowhere near close enough, to the book. As we develop, we will slim this down
-   and make it more palatable. However, it works for now. You don't need to
-   understand how the display machinery works.
+   results in a chain of derivations with annotations. That brings us a little
+   closer, though nowhere near close enough, to the book. As we develop, we will
+   slim this down and make it more palatable. However, it works for now. You
+   don't need to understand how the display machinery works.
 
    Remember that "Reasoning with Leibniz," Section 1.5, page 14, allows us to
    "replace equals with equals" via the rewrite rule "leibnizE."
