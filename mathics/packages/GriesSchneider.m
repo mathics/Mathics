@@ -1777,8 +1777,8 @@ identityAxiom[q_] := eqv[ true, eqv [q, q] ]
    The fact that we've parenthesized these in particular ways may get us into
    trouble.
 
-   For any values of the pattern variables, they yield static expressions, but
-   the way they're used in proofs, they drive expressions from one form to
+   For any values of the pattern variables, the axioms yield static expressions,
+   but the way they're used in proofs, they drive expressions from one form to
    another, that is, as rewrite rules, replacing expressions with equivalents.
    We will create those rewrite rules, named or unnamed as we go along. G&S is
    not terribly explicit about this point, but it's critical in undestanding how
@@ -1812,16 +1812,46 @@ expect [
 
 ClearAll[deqv]
 
-(* Theorem 3.4, page 44 **************************************************** *)
+(* Theorems, page 44 **********************************************************
 
-(*
+   We invent a little more dumping machinery that prints out intermediate
+   results in a chain of derivations with annotations a little closer, though
+   nowhere near close enough, to the book. As we develop, we will slim this down
+   and make it more palatable. However, it is functional for the moment. You
+   don't need to understand how "fump" and "gump" work; just look at the
+   printout in the console and convince yourself that the steps of the proof are
+   being adequately presented.
+
+ *************************************************************************** *)
+
+ClearAll[fump, gump]
+SetAttributes[fump, HoldAllComplete]
+fump[x_] := (
+    Print[ToString[Unevaluated[x]] <> " ~~>\n" <> ToString[x]];
+    x)
+gump[x_, r_] := (
+    Print[ToString[x] <> " /. " <> ToString[r] <> " ~~>\n" <> ToString[x/.r]];
+    x /. r)
+
+expect [
+
+  eqv[true, eqv[q, q]],
+
+  fump[    identityAxiom[true] ]  //
+  gump[#1, eqv[x_, y_] :> y    ]& //
+  gump[#1, eqv[true, true] :> eqv[true, identityAxiom[q][[2]]]]&
+
+]
+
+(* ****************************************************************************
  _____ _          ___         _
 |_   _| |_  ___  | __|_ _  __| |
   | | | ' \/ -_) | _|| ' \/ _` |
   |_| |_||_\___| |___|_||_\__,_|
-*)
+ *************************************************************************** *)
 
-(* We leave this at the very bottom so we can get a count of results during
-development. The final result of the script, no matter what its intermediate
-state, is the result of the following tautology. *)
+(* We leave this at the very bottom so we can get a count of right and wrong
+results during development. The final result of the script, no matter what its
+intermediate state, is the result of the following tautology. *)
+
 expect[ true, true ]
