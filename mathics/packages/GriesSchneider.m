@@ -974,11 +974,11 @@ expect [
     which is a rewrite rule that will drive an expression that matches the
     pattern above the line, namely
 
-        sameq[x_, y_]
+        sameq[x_, y_]                            (* X == Y *)
 
     to the expression below the line, namely
 
-        sameq[ e /. {z -> x}, e /. {z -> y} ]
+        sameq[ e /. {z -> x}, e /. {z -> y} ]    (* E[z := X] = E[z := Y] *)
 
     In a chain of reasoning, G&S write Leibniz like this:
 
@@ -987,7 +987,9 @@ expect [
             E[z := Y]
 
     which means that they're using Leibniz to rewrite an expression like
-    E[z := X] into one like E[z := Y]. Why? To drive the proof forward.
+    E[z := X] into one like E[z := Y]. Why? To drive the proof forward. We need
+    a version of leibniz that just picks out E[z := Y] from the consequent below
+    the line.
 
     First, we write a use of Leibniz like that at the bottom of page 14:
 
@@ -1019,17 +1021,17 @@ leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
 ClearAll[leibnizE]
 leibnizE[ premise:sameq[ x_, y_ ], e_, z_ ] :=
     Module[{conclusion = leibniz[premise, e, z]},
-        Print["antecedent: " <> ToString[conclusion[[1]]]];
-        Print["premise:    " <> ToString[premise]];
-        Print["consequent: " <> ToString[conclusion[[2]]]];
+        Print["  E[z := X]: " <> ToString[conclusion[[1]]]];
+        Print["=   <X = Y>: " <> ToString[premise]];
+        Print["  E[z := Y]: " <> ToString[conclusion[[2]]]];
         conclusion[[2]]]
 
 expect[
 
     sameq[div[2j, 2], 2(j-1)],
 
-    leibnizE[sameq[m, 2j],             (* premise, by 0.1 *)
-             sameq[div[z, 2], 2(j-1)], (* E(z)            *)
+    leibnizE[sameq[m, 2j],             (* premise sameq[X, Y], by 0.1 *)
+             sameq[div[z, 2], 2(j-1)], (* E(z)                        *)
              z]
 ]
 
@@ -1037,9 +1039,9 @@ expect[
 
     You should see something like this on the console
 
-        antecedent: sameq[div[m, 2], 2 (-1 + j)]
-        premise:    sameq[m, 2 j]
-        consequent: sameq[div[2 j, 2], 2 (-1 + j)]
+          E[z := X]: sameq[div[m, 2], 2 (-1 + j)]
+        =   <X = Y>: sameq[m, 2 j]
+          E[z := Y]: sameq[div[2 j, 2], 2 (-1 + j)]
         Out[150]= sameq[div[2 j, 2], 2 (-1 + j)]
 
     To use leibnizE with substitution, as on page 15, use an ad-hoc rule:
@@ -1060,25 +1062,30 @@ expect[
     The best way to figure out E(z) is to examine the inputs and the outputs of
     the deduction: G&S write, top of page 15:
 
-            2j/2 = 2(j-1)
+          2j/2 = 2(j-1)
         =   <(1.9), with x := j>
-            j = 2(j-1)
+          j = 2(j-1)
 
     The middle line is clear: it's theorem 1.9, namely 2x/2 = x (written with
     inert "div", sameq[div[2x,2],x]) with a substitution: x :> j. So that middle
     line is really "2j/2 = j", and we mentally rewrite the fragment as
 
-            2j/2 = 2(j-1)
+          2j/2 = 2(j-1)
         =   <2j/2 = j>
-            j = 2(j-1)
+          j = 2(j-1)
 
     Remember this premise is always of the form "X = Y". Now we clearly see that
     X is 2j/2 and Y is j. The top line is X = 2(j-1); the bottom line is Y =
     2(j-1). A suitable E(z), then, is z = 2(j-1), because the top line is always
-    E(z)[z := X] and the bottom line is always E(z)[z := Y].
+    E(z)[z := X] and the bottom line is always E(z)[z := Y]. More concisely
+    (using the functional variant of leibniz), the top line is always E(X) and
+    the bottom line is always E(Y). The output of leibnizE is E(Y) and we figure
+    out an E(z) by looking at the premise, with or without a substitution. There
+    is still a bunch of implicit "head math" going on; we make that more
+    explicit as we progress.
 
     That kind of thinking will be critical as you go through the exercises for
-    Chapter 2.
+    Chapter 2. Watch out because E(z) is often not unique.
 
     PHILOSOPHICAL NOTE:
 
@@ -1923,9 +1930,11 @@ leibniz[ eqv[x_, y_], e_, z_ ] := eqv[e /. {z -> x}, e /. {z -> y}]
 ClearAll[leibnizE]
 leibnizE[ premise:eqv[ x_, y_ ], e_, z_ ] :=
     Module[{conclusion = leibniz[premise, e, z]},
-        Print["antecedent: " <> ToString[conclusion[[1]]]];
-        Print["premise:    " <> ToString[premise]];
-        Print["consequent: " <> ToString[conclusion[[2]]]];
+        Print["leibniz:"];
+        Print["  E(z)     : " <> ToString[e]];
+        Print["  E[z := X]: " <> ToString[conclusion[[1]]]];
+        Print["=   <X = Y>: " <> ToString[premise]];
+        Print["  E[z := Y]: " <> ToString[conclusion[[2]]]];
         conclusion[[2]]]
 
 ClearAll[transitivity]
@@ -1983,30 +1992,135 @@ ClearAll[deqv]
    results in a chain of derivations with annotations a little closer, though
    nowhere near close enough, to the book. As we develop, we will slim this down
    and make it more palatable. However, it works for now. You don't need to
-   understand how "fump" and "gump" work.
+   understand how the display machinery works.
 
    Remember that "Reasoning with Leibniz," Section 1.5, page 14, allows us to
    "replace equals with equals" via the rewrite rule "leibnizE."
 
  *************************************************************************** *)
 
-ClearAll[fump, gump]
+ClearAll[fump]
 SetAttributes[fump, HoldAllComplete]
-fump[x_] := (
-    Print[ToString[Unevaluated[x]] <> " ~~>\n" <> ToString[x]];
-    x)
-gump[e_, rule_] :=
-  Module[{result = e/.rule},
-    Print[ToString[e] <> " /. " <> ToString[rule] <> " ~~>\n" <> ToString[result]];
-    result]
+fump[e_] := (
+    Print[ToString[Unevaluated[e]] <> " ~~>\n" <> ToString[e]];
+    e)
+dump[annotation_, e_] := (
+    Print[annotation <> " ~~> ", e];
+    e)
 
+Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
+  proposition                          // fump                  //
+  symmetry[#1]&                        // dump["symmetry", #1]& //
+  leibnizE[#1, eqv[p, z], z]&          //
+  leibnizE[proposition, eqv[p, z], z]& //
+  symmetry[#1]&                        // dump["symmetry", #1]&
+]
+
+(* ****************************************************************************
+
+   A few notes about this proof are necessary. First, there are many ways to
+   parenthesize the Axiom of Symmetry into binary uses of eqv, i.e., "===":
+
+       (p === q) === (q === p)    (* presumably G&S's intention *)
+       p === (q === (q === p))
+       p === ((q === q) === p)
+       (p === (q === q)) === p
+       ((p === q) === q) === p
+
+   and I'm not sure I got them all, but they're all equivalent by the Axiom of
+   Associativity, 3.1, which precedes Symmetry, 3.2. G&S use them freely and
+   implicitly in the proof at the bottom of page 43, but that's not good enough
+   for us because we're doing explicit calculations. However, it turns out that,
+   in this case, we don't need to invoke explicit rules for associativity if
+   we're willing, mentally, to accept eqv[p, eqv[p, q, q]] as the statement of
+   the proposition we're trying to prove and eqv[eqv[p, q, q], p] as the
+   particular parenthization of the Axiom of Symmetry we reduce to, that is, if
+   we're satisfied that if we can reduce eqv[p, eqv[p, q, q]] to eqv[eqv[p, q,
+   q], p], then we have proved the theorem eqv[p, eqv[p, q, q]].
+
+   That leaves open the question of the meaning of eqv[a, b, c], a ternary eqv,
+   which we have not defined. We define it now to mean eqv[eqv[a, b], c] or
+   eqv[a, eqv[b, c]], but we won't explicitly reduce it that way because we
+   don't want to invoke "or" for this proof. If you're willing to go with that,
+   then we may proceed.
+
+   Before explaining the proof line-by-line, we note that simply one invocation
+   of symmetry suffices, namely
+
+       symmetry[eqv[p, eqv[p, q, q]]] ~~> eqv[eqv[p, q, q], p]
+
+   but G&S invoke symmetry twice, with an intermediate step of eqv[p, p], and
+   we're going to take a dirty road to get there with two invocations of
+   symmetry and two invocations of leibnizE.
+
+   First, we feed our proposition through symmetry, failing to notice that we're
+   done:
+
+       proposition$10423 ~~>  (* ignore the dollar sign and numbers *)
+                 eqv[p, eqv[p, q, q]]
+       symmetry ~~> eqv[eqv[p, q, q], p]
+
+   We then use leibnizE, with X = eqv[p, q, q] and Y = p, to produce the
+   intermediate form:
+
+       leibniz:
+         E(z)     : eqv[p, z]
+         E[z := X]: eqv[p, eqv[p, q, q]]
+       =   <X = Y>: eqv[eqv[p, q, q], p]
+         E[z := Y]: eqv[p, p]
+
+   We then feed the proposition once more through leibnizE, this time with X = p
+   and Y = eqv[p, q, q], noting that our intermediate form eqv[p, p] is present
+   (and eaten up) as E[z := X]:
+
+       leibniz:
+         E(z)     : eqv[p, z]
+         E[z := X]: eqv[p, p]
+       =   <X = Y>: eqv[p, eqv[p, q, q]]
+         E[z := Y]: eqv[p, eqv[p, q, q]]
+
+   That produces our proposition, again, but no mind, we're trying to follow the
+   book, and G&S say we must do two applications of symmetry and two
+   applications of leibniz. Finally, we end with our final application of
+   symmetry:
+
+       symmetry ~~> eqv[eqv[p, q, q], p]
+       Out[207]= eqv[eqv[p, q, q], p]
+
+   and you should see something like that on your console.
+
+   Here is the whole proof as an "expect" unit test:
+
+ *************************************************************************** *)
+
+expect [
+  eqv[eqv[p, q, q], p],
+
+  Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
+    proposition                          // fump                  //
+    symmetry[#1]&                        // dump["symmetry", #1]& //
+    leibnizE[#1, eqv[p, z], z]&          //
+    leibnizE[proposition, eqv[p, z], z]& //
+    symmetry[#1]&                        // dump["symmetry", #1]&
+  ]
+]
+
+(* ****************************************************************************
+
+   That's more than a little round-about, but at least we avoided an explosion
+   of rules for associativity of binary combinations. That need may come back to
+   haunt us, and we may get into tricks with Attributes, as we did with "deqv"
+   above, to mitigate it.
+
+ *************************************************************************** *)
 
 
 (* ****************************************************************************
- _____ _          ___         _
-|_   _| |_  ___  | __|_ _  __| |
-  | | | ' \/ -_) | _|| ' \/ _` |
-  |_| |_||_\___| |___|_||_\__,_|
+ _____ _          _____                                        ___         _
+|_   _| |_  ___  |_   _|__ _ __  _ __  ___ _ _ __ _ _ _ _  _  | __|_ _  __| |
+  | | | ' \/ -_)   | |/ -_) '  \| '_ \/ _ \ '_/ _` | '_| || | | _|| ' \/ _` |
+  |_| |_||_\___|   |_|\___|_|_|_| .__/\___/_| \__,_|_|  \_, | |___|_||_\__,_|
+                                |_|                     |__/
  *************************************************************************** *)
 
 (* We leave this at the very bottom so we can get a count of right and wrong
