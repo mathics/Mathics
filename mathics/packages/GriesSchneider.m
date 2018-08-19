@@ -1822,6 +1822,9 @@ ClearAll[deqv]
    printout in the console and convince yourself that the steps of the proof are
    being adequately presented.
 
+   We also introduce the "[[2]]" syntax, which retrieves the second part of any
+   expression. In general, of course, expr[[i]] retrieves the i-th part of expr.
+
  *************************************************************************** *)
 
 ClearAll[fump, gump]
