@@ -1172,7 +1172,7 @@ assign[variables_:List, expressions_:List, postcondition_] :=
 
 (* Notice we don't have to use inert forms of expressions when we know that
    mathics can't reduce what we write. We've been extra pedantic with inert
-   forms, proving that (e === m c^2) === (e c^2 === m), because we didn't want
+   forms, proving that (e === m c^2) === (e / c^2 === m), because we didn't want
    mathics doing the proof for us. But there are certainly several places where
    we could have been more lax. *)
 
