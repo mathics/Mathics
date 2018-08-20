@@ -1655,7 +1655,7 @@ nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
 
 (*
 
-    We do a littlen massaging of the result with "Flatten", "Transpose", "Last"
+    We do a little massaging of the result with "Flatten", "Transpose", "Last"
     and "Partition" so that they can be compared directly with the table in the
     book. Remove that massaging if you want to see a more verbose output.
 
