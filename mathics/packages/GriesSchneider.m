@@ -1901,7 +1901,7 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
    Equational logic, E
 
    We've written the laws leibniz, substitutionInferenceRule, and
-   transitivityLaw a functions (from the cheat sheet above):
+   transitivityLaw as functions (from the cheat sheet above):
 
     (* 1.1 *) substitutionInferenceRule[e_, v_:List, f_:List] :=
         Module[{ rules = MapThread[ Rule, {v, f} ] }, output ]
