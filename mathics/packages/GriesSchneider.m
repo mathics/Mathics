@@ -574,7 +574,7 @@ expect[ sameq[ x+y, 7 ],
     somewhere else, but we just cleared them. In general, statements that have
     "non-local" effects make software "rigid" and "brittle," difficult to
     maintain and modify because any person doing a modification must have more
-    than local knowledge.
+    than local knowledge to get things right.
 
     Much safer and prettier is a "RuleDelayed" or ":>". This works no matter
     what's been defined in the global environment, because the replacement of
@@ -603,9 +603,13 @@ expect[ sameq[ x+y, 7 ],
     "Set", when we want the result (right-hand side) evaluated at definition
     time (now) instead of at application time (later), just as we can write some
     unnamed rules with "->" instead of with ":>". Using "=" when it's not
-    necessary is usually considered bad style. Using ":=", syntax for
-    "SetDelayed", instead of "=" sweeps a bunch of early-evaluation drama under
-    the rug.
+    necessary is bad style. Using ":=", syntax for "SetDelayed", instead of "="
+    sweeps a bunch of early-evaluation drama under the rug.
+
+    As a rule of thumb, if a rule, named or unnamed, has pattern variables, it's
+    best to use the delayed forms ":=" and ":>", even if they're not needed,
+    strictly speaking. That avoids any need for global omniscience on the part
+    of the programmer.
 
     This issue is a "meta-evaluation leak", noise about evaluation rising to our
     attention. But we can ignore the noise much of the time.
@@ -1620,12 +1624,19 @@ __   __    _ _    _ _ _                         _
     First, let's do the four unary operators and the sixteen binary operators on
     pages 25 and 26. I will give names to the operators that G&S leaves unnamed.
 
-    As an aside, the number of different functions from a set A to a set B is
+    As an aside, the number of different total functions f from a set A to a set
+    B is
 
         ||B||  **  ||A||  =def=  ||A -> B||
 
     where ||B|| is the size or cardinality or number-of-elements in set B, and
-    ||A|| is the size of set A, and the set of functions is denoted A->B.
+    ||A|| is the size of set A, and the set of functions is denoted A->B. That's
+    because for every element a in A, there are ||B|| different choices for the
+    target f(a). The number of different ways to assign ||B|| values to ||A||
+    values is ||B|| ** ||A||: ||B|| different possibilities for the first value
+    a_1 in A, ||B|| different possibilities for the second value a_2 in A, and
+    so on, up to ||B|| different possibilities for the ||A||-th value a_||A|| in
+    A.
 
     For the unary functions, A is the set {true, false}, of size 2, and B is the
     set {true, false}, of size two. Thus there are 2 ** 2 == four different
@@ -1673,8 +1684,13 @@ unaryFunctionTruthTable =
 
 (* Evaluation rules to drive mathics to reduce *)
 
-boolRules = {tconst[_] :> True, id -> Identity, not -> Not, fconst[_] :> False,
-    true -> True, false -> False}
+boolRules = {
+        tconst[_] :> True,     (* notice application of the 'rule of thumb' *)
+        id        -> Identity, (*   that it's better to use ":>" for any    *)
+        not       -> Not,      (*   rule with pattern variables like "_".   *)
+        fconst[_] :> False,    (* ditto                                     *)
+        true      -> True,
+        false     -> False}
 
 expect [
 
@@ -1706,8 +1722,9 @@ expect [
         and[not[f], t]
 
     bogusly produces f because not[f] doesn't "===" t before reduction by the
-    rule for "not". Because we can't easily predict the order of application of
-    the rules, we check that a and b each belong to the set {t, f}.
+    rule for "not". We can't (and shouldn't need to) predict the order of
+    application of the rules. We instead check that a and b each belong to the
+    set {t, f}.
 
     One syntax for the conditional part of a rule is as follows
 
@@ -1715,9 +1732,9 @@ expect [
         -- -------- ------------------------- -----------------------------
         and[a_, b_] /; (boolQ[a] && boolQ[b]) :> If[(a===t)&&(b===t), t, f]
 
-    It's safest to type-check all arguments on all functions, but there is a
-    certain elegance to minimal type-checking, especially because the types are
-    checked at run time in mathics and that's not free.
+    It's safest to type-check arguments on all functions, but there is a certain
+    elegance to minimal type-checking, especially because types are checked at
+    run time in mathics and that's not free.
 
 *)
 
@@ -1756,9 +1773,9 @@ nand, neqv, neq, nsnd, nimplies, nfst, nbecause, nor, fconst}
 
 (*
 
-    We do a little massaging of the result with "Flatten", "Transpose", "Last"
-    and "Partition" so that they can be compared directly with the table in the
-    book. Remove that massaging if you want to see a more verbose output.
+    We massage results with "Flatten", "Transpose", "Last" and "Partition" so
+    that they can be compared directly with the table in the book. Remove that
+    massaging if you want to see a more verbose output.
 
 *)
 
@@ -1795,13 +1812,20 @@ expect [
 | |) | || / _` | |
 |___/ \_,_\__,_|_|
 
-    The only interesting new feature of mathics illustrated here is the pattern
-    variable in dual[head_[args__]]. The pattern head_[args__] matches something
-    like and[p, q] with "head" bound to "and" and "{args}" bound to "{p, q}".
-    Args is bound to Sequence[p, q], a special form for argument splicing; we
-    don't need to get into that now. That rule for dual recursively dualizes the
-    head and the args. Rewriting proceeds until things stop changing, so the
-    recursion eventually bottoms out into one of the hard rules like dual[or].
+    Consider the pattern in "dual[head_[args__]]", namely "head_[args__]". It
+    matches something like "and[p, q]" with "head" matching "and" and "{args}"
+    matching the list "{p, q}"; "args", without curly braces, is bound to
+    "Sequence[p, q]", a special form for argument splicing; we don't need to get
+    into that now.
+
+    Our rule for "dual" recursively dualizes the head and the args. Rewriting
+    proceeds until things stop changing, so the recursion eventually bottoms out
+    into one of the hard rules like dual[or]. We see a new fact about mathics:
+
+    I M P O R T A N T   F A C T   A B O U T   M A T H I C S
+
+    Applying a named rule like "dual" is like applying an unnamed rule with
+    "//.", "ReplaceAllRepeated".
 
 *)
 
@@ -1835,7 +1859,7 @@ dual[nbecause] = implies
 
    The dual of "implies[p, q]" is "(~p /\ q)", which is "~(p \/ ~q)" (by de
    Morgan), which is "not[because[p, q]]". So we can derive the rules above from
-   the duals of "or" and "and", and that's why they're redundant.
+   the duals of "or" and "and".
 
 *)
 
@@ -1855,6 +1879,8 @@ expect[neqv[or[not[p], not[q]], r], dual[eqv[and[not[p], not[q]], r]]]
 
    Let's have some fun making up random boolean expressions, then checking that
    the duals of their duals reproduce the originals.
+
+   To see the random expressions, inspect the console output.
 
    You must have numpy installed for the following to work in mathics.
 
@@ -1918,28 +1944,29 @@ Module[{expressions = Table[randomBooleanExpression[], {20}]},
     MapThread[expect, {expressions, dduals}]]]
 
 (* The Superman example, page 37; we'll consider all 64 states. Mathics has a
-nice, rendered 'implication' arrow. The ASCII input syntax for it is
-"\[Implies]". This might render well on your screen if you have a good Unicode
-font and UTF-8 encoding. Also, we're using mathics logical operators and
-allowing them to reduce, rather than manipulating our own expressions. We'll do
-that later. *)
+   nice, rendered 'implication' arrow. The ASCII input syntax for it is
+   "\[Implies]". This might render well on your screen if you have a good
+   Unicode font and UTF-8 encoding. Also, we're using mathics logical operators
+   and allowing them to reduce, rather than manipulating our own expressions.
+   We'll do that later. The book gets back to "Superman" on page 89.
+   *)
 
 expect [
-True,
+        True,
 
-And @@
-Flatten @
-Table[( ( (a && w) \[Implies] p ) &&
-        ( (!a \[Implies] i) && (!w \[Implies] m) ) &&
-        ( !p ) &&
-        ( e \[Implies] (!i && !m) )
-      ) \[Implies] !e,
-  {a, {True, False}},
-  {w, {True, False}},
-  {i, {True, False}},
-  {m, {True, False}},
-  {p, {True, False}},
-  {e, {True, False}} ]
+        And @@
+        Flatten @
+                Table[( ( (a && w) \[Implies] p ) &&
+                        ( (!a \[Implies] i) && (!w \[Implies] m) ) &&
+                        ( !p ) &&
+                        ( e \[Implies] (!i && !m) )
+                      ) \[Implies] !e,
+                      {a, {True, False}},
+                      {w, {True, False}},
+                      {i, {True, False}},
+                      {m, {True, False}},
+                      {p, {True, False}},
+                      {e, {True, False}} ]
 ]
 
 (* Metatheorem 2.3, page 32 ***************************************************
@@ -1959,28 +1986,41 @@ dualTheorem[theorem_] := not[dual[theorem]]
 
 (* Table 2.2, Using Duality to Generate Valid Expressions ****************** *)
 
-expect[ dualTheorem[true],                    not[false] ]
-expect[ dualTheorem[or [p, true]],            not[and[p, false]] ]
-expect[ dualTheorem[or [p, not[p]]],          not[and[p, not[p]]] ]
+expect[ dualTheorem[true],           not[false] ]
+expect[ dualTheorem[or [p, true]],   not[and[p, false]] ]
+expect[ dualTheorem[or [p, not[p]]], not[and[p, not[p]]] ]
 
 (* G&S slip a fast one on us, here, by implicitly reducing not[neqv[...]] to
-eqv[...] and vice versa. Computers are dumb, and must be told exactly what to
-do, so we need to tweak the output of "dualTheorem" with a ad-hoc rewrite rule.
-We may end up, later, having to do some more gymnastics like this. *)
+   eqv[...] and vice versa. Computers are dumb, must be told exactly what to do.
+   we tweak the output of "dualTheorem" with a ad-hoc rewrite rule. *)
 
-expect[ dualTheorem[eqv[true, true]] //. not[neqv[x_, y_]] :> eqv[x, y],
+expect[ dualTheorem[eqv[true, true]]
+            //. not[neqv[x_, y_]] :> eqv[x, y],
+
         eqv[false, false] ]
 
-expect[ dualTheorem[eqv[or[p, q], or[q, p]]] //. not[neqv[x_, y_]] :> eqv[x, y],
+
+
+expect[ dualTheorem[eqv[or[p, q], or[q, p]]]
+            //. not[neqv[x_, y_]] :> eqv[x, y],
+
         eqv[and[p, q], and[q, p]] ]
+
+
 
 expect[ dualTheorem[eqv[eqv[p, q], eqv[q, p]]]
             //. not[neqv[x_, y_]] :> eqv[x, y],
+
         eqv[neqv[p, q], neqv[q, p]] ]
+
+
 
 expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
             //. not[neqv[x_, y_]] :> eqv[x, y],
+
         eqv[not[and[p, q]], or[not[p], not[q]]] ]
+
+
 
 (* You do the exercises in Chapter 2. *)
 
@@ -2014,13 +2054,14 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
    because we want evaluation to drive expressions in a particular direction:
    from premises above the line to conclusions below the line, as in page 41.
 
-   In Chapter 2, we introduced the inert symbol "eqv" in preference to the old
-   "sameq" from Chapter 1. We'll write new versions of the three laws,
-   shortening the names, to make following through Chapter 3 easier.
+   In Chapter 2, we introduced the inert symbol "eqv" instead of the old "sameq"
+   from Chapter 1. Write new versions of the three laws in terms of eqv, also
+   shortening the names, to make following Chapter 3 easier.
 
-   We ClearAll the symbols before redefining them to avoid nasty surprises (and
+   ClearAll the symbols before redefining them to avoid nasty surprises (and
    lengthy debugging sessions) from lingering, prior definitions. This is cheap
-   paranoia, because "ClearAll" doesn't cost very much.
+   paranoia, because "ClearAll" doesn't cost very much. You will thank me some
+   day for constantly nagging you about this.
 
 *)
 
@@ -2045,7 +2086,7 @@ transitivity[ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
 ClearAll[substitution]
 substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
 
-(* Associativity of eqv; both directions *)
+(* Associativity of eqv; both directions (computers are dumb) *)
 ClearAll[associativity]
 associativity[eqv[ eqv[p_, q_], r_ ]] := eqv[ p, eqv[q, r] ]
 associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
@@ -2082,7 +2123,7 @@ expect [
 (*
 
    Checking this automation, however, requires === instead of deqv itself, so
-   it's often delegating too much to mathics and spoiling our fun.
+   it's delegating too much to mathics and spoiling our fun (for now).
 
 *)
 
@@ -2090,11 +2131,10 @@ ClearAll[deqv]
 
 (* Theorems, pages 43-44 ******************************************************
 
-   We invent a little more display machinery that prints out intermediate
-   results in a chain of derivations with annotations. That brings us a little
-   closer, though nowhere near close enough, to the book. As we develop, we will
-   slim this down and make it more palatable. However, it works for now. You
-   don't need to understand how the display machinery works.
+   Need a little more display machinery that prints out annotations. That brings
+   us a little closer, though nowhere near close enough, to the book. As we
+   develop, we will slim this down and make it more palatable. You don't need to
+   understand how the display machinery works.
 
    Remember that "Reasoning with Leibniz," Section 1.5, page 14, allows us to
    "replace equals with equals" via the rewrite rule "leibnizE."
@@ -2146,7 +2186,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
        eqv[eqv[p, q, q], p],
 
    then we have proved the theorem eqv[p, eqv[p, q, q]] by reducing it to an
-   axiom, one of the requirements for proof at the top of page 42.
+   axiom, one of the definitions of a theorem at the top of page 42.
 
    That leaves open the question of the meaning of eqv[a, b, c], a ternary eqv,
    which we have not defined. We define it now to mean eqv[eqv[a, b], c] or
