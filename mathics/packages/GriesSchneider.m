@@ -509,7 +509,14 @@ expect[ sameq[ x+y, 7 ],
     we need to avoid triggering them. We supply our own rewrite rules for plus,
     times, sameq, and so on, leaving them inert symbolic expressions in
     lower-case; mathics doesn't know how to reduce such expressions until we
-    tell it explicitly with rewrite rules.
+    tell it explicitly with rewrite rules. Here is an important fact to
+    memorize:
+
+    I M P O R T A N T   F A C T   A B O U T   M A T H I C S
+
+    When mathics does not know how to reduce a symbolic expression, it produces
+    the expression itself. Expressions with symbolic constants in them are ...
+    just expressions with symbolic constants in them!
 
     U N N A M E D   R U L E S
 
@@ -733,15 +740,15 @@ sameq [ div [ e, c^2 ], m ],
 
      Map[divAsTimes, #1] &                                   ) /. (* ad-hoc *)
 
-     sameq[a_, b_] -> sameq[a, leftTimesIsAssociativeLaw[b]]   /.
+     sameq[a_, b_] :> sameq[a, leftTimesIsAssociativeLaw[b]]   /.
 
-     sameq[a_, times[b_, c_]] ->                                  (* ad-hoc *)
+     sameq[a_, times[b_, c_]] :>                                  (* ad-hoc *)
          sameq[timesAsDiv[a], times[b, timesAsDiv[c]]]         /.
 
-     sameq[a_, times[b_, c_]] ->                                  (* ad-hoc *)
+     sameq[a_, times[b_, c_]] :>                                  (* ad-hoc *)
          sameq[a, times[b, cancelNonZeros[c]]]                 /.
 
-     sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]              (* ad-hoc *)
+     sameq[a_, b_] :> sameq[a, rightTimesUnitLaw[b]]              (* ad-hoc *)
 ]
 
 (* ****************************************************************************
@@ -781,12 +788,12 @@ dump[e_] := (Print[e]; e)
 (((((premise                                                   // dump  //
      divideBothSidesByNonZero [ #1, c^2 ] &                    // dump  //
      Map[divAsTimes, #1] &                                     // dump) /.
-     sameq[a_, b_] -> sameq[a, leftTimesIsAssociativeLaw[b]] ) // dump) /.
-     sameq[a_, times[b_, c_]] ->
+     sameq[a_, b_] :> sameq[a, leftTimesIsAssociativeLaw[b]] ) // dump) /.
+     sameq[a_, times[b_, c_]] :>
          sameq[timesAsDiv[a], times[b, timesAsDiv[c]]]         // dump) /.
-     sameq[a_, times[b_, c_]] ->
+     sameq[a_, times[b_, c_]] :>
          sameq[a, times[b, cancelNonZeros[c]]]                 // dump) /.
-     sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]           // dump
+     sameq[a_, b_] :> sameq[a, rightTimesUnitLaw[b]]           // dump
 
 (* ****************************************************************************
 
@@ -822,7 +829,7 @@ sameq[div[e, c ^ 2], m]
  *************************************************************************** *)
 
 ClearAll[erules]
-erules = {div[a_, b_] -> a / b, times -> Times, power -> Power}
+erules = {div[a_, b_] :> a / b, times -> Times, power -> Power}
 
 ClearAll[eump]
 eump[e_] := (Print[{e //. erules, e}]; e)
@@ -835,12 +842,12 @@ Print["WITH MATHICS EVALUATION"]
 (((((premise                                                   // eump  //
      divideBothSidesByNonZero [ #1, c^2 ] &                    // eump  //
      Map[divAsTimes, #1] &                                     // eump) /.
-     sameq[a_, b_] -> sameq[a, leftTimesIsAssociativeLaw[b]] ) // eump) /.
-     sameq[a_, times[b_, c_]] ->
+     sameq[a_, b_] :> sameq[a, leftTimesIsAssociativeLaw[b]] ) // eump) /.
+     sameq[a_, times[b_, c_]] :>
          sameq[timesAsDiv[a], times[b, timesAsDiv[c]]]         // eump) /.
-     sameq[a_, times[b_, c_]] ->
+     sameq[a_, times[b_, c_]] :>
          sameq[a, times[b, cancelNonZeros[c]]]                 // eump) /.
-     sameq[a_, b_] -> sameq[a, rightTimesUnitLaw[b]]           // eump
+     sameq[a_, b_] :> sameq[a, rightTimesUnitLaw[b]]           // eump
 newline[]
 
 (* ****************************************************************************
