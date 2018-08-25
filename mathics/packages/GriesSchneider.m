@@ -562,10 +562,11 @@ expect[ sameq[ x+y, 7 ],
     U N N A M E D   R U L E S
 
     We have two kinds of rewrite rules: named and unnamed. Many of the ones
-    above are unnamed. Such rules have the form "pattern -> result", for example
-    "x -> 2y". The pattern is "x" and must match the target of the rule exactly.
-    The target of such a rule is the left-hand side of a "/.", "ReplaceAll", or
-    of a "//.", "ReplaceAllRepeated". For example, in the expression
+    above are unnamed. Many such rules have the form "pattern -> result", for
+    example "x -> 2y". The pattern is "x" and must match the target of the rule
+    exactly: it's a pattern constant, not a pattern variable. The target of such
+    a rule is the left-hand side of a "/.", "ReplaceAll", or of a "//.",
+    "ReplaceAllRepeated". For example, in the expression
 
         x + z /. {x -> 2y}
 
@@ -604,7 +605,7 @@ expect[ sameq[ x+y, 7 ],
 
         Out[11]= 294
 
-    That's because the right-hand side "a / b" is evaluated early and becomes
+    That's because the right-hand side "a / b" is evaluated early, and becomes
     "a / 6". At replacement time, "a_" and "b_" are replaced with "1764" and
     "42", as before, but "b" no longer appears on the right-hand side, and we
     get "1764 / 6" or "294".
@@ -627,7 +628,8 @@ expect[ sameq[ x+y, 7 ],
     Much safer and prettier is a "RuleDelayed" or ":>". This works no matter
     what's been defined in the global environment, because the replacement of
     the pattern variables happens before the evaluation of the right-hand side
-    of the rule, not after as with "Rule" or "->":
+    of the rule, not after evaluation of the right-hand side, as with "Rule" or
+    "->":
 
         In[17]:= b = 6
         In[18]:= div[1764, 42] /. {div[a_, b_] :> a / b}
@@ -645,22 +647,21 @@ expect[ sameq[ x+y, 7 ],
     of the rule. For example, in "transitivityLaw[blahblah] := yaketyyak", the
     "head" is "transitivityLaw" and we invoke the rule as in
     "transitivityLaw[and[sameq[x+y, blahblah]]]". The rest of the rule works
-    just like an unnamed rule with a ":>" arrow.
+    just like an unnamed rule with a "RuleDelayed", ":>" arrow.
 
     We could write some named rules as "head[pattern] = result", syntax for
-    "Set", when we want the result (right-hand side) evaluated at definition
-    time (now) instead of at application time (later), just as we can write some
-    unnamed rules with "->" instead of with ":>". Using "=" when it's not
-    necessary is bad style. Using ":=", syntax for "SetDelayed", instead of "="
-    sweeps a bunch of early-evaluation drama under the rug.
+    "Set", not using ":=", "SetDelayed". We would do this when we want the
+    result (right-hand side) evaluated at definition time (now) instead of at
+    application time (later), just as we can write some unnamed rules with "->"
+    instead of with ":>". Using "=" when it's not necessary is bad style. Using
+    ":=", syntax for "SetDelayed", instead of "=", even when it's not necessary,
+    is good style because it sidesteps a bunch of early-evaluation drama.
 
     As a rule of thumb, if a rule, named or unnamed, has pattern variables, it's
-    best to use the delayed forms ":=" and ":>", even if they're not needed,
-    strictly speaking. That avoids any need for global omniscience on the part
-    of the programmer.
-
-    This issue is a "meta-evaluation leak", noise about evaluation rising to our
-    attention. But we can ignore the noise much of the time.
+    best to use the delayed forms ":=" and ":>", even if they're not strictly
+    needed. That practice avoids any need for global omniscience of the global
+    environment of variables and their values at definition time and at
+    evaluation time on the part of the programmer.
 
     Back to our theorem from page 4, we'll write our new machinery with some
     named rewrite rules that don't trigger the built-in reductions:
