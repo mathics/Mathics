@@ -1290,7 +1290,7 @@ expect[
 
 (* ****************************************************************************
 
-    T use "leibniz" or "leibnizE", you need to supply an E(z) that converts the
+    To use "leibniz" or "leibnizE", you need to supply an E(z) that converts the
     premise into something you want. The best way to figure out E(z) is to
     examine the inputs and the outputs of the deduction: G&S write, top of page
     15:
@@ -1351,7 +1351,7 @@ expect[
 /_/ \_\/__/__/_\__, |_||_|_|_|_\___|_||_\__|
                |___/
 
-    Here we exhibit the first instance of a "type.". It's just a head and some
+    Here we exhibit the first instance of a "type." It's just a head and some
     args, for example,
 
         hoareTriple[precondition, statement, postcondition]
@@ -1674,8 +1674,9 @@ expect [
          plus[x_,y_] :> plus[y,x]  (* think of this as a function!         *)
        ] /. {apply[f_,a_] :> ReplaceAll[a,f]}  (* this is how to apply it! *)
 
-   Note that RuleDelayed, :>, is necessary here. Rule, ->, won't do. This is the
-   first time we have run across such a necessity.
+   Note that RuleDelayed, :>, is necessary here. Rule, ->, won't do. Remember
+   our rule of thumb, to use :> when the pattern to the left has pattern
+   variables.
 
    I'm leaving the rest of the exercises in Ch. 1 to you, the reader, also.
    You are advised to do them all!
@@ -2212,18 +2213,20 @@ transitivity[ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
 ClearAll[substitution]
 substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
 
-(* Associativity of eqv; both directions (computers are dumb) *)
+(* Section 3.2, Equivalence and true *************************************** *)
+
+(* (3.1) Axiom, Associativity of eqv; both directions (computers are dumb) *)
 ClearAll[associativity]
 associativity[eqv[ eqv[p_, q_], r_ ]] := eqv[ p, eqv[q, r] ]
 associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
 
-(* Symmetry of eqv *)
+(* (3.2) Axiom, Symmetry of eqv *)
 ClearAll[symmetry]
 symmetry[eqv[p_, q_]] := eqv[q, p]
 
-(* Identity of eqv, page 44 *)
+(* (3.3) Axiom, Identity of eqv, page 44 *)
 ClearAll[identity]
-identity[eqv[q_, q_]] := true
+identity[eqv[q_, q_]] := eqv[true, eqv[q, q]]
 
 (*
 
@@ -2389,6 +2392,13 @@ expect [
    above, to mitigate it.
 
  *************************************************************************** *)
+
+
+(* (3.4) Theorem, _true_ *)
+Module[{proposition = true},
+       proposition // fump //
+       identity[eqv[#1, #1]]& // dump["identity", #1]&
+]
 
 
 (* ****************************************************************************
