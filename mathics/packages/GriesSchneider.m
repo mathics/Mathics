@@ -1032,6 +1032,39 @@ expect [
     the global namespace. A Module defines local names that vanish when the
     evaluator finishes with the Module.
 
+    A mathics "Function" is a real lambda expression, as opposed to a rewrite
+    rule that acts mostly like a lambda expression. Consider the rewrite rule:
+
+        square[x_] := x * x
+
+    This means "whenever you see an expression like 'square[42]', rewrite it as
+    42 * 42, by (i) matching the pattern variable x_ to the actual argument 42,
+    (ii) saving the value in a temporary variable named x, (iii) replacing x in
+    the right-hand side x * x. Then, keep evaluating until nothing changes. That
+    is, evaluate 42 * 42 getting 1764, then evaluate 1764 getting 1764, then
+    stop."
+
+    On the other hand,
+
+        square = Function[x, x * x]
+
+    means "bind the global name square to the Function (or lambda expression)
+    that will return x * x when called on any actual argument, which will get
+    bound to the parameter x". Note that the right-hand side of the assignment
+    is evaluated _now_, at definition time, because we wrote "=" and not ":=".
+    The latter would be silly because "Function[x, x * x]" would get
+    re-evaluated every time we invoked "square".
+
+    These two forms are invoked exactly the same way, with syntax like
+
+        square[42]
+
+    Most of the time, we can't tell the difference between a straightforward
+    rewrite rule like the first "square" and a Function like the second
+    "square". However, if we set up a complex example where rewriting has side
+    effects, we could tell the difference. That's off-topic for now, but worth
+    remembering for later.
+
  *************************************************************************** *)
 
 Module [{ g = Function[z, plus[times[3, z], 6]] },
