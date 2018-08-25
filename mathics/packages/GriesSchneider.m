@@ -434,24 +434,29 @@ expect [ j + 5,
     "FullForm" is useful for decoding any syntax in mathics: it will tell you
     the fundamental, bottom meaning of any expression. We see that "a_" is a
     pattern named "a" and able to match any expression, because that's what
-    "Blank[]" does. The name "a" is saved for reference on the right-hand side
-    of a rule. We explain this in more detail, below, when we discuss "Rule" and
+    "Blank[]" does.
+
+    The name "a" is saved in case the right-hand side of a rule refers to it. We
+    explain this in more detail, below, when we discuss "Rule" and
     "RuleDelayed". For now, just think that the rule
 
         div[a_, b_] -> a / b
 
     means "match div[a_, b_], binding the symbols 'a' and 'b' to the actual
-    values that appear in the target of the match." There is more to the story,
-    but good enough for now.
+    values that appear in the target of the match."
 
     This is a new kind of rule we haven't seen above, but is very much like
     application of a function or lambda expression in Python, but not exactly
-    the same.
+    the same. We must be aware of _when_ the right-hand side, "a / b", is
+    evaluated.
 
-    Let's do an extended experiment with inert sameq, plus, times, div, etc.,
-    replacing them explicitly with built-ins only when desired using rules like
-    "div" above. The purpose of the experiment is to see whether losing pretty
-    syntax is worth avoiding struggles and bugs with evaluation leaks.
+    E X T E N D E D   E X P E R I M E N T
+
+    Let's do an extended experiment with inert symbols instead of the zoo of
+    Holds: sameq, plus, times, div, etc., replacing them explicitly with
+    built-ins only when we want, using rules like "div" above. The purpose of
+    the experiment is to see whether losing pretty syntax is worth avoiding
+    struggles and bugs with evaluation leaks and the zoo of Holds.
 
     Let's first redo the substitution rule (G&S 1.1). During this experiment, we
     avoid the zoo of Holds, and avoid SetAttributes (https://goo.gl/Zt3KbB),
@@ -564,17 +569,26 @@ expect[ sameq[ x+y, 7 ],
     We have two kinds of rewrite rules: named and unnamed. Many of the ones
     above are unnamed. Many such rules have the form "pattern -> result", for
     example "x -> 2y". The pattern is "x" and must match the target of the rule
-    exactly: it's a pattern constant, not a pattern variable. The target of such
-    a rule is the left-hand side of a "/.", "ReplaceAll", or of a "//.",
+    exactly. It's a pattern constant, not a pattern variable. We know that
+    because there is no underscore. The target of such a rule is the left-hand
+    side of a "/.", "ReplaceAll", or the left-hand side of a "//.",
     "ReplaceAllRepeated". For example, in the expression
 
         x + z /. {x -> 2y}
 
     "x + z" is the target of the rule "x -> 2y", and the result of evaluating
     the entire expression is "2y + z" because the "x" pattern in the rule
-    exactly matches the "x" in the target "x + z".
+    exactly matches the "x" in the target "x + z". "FullForm" explains the
+    syntax (here we must use a HoldForm to prevent the expression from being
+    evaluated before it's passed to FullForm):
 
-    We enclose the rule "x -> 2y" in curly braces just for readability. The
+        In[8]:= FullForm[HoldForm[x + z /. {x -> 2y}]]
+
+        Out[8]= ReplaceAll[Plus[x, z], List[Rule[x, Times[2, y]]]]
+
+    We enclose the rule "x -> 2y" in curly braces just for readability.
+
+    The
     right-hand sides of "/." or a "//." must be either a rule or a list of
     rules. The curly braces put the rule "x -> 2y" in a list; "{x -> 2y}" is a
     list of rules, a list with one element. I find "x + z /. {x -> 2y}" to be
@@ -585,20 +599,32 @@ expect[ sameq[ x+y, 7 ],
     variables match anything. When the rule is applied, the pattern variables
     are replaced on the right-hand side of the arrow by the things they match.
 
-    "a -> b" is syntax for "Rule". There is another kind of arrow, namely ":>",
-    syntax for "RuleDelayed", which means "don't evaluate the right-hand side of
-    the rule now, only later, when we apply the rule." Sometimes, it doesn't
-    matter which of the two you use. In the example "div[a_, b_] -> a / b", the
-    right-hand side is evaluated when the rule itself is parsed and evaluated,
-    before it is applied to any target. Consider the following expression:
+    "a -> b" is syntax for "Rule[a, b]". There is another kind of arrow, namely
+    "a :> b", syntax for "RuleDelayed[a, b]", which means "don't evaluate the
+    right-hand side of the rule now, only later, when we apply the rule."
+
+    Sometimes, it doesn't matter which of the two you use. In the example
+    "div[a_, b_] -> a / b", the right-hand side is evaluated when the rule
+    itself is parsed and evaluated, before it is applied to any target. Consider
+    the following expression:
 
         div[1764, 42] /. {div[a_, b_] -> a / b}
 
     In a clean environment, where "a" and "b" have no definitions, evaluating
-    this expression produces the expected "42". Mathics replaces the pattern
-    variables "a_" and "b_" with actual arguments "1764" and "42", respectively,
-    then evaluates the right-hand side "a / b" again. If, however, "b", for
-    example, had been defined somewhere, we don't get what we expect:
+
+        a / b
+
+    produces just a / b, itself, an expression in terms of symbolic constants
+    that mathics cannot further reduce. The whole expression produces the
+    expected "42". Mathics replaces the pattern variables "a_" and "b_" with
+    actual arguments "1764" and "42", respectively, then evaluates the
+    right-hand side "a / b" again.
+
+        In[6]:= div[1764, 42] /. {div[a_, b_] -> a / b}
+
+        Out[6]= 42
+
+    If, however, "b" had been defined somewhere, we don't get what we expect:
 
         In[10]:= b = 6
         In[11]:= div[1764, 42] /. {div[a_, b_] -> a / b}
@@ -607,11 +633,11 @@ expect[ sameq[ x+y, 7 ],
 
     That's because the right-hand side "a / b" is evaluated early, and becomes
     "a / 6". At replacement time, "a_" and "b_" are replaced with "1764" and
-    "42", as before, but "b" no longer appears on the right-hand side, and we
-    get "1764 / 6" or "294".
+    "42", as before, but, this time the right-hand side is a / 6; "b" no longer
+    appears, and we get "1764 / 6" or "294".
 
-    One way to fix this is to ClearAll the symbols of the pattern variables
-    before evaluating the expression:
+    One way to fix this is to ClearAll the symbols "a" and "b" of the pattern
+    variables "a_" and "b_" before evaluating the expression:
 
         In[14]:= b = 6
         In[15]:= ClearAll[a, b]
