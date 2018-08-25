@@ -34,7 +34,9 @@
     method. Formal methods means "machine-checked proofs." Formal Methods help
     you write better software. They can help you avoid billion-dollar mistakes,
     like crashing the Mars Climate Observer because the units of measure
-    "newton" and "pound-force" were not checked by machine.
+    "newton" and "pound-force" were not checked by machine. Like losing customer
+    data in a cloud database because of an unanticipated edge-case thirty-five
+    steps into a leader-election protocol.
 
     Fall in love with formal methods, please! They're related to static
     type-checking (that's a little formal method in your compiler, proving
@@ -45,9 +47,9 @@
     (https://goo.gl/dx32Mw). Statecharts allowed me to formally prove that an
     embedded controller for a robot had no bugs. TLA+ saved Amazon's Dynamo DB a
     catastrophic failure (https://goo.gl/pTpZYT). Many mistakes have been found
-    in published protocols at the foundational layer of the internet and cloud
-    computing when those protocols were subjected to formal methods (no
-    citation).
+    in published algorithms and protocols at the foundational layer of the
+    internet and cloud computing when those protocols were subjected to formal
+    methods (no citation).
 
  *************************************************************************** *)
 
@@ -69,14 +71,14 @@
     In our syntax, "target /. rules" means "ReplaceAll[target, rules]", where
     "target" is some expression like "x + y" and "rules" is a list of rules in
     curly braces like "{x -> x + 2}": that's a list of rules with one element in
-    the list, the rule's being "x -> x + 2", meaning:
+    the list, the rule's being "x -> x + 2". The rule means
 
         please replace "x" with "x + 2" in the target.
 
     To test that we've got this working, load this here file, the one you're
     reading right now, into mathics. Let's say you've stored the file in
-    "~/some/directory/GriesSchneider.m". Then, then run mathics at the terminal
-    and load the file; you should see approximately the following:
+    "~/some/directory/GriesSchneider.m". Then, run mathics at the terminal and
+    load the file; you should see approximately the following:
 
         $ mathics
 
@@ -96,7 +98,7 @@
         2 + x
         2 + y + z
         y (2 + z)
-        In[2]:=
+        ... more ...
 
     at the top of the output.
 
@@ -112,7 +114,7 @@ Print[ x + y /. {x -> z + 2} ]
 
 Print[ x * y /. {x -> z + 2} ]
 
-(* Bottom of page 8: *********************************************************
+(* Bottom of page 8 in G&S: **************************************************
 
     Here's a case where the list of rules has more than one element. These rules
     are applied in parallel.
@@ -128,8 +130,8 @@ Print[ z+y /. {z->5, y->6} ]
 (* ***************************************************************************
 
     Let's do a little tooling so we can write 'expected' and 'actual' in our
-    examples. You don't need to understand how this is implemented. You just
-    need to know how to use it, and you'll see how in the examples that follow.
+    examples. You don't need to understand how this works. You just need to know
+    how to use it, and you'll see how in the examples that follow.
 
  *************************************************************************** *)
 
@@ -218,6 +220,25 @@ expect[ (-5 + Sqrt[25-4a c]) / (2a),   (x = Q)/.{b->5} ]
 
 ClearAll[Q, x]
 
+(* At this point, Q and x have no values. In most programming languages, a
+   variable with no value is an error. In mathics, however, a variable with no
+   value is just itself: a symbolic constant. Mathics keeps rewriting
+   expressions until they don't change any more. Integers evaluate to
+   themselves, strings evaluate to themselves, and symbols that don't have
+   values (or rules) attached to them evaluate to themselves. What does it mean
+   to have a "value or rule" attached to a symbol? Having a value attached is
+   rather obvious: if we say
+
+       x = 42
+
+   then x has the value 42 attached to it, at least until we clear it:
+
+       ClearAll[x]
+
+   Now x has no value attached to it. A "rule" is mathics's way of defining
+   rewrites. Rewrites are a lot like functions, but not exactly the same. We
+   explain below bit-by-bit as we encounter rewriting rules. *)
+
 (* Examples, box bottom of page 10: *******************************************
 
     We're getting comfortable with the mathics syntax for substitution, so I
@@ -225,9 +246,11 @@ ClearAll[Q, x]
 
  *************************************************************************** *)
 
-expect[ 35, 35 /. {x -> 2} ]
-expect[ y,   y /. {x -> 2} ]
-expect[ 2,   x /. {x -> 2} ]
+expect[ 35, 35 /. {x -> 2} ] (* no change because "x" does not appear in "35"*)
+expect[ y,   y /. {x -> 2} ] (* ditto *)
+expect[ 2,   x /. {x -> 2} ] (* this time, x appears, so we replace it with 2*)
+
+(* We can replace x inside complex expression like "x*x + y". *)
 
 expect[ (c + y) * (c + y) + y,   (x*x + y) /. {x -> c + y} ]
 
@@ -237,16 +260,18 @@ expect[ (x + y)^2 + y^2 + (x + y)^3,
 
         (x^2 + y^2 + x^3)                  /. {x -> x + y} ]
 
+(* Here are some more copied from the book. *)
+
 expect[ z + w + w,      (x + y + y) /. {x -> z, y -> w}    ]
 expect[ 2y + x z + x z, (x + y + y) /. {x -> 2y, y -> x z} ]
 expect[ y + 2x,         (x + 2y)    /. {x -> y, y -> x}    ]
 expect[ z + 2 x y,      (x + 2 y z) /. {x->z, y->x, z->y}  ]
 
 (* Inference Rule Substitution (1.1), page 10
- ___       __                           ___      _
-|_ _|_ _  / _|___ _ _ ___ _ _  __ ___  | _ \_  _| |___
- | || ' \|  _/ -_) '_/ -_) ' \/ _/ -_) |   / || | / -_)
-|___|_||_|_| \___|_| \___|_||_\__\___| |_|_\\_,_|_\___|
+ ___       __                           ___      _     _
+|_ _|_ _  / _|___ _ _ ___ _ _  __ ___  | _ \_  _| |___(_)
+ | || ' \|  _/ -_) '_/ -_) ' \/ _/ -_) |   / || | / -_)_
+|___|_||_|_| \___|_| \___|_||_\__\___| |_|_\\_,_|_\___(_)
  ___      _       _   _ _        _   _
 / __|_  _| |__ __| |_(_) |_ _  _| |_(_)___ _ _
 \__ \ || | '_ (_-<  _| |  _| || |  _| / _ \ ' \
@@ -261,9 +286,10 @@ expect[ z + 2 x y,      (x + 2 y z) /. {x->z, y->x, z->y}  ]
                        E[v := F]
 
     (we shouldn't use capital letters as the first characters of names in
-    mathics because the system defines many of them. For example, E is defined
-    as the Euler constant 2.71828... So, we shall take some liberties with G&S
-    and write their formulas with small (uncial) letters).
+    mathics because the system defines many names beginning with capital
+    letters. For example, E is defined as the Euler constant 2.71828... We shall
+    take some liberties with G&S and write their formulas with small (uncial)
+    letters).
 
     The following is the definition of this inference-rule scheme, followed by
     the example on page 11.
@@ -285,15 +311,15 @@ inferenceRuleSubstitution[e_, v_:List, f_:List] :=
 
     Here comes the example, but first, a note:
 
-    To write theorem expressions, assertions of equality, we have == and === in
-    mathics, short for Equal and SameQ, respectively. Equal returns itself if
-    the expressed equality is not true, whereas SameQ returns False:
+    To write assertions of equality, we have == and === in mathics, short for
+    Equal and SameQ, respectively. Equal returns itself if the expressed
+    equality is not true, whereas SameQ returns False:
 
  *************************************************************************** *)
 
-expect[ x == y, x == y ] (* return the input expression because x != y *)
+expect[ x == y, x == y ] (* return the input expression because x != y       *)
 
-expect[ False, x === y ] (* return False because x =!= y *)
+expect[ False, x === y ] (* return False because x =!= y                     *)
 
 (* ****************************************************************************
 
@@ -351,29 +377,34 @@ expect[ 2 (j + 5) / 2 === j + 5,
     Most of the work of using an expression evaluator like mathics as a proof
     assistant is in preventing evaluation until the right time. Rules like
     Reflexivity (G&S 1.2), Symmetry (G&S 1.3), and Transitivity (G&S 1.4) are
-    hard-coded into mathics, which will apply the rules without notification.
-    Common symbolic factors in division expressions are canceled without
-    notification right in the middle of trying to prove cancellation; mathics
-    just assumes they're non-zero!
+    built-in, hard-coded into mathics, which will apply the rules without
+    notification. Common symbolic factors in division expressions are canceled
+    without notification right in the middle of trying to prove cancellation;
+    mathics just assumes they're non-zero! This fact, alone, renders mathics
+    unsuitable as a rigorous theorem-prover on its own, but it's still very
+    useful. We simply avoid the things we know to be risky, like automatic
+    cancellation.
 
     An "evaluation leak" is an inadvertent early evaluation. Evaluation leaks
-    don't affect the truth value of a theorem, they affect display of steps of a
-    proof because mathics applies built-in rules as soon as it can, interrupting
-    our flow of human reasoning. We must control evaluation ourselves, watching
-    our rules at work and putting them to work explicitly.
+    might not affect the truth value of a theorem, say when we know on the side
+    that some divisor is non-zero. But evaluation leaks always affect display of
+    steps of a proof. Mathics applies built-in rules as soon as it can,
+    interrupting our flow of human reasoning. We must control evaluation
+    ourselves, watching our rules at work and putting them to work explicitly.
 
-    We can thwart evaluation either with the zoo of Holds, or by not using
+    We can control evaluation either with the zoo of Holds, or by not using
     built-ins, at least not until we want to. It's a trade-off: using the zoo of
     Holds, we can retain pretty infix syntax in expressions, but we risk
     evaluation leaks. Experience shows that even the pros get this wrong often
-    (search "evaluation leak" on mathematica.stackexchange.com). It also forces
-    us to learn more than we want about the evaluator (see
-    https://goo.gl/L7Gz3h), including its bugs, which we may have to fix.
+    (search "evaluation leak" on mathematica.stackexchange.com). Using the zoo
+    also forces us to learn more than we want to learn about the evaluator (see
+    https://goo.gl/L7Gz3h).
 
     On the other hand, if we avoid built-ins, we must write, for example, the
     inert expression div[2 (j+5), 2] instead of 2 (j + 5) / 2 to prevent early
     cancellation. Mathics doesn't have a definition for "div", so can't reduce
-    the expression. We lose pretty syntax, at least until we do something like
+    the expression. The expression just evaluates to itself, and that's what we
+    mean by "inert." We lose pretty syntax, at least until we do something like
     the following:
 
 *************************************************************************** *)
@@ -384,26 +415,49 @@ expect [ j + 5,
 (* ****************************************************************************
 
     The mathics rule to the right of "/." has pattern variables "a_" and "b_".
-    Mathics replaces them with "2 (j+5)" and "2", respectively, when "/." is
-    evaluated on the target expression "div[2(j+5), 2]" and the list of rules
-    "{div[a_, b_] -> a / b}".
+    Mathics replaces them with "2 (j+5)" and "2", respectively, by matching the
+    pattern expression
 
-    This is a new kind of rule we don't see above, but we will use rules like it
-    to control evaluation below. This kind of rule is very much like application
-    of a function or lambda expression in Python, but not exactly the same. The
-    distinction doesn't matter for our purposes.
+        div[a_, b_]
+
+    against the target
+
+        div[ 2 (j+5), 2 ]
+
+    Unlike most programming languages, the underscore in mathics is not an
+    ordinary character. It's syntax for "Blank[]", a pattern that can match any
+    expression. Let's decode the syntax "a_" via "FullForm":
+
+        In[2]:= FullForm[a_]
+        Out[2]= Pattern[a, Blank[]]
+
+    "FullForm" is useful for decoding any syntax in mathics: it will tell you
+    the fundamental, bottom meaning of any expression. We see that "a_" is a
+    pattern named "a" and able to match any expression, because that's what
+    "Blank[]" does. The name "a" is saved for reference on the right-hand side
+    of a rule. We explain this in more detail, below, when we discuss "Rule" and
+    "RuleDelayed". For now, just think that the rule
+
+        div[a_, b_] -> a / b
+
+    means "match div[a_, b_], binding the symbols 'a' and 'b' to the actual
+    values that appear in the target of the match." There is more to the story,
+    but good enough for now.
+
+    This is a new kind of rule we haven't seen above, but is very much like
+    application of a function or lambda expression in Python, but not exactly
+    the same.
 
     Let's do an extended experiment with inert sameq, plus, times, div, etc.,
     replacing them explicitly with built-ins only when desired using rules like
-    div immediately above. The purpose of the experiment is to see whether
-    losing pretty syntax is worth avoiding struggles and bugs with evaluation
-    leaks.
+    "div" above. The purpose of the experiment is to see whether losing pretty
+    syntax is worth avoiding struggles and bugs with evaluation leaks.
 
     Let's first redo the substitution rule (G&S 1.1). During this experiment, we
     avoid the zoo of Holds, and avoid SetAttributes (https://goo.gl/Zt3KbB),
     upvalues (https://goo.gl/4bgm65), and more arcana. We used some of those in
-    the prior definition of "inferenceRuleSubstitution", which we're leaving
-    behind now.
+    the prior definition of "inferenceRuleSubstitution", which we won't use any
+    more.
 
  *************************************************************************** *)
 
@@ -437,12 +491,6 @@ expect[ sameq[ div[2(j+5), 2], j+5 ],
              actual, sameq[div[2 (5 + j), 2], 5 + j],
              right?, True}
 
-    We found a difference between mathics and Mathematica: "With" instead of
-    "Module" works in Mathematica but not in mathics. This should not be a
-    problem in the following because we will not use "With" --- mathics doesn't
-    implement it (yet). If you wish to dig in, feel free, but you will be
-    working on mathics itself rather than working on G&S.
-
     A point about semicolons. They are syntax for CompoundExpression:
 
  *************************************************************************** *)
@@ -461,12 +509,12 @@ expect[ z, (x; y; z) ]
 
 (* ****************************************************************************
 
-    Notice in the printout from this "expect" in Expression 25 above that
-    mathics aggressively rewrites "CompoundExpression[x, y, z]" as "x ; y ; z"
-    despite the fact that "expect" has attribute "HoldAllComplete" and
-    "HoldForm". This is an example of an evaluation leak that would be very
-    time-consuming to fix. Mathematica does the same thing. We won't bother to
-    fix it, because we're trying to make the following point:
+    Notice in the printout from this "expect" in Expression 25 that mathics
+    aggressively rewrites "CompoundExpression[x, y, z]" as "x ; y ; z" despite
+    the fact that "expect" has attribute "HoldAllComplete" and "HoldForm". This
+    is an example of an evaluation leak that would be very time-consuming to
+    fix. Mathematica does the same thing. We won't bother to fix it, because
+    we're trying to make the following point:
 
     We may absentmindedly put a semicolon after a global definition or a
     "ClearAll". The presence or absence of such terminal semicolons does not
@@ -505,18 +553,11 @@ expect[ sameq[ x+y, 7 ],
     A nice victory, with no evaluation drama.
 
     We now reproduce the theorem on page 4. This requires more machinery.
-    Remember that all the laws above all hard-coded in the mathics evaluator, so
+    Remember that all the laws above are hard-coded in the mathics evaluator, so
     we need to avoid triggering them. We supply our own rewrite rules for plus,
     times, sameq, and so on, leaving them inert symbolic expressions in
-    lower-case; mathics doesn't know how to reduce such expressions until we
-    tell it explicitly with rewrite rules. Here is an important fact to
-    memorize:
-
-    I M P O R T A N T   F A C T   A B O U T   M A T H I C S
-
-    When mathics does not know how to reduce a symbolic expression, it produces
-    the expression itself. Expressions with symbolic constants in them are ...
-    just expressions with symbolic constants in them!
+    lower-case until we want to reduce them by force; mathics doesn't know how
+    to reduce such expressions until we tell it explicitly with rewrite rules.
 
     U N N A M E D   R U L E S
 
@@ -1102,24 +1143,32 @@ expect [
 
     In a chain of reasoning, G&S write Leibniz like this:
 
-            E[z := X]
-        = < X = Y >
-            E[z := Y]
+            E[z := X]      (* Here is a premise *)
+        = < X = Y >        (* Here is a "justification" in angle brackets *)
+            E[z := Y]      (* Here is a conclusion *)
 
-    which means that they're using Leibniz to rewrite an expression like E[z :=
-    X] into one like E[z := Y]. Why? To drive the proof forward. Without that
-    rearrangement, Leibniz is just a dead statement of fact. To drive proofs in
-    mathics, we need a version of Leibniz that just picks out E[z := Y] from the
-    consequent below the line.
+    which means that they're using Leibniz to rewrite an expression like
+
+        E[z := X]
+
+    into one like
+
+        E[z := Y]
+
+    Why? To drive (not derive) the proof forward. Without that rearrangement,
+    Leibniz is just a dead statement of fact. To drive proofs in mathics, we
+    need a version of Leibniz that just picks out E[z := Y] from the consequent
+    below the line.
 
     First, we write a use of Leibniz like that at the bottom of page 14:
 
  *************************************************************************** *)
 
 leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
-                                     (* ... instantiates X to m and Y to 2j  *)
+                            (* against sameq[x_, y_], in lower case ...      *)
+                                     (* ... instantiates x to m and y to 2j  *)
          sameq[div[z, 2], 2(j-1) ],  (* E[z] of Leibniz                      *)
-         z ]                         (* the independent variable in z        *)
+         z ]                         (* the independent variable is z        *)
 
 (* ****************************************************************************
 
@@ -1174,9 +1223,9 @@ expect[
 
     sameq[j, 2(j-1)],
 
-    leibnizE[sameq[div[2x, 2], x     ] /. {x :> j}, (* premise *)
-             sameq[z,          2(j-1)],             (* E(z)    *)
-             z]
+    leibnizE[sameq[div[2x, 2], x     ] /. {x -> j}, (* premise               *)
+             sameq[z,          2(j-1)],             (* E(z)                  *)
+             z]                                     (* independent variable  *)
 ]
 
 (* ****************************************************************************
