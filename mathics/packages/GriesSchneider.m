@@ -2415,11 +2415,31 @@ Module[{proposition = true},
    takes E[z:=x], E(z) and <x=y>, and constructs for us E[z:=y]. We want to say
 
        eqv[true, true]        Hey, Leibniz, that's E[z:=x]
-       eqv[true, z]           Hey, Leibniz, that's E(z)
        eqv[true, eqv[q, q]]   Hey, Leibniz, that's x === y
+       eqv[true, z]           Hey, Leibniz, that's E(z)
                               Hey, Leibniz, what's E[z:=y]?
 
+   Our previous versions of Leibniz internally calculated E[z:=x], but we want
+   to compare a previous line in the proof with that internal calculation. We'll
+   do that with a call to mathics "SameQ". We may later need "MatchQ" if we go
+   meta, but not for now. We'll tighten up the display a bit, too.
+
  *************************************************************************** *)
+
+ClearAll[leibnizF]
+leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
+    Module[{conclusion = leibniz[premise, e, z]},
+        If[ Not[SameQ[eXForZcheck, conclusion[[1]]]],
+            Print["LEIBNIZ CHECK FAIL: "
+                  <> ToString[conclusion[[1]]]
+                  <> " is supposed to be the same as "
+                  <> ToString[eXForZcheck] ] ]
+        Print["leibniz:"];
+        Print["  E(z)   : " <> ToString[e]];
+        Print["  E[z:=X]: " <> ToString[conclusion[[1]]]];
+        Print["=   <X=Y>: " <> ToString[premise]];
+        Print["  E[z:=Y]: " <> ToString[conclusion[[2]]]];
+        conclusion[[2]]]
 
 
 
