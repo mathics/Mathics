@@ -1967,20 +1967,30 @@ expect[neqv[or[not[p], not[q]], r], dual[eqv[and[not[p], not[q]], r]]]
 
    You must have numpy installed for the following to work in mathics.
 
+   The results will be different in Mathematica because the random-number
+   generators differ between Mathematica and mathics. There is also a difference
+   in "RandomChoice", but I worned around it by always calling "RandomChoice"
+   with the second argument, which specifies the length of a list returned. In
+   Mathematica, RandomChoice with no second argument returns a randomly chosen
+   element of the list in the first argument. In mathics, RandomChoice with no
+   second argument returns a singleton list containing an element. In both,
+   RandomChoice with the second argument equal to 1 returns a singleton list. We
+   use "First" to extract the randomly chosen element.
+
 *)
 
 ClearAll[randomUnaryFunction, randomBinaryFunction, randomBooleanVariable]
 
-randomUnaryFunction[] := First @ RandomChoice[{tconst, id, not, fconst}]
+randomUnaryFunction[] := First @ RandomChoice[{tconst, id, not, fconst}, 1]
 
 randomBinaryFunction[] := First @ RandomChoice[{ (* skip 'eq' and 'neq' *)
     tconst,  or,       because, fst,
     implies, snd,      eqv,     and,
     nand,    neqv,     nsnd,    nimplies,
-    nfst,    nbecause, nor,     fconst}]
+    nfst,    nbecause, nor,     fconst}, 1]
 
 randomBooleanVariableOrConstant[] :=
-    Symbol @ First @ RandomChoice[Characters["pqrsft"]]
+    Symbol @ First @ RandomChoice[Characters["pqrsft"], 1]
 
 SeedRandom[45] (* for repeatability *)
 
