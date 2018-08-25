@@ -2402,6 +2402,26 @@ Module[{proposition = true},
        leibnizE[identity[eqv[q, q]], eqv[true, z], z]&
 ]
 
+(* ****************************************************************************
+
+   While the above accomplishes the proof in our minds, it's not a full
+   calculation inside mathics because of the line
+
+       leibnizE[identity[eqv[q, q]], eqv[true, z], z]&
+
+   That line doesn't actually depend on the preceding line. We constructed
+   E[z:=x] as eqv[true, true] in our minds and mentally wrote it out as the
+   hidden E[z:=x] branch of eqv[true, z]. We need a new version of Leibniz that
+   takes E[z:=x], E(z) and <x=y>, and constructs for us E[z:=y]. We want to say
+
+       eqv[true, true]        Hey, Leibniz, that's E[z:=x]
+       eqv[true, z]           Hey, Leibniz, that's E(z)
+       eqv[true, eqv[q, q]]   Hey, Leibniz, that's x === y
+                              Hey, Leibniz, what's E[z:=y]?
+
+ *************************************************************************** *)
+
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
