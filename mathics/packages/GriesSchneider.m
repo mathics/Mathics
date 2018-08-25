@@ -2397,7 +2397,9 @@ expect [
 (* (3.4) Theorem, _true_ *)
 Module[{proposition = true},
        proposition // fump //
-       identity[eqv[#1, #1]]& // dump["identity", #1]&
+       identity[eqv[#1, #1]]& // dump["identity", #1]& //
+       leibnizE[#1, z, z]& //
+       leibnizE[identity[eqv[q, q]], eqv[true, z], z]&
 ]
 
 
