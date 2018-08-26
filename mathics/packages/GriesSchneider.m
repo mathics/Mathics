@@ -2442,6 +2442,156 @@ leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
         conclusion[[2]]]
 
 
+(* (3.4) Theorem, _true_ *)
+expect [(* Reduce the proposition to the Axiom of identity. *)
+        identity[eqv[q, q]],
+        Module[{proposition = true},
+               (* The proposition is "true": *)
+               proposition // fump //
+               (* Instantiate the Axiom of identity with the proposition: *)
+               identity[eqv[#1, #1]]& // dump["identity", #1]& //
+               (* Use Leibniz to pick out the second term, eqv[true, true]: *)
+               leibnizE[#1, z, z]& //
+               (* Ues Leibniz again with a known truth, "identity", the    *)
+               (*deduction so far, eqv[true, true], and a crafted          *)
+               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+               leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
+        ]
+]
+
+(* ****************************************************************************
+
+   Ok, we can see the deduction convincingly in the output:
+
+       proposition$1466 ~~> true
+       identity ~~> eqv[true, eqv[true, true]]
+       leibniz:
+         E(z)     : z
+         E[z := X]: true
+       =   <X = Y>: eqv[true, eqv[true, true]]
+         E[z := Y]: eqv[true, true]
+       leibniz:
+         E(z)   : eqv[true, z]
+         E[z:=X]: eqv[true, true]
+       =   <X=Y>: eqv[true, eqv[q, q]]
+         E[z:=Y]: eqv[true, eqv[q, q]]
+
+   but the input is not obvious enough. We'd like to write intermediate
+   expectations, something like this:
+
+       Module[{proposition = true},
+
+         (* The proposition is "true": *)
+
+         proposition
+         // expectI[true] //
+
+         (* Instantiate the Axiom of identity with the proposition: *)
+
+         identity[eqv[#1, #1]]&
+         // expectBy[eqv[true, eqv[true, true]], "identity"] //
+
+         (* Use Leibniz to pick out the second term, eqv[true, true]: *)
+
+         leibnizE[#1, z, z]&
+         // expectBy[eqv[true, true], "leibniz"] //
+
+         (* Ues Leibniz again with a known truth, "identity", the    *)
+         (* deduction so far, eqv[true, true], and a crafted         *)
+         (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+
+         leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
+         // expectBy[identity[eqv[q, q]], "leibniz"]
+       ]
+
+ *************************************************************************** *)
+
+ClearAll[expectI]
+expectI[expected_] :=
+        Function[
+                actual, (* Notice parameter of Function is not a pattern*)
+                        (* variable, that is, not "actual_". *)
+                Print["expected: " <> ToString[expected]
+                      <> "\nactual: "<> ToString[actual] ];
+                If[Not[SameQ[expected, actual]],
+                   Print["\nFAILED EXPECTATION"]];
+                actual ]
+
+ClearAll[expectBy]
+expectBy[expected_, by_] :=
+        Function[
+                actual, (* Notice parameter of Function is not a pattern*)
+                (* variable, that is, not "actual_". *)
+                Print["expected: " <> ToString[expected]
+                      <> "\nactual: "<> ToString[actual]
+                      <> "\n by " <> ToString[by]];
+                If[Not[SameQ[expected, actual]],
+                   Print["\nFAILED EXPECTATION"]];
+                actual ]
+
+expect [
+        identity[eqv[q, q]],
+
+        Module[{proposition = true},
+
+               (* The proposition is "true": *)
+
+               proposition
+               // expectI[true] //
+
+               (* Instantiate the Axiom of identity with the proposition: *)
+
+               identity[eqv[#1, #1]]&
+               // expectBy[eqv[true, eqv[true, true]], "identity"] //
+
+               (* Use Leibniz to pick out the second term, eqv[true, true]: *)
+
+               leibnizE[#1, z, z]&
+               // expectBy[eqv[true, true], "leibniz"] //
+
+               (* Ues Leibniz again with a known truth, "identity", the    *)
+               (* deduction so far, eqv[true, true], and a crafted         *)
+               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+
+               leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
+               // expectBy[identity[eqv[q, q]], "leibniz"]
+        ] ]
+
+(* ****************************************************************************
+
+   By writing our new "expectI" and "expectBy" as rewrite rules that return
+   Functions (and print by side effect), we've gotten rid of some "#1" and "&"
+   syntax. We can use the same idea to improve our mechanization of the
+   preliminaries in section 3.1. However, without a significat foray into
+   metaprogramming (functions or rules that return functions or rules), we can't
+   preserve the pattern-matching that makes them powerful, so we will skip that
+   for now.
+
+ *************************************************************************** *)
+
+(* (3.5) Theorem, Reflexivity of eqv: eqv[p, p] *)
+
+expect [
+        identity[eqv[p, p]],
+
+        Module[{proposition = eqv[p, p]},
+
+               (* The proposition is "true": *)
+
+               proposition
+               // expectI[eqv[p, p]] //
+
+               substitution[#1, {p}, {true}]&
+               // expectBy[eqv[true, true], "substitution"] //
+
+               (* Ues Leibniz again with a known truth, "identity", the    *)
+               (* deduction so far, eqv[true, true], and a crafted         *)
+               (* E(z) = eqv[true, z] such that eqv[p, p] is subbed for z. *)
+
+               leibnizF[#1, identity[eqv[p, p]], eqv[true, z], z]&
+               // expectBy[identity[eqv[p, p]], "leibniz"]
+        ] ]
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
