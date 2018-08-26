@@ -2169,24 +2169,27 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
    Equational logic, E
 
    We've written the laws leibniz, substitutionInferenceRule, and
-   transitivityLaw as functions (from the cheat sheet above):
+   transitivityLaw as rewrite rules (from the cheat sheet above):
 
     (* 1.1 *) substitutionInferenceRule[e_, v_:List, f_:List] :=
         Module[{ rules = MapThread[ Rule, {v, f} ] }, e /. rules  ]
-    (* 1.4 *) transitivityLaw [ and [ sameq[x_, y_], sameq[y_, z_] ] ] :=
+
+    (* 1.4 *) transitivityLaw [
+        and [ sameq[x_, y_], sameq[y_, z_] ]     ] :=
         sameq[x, z]
-    (* 1.5 *) leibniz[ sameq[x_, y_], e_, z_ ] :=
+
+    (* 1.5 *) leibniz[ sameq[x_, y_], e_, z_     ] :=
         sameq[e /. {z -> x}, e /. {z -> y}]
 
    because we want evaluation to drive expressions in a particular direction:
    from premises above the line to conclusions below the line, as in page 41.
 
-   In Chapter 2, we introduced the inert symbol "eqv" instead of the old "sameq"
-   from Chapter 1. Write new versions of the three laws in terms of eqv, also
+   In Chapter 2, we introduced the inert symbol "eqv" to replace the old "sameq"
+   from Chapter 1. Write new versions of the three laws in terms of "eqv", also
    shortening the names, to make following Chapter 3 easier.
 
-   ClearAll the symbols before redefining them to avoid nasty surprises (and
-   lengthy debugging sessions) from lingering, prior definitions. This is cheap
+   ClearAll the symbols before redefining them to avoid nasty surprises and
+   lengthy debugging sessions from lingering, prior definitions. This is cheap
    paranoia, because "ClearAll" doesn't cost very much. You will thank me some
    day for constantly nagging you about this.
 
@@ -2230,9 +2233,8 @@ identity[eqv[q_, q_]] := eqv[true, eqv[q, q]]
 
 (*
 
-   Note, in passing, that we can automate the associativity and symmetry axioms
-   with mathics Attributes: Flat and Orderless. Here is a dummy eqv that
-   demonstrates this:
+   Note that we can automate the associativity and symmetry axioms with mathics
+   Attributes: Flat and Orderless. Here is a dummy eqv that demonstrates this:
 
 *)
 
@@ -2255,8 +2257,6 @@ expect [
    it's delegating too much to mathics and spoiling our fun (for now).
 
 *)
-
-ClearAll[deqv]
 
 (* Theorems, pages 43-44 ******************************************************
 
@@ -2298,15 +2298,35 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
        (p === (q === q)) === p
        ((p === q) === q) === p
 
-   and I'm not sure I got them all, but they're all equivalent by the Axiom of
-   Associativity, 3.1, which precedes Symmetry, 3.2. G&S use them freely and
-   implicitly in the proof at the bottom of page 43, but that's not good enough
-   for us because we're doing explicit calculations. However, it turns out that,
-   in this case, we don't need to invoke explicit rules for associativity if
-   we're willing, mentally, to accept eqv[p, eqv[p, q, q]] as the statement of
-   the proposition we're trying to prove, and eqv[eqv[p, q, q], p] as the
-   particular parenthization of the Axiom of Symmetry we reduce to, that is, if
-   we're satisfied that if we can reduce
+       eqv[ eqv[p, q], eqv[q, p] ]
+       eqv[ p, eqv[ q, eqv[q, p] ] ]
+       eqv[ p, eqv[ eqv[q, q], p ] ]
+       eqv[ eqv[ p, eqv[q, q] ], p ]
+       eqv[ eqv[ eqv[p, q], q ], p ]
+
+   The number of ways is the Catalan number C_3, https://goo.gl/cNExhR, which is
+   five https://goo.gl/rzbfwD, https://goo.gl/b2ZXVE, so I got them all. These
+   numbers increase quickly with the number of terms in an expression, but
+   that's not the hazard for us. If each associativity step of a theorem has
+   five branches, then our proof will have at least 5^s independent threads,
+   where s is the number of associative steps. That's bad.
+
+   They're all equivalent by the Axiom of Associativity, 3.1, which precedes
+   Symmetry, 3.2. G&S use them freely and implicitly in the proof at the bottom
+   of page 43. They even say
+
+       "Associativity allows us to be informal and insert or delete pairs of
+       parenthesis in sequences of equivalences, just as we do with sequences of
+       additions"
+
+   That's not good enough for us right now because we're doing explicit, formal
+   calculations. Instead, we will pick one particular parenthesization per step
+   and be satisfied at the end that we got them all.
+
+   In this case, we'll be willing, mentally, to accept eqv[p, eqv[p, q, q]] as
+   the statement of the proposition we're trying to prove, and
+   eqv[eqv[p, q, q], p] as the particular parenthization of the Axiom of
+   Symmetry we reduce to, that is, if we're satisfied that if we can reduce
 
        eqv[p, eqv[p, q, q]]
 
@@ -2315,7 +2335,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
        eqv[eqv[p, q, q], p],
 
    then we have proved the theorem eqv[p, eqv[p, q, q]] by reducing it to an
-   axiom, one of the definitions of a theorem at the top of page 42.
+   axiom, one of the ways of proving theorem listed at the top of page 42.
 
    That leaves open the question of the meaning of eqv[a, b, c], a ternary eqv,
    which we have not defined. We define it now to mean eqv[eqv[a, b], c] or
@@ -2368,9 +2388,11 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
 
    and you should see something like that on your console.
 
-   Here is the whole proof as an "expect" unit test:
+   Here is the whole proof as an "expect" test:
 
  *************************************************************************** *)
+
+ClearAll[deqv]
 
 expect [
   eqv[eqv[p, q, q], p],
@@ -2388,13 +2410,14 @@ expect [
 
    That's more than a little round-about, but at least we avoided an explosion
    of rules for associativity of binary combinations. That need may come back to
-   haunt us, and we may get into tricks with Attributes, as we did with "deqv"
-   above, to mitigate it.
+   haunt us, and we may get into Attribute Flat, as we did with "deqv" above, to
+   mitigate it.
 
  *************************************************************************** *)
 
 
 (* (3.4) Theorem, _true_ *)
+
 Module[{proposition = true},
        proposition // fump //
        identity[eqv[#1, #1]]& // dump["identity", #1]& //
@@ -2426,6 +2449,8 @@ Module[{proposition = true},
 
  *************************************************************************** *)
 
+
+
 ClearAll[leibnizF]
 leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
     Module[{conclusion = leibniz[premise, e, z]},
@@ -2442,19 +2467,22 @@ leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
         conclusion[[2]]]
 
 
+
 (* (3.4) Theorem, _true_ *)
-expect [(* Reduce the proposition to the Axiom of identity. *)
+
+expect [(* Reduce the proposition to the Axiom of Identity. *)
         identity[eqv[q, q]],
         Module[{proposition = true},
                (* The proposition is "true": *)
                proposition // fump //
-               (* Instantiate the Axiom of identity with the proposition: *)
+               (* Instantiate the Axiom of Identity with the proposition: *)
                identity[eqv[#1, #1]]& // dump["identity", #1]& //
                (* Use Leibniz to pick out the second term, eqv[true, true]: *)
                leibnizE[#1, z, z]& //
                (* Ues Leibniz again with a known truth, "identity", the    *)
                (*deduction so far, eqv[true, true], and a crafted          *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+               (* This reduces to an instance of identity so we're done.   *)
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
         ]
 ]
@@ -2486,7 +2514,7 @@ expect [(* Reduce the proposition to the Axiom of identity. *)
          proposition
          // expectI[true] //
 
-         (* Instantiate the Axiom of identity with the proposition: *)
+         (* Instantiate the Axiom of Identity with the proposition: *)
 
          identity[eqv[#1, #1]]&
          // expectBy[eqv[true, eqv[true, true]], "identity"] //
@@ -2499,12 +2527,15 @@ expect [(* Reduce the proposition to the Axiom of identity. *)
          (* Ues Leibniz again with a known truth, "identity", the    *)
          (* deduction so far, eqv[true, true], and a crafted         *)
          (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+         (* This reduces to an instance of identity so we're done.   *)
 
          leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
          // expectBy[identity[eqv[q, q]], "leibniz"]
        ]
 
  *************************************************************************** *)
+
+
 
 ClearAll[expectI]
 expectI[expected_] :=
@@ -2516,6 +2547,8 @@ expectI[expected_] :=
                 If[Not[SameQ[expected, actual]],
                    Print["\nFAILED EXPECTATION"]];
                 actual ]
+
+
 
 ClearAll[expectBy]
 expectBy[expected_, by_] :=
@@ -2529,6 +2562,8 @@ expectBy[expected_, by_] :=
                    Print["\nFAILED EXPECTATION"]];
                 actual ]
 
+
+
 expect [
         identity[eqv[q, q]],
 
@@ -2539,7 +2574,7 @@ expect [
                proposition
                // expectI[true] //
 
-               (* Instantiate the Axiom of identity with the proposition: *)
+               (* Instantiate the Axiom of Identity with the proposition: *)
 
                identity[eqv[#1, #1]]&
                // expectBy[eqv[true, eqv[true, true]], "identity"] //
@@ -2552,10 +2587,13 @@ expect [
                (* Ues Leibniz again with a known truth, "identity", the    *)
                (* deduction so far, eqv[true, true], and a crafted         *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
+               (* This reduces to an instance of identity so we're done.   *)
 
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
                // expectBy[identity[eqv[q, q]], "leibniz"]
         ] ]
+
+
 
 (* ****************************************************************************
 
@@ -2587,10 +2625,40 @@ expect [
                (* Ues Leibniz again with a known truth, "identity", the    *)
                (* deduction so far, eqv[true, true], and a crafted         *)
                (* E(z) = eqv[true, z] such that eqv[p, p] is subbed for z. *)
+               (* This reduces to an instance of identity so we're done.   *)
 
                leibnizF[#1, identity[eqv[p, p]], eqv[true, z], z]&
                // expectBy[identity[eqv[p, p]], "leibniz"]
         ] ]
+
+(* ****************************************************************************
+
+   Let's re-do the theorem on page 43 using our new instrumentation:
+
+ *************************************************************************** *)
+
+expect[
+
+        eqv[eqv[p, q, q], p],
+
+        Module[{proposition = eqv[p, eqv[p, q, q]]},
+
+               proposition
+               // expectI[eqv[p, eqv[p, q, q]]] //
+
+               symmetry[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetry"] //
+
+               leibnizE[#1, eqv[p, z], z]&
+               // expectBy[eqv[p, p], "leibniz"] //
+
+               leibnizF[#1, proposition, eqv[p, z], z]&
+               // expectBy[eqv[p, eqv[p, q, q]], "leibniz"] //
+
+               symmetry[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetry"]
+        ]]
+
 
 
 (* ****************************************************************************
