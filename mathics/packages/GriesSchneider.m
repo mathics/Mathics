@@ -2196,7 +2196,11 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
 *)
 
 (* Section 3.1, Preliminaries ********************************************** *)
-
+(* ___          ___       _               _
+  / _ \_______ / (_)_ _  (_)__  ___ _____(_)__ ___
+ / ___/ __/ -_) / /  ' \/ / _ \/ _ `/ __/ / -_|_-<
+/_/  /_/  \__/_/_/_/_/_/_/_//_/\_,_/_/ /_/\__/___/
+ *)
 ClearAll[leibniz]
 leibniz[ eqv[x_, y_], e_, z_ ] :=
         ((* Print[{"leibniz", "x", x, "y", y,
@@ -2220,6 +2224,13 @@ ClearAll[substitution]
 substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
 
 (* Section 3.2, Equivalence and true *************************************** *)
+
+(* ____          _           __                   ____      __
+  / __/__ ___ __(_)  _____ _/ /__ ___  _______   / __/___  / /_______ _____
+ / _// _ `/ // / / |/ / _ `/ / -_) _ \/ __/ -_)  > _/_ _/ / __/ __/ // / -_)
+/___/\_, /\_,_/_/|___/\_,_/_/\__/_//_/\__/\__/  |_____/   \__/_/  \_,_/\__/
+      /_/
+ *)
 
 (* (3.1) Axiom, Associativity of eqv; both directions (computers are dumb) *)
 ClearAll[associativity]
@@ -2603,10 +2614,10 @@ expect [
    By writing our new "expectI" and "expectBy" as rewrite rules that return
    Functions (and print by side effect), we've gotten rid of some "#1" and "&"
    syntax. We can use the same idea to improve our mechanization of the
-   preliminaries in section 3.1. However, without a significat foray into
-   metaprogramming (functions or rules that return functions or rules), we can't
-   preserve the pattern-matching that makes them powerful, so we will skip that
-   for now.
+   preliminaries in section 3.1. However, without a significant foray into
+   metaprogramming (functions or rules that return functions or rules or install
+   functions and rules into the global environment), we can't preserve the
+   pattern-matching that makes them powerful, so we will skip that for now.
 
  *************************************************************************** *)
 
@@ -2724,7 +2735,7 @@ expect[
                 FAILED EXPECTATION
 
    This happened because we fed eqv[p, q, q, p] as the premise into Leibniz. Our
-   implementation, leibniz[ eqv[x_, y_], e_, z_ ] := ..., pattern matches x to p
+   implementation, leibniz[ eqv[x_, y_], e_, z_ ] := ..., pattern-matches x to p
    and y to eqv[q, q, p]
 
        In[81]:= eqv[p, q, q, p] /. eqv[x_, y_] :> {x, y}
@@ -2753,8 +2764,6 @@ expect[
    the redundant extra steps in the old G&S proof, the steps that caused us some
    angst above.
 
-
-
  *************************************************************************** *)
 
 (* (3.7) Metatheorem. Any two theorems are equivalent.
@@ -2764,18 +2773,72 @@ expect[
    using the inference rules, is proved equal to an axiom or [to] a previously
    proved theorem.
 
-   "Equivalent" means "equivales" via the operator "===" or "eqv". We formally
-   state the metatheorem as a meta-inference rule:
-
-        P,  Q
-       -------
-       P === Q
-
-   According to (3.6), Proof Method, to prove P === Q, just transform one into
-   the other
+   "Equivalent" means "equivales" via the operator "===" or "eqv". Any theorem P
+   is equivalent to (equivales) "true" by associativity (now automated) and by
+   the Axiom of Identity (3.3). Some other theorem Q is equivalent to "true" by
+   the same axiom. By the Theorem of Reflexivity (3.5), "true" is equivalent to
+   "true", so all theorems are equivalent.
 
  *)
 
+(* Section 3.3, Negation, inequivalence, and false ************************ *)
+
+(* _  __              __  _
+  / |/ /__ ___ ____ _/ /_(_)__  ___
+ /    / -_) _ `/ _ `/ __/ / _ \/ _ \_
+/_/|_/\__/\_, /\_,_/\__/_/\___/_//_( )
+         /___/                     |/
+   ____                   _           __                     ____
+  /  _/__  ___ ___ ___ __(_)  _____ _/ /__ ___  _______     / __/___
+ _/ // _ \/ -_) _ `/ // / / |/ / _ `/ / -_) _ \/ __/ -_)    > _/_ _/
+/___/_//_/\__/\_, /\_,_/_/|___/\_,_/_/\__/_//_/\__/\__( )  |_____/
+               /_/                                    |/
+   ___     __
+  / _/__ _/ /__ ___
+ / _/ _ `/ (_-</ -_)
+/_/ \_,_/_/___/\__/
+ *)
+
+(* (3.8) Axiom, Definition of "false", page 45 *)
+
+ClearAll[false]
+false = not[true]
+
+(* (3.9) Axiom, Distributivity of "not" over "eqv"
+
+   By (3.2) Symmetry of eqv, we can write distributivity in both directions. If
+   we wrote these two directions as global rewrite rules, the evaluator, which
+   implicitly applies "ReplaceAllRepeated", would bounce not[eqv[p, q]] and
+   eqv[not[p, q]] back and forth forever because the evaluator keeps rewriting
+   until nothing changes. To prevent that infinite bouncing, we'll represent
+   these two directions as rules that we must apply explicitly with
+   "ReplaceAll", just one time, as needed.
+
+ *)
+
+ClearAll[notRule, invNotRule]
+notRule    = (not[eqv[p_, q_]] :> eqv[not[p], q])
+invNotRule = (eqv[not[p_], q_] :> not[eqv[p, q]])
+
+(* (3.10) Axiom, Definition of "neqv" *)
+
+ClearAll[neqv]
+neqv[p_, q_] := not[eqv[p, q]]
+
+(* (3.11) Unnamed theorem *)
+
+expect[ eqv[not[q], p]
+        ,
+        Module[{proposition = eqv[not[p], q]},
+               (((proposition
+                  // expectI[eqv[not[p], q]]) /.
+                  invNotRule)
+                // expectBy[not[eqv[p, q]], "invNotRule"] //
+                symmetry /@ #1 &
+                // expectBy[not[eqv[q, p]], "internal symmetry (ad-hoc fn)"]) /.
+                notRule
+                // expectBy[eqv[not[q], p], "notRule"]
+        ] ]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
