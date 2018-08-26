@@ -2456,18 +2456,18 @@ Module[{proposition = true},
 
 ClearAll[leibnizF]
 leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
-    Module[{conclusion = leibniz[premise, e, z]},
-        If[ Not[SameQ[eXForZcheck, conclusion[[1]]]],
-            Print["LEIBNIZ CHECK FAIL: "
-                  <> ToString[conclusion[[1]]]
-                  <> " is supposed to be the same as "
-                  <> ToString[eXForZcheck] ] ]
-        Print["leibniz:"];
-        Print["  E(z)   : " <> ToString[e]];
-        Print["  E[z:=X]: " <> ToString[conclusion[[1]]]];
-        Print["=   <X=Y>: " <> ToString[premise]];
-        Print["  E[z:=Y]: " <> ToString[conclusion[[2]]]];
-        conclusion[[2]]]
+        Module[{conclusion = leibniz[premise, e, z]},
+               If[ Not[SameQ[eXForZcheck, conclusion[[1]]]],
+                   Print["LEIBNIZ CHECK FAIL: "
+                         <> ToString[conclusion[[1]]]
+                         <> " is supposed to be the same as "
+                         <> ToString[eXForZcheck] ] ]
+                   Print[{"leibnizF:", "x", x, "y", y}];
+                   Print["  E(z)   : " <> ToString[e]];
+                   Print["  E[z:=X]: " <> ToString[conclusion[[1]]]];
+                   Print["=   <X=Y>: " <> ToString[premise]];
+                   Print["  E[z:=Y]: " <> ToString[conclusion[[2]]]];
+                   conclusion[[2]]]
 
 
 
@@ -2501,7 +2501,7 @@ expect [(* Reduce the proposition to the Axiom of Identity. *)
          E[z := X]: true
        =   <X = Y>: eqv[true, eqv[true, true]]
          E[z := Y]: eqv[true, true]
-       {leibnizE:, x, true, y, eqv[q, q]}
+       {leibnizF:, x, true, y, eqv[q, q]}
          E(z)   : eqv[true, z]
          E[z:=X]: eqv[true, true]
        =   <X=Y>: eqv[true, eqv[q, q]]
@@ -2749,12 +2749,32 @@ expect[
 
    Ok, what's wrong and what can we do about it? Well, it's not really "wrong."
    The old leibniz and leibnizE just weren't designed for flat eqv. We'll need
-   to be smarter. One cool thing is that automating associativity has made the
-   redundant extra steps in the old proof, the steps that caused us some angst
-   above, have disappeared.
+   to be smarter. The good news is that automating associativity has forced out
+   the redundant extra steps in the old G&S proof, the steps that caused us some
+   angst above.
+
+
 
  *************************************************************************** *)
 
+(* (3.7) Metatheorem. Any two theorems are equivalent.
+
+   A theorem is (i) an axiom, (ii) the conclusion of an inference rule whose
+   premises are [previously proved] theorems, (iii) a boolean expression that,
+   using the inference rules, is proved equal to an axiom or [to] a previously
+   proved theorem.
+
+   "Equivalent" means "equivales" via the operator "===" or "eqv". We formally
+   state the metatheorem as a meta-inference rule:
+
+        P,  Q
+       -------
+       P === Q
+
+   According to (3.6), Proof Method, to prove P === Q, just transform one into
+   the other
+
+ *)
 
 
 (* ****************************************************************************
