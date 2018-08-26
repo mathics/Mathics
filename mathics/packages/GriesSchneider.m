@@ -2198,17 +2198,20 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
 (* Section 3.1, Preliminaries ********************************************** *)
 
 ClearAll[leibniz]
-leibniz[ eqv[x_, y_], e_, z_ ] := eqv[e /. {z -> x}, e /. {z -> y}]
+leibniz[ eqv[x_, y_], e_, z_ ] :=
+        ((* Print[{"leibniz", "x", x, "y", y,
+                   "conclusion", eqv[e /. {z -> x}, e /. {z -> y}]}]; *)
+         eqv[e /. {z -> x}, e /. {z -> y}])
 
 ClearAll[leibnizE]
 leibnizE[ premise:eqv[ x_, y_ ], e_, z_ ] :=
-    Module[{conclusion = leibniz[premise, e, z]},
-        Print["leibniz:"];
-        Print["  E(z)     : " <> ToString[e]];
-        Print["  E[z := X]: " <> ToString[conclusion[[1]]]];
-        Print["=   <X = Y>: " <> ToString[premise]];
-        Print["  E[z := Y]: " <> ToString[conclusion[[2]]]];
-        conclusion[[2]]]
+        Module[{conclusion = leibniz[premise, e, z]},
+               Print[{"leibnizE:","x", x, "y", y}];
+               Print["  E(z)     : " <> ToString[e]];
+               Print["  E[z := X]: " <> ToString[conclusion[[1]]]];
+               Print["=   <X = Y>: " <> ToString[premise]];
+               Print["  E[z := Y]: " <> ToString[conclusion[[2]]]];
+               conclusion[[2]]]
 
 ClearAll[transitivity]
 transitivity[ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]
@@ -2362,7 +2365,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    We then use leibnizE, with X = eqv[p, q, q] and Y = p, to produce the
    intermediate form:
 
-       leibniz:
+       {leibnizE:, x, eqv[p, q, q], y, p}
          E(z)     : eqv[p, z]
          E[z := X]: eqv[p, eqv[p, q, q]]
        =   <X = Y>: eqv[eqv[p, q, q], p]
@@ -2372,7 +2375,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    and Y = eqv[p, q, q], noting that our intermediate form eqv[p, p] is present
    (and eaten up) as E[z := X]:
 
-       leibniz:
+       {leibnizE:, x, p, y, eqv[p, q, q]}
          E(z)     : eqv[p, z]
          E[z := X]: eqv[p, p]
        =   <X = Y>: eqv[p, eqv[p, q, q]]
@@ -2493,12 +2496,12 @@ expect [(* Reduce the proposition to the Axiom of Identity. *)
 
        proposition$1466 ~~> true
        identity ~~> eqv[true, eqv[true, true]]
-       leibniz:
+       {leibnizE:, x, true, y, eqv[true, true]}
          E(z)     : z
          E[z := X]: true
        =   <X = Y>: eqv[true, eqv[true, true]]
          E[z := Y]: eqv[true, true]
-       leibniz:
+       {leibnizE:, x, true, y, eqv[q, q]}
          E(z)   : eqv[true, z]
          E[z:=X]: eqv[true, true]
        =   <X=Y>: eqv[true, eqv[q, q]]
@@ -2658,6 +2661,99 @@ expect[
                symmetry[#1]&
                // expectBy[eqv[eqv[p, q, q], p], "symmetry"]
         ]]
+
+(* ****************************************************************************
+
+   Now, we're going to give up on explicit uses and choices of associativity by
+   setting the Flat Attribute on eqv. This is OK because G&S are going
+   "informal" about it (presumably they know about Catalan explosion, without
+   saying so). We don't have to go informal! But we have to trust mathics to "do
+   the right thing." We will trust _and_ verify.
+
+   In the first shot, we prove the theorem by reducing ppqq to pqqp in one step
+   of symmetry. We noticed that before; this time, we go with it.
+
+ *************************************************************************** *)
+
+SetAttributes[eqv, Flat]
+
+expect[
+
+        eqv[eqv[p, q, q], p],
+
+        Module[{proposition = eqv[p, eqv[p, q, q]]},
+
+               proposition
+               // expectI[eqv[p, eqv[p, q, q]]] //
+
+               symmetry[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetry"]
+        ]]
+
+(* ****************************************************************************
+
+   Because of the new Flat Attribute, this is what we get:
+
+       expected: eqv[p, p, q, q]
+                actual: eqv[p, p, q, q]
+       expected: eqv[p, q, q, p]
+                actual: eqv[p, q, q, p]
+                 by symmetry
+
+   Pretty cool. What if we continue with our old, redundant proof?
+
+       proposition
+       // expectI[eqv[p, eqv[p, q, q]]] //
+
+       symmetry[#1]&
+       // expectBy[eqv[eqv[p, q, q], p], "symmetry"] //
+
+       leibnizE[#1, eqv[p, z], z]&
+       // expectBy[eqv[p, p], "leibniz"]
+
+   Bad stuff:
+
+       {leibnizE:, x, p, y, eqv[q, q, p]}
+         E(z)     : eqv[p, z]
+         E[z := X]: p
+       =   <X = Y>: eqv[p, q, q, p]
+         E[z := Y]: p
+       expected: eqv[p, p]
+                actual: p
+                 by leibniz
+                FAILED EXPECTATION
+
+   This happened because we fed eqv[p, q, q, p] as the premise into Leibniz. Our
+   implementation, leibniz[ eqv[x_, y_], e_, z_ ] := ..., pattern matches x to p
+   and y to eqv[q, q, p]
+
+       In[81]:= eqv[p, q, q, p] /. eqv[x_, y_] :> {x, y}
+       Out[81]= {p, eqv[q, q, p]}
+
+   (This is a bug in mathics; it should produce {eqv[p], eqv[q, q, p]};
+   see https://github.com/mathics/Mathics/issues/747. The bug does not affect
+   the current analysis.)
+
+   The next step in "leibniz" is to construct the conclusion
+
+       eqv[ e         /. {z -> x}, e       /. {z -> y} ]
+         ~~>
+       eqv[ eqv[p, z] /. {z -> x}, e[p, z] /. {z -> y} ]
+         ~~>
+       eqv[ eqv[p, p], eqv[p, eqv[q, q, p]]]
+         ~~>
+       eqv[p, p, p, q, q, p]
+
+   because eqv is now "Flat". Conclusion[[1]] is "p"; conclusion[[2]] is "p",
+   just as we see in the output from the instrumented leibnizE above.
+
+   Ok, what's wrong and what can we do about it? Well, it's not really "wrong."
+   The old leibniz and leibnizE just weren't designed for flat eqv. We'll need
+   to be smarter. One cool thing is that automating associativity has made the
+   redundant extra steps in the old proof, the steps that caused us some angst
+   above, have disappeared.
+
+ *************************************************************************** *)
 
 
 
