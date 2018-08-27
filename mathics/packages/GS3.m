@@ -65,7 +65,7 @@
  \___\__,_|_\__|\_,_|_|\_,_/__/
  *************************************************************************** *)
 
-(*
+(* ****************************************************************************
 
    Equational logic, E
 
@@ -94,7 +94,7 @@
    paranoia, because "ClearAll" doesn't cost very much. You will thank me some
    day for constantly nagging you about this.
 
- *)
+ *************************************************************************** *)
 
 <<"GS0.m"
 
@@ -336,7 +336,7 @@ expect[
  *************************************************************************** *)
 
 
-(* (3.4) Theorem, _true_ *)
+(* (3.4) Theorem, _true_ *************************************************** *)
 
 Module[{proposition = true},
        proposition // fump //
@@ -388,7 +388,7 @@ leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
 
 
 
-(* (3.4) Theorem, _true_ *)
+(* (3.4) Theorem, _true_ *************************************************** *)
 
 expect[ (* Reduce the proposition to the Axiom of Identity. *)
         identity[eqv[q, q]]
@@ -396,14 +396,14 @@ expect[ (* Reduce the proposition to the Axiom of Identity. *)
         Module[{proposition = true},
                (* The proposition is "true": *)
                proposition // fump //
-               (* Instantiate the Axiom of Identity with the proposition: *)
+               (* Instantiate the Axiom of Identity with the proposition:    *)
                identity[eqv[#1, #1]]& // dump["identity", #1]& //
-               (* Use Leibniz to pick out the second term, eqv[true, true]: *)
+               (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
                leibnizE[#1, z, z]& //
-               (* Ues Leibniz again with a known truth, "identity", the    *)
-               (*deduction so far, eqv[true, true], and a crafted          *)
-               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
-               (* This reduces to an instance of identity so we're done.   *)
+               (* Ues Leibniz again with a known truth, "identity", the      *)
+               (*deduction so far, eqv[true, true], and a crafted            *)
+               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
+               (* This reduces to an instance of identity so we're done.     *)
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
         ]
 ]
@@ -461,8 +461,8 @@ expect[ (* Reduce the proposition to the Axiom of Identity. *)
 ClearAll[expectI]
 expectI[expected_] :=
         Function[
-                actual, (* Notice parameter of Function is not a pattern*)
-                        (* variable, that is, not "actual_". *)
+                actual, (* Notice parameter of Function is not a pattern     *)
+                        (* variable, that is, not "actual_".                 *)
                 Print["expected: " <> ToString[expected]
                       <> "\nactual: "<> ToString[actual] ];
                 If[Not[SameQ[expected, actual]],
@@ -474,8 +474,8 @@ expectI[expected_] :=
 ClearAll[expectBy]
 expectBy[expected_, by_] :=
         Function[
-                actual, (* Notice parameter of Function is not a pattern*)
-                (* variable, that is, not "actual_". *)
+                actual, (* Notice parameter of Function is not a pattern     *)
+                        (* variable, that is, not "actual_".                 *)
                 Print["expected: " <> ToString[expected]
                       <> "\nactual: "<> ToString[actual]
                       <> "\n by " <> ToString[by]];
@@ -495,20 +495,20 @@ expect[
                proposition
                // expectI[true] //
 
-               (* Instantiate the Axiom of Identity with the proposition: *)
+               (* Instantiate the Axiom of Identity with the proposition:    *)
 
                identity[eqv[#1, #1]]&
                // expectBy[eqv[true, eqv[true, true]], "identity"] //
 
-               (* Use Leibniz to pick out the second term, eqv[true, true]: *)
+               (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
 
                leibnizE[#1, z, z]&
                // expectBy[eqv[true, true], "leibniz"] //
 
-               (* Ues Leibniz again with a known truth, "identity", the    *)
-               (* deduction so far, eqv[true, true], and a crafted         *)
-               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
-               (* This reduces to an instance of identity so we're done.   *)
+               (* Ues Leibniz again with a known truth, "identity", the      *)
+               (* deduction so far, eqv[true, true], and a crafted           *)
+               (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
+               (* This reduces to an instance of identity so we're done.     *)
 
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
                // expectBy[identity[eqv[q, q]], "leibniz"]
@@ -543,10 +543,10 @@ expect[
                substitution[#1, {p}, {true}]&
                // expectBy[eqv[true, true], "substitution"] //
 
-               (* Ues Leibniz again with a known truth, "identity", the    *)
-               (* deduction so far, eqv[true, true], and a crafted         *)
-               (* E(z) = eqv[true, z] such that eqv[p, p] is subbed for z. *)
-               (* This reduces to an instance of identity so we're done.   *)
+               (* Ues Leibniz again with a known truth, "identity", the      *)
+               (* deduction so far, eqv[true, true], and a crafted           *)
+               (* E(z) = eqv[true, z] such that eqv[p, p] is subbed for z.   *)
+               (* This reduces to an instance of identity so we're done.     *)
 
                leibnizF[#1, identity[eqv[p, p]], eqv[true, z], z]&
                // expectBy[identity[eqv[p, p]], "leibniz"]
@@ -671,7 +671,7 @@ expect[
 
  *************************************************************************** *)
 
-(* (3.7) Metatheorem. Any two theorems are equivalent.
+(* (3.7) Metatheorem. Any two theorems are equivalent. ************************
 
    A theorem is (i) an axiom, (ii) the conclusion of an inference rule whose
    premises are [previously proved] theorems, (iii) a boolean expression that,
@@ -686,9 +686,9 @@ expect[
    left-hand version. Because "true" is a theorem and equivales both "P" and
    "Q", which are arbitrary, all theorems are equivalent to "true".
 
- *)
+ *************************************************************************** *)
 
-(* Section 3.3, Negation, inequivalence, and false ************************ *)
+(* Section 3.3, Negation, inequivalence, and false ************************* *)
 
 (* _  __              __  _
   / |/ /__ ___ ____ _/ /_(_)__  ___
@@ -706,12 +706,12 @@ expect[
 /_/ \_,_/_/___/\__/
  *)
 
-(* (3.8) Axiom, Definition of "false", page 45 *)
+(* (3.8) Axiom, Definition of "false", page 45 ***************************** *)
 
 ClearAll[false]
 false = not[true]
 
-(* (3.9) Axiom, Distributivity of "not" over "eqv"
+(* (3.9) Axiom, Distributivity of "not" over "eqv" ****************************
 
    By (3.2) Symmetry of eqv, we can write distributivity in both directions. If
    we wrote these two directions as global rewrite rules, the evaluator, which
@@ -721,18 +721,18 @@ false = not[true]
    these two directions as rules that we must apply explicitly with
    "ReplaceAll", just one time, as needed.
 
- *)
+ *************************************************************************** *)
 
 ClearAll[notRule, invNotRule]
 notRule    = (not[eqv[p_, q_]] :> eqv[not[p], q])
 invNotRule = (eqv[not[p_], q_] :> not[eqv[p, q]])
 
-(* (3.10) Axiom, Definition of "neqv" *)
+(* (3.10) Axiom, Definition of "neqv" ************************************** *)
 
 ClearAll[neqv]
 neqv[p_, q_] := not[eqv[p, q]]
 
-(* (3.11) Unnamed theorem *)
+(* (3.11) Unnamed theorem ************************************************** *)
 
 expect[ eqv[not[q], p]
         ,
@@ -756,7 +756,7 @@ expect[ eqv[not[q], p]
 
  *************************************************************************** *)
 
-(* (3.11) Unnamed theorem *)
+(* (3.11) Unnamed theorem ************************************************** *)
 
 expect[ eqv[not[q], p]
         ,
@@ -776,11 +776,87 @@ expect[ eqv[not[q], p]
 
 (* ****************************************************************************
 
-   That's much neater and cleaner.
+   That's much neater and cleaner. It's also much closer to what we'll need when
+   we start constructing proofs automatically. So far, all we're doing is
+   checking proofs; we're still constructing the proofs by hand. Yes, that's a
+   teaser, but we have a long way to go before we can construct proofs
+   automatically.
 
  *************************************************************************** *)
 
+(* (3.12) Double negation: ****************************************************
 
+   We found the old leibniz wasn't suited to a flat eqv when there are more than
+   two arguments. What did we use leibniz for, most of the time? Picking out one
+   side of an eqv. For instance
+
+        In[18]:= leibnizF[true, eqv[true, p], z, z]
+        {leibnizF:, x, true, y, p}
+          E(z)   : z
+          E[z:=X]: true
+        =   <X=Y>: eqv[true, p]
+          E[z:=Y]: p
+        Out[18]= p
+
+   For now, we'll just turn off the flatness of eqv. We prove theorem 3.12 by
+   reducing it to "true", already a theorem. This proof corresponds to the
+   right-hand column on the bottom of page 44.
+
+ *************************************************************************** *)
+
+ClearAll[eqv]                   (* Turn off the flatness for now. *)
+
+expect[ true
+    ,
+    Module[{proposition = eqv[not[not[p]], p]},
+       proposition
+       // expectI[    eqv[not[not[p]], p]           ] //
+
+       #1 /. invNotRule &
+       // expectBy[   not[eqv[not[p], p]]           , "invNotRule"] //
+
+       symmetry /@ #1 &
+       // expectBy[   not[eqv[p, not[p]]]           , "internal symmetry"] //
+
+       #1 /. notRule &
+       // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
+
+       identity
+       // expectBy[   eqv[true, eqv[not[p], not[p]]], "identity"] //
+
+       symmetry
+       // expectBy[   eqv[eqv[not[p], not[p]], true], "symmetry"] //
+
+       leibnizF[eqv[not[p], not[p]], #1, z, z] &
+       // expectBy[   true                          , "leibniz"]
+    ] ]
+
+(* ****************************************************************************
+
+   I haven't found a proof doing straight conversion, as in the left-hand column
+   at the bottom of page 44.
+
+   Having proved the theorem, we may now enshrine it in a rule. Later, when we
+   construct proofs automatically, we'll use metaprogramming tricks to install
+   rules automatically for proved theorems.
+
+ *************************************************************************** *)
+
+ClearAll[doubleNegation]
+doubleNegation[not[not[p_]]] := p;
+
+(* (3.13) Negation of false ************************************************ *)
+
+expect[
+        true
+      ,
+        Module[{proposition = not[false]},
+               proposition
+               // expectBy[    not[not[true]]    , "axiom def. of false"] //
+               doubleNegation
+               // expectBy[    true              , "double negation"]
+        ]
+]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
