@@ -2856,13 +2856,37 @@ expect[ eqv[not[q], p]
         ,
         Module[{proposition = eqv[not[p], q]},
                (((proposition
-                  // expectI[eqv[not[p], q]]) /.
+                  // expectI[  eqv[not[p], q]   ]) /.
                   invNotRule)
-                // expectBy[not[eqv[p, q]], "invNotRule"] //
+                // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
                 symmetry /@ #1 &
-                // expectBy[not[eqv[q, p]], "internal symmetry (ad-hoc fn)"]) /.
+                // expectBy[   not[eqv[q, p]]   , "internal symmetry"]) /.
                 notRule
-                // expectBy[eqv[not[q], p], "notRule"]
+                // expectBy[   eqv[not[q], p]   , "notRule"]
+        ] ]
+
+(* ****************************************************************************
+
+   We needed an ad-hoc function to shove symmetry inside the outer "not". We
+   also needed some parentheses to ensure proper nesting of alternating
+   application "//" and "ReplaceAll", "/.". We can mitigate that with ad-hoc
+   functions wrapping the rules:
+
+ *************************************************************************** *)
+
+(* (3.11) Unnamed theorem *)
+
+expect[ eqv[not[q], p]
+        ,
+        Module[{proposition = eqv[not[p], q]},
+               proposition
+               // expectI[  eqv[not[p], q]   ] //
+               #1 /. invNotRule &
+               // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
+               symmetry /@ #1 &
+               // expectBy[   not[eqv[q, p]]   , "internal symmetry"] //
+               #1 /. notRule &
+               // expectBy[   eqv[not[q], p]   , "notRule"]
         ] ]
 
 (* ****************************************************************************
