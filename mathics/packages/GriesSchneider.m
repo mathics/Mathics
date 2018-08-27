@@ -2800,7 +2800,13 @@ expect[
    using the inference rules, is proved equal to an axiom or [to] a previously
    proved theorem.
 
-   TODO
+   By the "Proof Technique" 3.6, a theorem P is proved by reducing it to a known
+   theorem Q via a sequence of steps. Each step is an assertion of equivalence.
+   The right-hand version of the technique begins with the proposition "true",
+   which equivales "P === P" by the Axiom of Identity 3.3. This proposition,
+   "P === P", is converted to "P === Q" by the same equivalence steps in the
+   left-hand version. Because "true" is a theorem and equivales both "P" and
+   "Q", which are arbitrary, all theorems are equivalent to "true".
 
  *)
 
