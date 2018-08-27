@@ -409,8 +409,8 @@ expect[ 2 (j + 5) / 2 === j + 5,
 
 *************************************************************************** *)
 
-expect [ j + 5,
-         div[ 2 (j+5), 2 ] /. {div[a_, b_] -> a / b} ]
+expect[ j + 5,
+        div[ 2 (j+5), 2 ] /. {div[a_, b_] -> a / b} ]
 
 (* ****************************************************************************
 
@@ -754,10 +754,10 @@ target = sameq [ div [ e, c^2 ],
 
 premise = sameq [ e, times [ m, c^2 ] ]
 
-expect [ target,
-         divideBothSidesByNonZero [
-             premise,
-             c^2 ] ]
+expect[ target,
+        divideBothSidesByNonZero [
+            premise,
+            c^2 ] ]
 
 (* ****************************************************************************
 
@@ -786,9 +786,9 @@ expect [ target,
 
  *************************************************************************** *)
 
-expect [ divideBothSidesByNonZero [ premise, c^2 ],
-         premise // divideBothSidesByNonZero [ #1, c^2 ] &
-       ]
+expect[ divideBothSidesByNonZero [ premise, c^2 ],
+        premise // divideBothSidesByNonZero [ #1, c^2 ] &
+      ]
 
 (* ****************************************************************************
 
@@ -798,10 +798,10 @@ expect [ divideBothSidesByNonZero [ premise, c^2 ],
 
  *************************************************************************** *)
 
-expect [
+expect[
 
-sameq [ div [ e, c^2 ], m ],
-
+sameq [ div [ e, c^2 ], m ]
+,
 (premise                                                       //
 
      divideBothSidesByNonZero [ #1, c^2 ] &                    //
@@ -962,7 +962,7 @@ leibniz[ sameq[x_, y_], e_, z_ ] :=
 
 (* example *)
 
-expect [
+expect[
     sameq [ d + b + 3,   d + c + 5 ],
     leibniz [ sameq [ b + 3,   c + 5 ],
               d + z,
@@ -1073,14 +1073,14 @@ Module [{ g = Function[z, plus[times[3, z], 6]] },
 
 
 
-expect [ apply  [ Function[z, plus[times[3, z], 6]],
-                  5
-                ],
-
-         Module [{ g = Function[z, plus[times[3, z], 6]] },
-                   apply[g, 5]
-                ]
-       ]
+expect[ apply  [ Function[z, plus[times[3, z], 6]],
+                 5
+               ]
+        ,
+        Module [{ g = Function[z, plus[times[3, z], 6]] },
+                  apply[g, 5]
+               ]
+      ]
 
 
 
@@ -1092,17 +1092,17 @@ erules = Join [ { plus -> Plus,                  (* join a list of new rules *)
 
 
 
-expect [ 21,
+expect[ 21,
     Module [{ g = Function[z, plus[times[3, z], 6]] },
               apply[g, 5]] //. erules
-       ]
+      ]
 
 
 
-expect [ 3 (y + 2) + 6,
+expect[ 3 (y + 2) + 6,
     Module[{ g = Function[z, plus[times[3, z], 6]] },
              apply[g, y+2]] //. erules
-       ]
+      ]
 
 (* ****************************************************************************
 
@@ -1144,15 +1144,19 @@ apply[g_, z_, x_] := g /. {z :> x}
 
 
 
-expect [
+expect[
     plus [ times [ 3, 5 ], 6 ],
-    apply [ plus[times[3, z], 6], z, 5 ] ]
+    apply [ plus[times[3, z], 6], z, 5 ]
+]
 
 
 
-expect [
+expect[
     21,
-    apply [ plus[times[3, z], 6], z, 5 ] //. erules ]
+    apply [ plus[times[3, z], 6], z, 5 ] //. erules
+]
+
+
 
 (* 1.8, page 14 *)
 
@@ -1160,15 +1164,19 @@ leibniz[ sameq[x_, y_], g_ ] := sameq [ apply [ g, x ], apply [ g, y ] ]
 
 
 
-expect [
+expect[
     sameq [ apply [f, 42], apply [f, times[6, 7]] ],
-    leibniz [ sameq [ 42, times[6, 7] ], f ] ]
+    leibniz [ sameq [ 42, times[6, 7] ], f ]
+]
 
 
 
-expect [
+expect[
     sameq [ times[42, 42], 1764 ] //. erules,
-    leibniz [ sameq [ 42, times[6, 7] ], Function[x, x * x] ] //. erules ]
+    leibniz [ sameq [ 42, times[6, 7] ], Function[x, x * x] ] //. erules
+]
+
+
 
 (* Section 1.5, Reasoning with Leibniz's rule, ********************************
 
@@ -1258,9 +1266,8 @@ leibnizE[ premise:sameq[ x_, y_ ], e_, z_ ] :=
 
 
 expect[
-
-    sameq[div[2j, 2], 2(j-1)],
-
+    sameq[div[2j, 2], 2(j-1)]
+    ,
     leibnizE[sameq[m, 2j],             (* premise sameq[X, Y], by 0.1 *)
              sameq[div[z, 2], 2(j-1)], (* E(z)                        *)
              z]
@@ -1280,9 +1287,8 @@ expect[
  *************************************************************************** *)
 
 expect[
-
-    sameq[j, 2(j-1)],
-
+    sameq[j, 2(j-1)]
+    ,
     leibnizE[sameq[div[2x, 2], x     ] /. {x -> j}, (* premise               *)
              sameq[z,          2(j-1)],             (* E(z)                  *)
              z]                                     (* independent variable  *)
@@ -1398,7 +1404,9 @@ assign[variables_:List, expressions_:List, postcondition_] :=
    mathics doing the proof for us. But there are certainly several places where
    we could have been more lax. *)
 
-expect [
+
+
+expect[
     hoareTriple [
         (* Consider a state in which the postcondition is false, say x = 5.
            Make the substitution specified by the assignment, namely
@@ -1407,65 +1415,86 @@ expect [
         x + 1 > 5,
         assignmentStatement [{x}, {x + 1}],
         x > 5
-     ],
-     assign [{x}, {x+1}, x > 5] ]
+    ],
+    assign [{x}, {x+1}, x > 5]
+]
 
-expect [
+
+
+expect[
     hoareTriple [
         ne [ 5, 5 ], (* Here we don't want to say 5 != 5 because it will
                         reduce to mathics False. *)
         assignmentStatement [{x}, {5}],
         ne [ 5, 5 ]
-    ],
+    ]
+    ,
     assign [{x}, {5}, ne[5, 5]]
 ]
 
-expect [
+
+
+expect[
     hoareTriple [
         x^2 > x^2 y,
         assignmentStatement [{x}, {x^2}],
         x > x y
-    ],
+    ]
+    ,
     assign [{x}, {x^2}, x > x y]
 ]
 
+
+
 (* Examples, page 20 ******************************************************* *)
 
-expect [
+expect[
     hoareTriple [
         y > x,
         assignmentStatement [{x, y}, {y, x}],
         x > y
-    ],
+    ]
+    ,
     assign [{x, y}, {y, x}, x > y]
 ]
 
-expect [
+
+
+expect[
     hoareTriple [
         sameq [ x + i,   1 + 2 + ellipsis + (i + 1 - 1) ],
         assignmentStatement [{x, i}, {x+i, i+1}],
         sameq [ x,       1 + 2 + ellipsis + (i - 1) ]
-    ],
+    ]
+    ,
     assign [{x, i}, {x+i, i+1}, sameq [ x, 1 + 2 + ellipsis + (i - 1) ] ]
 ]
 
-expect [
+
+
+expect[
     hoareTriple [
         sameq [ x + i,   1 + 2 + ellipsis + (i + 1 - 1) ],
         assignmentStatement [{x, i}, {x+i, i+1}],
         sameq [ x,       1 + 2 + ellipsis + (i - 1) ]
-    ],
+    ]
+    ,
     assign [{x, i}, {x+i, i+1}, sameq [ x, 1 + 2 + ellipsis + (i - 1) ] ]
 ]
+
+
 
 expect [
     hoareTriple [
         sameq [ x + i,   1 + 2 + ellipsis + (i + 1 - 1) ],
         assignmentStatement [{i, x}, {i+1, x+i}],
         sameq [ x,       1 + 2 + ellipsis + (i - 1) ]
-    ],
+    ]
+    ,
     assign [{i, x}, {i+1, x+i}, sameq [ x, 1 + 2 + ellipsis + (i - 1) ] ]
 ]
+
+
 
 (* A lot of these print out in an ugly way. Eventually, we'll write a
 PrettyPrint. See https://goo.gl/4txWex *)
@@ -1488,10 +1517,9 @@ PrettyPrint. See https://goo.gl/4txWex *)
 
  *************************************************************************** *)
 
-expect [
-
-    sameq [ 4x + y,   8 + 4x + y ], (* E[z:=X] === E[z:=Y] *)
-
+expect[
+    sameq [ 4x + y,   8 + 4x + y ]  (* E[z:=X] === E[z:=Y] *)
+    ,
     Expand /@ leibniz [
               sameq [ x,   x + 2 ], (* X === Y             *)
               4z + y,               (* E(z)                *)
@@ -1500,10 +1528,9 @@ expect [
 
 (* Exercise 1.7(b) ********************************************************* *)
 
-expect [
-
-    sameq [ x + (2y+1) w,   x + 5w ], (* E[z:=X] === E[z:=Y] *)
-
+expect[
+    sameq [ x + (2y+1) w,   x + 5w ]  (* E[z:=X] === E[z:=Y] *)
+    ,
     leibniz [
         sameq [ 2y + 1,   5 ],        (* X === Y             *)
         x + z w,                      (* E(z)                *)
@@ -1512,10 +1539,9 @@ expect [
 
 (* Exercise 1.7(c) ********************************************************* *)
 
-expect [
-
-    sameq [ 3(x+1) + 3x + 1,   3y + 3(y-1) + 1 ], (* E[z:=X] === E[z:=Y] *)
-
+expect[
+    sameq [ 3(x+1) + 3x + 1,   3y + 3(y-1) + 1 ]  (* E[z:=X] === E[z:=Y] *)
+    ,
     leibniz [
         sameq [ x + 1,   y ],                     (* X === Y             *)
         3z + 3(z-1) + 1,                          (* E(z)                *)
@@ -1524,30 +1550,31 @@ expect [
 
 (* Exercise 1.7(d) ********************************************************* *)
 
-expect [
-
-    sameq [ x + x,   x + y ],
-
+expect[
+    sameq [ x + x,   x + y ]
+    ,
     leibniz [
         sameq [ x,   y ],
         z + x,
         z ]
 ]
 
-expect [
 
-    sameq [ x + x,   y + y ],
 
+expect[
+    sameq [ x + x,   y + y ]
+    ,
     leibniz [
         sameq [ x,   y ],
         z + z,
         z ]
 ]
 
-expect [
 
-    sameq [ x + x,   y + x ],
 
+expect[
+    sameq [ x + x,   y + x ]
+    ,
     leibniz [
         sameq [ x,   y ],
         x + z,
@@ -1556,30 +1583,31 @@ expect [
 
 (* Exercise 1.7(e) ********************************************************* *)
 
-expect [
-
-    sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
-
+expect[
+    sameq [ 7x + 7y,   x (y+1) + y (y+1) ]
+    ,
     leibniz [
         sameq [ 7,   y + 1],
         z x + z y,
         z ]
 ]
 
-expect [
 
-    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
 
+expect[
+    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ]
+    ,
     Expand /@ leibniz [
         sameq [ 7,   y + 1],
         z ( x + y ),
         z ]
 ]
 
-expect [
 
-    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ],
 
+expect[
+    Expand /@ sameq [ 7x + 7y,   x (y+1) + y (y+1) ]
+    ,
     Expand /@ leibniz [
         sameq [ 7,   y + 1],
         ( x + y ) z,
@@ -1588,11 +1616,10 @@ expect [
 
 (* Exercise 1.8 ************************************************************ *)
 
-expect [
-
+expect[
     sameq [ x + y + w,              (* E[z := X]                             *)
-            b + c + y + w ],        (* E[z := Y] <~~~ answer to the exercise *)
-
+            b + c + y + w ]         (* E[z := Y] <~~~ answer to the exercise *)
+    ,
     leibniz [
         sameq [ x, b + c ],         (* X === Y (hint)                        *)
         z + y + w,                  (* E(z) <~~~ part of the answer         *)
@@ -1603,12 +1630,12 @@ expect [
 (* "Simplify' is an alternative to "Expand" (Mathematics produces different  *)
 (* but equally correct results, here).                                       *)
 
-expect [
-
+expect[
     Simplify /@ sameq [
         x + y + w,                  (* E[z := X]                             *)
         x + 2(y + w) - b c          (* E[z := Y] <~~~ answer to the exercise *)
-    ],
+    ]
+    ,
     Simplify /@ leibniz [
         sameq [ b c,                (* X <~~~ part of the hint               *)
                 y + w               (* Y <~~~ part of the hint               *)
@@ -1618,12 +1645,12 @@ expect [
     ]
 ]
 
-expect [
-
+expect[
     Simplify /@ sameq [
         x + y + w,                  (* E[z := X]                             *)
         x + 2(y + w) - b c          (* E[z := Y] <~~~ answer to the exercise *)
-    ],
+    ]
+    ,
     Simplify /@ leibniz [
         sameq [ b c,                (* X <~~~ part of the hint               *)
                 y + w               (* Y <~~~ part of the hint               *)
@@ -1633,12 +1660,12 @@ expect [
     ]
 ]
 
-expect [
-
+expect[
     Simplify /@ sameq [
         x (x + y),                  (* E[z := X]                             *)
         x (y + x)                   (* E[z := Y] <~~~ answer to the exercise *)
-    ],
+    ]
+    ,
     Simplify /@ leibniz [
         sameq [ x + y,              (* X <~~~ part of the hint               *)
                 y + x               (* Y <~~~ part of the hint               *)
@@ -1648,12 +1675,12 @@ expect [
     ]
 ]
 
-expect [
-
+expect[
     Simplify /@ sameq [
         (x + y) w,                  (* E[z := X]                             *)
         x y (x + y)                 (* E[z := Y] <~~~ answer to the exercise *)
-    ],
+    ]
+    ,
     Simplify /@ leibniz [
         sameq [ w,                  (* X <~~~ part of the hint               *)
                 x y                 (* Y <~~~ part of the hint               *)
@@ -1710,7 +1737,7 @@ expect [
 
  *************************************************************************** *)
 
-expect [
+expect[
   True,
   And @@ Flatten @ Table[(x || (y && z)) === ((x || y) && (x || z)),
     {x, {True, False}}, {y, {True, False}}, {z, {True, False}}]
@@ -1809,11 +1836,10 @@ boolRules = {
         true      -> True,
         false     -> False}
 
-expect [
-
+expect[
   { {True, True,  False, False},
-    {True, False, True,  False} },
-
+    {True, False, True,  False} }
+  ,
   unaryFunctionTruthTable //. boolRules
 ]
 
@@ -1901,7 +1927,7 @@ binaryTruthTable =
     {fn, binaryFunctionList},
     {a, {t, f}}, {b, {t, f}}]
 
-expect [
+expect[
     {{t, t, t, t},
      {t, t, t, f},                   (* or *)
      {t, t, f, t},                   (* because *)
@@ -1917,8 +1943,8 @@ expect [
      {f, f, t, t},
      {f, f, t, f},
      {f, f, f, t},                   (* nor *)
-     {f, f, f, f}},
-
+     {f, f, f, f}}
+    ,
     Partition[Last @ Transpose @ Flatten[
         binaryTruthTable //. comparisonBoolRules, 2], 4]
 ]
@@ -2078,9 +2104,9 @@ Module[{expressions = Table[randomBooleanExpression[], {20}]},
    We'll do that later. The book gets back to "Superman" on page 89.
    *)
 
-expect [
-        True,
-
+expect[
+        True
+        ,
         And @@
         Flatten @
                 Table[( ( (a && w) \[Implies] p ) &&
@@ -2122,29 +2148,29 @@ expect[ dualTheorem[or [p, not[p]]], not[and[p, not[p]]] ]
    we tweak the output of "dualTheorem" with a ad-hoc rewrite rule. *)
 
 expect[ dualTheorem[eqv[true, true]]
-            //. not[neqv[x_, y_]] :> eqv[x, y],
-
+            //. not[neqv[x_, y_]] :> eqv[x, y]
+        ,
         eqv[false, false] ]
 
 
 
 expect[ dualTheorem[eqv[or[p, q], or[q, p]]]
-            //. not[neqv[x_, y_]] :> eqv[x, y],
-
+            //. not[neqv[x_, y_]] :> eqv[x, y]
+        ,
         eqv[and[p, q], and[q, p]] ]
 
 
 
 expect[ dualTheorem[eqv[eqv[p, q], eqv[q, p]]]
-            //. not[neqv[x_, y_]] :> eqv[x, y],
-
+            //. not[neqv[x_, y_]] :> eqv[x, y]
+        ,
         eqv[neqv[p, q], neqv[q, p]] ]
 
 
 
 expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
-            //. not[neqv[x_, y_]] :> eqv[x, y],
-
+            //. not[neqv[x_, y_]] :> eqv[x, y]
+        ,
         eqv[not[and[p, q]], or[not[p], not[q]]] ]
 
 
@@ -2255,12 +2281,12 @@ identity[eqv[q_, q_]] := eqv[true, eqv[q, q]]
 ClearAll[deqv]
 SetAttributes[deqv, {Flat, Orderless}]
 
-expect [
+expect[
     True,
     deqv[p, q] === deqv[q, p]
 ]
 
-expect [
+expect[
     True,
     deqv[ deqv[p, q], r ] === deqv[ p, deqv[q, r] ]
 ]
@@ -2408,9 +2434,9 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
 
 ClearAll[deqv]
 
-expect [
-  eqv[eqv[p, q, q], p],
-
+expect[
+  eqv[eqv[p, q, q], p]
+  ,
   Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
     proposition                          // fump                  //
     symmetry[#1]&                        // dump["symmetry", #1]& //
@@ -2484,8 +2510,9 @@ leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
 
 (* (3.4) Theorem, _true_ *)
 
-expect [(* Reduce the proposition to the Axiom of Identity. *)
-        identity[eqv[q, q]],
+expect[ (* Reduce the proposition to the Axiom of Identity. *)
+        identity[eqv[q, q]]
+        ,
         Module[{proposition = true},
                (* The proposition is "true": *)
                proposition // fump //
@@ -2578,9 +2605,9 @@ expectBy[expected_, by_] :=
 
 
 
-expect [
-        identity[eqv[q, q]],
-
+expect[
+        identity[eqv[q, q]]
+        ,
         Module[{proposition = true},
 
                (* The proposition is "true": *)
@@ -2623,9 +2650,9 @@ expect [
 
 (* (3.5) Theorem, Reflexivity of eqv: eqv[p, p] *)
 
-expect [
-        identity[eqv[p, p]],
-
+expect[
+        identity[eqv[p, p]]
+        ,
         Module[{proposition = eqv[p, p]},
 
                (* The proposition is "true": *)
@@ -2652,9 +2679,8 @@ expect [
  *************************************************************************** *)
 
 expect[
-
-        eqv[eqv[p, q, q], p],
-
+        eqv[eqv[p, q, q], p]
+        ,
         Module[{proposition = eqv[p, eqv[p, q, q]]},
 
                proposition
@@ -2689,9 +2715,8 @@ expect[
 SetAttributes[eqv, Flat]
 
 expect[
-
-        eqv[eqv[p, q, q], p],
-
+        eqv[eqv[p, q, q], p]
+        ,
         Module[{proposition = eqv[p, eqv[p, q, q]]},
 
                proposition
