@@ -2,7 +2,7 @@
 
     Please see
 
-    https://github.com/rebcabin/Mathics/blob/master/mathics/packages/GriesSchneider.m
+    https://github.com/rebcabin/Mathics/blob/master/mathics/packages/
 
     for the most up-to-date version. Changes will be committed there from now
     on.
