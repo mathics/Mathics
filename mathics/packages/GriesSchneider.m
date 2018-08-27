@@ -2264,10 +2264,12 @@ associativity[eqv[ eqv[p_, q_], r_ ]] := eqv[ p, eqv[q, r] ]
 associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
 
 (* (3.2) Axiom, Symmetry of eqv *)
+(* p === q === q === p *)
 ClearAll[symmetry]
 symmetry[eqv[p_, q_]] := eqv[q, p]
 
 (* (3.3) Axiom, Identity of eqv, page 44 *)
+(* true === q === q *)
 ClearAll[identity]
 identity[eqv[q_, q_]] := eqv[true, eqv[q, q]]
 
@@ -2798,11 +2800,7 @@ expect[
    using the inference rules, is proved equal to an axiom or [to] a previously
    proved theorem.
 
-   "Equivalent" means "equivales" via the operator "===" or "eqv". Any theorem P
-   is equivalent to (equivales) "true" by associativity (now automated) and by
-   the Axiom of Identity (3.3). Some other theorem Q is equivalent to "true" by
-   the same axiom. By the Theorem of Reflexivity (3.5), "true" is equivalent to
-   "true", so all theorems are equivalent.
+   TODO
 
  *)
 
@@ -2880,14 +2878,25 @@ expect[ eqv[not[q], p]
         ,
         Module[{proposition = eqv[not[p], q]},
                proposition
-               // expectI[  eqv[not[p], q]   ] //
+               // expectI[    eqv[not[p], q]   ] //
+
                #1 /. invNotRule &
                // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
+
                symmetry /@ #1 &
                // expectBy[   not[eqv[q, p]]   , "internal symmetry"] //
+
                #1 /. notRule &
                // expectBy[   eqv[not[q], p]   , "notRule"]
         ] ]
+
+(* ****************************************************************************
+
+   That's much neater and cleaner.
+
+ *************************************************************************** *)
+
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
