@@ -1308,6 +1308,67 @@ Module[{leftHalf =
 ]
 
 (* ****************************************************************************
+
+   One final bit of syntax unification will likely make future automation
+   easier: "Map" at level zero is exactly application. Now, every line looks the
+   same: as the application of a rule at an appropriate level.
+
+ *************************************************************************** *)
+
+expect [ True
+         ,
+Module[{leftHalf =
+        Module[{proposition = neqv[neqv[p, q], r]},
+
+               proposition
+               // expectI [ neqv[neqv[p, q], r] ] //
+
+               fireRule[neqvRule, 1]
+               // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+
+               fireRule[neqvRule, 0]
+               // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+
+               fireRule[doubleNegation, 0]
+               // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+
+               fireRule[leftAssociativity, 0]
+               // expectBy [ eqv[p, eqv[q, r]], "left associativity"]
+        ],
+        rightHalf =
+        Module[{proposition = neqv[p, neqv[q, r]]},
+
+               proposition
+               // expectI [ neqv[p, neqv[q, r]] ] //
+
+               fireRule[neqvRule, 0]
+               // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+
+               fireRule[symmetry, 1]
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+
+               fireRule[neqvRule, 2] (* Map at second nest level *)
+               // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+
+               fireRule[doubleNegation, 0]
+               // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+
+               fireRule[symmetry, 0]
+               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+        ]}
+       ,
+         leftHalf === rightHalf]
+]
+
+
+
+(* ****************************************************************************
  _____ _          _____                                        ___         _
 |_   _| |_  ___  |_   _|__ _ __  _ __  ___ _ _ __ _ _ _ _  _  | __|_ _  __| |
   | | | ' \/ -_)   | |/ -_) '  \| '_ \/ _ \ '_/ _` | '_| || | | _|| ' \/ _` |
