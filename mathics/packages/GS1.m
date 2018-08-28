@@ -229,7 +229,7 @@ ClearAll[Q, x]
    themselves, strings evaluate to themselves, and symbols that don't have
    values (or rules) attached to them evaluate to themselves. What does it mean
    to have a "value or rule" attached to a symbol? Having a value attached is
-   rather obvious: if we say
+   just like assignment in ordinary programming languages: if we say
 
        x = 42
 
@@ -237,9 +237,11 @@ ClearAll[Q, x]
 
        ClearAll[x]
 
-   Now x has no value attached to it. A "rule" is mathics's way of defining
-   rewrites. Rewrites are a lot like functions, but not exactly the same. We
-   explain below bit-by-bit as we encounter rewriting rules. *)
+   Now x has no value attached to it.
+
+   A "rule" is mathics's way of defining rewrites. Rewrites are a lot like
+   functions, but not exactly the same. We explain below bit-by-bit as we
+   encounter rewriting rules. *)
 
 (* Examples, box bottom of page 10: *******************************************
 
@@ -325,9 +327,9 @@ expect[ False, x === y ] (* return False because x =!= y                     *)
 
 (* ****************************************************************************
 
-    Almost all the time we want the behavior of SameQ. So now we can apply the
+    Almost all the time we want the behavior of SameQ. Now we can apply the
     inference rule. You'll see a beautiful proof when you run this through
-    mathics (or even Mathematica). Notice again that mathics does a little
+    mathics (or Mathematica). Notice again that mathics does a little
     rearranging, rewriting j + 5 as 5 + j. It's OK for now, but later we won't
     be able to assume commutativity.
 
@@ -572,34 +574,53 @@ expect[ sameq[ x+y, 7 ],
     above are unnamed. Many such rules have the form "pattern -> result", for
     example "x -> 2y". The pattern is "x" and must match the target of the rule
     exactly. It's a pattern constant, not a pattern variable. We know that
-    because there is no underscore. The target of such a rule is the left-hand
-    side of a "/.", "ReplaceAll", or the left-hand side of a "//.",
-    "ReplaceAllRepeated". For example, in the expression
+    because there is no underscore; it's not "x_". The "target"" of such a rule
+    is the left-hand side of a "/.", "ReplaceAll", or the left-hand side of a
+    "//.", "ReplaceAllRepeated" expression. For example, in the expression
 
         x + z /. {x -> 2y}
 
-    "x + z" is the target of the rule "x -> 2y", and the result of evaluating
-    the entire expression is "2y + z" because the "x" pattern in the rule
-    exactly matches the "x" in the target "x + z". "FullForm" explains the
-    syntax (here we must use a HoldForm to prevent the expression from being
-    evaluated before it's passed to FullForm):
+    "x + z" is the target of the rule "x -> 2y". The result of evaluating the
+    entire expression is "2y + z" because the "x" pattern in the rule exactly
+    matches the "x" in the target "x + z". "FullForm" explains the syntax (here
+    we must use a HoldForm to prevent the expression from being evaluated before
+    it's passed to FullForm):
 
         In[8]:= FullForm[HoldForm[x + z /. {x -> 2y}]]
 
         Out[8]= ReplaceAll[Plus[x, z], List[Rule[x, Times[2, y]]]]
 
-    We enclose the rule "x -> 2y" in curly braces just for readability.
-
-    The
-    right-hand sides of "/." or a "//." must be either a rule or a list of
+    The right-hand sides of "/." or a "//." must be either a rule or a list of
     rules. The curly braces put the rule "x -> 2y" in a list; "{x -> 2y}" is a
-    list of rules, a list with one element. I find "x + z /. {x -> 2y}" to be
-    more readable than "x + z /. x -> 2y".
+    list of rules, a list with one element, a singleton list. A slightly
+    simpler, and equivalent, form, is
+
+        In[70]:= FullForm[HoldForm[x + z /. x -> 2y]]
+
+        Out[70]= ReplaceAll[Plus[x, z], Rule[x, Times[2, y]]]
+
+    I find "x + z /. {x -> 2y}" to be more readable than "x + z /. x -> 2y", so
+    I usually put singleton rules inside curly braces, even though it's not
+    necessary. If there are multiple rules to apply in parallel, they must be
+    enclosed in curly braces:
+
+        In[72]:= FullForm[HoldForm[x + z /. {x -> 2y, z -> 3y}]]
+
+        Out[72]= ReplaceAll[Plus[x, z], List[Rule[x, Times[2, y]],
+                                             Rule[z, Times[3, y]]]]
 
     Another example of an unnamed rule is "div[a_, b_] -> a / b", where the
     pattern is "div[a_, b_]", containing pattern variables a_ and b_. Those
     variables match anything. When the rule is applied, the pattern variables
-    are replaced on the right-hand side of the arrow by the things they match.
+    are replaced on the right-hand side of the arrow by the things they match:
+
+        In[73]:= div[x, y] /. div[a_, b_] -> a / b
+
+        Out[73]= x / y
+
+        In[74]:= div[42, 7] /. div[a_, b_] -> a / b
+
+        Out[74]= 6
 
     "a -> b" is syntax for "Rule[a, b]". There is another kind of arrow, namely
     "a :> b", syntax for "RuleDelayed[a, b]", which means "don't evaluate the
@@ -607,20 +628,17 @@ expect[ sameq[ x+y, 7 ],
 
     Sometimes, it doesn't matter which of the two you use. In the example
     "div[a_, b_] -> a / b", the right-hand side is evaluated when the rule
-    itself is parsed and evaluated, before it is applied to any target. Consider
-    the following expression:
+    itself is parsed, before it is applied to any target. Consider the following
+    expression:
 
         div[1764, 42] /. {div[a_, b_] -> a / b}
 
     In a clean environment, where "a" and "b" have no definitions, evaluating
-
-        a / b
-
-    produces just a / b, itself, an expression in terms of symbolic constants
-    that mathics cannot further reduce. The whole expression produces the
-    expected "42". Mathics replaces the pattern variables "a_" and "b_" with
-    actual arguments "1764" and "42", respectively, then evaluates the
-    right-hand side "a / b" again.
+    the right-hand side of the rule, namely a / b, produces just a / b, itself,
+    an expression in terms of symbolic constants that mathics cannot further
+    reduce. The whole expression produces the expected "42". Mathics replaces
+    the pattern variables "a_" and "b_" with actual arguments "1764" and "42",
+    respectively, then evaluates the right-hand side "a / b" again.
 
         In[6]:= div[1764, 42] /. {div[a_, b_] -> a / b}
 
@@ -633,10 +651,11 @@ expect[ sameq[ x+y, 7 ],
 
         Out[11]= 294
 
-    That's because the right-hand side "a / b" is evaluated early, and becomes
-    "a / 6". At replacement time, "a_" and "b_" are replaced with "1764" and
-    "42", as before, but, this time the right-hand side is a / 6; "b" no longer
-    appears, and we get "1764 / 6" or "294".
+    That's because the right-hand side "a / b" is evaluated early, when In[11]
+    is processed, and becomes "a / 6". At replacement time, "a_" and "b_" are
+    replaced with "1764" and "42", as before, but, this time the right-hand side
+    is a / 6; "b" no longer appears, it's been eaten up, and we get "1764 / 6"
+    or "294".
 
     One way to fix this is to ClearAll the symbols "a" and "b" of the pattern
     variables "a_" and "b_" before evaluating the expression:
@@ -648,15 +667,15 @@ expect[ sameq[ x+y, 7 ],
         Out[16]= 42
 
     But this is ugly and risky --- "a" and "b" might be legitimately used
-    somewhere else, but we just cleared them. In general, statements that have
+    somewhere else, and we just cleared them. In general, statements that have
     "non-local" effects make software "rigid" and "brittle," difficult to
     maintain and modify because any person doing a modification must have more
     than local knowledge to get things right.
 
     Much safer and prettier is a "RuleDelayed" or ":>". This works no matter
     what's been defined in the global environment, because the replacement of
-    the pattern variables happens before the evaluation of the right-hand side
-    of the rule, not after evaluation of the right-hand side, as with "Rule" or
+    the pattern variables happens before evaluation of the right-hand side of
+    the rule, not after evaluation of the right-hand side, as with "Rule" or
     "->":
 
         In[17]:= b = 6
@@ -690,6 +709,40 @@ expect[ sameq[ x+y, 7 ],
     needed. That practice avoids any need for global omniscience of the global
     environment of variables and their values at definition time and at
     evaluation time on the part of the programmer.
+
+    R E P L A C E A L L   V E R S U S   R E P L A C E A L L R E P E A T E D
+
+    One more important fact must be emphasized: when named rules are applied,
+    mathics keeps rewriting until nothing changes any more. That is the normal
+    evaluation strategy. Sometimes, we want a single application of a rule, and
+    for that, we must explicitly use "ReplaceAll".
+
+    Consider the following:
+
+        neqv[p_, q_] := not[eqv[p, q]]
+        eqv[p_, q_] := not[neqv[p, q]]
+
+    Mathics will rewrite an occurrence of neqv as not[eqv[...]], then rewrite
+    the internal occurrence of eqv, producing not[not[neqv[...]]], and so on,
+    forever:
+
+        In[77]:= neqv[x, y]
+        $RecursionLimit::reclim: Recursion depth of 200 exceeded.
+        Out[77]= $Aborted
+
+    We get around this by defining, instead of the above,
+
+        neqvRule = neqv[p_, q_] :> not[eqv[p, q]]
+        eqvRule  = eqv[p_, q_]  :> not[neqv[p, q]]
+
+    retaining some benefits of naming. We apply the rule when _we_ want to, and
+    only as many times as we want to:
+
+        In[82]:= neqv[x, y] /. neqvRule
+        Out[82]= not[eqv[x, y]]
+
+    If we want to keep going without stopping, then we use "//.",
+    "ReplaceAllRepeated".
 
     Back to our theorem from page 4, we'll write our new machinery with some
     named rewrite rules that don't trigger the built-in reductions:
