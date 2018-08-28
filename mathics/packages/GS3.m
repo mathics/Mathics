@@ -1046,33 +1046,46 @@ expect [ True
          ,
 Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
+
                proposition
                // expectI [ neqv[neqv[p, q], r] ] //
+
                (#1 /. neqvRule)& /@ #1 &
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+
                (#1 /. neqvRule)&
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+
                (#1 /. invNotRule)& /@ #1 &
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+
                doubleNegation
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+
                associativity
                // expectBy [ eqv[p, eqv[q, r]], "associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
+
                proposition
                // expectI [ neqv[p, neqv[q, r]] ] //
+
                (#1 /. neqvRule)&
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+
                symmetry /@ #1 &
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+
                Map[(#1 /. neqvRule)&, #1, {2}] & (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+
                (#1 /. invNotRule)& /@ #1 &
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+
                symmetry
                // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
         ]}
@@ -1080,7 +1093,219 @@ Module[{leftHalf =
          leftHalf === rightHalf]
 ]
 
+(* ****************************************************************************
 
+   We notice some repeated code:
+
+       (#1 /. neqvRule)&
+       (#1 /. invNotRule)&
+
+   appear more than once, each. It's a good idea to capture that pattern.
+   Remembering the discussion in chapter 1 (GS1.m) about one-shot rules, we go
+   one more level up and define a "function" (actualla named rule) that applies
+   any one-shot rule just once. This function "returns another function" that
+   fires the rule once on an argument. Technically, this kind of definition is a
+   "curried" named rewrite rule. "Curried" just means that it takes its
+   arguments one at a time. If you think of it as a function that returns
+   another function, that will be close enough to the truth.
+
+ *************************************************************************** *)
+
+ClearAll[fireRule]
+fireRule[rule_][arg_] := arg /. rule
+
+expect [ True
+         ,
+Module[{leftHalf =
+        Module[{proposition = neqv[neqv[p, q], r]},
+
+               proposition
+               // expectI [ neqv[neqv[p, q], r] ] //
+
+               fireRule[neqvRule] /@ #1 &
+               // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+
+               fireRule[invNotRule] /@ #1 &
+               // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+
+               doubleNegation
+               // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+
+               associativity
+               // expectBy [ eqv[p, eqv[q, r]], "associativity"]
+        ],
+        rightHalf =
+        Module[{proposition = neqv[p, neqv[q, r]]},
+
+               proposition
+               // expectI [ neqv[p, neqv[q, r]] ] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+
+               symmetry /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+
+               Map[fireRule[neqvRule], #1, {2}] & (* Map at second nest level *)
+               // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+
+               fireRule[invNotRule] /@ #1 &
+               // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+
+               doubleNegation
+               // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+
+               symmetry
+               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+        ]}
+       ,
+         leftHalf === rightHalf]
+]
+
+(* ****************************************************************************
+
+   That's a lot easier to stomach; we're getting rid of "wheels" "/@", "hashes"
+   "#1", and ampersands "&" little by little. Maybe we should capture the
+   mapping, as well, in an overload of fireRule:
+
+ *************************************************************************** *)
+
+fireRule[rule_, level_][arg_] := Map[fireRule[rule], arg, {level}]
+
+expect [ True
+         ,
+Module[{leftHalf =
+        Module[{proposition = neqv[neqv[p, q], r]},
+
+               proposition
+               // expectI [ neqv[neqv[p, q], r] ] //
+
+               fireRule[neqvRule, 1]
+               // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+
+               doubleNegation
+               // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+
+               associativity
+               // expectBy [ eqv[p, eqv[q, r]], "associativity"]
+        ],
+        rightHalf =
+        Module[{proposition = neqv[p, neqv[q, r]]},
+
+               proposition
+               // expectI [ neqv[p, neqv[q, r]] ] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+
+               symmetry /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+
+               fireRule[neqvRule, 2] (* Map at second nest level *)
+               // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+
+               doubleNegation
+               // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+
+               symmetry
+               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+        ]}
+       ,
+         leftHalf === rightHalf]
+]
+
+(* ****************************************************************************
+
+   There is just one more "wheel, hash, ampersand" to get rid of:
+   "symmetry /@ #1 &". This one comes from the fact that we defined "symmetry"
+   as a named rule. Seemed good, at the time, but now, the pressure to unify
+   syntax makes that choice less good. Let's redefine "symmetry" and, while
+   we're at it, every axiom and theorem we defined as a named rule, as a
+   one-shot rule. We'll leave inference rules as named rules, for now, but it's
+   a good guess that they're on their way out, eventually, too.
+
+ *************************************************************************** *)
+
+ClearAll[associativity, leftAssociativity, rightAssociativity]
+leftAssociativity  = eqv[ eqv[p_, q_], r_ ] :> eqv[ p, eqv[q, r] ]
+rightAssociativity = eqv[ p_, eqv[q_, r_] ] :> eqv[ eqv[p, q], r ]
+
+(* (3.2) Axiom, Symmetry of eqv *)
+(* p === q === q === p *)
+ClearAll[symmetry]
+symmetry = eqv[p_, q_] :> eqv[q, p]
+
+(* (3.3) Axiom, Identity of eqv, page 44 *)
+(* true === q === q *)
+ClearAll[identity]
+identity = eqv[q_, q_] :> eqv[true, eqv[q, q]]
+
+(* (3.12) Theorem, Double negation, page 46 *)
+ClearAll[doubleNegation]
+doubleNegation = not[not[p_]] :> p
+
+expect [ True
+         ,
+Module[{leftHalf =
+        Module[{proposition = neqv[neqv[p, q], r]},
+
+               proposition
+               // expectI [ neqv[neqv[p, q], r] ] //
+
+               fireRule[neqvRule, 1]
+               // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+
+               fireRule[doubleNegation]
+               // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+
+               fireRule[leftAssociativity]
+               // expectBy [ eqv[p, eqv[q, r]], "left associativity"]
+        ],
+        rightHalf =
+        Module[{proposition = neqv[p, neqv[q, r]]},
+
+               proposition
+               // expectI [ neqv[p, neqv[q, r]] ] //
+
+               fireRule[neqvRule]
+               // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+
+               fireRule[symmetry, 1]
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+
+               fireRule[neqvRule, 2] (* Map at second nest level *)
+               // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+
+               fireRule[invNotRule, 1]
+               // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+
+               fireRule[doubleNegation]
+               // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+
+               fireRule[symmetry]
+               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+        ]}
+       ,
+         leftHalf === rightHalf]
+]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _

@@ -568,7 +568,7 @@ expect[ sameq[ x+y, 7 ],
     lower-case until we want to reduce them by force; mathics doesn't know how
     to reduce such expressions until we tell it explicitly with rewrite rules.
 
-    U N N A M E D   R U L E S
+        U N N A M E D   R U L E S
 
     We have two kinds of rewrite rules: named and unnamed. Many of the ones
     above are unnamed. Many such rules have the form "pattern -> result", for
@@ -687,7 +687,7 @@ expect[ sameq[ x+y, 7 ],
     arises once in some computation, and are therefore not worth naming and
     saving away for other uses.
 
-    N A M E D   R U L E S
+        N A M E D   R U L E S
 
     A named rule has the form "head[pattern] := result". Every place we used
     ":=", syntax for "SetDelayed", we defined a name, which becomes the "head"
@@ -710,7 +710,7 @@ expect[ sameq[ x+y, 7 ],
     environment of variables and their values at definition time and at
     evaluation time on the part of the programmer.
 
-    R E P L A C E A L L   V E R S U S   R E P L A C E A L L R E P E A T E D
+        O N E - S H O T   R U L E S
 
     One more important fact must be emphasized: when named rules are applied,
     mathics keeps rewriting until nothing changes any more. That is the normal
@@ -735,13 +735,14 @@ expect[ sameq[ x+y, 7 ],
         neqvRule = neqv[p_, q_] :> not[eqv[p, q]]
         eqvRule  = eqv[p_, q_]  :> not[neqv[p, q]]
 
-    retaining some benefits of naming. We apply the rule when _we_ want to, and
-    only as many times as we want to:
+    retaining benefits of naming by assigning these "one-shot" rules to global
+    symbols. We apply a one-shot rule when _we_ want to, and only as many times
+    as we want to:
 
         In[82]:= neqv[x, y] /. neqvRule
         Out[82]= not[eqv[x, y]]
 
-    If we want to keep going without stopping, then we use "//.",
+    If we want to keep going without stopping, then we must use "//.",
     "ReplaceAllRepeated".
 
     Back to our theorem from page 4, we'll write our new machinery with some
