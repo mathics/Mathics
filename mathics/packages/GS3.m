@@ -708,8 +708,9 @@ expect[
 
 (* (3.8) Axiom, Definition of "false", page 45 ***************************** *)
 
-ClearAll[false]
-false = not[true]
+ClearAll[false, falseRule, falseDef]
+falseRule = {false -> not[true]}
+falseDef  = eqv[false, not[true]]
 
 (* (3.9) Axiom, Distributivity of "not" over "eqv" ****************************
 
@@ -737,12 +738,15 @@ neqv[p_, q_] := not[eqv[p, q]]
 expect[ eqv[not[q], p]
         ,
         Module[{proposition = eqv[not[p], q]},
+
                (((proposition
                   // expectI[  eqv[not[p], q]   ]) /.
                   invNotRule)
                 // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
+
                 symmetry /@ #1 &
                 // expectBy[   not[eqv[q, p]]   , "internal symmetry"]) /.
+
                 notRule
                 // expectBy[   eqv[not[q], p]   , "notRule"]
         ] ]
@@ -761,6 +765,7 @@ expect[ eqv[not[q], p]
 expect[ eqv[not[q], p]
         ,
         Module[{proposition = eqv[not[p], q]},
+
                proposition
                // expectI[    eqv[not[p], q]   ] //
 
@@ -809,6 +814,7 @@ ClearAll[eqv]                   (* Turn off the flatness for now. *)
 expect[ true
     ,
     Module[{proposition = eqv[not[not[p]], p]},
+
        proposition
        // expectI[    eqv[not[not[p]], p]           ] //
 
@@ -851,10 +857,140 @@ expect[
         true
       ,
         Module[{proposition = not[false]},
-               proposition
+
+               proposition /. falseRule
                // expectBy[    not[not[true]]    , "axiom def. of false"] //
+
                doubleNegation
                // expectBy[    true              , "double negation"]
+        ]
+]
+
+(* (3.14) Unnamed Theorem eqv[ neqv[p, q], eqv[ not[p], q] ] *************** *)
+(* Transform neqv[p, q] to eqv[not[p], q]                                    *)
+
+expect[
+        eqv[not[p], q]
+      ,
+        Module[{proposition = neqv[p, q]},
+
+               proposition
+               // expectBy[    not[eqv[p, q]]    , "def. of neqv"] //
+
+               #1 /. notRule &
+               // expectBy[    eqv[not[p], q]    , "notRule"]
+        ]
+]
+
+(* (3.15) Unnamed Theorem eqv[ eqv[ not[p], p ], false] ******************** *)
+
+expect[
+        false
+      ,
+        Module[{proposition = eqv[not[p], p]},
+
+               proposition
+               // expectI[    eqv[not[p], p]    ] //
+
+               #1 /. invNotRule &
+               // expectBy[   not[eqv[p, p]]               , "invNotRule"] //
+
+               identity /@ #1 & (* line 3 *)
+               // expectBy[   not[eqv[true, eqv[p, p]]]    , "identity"] //
+
+               symmetry /@ #1 & (* line 4 *)
+               // expectBy[   not[eqv[eqv[p, p], true]]    , "symmetry"] //
+
+               (leibnizF[eqv[p, p], #1, z, z]&) /@ #1 & (* line 5 *)
+               // expectBy[   not[true]                    , "leibniz"] //
+
+               leibnizF[#1, symmetry[falseDef], z, z] &
+               // expectBy[   false    , "leibniz(symmetry(falseDef))"]
+        ]
+]
+
+(* ****************************************************************************
+
+   The proof of 3.15 introduced several new structures. First, we've seen the
+   pattern of identity, symmetry, leibniz before, in the proof of 3.12, double
+   negation. Its purpose is to introduce an equivalence to true in the first
+   position, i.e., to convert eqv[p, p] into eqv[true, eqv[p, p]], then swap
+   true into the second position, i.e., to generate eqv[eqv[p, p], true], then
+   finally to extract the true, demonstrating that eqv[p, p] reduces to true. In
+   this proof, of 3.15, we use that pattern _inside_ a not, and that's by
+   _mapping_ identity, symmetry, and leibniz on lines 3, 4, and 5 above.
+   Finally, we apply leibniz with a premise of symmetry[falseDef] to reduce
+   eqv[not[p], p] to false.
+
+   We capture the first of these patterns in a "lemma generator" (looking ahead
+   to page 53).
+
+ *************************************************************************** *)
+
+ClearAll[extractTrue]
+extractTrue[eqv[p_, p_]] :=
+        Module[{proposition = eqv[p, p]},
+
+               proposition
+               // expectBy[    eqv[p, p], "(lemma) prop"] //
+
+               identity
+               // expectBy[   eqv[true, eqv[p, p]], "(lemma) identity"] //
+
+               symmetry
+               // expectBy[   eqv[eqv[p, p], true], "(lemma) symmetry"] //
+
+               leibnizF[eqv[p, p], #1, z, z] &
+               // expectBy[   true                , "(lemma) leibniz"]
+        ]
+
+(* ****************************************************************************
+
+   Now, a new version of 3.12:
+
+ *************************************************************************** *)
+
+expect[ true
+      ,
+        Module[{proposition = eqv[not[not[p]], p]},
+
+               proposition
+               // expectI[    eqv[not[not[p]], p]           ] //
+
+               #1 /. invNotRule &
+               // expectBy[   not[eqv[not[p], p]]           , "invNotRule"] //
+
+               symmetry /@ #1 &
+               // expectBy[   not[eqv[p, not[p]]]           , "internal symmetry"] //
+
+               #1 /. notRule &
+               // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
+
+               extractTrue
+        ] ]
+
+(* ****************************************************************************
+
+   and an alternative for 3.15:
+
+ *************************************************************************** *)
+
+expect[
+        false
+      ,
+        Module[{proposition = eqv[not[p], p]},
+
+               proposition
+               // expectI[    eqv[not[p], p]    ] //
+
+               #1 /. invNotRule &
+               // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
+
+               extractTrue /@ #1 & (* line 3 *)
+               // expectBy[   not[true]         , "lemma"] //
+
+               leibnizF[#1, symmetry[falseDef], z, z] &
+               // expectBy[   false    , "leibniz(symmetry(falseDef))"]
         ]
 ]
 
