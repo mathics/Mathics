@@ -993,7 +993,7 @@ expect[ false
         ]
 ]
 
-(* (3.16) Symmetry of neqv ************************************************ *)
+(* (3.16) Symmetry of neqv ************************************************* *)
 
 expect[ neqv[q, p]
       ,
@@ -1009,6 +1009,52 @@ expect[ neqv[q, p]
                // expectBy[    neqv[q, p]        , "inverse neqv rule"]
         ]
 ]
+
+(* (3.17) Associativity of neqv ******************************************** *)
+
+ClearAll[simpleAssociativityEqvRule]
+simpleAssociativityEqvRule = eqv[eqv[p_, q_], r_] :> eqv[p, eqv[q, r]]
+
+
+
+expect [ True
+         ,
+Module[{leftHalf =
+        Module[{proposition = neqv[neqv[p, q], r]},
+               proposition
+               // expectI [ neqv[neqv[p, q], r] ] //
+               (#1 /. neqvRule)& /@ #1 &
+               // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
+               (#1 /. neqvRule)&
+               // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
+               (#1 /. invNotRule)& /@ #1 &
+               // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
+               doubleNegation
+               // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
+               associativity
+               // expectBy [ eqv[p, eqv[q, r]], "associativity"]
+        ],
+        rightHalf =
+        Module[{proposition = neqv[p, neqv[q, r]]},
+               proposition
+               // expectI [ neqv[p, neqv[q, r]] ] //
+               (#1 /. neqvRule)&
+               // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
+               symmetry /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               Map[(#1 /. neqvRule)&, #1, {2}] & (* Map at second nest level *)
+               // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
+               (#1 /. invNotRule)& /@ #1 &
+               // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
+               doubleNegation
+               // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
+               symmetry
+               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+        ]}
+       ,
+         leftHalf === rightHalf]
+]
+
 
 
 (* ****************************************************************************
