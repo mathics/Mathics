@@ -1011,7 +1011,31 @@ expect[ neqv[q, p]
         ]
 ]
 
-(* (3.17) Associativity of neqv ******************************************** *)
+(* (3.17) Associativity of neqv ***********************************************
+
+   For this one, we'll use a different kind of proof. We'll reduce the two
+   sides, neqv[neqv[p, q], r] and neqv[p, neqv[q, r]] to the same thing, namely
+   eqv[p, eqv[q, r]], then double-check the sameness with "SameQ", i.e., "===".
+   That's a tiny bit of cheating, because SameQ isn't in our metacircular
+   evaluator, yet, but it does prove the theorem.
+
+   We shall also need (for this proof) to Map "neqvRule" at the second level of
+   nesting, inside a "not" and an "eqv", to convert
+
+       not[eqv[neqv[q, r], p]]
+
+   to
+
+       not[eqv[not[eqv[q, r]], p]]
+
+   The proper way to do this is with a third argument to "Map" (see
+   http://reference.wolfram.com/language/ref/Map.html?q=Map):
+
+       Map[(#1 /. neqvRule)&, #1, {2}] & (* Map at second nest level *)
+
+   The "{2}", a singleton list, means "at the second level only, please".
+
+ *************************************************************************** *)
 
 ClearAll[simpleAssociativityEqvRule]
 simpleAssociativityEqvRule = eqv[eqv[p_, q_], r_] :> eqv[p, eqv[q, r]]
