@@ -314,16 +314,16 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
 
 ClearAll[deqv]
 
-expect[
-  eqv[eqv[p, q, q], p]
-  ,
-  Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
-    proposition                          // fump                  //
-    symmetry[#1]&                        // dump["symmetry", #1]& //
-    leibnizE[#1, eqv[p, z], z]&          //
-    leibnizE[proposition, eqv[p, z], z]& //
-    symmetry[#1]&                        // dump["symmetry", #1]&
-  ]
+expect[ eqv[eqv[p, q, q], p]
+      ,
+        Module[{proposition = eqv[p, eqv[p, q, q]]},
+               (* the prop. I want to prove *)
+               proposition                          // fump                  //
+               symmetry[#1]&                        // dump["symmetry", #1]& //
+               leibnizE[#1, eqv[p, z], z]&          //
+               leibnizE[proposition, eqv[p, z], z]& //
+               symmetry[#1]&                        // dump["symmetry", #1]&
+        ]
 ]
 
 (* ****************************************************************************
@@ -394,12 +394,16 @@ expect[ (* Reduce the proposition to the Axiom of Identity. *)
         identity[eqv[q, q]]
         ,
         Module[{proposition = true},
+
                (* The proposition is "true": *)
                proposition // fump //
+
                (* Instantiate the Axiom of Identity with the proposition:    *)
                identity[eqv[#1, #1]]& // dump["identity", #1]& //
+
                (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
                leibnizE[#1, z, z]& //
+
                (* Ues Leibniz again with a known truth, "identity", the      *)
                (*deduction so far, eqv[true, true], and a crafted            *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
@@ -485,8 +489,7 @@ expectBy[expected_, by_] :=
 
 
 
-expect[
-        identity[eqv[q, q]]
+expect[ identity[eqv[q, q]]
         ,
         Module[{proposition = true},
 
@@ -530,8 +533,7 @@ expect[
 
 (* (3.5) Theorem, Reflexivity of eqv: eqv[p, p] *)
 
-expect[
-        identity[eqv[p, p]]
+expect[ identity[eqv[p, p]]
         ,
         Module[{proposition = eqv[p, p]},
 
@@ -594,8 +596,7 @@ expect[
 
 SetAttributes[eqv, Flat]
 
-expect[
-        eqv[eqv[p, q, q], p]
+expect[ eqv[eqv[p, q, q], p]
         ,
         Module[{proposition = eqv[p, eqv[p, q, q]]},
 
@@ -730,8 +731,9 @@ invNotRule = (eqv[not[p_], q_] :> not[eqv[p, q]])
 
 (* (3.10) Axiom, Definition of "neqv" ************************************** *)
 
-ClearAll[neqv]
-neqv[p_, q_] := not[eqv[p, q]]
+ClearAll[neqv, neqvRule, invNeqvRule]
+neqvRule    = neqv[p_, q_]     :> not[eqv[p, q]]
+invNeqvRule = not[eqv[p_, q_]] :> neqv[p, q]
 
 (* (3.11) Unnamed theorem ************************************************** *)
 
@@ -760,7 +762,7 @@ expect[ eqv[not[q], p]
 
  *************************************************************************** *)
 
-(* (3.11) Unnamed theorem ************************************************** *)
+(* (3.11) Unnamed theorem (reduced parentheses) **************************** *)
 
 expect[ eqv[not[q], p]
         ,
@@ -853,8 +855,7 @@ doubleNegation[not[not[p_]]] := p;
 
 (* (3.13) Negation of false ************************************************ *)
 
-expect[
-        true
+expect[ true
       ,
         Module[{proposition = not[false]},
 
@@ -869,12 +870,11 @@ expect[
 (* (3.14) Unnamed Theorem eqv[ neqv[p, q], eqv[ not[p], q] ] *************** *)
 (* Transform neqv[p, q] to eqv[not[p], q]                                    *)
 
-expect[
-        eqv[not[p], q]
+expect[ eqv[not[p], q]
       ,
         Module[{proposition = neqv[p, q]},
 
-               proposition
+               proposition /. neqvRule
                // expectBy[    not[eqv[p, q]]    , "def. of neqv"] //
 
                #1 /. notRule &
@@ -884,8 +884,7 @@ expect[
 
 (* (3.15) Unnamed Theorem eqv[ eqv[ not[p], p ], false] ******************** *)
 
-expect[
-        false
+expect[ false
       ,
         Module[{proposition = eqv[not[p], p]},
 
@@ -967,7 +966,8 @@ expect[ true
                // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
 
                extractTrue
-        ] ]
+        ]
+]
 
 (* ****************************************************************************
 
@@ -975,8 +975,7 @@ expect[ true
 
  *************************************************************************** *)
 
-expect[
-        false
+expect[ false
       ,
         Module[{proposition = eqv[not[p], p]},
 
@@ -986,13 +985,31 @@ expect[
                #1 /. invNotRule &
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
 
-               extractTrue /@ #1 & (* line 3 *)
+               extractTrue /@ #1 & (* replaces original lines 3, 4, and 5 *)
                // expectBy[   not[true]         , "lemma"] //
 
                leibnizF[#1, symmetry[falseDef], z, z] &
                // expectBy[   false    , "leibniz(symmetry(falseDef))"]
         ]
 ]
+
+(* (3.16) Symmetry of neqv ************************************************ *)
+
+expect[ neqv[q, p]
+      ,
+        Module[{proposition = neqv[p, q]},
+
+               proposition /. neqvRule
+               // expectBy[    not[eqv[p, q]]    , "3.10, def of neqv"] //
+
+               symmetry /@ #1 &
+               // expectBy[    not[eqv[q, p]]    , "internal symmetry"] //
+
+               #1 /. invNeqvRule &
+               // expectBy[    neqv[q, p]        , "inverse neqv rule"]
+        ]
+]
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
