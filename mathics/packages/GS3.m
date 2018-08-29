@@ -1542,12 +1542,85 @@ expect[ eqv[not[q], p]
 (* (3.19) Mutual interchangeability                                          *)
 
 
+
+(*
+ __  __                       __           _        _ _         _
+|  \/  |__ _ __ _ _ ___ ___  / _|___ _ _  | |   ___(_) |__ _ _ (_)___
+| |\/| / _` / _| '_/ _ (_-< |  _/ _ \ '_| | |__/ -_) | '_ \ ' \| |_ /
+|_|  |_\__,_\__|_| \___/__/ |_| \___/_|   |____\___|_|_.__/_||_|_/__|
+
+ *)
+
 (* ****************************************************************************
 
    Alternatives for 3.15 (page 48)
 
+   We're going to replace our lemma generator because so much has changed
+   between then and now. We will just add a rule for the axiom of identity that
+   allows us to USE the first eqv in eqv[true, eqv[p, p]] to replace any
+   eqv[p_, p_] with true. Every time we USE an eqv, we are implicitly applying
+   Leibniz. That is not a relaxation of formality, but it is a hand-coding, akin
+   to a "macro." This is my own innovation, not something that G&S mention in so
+   many words.
+
  *************************************************************************** *)
 
+ClearAll[identity]
+identity = eqv[p_, p_] :> true
+
+expect[ false
+      ,
+        Module[{proposition = eqv[not[p], p]},
+
+               proposition
+               // expectBy[   eqv[not[p], p]    , "proposition"] //
+
+               fireRule[invNotRule, 0]
+               // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
+
+               fireRule[identity, 1]
+               // expectBy[   not[true]         , "lemma"] //
+
+               leibnizF[#1, falseDef /. symmetry, z, z] &
+               // expectBy[   false    , "leibniz(symmetry(falseDef))"] //
+
+               Identity
+        ]
+]
+
+(* ****************************************************************************
+
+   Alternatives for 3.15 (page 48)
+
+   We can replace the last use of Leibniz with another new macro. The old
+   definition of false is eqv[false, not[true]]. To USE the definition, we need
+   another use of Leibniz, the last line above "Identity." Let's turn that use
+   of Leibniz into a "macro":
+
+ *************************************************************************** *)
+
+ClearAll[falseDef]
+falseDef = not[true] -> false
+
+expect[ false
+      ,
+        Module[{proposition = eqv[not[p], p]},
+
+               proposition
+               // expectBy[   eqv[not[p], p]    , "proposition"] //
+
+               fireRule[invNotRule, 0]
+               // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
+
+               fireRule[identity, 1]
+               // expectBy[   not[true]         , "lemma"] //
+
+               fireRule[falseDef, 0]
+               // expectBy[   false             , "falseDef Leibniz macro"] //
+
+               Identity
+        ]
+]
 
 
 
