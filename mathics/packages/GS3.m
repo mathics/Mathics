@@ -1400,6 +1400,41 @@ expect[ True
                  identity]}
      , leftHalf === rightHalf]]
 
+(* (3.19) Mutual interchangeability *******************************************
+
+   Now that we've proved associativity of neqv, we can make both eqv and neqv
+   Flat again, and simplify proofs. Notice that we present the rightHalf before
+   the leftHalf so that our statement of 3.19 is closer to the book but also
+   close to the proof of 3.18. We constructed this proof (of 3.19) by
+   copy-pasting the proof of 3.18 (immediately above) and doing some
+   associativity by hand.
+
+ *************************************************************************** *)
+
+SetAttributes[neqv, Flat]
+SetAttributes[eqv, Flat]
+
+expect[ True
+      ,
+        Module[{rightHalf=
+                Module[{proposition = eqv[neqv[p, q], r]},
+                       proposition
+                       // expectI  [ eqv[neqv[p, q], r] ] //
+                       fireRule[neqvRule, 1]
+                       // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+                       fireRule[invNotRule, 0]
+                       // expectBy [ not[eqv[eqv[p, q, r]]], "def of neqv" ] //
+                       identity],
+                leftHalf=
+                Module[{proposition = neqv[p, eqv[q, r]]},
+                       proposition
+                       // expectI  [ neqv[p, eqv[q, r]] ] //
+                       fireRule[neqvRule, 0]
+                       // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
+                       identity]}
+             , leftHalf === rightHalf]]
+
+
 (* ****************************************************************************
  _____ _          _____                                        ___         _
 |_   _| |_  ___  |_   _|__ _ __  _ __  ___ _ _ __ _ _ _ _  _  | __|_ _  __| |
