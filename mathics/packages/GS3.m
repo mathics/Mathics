@@ -391,19 +391,19 @@ leibnizF[ eXForZcheck_, premise:eqv[ x_, y_ ], e_, z_ ] :=
 
 (* (3.4) Theorem, _true_ *************************************************** *)
 
-expect[ (* Reduce the proposition to the Axiom of Identity. *)
-        identity[eqv[q, q]]
+expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
+        identity[eqv[q, q]]     (*    true === q === q                       *)
         ,
         Module[{proposition = true},
 
-               (* The proposition is "true": *)
-               proposition // fump //
+               (* The proposition is "true":                                 *)
+               proposition                                           // fump //
 
                (* Instantiate the Axiom of Identity with the proposition:    *)
-               identity[eqv[#1, #1]]& // dump["identity", #1]& //
+               identity[eqv[#1, #1]]&               // dump["identity", #1]& //
 
                (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
-               leibnizE[#1, z, z]& //
+               leibnizE[#1, z, z]&                                           //
 
                (* Ues Leibniz again with a known truth, "identity", the      *)
                (*deduction so far, eqv[true, true], and a crafted            *)
@@ -490,11 +490,13 @@ expectBy[expected_, by_] :=
 
 
 
+(* (3.4) Theorem, _true_ ( new proof ) ************************************* *)
+
 expect[ identity[eqv[q, q]]
         ,
         Module[{proposition = true},
 
-               (* The proposition is "true": *)
+               (* The proposition is "true":                                 *)
 
                proposition
                // expectI[true] //
@@ -532,9 +534,9 @@ expect[ identity[eqv[q, q]]
 
  *************************************************************************** *)
 
-(* (3.5) Theorem, Reflexivity of eqv: eqv[p, p] *)
+(* (3.5) Theorem, Reflexivity of eqv: eqv[p, p] **************************** *)
 
-expect[ identity[eqv[p, p]]
+expect[ identity[eqv[p, p]]     (* eqv[true, eqv[p, p]] *)
         ,
         Module[{proposition = eqv[p, p]},
 
@@ -1368,10 +1370,14 @@ Module[{leftHalf =
 
 (* (3.18) Mutual associativity of eqv and neqv ********************************
 
-   We add an "identity" at the end so that every pair of lines looks like
+   We add Mathics built-in "Identity", not to be confused with our axiom of
+   identity 3.3, at the end of every pair of lines, so they look like
 
       fireRule[ ... ]
       // expect ... //
+
+   that is, we don't have to remember to remove the trailing // on the last line
+   of a chain of steps.
 
    Again, this will help us with future "code generation," i.e., automating the
    process of producing proofs.
@@ -1395,7 +1401,7 @@ expect[ True
                  fireRule[leftAssociativity, 1]
                  // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
 
-                 identity],
+                 Identity],
 
           rightHalf=
           Module[{proposition = neqv[p, eqv[q, r]]},
@@ -1406,7 +1412,7 @@ expect[ True
                  fireRule[neqvRule, 0]
                  // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
 
-                 identity]}
+                 Identity]}
 
      , leftHalf === rightHalf]]
 
@@ -1438,7 +1444,7 @@ expect[ True
                        fireRule[invNotRule, 0]
                        // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
 
-                       identity],
+                       Identity],
 
                 leftHalf=
                 Module[{proposition = neqv[p, eqv[q, r]]},
@@ -1449,9 +1455,101 @@ expect[ True
                        fireRule[neqvRule, 0]
                        // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
 
-                       identity]}
+                       Identity]}
 
              , leftHalf === rightHalf]]
+
+(* ****************************************************************************
+
+   The heuristic, 3.21, says, just "pattern-match" the proposition against
+   existing axioms and theorems. Well, that's exactly what we're doing with
+   mathics. You can begin to see the madness behind the method: we're developing
+   pattern-matching abstractions, and then we plan to automate the heuristic by
+   searching for matching patterns.
+
+   Let's see how our tools are working out. We'll do a new proof of 3.11, an
+   unnamed theorem. First, we rewrite the old proof with our new "fireRule"
+   construction. G&S say "Note that Symmetry of === is used in the second step
+   of the proof, without explicit mention." We can automate the two symmetry
+   properties we know of, for eqv and for neqv, with the Attribute "Orderless."
+   That will interfere with the proof of the unnamed theorem because our notRule
+   and invNotRule for Axiom 3.9 only allow us to distribute "not" over the first
+   slot in an eqv. We cannot control what mathics puts in the first slot with an
+   orderless eqv. We shall have to continue with explicit applications of
+   symmetry, at least for a while.
+
+ *************************************************************************** *)
+
+(* (3.11) Unnamed theorem (cleaner version of old proof) ******************* *)
+
+expect[ eqv[not[q], p]
+      ,
+        Module[{proposition = eqv[not[p], q]},
+
+               proposition
+               // expectBy[    eqv[not[p], q]   , "proposition" ] //
+
+               fireRule[invNotRule, 0]
+               // expectBy[    not[eqv[p, q]]   , "invNotRule"] //
+
+               fireRule[symmetry, 1]
+               // expectBy[    not[eqv[q, p]]   , "internal symmetry"] //
+
+               fireRule[notRule, 0]
+               // expectBy[    eqv[not[q], p]   , "notRule"] //
+
+               Identity
+        ] ]
+
+
+
+(* Cheat sheet so far                                                        *)
+
+(* leibniz[ eqv[x_, y_], e_, z_ ] := eqv[e /. {z -> x}, e /. {z -> y}])      *)
+(* transitivity[ and [ eqv[x_, y_], eqv[y_, z_] ] ] := eqv[x, z]             *)
+(* substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]     *)
+(*                                                                           *)
+(* (3.1) Axiom, Associativity of eqv                                         *)
+(* leftAssociativity  = eqv[ eqv[p_, q_], r_ ] :> eqv[ p, eqv[q, r] ]        *)
+(* rightAssociativity = eqv[ p_, eqv[q_, r_] ] :> eqv[ eqv[p, q], r ]        *)
+(*                                                                           *)
+(* (3.2) Axiom, Symmetry of eqv                                              *)
+(* p === q === q === p                                                       *)
+(* symmetry = eqv[p_, q_] :> eqv[q, p]                                       *)
+(*                                                                           *)
+(* (3.3) Axiom, Identity of eqv, page 44                                     *)
+(* true === q === q                                                          *)
+(* identity = eqv[q_, q_] :> eqv[true, eqv[q, q]]                            *)
+(*                                                                           *)
+(* (3.4) Theorem, _true_                                                     *)
+(* (3.5) Theorem, Reflexivity of eqv: eqv[p, p]                              *)
+(* (3.9) Axiom, Distributivity of "not" over "eqv"                           *)
+(* notRule    = (not[eqv[p_, q_]] :> eqv[not[p], q])                         *)
+(* invNotRule = (eqv[not[p_], q_] :> not[eqv[p, q]])                         *)
+(*                                                                           *)
+(* (3.10) Axiom, Definition of "neqv"                                        *)
+(* neqvRule    = neqv[p_, q_]     :> not[eqv[p, q]]                          *)
+(* invNeqvRule = not[eqv[p_, q_]] :> neqv[p, q]                              *)
+(*                                                                           *)
+(* (3.11) Unnamed theorem eqv[ eqv[not[p], q], eqv[p, not[q] ]               *)
+(* (3.12) Double negation: eqv[ not[not[p]], p ]                             *)
+(* doubleNegation = not[not[p_]] :> p                                        *)
+(*                                                                           *)
+(* (3.13) Negation of false                                                  *)
+(* (3.14) Unnamed Theorem eqv[ neqv[p, q], eqv[ not[p], q] ]                 *)
+(* (3.15) Unnamed Theorem eqv[ eqv[ not[p], p ], false]                      *)
+(* (3.18) Mutual associativity of eqv and neqv                               *)
+(* (3.19) Mutual interchangeability                                          *)
+
+
+(* ****************************************************************************
+
+   Alternatives for 3.15 (page 48)
+
+ *************************************************************************** *)
+
+
+
 
 
 (* ****************************************************************************
