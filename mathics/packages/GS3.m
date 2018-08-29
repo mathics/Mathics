@@ -1366,7 +1366,39 @@ Module[{leftHalf =
          leftHalf === rightHalf]
 ]
 
+(* (3.18) Mutual associativity of eqv and neqv ********************************
 
+   We add an "identity" at the end so that every pair of lines looks like
+
+      fireRule[ ... ]
+      // expect ... //
+
+   Again, this will help us with future "code generation," i.e., automating the
+   process of producing proofs.
+
+ *************************************************************************** *)
+
+expect[ True
+,
+  Module[{leftHalf=
+          Module[{proposition = eqv[neqv[p, q], r]},
+                 proposition
+                 // expectI  [ eqv[neqv[p, q], r] ] //
+                 fireRule[neqvRule, 1]
+                 // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+                 fireRule[invNotRule, 0]
+                 // expectBy [ not[eqv[eqv[p, q], r]], "def of neqv" ] //
+                 fireRule[leftAssociativity, 1]
+                 // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
+                 identity],
+          rightHalf=
+          Module[{proposition = neqv[p, eqv[q, r]]},
+                 proposition
+                 // expectI  [ neqv[p, eqv[q, r]] ] //
+                 fireRule[neqvRule, 0]
+                 // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
+                 identity]}
+     , leftHalf === rightHalf]]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
