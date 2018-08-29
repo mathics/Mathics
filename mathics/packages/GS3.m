@@ -1382,22 +1382,32 @@ expect[ True
 ,
   Module[{leftHalf=
           Module[{proposition = eqv[neqv[p, q], r]},
+
                  proposition
                  // expectBy [ eqv[neqv[p, q], r], "left prop" ] //
+
                  fireRule[neqvRule, 1]
                  // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+
                  fireRule[invNotRule, 0]
                  // expectBy [ not[eqv[eqv[p, q], r]], "def of neqv" ] //
+
                  fireRule[leftAssociativity, 1]
                  // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
+
                  identity],
+
           rightHalf=
           Module[{proposition = neqv[p, eqv[q, r]]},
+
                  proposition
                  // expectBy [ neqv[p, eqv[q, r]], "right prop" ] //
+
                  fireRule[neqvRule, 0]
                  // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
+
                  identity]}
+
      , leftHalf === rightHalf]]
 
 (* (3.19) Mutual interchangeability *******************************************
@@ -1418,20 +1428,29 @@ expect[ True
       ,
         Module[{rightHalf=
                 Module[{proposition = eqv[neqv[p, q], r]},
+
                        proposition
                        // expectBy [ eqv[neqv[p, q], r], "right prop" ] //
+
                        fireRule[neqvRule, 1]
                        // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+
                        fireRule[invNotRule, 0]
                        // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
+
                        identity],
+
                 leftHalf=
                 Module[{proposition = neqv[p, eqv[q, r]]},
+
                        proposition
                        // expectBy [ neqv[p, eqv[q, r]], "left prop" ] //
+
                        fireRule[neqvRule, 0]
                        // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
+
                        identity]}
+
              , leftHalf === rightHalf]]
 
 
