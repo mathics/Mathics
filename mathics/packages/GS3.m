@@ -1048,7 +1048,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
-               // expectI [ neqv[neqv[p, q], r] ] //
+               // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
                (#1 /. neqvRule)& /@ #1 &
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
@@ -1069,7 +1069,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
-               // expectI [ neqv[p, neqv[q, r]] ] //
+               // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                (#1 /. neqvRule)&
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
@@ -1120,7 +1120,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
-               // expectI [ neqv[neqv[p, q], r] ] //
+               // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
                fireRule[neqvRule] /@ #1 &
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
@@ -1141,7 +1141,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
-               // expectI [ neqv[p, neqv[q, r]] ] //
+               // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
@@ -1181,7 +1181,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
-               // expectI [ neqv[neqv[p, q], r] ] //
+               // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
@@ -1202,7 +1202,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
-               // expectI [ neqv[p, neqv[q, r]] ] //
+               // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
@@ -1262,7 +1262,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
-               // expectI [ neqv[neqv[p, q], r] ] //
+               // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
@@ -1283,7 +1283,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
-               // expectI [ neqv[p, neqv[q, r]] ] //
+               // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
@@ -1321,7 +1321,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
-               // expectI [ neqv[neqv[p, q], r] ] //
+               // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
@@ -1342,7 +1342,7 @@ Module[{leftHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
-               // expectI [ neqv[p, neqv[q, r]] ] //
+               // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                fireRule[neqvRule, 0]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
@@ -1383,7 +1383,7 @@ expect[ True
   Module[{leftHalf=
           Module[{proposition = eqv[neqv[p, q], r]},
                  proposition
-                 // expectI  [ eqv[neqv[p, q], r] ] //
+                 // expectBy [ eqv[neqv[p, q], r], "left prop" ] //
                  fireRule[neqvRule, 1]
                  // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
                  fireRule[invNotRule, 0]
@@ -1394,7 +1394,7 @@ expect[ True
           rightHalf=
           Module[{proposition = neqv[p, eqv[q, r]]},
                  proposition
-                 // expectI  [ neqv[p, eqv[q, r]] ] //
+                 // expectBy [ neqv[p, eqv[q, r]], "right prop" ] //
                  fireRule[neqvRule, 0]
                  // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
                  identity]}
@@ -1419,16 +1419,16 @@ expect[ True
         Module[{rightHalf=
                 Module[{proposition = eqv[neqv[p, q], r]},
                        proposition
-                       // expectI  [ eqv[neqv[p, q], r] ] //
+                       // expectBy [ eqv[neqv[p, q], r], "right prop" ] //
                        fireRule[neqvRule, 1]
                        // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
                        fireRule[invNotRule, 0]
-                       // expectBy [ not[eqv[eqv[p, q, r]]], "def of neqv" ] //
+                       // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
                        identity],
                 leftHalf=
                 Module[{proposition = neqv[p, eqv[q, r]]},
                        proposition
-                       // expectI  [ neqv[p, eqv[q, r]] ] //
+                       // expectBy [ neqv[p, eqv[q, r]], "left prop" ] //
                        fireRule[neqvRule, 0]
                        // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
                        identity]}
