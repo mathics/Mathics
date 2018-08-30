@@ -1624,6 +1624,104 @@ expect[ false
 
 
 
+(* ****************************************************************************
+   Digression into WFF-N-PROOF
+
+DEFINITIONS
+
+A grammar is a function from non-terminal symbols to productions.
+
+    Example: the grammar P is a function defined on a set of five non-terminals,
+    "Start", "Binary", "Unary", "Proposition", and "Start".
+
+A production is an ordered sequence of alternatives.
+
+    Example: The production "P[Wff]", the value of the function P at the
+    non-terminal Wff, is a sequence of three alternatives "{{Proposition},
+    {Unary}, {Binary}}". We model a sequence with a list in curly braces.
+
+An alternative is an ordered sequence of terms.
+
+    Example: The alternative "{Proposition}" is a sequence of one term.
+
+A term is either a terminal symbol or a non-terminal symbol.
+
+    Example: The term "Proposition" is a non-terminal symbol.
+
+A terminal symbol is a literal token like "p" or "q".
+
+    Example: The value "P[Proposition]" of our function P at the non-terminal
+    "Proposition", is the sequence of terminals "{{p}, {q}, {r}, {s}}"
+
+A non-terminal symbol recurses back into the grammar.
+
+    Example: The alternative {"C", Wff, Wff} is a sequence of three terms: one
+    terminal, "C", and two non-terminals, Wff.
+
+An instance (utterance) is a string consisting entirely of terminal symbols.
+
+A context-free grammar is one whose productions may be applied anywhere in an
+instance without regard to preceding or following input. Such grammars are the
+only ones of interest, here.
+
+The start symbol is the special, distinguished name Start. This name is not
+available for user-defined symbols.
+
+The following example context-free grammar comes from the famous game
+"Wff-n-Proof: https://www.amazon.com/Wffn-Proof-Book-Layman-Allen/dp/B0007FIH94
+
+ *************************************************************************** *)
+
+ClearAll[P, Wff, Proposition, Unary, Binary, T, nonTerminalsFromGrammar,
+         terminalsFromGrammar];
+
+(* We call our grammar "P". We "Set" (mathics's word for "assign" or "define"
+   value of a pattern) four values for P because our grammar has five
+   non-terminals ("Start" is automatically added. The production for "Wff" is
+   "{{Proposition}, {Unary}, {Binary}}". *)
+
+P[Wff] = {{Proposition}, {Unary}, {Binary}};
+P[Proposition] = {{"p"}, {"q"}, {"r"}, {"s"}};
+P[Unary] = {{"N", Wff}};
+P[Binary] = {{"C", Wff, Wff},
+             {"A", Wff, Wff},
+             {"K", Wff, Wff},
+             {"E", Wff, Wff}};
+P[Start] = P[Wff];
+
+(* Non-Terminal Symbols *)
+(* "DownValues" sniffs the lookup keys out of a table, retrieving the domain of
+the grammar function. These are the non-terminals. *)
+
+ClearAll[nonTerminalsFromGrammar];
+nonTerminalsFromGrammar[ps_] := #[[1, 1, 1]] & /@ DownValues[ps]
+
+expect[
+        {Start, Binary, Unary, Proposition, Wff}
+      ,
+        nonTerminalsFromGrammar @ P
+]
+
+(* Terminal Symbols *)
+(* The terminals in a grammar is the complement of the non-terminals against the
+set of all symbols. *)
+
+ClearAll[allSymbols];
+allSymbols[ps_] := Union @ Flatten[#[[2]] & /@ DownValues[ps]]
+
+ClearAll[terminalsFromGrammar];
+terminalsFromGrammar[ps_] :=
+        Complement[
+                allSymbols @ ps,
+                nonTerminalsFromGrammar @ ps]
+
+(* T = set of terminals: Global Variable *)
+
+expect [
+        (T = terminalsFromGrammar @ P)
+        ,
+          {"A", "C", "E", "K", "N", "p", "q", "r", "s"}
+]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
