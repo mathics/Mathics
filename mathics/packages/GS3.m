@@ -405,7 +405,7 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
                (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
                leibnizE[#1, z, z]&                                           //
 
-               (* Ues Leibniz again with a known truth, "identity", the      *)
+               (* Use Leibniz again with a known truth, "identity", the      *)
                (*deduction so far, eqv[true, true], and a crafted            *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
                (* This reduces to an instance of identity so we're done.     *)
@@ -450,7 +450,7 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
          leibnizE[#1, z, z]&
          // expectBy[eqv[true, true], "leibniz"] //
 
-         (* Ues Leibniz again with a known truth, "identity", the    *)
+         (* Use Leibniz again with a known truth, "identity", the    *)
          (* deduction so far, eqv[true, true], and a crafted         *)
          (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z. *)
          (* This reduces to an instance of identity so we're done.   *)
@@ -511,7 +511,7 @@ expect[ identity[eqv[q, q]]
                leibnizE[#1, z, z]&
                // expectBy[eqv[true, true], "leibniz"] //
 
-               (* Ues Leibniz again with a known truth, "identity", the      *)
+               (* Use Leibniz again with a known truth, "identity", the      *)
                (* deduction so far, eqv[true, true], and a crafted           *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
                (* This reduces to an instance of identity so we're done.     *)
@@ -1470,7 +1470,7 @@ expect[ True
    Let's see how our tools are working out. We'll do a new proof of 3.11, an
    unnamed theorem. First, we rewrite the old proof with our new "fireRule"
    construction. G&S say "Note that Symmetry of === is used in the second step
-   of the proof, without explicit mention." We can automate the two symmetry
+   of the proof, without explicit mention." We could automate the two symmetry
    properties we know of, for eqv and for neqv, with the Attribute "Orderless."
    That will interfere with the proof of the unnamed theorem because our notRule
    and invNotRule for Axiom 3.9 only allow us to distribute "not" over the first
@@ -1663,9 +1663,64 @@ expect[ neqv[q, p]
  *)
 
 
+ClearAll[or]
 
-(* (3.24 Axiom, Symmetry of \/, page 44 *)
 
+(* (3.24) Axiom, Symmetry of \/, page 49 *)
+ClearAll[symmetryOfDisjunction]
+symmetryOfDisjunction = or[p_, q_] :> or[q, p]
+
+
+(* (3.25) Axiom, Associativity of \/, page 49 *)
+
+(* We may later soak up associativity with a "Flat" attribute for "or". *)
+ClearAll[leftAssociativityOfDisjunction, rightAssociativityOfDisjunction]
+leftAssociativityOfDisjunction  = or[or[p_, q_], r_] :> or[p, or[p, q]]
+rightAssociativityOfDisjunction = or[p_, or[q_, r_]] :> or[or[p, q], r]
+
+
+(* (3.26) Axiom, Idempotency of \/, page 49 *)
+ClearAll[idempotencyOfDisjunction]
+idempotencyOfDisjunction = or[p_, p_] :> p;
+
+
+(* (3.27) Axiom, Distributivity of \/ over eqv, page 49  *)
+ClearAll[distributivityOfOrOverEqv, multiplyingOutDisjunction, factoringDisjunction]
+multiplyingOutDisjunction = or[p_, eqv[q_, r_]] :> eqv[or[p, q], or[p, r]];
+factoringDisjunction = eqv[or[p_, q_], or[p_, r_]] :> or[p, eqv[q, r]]
+
+
+(* (3.28) Axiom, Excluded Middle *)
+ClearAll[excludedMiddle, invExcludedMiddle]
+excludedMiddle = true :> or[p, not[p]];
+invExcludedMiddle = or[p_, not[p_]] :> true
+
+
+
+(* (3.29) Theorem, Zero of \/ *)
+
+expect[true
+     ,
+       Module[{proposition = or[p, true]},
+
+              proposition
+              // expectBy[    or[p, true]       , "proposition"] //
+
+              fireRule[excludedMiddle, 1]
+              // expectBy[    or[p, or[p, not[p]]]  , "3.28, excluded middle"] //
+
+              fireRule[rightAssociativityOfDisjunction, 0]
+              // expectBy[    or[or[p, p], not[p]]  , "3.25, associativity"] //
+
+              fireRule[idempotencyOfDisjunction, 1]
+              // expectBy[    or[p, not[p]]         , "3.26, idempotency"] //
+
+              fireRule[invExcludedMiddle, 0]
+              // expectBy[    true                  , "3.28 excluded middle"] //
+
+              Identity
+       ]
+]
 
 
 
