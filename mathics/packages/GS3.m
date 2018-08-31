@@ -1884,11 +1884,26 @@ generateSentence[iP_, groundTerm_, T_, recursionLimit_: 100] :=
 SeedRandom[44];
 expect [
     ToString /@
-             {C, A, N, N, N, A, N, s, E, N, N, N, r, C, N, p, q, E, A, N, C, K, K,
-              E, C, N, p, A, C, q, q, r, s, s, C, K, q, N, K, K, C, N, p, s, q, N, N, r,
-              r, N, q, C, q, A, p, q, r, N, s}
+    {C, A, N, N, N, A, N, s, E, N, N, N, r, C, N, p, q, E, A, N, C, K, K,
+     E, C, N, p, A, C, q, q, r, s, s, C, K, q, N, K, K, C, N, p, s, q, N, N, r,
+     r, N, q, C, q, A, p, q, r, N, s}
   ,
     generateSentence[iP, Proposition, T, 500]
+]
+
+
+
+expect [
+    ToString /@
+    {A, C, N, q, A, p, C, N, A, N, K, p, r, K, E, N, N, C, N, r, N,
+     C, A, C, p, A, A, N, p, N, K, r, K, A, E, p, N, N, q, N, C, E, N, N, N, C,
+     N, K, N, p, s, K, s, N, r, r, N, K, s, r, q, N, C, N, K, N, A, p, N, E, s,
+     A, N, N, N, s, N, C, N, C, q, p, s, N, q, p, q, N, A, N, q, N, r, N, s, p,
+     N, E, p, A, q, N, A, r, K, q, N, q, N, s}
+  ,
+    Block[{$RecursionLimit=500},
+          SeedRandom[56];
+          generateSentence[iP, Proposition, T, 500]]
 ]
 
 
@@ -1897,6 +1912,7 @@ ClearAll[expressionStringFromSentenceRules, expressionStringFromSentence];
 expressionStringFromSentenceRules = {};
 expressionStringFromSentence[sentence_] :=
   sentence /. expressionStringFromSentenceRules // StringJoin;
+
 
 
 (* ****************************************************************************
