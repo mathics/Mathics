@@ -1627,58 +1627,73 @@ expect[ false
 (* ****************************************************************************
    Digression into WFF-N-PROOF
 
-DEFINITIONS
 
-A grammar is a function from non-terminal symbols to productions.
+   From the famous game "Wff-n-Proof:
+   https://www.amazon.com/Wffn-Proof-Book-Layman-Allen/dp/B0007FIH94
 
-    Example: the grammar P is a function defined on a set of five non-terminals,
-    "Start", "Binary", "Unary", "Proposition", and "Start".
 
-A production is an ordered sequence of alternatives.
+   DEFINITIONS
 
-    Example: The production "P[Wff]", the value of the function P at the
-    non-terminal Wff, is a sequence of three alternatives "{{Proposition},
-    {Unary}, {Binary}}". We model a sequence with a list in curly braces.
+    A grammar is a function from non-terminal symbols to productions.
 
-An alternative is an ordered sequence of terms.
+        Example: the grammar P is a function defined on a set of five
+        non-terminals, "Start", "Binary", "Unary", "Proposition", and "Start".
 
-    Example: The alternative "{Proposition}" is a sequence of one term.
+    A production is an ordered sequence of alternatives.
 
-A term is either a terminal symbol or a non-terminal symbol.
+        Example: The production "P[Wff]", the value of the function P at the
+        non-terminal Wff, is a sequence of three alternatives "{{Proposition},
+        {Unary}, {Binary}}". We model a sequence with a list in curly braces.
 
-    Example: The term "Proposition" is a non-terminal symbol.
+    An alternative is an ordered sequence of terms.
 
-A terminal symbol is a literal token like "p" or "q".
+        Example: The alternative "{Proposition}" is a sequence of one term.
 
-    Example: The value "P[Proposition]" of our function P at the non-terminal
-    "Proposition", is the sequence of terminals "{{p}, {q}, {r}, {s}}"
+    A term is either a terminal symbol or a non-terminal symbol.
 
-A non-terminal symbol recurses back into the grammar.
+        Example: The term "Proposition" is a non-terminal symbol.
 
-    Example: The alternative {"C", Wff, Wff} is a sequence of three terms: one
-    terminal, "C", and two non-terminals, Wff.
+    A terminal symbol is a literal token like "p" or "q".
 
-An instance (utterance) is a string consisting entirely of terminal symbols.
+        Example: The value "P[Proposition]" of our function P at the
+        non-terminal "Proposition", is the sequence of terminals "{{p}, {q},
+        {r}, {s}}"
 
-A context-free grammar is one whose productions may be applied anywhere in an
-instance without regard to preceding or following input. Such grammars are the
-only ones of interest, here.
+    A non-terminal symbol recurses back into the grammar.
 
-The start symbol is the special, distinguished name Start. This name is not
-available for user-defined symbols.
+        Example: The alternative {"C", Wff, Wff} is a sequence of three terms:
+        one terminal, "C", and two non-terminals, Wff.
 
-The following example context-free grammar comes from the famous game
-"Wff-n-Proof: https://www.amazon.com/Wffn-Proof-Book-Layman-Allen/dp/B0007FIH94
+    An instance (utterance) is a string consisting entirely of terminal symbols.
+
+    A context-free grammar is one whose productions may be applied anywhere in
+    an instance without regard to preceding or following input. Such grammars
+    are the only ones of interest, here.
+
+    The start symbol is the special, distinguished name Start. This name is not
+    available for user-defined symbols.
 
  *************************************************************************** *)
+
+
 
 ClearAll[P, Wff, Proposition, Unary, Binary, T, nonTerminalsFromGrammar,
          terminalsFromGrammar];
 
-(* We call our grammar "P". We "Set" (mathics's word for "assign" or "define"
-   value of a pattern) four values for P because our grammar has five
-   non-terminals ("Start" is automatically added. The production for "Wff" is
-   "{{Proposition}, {Unary}, {Binary}}". *)
+
+
+(* We call our grammar "P" for "Propositional Calculus". We "Set" five values
+   for P because our grammar has five non-terminals. "Set" is mathics's word for
+   "assign," more precisely, to "define" the value of a pattern. If the pattern
+   is the pattern constant "Wff", then the expression
+
+       P[Wff] = {{Proposition}, {Unary}, {Binary}};
+
+   meanss "define the value of the pattern P[Wff] to be {{Proposition}, {Unary},
+ {Binary}}." In turn, this means "whenever you see 'P[Wff]', please replace it
+ with '{{Proposition}, {Unary}, {Binary}}'." *)
+
+
 
 P[Wff] = {{Proposition}, {Unary}, {Binary}};
 P[Proposition] = {{"p"}, {"q"}, {"r"}, {"s"}};
@@ -1689,12 +1704,22 @@ P[Binary] = {{"C", Wff, Wff},
              {"E", Wff, Wff}};
 P[Start] = P[Wff];
 
+
+
 (* Non-Terminal Symbols *)
-(* "DownValues" sniffs the lookup keys out of a table, retrieving the domain of
-the grammar function. These are the non-terminals. *)
+
+(* "DownValues" sniffs the lookup keys out of a bunch of definitions, retrieving
+    the domain of the grammar function. I map #[[1, 1, 1]]& down the list of
+    downvalues because that's all I want from them. Type "DownValues[P]" if
+    you're curious about every detail in there. I just want to fish out the
+    non-terminals. *)
+
+
 
 ClearAll[nonTerminalsFromGrammar];
 nonTerminalsFromGrammar[ps_] := #[[1, 1, 1]] & /@ DownValues[ps]
+
+
 
 expect[
         {Start, Binary, Unary, Proposition, Wff}
@@ -1702,26 +1727,177 @@ expect[
         nonTerminalsFromGrammar @ P
 ]
 
+
+
 (* Terminal Symbols *)
+
 (* The terminals in a grammar is the complement of the non-terminals against the
-set of all symbols. *)
+   set of all symbols.
+
+   To see how I got the list of all symbols, Type DownValues[P] in the console
+   to see the list of everything, then figure out why I mapped #[[2]]& down the
+   list, then why I flattened it, then why I fed it to "Union". *)
+
+
 
 ClearAll[allSymbols];
 allSymbols[ps_] := Union @ Flatten[#[[2]] & /@ DownValues[ps]]
 
+
+
 ClearAll[terminalsFromGrammar];
 terminalsFromGrammar[ps_] :=
-        Complement[
-                allSymbols @ ps,
-                nonTerminalsFromGrammar @ ps]
+    Complement[
+        allSymbols @ ps,
+        nonTerminalsFromGrammar @ ps]
+
+
 
 (* T = set of terminals: Global Variable *)
+
+
 
 expect [
         (T = terminalsFromGrammar @ P)
         ,
-          {"A", "C", "E", "K", "N", "p", "q", "r", "s"}
+        {"A", "C", "E", "K", "N", "p", "q", "r", "s"}
 ]
+
+
+
+ClearAll[injectGenerationProbabilities];
+injectGenerationProbabilities[grammar_, probsFromAlternatives_] :=
+    Module[{newTable, nonTerminals = nonTerminalsFromGrammar@grammar},
+       Scan[Function[nonTerminal,
+           Module[{
+               alternatives = grammar[nonTerminal],
+               probabilities = probsFromAlternatives[grammar[nonTerminal]]},
+                   newTable[nonTerminal] =
+                   MapThread[
+                       Function[{prob, alt},
+                                {"probability" -> prob,
+                                 "alternative" -> alt}],
+                       {probabilities, alternatives} ]
+           ]],
+            nonTerminals];
+       newTable]
+
+ClearAll[equiProbabilities];
+equiProbabilities[list_List] :=
+    Module[{l = Length@list}, Table[N[1/l], {l}]]
+
+ClearAll[iP]; (iP = injectGenerationProbabilities[P, equiProbabilities]);
+
+DownValues[Evaluate[iP]]
+
+
+
+ClearAll[chooseFromAlternatives];
+
+
+
+(* If there is only one alternative, choose it: *)
+
+
+
+chooseFromAlternatives[{probabilizedAlternative_}, dieRoll_] :=
+  "alternative" /. probabilizedAlternative;
+
+
+
+(* If there are many, pick the first if its cumulative probability is greater
+   than or equal to the dieRoll. Track the cumulative probability by
+   decrementing the dieRoll by each non-cumulative probability as we recurse the
+   sequence of alternatives. *)
+
+
+
+chooseFromAlternatives[{probabilizedAlternative_, rest___}, dieRoll_] :=
+    Module[{p = "probability" /. probabilizedAlternative},
+           If[dieRoll < p,
+              (* then *)"alternative" /. probabilizedAlternative,
+              (* else *)chooseFromAlternatives[{rest}, dieRoll - p]]];
+
+chooseFromAlternatives[badArgs___] :=
+  Throw[{"CHOOSE:BADARGS: ", {badArgs}}];
+
+
+
+(* The ground term is the term to force when the recursion limit is exceeded.
+   The default recursion limit is 100. Cdr down the sequence of terms in the
+   production, randomly choosing a branch to explore. *)
+
+
+
+ClearAll[chainExpansion];
+
+
+
+(* Case: exhausted the production: *)
+
+
+
+chainExpansion[iP_, groundTerm_, T_, production : {}, sentence_, i_, iLim_] := sentence;
+
+
+
+(* Case: we have a term to consider in the production: *)
+
+
+
+chainExpansion[iP_, groundTerm_, Terminals_,
+   production : {term_, rest___},
+   sentence_, i_, iLim_  /;  (i < iLim)] :=
+ (If[MemberQ[Terminals, term],
+   (* If the term is a terminal symbol (if it's in the set "T"), then append it
+      to the sentence being accumulated and recurse on the rest of the
+      production. *)
+   chainExpansion[iP, groundTerm, Terminals, {rest},
+    Append[sentence, term], i + 1, iLim],
+   (* Otherwise, the term is a non-terminal symbol. Choose, non-uniformly,
+      randomly, from the alternatives of the non-terminal and recurse. *)
+    Module[{randomAlt = chooseFromAlternatives[iP[term], RandomReal[]]},
+    chainExpansion[iP, groundTerm, Terminals, {rest},
+     Join[
+      sentence,
+      (* start a new sentence accumulator in this recursion: *)
+      chainExpansion[iP, groundTerm, Terminals, randomAlt, {}, i + 1, iLim]],
+     i + 1, iLim]]])
+
+
+
+(* Case: exceeded the recursion limit: *)
+
+
+
+chainExpansion[iP_, groundTerm_, T_, production_, sentence_, i_, iLim_] :=
+    chooseFromAlternatives[iP[groundTerm], RandomReal[]];
+
+
+
+ClearAll[generateSentence];
+generateSentence[iP_, groundTerm_, T_, recursionLimit_: 100] :=
+    chainExpansion[iP, groundTerm, T, {Start}, {}, 0, recursionLimit]
+
+
+
+SeedRandom[44];
+expect [
+    ToString /@
+             {C, A, N, N, N, A, N, s, E, N, N, N, r, C, N, p, q, E, A, N, C, K, K,
+              E, C, N, p, A, C, q, q, r, s, s, C, K, q, N, K, K, C, N, p, s, q, N, N, r,
+              r, N, q, C, q, A, p, q, r, N, s}
+  ,
+    generateSentence[iP, Proposition, T, 500]
+]
+
+
+
+ClearAll[expressionStringFromSentenceRules, expressionStringFromSentence];
+expressionStringFromSentenceRules = {};
+expressionStringFromSentence[sentence_] :=
+  sentence /. expressionStringFromSentenceRules // StringJoin;
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
