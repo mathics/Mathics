@@ -1792,13 +1792,21 @@ DownValues[Evaluate[iP]]
 
 
 
+(*    __                       ___
+ ____/ /  ___  ___  ___ ___   / _/______  __ _
+/ __/ _ \/ _ \/ _ \(_-</ -_) / _/ __/ _ \/  ' \
+\__/_//_/\___/\___/___/\__/ /_//_/  \___/_/_/_/
+       ____                    __  _
+ ___ _/ / /____ _______  ___ _/ /_(_)  _____ ___
+/ _ `/ / __/ -_) __/ _ \/ _ `/ __/ / |/ / -_|_-<
+\_,_/_/\__/\__/_/ /_//_/\_,_/\__/_/|___/\__/___/
+ *)
+
 ClearAll[chooseFromAlternatives];
 
 
 
 (* If there is only one alternative, choose it: *)
-
-
 
 chooseFromAlternatives[{probabilizedAlternative_}, dieRoll_] :=
   "alternative" /. probabilizedAlternative;
@@ -1806,11 +1814,9 @@ chooseFromAlternatives[{probabilizedAlternative_}, dieRoll_] :=
 
 
 (* If there are many, pick the first if its cumulative probability is greater
-   than or equal to the dieRoll. Track the cumulative probability by
-   decrementing the dieRoll by each non-cumulative probability as we recurse the
-   sequence of alternatives. *)
-
-
+   than or equal to the dieRoll. Track cumulative probability by decrementing
+   dieRoll by each non-cumulative probability as we recurse the sequence of
+   alternatives. *)
 
 chooseFromAlternatives[{probabilizedAlternative_, rest___}, dieRoll_] :=
     Module[{p = "probability" /. probabilizedAlternative},
@@ -1822,12 +1828,16 @@ chooseFromAlternatives[badArgs___] :=
   Throw[{"CHOOSE:BADARGS: ", {badArgs}}];
 
 
+(*    __        _                                    _
+ ____/ /  ___ _(_)__    _____ __ ___  ___ ____  ___ (_)__  ___
+/ __/ _ \/ _ `/ / _ \  / -_) \ // _ \/ _ `/ _ \(_-</ / _ \/ _ \
+\__/_//_/\_,_/_/_//_/  \__/_\_\/ .__/\_,_/_//_/___/_/\___/_//_/
+                              /_/
+ *)
 
-(* The ground term is the term to force when the recursion limit is exceeded.
-   The default recursion limit is 100. Cdr down the sequence of terms in the
-   production, randomly choosing a branch to explore. *)
-
-
+(* groundTerm is the term to force when the recursion limit is exceeded. Cdr
+   down the sequence of terms in the production, randomly choosing a branch to
+   explore. *)
 
 ClearAll[chainExpansion];
 
@@ -1835,40 +1845,40 @@ ClearAll[chainExpansion];
 
 (* Case: exhausted the production: *)
 
-
-
-chainExpansion[iP_, groundTerm_, T_, production : {}, sentence_, i_, iLim_] := sentence;
-
-
-
-(* Case: we have a term to consider in the production: *)
+chainExpansion[iP_, groundTerm_, T_, production : {},
+               sentenceAccumulator_, i_, iLim_] := sentenceAccumulator;
 
 
 
-chainExpansion[iP_, groundTerm_, Terminals_,
-   production : {term_, rest___},
-   sentence_, i_, iLim_  /;  (i < iLim)] :=
- (If[MemberQ[Terminals, term],
-   (* If the term is a terminal symbol (if it's in the set "T"), then append it
-      to the sentence being accumulated and recurse on the rest of the
-      production. *)
-   chainExpansion[iP, groundTerm, Terminals, {rest},
-    Append[sentence, term], i + 1, iLim],
-   (* Otherwise, the term is a non-terminal symbol. Choose, non-uniformly,
-      randomly, from the alternatives of the non-terminal and recurse. *)
-    Module[{randomAlt = chooseFromAlternatives[iP[term], RandomReal[]]},
-    chainExpansion[iP, groundTerm, Terminals, {rest},
-     Join[
-      sentence,
-      (* start a new sentence accumulator in this recursion: *)
-      chainExpansion[iP, groundTerm, Terminals, randomAlt, {}, i + 1, iLim]],
-     i + 1, iLim]]])
+(* Case: we have a term to consider in the production and we're under the*)
+(*recursion limit ( /; (i < iLim) ): *)
+
+chainExpansion[
+    iP_, groundTerm_, Terminals_, production : {term_, rest___},
+    sentenceAccumulator_, i_, iLim_    /;    (i < iLim)] :=
+    (If[MemberQ[Terminals, term],
+        (* If the term is a terminal symbol (if it's in the set "T"), then
+           append it to the sentence being accumulated and recurse on the rest
+           of the production. *)
+        chainExpansion[
+            iP, groundTerm, Terminals, {rest},
+            Append[sentenceAccumulator, term], i + 1, iLim],
+        (* Otherwise, the term is a non-terminal symbol. Choose, non-uniformly,
+           randomly, from the alternatives of the non-terminal and recurse. *)
+
+        Module[{randomAlt = chooseFromAlternatives[iP[term], RandomReal[]]},
+               chainExpansion[
+                   iP, groundTerm, Terminals, {rest},
+                   Join[sentenceAccumulator,
+                       (* start a new sentence accumulator in this recursion: *)
+                        chainExpansion[
+                            iP, groundTerm, Terminals, randomAlt, {},
+                            i + 1, iLim]],
+                   i + 1, iLim]]])
 
 
 
 (* Case: exceeded the recursion limit: *)
-
-
 
 chainExpansion[iP_, groundTerm_, T_, production_, sentence_, i_, iLim_] :=
     chooseFromAlternatives[iP[groundTerm], RandomReal[]];
@@ -1912,6 +1922,67 @@ ClearAll[expressionStringFromSentenceRules, expressionStringFromSentence];
 expressionStringFromSentenceRules = {};
 expressionStringFromSentence[sentence_] :=
   sentence /. expressionStringFromSentenceRules // StringJoin;
+
+
+
+randomUtterance[len_: 500] :=
+    expressionStringFromSentence @
+        generateSentence[iP, Proposition, T, len]
+
+
+
+ClearAll[
+    prefix, suffix,
+    terminalsFromRule,
+    nonTerminalHeadFromRule,
+    arityFromPrefixRule];
+
+prefix = First; suffix = Rest;
+
+terminalsFromRule[rule_, nonTerminals_] :=
+    Select[prefix /@ rule[[2]], ! MemberQ[nonTerminals, #] &];
+
+
+
+expect [
+    {{}, ToString/@{C, A, K, E}, ToString/@{N}, ToString/@{p, q, r, s}, {}}
+  ,
+    terminalsFromRule[#, nonTerminalsFromGrammar@P] & /@ DownValues[P]
+]
+
+
+
+nonTerminalHeadFromRule[rule_, nonTerminals_] :=
+    Module[{h = rule[[1, 1, 1]]},
+         If[! MemberQ[nonTerminals, h],
+            Throw[{"NON-TERMINAL HEAD FROM RULE: CATASTROPHE", nonTerminals,
+                   h}]];
+         h];
+
+
+
+expect[
+    {Start, Binary, Unary, Proposition, Wff}
+  ,
+    nonTerminalHeadFromRule[#, nonTerminalsFromGrammar@P] & /@
+        DownValues[P]
+]
+
+
+
+arityFromPrefixRule[rule_] :=
+    Module[{lens = Union[Length /@ suffix /@ rule[[2]]]},
+         If[Length@lens > 1,
+            Throw[{"ARITY FROM PREFIX RULE: CATASTROPHE", lens}]];
+         First@lens]
+
+
+
+expect[
+    {0, 2, 1, 0, 0}
+  ,
+    arityFromPrefixRule /@ DownValues[P]
+]
 
 
 
