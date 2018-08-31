@@ -51,8 +51,8 @@
 <<"GS0.m"
 
 
-ClearAll[P, Wff, Proposition, Unary, Binary, T, nonTerminalsFromGrammar,
-         terminalsFromGrammar];
+ClearAll[P, Wff, Proposition, Unary, Binary, T,
+           nonTerminalsFromGrammar, terminalsFromGrammar];
 
 
 
@@ -64,8 +64,8 @@ ClearAll[P, Wff, Proposition, Unary, Binary, T, nonTerminalsFromGrammar,
        P[Wff] = {{Proposition}, {Unary}, {Binary}};
 
    meanss "define the value of the pattern P[Wff] to be {{Proposition}, {Unary},
- {Binary}}." In turn, this means "whenever you see 'P[Wff]', please replace it
- with '{{Proposition}, {Unary}, {Binary}}'." *)
+   {Binary}}." In turn, this means "whenever you see 'P[Wff]', please replace it
+   with '{{Proposition}, {Unary}, {Binary}}'." *)
 
 
 
@@ -87,8 +87,6 @@ P[Start] = P[Wff];
     downvalues because that's all I want from them. Type "DownValues[P]" if
     you're curious about every detail in there. I just want to fish out the
     non-terminals. *)
-
-
 
 ClearAll[nonTerminalsFromGrammar];
 nonTerminalsFromGrammar[ps_] := #[[1, 1, 1]] & /@ DownValues[ps]
@@ -112,12 +110,8 @@ expect[
    to see the list of everything, then figure out why I mapped #[[2]]& down the
    list, then why I flattened it, then why I fed it to "Union". *)
 
-
-
 ClearAll[allSymbols];
 allSymbols[ps_] := Union @ Flatten[#[[2]] & /@ DownValues[ps]]
-
-
 
 ClearAll[terminalsFromGrammar];
 terminalsFromGrammar[ps_] :=
@@ -129,10 +123,7 @@ terminalsFromGrammar[ps_] :=
 
 (* T = set of terminals: Global Variable *)
 
-
-
-expect [
-        (T = terminalsFromGrammar @ P)
+expect [(T = terminalsFromGrammar @ P)
         ,
         {"A", "C", "E", "K", "N", "p", "q", "r", "s"}
 ]
@@ -323,22 +314,39 @@ randomUtterance[len_: 500] :=
                                                                                              (* First, tokenize the utterance. In our example, this is trivial since each
    term is a single character. *)
 
+ClearAll[tokens, parse, remToks, partTree];
 tokens[utterance_] := Characters[utterance];
-ClearAll[parse, remToks, partTree];
 remToks[list_List] := First@list;
 partTree[list_List] := First@Rest@list;
 
+(* ClearAll[parse] *)
+
+(* parse[{tok : Alternatives @@ {"p", "q", "r", "s"}, toks___}] := *)
+(*     Print[{"2", tok, {toks}}] *)
+
+(* Print[MatchQ[{"p", "q"}, *)
+(*              {tok : Alternatives @@ {"p", "q", "r", "s"}, toks___}]] *)
+
+(* parse[{"p", "q"}] *)
+
+(* TODO: See Issue #748: https://github.com/mathics/Mathics/issues/748. Parse
+   cannot be defined in mathics using the "Alternatives" notation, even though
+   MatchQ succeeds. We must use the "|" syntax. This limitation dooms the
+   data-driven parser and parser generator. *)
+
+ClearAll[parse]
+
 parse[{}, tree_] := {{}, tree};
 
-parse[{tok : Alternatives @@ {"p", "q", "r", "s"}, toks___},
+parse[{tok : "p" | "q" | "r" | "s", toks___},
    tree_: Null] :=
   {{toks}, Proposition[tok]};
 
-parse[{tok : Alternatives @@ {"N"}, toks___}, tree_: Null] :=
+parse[{tok : "N", toks___}, tree_: Null] :=
   Module[{R = parse[{toks}]},
    {remToks@R, Unary[tok, partTree@R]}];
 
-parse[{tok : Alternatives @@ {"C", "A", "K", "E"}, toks___},
+parse[{tok : "C" | "A" | "K" | "E", toks___},
    tree_: Null] :=
   Module[{L = parse[{toks}]},
    Module[{R = parse[remToks@L]},
@@ -346,11 +354,22 @@ parse[{tok : Alternatives @@ {"C", "A", "K", "E"}, toks___},
 
 parse[xs___] := Throw[{"PARSE: CATASTROPHE: ", xs}];
 
+Print[parse[tokens["App"]]]
+
+(* Import["https://raw.github.com/lshifr/CodeFormatter/master/CodeFormatter.m"]
+
+   TODO: It will be a lot of work to make this work in mathics.
+ *)
+
 (*                                                         __
    ___  ___ ________ ___ ____  ___ ____ ___  ___ _______ _/ /____  ____
   / _ \/ _ `/ __(_-</ -_) __/ / _ `/ -_) _ \/ -_) __/ _ `/ __/ _ \/ __/
  / .__/\_,_/_/ /___/\__/_/    \_, /\__/_//_/\__/_/  \_,_/\__/\___/_/
 /_/                          /___/
+
+   TODO: this is doomed until issue #748 is solved:
+   TODO: https://github.com/mathics/Mathics/issues/748
+
  *)
 
 ClearAll[
