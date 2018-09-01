@@ -1821,10 +1821,59 @@ expect[true
 ]
 
 (*
+
    Notice we needed a new hash, ampersand, wheel rule to get idempotency of
    disjunction, 3.26, applied just to the second part of its input. We'll have
-   to modify "fireRule" to mechanize this subtlety.
-*)
+   to modify "fireRule" to mechanize this subtlety. Mixing Part and level will
+   be a challenge, so we will break up the challenge, getting it right in
+   stages. The following only works on associative (Flat) heads like eqv. It
+   uses a new pattern, "args___", which matches zero or more things in an
+   argument list enclosed in square brackets (a "Sequence"). I leave it to you
+   to study "Sequence" in the documentation for mathics and for Mathematica. You
+   can find the Mathematica documentation here:
+
+       https://reference.wolfram.com/language/ref/Sequence.html?q=Sequence
+
+ *)
+
+ClearAll[fireRuleOnPart]
+fireRuleOnPart[rule_, part_][head_[arg_, args___]] :=
+    If[part === 1,
+       head[arg /. rule, args],
+       head[arg, fireRuleOnPart[rule, part-1][head[args]]]
+    ]
+
+(* Alternative proof of theorem 3.30 *)
+
+expect[true
+     ,
+       Module[{proposition = eqv[or[p, false], p]},
+
+              proposition
+              // expectBy[    eqv[or[p, false], p]          , "proposition"] //
+
+              fireRuleOnPart[invIdempotencyOfDisjunction, 2]
+              // expectBy[    eqv[or[p, false], or[p, p]]   , "3.26, idempotency"]//
+
+              fireRule[factoringDisjunction, 0]
+              // expectBy[    or[p, eqv[false, p]]     , "3.27, distributivity of \/"] //
+
+              fireRule[invNotPRule, 1]
+              // expectBy[    or[p, not[p]]            , "3.15, unnamed theorem"] //
+
+              fireRule[invExcludedMiddle, 0]
+              // expectBy[    true                     , "3.28, excluded middle"] //
+
+              Identity
+       ]
+]
+
+(*
+
+   Again, this works only at top level. We will need new rules (later) to apply
+   "on-part" rules at lower levels.
+
+ *)
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
