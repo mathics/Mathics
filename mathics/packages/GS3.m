@@ -1804,7 +1804,7 @@ expect[true
     proposition
     // expectBy[    eqv[or[p, false], p]          , "proposition"] //
 
-    eqv[#1[[1]], #1[[2]] / .invIdempotencyOfDisjunction]&
+    eqv[#1[[1]], #1[[2]] /. invIdempotencyOfDisjunction]&
     // expectBy[    eqv[or[p, false], or[p, p]]   , "3.26, idempotency"]//
 
     fireRule[factoringDisjunction, 0]
