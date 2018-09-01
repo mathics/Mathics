@@ -1,9 +1,119 @@
 (* ****************************************************************************
    Digression into WFF-N-PROOF
 
-
    From the famous game "Wff-n-Proof:
    https://www.amazon.com/Wffn-Proof-Book-Layman-Allen/dp/B0007FIH94
+
+   __      ____  __     _  _     ___               __
+   \ \    / / _|/ _|___| \| |___| _ \_ _ ___  ___ / _|
+    \ \/\/ /  _|  _|___| .` |___|  _/ '_/ _ \/ _ \  _|
+     \_/\_/|_| |_|     |_|\_|   |_| |_| \___/\___/_|
+
+   "Wff" stands for "well-formed forumula." Wff-N-Proof is a famous
+   card-and-dice game that teaches users how to form and prove theorems in
+   propositional logic using a notation that has NO PARENTHESES. This notation
+   is called Normal Polish Notation (NPN) after the Polish logician Lukasievicz.
+   You may have heard of Reverse Polish Notation (RPN), famous from
+   Hewlett-Packard pocket calculators. RPN is also the notation of a very
+   interesting class of programming languages like Forth and Factor.
+
+   Expressions, or Wffs, in Wff-N-Proof look like this
+
+      example  name              G&S         C           mathics
+      -------- ----------------- ----------- ----------- -------------
+      Np       "Negation"        -, p        !p          not[p]
+      Cpq      "Implication"     p => q      !p || q     or[not[p], q]
+      Apq      "Disjunction"     p \/ q      p || q      or[p, q]
+      KqNKqq   "Conjunction"     too long    too long    and[q,not[and[q,q]]]
+      E[q,r]   "Equivalence"     q === r     q == r      eqv[q, r]
+
+   Here is a huge one:
+
+      CANNNANsENNNrCNpqEANCKKECNpACqqrssCKqNKKCNpsqNNrrNqCqApqrNs
+
+   This file is a work-in-progress to implement NPN in mathics. I got this going
+   in Mathematica several years ago, but I couldn't share it with anyone. Here
+   comes mathics, letting me share stuff with anyone who uses Python. I used a
+   particular method in Mathematica ("Alternatives @@") to create a data-driven
+   parser and parser generator (like yacc). That method is not (yet) available
+   in mathics. I filed a bug on mathics about this (Issue #748). In the mean
+   time (TODO), I am going back to G&S and will return to this later. However,
+   we have basic parsing and unparsing of expressions in Wff-N-Proof right here.
+
+   PREFIX NOTATION VERSUS INFIX NOTATION
+
+    ___          __ _                   ___       __ _
+   | _ \_ _ ___ / _(_)_ __  __ _____   |_ _|_ _  / _(_)_ __
+   |  _/ '_/ -_)  _| \ \ /  \ V (_-<_   | || ' \|  _| \ \ /
+   |_| |_| \___|_| |_/_\_\   \_//__(_) |___|_||_|_| |_/_\_\
+
+
+   Our representation of Gries & Schneider uses "prefix notation," like
+   "eqv[p, q]", "or[p, q]", and "plus[p_, q]", instead of infix notation, like
+   "p === q" and "p \/ q". Prefix notation is more convenient for mechanization
+   with computer programs; infix notation is more convenient for human
+   pencil-and-paper work. Humans can use prefix notation for pencil-and-paper
+   work, but it takes some getting-used-to. Computers can use infix notation,
+   but it takes another level of "operator-precedence" parsing and another level
+   of "operator-precedence" rules. Operator precedence is a cognitive load for
+   humans. G&S even admit so, finding it necessary to provide an
+   operator-precedence table of thirteen layers for students to keep handy. If
+   we were to implement infix notation in mathics, we would be forced to build
+   software to encode and apply this operator-precedence table.
+
+   SOME PHILOSOPHY
+
+   It's a judgment call whether the additional cognitive load of operator
+   precedence pays for itself. The benefit is a shorter, less nested, infix
+   notation.
+
+   Programming languages like F# and Haskell make the judgment call one way,
+   opting for a rich model of operator precedence. Haskell programs are concise
+   and terse (a virtue), but suffer from the problem that if you (the human)
+   don't refresh your memory frequently of the operator precedence, you end up
+   having to parenthesize the code anyway just even to read it. In other words,
+   casual reading of Haskell code by non-experts really is not feasible. You
+   pretty much need to learn the operator-precedence table both of the built-ins
+   and of new user-defined operators before you can read code. And users get
+   mighty creative with new operators, with >=>, >>=, >=, =>, |>, ^<|, and so
+   on, each requiring its own precedence spec that's defined somewhere other
+   than where the operators are used. Even worse, languages like C rate the
+   precedence of Boolean operators like "&&" weaker than the precedence of
+   bit-wise operators like "&", leading to infamous bugs. Many industrial coding
+   conventions insist that all expressions in C be fully parenthesized,
+   defeating any benefit of operator precedence. In fact, such conventions imply
+   the view that operator precedence is an undesirable feature of the
+   programming language, an opportunity for bugs.
+
+   Programming languages like (the many) Lisps make the judgment call the other
+   way. All operators are "prefix" in Lisp. Even something as simple as "2 + 3"
+   must be fully parenthesized as "(+ 2 3)" or "plus[2, 3]" in our use of
+   mathics. The entire issue of operator precedence simply does not appear. But
+   the price to pay is that humans must get accustomed to this explicit and
+   arguably noisy notation. In the real world, tools like paredit, which support
+   direct editing of fully parenthesized "abstract syntax trees," are necessary
+   for practical use of fully parenthesized prefix notation. Humans do not have
+   the capacity to manually edit deeply nested expressions without (ironically)
+   introducing bugs.
+
+   The Lukesiewicz notations, NPN and RPN, were devised to eliminate the need
+   for parentheses. The price to pay for them is that all operators have fixed
+   arity, meaning a fixed and known number of arguments. There is no such thing
+   as "eqv[p, q]" and "eqv[p, q, r]" in such a world. "Eqv" must have either two
+   or three arguments. You get to pick, but you get to pick only one.
+
+   Mathics and Mathematica support both infix and prefix notation, but prefix is
+   mandatory and infix is optional. There are no infix operators that don't have
+   a prefix form, and the prefix form is always available by applying
+   "FullForm". Mathematica, but not mathics, supports user-defined infix
+   notation. We opt for fully parenthesized prefix notation like "eqv[p, q]" in
+   our use of mathics. We get back multiary operators. That is, we can have both
+   "eqv[p, q]" and "eqv[p, q, r]".
+
+    ___       __ _      _ _   _
+   |   \ ___ / _(_)_ _ (_) |_(_)___ _ _  ___
+   | |) / -_)  _| | ' \| |  _| / _ \ ' \(_-<
+   |___/\___|_| |_|_||_|_|\__|_\___/_||_/__/
 
 
    DEFINITIONS

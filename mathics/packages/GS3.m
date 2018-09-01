@@ -914,18 +914,18 @@ expect[ false
 (* ****************************************************************************
 
    The proof of 3.15 introduced several new structures. First, we've seen the
-   pattern of identity, symmetry, leibniz before, in the proof of 3.12, double
-   negation. Its purpose is to introduce an equivalence to true in the first
-   position, i.e., to convert eqv[p, p] into eqv[true, eqv[p, p]], then swap
-   true into the second position, i.e., to generate eqv[eqv[p, p], true], then
-   finally to extract the true, demonstrating that eqv[p, p] reduces to true. In
-   this proof, of 3.15, we use that pattern _inside_ a not, and that's by
-   _mapping_ identity, symmetry, and leibniz on lines 3, 4, and 5 above.
-   Finally, we apply leibniz with a premise of symmetry[falseDef] to reduce
-   eqv[not[p], p] to false.
+   pattern of "identity, symmetry, leibniz" before, in the proof of 3.12, double
+   negation. The purpose of this pattern is to introduce an equivalence to
+   "true" in the first position, i.e., to convert eqv[p, p] into eqv[true,
+   eqv[p, p]], then swap true into the second position, i.e., to generate
+   eqv[eqv[p, p], true], then finally to extract the "true" via Leibniz,
+   demonstrating that eqv[p, p] reduces to true. In this proof, of 3.15, we use
+   that pattern _inside_ a not, and that's by _mapping_ identity, symmetry, and
+   leibniz on lines 3, 4, and 5 above. Finally, we apply leibniz with a premise
+   of symmetry[falseDef] to reduce eqv[not[p], p] to false.
 
-   We capture the first of these patterns in a "lemma generator" (looking ahead
-   to page 53).
+   We capture the pattern of "identity, symmetry, leibniz" in a "lemma
+   generator" (looking ahead to page 53).
 
  *************************************************************************** *)
 
@@ -1019,7 +1019,7 @@ expect[ neqv[q, p]
    sides, neqv[neqv[p, q], r] and neqv[p, neqv[q, r]] to the same thing, namely
    eqv[p, eqv[q, r]], then double-check the sameness with "SameQ", i.e., "===".
    That's a tiny bit of cheating, because SameQ isn't in our metacircular
-   evaluator, yet, but it does prove the theorem.
+   evaluator, yet, but it does prove the theorem at the human level.
 
    We shall also need (for this proof) to Map "neqvRule" at the second level of
    nesting, inside a "not" and an "eqv", to convert
@@ -1103,7 +1103,7 @@ Module[{leftHalf =
        (#1 /. invNotRule)&
 
    appear more than once, each. It's a good idea to capture that pattern.
-   Remembering the discussion in chapter 1 (GS1.m) about one-shot rules, we go
+   Remembering the discussion in Chapter 1 (GS1.m) about one-shot rules, we go
    one more level up and define a "function" (actualla named rule) that applies
    any one-shot rule just once. This function "returns another function" that
    fires the rule once on an argument. Technically, this kind of definition is a
@@ -1233,10 +1233,10 @@ Module[{leftHalf =
    There is just one more "wheel, hash, ampersand" to get rid of:
    "symmetry /@ #1 &". This one comes from the fact that we defined "symmetry"
    as a named rule. Seemed good, at the time, but now, the pressure to unify
-   syntax makes that choice less good. Let's redefine "symmetry" and, while
-   we're at it, every axiom and theorem we defined as a named rule, as a
-   one-shot rule. We'll leave inference rules as named rules, for now, but it's
-   a good guess that they're on their way out, eventually, too.
+   syntax makes that choice less good. Let's redefine "symmetry" --- and, while
+   we're at it, every axiom and theorem we've defined previously as a named rule
+   --- as a one-shot rule. We'll leave inference rules as named rules, for now,
+   but it's a good guess that they're on their way out, eventually, too.
 
  *************************************************************************** *)
 
@@ -1244,13 +1244,11 @@ ClearAll[associativity, leftAssociativity, rightAssociativity]
 leftAssociativity  = eqv[ eqv[p_, q_], r_ ] :> eqv[ p, eqv[q, r] ]
 rightAssociativity = eqv[ p_, eqv[q_, r_] ] :> eqv[ eqv[p, q], r ]
 
-(* (3.2) Axiom, Symmetry of eqv *)
-(* p === q === q === p *)
+(* (3.2) Axiom, Symmetry of eqv, p === q === q === p *)
 ClearAll[symmetry]
 symmetry = eqv[p_, q_] :> eqv[q, p]
 
-(* (3.3) Axiom, Identity of eqv, page 44 *)
-(* true === q === q *)
+(* (3.3) Axiom, Identity of eqv, page 44, true === q === q *)
 ClearAll[identity]
 identity = eqv[q_, q_] :> eqv[true, eqv[q, q]]
 
@@ -1386,35 +1384,34 @@ Module[{leftHalf =
 
 expect[ True
 ,
-  Module[{leftHalf=
-          Module[{proposition = eqv[neqv[p, q], r]},
+  Module[{
+    leftHalf = Module[{proposition = eqv[neqv[p, q], r]},
 
-                 proposition
-                 // expectBy [ eqv[neqv[p, q], r], "left prop" ] //
+       proposition
+       // expectBy [ eqv[neqv[p, q], r], "left prop" ] //
 
-                 fireRule[neqvRule, 1]
-                 // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+       fireRule[neqvRule, 1]
+       // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
 
-                 fireRule[invNotRule, 0]
-                 // expectBy [ not[eqv[eqv[p, q], r]], "def of neqv" ] //
+       fireRule[invNotRule, 0]
+       // expectBy [ not[eqv[eqv[p, q], r]], "def of neqv" ] //
 
-                 fireRule[leftAssociativity, 1]
-                 // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
+       fireRule[leftAssociativity, 1]
+       // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
 
-                 Identity],
+       Identity],
 
-          rightHalf=
-          Module[{proposition = neqv[p, eqv[q, r]]},
+    rightHalf = Module[{proposition = neqv[p, eqv[q, r]]},
 
-                 proposition
-                 // expectBy [ neqv[p, eqv[q, r]], "right prop" ] //
+       proposition
+       // expectBy [ neqv[p, eqv[q, r]], "right prop" ] //
 
-                 fireRule[neqvRule, 0]
-                 // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
+       fireRule[neqvRule, 0]
+       // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
 
-                 Identity]}
+       Identity]}
 
-     , leftHalf === rightHalf]]
+ , leftHalf === rightHalf]]
 
 (* (3.19) Mutual interchangeability *******************************************
 
@@ -1431,33 +1428,33 @@ SetAttributes[neqv, Flat]
 SetAttributes[eqv, Flat]
 
 expect[ True
-      ,
-        Module[{rightHalf=
-                Module[{proposition = eqv[neqv[p, q], r]},
+  ,
+  Module[{
 
-                       proposition
-                       // expectBy [ eqv[neqv[p, q], r], "right prop" ] //
+    rightHalf = Module[{proposition = eqv[neqv[p, q], r]},
 
-                       fireRule[neqvRule, 1]
-                       // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
+        proposition
+        // expectBy [ eqv[neqv[p, q], r], "right prop" ] //
 
-                       fireRule[invNotRule, 0]
-                       // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
+        fireRule[neqvRule, 1]
+        // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
 
-                       Identity],
+        fireRule[invNotRule, 0]
+        // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
 
-                leftHalf=
-                Module[{proposition = neqv[p, eqv[q, r]]},
+        Identity],
 
-                       proposition
-                       // expectBy [ neqv[p, eqv[q, r]], "left prop" ] //
+    leftHalf = Module[{proposition = neqv[p, eqv[q, r]]},
 
-                       fireRule[neqvRule, 0]
-                       // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
+        proposition
+        // expectBy [ neqv[p, eqv[q, r]], "left prop" ] //
 
-                       Identity]}
+        fireRule[neqvRule, 0]
+        // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
 
-             , leftHalf === rightHalf]]
+        Identity]}
+
+ , leftHalf === rightHalf]]
 
 (* ****************************************************************************
 
@@ -1565,8 +1562,10 @@ expect[ eqv[not[q], p]
 
  *************************************************************************** *)
 
-ClearAll[identity]
+ClearAll[identity, invIdentity]
 identity = eqv[p_, p_] :> true
+(* A variant, justified by associativity: *)
+invIdentity = eqv[true, p_] :> p
 
 expect[ false
       ,
@@ -1579,7 +1578,7 @@ expect[ false
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
 
                fireRule[identity, 1]
-               // expectBy[   not[true]         , "lemma"] //
+               // expectBy[   not[true]         , "lemma macro"] //
 
                leibnizF[#1, falseDef /. symmetry, z, z] &
                // expectBy[   false    , "leibniz(symmetry(falseDef))"] //
@@ -1599,8 +1598,9 @@ expect[ false
 
  *************************************************************************** *)
 
-ClearAll[falseDef]
+ClearAll[falseDef, invFalseDef]
 falseDef = not[true] -> false
+invFalseDef = false -> not[true]
 
 expect[ false
       ,
@@ -1613,7 +1613,7 @@ expect[ false
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
 
                fireRule[identity, 1]
-               // expectBy[   not[true]         , "lemma"] //
+               // expectBy[   not[true]         , "lemma macro"] //
 
                fireRule[falseDef, 0]
                // expectBy[   false             , "falseDef Leibniz macro"] //
@@ -1652,7 +1652,6 @@ expect[ neqv[q, p]
 
 
 
-
 (* Section 3.4, Disjunction ************************************************ *)
 
 (* ___  _       _               __  _
@@ -1672,16 +1671,15 @@ symmetryOfDisjunction = or[p_, q_] :> or[q, p]
 
 
 (* (3.25) Axiom, Associativity of \/, page 49 *)
-
-(* We may later soak up associativity with a "Flat" attribute for "or". *)
 ClearAll[leftAssociativityOfDisjunction, rightAssociativityOfDisjunction]
 leftAssociativityOfDisjunction  = or[or[p_, q_], r_] :> or[p, or[p, q]]
 rightAssociativityOfDisjunction = or[p_, or[q_, r_]] :> or[or[p, q], r]
 
 
 (* (3.26) Axiom, Idempotency of \/, page 49 *)
-ClearAll[idempotencyOfDisjunction]
+ClearAll[idempotencyOfDisjunction, invIdempotencyOfDisjunction]
 idempotencyOfDisjunction = or[p_, p_] :> p;
+invIdempotencyOfDisjunction = p_ :> or[p, p]
 
 
 (* (3.27) Axiom, Distributivity of \/ over eqv, page 49  *)
@@ -1692,21 +1690,25 @@ factoringDisjunction = eqv[or[p_, q_], or[p_, r_]] :> or[p, eqv[q, r]]
 
 (* (3.28) Axiom, Excluded Middle *)
 ClearAll[excludedMiddle, invExcludedMiddle]
-excludedMiddle = true :> or[p, not[p]];
-invExcludedMiddle = or[p_, not[p_]] :> true
+excludedMiddle[p_] := true :> or[p, not[p]];
+invExcludedMiddle = or[p_, not[p_]] :> true;
+
+(* We must introduce "true" to the definition of the excluded middle to
+   mechanize this rule. G&S do this implicitly because they're working merely
+   with pencil and paper. *)
 
 
 
-(* (3.29) Theorem, Zero of \/ *)
+(* (3.29) Theorem, Zero of \/, page 49 *)
 
 expect[true
      ,
        Module[{proposition = or[p, true]},
 
               proposition
-              // expectBy[    or[p, true]       , "proposition"] //
+              // expectBy[    or[p, true]           , "proposition"] //
 
-              fireRule[excludedMiddle, 1]
+              fireRule[excludedMiddle[p], 1]
               // expectBy[    or[p, or[p, not[p]]]  , "3.28, excluded middle"] //
 
               fireRule[rightAssociativityOfDisjunction, 0]
@@ -1723,6 +1725,106 @@ expect[true
 ]
 
 
+
+(* (3.30) Theorem, Identity of \/ *)
+
+(*
+
+   We need a new version of 3.15. To help the proof of 3.30, we want to replace
+   "eqv[false, p]" with "not[p]". The original statement and proof were that
+   "false" and "eqv[p, not[p]]" are eqv. By associativity, we can arrange this
+   as an equivalence of "eqv[false, p]" and "not[p]", and leibniz allows us to
+   replace equivalents with each other. After seeing a couple of macros of
+   leibniz, we're comfortable that such replacements are always allowed. The
+   exact way we want to mechanize that blanket allowance is not yet clear. But,
+   for now, we will freely use "Part" to implement leibniz; for example, a lemma
+   like "eqv[p, q]" allows us to replace "eqv[p, q][[1]]" with "eqv[p, q][[2]]"
+   and vice versa. Another mechanization might be a rule that returns a rule, a
+   metarule (we mentioned meta-programming earlier):
+
+       eqv[p_, q_] :> (p_ :> q)
+
+   We'll get to that later.
+
+ *)
+
+expect[not[p]
+     ,
+       Module[{proposition = eqv[false, p]},
+
+              proposition
+              // expectBy[   eqv[false, p]    , "proposition"] //
+
+              fireRule[invFalseDef, 1]
+              // expectBy[   eqv[not[true], p], "def of false (macro)"] //
+
+              fireRule[invNotRule, 0]
+              // expectBy[   not[eqv[true, p]], "3.9, distributivity"] //
+
+              fireRule[invIdentity, 1]
+              // expectBy[   not[p]           , "3.3, identity"] //
+
+              Identity
+       ]
+]
+
+(*
+
+   Because of this fantastic little theorem, we're able to replace eqv[false, p]
+   with not[p] and vice versa. We'll need rules that we can invoke for doing
+   that. Because we need rules, we can now see a big meta-meta-rule:
+
+    __  __     _                      _          ___      _
+   |  \/  |___| |_ __ _ ___ _ __  ___| |_ __ _  | _ \_  _| |___
+   | |\/| / -_)  _/ _` |___| '  \/ -_)  _/ _` | |   / || | / -_)
+   |_|  |_\___|\__\__,_|   |_|_|_\___|\__\__,_| |_|_\\_,_|_\___|
+
+   Every theorem must automatically introduce rules for applying that theorem in
+   downstream proofs. Every (successful) invocation of "expect" must generate
+   and install a pair of new rules allowing transformations back and forth
+   between the two terms of the "expect". "Expect" becomes a metarule: a
+   generator of rules. This is the big insight we've been working towards.
+
+   We're not quite ready to implement it, but we now know what we're doing. It's
+   engineering from here on out. First, we'll finish Chapter 3 by hand, then we
+   will rewrite Chapter 3 with the new meta-meta rule.
+
+ *)
+
+ClearAll[notPRule, invNotPRule]
+notPRule = not[p_] :> eqv[false, p]
+invNotPRule = eqv[false, p_] :> not[p]
+
+(* Back to theorem 3.30 *)
+
+expect[true
+ ,
+  Module[{proposition = eqv[or[p, false], p]},
+
+    proposition
+    // expectBy[    eqv[or[p, false], p]          , "proposition"] //
+
+    eqv[#1[[1]], #1[[2]] / .invIdempotencyOfDisjunction]&
+    // expectBy[    eqv[or[p, false], or[p, p]]   , "3.26, idempotency"]//
+
+    fireRule[factoringDisjunction, 0]
+    // expectBy[    or[p, eqv[false, p]]     , "3.27, distributivity of \/"] //
+
+    fireRule[invNotPRule, 1]
+    // expectBy[    or[p, not[p]]            , "3.15, unnamed theorem"] //
+
+    fireRule[invExcludedMiddle, 0]
+    // expectBy[    true                     , "3.28, excluded middle"] //
+
+    Identity
+    ]
+]
+
+(*
+   Notice we needed a new hash, ampersand, wheel rule to get idempotency of
+   disjunction, 3.26, applied just to the second part of its input. We'll have
+   to modify "fireRule" to mechanize this subtlety.
+*)
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
