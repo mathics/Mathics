@@ -1952,6 +1952,47 @@ Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
        Identity
 ] ]
 
+(*
+
+   Note we have made free use of the heuristics and of principle 3.34 on page
+   50, without commentary. This entire project is work-in-progress, so we move
+   freely between more and less formality as we discover ultimate, formal rules,
+   metarules, and meta-metarules.
+
+   Throughout the entire programme, so far, is the gradual liberalization of
+   Leibniz. First, just a formal rule of inference. Next, a method to derive
+   posterior replacements from premises and prior replacements ("prior" and
+   "posterior" are new jargon, devised to help us move forward). Finally, an
+   informal, implicit justification for proof heuristics, that is, for
+   concluding that eqv[p, q] by transforming p into q with fireRule and
+   fireRuleOnPart. We shlll be forced, eventually, to formalize this final use
+   of Leibniz as we automate more of the proof process.
+
+ *)
+
+
+
+(* Section 3.5, Conjunction ************************************************ *)
+
+(*___           _              _   _
+ / __|___ _ _  (_)_  _ _ _  __| |_(_)___ _ _
+| (__/ _ \ ' \ | | || | ' \/ _|  _| / _ \ ' \
+ \___\___/_||_|/ |\_,_|_||_\__|\__|_\___/_||_|
+             |__/
+ *)
+
+(* (3.35) Axiom, Golden rule *)
+
+ClearAll[goldenRule1, goldenRule2]
+goldenRule1 = and[p_, q_] :> eqv[p, q, or[p, q]]
+goldenRule2 = eqv[p_, q_] :> eqv[and[p, q], or[p, q]]
+
+(* (3.36) Symmetry of /\ *)
+
+
+
+
+
 (* ****************************************************************************
  _____ _          _____                                        ___         _
 |_   _| |_  ___  |_   _|__ _ __  _ __  ___ _ _ __ _ _ _ _  _  | __|_ _  __| |
