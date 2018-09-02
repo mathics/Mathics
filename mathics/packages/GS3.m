@@ -1983,20 +1983,36 @@ Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
 
 (* (3.35) Axiom, Golden rule *)
 
-ClearAll[goldenRule1, goldenRule2]
-goldenRule1 = and[p_, q_] :> eqv[p, q, or[p, q]]
+ClearAll[goldenRule1, invGoldenRule1]
+goldenRule1    = and[p_, q_] :> eqv[p, q, or[p, q]]
+invGoldenRule1 = eqv[p_, q_, or[p_, q_]] :> and[p, q]
+
+ClearAll[goldenRule2]
 goldenRule2 = eqv[p_, q_] :> eqv[and[p, q], or[p, q]]
 
 (* (3.36) Symmetry of /\ *)
 
-Module[{proposition = eqv[p, q, or[p, q]]},
+expect[ and[q, p]
+      ,
+Module[{proposition = and[p, q]},
+
        proposition
-       // expectBy[eqv[p, q, or[p, q]], "proposition"] //
+       // expectBy[and[p, q], "proposition"] //
+
+       fireRule[goldenRule1, 0]
+       // expectBy[eqv[p, q, or[p, q]], "3.35 golden rule /@ 0"] //
+
        fireRule[symmetryOfDisjunction, 0]
        // expectBy[eqv[p, q, or[q, p]], "3.24 symmetry of \/"] //
-       fireRule[symmetryOfEqv, 0] //
+
+       fireRule[eqv[p_, q_, r_] :> eqv[q, p, r], 0]
+       // expectBy[eqv[q, p, or[q, p]], "3.2 ad-hoc symmetry of eqv"] //
+
+       fireRule[invGoldenRule1, 0]
+       // expectBy[and[q, p], "3.35 golden rule /@ 0"] //
+
        Identity
-]
+] ]
 
 
 
