@@ -258,7 +258,11 @@ expect[ 2,   x /. {x -> 2} ] (* this time, x appears, so we replace it with 2*)
 
 expect[ (c + y) * (c + y) + y,   (x*x + y) /. {x -> c + y} ]
 
-(* Here's one broken over two lines because it's long: *)
+(* Here's one broken over two lines because it's long. It has an additional twist
+   intended to invite you to think a little. The rewrite rule "x -> x + y"
+   replaces "x" with ... something that has "x" in it. There is only one way for
+   this to make sense, but you should puzzle it out and not stop until you're
+   convinced you understand it. *)
 
 expect[ (x + y)^2 + y^2 + (x + y)^3,
 
