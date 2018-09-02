@@ -1672,7 +1672,7 @@ symmetryOfDisjunction = or[p_, q_] :> or[q, p]
 
 (* (3.25) Axiom, Associativity of \/, page 49 *)
 ClearAll[leftAssociativityOfDisjunction, rightAssociativityOfDisjunction]
-leftAssociativityOfDisjunction  = or[or[p_, q_], r_] :> or[p, or[p, q]]
+leftAssociativityOfDisjunction  = or[or[p_, q_], r_] :> or[p, or[q, r]]
 rightAssociativityOfDisjunction = or[p_, or[q_, r_]] :> or[or[p, q], r]
 
 
@@ -1728,9 +1728,7 @@ expect[true
 
 (* (3.30) Theorem, Identity of \/ *)
 
-(*
-
-   We need a new version of 3.15. To help the proof of 3.30, we want to replace
+(* We need a new version of 3.15. To help the proof of 3.30, we want to replace
    "eqv[false, p]" with "not[p]". The original statement and proof were that
    "false" and "eqv[p, not[p]]" are eqv. By associativity, we can arrange this
    as an equivalence of "eqv[false, p]" and "not[p]", and leibniz allows us to
@@ -1744,9 +1742,7 @@ expect[true
 
        eqv[p_, q_] :> (p_ :> q)
 
-   We'll get to that later.
-
- *)
+   We'll get to that later. *)
 
 expect[not[p]
      ,
@@ -1768,9 +1764,7 @@ expect[not[p]
        ]
 ]
 
-(*
-
-   Because of this fantastic little theorem, we're able to replace eqv[false, p]
+(* Because of this fantastic little theorem, we're able to replace eqv[false, p]
    with not[p] and vice versa. We'll need rules that we can invoke for doing
    that. Because we need rules, we can now see a big meta-meta-rule:
 
@@ -1787,9 +1781,7 @@ expect[not[p]
 
    We're not quite ready to implement it, but we now know what we're doing. It's
    engineering from here on out. First, we'll finish Chapter 3 by hand, then we
-   will rewrite Chapter 3 with the new meta-meta rule.
-
- *)
+   will rewrite Chapter 3 with the new meta-meta rule. *)
 
 ClearAll[notPRule, invNotPRule]
 notPRule = not[p_] :> eqv[false, p]
@@ -1826,22 +1818,34 @@ expect[true
    disjunction, 3.26, applied just to the second part of its input. We'll have
    to modify "fireRule" to mechanize this subtlety. Mixing Part and level will
    be a challenge, so we will break up the challenge, getting it right in
-   stages. The following only works on associative (Flat) heads like eqv. It
-   uses a new pattern, "args___", which matches zero or more things in an
+   stages.
+
+   EMPHASIS:
+
+   For parts greater than 1, the following only works on associative (Flat)
+   heads like eqv, because it recurses on head[args], introducing inner copies
+   of "head".
+
+   It uses a new pattern, "args___", which matches zero or more things in an
    argument list enclosed in square brackets (a "Sequence"). I leave it to you
    to study "Sequence" in the documentation for mathics and for Mathematica. You
    can find the Mathematica documentation here:
 
        https://reference.wolfram.com/language/ref/Sequence.html?q=Sequence
 
+   I've left in some debugging Print expressions. Uncomment them if you want to
+   see how it's working inside.
+
  *)
 
 ClearAll[fireRuleOnPart]
 fireRuleOnPart[rule_, part_][head_[arg_, args___]] :=
+(   (* Print[{"part", part, "head", head, "arg", arg, "{args}", {args}}]; *)
     If[part === 1,
-       head[arg /. rule, args],
+       (   (* Print[{"rule", rule, "arg/.rule", arg/.rule}]; *)
+           head[arg /. rule, args]),
        head[arg, fireRuleOnPart[rule, part-1][head[args]]]
-    ]
+    ])
 
 (* Alternative proof of theorem 3.30 *)
 
@@ -1868,12 +1872,42 @@ expect[true
        ]
 ]
 
-(*
+(* Again, this works only at top level. We will need new rules (later) to apply
+   "on-part" rules at lower levels. *)
 
-   Again, this works only at top level. We will need new rules (later) to apply
-   "on-part" rules at lower levels.
 
- *)
+
+(* (3.31) Theorem, Distributivity of \/ over \/ *)
+
+expect[
+    or[or[p, q], or[p, r]]
+   ,
+Module[{proposition = or[p, or[q, r]]},
+
+       proposition
+       // expectBy[   or[p, or[q, r]], "proposition"] //
+
+       fireRuleOnPart[invIdempotencyOfDisjunction, 1]
+       // expectBy[   or[or[p, p], or[q, r]], "idempotency"] //
+
+       fireRule[leftAssociativityOfDisjunction   , 0]
+       // expectBy[   or[p, or[p, or[q, r]]], "associativity"] //
+
+       fireRule[rightAssociativityOfDisjunction  , 1]
+       // expectBy[   or[p, or[or[p, q], r]], "associativity"] //
+
+       fireRule[symmetryOfDisjunction            , 1]
+       // expectBy[   or[p, or[r, or[p, q]]], "symmetry"] //
+
+       fireRule[rightAssociativityOfDisjunction  , 0]
+       // expectBy[   or[or[p, r], or[p, q]], "associativity"] //
+
+       fireRule[symmetryOfDisjunction            , 0]
+       // expectBy[   or[or[p, q], or[p, r]], "symmetry"] //
+
+       Identity
+] ]
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
