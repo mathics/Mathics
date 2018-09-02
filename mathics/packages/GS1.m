@@ -1687,7 +1687,7 @@ expect[
     ]
 ]
 
-(* "Simplify' is an alternative to "Expand" (Mathematics produces different  *)
+(* "Simplify" is an alternative to "Expand" (Mathematica produces different  *)
 (* but equally correct results, here).                                       *)
 
 expect[
