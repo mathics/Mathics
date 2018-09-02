@@ -1933,16 +1933,22 @@ Module[{proposition = or[p, or[q, r]]},
 expect[p
      ,
 Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
+
        proposition
        // expectBy[   eqv[or[p, q], or[p, not[q]]], "proposition"] //
+
        fireRule[factoringDisjunction , 0]
        // expectBy[   or[p, eqv[q, not[q]]], "3.27 distributivity /@ 0"] //
+
        fireRule[symmetry             , 1]
        // expectBy[   or[p, eqv[not[q], q]], "3.2 symmetry of eqv /@ 0"] //
+
        fireRule[contradiction        , 1] (* 0 would work here, too. *)
        // expectBy[   or[p, false],          "3.15 contradiction /@ 1"] //
+
        fireRule[identityOfDisjunction, 0]
        // expectBy[   p,                     "3.30 identity of \/ /@ 0"] //
+
        Identity
 ] ]
 
