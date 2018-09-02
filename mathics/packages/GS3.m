@@ -144,8 +144,8 @@ associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
 
 (* (3.2) Axiom, Symmetry of eqv *)
 (* p === q === q === p *)
-ClearAll[symmetry]
-symmetry[eqv[p_, q_]] := eqv[q, p]
+ClearAll[symmetryOfEqv]
+symmetryOfEqv[eqv[p_, q_]] := eqv[q, p]
 
 (* (3.3) Axiom, Identity of eqv, page 44 *)
 (* true === q === q *)
@@ -202,10 +202,10 @@ dump[annotation_, e_] := (
 
 Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
   proposition                          // fump                  //
-  symmetry[#1]&                        // dump["symmetry", #1]& //
+  symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]& //
   leibnizE[#1, eqv[p, z], z]&          //
   leibnizE[proposition, eqv[p, z], z]& //
-  symmetry[#1]&                        // dump["symmetry", #1]&
+  symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]&
 ]
 
 (* ****************************************************************************
@@ -267,7 +267,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    Before explaining the proof line-by-line, we note that simply one invocation
    of symmetry suffices, namely
 
-       symmetry[eqv[p, eqv[p, q, q]]] ~~> eqv[eqv[p, q, q], p]
+       symmetryOfEqv[eqv[p, eqv[p, q, q]]] ~~> eqv[eqv[p, q, q], p]
 
    but G&S invoke symmetry twice, with an intermediate step of eqv[p, p], and
    we're going to take a dirty road to get there with two invocations of
@@ -278,7 +278,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
 
        proposition$10423 ~~>  (* ignore the dollar sign and numbers *)
                  eqv[p, eqv[p, q, q]]
-       symmetry ~~> eqv[eqv[p, q, q], p]
+       symmetryOfEqv ~~> eqv[eqv[p, q, q], p]
 
    We then use leibnizE, with X = eqv[p, q, q] and Y = p, to produce the
    intermediate form:
@@ -304,7 +304,7 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    applications of leibniz. Finally, we end with our final application of
    symmetry:
 
-       symmetry ~~> eqv[eqv[p, q, q], p]
+       symmetryOfEqv ~~> eqv[eqv[p, q, q], p]
        Out[207]= eqv[eqv[p, q, q], p]
 
    and you should see something like that on your console.
@@ -320,10 +320,10 @@ expect[ eqv[eqv[p, q, q], p]
         Module[{proposition = eqv[p, eqv[p, q, q]]},
                (* the prop. I want to prove *)
                proposition                          // fump                  //
-               symmetry[#1]&                        // dump["symmetry", #1]& //
+               symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]& //
                leibnizE[#1, eqv[p, z], z]&          //
                leibnizE[proposition, eqv[p, z], z]& //
-               symmetry[#1]&                        // dump["symmetry", #1]&
+               symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]&
         ]
 ]
 
@@ -571,8 +571,8 @@ expect[
                proposition
                // expectI[eqv[p, eqv[p, q, q]]] //
 
-               symmetry[#1]&
-               // expectBy[eqv[eqv[p, q, q], p], "symmetry"] //
+               symmetryOfEqv[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"] //
 
                leibnizE[#1, eqv[p, z], z]&
                // expectBy[eqv[p, p], "leibniz"] //
@@ -580,8 +580,8 @@ expect[
                leibnizF[#1, proposition, eqv[p, z], z]&
                // expectBy[eqv[p, eqv[p, q, q]], "leibniz"] //
 
-               symmetry[#1]&
-               // expectBy[eqv[eqv[p, q, q], p], "symmetry"]
+               symmetryOfEqv[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"]
         ]]
 
 (* ****************************************************************************
@@ -606,8 +606,8 @@ expect[ eqv[eqv[p, q, q], p]
                proposition
                // expectI[eqv[p, eqv[p, q, q]]] //
 
-               symmetry[#1]&
-               // expectBy[eqv[eqv[p, q, q], p], "symmetry"]
+               symmetryOfEqv[#1]&
+               // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"]
         ]]
 
 (* ****************************************************************************
@@ -618,15 +618,15 @@ expect[ eqv[eqv[p, q, q], p]
                 actual: eqv[p, p, q, q]
        expected: eqv[p, q, q, p]
                 actual: eqv[p, q, q, p]
-                 by symmetry
+                 by symmetryOfEqv
 
    Pretty cool. What if we continue with our old, redundant proof?
 
        proposition
        // expectI[eqv[p, eqv[p, q, q]]] //
 
-       symmetry[#1]&
-       // expectBy[eqv[eqv[p, q, q], p], "symmetry"] //
+       symmetryOfEqv[#1]&
+       // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"] //
 
        leibnizE[#1, eqv[p, z], z]&
        // expectBy[eqv[p, p], "leibniz"]
@@ -749,8 +749,8 @@ expect[ eqv[not[q], p]
                   invNotRule)
                 // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
 
-                symmetry /@ #1 &
-                // expectBy[   not[eqv[q, p]]   , "internal symmetry"]) /.
+                symmetryOfEqv /@ #1 &
+                // expectBy[   not[eqv[q, p]]   , "internal symmetryOfEqv"]) /.
 
                 notRule
                 // expectBy[   eqv[not[q], p]   , "notRule"]
@@ -777,8 +777,8 @@ expect[ eqv[not[q], p]
                #1 /. invNotRule &
                // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
 
-               symmetry /@ #1 &
-               // expectBy[   not[eqv[q, p]]   , "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy[   not[eqv[q, p]]   , "internal symmetryOfEqv"] //
 
                #1 /. notRule &
                // expectBy[   eqv[not[q], p]   , "notRule"]
@@ -826,8 +826,8 @@ expect[ true
        #1 /. invNotRule &
        // expectBy[   not[eqv[not[p], p]]           , "invNotRule"] //
 
-       symmetry /@ #1 &
-       // expectBy[   not[eqv[p, not[p]]]           , "internal symmetry"] //
+       symmetryOfEqv /@ #1 &
+       // expectBy[   not[eqv[p, not[p]]]           , "internal symmetryOfEqv"] //
 
        #1 /. notRule &
        // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
@@ -835,8 +835,8 @@ expect[ true
        identity
        // expectBy[   eqv[true, eqv[not[p], not[p]]], "identity"] //
 
-       symmetry
-       // expectBy[   eqv[eqv[not[p], not[p]], true], "symmetry"] //
+       symmetryOfEqv
+       // expectBy[   eqv[eqv[not[p], not[p]], true], "symmetryOfEqv"] //
 
        leibnizF[eqv[not[p], not[p]], #1, z, z] &
        // expectBy[   true                          , "leibniz"]
@@ -900,14 +900,14 @@ expect[ false
                identity /@ #1 & (* line 3 *)
                // expectBy[   not[eqv[true, eqv[p, p]]]    , "identity"] //
 
-               symmetry /@ #1 & (* line 4 *)
-               // expectBy[   not[eqv[eqv[p, p], true]]    , "symmetry"] //
+               symmetryOfEqv /@ #1 & (* line 4 *)
+               // expectBy[   not[eqv[eqv[p, p], true]]    , "symmetryOfEqv"] //
 
                (leibnizF[eqv[p, p], #1, z, z]&) /@ #1 & (* line 5 *)
                // expectBy[   not[true]                    , "leibniz"] //
 
-               leibnizF[#1, symmetry[falseDef], z, z] &
-               // expectBy[   false    , "leibniz(symmetry(falseDef))"]
+               leibnizF[#1, symmetryOfEqv[falseDef], z, z] &
+               // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"]
         ]
 ]
 
@@ -939,8 +939,8 @@ extractTrue[eqv[p_, p_]] :=
                identity
                // expectBy[   eqv[true, eqv[p, p]], "(lemma) identity"] //
 
-               symmetry
-               // expectBy[   eqv[eqv[p, p], true], "(lemma) symmetry"] //
+               symmetryOfEqv
+               // expectBy[   eqv[eqv[p, p], true], "(lemma) symmetryOfEqv"] //
 
                leibnizF[eqv[p, p], #1, z, z] &
                // expectBy[   true                , "(lemma) leibniz"]
@@ -957,16 +957,16 @@ expect[ true
         Module[{proposition = eqv[not[not[p]], p]},
 
                proposition
-               // expectI[    eqv[not[not[p]], p]           ] //
+               // expectI[    eqv[not[not[p]], p]] //
 
                #1 /. invNotRule &
-               // expectBy[   not[eqv[not[p], p]]           , "invNotRule"] //
+               // expectBy[   not[eqv[not[p], p]], "invNotRule"] //
 
-               symmetry /@ #1 &
-               // expectBy[   not[eqv[p, not[p]]]           , "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy[   not[eqv[p, not[p]]], "internal symmetryOfEqv"] //
 
                #1 /. notRule &
-               // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
+               // expectBy[   eqv[not[p], not[p]], "notRule"] //
 
                extractTrue
         ]
@@ -991,8 +991,8 @@ expect[ false
                extractTrue /@ #1 & (* replaces original lines 3, 4, and 5 *)
                // expectBy[   not[true]         , "lemma"] //
 
-               leibnizF[#1, symmetry[falseDef], z, z] &
-               // expectBy[   false    , "leibniz(symmetry(falseDef))"]
+               leibnizF[#1, symmetryOfEqv[falseDef], z, z] &
+               // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"]
         ]
 ]
 
@@ -1005,13 +1005,13 @@ expect[ neqv[q, p]
         Module[{proposition = neqv[p, q]},
 
                proposition /. neqvRule
-               // expectBy[    not[eqv[p, q]]    , "3.10, def of neqv"] //
+               // expectBy[    not[eqv[p, q]], "3.10, def of neqv"] //
 
-               symmetry /@ #1 &
-               // expectBy[    not[eqv[q, p]]    , "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy[    not[eqv[q, p]], "internal symmetryOfEqv"] //
 
                #1 /. invNeqvRule &
-               // expectBy[    neqv[q, p]        , "inverse neqv rule"]
+               // expectBy[    neqv[q, p]    , "inverse neqv rule"]
         ]
 ]
 
@@ -1078,8 +1078,8 @@ Module[{leftHalf =
                (#1 /. neqvRule)&
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
-               symmetry /@ #1 &
-               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                Map[(#1 /. neqvRule)&, #1, {2}] & (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
@@ -1090,8 +1090,8 @@ Module[{leftHalf =
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
-               symmetry
-               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+               symmetryOfEqv
+               // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
          leftHalf === rightHalf]
@@ -1150,8 +1150,8 @@ Module[{leftHalf =
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
-               symmetry /@ #1 &
-               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                Map[fireRule[neqvRule], #1, {2}] & (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
@@ -1162,8 +1162,8 @@ Module[{leftHalf =
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
-               symmetry
-               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+               symmetryOfEqv
+               // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
          leftHalf === rightHalf]
@@ -1211,8 +1211,8 @@ Module[{leftHalf =
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
-               symmetry /@ #1 &
-               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               symmetryOfEqv /@ #1 &
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
@@ -1223,8 +1223,8 @@ Module[{leftHalf =
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
-               symmetry
-               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+               symmetryOfEqv
+               // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
          leftHalf === rightHalf]
@@ -1247,8 +1247,8 @@ leftAssociativity  = eqv[ eqv[p_, q_], r_ ] :> eqv[ p, eqv[q, r] ]
 rightAssociativity = eqv[ p_, eqv[q_, r_] ] :> eqv[ eqv[p, q], r ]
 
 (* (3.2) Axiom, Symmetry of eqv, p === q === q === p *)
-ClearAll[symmetry]
-symmetry = eqv[p_, q_] :> eqv[q, p]
+ClearAll[symmetryOfEqv]
+symmetryOfEqv = eqv[p_, q_] :> eqv[q, p]
 
 (* (3.3) Axiom, Identity of eqv, page 44, true === q === q *)
 ClearAll[identity]
@@ -1290,8 +1290,8 @@ Module[{leftHalf =
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
-               fireRule[symmetry, 1]
-               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               fireRule[symmetryOfEqv, 1]
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
@@ -1302,8 +1302,8 @@ Module[{leftHalf =
                fireRule[doubleNegation]
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
-               fireRule[symmetry]
-               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+               fireRule[symmetryOfEqv]
+               // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
          leftHalf === rightHalf]
@@ -1349,8 +1349,8 @@ Module[{leftHalf =
                fireRule[neqvRule, 0]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
-               fireRule[symmetry, 1]
-               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetry"] //
+               fireRule[symmetryOfEqv, 1]
+               // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
@@ -1361,8 +1361,8 @@ Module[{leftHalf =
                fireRule[doubleNegation, 0]
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
-               fireRule[symmetry, 0]
-               // expectBy [ eqv[p, eqv[q, r]], "symmetry" ]
+               fireRule[symmetryOfEqv, 0]
+               // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
          leftHalf === rightHalf]
@@ -1488,13 +1488,13 @@ expect[ eqv[not[q], p]
                proposition
                // expectBy[    eqv[not[p], q]   , "proposition" ] //
 
-               fireRule[invNotRule, 0]
+               fireRule[invNotRule   , 0]
                // expectBy[    not[eqv[p, q]]   , "invNotRule"] //
 
-               fireRule[symmetry, 1]
-               // expectBy[    not[eqv[q, p]]   , "internal symmetry"] //
+               fireRule[symmetryOfEqv, 1]
+               // expectBy[    not[eqv[q, p]]   , "internal symmetryOfEqv"] //
 
-               fireRule[notRule, 0]
+               fireRule[notRule      , 0]
                // expectBy[    eqv[not[q], p]   , "notRule"] //
 
                Identity
@@ -1514,7 +1514,7 @@ expect[ eqv[not[q], p]
 (*                                                                           *)
 (* (3.2) Axiom, Symmetry of eqv                                              *)
 (* p === q === q === p                                                       *)
-(* symmetry = eqv[p_, q_] :> eqv[q, p]                                       *)
+(* symmetryOfEqv = eqv[p_, q_] :> eqv[q, p]                                  *)
 (*                                                                           *)
 (* (3.3) Axiom, Identity of eqv, page 44                                     *)
 (* true === q === q                                                          *)
@@ -1582,8 +1582,8 @@ expect[ false
                fireRule[identity, 1]
                // expectBy[   not[true]         , "lemma macro"] //
 
-               leibnizF[#1, falseDef /. symmetry, z, z] &
-               // expectBy[   false    , "leibniz(symmetry(falseDef))"] //
+               leibnizF[#1, falseDef /. symmetryOfEqv, z, z] &
+               // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"] //
 
                Identity
         ]
@@ -1643,16 +1643,16 @@ expect[ neqv[q, p]
         Module[{proposition = neqv[p, q]},
 
                proposition
-               // expectBy[    neqv[p, q]        , "proposition"] //
+               // expectBy[    neqv[p, q]    , "proposition"] //
 
                fireRule[neqvRule, 0]
-               // expectBy[    not[eqv[p, q]]    , "3.10, def of neqv"] //
+               // expectBy[    not[eqv[p, q]], "3.10, def of neqv"] //
 
-               fireRule[symmetry, 1]
-               // expectBy[    not[eqv[q, p]]    , "3.2 internal symmetry of eqv"] //
+               fireRule[symmetryOfEqv, 1]
+               // expectBy[    not[eqv[q, p]], "3.2 internal symmetryOfEqv"] //
 
                fireRule[invNeqvRule, 0]
-               // expectBy[    neqv[q, p]        , "3.10, inverse neqv rule"] //
+               // expectBy[    neqv[q, p]    , "3.10, inverse neqv rule"] //
 
                Identity
         ]
@@ -1915,13 +1915,13 @@ Module[{proposition = or[p, or[q, r]]},
        // expectBy[   or[p, or[or[p, q], r]], "3.25 associativity /@ 1"] //
 
        fireRule[symmetryOfDisjunction            , 1]
-       // expectBy[   or[p, or[r, or[p, q]]], "3.24 symmetry /@ 1"] //
+       // expectBy[   or[p, or[r, or[p, q]]], "3.24 symmetry of \/ /@ 1"] //
 
        fireRule[rightAssociativityOfDisjunction  , 0]
        // expectBy[   or[or[p, r], or[p, q]], "3.25 associativity /@ 0"] //
 
        fireRule[symmetryOfDisjunction            , 0]
-       // expectBy[   or[or[p, q], or[p, r]], "3.24 symmetry /@ 0"] //
+       // expectBy[   or[or[p, q], or[p, r]], "3.24 symmetry of \/ /@ 0"] //
 
        Identity
 ] ]
@@ -1940,7 +1940,7 @@ Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
        fireRule[factoringDisjunction , 0]
        // expectBy[   or[p, eqv[q, not[q]]], "3.27 distributivity /@ 0"] //
 
-       fireRule[symmetry             , 1]
+       fireRule[symmetryOfEqv        , 1]
        // expectBy[   or[p, eqv[not[q], q]], "3.2 symmetry of eqv /@ 0"] //
 
        fireRule[contradiction        , 1] (* 0 would work here, too. *)
@@ -1989,7 +1989,14 @@ goldenRule2 = eqv[p_, q_] :> eqv[and[p, q], or[p, q]]
 
 (* (3.36) Symmetry of /\ *)
 
-
+Module[{proposition = eqv[p, q, or[p, q]]},
+       proposition
+       // expectBy[eqv[p, q, or[p, q]], "proposition"] //
+       fireRule[symmetryOfDisjunction, 0]
+       // expectBy[eqv[p, q, or[q, p]], "3.24 symmetry of \/"] //
+       fireRule[symmetryOfEqv, 0] //
+       Identity
+]
 
 
 
