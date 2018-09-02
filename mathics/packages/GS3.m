@@ -1888,22 +1888,22 @@ Module[{proposition = or[p, or[q, r]]},
        // expectBy[   or[p, or[q, r]], "proposition"] //
 
        fireRuleOnPart[invIdempotencyOfDisjunction, 1]
-       // expectBy[   or[or[p, p], or[q, r]], "idempotency [[1]]"] //
+       // expectBy[   or[or[p, p], or[q, r]], "3.26 idempotency [[1]]"] //
 
        fireRule[leftAssociativityOfDisjunction   , 0]
-       // expectBy[   or[p, or[p, or[q, r]]], "associativity /@ 0"] //
+       // expectBy[   or[p, or[p, or[q, r]]], "3.25 associativity /@ 0"] //
 
        fireRule[rightAssociativityOfDisjunction  , 1]
-       // expectBy[   or[p, or[or[p, q], r]], "associativity /@ 1"] //
+       // expectBy[   or[p, or[or[p, q], r]], "3.25 associativity /@ 1"] //
 
        fireRule[symmetryOfDisjunction            , 1]
-       // expectBy[   or[p, or[r, or[p, q]]], "symmetry /@ 1"] //
+       // expectBy[   or[p, or[r, or[p, q]]], "3.24 symmetry /@ 1"] //
 
        fireRule[rightAssociativityOfDisjunction  , 0]
-       // expectBy[   or[or[p, r], or[p, q]], "associativity /@ 0"] //
+       // expectBy[   or[or[p, r], or[p, q]], "3.25 associativity /@ 0"] //
 
        fireRule[symmetryOfDisjunction            , 0]
-       // expectBy[   or[or[p, q], or[p, r]], "symmetry /@ 0"] //
+       // expectBy[   or[or[p, q], or[p, r]], "3.24 symmetry /@ 0"] //
 
        Identity
 ] ]
