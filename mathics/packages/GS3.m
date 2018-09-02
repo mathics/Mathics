@@ -996,6 +996,8 @@ expect[ false
         ]
 ]
 
+
+
 (* (3.16) Symmetry of neqv ************************************************* *)
 
 expect[ neqv[q, p]
@@ -1622,6 +1624,12 @@ expect[ false
         ]
 ]
 
+(* And now, new rules implied by the theorem. We must name it, now *)
+
+ClearAll[contradiction, invContradiction]
+contradiction         = eqv[not[p_], p_] :> false
+invContradiction[p_] := false -> eqv[not[p], p]
+
 
 
 (* ****************************************************************************
@@ -1690,8 +1698,8 @@ factoringDisjunction = eqv[or[p_, q_], or[p_, r_]] :> or[p, eqv[q, r]]
 
 (* (3.28) Axiom, Excluded Middle *)
 ClearAll[excludedMiddle, invExcludedMiddle]
-excludedMiddle[p_] := true :> or[p, not[p]];
-invExcludedMiddle = or[p_, not[p_]] :> true;
+excludedMiddle[p_] := true -> or[p, not[p]];
+invExcludedMiddle   = or[p_, not[p_]] :> true;
 
 (* We must introduce "true" to the definition of the excluded middle to
    mechanize this rule. G&S do this implicitly because they're working merely
@@ -1784,7 +1792,7 @@ expect[not[p]
    will rewrite Chapter 3 with the new meta-meta rule. *)
 
 ClearAll[notPRule, invNotPRule]
-notPRule = not[p_] :> eqv[false, p]
+notPRule    = not[p_] :> eqv[false, p]
 invNotPRule = eqv[false, p_] :> not[p]
 
 (* Back to theorem 3.30 *)
@@ -1875,6 +1883,16 @@ expect[true
 (* Again, this works only at top level. We will need new rules (later) to apply
    "on-part" rules at lower levels. *)
 
+(* We introduce a couple of rules, as usual, for use downstream. Note that the
+   specific form of the proof would not make it easy to generate these rules
+   mechanically. We'll have to address this issue as we reach for greater
+   automation. Most likely, we'll standardize a few forms of proofs, then write
+   metarules for each form to generate rules from proofs. *)
+
+ClearAll[identityOfDisjunction, invIdentityOfDisjunction]
+identityOfDisjunction         = or[p_, false] :> p
+invIdentityOfDisjunction[p_] := p -> or[p, false]
+
 
 
 (* (3.31) Theorem, Distributivity of \/ over \/ *)
@@ -1908,6 +1926,25 @@ Module[{proposition = or[p, or[q, r]]},
        Identity
 ] ]
 
+
+
+(* (3.32) Unnamed Theorem *)
+
+expect[p
+     ,
+Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
+       proposition
+       // expectBy[   eqv[or[p, q], or[p, not[q]]], "proposition"] //
+       fireRule[factoringDisjunction , 0]
+       // expectBy[   or[p, eqv[q, not[q]]], "3.27 distributivity /@ 0"] //
+       fireRule[symmetry             , 1]
+       // expectBy[   or[p, eqv[not[q], q]], "3.2 symmetry of eqv /@ 0"] //
+       fireRule[contradiction        , 1] (* 0 would work here, too. *)
+       // expectBy[   or[p, false],          "3.15 contradiction /@ 1"] //
+       fireRule[identityOfDisjunction, 0]
+       // expectBy[   p,                     "3.30 identity of \/ /@ 0"] //
+       Identity
+] ]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
