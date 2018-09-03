@@ -2018,6 +2018,12 @@ Module[{proposition = and[p, q]},
 
 (* (3.37) Associativity of /\ *)
 
+(* Because the Golden Rule expands into a three-part expression, our proofs can
+   get very long, with many steps just re-arranging and flattening combinations
+   of "eqv" and "or". At this point, we've seen enough and we trust mathics to
+   automate associativity ("Flat") and symmetry ("Orderless").
+ *)
+
 SetAttributes[or, {Flat, Orderless}]
 SetAttributes[eqv, {Flat, Orderless}]
 
@@ -2027,32 +2033,21 @@ Module[
        proposition
        // expectBy[and[and[p, q], r], "proposition"] //
        fireRule[goldenRule1, 1]
-       // expectBy[and[eqv[p, q, or[p, q]], r], "3.35 golden rule"] //
+       // expectBy[
+           and[eqv[p, q, or[p, q]], r],
+           "3.35 golden rule"] //
        fireRule[goldenRule1, 0]
-       // expectBy[eqv[eqv[p, q, or[p, q]], r, or[eqv[p, q, or[p, q]], r]],
-                   "3.35 golden rule"] //
-       Identity
-       // expectBy[eqv[p, q, r, or[p, q], or[eqv[p, q, or[p, q]], r]],
-                   "implicit associativity"] //
-       fireRuleOnPart[symmetryOfDisjunction, 5]
-       // expectBy[eqv[p, q, r, or[p, q], or[r, eqv[p, q, or[p, q]]]],
-                   "3.24 symmetry of disjunction"] //
+       // expectBy[
+           eqv[p, q, r, or[p, q], or[r, eqv[p, q, or[p, q]]]],
+           "3.35 golden rule"] //
        fireRuleOnPart[multiplyingOutDisjunction, 5]
        // expectBy[
-           eqv[p, q, r, or[p, q], eqv[or[r, p], or[r, eqv[q, or[p, q]]]]],
-           "3.27 distributivity of \/ over eqv"] //
-       Identity
-       // expectBy[
            eqv[p, q, r, or[p, q], or[p, r], or[r, eqv[q, or[p, q]]]],
-           "implicit associativity"] //
+           "3.27 distributivity of \/ over eqv"] //
        fireRuleOnPart[multiplyingOutDisjunction, 6]
        // expectBy[
-           eqv[p, q, r, or[p, q], or[p, r], eqv[or[r, q], or[r, or[p, q]]]],
-           "3.27 distributivity of \/ over eqv"] //
-       Identity
-       // expectBy[
            eqv[p, q, r, or[p, q], or[p, q, r], or[p, r], or[q, r]],
-           "implicit associativity"] //
+           "3.27 distributivity of \/ over eqv"] //
        Identity
 ],
 
@@ -2064,12 +2059,8 @@ right = Module[{proposition = and[p, and[q, r]]},
            and[p, eqv[q, r, or[q, r]]], "3.35 golden rule"] //
        fireRule[goldenRule1, 0]
        // expectBy[
-           eqv[p, eqv[q, r, or[q, r]], or[p, eqv[q, r, or[q, r]]]],
-           "3.35 golden rule"] //
-       Identity
-       // expectBy[
            eqv[p, q, r, or[p, eqv[q, r, or[q, r]]], or[q, r]],
-           "implicit associativity"] //
+           "3.35 golden rule"] //
        fireRuleOnPart[multiplyingOutDisjunction, 4]
        // expectBy[
            eqv[p, q, r, or[q, r], or[p, eqv[r, or[q, r]]], or[p, q]],
