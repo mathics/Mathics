@@ -289,27 +289,28 @@ class ExpressionPattern(Pattern):
 
                         if expr_groups:
                             expr, count = expr_groups.popitem()
-                            max_per_pattern = count / len(patterns)
+                            max_per_pattern = int(count / len(patterns))
                             for per_pattern in range(max_per_pattern, -1, -1):
-                                for next in per_expr(   # nopep8
-                                    expr_groups, sum + per_pattern):
-                                    yield_expr([expr] * per_pattern + next)
+                                perex = per_expr(   # nopep8
+                                    yield_expr, expr_groups, sum + per_pattern)
+                                if perex is None:
+                                    yield_expr([])
+                                else:
+                                    for next in perex:
+                                        yield_expr([expr] * per_pattern + next)
                         else:
                             if sum >= match_count[0]:
                                 yield_expr([])
 
-                    # for sequence in per_expr(expr_groups.items()):
                     def yield_expr(sequence):
-                        wrappings = self.get_wrappings(
-                            sequence, match_count[1], expression, attributes)
-                        for wrapping in wrappings:
-                            # for next in per_name(groups[1:], vars):
-                            def yield_next(next):
-                                setting = next.copy()
-                                setting[name] = wrapping
-                                yield_name(setting)
-                            per_name(yield_next, groups[1:], vars)
+                        def yield_wrapping(item):
+                            per_name(yield_func, groups[1:], vars)
+
+                        self.get_wrappings(
+                            yield_wrapping, sequence, match_count[1], expression, attributes)
+
                     per_expr(yield_expr, expr_groups)
+
                 else:  # no groups left
                     yield_name(vars)
 
