@@ -1,3 +1,4 @@
+.pytest_cache/
 .idea/
 *.py[cod]
 *.so
@@ -39,4 +40,3 @@ mathics/doc/xml/
 mathics/Makefile
 mathics/web/db/mathics.sqlite
 mathics/web/media/pdf/
-Test/
