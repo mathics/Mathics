@@ -2136,6 +2136,90 @@ Module[{proposition = and[p, p]},
        Identity
 ] ]
 
+(*
+
+   This proof brings up the question of whether we need a rule form for
+   leibnizF. There have been a few recent proofs where we brought in leibnizF in
+   "hash-ampersand" form. We can, instead, imagine a "pick" rule that extracts
+   the part of a Leibniz application we want. With Flat eqv, we will also need a
+   version that extracts the First and Rest of a premise (lispers will recognize
+   "car" and "cdr").  Mathics bug #747 won't affect us because in both mathics
+   and Mathematica,
+
+       First[eqv[p, q, r]] === p
+       Rest[eqv[p, q, r]] === eqv[q, r]]
+
+   for all combinations of {Flat, Orderless, OneIdentity}. Proof:
+
+   Generate all combinations as follows:
+
+       In[66]:=
+       Flatten[
+         Table[
+           Union[
+             Sort/@Permutations[{Flat,Orderless,OneIdentity}, {i}]],
+           {i,3}],
+         1]
+       Out[66]= {{Flat},
+                 {OneIdentity},
+                 {Orderless},
+                 {Flat, OneIdentity},
+                 {Flat, Orderless},
+                 {OneIdentity, Orderless},
+                 {Flat, OneIdentity, Orderless}}
+
+   Then check as follows:
+
+      In[67]:=
+      Table[
+        Module[{e = eqv[p,q,r]},    <~~~ HERE IS THE MONEY
+          ClearAll[eqv];
+          SetAttributes[eqv,j];
+          {j, First@e, Rest@e}],
+       {j, ... the above ...}]
+
+      Out[67]= {{{Flat},                        p, eqv[q, r]},
+               {{OneIdentity},                  p, eqv[q, r]},
+               {{Orderless},                    p, eqv[q, r]},
+               {{Flat, OneIdentity},            p, eqv[q, r]},
+               {{Flat, Orderless},              p, eqv[q, r]},
+               {{OneIdentity, Orderless},       p, eqv[q, r]},
+               {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   We only get differences when we pattern-match:
+
+       Table[
+         Module[{ e = (eqv[p,q,r] /. {eqv[x_,y_] :> {x,y}}) },    <~~~ DIFF'T
+           ClearAll[eqv];
+           SetAttributes[eqv,j];
+           {j, First@e, Rest@e}],
+        {j, ... the above ...}]
+
+   produces, in Mathematica
+
+       {{{Flat},                        p, {eqv[q, r]}},
+       {{OneIdentity},                  eqv[p], {eqv[q, r]}},
+       {{Orderless},                    p, eqv[q, r]},
+       {{Flat, OneIdentity},            p, eqv[q, r]},
+       {{Flat, Orderless},              p, {eqv[q, r]}},
+       {{OneIdentity, Orderless},       q, {eqv[p, r]}},
+       {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   but, in mathics
+
+       {{{Flat},                        p, {eqv[q, r]}},
+       {{OneIdentity},                  p, {eqv[q, r]}},
+       {{Orderless},                    p, eqv[q, r]},
+       {{Flat, OneIdentity},            p, eqv[q, r]},
+       {{Flat, Orderless},              p, {eqv[q, r]}},
+       {{OneIdentity, Orderless},       p, {eqv[q, r]}},
+       {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+ *)
+
+(* ClearAll[leibnizPick] *)
+(* leibnizPick[part_][premise_] := (premise :> eqv[x_, y_] *)
+
 (* ****************************************************************************
  _____ _          _____                                        ___         _
 |_   _| |_  ___  |_   _|__ _ __  _ __  ___ _ _ __ _ _ _ _  _  | __|_ _  __| |
