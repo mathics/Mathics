@@ -110,6 +110,8 @@
 
  *************************************************************************** *)
 
+ClearAll[x, y, z]
+
 Print[     x /. {x -> x + 2} ]
 
 Print[ x + y /. {x -> z + 2} ]
@@ -1015,7 +1017,14 @@ ClearAll[target, premise]
 
  *************************************************************************** *)
 
-(* 1.5, page 12 *)
+(*
+
+   Three-term leibniz.
+
+   1.5, page 12
+
+ *)
+
 ClearAll[leibniz]
 leibniz[ sameq[x_, y_], e_, z_ ] :=
     sameq[e /. {z -> x}, e /. {z -> y}]
@@ -1095,6 +1104,8 @@ expect[
     A mathics "Function" is a real lambda expression, as opposed to a rewrite
     rule that acts mostly like a lambda expression. Consider the rewrite rule:
 
+        REWRITE FORM
+
         square[x_] := x * x
 
     This means "whenever you see an expression like 'square[42]', rewrite it as
@@ -1102,28 +1113,67 @@ expect[
     (ii) saving the value in a temporary variable named x, (iii) replacing x in
     the right-hand side x * x. Then, keep evaluating until nothing changes. That
     is, evaluate 42 * 42 getting 1764, then evaluate 1764 getting 1764, then
-    stop."
+    stop." The right-hand side, "x * x", is not evaluated until step (iii),
+    after the "binding process" of steps (i) and (ii). The ":=" assignment
+    operator stands for "SetDelayed" and it means "don't evaluate the right-hand
+    side _now_, only later after binding values to pattern variables."
 
     On the other hand,
 
+        LAMBDA FORM
+
         square = Function[x, x * x]
 
-    means "bind the global name square to the Function (or lambda expression)
-    that will return x * x when called on any actual argument, which will get
-    bound to the parameter x". Note that the right-hand side of the assignment
-    is evaluated _now_, at definition time, because we wrote "=" and not ":=".
-    The latter would be silly because "Function[x, x * x]" would get
-    re-evaluated every time we invoked "square".
+    means "bind the global name 'square' to the Function (or lambda expression)
+    that will return x * x when called on any actual argument. The actual
+    argument will be bound to the parameter x, which will be called a 'bound
+    variable' in the body of the function." Note that the right-hand side of the
+    assignment, the "Function[...]" expression, is evaluated _now_, at
+    definition time, because we wrote "=" and not ":=". However, the body of the
+    Function, "x * x", is not evaluated _now_. This fact is observable when the
+    body of the Function has "free variables," that is, variables that are not
+    parameters. Consider
 
-    These two forms are invoked exactly the same way, with syntax like
+        foo = Function[x, x + y]
+
+    and ask "what is the value of y?" "y" is not a parameter, so its value must
+    come from the environment. For example,
+
+        y = 42
+        foo = Function[x, x + y]
+        foo[1]
+
+    produces 43. If the body "x + y" of "foo" were evaluated at definition time,
+    then
+
+        y = 42
+        foo = Function[x, x + y]
+        foo[1]
+        y = 37
+        foo[1]]
+
+    would also produce 43, because the rebinding of "y" to 37 would not affect
+    the value 42 that was captured when the Function was defined. However, that
+    sequence of instructions produces 38, proving that the body "x + y" is not
+    evaluated until invocation time.
+
+    Writing
+
+        square := Function[x, x + x]]
+
+    would be silly because "Function[x, x * x]" would be re-evaluated every
+    time we invoked "square".
+
+    These two forms, the REWRITE FORM and the LAMBDA FORM for "squre," are
+    invoked exactly the same way, with syntax like
 
         square[42]
 
-    Most of the time, we can't tell the difference between a straightforward
-    rewrite rule like the first "square" and a Function like the second
-    "square". However, if we set up a complex example where rewriting has side
-    effects, we could tell the difference. That's off-topic for now, but worth
-    remembering for later.
+    Most of the time, we can't tell the difference between a rewrite rule like
+    the first "square" and a Function or lambda like the second "square".
+    However, if we set up a complex example where rewriting has side effects, we
+    could tell the difference. That's off-topic for now, but worth remembering
+    for later.
 
  *************************************************************************** *)
 
@@ -1180,25 +1230,36 @@ expect[ 3 (y + 2) + 6,
     exception. In defining "substitutionInferenceRule", we stipulated that the
     terms "f" and "v" must have type "List" (review the definition). We make
     greater use of conditions below. Mathics's conditional facility is very
-    powerful, encompassing things like "dependent types," which are beyond all
-    other programming languages except for a few research languages like Agda.
+    powerful, encompassing things like "dependent types," which are only
+    recently being researched in statically typed languages like Agda. Because
+    mathics checks types at run-time, it can apply arbitrary conditions: just
+    ordinary predicates. Not so with static typing, where condition may only
+    apply facts known at compile time.
 
-    We introduce a three-term overload for "apply", which was inert, in terms of
-    substitution, following definition 1.7 on page 14 of the book. The existing,
-    two-term "apply" in "erules" above will not be affected.
+    We introduce a global three-term overload for "apply", which used to be
+    inert, in terms of substitution, after definition 1.7 on page 14 of the
+    book. The existing, two-term "apply" in "erules" above will not be affected.
 
-    Be aware that this practice, of introducing new overloads and definitions is
-    code smell. It is modifying global state in a way that depends on order of
-    evaluation. We're being careful, here, but you must be aware that subtle
-    bugs often occur if you try to evaluate terms above the change using the new
-    definition. You will thank me someday for reiterating this warning.
+    Be aware that this practice, of introducing new global overloads and
+    definitions is anti-modularity code smell. It makes the code vulnerable to
+    breakage on rearrangement. It is modifying global state in a way that
+    depends on order of evaluation. If you rearrange the code physically, the
+    order of evaluation may change, and definitions may not be as expected.
 
  *************************************************************************** *)
 
-(* 1.7, page 14 *)
-ClearAll[apply]
+(*
 
-(* g applied to X (g.X) is E[z := X] if g.z : E defines g of z. *)
+  1.7, page 14
+
+  g applied to X (g.X) is E[z := X] if g.z : E defines g of z.
+
+  This is a one-shot application of the rule z :> x. Mathics rewrites g once,
+  not repeatedly until nothing changes.
+
+ *)
+
+ClearAll[apply]
 
 apply[g_, z_, x_] := g /. {z :> x}
 
@@ -1218,7 +1279,16 @@ expect[
 
 
 
-(* 1.8, page 14 *)
+(*
+
+   1.8, page 14
+
+   Two-term leibniz overload.
+
+   This is a multi-shot rule. Mathics will rewrite until nothing changes any
+   more.
+
+*)
 
 leibniz[ sameq[x_, y_], g_ ] := sameq [ apply [ g, x ], apply [ g, y ] ]
 
@@ -1246,22 +1316,24 @@ expect[
         ---------------------
         E[z := X] = E[z := Y]
 
-    or, as
+    or, more concisely as
 
            X = Y
         -----------
         g(X) = g(Y)
 
-    (I don't like G&S's  notation g.X for function application; I'll use "g(X)".")
+    (I don't like G&S's notation g.X for function application; I'll use
+    "g(X)".")
 
     We write the same thing as follows
 
         leibniz [
-            sameq[x_, y_], e_, z_ ] :=
-            sameq[ e /. {z -> x}, e /. {z -> y} ]
+            sameq[x_, y_], e_, z_                    <~~~ REWRITE THIS
+            ] :=
+            sameq[ e /. {z -> x}, e /. {z -> y} ]    <~~~ AS THIS
 
-    which is a rewrite rule that will drive an expression that matches the
-    pattern above the line, namely
+    This is a multi-shot, named rewrite rule that will drive an expression that
+    matches the pattern above the line, namely
 
         sameq[x_, y_]                            (* X == Y *)
 
@@ -1271,9 +1343,9 @@ expect[
 
     In a chain of reasoning, G&S write Leibniz like this:
 
-            E[z := X]      (* Here is a premise *)
-        = < X = Y >        (* Here is a "justification" in angle brackets *)
-            E[z := Y]      (* Here is a conclusion *)
+            E[z := X]      (* Here is a premise                              *)
+        = < X = Y >        (* Here is a "justification" in angle brackets    *)
+            E[z := Y]      (* Here is a conclusion                           *)
 
     which means that they're using Leibniz to rewrite an expression like
 
@@ -1282,6 +1354,12 @@ expect[
     into one like
 
         E[z := Y]
+
+    using X = Y as a justification.
+
+    This is very different from driving an expression like X = Y into an
+    expression like E[z:=X] = E[z:=Y], though both are applications of Leibniz's
+    rule.
 
     Why? To drive (not derive) the proof forward. Without that rearrangement,
     Leibniz is just a dead statement of fact. To drive proofs in mathics, we
@@ -1292,18 +1370,29 @@ expect[
 
  *************************************************************************** *)
 
-leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
-                            (* against sameq[x_, y_], in lower case ...      *)
-                                     (* ... instantiates x to m and y to 2j  *)
-         sameq[div[z, 2], 2(j-1) ],  (* E[z] of Leibniz                      *)
-         z ]                         (* the independent variable is z        *)
+    leibniz[ sameq[ m, 2j ],
+
+                            (* justification, or                             *)
+                            (* premise, above the line. Pattern-matching ... *)
+                            (* ... against sameq[x_, y_], in lower case ...  *)
+                            (* ... instantiates x to m and y to 2j           *)
+
+         sameq[ div[z, 2], 2(j-1) ],  (* E[z] of Leibniz                     *)
+
+                            (* The goal is to justify replacing              *)
+                            (*  m/2 === 2(j-1) with                          *)
+                            (* 2j/2 === 2(j-1)                               *)
+
+         z ]                (* the independent variable is z                 *)
 
 (* ****************************************************************************
 
    Now, we write a new version of Leibniz that Prints to the console an
    annotated proof fragment and returns only the right half of the conclusion,
-   namely E[z := Y]. This new version has the same function signature (the same
-   API) as the old "leibniz".
+   namely E[z:=Y].
+
+   This new version of leibniz has the same function signature (the same API) as
+   the old "leibniz".
 
    Note the "[[1]]" and "[[2]]" syntax, shorthand for "Part", which retrieves
    the first and second part of any expression, respectively. In the case of
@@ -1312,6 +1401,11 @@ leibniz[ sameq[ m, 2j ],    (* premise, above the line; pattern-matching ... *)
    "head", namely "sameq".
 
    In general, of course, "expr[[i]]" retrieves the i-th part of any expr.
+
+   This use of Leibniz works best when e is a binary sameq. It is not explicit,
+   therefore not fully formal, because it requires the human to notice that
+   E[z:=X] is true. Formally, all we get from the caller is E and a dependent
+   variable z. Nowhere do we write or pattern-match E[z:=X].
 
  *************************************************************************** *)
 
@@ -1326,10 +1420,10 @@ leibnizE[ premise:sameq[ x_, y_ ], e_, z_ ] :=
 
 
 expect[
-    sameq[div[2j, 2], 2(j-1)]
-    ,
-    leibnizE[sameq[m, 2j],             (* premise sameq[X, Y], by 0.1 *)
-             sameq[div[z, 2], 2(j-1)], (* E(z)                        *)
+    sameq[div[2j, 2], 2(j-1)]           (* nowhere do we write               *)
+    ,                                   (* sameq[div[m, 2], 2(j-1)]          *)
+    leibnizE[sameq[m, 2j],              (* <~~~ premise sameq[X, Y], by 0.1  *)
+             sameq[div[z, 2], 2(j-1)],  (* <~~~ E(z)                         *)
              z]
 ]
 
@@ -1376,14 +1470,15 @@ expect[
     Remember the middle line is the premise and is always of the form "X = Y".
     Now we clearly see that X is 2j/2 and Y is j. The top line is X = 2(j-1);
     the bottom line is Y = 2(j-1). A suitable E(z), then, is z = 2(j-1), because
-    the top line is always E(z)[z := X] and the bottom line is always
-    E(z)[z := Y]. More concisely (using the functional variant of Leibniz), the
-    top line is always E(X) and the bottom line is always E(Y). The output of
-    "leibnizE" is E(Y) and we figure out an E(z) by looking at the premise, with
+    the top line is always E(z)[z:=X] and the bottom line is always E(z)[z:=Y].
+    More concisely (using the functional variant of Leibniz), the top line is
+    always E(X) and the bottom line is always E(Y). The output of "leibnizE" is
+    E(Y) and humans mentally figure out an E(z) by looking at the premise, with
     or without a substitution. There is still a bunch of implicit "head math"
-    going on; we will have to be more explicit below.
+    going on; we will have to be more explicit later so we can formalize better
+    and mechanize and automate more.
 
-    That kind of thinking will be critical as you go through the exercises for
+    But you will need that kind of "head math" to go through the exercises for
     Chapter 2. Watch out because E(z) is often not unique.
 
     Equivalences, theorem, axioms, and the like are permanent, immutable,
@@ -1392,13 +1487,13 @@ expect[
 
     But we want to drive computations, to rewrite one expression into another,
     to prove consequences from premises. A rewrite rule has a preferred
-    direction: it converts one expression X into another expression Y that
+    direction: it converts one expression A into another expression B that
     happens to be equivalent but is closer in form to the objective. If we wish
-    to go the other way, we need another rewrite rule. That's why computational
-    machinery is more verbose than logical machinery: we often must write rules
-    for each direction. The connection between a theorem and applications
-    rewrite rules is as follows: A theorem in the propositional calculus is
-    (from page 42)
+    to go the other way, from B to A, we need another rewrite rule. That's why
+    computational machinery is more verbose than logical machinery: we often
+    must write rules for each direction. The connection between a theorem and
+    applications of rewrite rules is as follows: A theorem in the propositional
+    calculus is (from page 42)
 
     (i) an axiom
 
@@ -1407,6 +1502,9 @@ expect[
 
     (iii) a boolean expression that, using the inference rules, is proved equal
     to an axiom or to a previously proved theorem.
+
+    If we can drive an expression A into an expression B that happens to be one
+    of the following.
 
  *************************************************************************** *)
 
