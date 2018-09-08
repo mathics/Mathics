@@ -2199,7 +2199,7 @@ Module[{proposition = and[p, p]},
                 {{OneIdentity, Orderless},       p, eqv[q, r]},
                 {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
 
-   We only get differences, and lots of subtle ones, when we pattern-match:
+   We only get differences, and subtle ones, when we pattern-match:
 
        Table[
          Module[{ e = (eqv[p,q,r] /. {eqv[x_,y_] :> {x,y}}) },    <~~~ DIFF'T
@@ -2221,23 +2221,84 @@ Module[{proposition = and[p, p]},
    but, in mathics
 
        {{{Flat},                         p, {eqv[q, r]}},
-        {{OneIdentity},                  p, {eqv[q, r]}},
+        {{OneIdentity},                  p, {eqv[q, r]}},    <~~~ OOPS
         {{Orderless},                    p, eqv[q, r]},
         {{Flat, OneIdentity},            p, eqv[q, r]},
         {{Flat, Orderless},              p, {eqv[q, r]}},
-        {{OneIdentity, Orderless},       p, {eqv[q, r]}},
+        {{OneIdentity, Orderless},       p, {eqv[q, r]}},    <~~~ OOPS
         {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   There are enough subtleties that making mathics consistent with Mathematica
+   is a lengthy debugging exercise if not a total rewrite of mathics because
+   everything depends on pattern-matching.
+
+   However, we note the good fortune that pattern-matching produces the same
+   results when our symbols are Flat, OneIdentity, Orderless, so we can postpone
+   the debugging or rewriting work so long as we only use such symbols.
 
    LESSON:
 
-   Use "Part" instead of pattern-matching for Leibniz.
+   Use "Part" instead of pattern-matching for Leibniz when possible. When
+   pattern-matching, ensure Flat, OneIdentity, and Orderless.
 
- *)
+   WHAT WE WANT:
+
+       Module[{proposition = and[p, p]},
+              proposition
+              // expectBy[ and[p, p], "proposition" ] //
+              fireRule[goldenRule1, 0]
+              // expectBy[ eqv[p, p, or[p, p]], "3.35 golden rule" ] //
+              fireRule[identity, 0]
+              // expectBy[ eqv[true, or[p, p]], "identity of eqv"  ] //
+       ~~~>   fireRule[leibnizPick[2][true]]    <~~~ THE MONEY SHOT
+              // expectBy[or[p, p], "1.5 leibniz"] //
+              fireRule[idempotencyOfDisjunction, 0]
+              // expectBy[p, "3.26 idempotency of \/"] //
+              Identity
+       ]
+
+   When we unpack a Flat premise, say eqv[true, or[p, p]], with First and Rest,
+   we'll get
+
+       First[premise] ~~> true
+       Rest[premise]  ~~> eqv[or[p, p]]
+
+   When we say "leibnizPick[2]," we want the second part of the premise. We
+   really want the first part of the recursively unpacked eqv, i.e., the first
+   part of eqv[or[p, p]]. We'll do a non-recursive version first, one that only
+   works at the top level of a proof.
+
+   Note that we check the condition (part >= 2) in the definition.
+
+*)
 
 ClearAll[leibnizPick]
-leibnizPick[part_][proposition_][premise_] :=
-        Module[{x = First[premise], y = Rest[premise]},
-        Null]
+leibnizPick[part_ /; (part >= 2)][proposition_] =
+premise_ :> Module[{x = First[premise], y = Rest[premise]},
+                   If[Not[SameQ[proposition, x]],
+                      Print["\nFAILED MATCH OF PROPOSITION"];
+                      Print[ToString[proposition]];
+                      Print["WITH FIRST TERM OF EQV"];
+                      Print[ToString[x]],
+                      (* else *)
+                      y[[part - 1]]
+                   ] ]
+
+expect[p
+     ,
+       Module[{proposition = and[p, p]},
+              proposition
+              // expectBy[ and[p, p], "proposition" ] //
+              fireRule[goldenRule1, 0]
+              // expectBy[ eqv[p, p, or[p, p]], "3.35 golden rule" ] //
+              fireRule[identity, 0]
+              // expectBy[ eqv[true, or[p, p]], "identity of eqv"  ] //
+              fireRule[leibnizPick[2][true]]
+              // expectBy[or[p, p], "1.5 leibniz"] //
+              fireRule[idempotencyOfDisjunction, 0]
+              // expectBy[p, "3.26 idempotency of \/"] //
+              Identity
+       ] ]
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
