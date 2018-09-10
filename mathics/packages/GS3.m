@@ -71,7 +71,7 @@
    Equational logic, E
 
    We've written the laws leibniz, substitutionInferenceRule, and
-   transitivityLaw as rewrite rules (from the cheat sheet above):
+   transitivityLaw as rewrite rules (from the cheat sheet in GS1.m):
 
     (* 1.1 *) substitutionInferenceRule[e_, v_:List, f_:List] :=
         Module[{ rules = MapThread[ Rule, {v, f} ] }, e /. rules  ]
@@ -84,16 +84,14 @@
         sameq[e /. {z -> x}, e /. {z -> y}]
 
    because we want evaluation to drive expressions in a particular direction:
-   from premises above the line to conclusions below the line, as in page 41.
+   from premises above the line to conclusions below the line, as on page 41.
 
    In Chapter 2, we introduced the inert symbol "eqv" to replace the old "sameq"
-   from Chapter 1. Write new versions of the three laws in terms of "eqv", also
-   shortening the names, to make following Chapter 3 easier.
+   from Chapter 1. We now write new versions of the three laws in terms of
+   "eqv", also shortening the names, to make Chapter 3 easier.
 
-   ClearAll the symbols before redefining them to avoid nasty surprises and
-   lengthy debugging sessions from lingering, prior definitions. This is cheap
-   paranoia, because "ClearAll" doesn't cost very much. You will thank me some
-   day for constantly nagging you about this.
+   ClearAll symbols before redefining them to avoid surprises debugging
+   lingering, prior definitions. This is cheap paranoia.
 
  *************************************************************************** *)
 
@@ -107,11 +105,23 @@
  *)
 ClearAll[eqv]
 ClearAll[leibniz]
+
+(* 1.5 Leibniz : convert an eqv of X and Y to an eqv of E[z:=X] and E[z:=Y],
+   where E is an arbitrary expression. Replaces the old leibniz, which used
+   "sameq" instead of "eqv". Otherwise the same. *)
+
 leibniz[ eqv[x_, y_], e_, z_ ] :=
-        ((* Print[{"leibniz", "x", x, "y", y,
-                   "conclusion", eqv[e /. {z -> x}, e /. {z -> y}]}]; *)
+        ((* Print[{"leibniz", "x", x, "y", y, "e", e,
+                "conclusion", eqv[e /. {z -> x}, e /. {z -> y}]}]; *)
          eqv[e /. {z -> x}, e /. {z -> y}])
 
+(*
+
+   Instrumented version of Leibniz that prints a trace. Works best with a binary
+   "e", presumably an "eqv". Informally and in practical application, uses the
+   premise X=Y to drive E[z:=X] to E[z:=Y].
+
+ *)
 ClearAll[leibnizE]
 leibnizE[ premise:eqv[ x_, y_ ], e_, z_ ] :=
         Module[{conclusion = leibniz[premise, e, z]},
@@ -138,24 +148,27 @@ substitution[e_, v_:List, f_:List] := e /. MapThread [ Rule, {v, f} ]
  *)
 
 (* (3.1) Axiom, Associativity of eqv; both directions (computers are dumb) *)
+
 ClearAll[associativity]
 associativity[eqv[ eqv[p_, q_], r_ ]] := eqv[ p, eqv[q, r] ]
 associativity[eqv[ p_, eqv[q_, r_] ]] := eqv[ eqv[p, q], r ]
 
 (* (3.2) Axiom, Symmetry of eqv *)
 (* p === q === q === p *)
+
 ClearAll[symmetryOfEqv]
 symmetryOfEqv[eqv[p_, q_]] := eqv[q, p]
 
 (* (3.3) Axiom, Identity of eqv, page 44 *)
 (* true === q === q *)
+
 ClearAll[identity]
 identity[eqv[q_, q_]] := eqv[true, eqv[q, q]]
 
 (*
 
    Note that we can automate the associativity and symmetry axioms with mathics
-   Attributes: Flat and Orderless. Here is a dummy eqv that demonstrates this:
+   Attributes: Flat and Orderless. Here is a dummy eqv that demonstrates this.
 
 *)
 
@@ -175,9 +188,13 @@ expect[
 (*
 
    Checking this automation, however, requires === instead of deqv itself, so
-   it's delegating too much to mathics and spoiling our fun (for now).
+   it's delegating too much to mathics and spoiling our fun (for now). We'll
+   revisit later when the work of constantly explicitly applying associativity
+   and symmetry becomes annoying.
 
 *)
+
+ClearAll[deqv]
 
 (* Theorems, pages 43-44 ******************************************************
 
@@ -200,13 +217,15 @@ dump[annotation_, e_] := (
     Print[annotation <> " ~~> ", e];
     e)
 
+expect[ eqv[eqv[p, q, q], p]
+,
 Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
   proposition                          // fump                  //
   symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]& //
   leibnizE[#1, eqv[p, z], z]&          //
   leibnizE[proposition, eqv[p, z], z]& //
   symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]&
-]
+]]
 
 (* ****************************************************************************
 
@@ -261,8 +280,8 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
    That leaves open the question of the meaning of eqv[a, b, c], a ternary eqv,
    which we have not defined. We define it now to mean eqv[eqv[a, b], c] or
    eqv[a, eqv[b, c]], but we won't explicitly reduce it that way because we
-   don't want to invoke "or" for this proof. If you're willing to go with that,
-   then we may proceed.
+   don't want to invoke "or" for this proof. If you're willing to go with this
+   definition, then we may proceed.
 
    Before explaining the proof line-by-line, we note that simply one invocation
    of symmetry suffices, namely
@@ -286,12 +305,12 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
        {leibnizE:, x, eqv[p, q, q], y, p}
          E(z)     : eqv[p, z]
          E[z := X]: eqv[p, eqv[p, q, q]]
-       =   <X = Y>: eqv[eqv[p, q, q], p]
+       =   <X = Y>: eqv[eqv[p, q, q], p]    <~~~ THAT'S AN AXIOM
          E[z := Y]: eqv[p, p]
 
    We then feed the proposition once more through leibnizE, this time with X = p
-   and Y = eqv[p, q, q], noting that our intermediate form eqv[p, p] is present
-   (and eaten up) as E[z := X]:
+   and Y = eqv[p, q, q], noting mentally, informally that our intermediate form
+   eqv[p, p] is present (and eaten up) as E[z := X]:
 
        {leibnizE:, x, p, y, eqv[p, q, q]}
          E(z)     : eqv[p, z]
@@ -309,21 +328,22 @@ Module[{proposition = eqv[p, eqv[p, q, q]]}, (* the prop. I want to prove *)
 
    and you should see something like that on your console.
 
-   Here is the whole proof as an "expect" test:
+   Here is the whole proof again, laid out slightly differently:
 
  *************************************************************************** *)
-
-ClearAll[deqv]
 
 expect[ eqv[eqv[p, q, q], p]
       ,
         Module[{proposition = eqv[p, eqv[p, q, q]]},
                (* the prop. I want to prove *)
-               proposition                          // fump                  //
-               symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]& //
+               proposition
+               // fump                              //
+               symmetryOfEqv[#1]&
+               // dump["symmetryOfEqv", #1]&        //
                leibnizE[#1, eqv[p, z], z]&          //
                leibnizE[proposition, eqv[p, z], z]& //
-               symmetryOfEqv[#1]&                   // dump["symmetryOfEqv", #1]&
+               symmetryOfEqv[#1]&
+               // dump["symmetryOfEqv", #1]&
         ]
 ]
 
@@ -331,8 +351,7 @@ expect[ eqv[eqv[p, q, q], p]
 
    That's more than a little round-about, but at least we avoided an explosion
    of rules for associativity of binary combinations. That need may come back to
-   haunt us, and we may get into Attribute Flat, as we did with "deqv" above, to
-   mitigate it.
+   haunt us, and we may get into Attribute Flat, as we did with "deqv" above.
 
  *************************************************************************** *)
 
@@ -340,16 +359,25 @@ expect[ eqv[eqv[p, q, q], p]
 (* (3.4) Theorem, _true_ *************************************************** *)
 
 Module[{proposition = true},
-       proposition // fump //
-       identity[eqv[#1, #1]]& // dump["identity", #1]& //
-       leibnizE[#1, z, z]& //
+       proposition
+       // fump //
+       identity[eqv[#1, #1]]&       (* eqv[true, eqv[true, true]] *)
+       // dump["identity", #1]& //
+       leibnizE[#1, z, z]&      //  (* eqv[true, true]            *)
        leibnizE[identity[eqv[q, q]], eqv[true, z], z]&
+(*
+      E(z)     : eqv[true, z]
+      E[z := X]: eqv[true, true]
+    =   <X = Y>: eqv[true, eqv[q, q]]    <~~~ PREMISE = identity[eqv[q, q]]
+      E[z := Y]: eqv[true, eqv[q, q]]    <~~~ reduced to axiom of identity
+
+*)
 ]
 
 (* ****************************************************************************
 
    While the above accomplishes the proof in our minds, it's not a full
-   calculation inside mathics because of the line
+   calculation inside mathics, not fully formal, because of the line
 
        leibnizE[identity[eqv[q, q]], eqv[true, z], z]&
 
@@ -365,8 +393,10 @@ Module[{proposition = true},
 
    Our previous versions of Leibniz internally calculated E[z:=x], but we want
    to compare a previous line in the proof with that internal calculation. We'll
-   do that with a call to mathics "SameQ". We may later need "MatchQ" if we go
-   meta, but not for now. We'll tighten up the display a bit, too.
+   do that with a call to mathics built-in "SameQ". We may later need "MatchQ"
+   if we go meta, but not for now. We'll tighten up the display a bit, too.
+
+   This is a new, four-term overload of leibniz.
 
  *************************************************************************** *)
 
@@ -400,13 +430,14 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
                proposition                                           // fump //
 
                (* Instantiate the Axiom of Identity with the proposition:    *)
+               (* producing eqv[true, eqv[true, true]]                       *)
                identity[eqv[#1, #1]]&               // dump["identity", #1]& //
 
                (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
                leibnizE[#1, z, z]&                                           //
 
                (* Use Leibniz again with a known truth, "identity", the      *)
-               (*deduction so far, eqv[true, true], and a crafted            *)
+               (* deduction so far, eqv[true, true], and a crafted           *)
                (* E(z) = eqv[true, z] such that eqv[q, q] is subbed for z.   *)
                (* This reduces to an instance of identity so we're done.     *)
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
@@ -415,7 +446,7 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
 
 (* ****************************************************************************
 
-   Ok, we can see the deduction convincingly in the output:
+   Now we see the deduction convincingly in the output:
 
        proposition$1466 ~~> true
        identity ~~> eqv[true, eqv[true, true]]
@@ -441,6 +472,7 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
          // expectI[true] //
 
          (* Instantiate the Axiom of Identity with the proposition: *)
+         (* producing eqv[true, eqv[true, true]]                    *)
 
          identity[eqv[#1, #1]]&
          // expectBy[eqv[true, eqv[true, true]], "identity"] //
@@ -458,6 +490,10 @@ expect[ (* Reduce the proposition to the Axiom of Identity.                  *)
          leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
          // expectBy[identity[eqv[q, q]], "leibniz"]
        ]
+
+   You don't need to understand how expectI and expectBy work, but you need to
+   know that they return Functions that are invoked by the "//" postfix
+   function-application operator.
 
  *************************************************************************** *)
 
@@ -492,7 +528,7 @@ expectBy[expected_, by_] :=
 
 (* (3.4) Theorem, _true_ ( new proof ) ************************************* *)
 
-expect[ identity[eqv[q, q]]
+expect[ identity[eqv[q, q]] (* true === q === q *)
         ,
         Module[{proposition = true},
 
@@ -504,11 +540,16 @@ expect[ identity[eqv[q, q]]
                (* Instantiate the Axiom of Identity with the proposition:    *)
 
                identity[eqv[#1, #1]]&
+
+               (* Notice how we say explicitly in code what we expect, not just
+                  in comments *)
+
                // expectBy[eqv[true, eqv[true, true]], "identity"] //
 
                (* Use Leibniz to pick out the second term, eqv[true, true]:  *)
 
                leibnizE[#1, z, z]&
+
                // expectBy[eqv[true, true], "leibniz"] //
 
                (* Use Leibniz again with a known truth, "identity", the      *)
@@ -517,6 +558,7 @@ expect[ identity[eqv[q, q]]
                (* This reduces to an instance of identity so we're done.     *)
 
                leibnizF[#1, identity[eqv[q, q]], eqv[true, z], z]&
+
                // expectBy[identity[eqv[q, q]], "leibniz"]
         ] ]
 
@@ -525,12 +567,12 @@ expect[ identity[eqv[q, q]]
 (* ****************************************************************************
 
    By writing our new "expectI" and "expectBy" as rewrite rules that return
-   Functions (and print by side effect), we've gotten rid of some "#1" and "&"
+   Functions (that print by side effect), we've gotten rid of some "#1" and "&"
    syntax. We can use the same idea to improve our mechanization of the
    preliminaries in section 3.1. However, without a significant foray into
-   metaprogramming (functions or rules that return functions or rules or install
-   functions and rules into the global environment), we can't preserve the
-   pattern-matching that makes them powerful, so we will skip that for now.
+   metaprogramming (functions or rules that return functions or rules or even
+   install functions and rules into the global environment), we can't preserve
+   the pattern-matching that makes them powerful, so we will skip that for now.
 
  *************************************************************************** *)
 
@@ -540,12 +582,12 @@ expect[ identity[eqv[p, p]]     (* eqv[true, eqv[p, p]] *)
         ,
         Module[{proposition = eqv[p, p]},
 
-               (* The proposition is "true": *)
-
                proposition
+
                // expectI[eqv[p, p]] //
 
                substitution[#1, {p}, {true}]&
+
                // expectBy[eqv[true, true], "substitution"] //
 
                (* Ues Leibniz again with a known truth, "identity", the      *)
@@ -554,6 +596,7 @@ expect[ identity[eqv[p, p]]     (* eqv[true, eqv[p, p]] *)
                (* This reduces to an instance of identity so we're done.     *)
 
                leibnizF[#1, identity[eqv[p, p]], eqv[true, z], z]&
+
                // expectBy[identity[eqv[p, p]], "leibniz"]
         ] ]
 
@@ -569,22 +612,31 @@ expect[
         Module[{proposition = eqv[p, eqv[p, q, q]]},
 
                proposition
+
                // expectI[eqv[p, eqv[p, q, q]]] //
 
                symmetryOfEqv[#1]&
+
                // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"] //
 
                leibnizE[#1, eqv[p, z], z]&
+
                // expectBy[eqv[p, p], "leibniz"] //
 
                leibnizF[#1, proposition, eqv[p, z], z]&
+
                // expectBy[eqv[p, eqv[p, q, q]], "leibniz"] //
 
                symmetryOfEqv[#1]&
+
                // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"]
         ]]
 
 (* ****************************************************************************
+
+   We can see that the last call of leibnizF depends on TWO inputs, the derived
+   fact eqv[p, p] and the proposition. This is much better formal mechanization
+   than just carrying one of the inputs in our minds.
 
    Now, we're going to give up on explicit uses and choices of associativity by
    setting the Flat Attribute on eqv. This is OK because G&S are going
@@ -604,9 +656,11 @@ expect[ eqv[eqv[p, q, q], p]
         Module[{proposition = eqv[p, eqv[p, q, q]]},
 
                proposition
+
                // expectI[eqv[p, eqv[p, q, q]]] //
 
                symmetryOfEqv[#1]&
+
                // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"]
         ]]
 
@@ -623,12 +677,15 @@ expect[ eqv[eqv[p, q, q], p]
    Pretty cool. What if we continue with our old, redundant proof?
 
        proposition
+
        // expectI[eqv[p, eqv[p, q, q]]] //
 
        symmetryOfEqv[#1]&
+
        // expectBy[eqv[eqv[p, q, q], p], "symmetryOfEqv"] //
 
        leibnizE[#1, eqv[p, z], z]&
+
        // expectBy[eqv[p, p], "leibniz"]
 
    Bad stuff:
@@ -650,24 +707,40 @@ expect[ eqv[eqv[p, q, q], p]
        In[81]:= eqv[p, q, q, p] /. eqv[x_, y_] :> {x, y}
        Out[81]= {p, eqv[q, q, p]}
 
-   (This is a bug in mathics; it should produce {eqv[p], eqv[q, q, p]};
-   see https://github.com/mathics/Mathics/issues/747. The bug does not affect
-   the current analysis.)
+   Good thing we decided to trust AND verify.
+    _      _____   ___  _  _______  _______
+   | | /| / / _ | / _ \/ |/ /  _/ |/ / ___/
+   | |/ |/ / __ |/ , _/    // //    / (_ /
+   |__/|__/_/ |_/_/|_/_/|_/___/_/|_/\___/
+
+   This is a bug in mathics; it should produce {eqv[p], eqv[q, q, p]}; see
+   https://github.com/mathics/Mathics/issues/747. The bug does not affect the
+   current analysis, but be aware that we depart from Mathematica whenever we
+   use pattern-matching with Flat symbols; Mathematica will produce different
+   results. (UPDATE: we now believe that this bug concerns mathics's treatment
+   of attribute "OneIdentity". Check with the issue above for the most
+   up-to-date progress on the bug))
+
+   What's going wrong?
 
    The next step in "leibniz" is to construct the conclusion
+
+       with x = p and y = eqv[q, q, p]:
 
        eqv[ e         /. {z -> x}, e       /. {z -> y} ]
          ~~>
        eqv[ eqv[p, z] /. {z -> x}, e[p, z] /. {z -> y} ]
          ~~>
-       eqv[ eqv[p, p], eqv[p, eqv[q, q, p]]]
+       eqv[ eqv[p, p],             eqv[p, eqv[q, q, p]]]
          ~~>
        eqv[p, p, p, q, q, p]
 
-   because eqv is now "Flat". Conclusion[[1]] is "p"; conclusion[[2]] is "p",
-   just as we see in the output from the instrumented leibnizE above.
+   because eqv is now "Flat". Conclusion[[1]] (inside the implementation of
+   leibnizF) is "p"; conclusion[[2]] (also inside the implementation of
+   leibnizF) is "p", just as we see in the output from the instrumented leibnizE
+   above.
 
-   Ok, what's wrong and what can we do about it? Well, it's not really "wrong."
+   OK, what's wrong and what can we do about it? Well, it's not really "wrong."
    The old leibniz and leibnizE just weren't designed for flat eqv. We'll need
    to be smarter. The good news is that automating associativity has forced out
    the redundant extra steps in the old G&S proof, the steps that caused us some
@@ -675,20 +748,25 @@ expect[ eqv[eqv[p, q, q], p]
 
  *************************************************************************** *)
 
-(* (3.7) Metatheorem. Any two theorems are equivalent. ************************
+(* (3.7) Metatheorem. Any two theorems are equivalent (eqv), page 45 **********
 
    A theorem is (i) an axiom, (ii) the conclusion of an inference rule whose
    premises are [previously proved] theorems, (iii) a boolean expression that,
    using the inference rules, is proved equal to an axiom or [to] a previously
    proved theorem.
 
+   INFORMAL PROOF OF THE METATHEOREM
+
    By the "Proof Technique" 3.6, a theorem P is proved by reducing it to a known
-   theorem Q via a sequence of steps. Each step is an assertion of equivalence.
-   The right-hand version of the technique begins with the proposition "true",
-   which equivales "P === P" by the Axiom of Identity 3.3. This proposition,
-   "P === P", is converted to "P === Q" by the same equivalence steps in the
-   left-hand version. Because "true" is a theorem and equivales both "P" and
-   "Q", which are arbitrary, all theorems are equivalent to "true".
+   theorem Q via a sequence of steps. Each step is an assertion of equivalence
+   (eqv).
+
+   The right-hand version of the technique on page 45 begins with the
+   proposition "true", which equivales "P === P" by the Axiom of Identity 3.3.
+   This proposition, "P === P", is converted to "P === Q" by the same
+   equivalence steps in the left-hand version. Because "true" is a theorem and
+   equivales both "P" and "Q", which are arbitrary, all theorems are equivalent
+   to "true".
 
  *************************************************************************** *)
 
@@ -719,12 +797,13 @@ falseDef  = eqv[false, not[true]]
 (* (3.9) Axiom, Distributivity of "not" over "eqv" ****************************
 
    By (3.2) Symmetry of eqv, we can write distributivity in both directions. If
-   we wrote these two directions as global rewrite rules, the evaluator, which
-   implicitly applies "ReplaceAllRepeated", would bounce not[eqv[p, q]] and
-   eqv[not[p, q]] back and forth forever because the evaluator keeps rewriting
-   until nothing changes. To prevent that infinite bouncing, we'll represent
-   these two directions as rules that we must apply explicitly with
-   "ReplaceAll", just one time, as needed.
+   we wrote these two directions as global, named, multi-shot rewrite rules ---
+   the foo[pat] := rhs syntax --- the evaluator, which implicitly applies
+   "ReplaceRepeated", would bounce not[eqv[p, q]] and eqv[not[p, q]] back and
+   forth forever because the evaluator keeps rewriting until nothing changes. To
+   prevent that infinite bouncing, we'll represent these two directions as
+   one-shot rules that we must apply explicitly with "ReplaceAll", just one
+   time, as needed.
 
  *************************************************************************** *)
 
@@ -742,26 +821,30 @@ invNeqvRule = not[eqv[p_, q_]] :> neqv[p, q]
 
 expect[ eqv[not[q], p]
         ,
-        Module[{proposition = eqv[not[p], q]},
+        Module[{proposition =  eqv[not[p], q]},
 
                (((proposition
                   // expectI[  eqv[not[p], q]   ]) /.
-                  invNotRule)
+
+                invNotRule)
+
                 // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
 
                 symmetryOfEqv /@ #1 &
+
                 // expectBy[   not[eqv[q, p]]   , "internal symmetryOfEqv"]) /.
 
                 notRule
-                // expectBy[   eqv[not[q], p]   , "notRule"]
+
+               // expectBy[   eqv[not[q], p]   , "notRule"]
         ] ]
 
 (* ****************************************************************************
 
-   We needed an ad-hoc function to shove symmetry inside the outer "not". We
-   also needed some parentheses to ensure proper nesting of alternating
-   application "//" and "ReplaceAll", "/.". We can mitigate that with ad-hoc
-   functions wrapping the rules:
+   We needed an ad-hoc "wheel-hash-ampersand" function to shove symmetry inside
+   the outer "not". We also needed some parentheses to ensure proper nesting of
+   alternating postfix application "//" and "ReplaceAll", "/.". We can mitigate
+   excess parentheses with ad-hoc functions wrapping the rules:
 
  *************************************************************************** *)
 
@@ -772,15 +855,19 @@ expect[ eqv[not[q], p]
         Module[{proposition = eqv[not[p], q]},
 
                proposition
+
                // expectI[    eqv[not[p], q]   ] //
 
                #1 /. invNotRule &
+
                // expectBy[   not[eqv[p, q]]   , "invNotRule"] //
 
                symmetryOfEqv /@ #1 &
+
                // expectBy[   not[eqv[q, p]]   , "internal symmetryOfEqv"] //
 
                #1 /. notRule &
+
                // expectBy[   eqv[not[q], p]   , "notRule"]
         ] ]
 
@@ -797,8 +884,8 @@ expect[ eqv[not[q], p]
 (* (3.12) Double negation: ****************************************************
 
    We found the old leibniz wasn't suited to a flat eqv when there are more than
-   two arguments. What did we use leibniz for, most of the time? Picking out one
-   side of an eqv. For instance
+   two arguments. What did we use leibniz for, most of the time? Picking out the
+   other side of an eqv with true. For instance:
 
         In[18]:= leibnizF[true, eqv[true, p], z, z]
         {leibnizF:, x, true, y, p}
@@ -818,27 +905,34 @@ ClearAll[eqv]                   (* Turn off the flatness for now. *)
 
 expect[ true
     ,
-    Module[{proposition = eqv[not[not[p]], p]},
+    Module[{proposition = eqv[not[not[p]], p]}, (* double negation *)
 
        proposition
+
        // expectI[    eqv[not[not[p]], p]           ] //
 
        #1 /. invNotRule &
+
        // expectBy[   not[eqv[not[p], p]]           , "invNotRule"] //
 
        symmetryOfEqv /@ #1 &
+
        // expectBy[   not[eqv[p, not[p]]]           , "internal symmetryOfEqv"] //
 
        #1 /. notRule &
+
        // expectBy[   eqv[not[p], not[p]]           , "notRule"] //
 
        identity
+
        // expectBy[   eqv[true, eqv[not[p], not[p]]], "identity"] //
 
        symmetryOfEqv
+
        // expectBy[   eqv[eqv[not[p], not[p]], true], "symmetryOfEqv"] //
 
-       leibnizF[eqv[not[p], not[p]], #1, z, z] &
+       leibnizF[eqv[not[p], not[p]], #1, z, z] & (* ugly; pick first *)
+
        // expectBy[   true                          , "leibniz"]
     ] ]
 
@@ -846,6 +940,10 @@ expect[ true
 
    I haven't found a proof doing straight conversion, as in the left-hand column
    at the bottom of page 44.
+
+   The laste leibnizF is still ugly because it required the human to notice the
+   premise eqv[not[p], not[p]]. We're going to have to face this, soon, with
+   another reworking of formal Leibniz.
 
    Having proved the theorem, we may now enshrine it in a rule. Later, when we
    construct proofs automatically, we'll use metaprogramming tricks to install
@@ -858,14 +956,16 @@ doubleNegation[not[not[p_]]] := p;
 
 (* (3.13) Negation of false ************************************************ *)
 
-expect[ true
+expect[ true                    (* reduce not[false] to true *)
       ,
-        Module[{proposition = not[false]},
+        Module[{proposition = not[false]}, (* then it will be a theorem *)
 
                proposition /. falseRule
+
                // expectBy[    not[not[true]]    , "axiom def. of false"] //
 
                doubleNegation
+
                // expectBy[    true              , "double negation"]
         ]
 ]
@@ -873,14 +973,16 @@ expect[ true
 (* (3.14) Unnamed Theorem eqv[ neqv[p, q], eqv[ not[p], q] ] *************** *)
 (* Transform neqv[p, q] to eqv[not[p], q]                                    *)
 
-expect[ eqv[not[p], q]
+expect[ eqv[not[p], q]          (* produce this at the end *)
       ,
         Module[{proposition = neqv[p, q]},
 
                proposition /. neqvRule
+
                // expectBy[    not[eqv[p, q]]    , "def. of neqv"] //
 
                #1 /. notRule &
+
                // expectBy[    eqv[not[p], q]    , "notRule"]
         ]
 ]
@@ -892,40 +994,53 @@ expect[ false
         Module[{proposition = eqv[not[p], p]},
 
                proposition
+
                // expectI[    eqv[not[p], p]    ] //
 
                #1 /. invNotRule &
+
                // expectBy[   not[eqv[p, p]]               , "invNotRule"] //
 
-               identity /@ #1 & (* line 3 *)
+               identity /@ #1 & (* line 3, internally at level 1 *)
+
                // expectBy[   not[eqv[true, eqv[p, p]]]    , "identity"] //
 
-               symmetryOfEqv /@ #1 & (* line 4 *)
+               symmetryOfEqv /@ #1 & (* line 4, internally at level 1 *)
+
                // expectBy[   not[eqv[eqv[p, p], true]]    , "symmetryOfEqv"] //
 
                (leibnizF[eqv[p, p], #1, z, z]&) /@ #1 & (* line 5 *)
+
                // expectBy[   not[true]                    , "leibniz"] //
 
                leibnizF[#1, symmetryOfEqv[falseDef], z, z] &
+
                // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"]
         ]
 ]
 
 (* ****************************************************************************
 
+   Our uses of Leibniz are still only partially formal. We, as humans, are still
+   providing one of the inputs to each invocation. I continue to nag about this
+   until we understand how to do better.
+
    The proof of 3.15 introduced several new structures. First, we've seen the
    pattern of "identity, symmetry, leibniz" before, in the proof of 3.12, double
-   negation. The purpose of this pattern is to introduce an equivalence to
-   "true" in the first position, i.e., to convert eqv[p, p] into eqv[true,
-   eqv[p, p]], then swap true into the second position, i.e., to generate
-   eqv[eqv[p, p], true], then finally to extract the "true" via Leibniz,
-   demonstrating that eqv[p, p] reduces to true. In this proof, of 3.15, we use
-   that pattern _inside_ a not, and that's by _mapping_ identity, symmetry, and
-   leibniz on lines 3, 4, and 5 above. Finally, we apply leibniz with a premise
-   of symmetry[falseDef] to reduce eqv[not[p], p] to false.
+   negation. This pattern introduces an equivalence to "true" in the first
+   position, i.e., converts eqv[p, p] into eqv[true, eqv[p, p]], then swaps true
+   into the second position, i.e., to generate eqv[eqv[p, p], true], then
+   finally extracts the "true" via Leibniz, demonstrating that eqv[p, p] reduces
+   to true. In this proof, of 3.15, we use that pattern _inside_ a not, and
+   that's by _mapping_ identity, symmetry, and leibniz on lines 3, 4, and 5
+   above. Finally, we apply leibniz with a premise of symmetry[falseDef] to
+   reduce eqv[not[p], p] to false.
 
    We capture the pattern of "identity, symmetry, leibniz" in a "lemma
-   generator" (looking ahead to page 53).
+   generator," extractTrue (looking ahead to page 53). This lemma generator
+   encapsulates and hides one of our partially informal uses of Leibniz.
+   Externally, its use is entirely formal. Such encapsulation and hiding is a
+   justified formalization of the previously informal.
 
  *************************************************************************** *)
 
@@ -934,21 +1049,25 @@ extractTrue[eqv[p_, p_]] :=
         Module[{proposition = eqv[p, p]},
 
                proposition
+
                // expectBy[    eqv[p, p], "(lemma) prop"] //
 
                identity
+
                // expectBy[   eqv[true, eqv[p, p]], "(lemma) identity"] //
 
                symmetryOfEqv
+
                // expectBy[   eqv[eqv[p, p], true], "(lemma) symmetryOfEqv"] //
 
                leibnizF[eqv[p, p], #1, z, z] &
+
                // expectBy[   true                , "(lemma) leibniz"]
         ]
 
 (* ****************************************************************************
 
-   Now, a new version of 3.12:
+   Now, a new proof of 3.12:
 
  *************************************************************************** *)
 
@@ -957,15 +1076,19 @@ expect[ true
         Module[{proposition = eqv[not[not[p]], p]},
 
                proposition
+
                // expectI[    eqv[not[not[p]], p]] //
 
                #1 /. invNotRule &
+
                // expectBy[   not[eqv[not[p], p]], "invNotRule"] //
 
                symmetryOfEqv /@ #1 &
+
                // expectBy[   not[eqv[p, not[p]]], "internal symmetryOfEqv"] //
 
                #1 /. notRule &
+
                // expectBy[   eqv[not[p], not[p]], "notRule"] //
 
                extractTrue
@@ -974,7 +1097,7 @@ expect[ true
 
 (* ****************************************************************************
 
-   and an alternative for 3.15:
+   and an alternative proof for 3.15:
 
  *************************************************************************** *)
 
@@ -983,18 +1106,28 @@ expect[ false
         Module[{proposition = eqv[not[p], p]},
 
                proposition
+
                // expectI[    eqv[not[p], p]    ] //
 
                #1 /. invNotRule &
+
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
 
                extractTrue /@ #1 & (* replaces original lines 3, 4, and 5 *)
+
                // expectBy[   not[true]         , "lemma"] //
 
                leibnizF[#1, symmetryOfEqv[falseDef], z, z] &
+
                // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"]
         ]
 ]
+
+(* ****************************************************************************
+
+   That proof still has an ugly, semi-formal use of Leibniz.
+
+ *************************************************************************** *)
 
 
 
@@ -1005,12 +1138,15 @@ expect[ neqv[q, p]
         Module[{proposition = neqv[p, q]},
 
                proposition /. neqvRule
+
                // expectBy[    not[eqv[p, q]], "3.10, def of neqv"] //
 
                symmetryOfEqv /@ #1 &
+
                // expectBy[    not[eqv[q, p]], "internal symmetryOfEqv"] //
 
                #1 /. invNeqvRule &
+
                // expectBy[    neqv[q, p]    , "inverse neqv rule"]
         ]
 ]
@@ -1021,7 +1157,13 @@ expect[ neqv[q, p]
    sides, neqv[neqv[p, q], r] and neqv[p, neqv[q, r]] to the same thing, namely
    eqv[p, eqv[q, r]], then double-check the sameness with "SameQ", i.e., "===".
    That's a tiny bit of cheating, because SameQ isn't in our metacircular
-   evaluator, yet, but it does prove the theorem at the human level.
+   evaluator, yet, but it does prove the theorem, informally, at the human
+   level. The tools we're building, so far, are "proof assistants" or "proof
+   checkers", as opposed to fully formal "theorem provers." That means that it's
+   OK, so far, if parts of the proof are informal, not fully machine-checked
+   with the apparatus at hand. We're proceeding like this so that we can
+   discover the correct patterns to enshrine in the theorem provers we shall
+   ultimately build.
 
    We shall also need (for this proof) to Map "neqvRule" at the second level of
    nesting, inside a "not" and an "eqv", to convert
@@ -1041,6 +1183,8 @@ expect[ neqv[q, p]
 
  *************************************************************************** *)
 
+
+
 ClearAll[simpleAssociativityEqvRule]
 simpleAssociativityEqvRule = eqv[eqv[p_, q_], r_] :> eqv[p, eqv[q, r]]
 
@@ -1052,45 +1196,58 @@ Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
 
                proposition
+
                // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
 
-               (#1 /. neqvRule)& /@ #1 &
+               (#1 /. neqvRule)& /@ #1 & (* inside, at level 1 *)
+
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
 
                (#1 /. neqvRule)&
+
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
 
-               (#1 /. invNotRule)& /@ #1 &
+               (#1 /. invNotRule)& /@ #1 & (* inside, at level 1 *)
+
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
 
                doubleNegation
+
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
 
                associativity
+
                // expectBy [ eqv[p, eqv[q, r]], "associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
 
                proposition
+
                // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
 
                (#1 /. neqvRule)&
+
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
 
                symmetryOfEqv /@ #1 &
+
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
 
                Map[(#1 /. neqvRule)&, #1, {2}] & (* Map at second nest level *)
+
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
 
                (#1 /. invNotRule)& /@ #1 &
+
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
 
                doubleNegation
+
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
 
                symmetryOfEqv
+
                // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
@@ -1106,12 +1263,19 @@ Module[{leftHalf =
 
    appear more than once, each. It's a good idea to capture that pattern.
    Remembering the discussion in Chapter 1 (GS1.m) about one-shot rules, we go
-   one more level up and define a "function" (actualla named rule) that applies
-   any one-shot rule just once. This function "returns another function" that
-   fires the rule once on an argument. Technically, this kind of definition is a
-   "curried" named rewrite rule. "Curried" just means that it takes its
-   arguments one at a time. If you think of it as a function that returns
-   another function, that will be close enough to the truth.
+   one more level up and define a "function" (actually a global, named,
+   multi-shot rule) that applies any one-shot rule just once. This function
+   "returns another function" that fires the rule once on an argument.
+   Technically, this kind of definition is a "curried" global, named, multi-shot
+   rewrite rule. "Curried" just means that it takes its arguments one at a time.
+   If you think of it as a function that returns another function, that will be
+   close enough to the truth because we often do not distinguish functions from
+   rewrite rules. Mathematica's documentation is also not scrupulous about this
+   distinction, usually calling anything that's invoked by square brackets a
+   "function" even when it's technically a named rewrite rule.
+
+   We also close up the layout to make it more concise. As we get more
+   accustomed to the proof style, we need less whitespace.
 
  *************************************************************************** *)
 
@@ -1122,58 +1286,44 @@ expect [ True
          ,
 Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
-
                proposition
                // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
-
                fireRule[neqvRule] /@ #1 &
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
-
                fireRule[invNotRule] /@ #1 &
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
-
                doubleNegation
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
-
                associativity
                // expectBy [ eqv[p, eqv[q, r]], "associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
-
                proposition
                // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
-
                symmetryOfEqv /@ #1 &
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
-
                Map[fireRule[neqvRule], #1, {2}] & (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
-
                fireRule[invNotRule] /@ #1 &
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
-
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
-
                symmetryOfEqv
                // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
-         leftHalf === rightHalf]
-]
+         leftHalf === rightHalf] ]
 
 (* ****************************************************************************
 
    That's a lot easier to stomach; we're getting rid of "wheels" "/@", "hashes"
-   "#1", and ampersands "&" little by little. Maybe we should capture the
-   mapping, as well, in an overload of fireRule:
+   "#1", and ampersands "&" little by little. Let's capture mapping, as well, in
+   an overload of fireRule:
 
  *************************************************************************** *)
 
@@ -1183,52 +1333,38 @@ expect [ True
          ,
 Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
-
                proposition
                // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
-
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
-
                doubleNegation
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
-
                associativity
                // expectBy [ eqv[p, eqv[q, r]], "associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
-
                proposition
                // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
-
                symmetryOfEqv /@ #1 &
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
-
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
-
                doubleNegation
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
-
                symmetryOfEqv
                // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
-         leftHalf === rightHalf]
-]
+         leftHalf === rightHalf] ]
 
 (* ****************************************************************************
 
@@ -1236,9 +1372,10 @@ Module[{leftHalf =
    "symmetry /@ #1 &". This one comes from the fact that we defined "symmetry"
    as a named rule. Seemed good, at the time, but now, the pressure to unify
    syntax makes that choice less good. Let's redefine "symmetry" --- and, while
-   we're at it, every axiom and theorem we've defined previously as a named rule
-   --- as a one-shot rule. We'll leave inference rules as named rules, for now,
-   but it's a good guess that they're on their way out, eventually, too.
+   we're at it, every axiom and theorem we've defined previously --- as a named
+   one-shot rule. We'll leave inference rules as global, named, multi-shot
+   rules, for now, but it's a good guess that they're on their way out,
+   eventually, too.
 
  *************************************************************************** *)
 
@@ -1262,58 +1399,44 @@ expect [ True
          ,
 Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
-
                proposition
                // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
-
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
-
                fireRule[doubleNegation]
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
-
                fireRule[leftAssociativity]
                // expectBy [ eqv[p, eqv[q, r]], "left associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
-
                proposition
                // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
-
                fireRule[neqvRule]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
-
                fireRule[symmetryOfEqv, 1]
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
-
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
-
                fireRule[doubleNegation]
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
-
                fireRule[symmetryOfEqv]
                // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
-         leftHalf === rightHalf]
-]
+         leftHalf === rightHalf] ]
 
 (* ****************************************************************************
 
-   One final bit of syntax unification will likely make future automation
-   easier: "Map" at level zero is exactly application. Now, every line looks the
-   same: as the application of a rule at an appropriate level.
+   One final bit of syntax unification will make future automation easier: "Map"
+   at level zero is exactly application. Now, every line looks the same: as the
+   application of a rule at an appropriate level.
 
  *************************************************************************** *)
 
@@ -1321,66 +1444,52 @@ expect [ True
          ,
 Module[{leftHalf =
         Module[{proposition = neqv[neqv[p, q], r]},
-
                proposition
                // expectBy [ neqv[neqv[p, q], r], "left prop" ] //
-
                fireRule[neqvRule, 1]
                // expectBy [ neqv[not[eqv[p, q]], r], "3.10, def of neqv"] //
-
                fireRule[neqvRule, 0]
                // expectBy [ not[eqv[not[eqv[p, q]], r]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[p, q], r]]], "3.9, inv distr"] //
-
                fireRule[doubleNegation, 0]
                // expectBy [ eqv[eqv[p, q], r], "3.12, double negation"] //
-
                fireRule[leftAssociativity, 0]
                // expectBy [ eqv[p, eqv[q, r]], "left associativity"]
         ],
         rightHalf =
         Module[{proposition = neqv[p, neqv[q, r]]},
-
                proposition
                // expectBy [ neqv[p, neqv[q, r]], "right prop" ] //
-
                fireRule[neqvRule, 0]
                // expectBy [ not[eqv[p, neqv[q, r]]], "3.10, def of neqv"] //
-
                fireRule[symmetryOfEqv, 1]
                // expectBy [ not[eqv[neqv[q, r], p]], "internal symmetryOfEqv"] //
-
                fireRule[neqvRule, 2] (* Map at second nest level *)
                // expectBy [ not[eqv[not[eqv[q, r]], p]], "def of neqv"] //
-
                fireRule[invNotRule, 1]
                // expectBy [ not[not[eqv[eqv[q, r], p]]], "3.9, inv distr"] //
-
                fireRule[doubleNegation, 0]
                // expectBy [ eqv[eqv[q, r], p], "3.12, double negation"] //
-
                fireRule[symmetryOfEqv, 0]
                // expectBy [ eqv[p, eqv[q, r]], "symmetryOfEqv" ]
         ]}
        ,
-         leftHalf === rightHalf]
-]
+         leftHalf === rightHalf] ]
 
 (* (3.18) Mutual associativity of eqv and neqv ********************************
 
-   We add Mathics built-in "Identity", not to be confused with our axiom of
-   identity 3.3, at the end of every pair of lines, so they look like
+   We add mathics built-in "Identity", not to be confused with our axiom of
+   identity 3.3, at the end of every pair of lines, so they all look like
 
       fireRule[ ... ]
       // expect ... //
 
-   that is, we don't have to remember to remove the trailing // on the last line
-   of a chain of steps.
+   this way, we don't have to remember to remove the trailing // on the last
+   line of a chain of steps.
 
-   Again, this will help us with future "code generation," i.e., automating the
-   process of producing proofs.
+   Again, this will help future "code generation," i.e., automating the process
+   of producing proofs.
 
  *************************************************************************** *)
 
@@ -1388,39 +1497,30 @@ expect[ True
 ,
   Module[{
     leftHalf = Module[{proposition = eqv[neqv[p, q], r]},
-
        proposition
        // expectBy [ eqv[neqv[p, q], r], "left prop" ] //
-
        fireRule[neqvRule, 1]
        // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
-
        fireRule[invNotRule, 0]
        // expectBy [ not[eqv[eqv[p, q], r]], "def of neqv" ] //
-
        fireRule[leftAssociativity, 1]
        // expectBy [ not[eqv[p, eqv[q, r] ]], "left assoc" ] //
-
        Identity],
-
     rightHalf = Module[{proposition = neqv[p, eqv[q, r]]},
-
        proposition
        // expectBy [ neqv[p, eqv[q, r]], "right prop" ] //
-
        fireRule[neqvRule, 0]
        // expectBy [ not[eqv[p, eqv[q, r]]], "inv of neqv" ] //
-
        Identity]}
 
- , leftHalf === rightHalf]]
+ , leftHalf === rightHalf] ]
 
 (* (3.19) Mutual interchangeability *******************************************
 
    Now that we've proved associativity of neqv, we can make both eqv and neqv
    Flat again, and simplify proofs. Notice that we present the rightHalf before
-   the leftHalf so that our statement of 3.19 is closer to the book but also
-   close to the proof of 3.18. We constructed this proof (of 3.19) by
+   the leftHalf so that our statement of 3.19 is not only closer to the book but
+   also close to the proof of 3.18. We constructed the proof of 3.19 by
    copy-pasting the proof of 3.18 (immediately above) and doing some
    associativity by hand.
 
@@ -1432,39 +1532,31 @@ SetAttributes[neqv, Flat]
 expect[ True
   ,
   Module[{
-
     rightHalf = Module[{proposition = eqv[neqv[p, q], r]},
-
         proposition
         // expectBy [ eqv[neqv[p, q], r], "right prop" ] //
-
         fireRule[neqvRule, 1]
         // expectBy [ eqv[not[eqv[p, q]], r], "def of neqv" ] //
-
         fireRule[invNotRule, 0]
         // expectBy [ not[eqv[p, q, r]], "def of neqv" ] //
-
         Identity],
-
     leftHalf = Module[{proposition = neqv[p, eqv[q, r]]},
-
         proposition
         // expectBy [ neqv[p, eqv[q, r]], "left prop" ] //
-
         fireRule[neqvRule, 0]
         // expectBy [ not[eqv[p, q, r]], "inv of neqv" ] //
-
         Identity]}
 
- , leftHalf === rightHalf]]
+ , leftHalf === rightHalf] ]
 
 (* ****************************************************************************
 
    The heuristic, 3.21, says, just "pattern-match" the proposition against
    existing axioms and theorems. Well, that's exactly what we're doing with
    mathics. You can begin to see the madness behind the method: we're developing
-   pattern-matching abstractions, and then we plan to automate the heuristic by
-   searching for matching patterns.
+   pattern-matching abstractions. We plan ultimately to automate all the proof
+   heuristics by searching for matching patterns, i.e., by
+   meta-pattern-matching.
 
    Let's see how our tools are working out. We'll do a new proof of 3.11, an
    unnamed theorem. First, we rewrite the old proof with our new "fireRule"
@@ -1475,7 +1567,9 @@ expect[ True
    and invNotRule for Axiom 3.9 only allow us to distribute "not" over the first
    slot in an eqv. We cannot control what mathics puts in the first slot with an
    orderless eqv. We shall have to continue with explicit applications of
-   symmetry, at least for a while.
+   symmetry, at least for a while. Eventually, we will learn mathics's
+   meta-rules for ordering the slots (it's alphabetical and by complexity: unary
+   first, binary next, ternary next, and so on).
 
  *************************************************************************** *)
 
@@ -1484,19 +1578,14 @@ expect[ True
 expect[ eqv[not[q], p]
       ,
         Module[{proposition = eqv[not[p], q]},
-
                proposition
                // expectBy[    eqv[not[p], q]   , "proposition" ] //
-
                fireRule[invNotRule   , 0]
                // expectBy[    not[eqv[p, q]]   , "invNotRule"] //
-
                fireRule[symmetryOfEqv, 1]
                // expectBy[    not[eqv[q, p]]   , "internal symmetryOfEqv"] //
-
                fireRule[notRule      , 0]
                // expectBy[    eqv[not[q], p]   , "notRule"] //
-
                Identity
         ] ]
 
@@ -1554,13 +1643,13 @@ expect[ eqv[not[q], p]
 
    Alternatives for 3.15 (page 48)
 
-   We're going to replace our lemma generator because so much has changed
-   between then and now. We will just add a rule for the axiom of identity that
-   allows us to USE the first eqv in eqv[true, eqv[p, p]] to replace any
-   eqv[p_, p_] with true. Every time we USE an eqv, we are implicitly applying
-   Leibniz. That is not a relaxation of formality, but it is a hand-coding, akin
-   to a "macro." This is my own innovation, not something that G&S mention in so
-   many words.
+   We're going to replace our lemma generator "extractTrue" because so much has
+   changed between then and now. We will just add a rule for the axiom of
+   identity that allows us to USE the first eqv in eqv[true, eqv[p, p]] to
+   replace any eqv[p_, p_] with true. Every time we USE an eqv, we are
+   implicitly applying Leibniz. That is not a relaxation of formality, but it is
+   a hand-coding, akin to a "macro," thus a justifiable formalization of a
+   previous informality. G&S don't talk about this.
 
  *************************************************************************** *)
 
@@ -1572,31 +1661,27 @@ invIdentity = eqv[true, p_] :> p
 expect[ false
       ,
         Module[{proposition = eqv[not[p], p]},
-
                proposition
                // expectBy[   eqv[not[p], p]    , "proposition"] //
-
                fireRule[invNotRule, 0]
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
-
                fireRule[identity, 1]
                // expectBy[   not[true]         , "lemma macro"] //
-
                leibnizF[#1, falseDef /. symmetryOfEqv, z, z] &
                // expectBy[   false    , "leibniz(symmetryOfEqv(falseDef))"] //
-
                Identity
-        ]
-]
+        ] ]
+
+
 
 (* ****************************************************************************
 
    Alternatives for 3.15 (page 48)
 
-   We can replace the last use of Leibniz with another new macro. The old
-   definition of false is eqv[false, not[true]]. To USE the definition, we need
-   another use of Leibniz, the last line above "Identity." Let's turn that use
-   of Leibniz into a "macro":
+   We can replace the last use of Leibniz with another macro. The old definition
+   of false is eqv[false, not[true]]. To USE the definition, we need another use
+   of Leibniz, the last line above "Identity." Let's turn that use of Leibniz
+   into a "macro":
 
  *************************************************************************** *)
 
@@ -1607,28 +1692,25 @@ invFalseDef = false -> not[true]
 expect[ false
       ,
         Module[{proposition = eqv[not[p], p]},
-
                proposition
                // expectBy[   eqv[not[p], p]    , "proposition"] //
-
                fireRule[invNotRule, 0]
                // expectBy[   not[eqv[p, p]]    , "invNotRule"] //
-
                fireRule[identity, 1]
                // expectBy[   not[true]         , "lemma macro"] //
-
                fireRule[falseDef, 0]
                // expectBy[   false             , "falseDef Leibniz macro"] //
-
                Identity
-        ]
-]
+        ] ]
 
-(* And now, new rules implied by the theorem. We must name it, now *)
 
-ClearAll[contradiction, invContradiction]
-contradiction         = eqv[not[p_], p_] :> false
-invContradiction[p_] := false -> eqv[not[p], p]
+
+(* And now, new rules implied by the theorem. We must name the unnamed theorem,
+now *)
+
+ClearAll[contradictionByNot, invContradictionByNot]
+contradictionByNot         = eqv[not[p_], p_] :> false
+invContradictionByNot[p_] := false -> eqv[not[p], p]
 
 
 
@@ -1641,22 +1723,16 @@ invContradiction[p_] := false -> eqv[not[p], p]
 expect[ neqv[q, p]
       ,
         Module[{proposition = neqv[p, q]},
-
                proposition
                // expectBy[    neqv[p, q]    , "proposition"] //
-
                fireRule[neqvRule, 0]
                // expectBy[    not[eqv[p, q]], "3.10, def of neqv"] //
-
                fireRule[symmetryOfEqv, 1]
                // expectBy[    not[eqv[q, p]], "3.2 internal symmetryOfEqv"] //
-
                fireRule[invNeqvRule, 0]
                // expectBy[    neqv[q, p]    , "3.10, inverse neqv rule"] //
-
                Identity
-        ]
-]
+        ] ]
 
 
 
@@ -1667,6 +1743,9 @@ expect[ neqv[q, p]
  / // / (_-<  / / // / _ \/ __/ __/ / _ \/ _ \
 /____/_/___/_/ /\_,_/_//_/\__/\__/_/\___/_//_/
           |___/
+
+   Write the axioms as one-shot rules:
+
  *)
 
 
@@ -1691,7 +1770,7 @@ invIdempotencyOfDisjunction = p_ :> or[p, p]
 
 
 (* (3.27) Axiom, Distributivity of \/ over eqv, page 49  *)
-ClearAll[distributivityOfOrOverEqv, multiplyingOutDisjunction, factoringDisjunction]
+ClearAll[multiplyingOutDisjunction, factoringDisjunction]
 multiplyingOutDisjunction = or[p_, eqv[q_, r_]] :> eqv[or[p, q], or[p, r]];
 factoringDisjunction = eqv[or[p_, q_], or[p_, r_]] :> or[p, eqv[q, r]]
 
@@ -1712,84 +1791,80 @@ invExcludedMiddle   = or[p_, not[p_]] :> true;
 expect[true
      ,
        Module[{proposition = or[p, true]},
-
               proposition
               // expectBy[    or[p, true]           , "proposition"] //
-
               fireRule[excludedMiddle[p], 1]
               // expectBy[    or[p, or[p, not[p]]]  , "3.28, excluded middle"] //
-
               fireRule[rightAssociativityOfDisjunction, 0]
               // expectBy[    or[or[p, p], not[p]]  , "3.25, associativity"] //
-
               fireRule[idempotencyOfDisjunction, 1]
               // expectBy[    or[p, not[p]]         , "3.26, idempotency"] //
-
               fireRule[invExcludedMiddle, 0]
               // expectBy[    true                  , "3.28 excluded middle"] //
-
               Identity
-       ]
-]
+       ] ]
 
+ClearAll[zeroOfOr]
+zeroOfOr[p_] := or[p, true] -> true
 
+(* (3.30) Theorem, Identity of \/ : p \/ false === p *)
 
-(* (3.30) Theorem, Identity of \/ *)
+(*
 
-(* We need a new version of 3.15. To help the proof of 3.30, we want to replace
+   We need a new version of 3.15. To help the proof of 3.30, we want to replace
    "eqv[false, p]" with "not[p]". The original statement and proof were that
    "false" and "eqv[p, not[p]]" are eqv. By associativity, we can arrange this
    as an equivalence of "eqv[false, p]" and "not[p]", and leibniz allows us to
-   replace equivalents with each other. After seeing a couple of macros of
+   replace equivalents with one another. After seeing a couple of macros of
    leibniz, we're comfortable that such replacements are always allowed. The
    exact way we want to mechanize that blanket allowance is not yet clear. But,
    for now, we will freely use "Part" to implement leibniz; for example, a lemma
-   like "eqv[p, q]" allows us to replace "eqv[p, q][[1]]" with "eqv[p, q][[2]]"
-   and vice versa. Another mechanization might be a rule that returns a rule, a
-   metarule (we mentioned meta-programming earlier):
+   like "eqv[p, q]" allows us to replace "p = eqv[p, q][[1]]" with
+   "q = eqv[p, q][[2]]" and vice versa. Another mechanization might be a rule
+   that returns a rule, a metarule (we mentioned meta-programming earlier):
 
-       eqv[p_, q_] :> (p_ :> q)
+       eqv[p_, q_] :> (p :> q)
 
-   We'll get to that later. *)
+   We'll get to that later.
 
-expect[not[p]
+ *)
+
+expect[not[p]                   (* 3.15, again *)
      ,
        Module[{proposition = eqv[false, p]},
-
               proposition
               // expectBy[   eqv[false, p]    , "proposition"] //
-
               fireRule[invFalseDef, 1]
               // expectBy[   eqv[not[true], p], "def of false (macro)"] //
-
               fireRule[invNotRule, 0]
               // expectBy[   not[eqv[true, p]], "3.9, distributivity"] //
-
               fireRule[invIdentity, 1]
               // expectBy[   not[p]           , "3.3, identity"] //
-
               Identity
-       ]
-]
+       ] ]
 
-(* Because of this fantastic little theorem, we're able to replace eqv[false, p]
+(*
+
+   Because of this fantastic little theorem, we're able to replace eqv[false, p]
    with not[p] and vice versa. We'll need rules that we can invoke for doing
    that. Because we need rules, we can now see a big meta-meta-rule:
-
     __  __     _                      _          ___      _
    |  \/  |___| |_ __ _ ___ _ __  ___| |_ __ _  | _ \_  _| |___
    | |\/| / -_)  _/ _` |___| '  \/ -_)  _/ _` | |   / || | / -_)
    |_|  |_\___|\__\__,_|   |_|_|_\___|\__\__,_| |_|_\\_,_|_\___|
 
-   Every theorem must automatically introduce rules for applying that theorem in
-   downstream proofs. Every (successful) invocation of "expect" must generate
-   and install a pair of new rules allowing transformations back and forth
-   between the two terms of the "expect". "Expect" becomes a metarule: a
-   generator of rules. This is the big insight we've been working towards.
+   Every theorem must automatically introduce rules (probably always one-shot
+   rules) for applying that theorem in downstream proofs. Every (successful)
+   invocation of "expect" must generate and install a pair of new (one-shot)
+   rules allowing transformations back and forth between the two terms of the
+   "expect". "Expect" will become a metarule: a generator of rules. This is one
+   big insight we've been working towards.
 
-   We're not quite ready to implement it, but we now know what we're doing. It's
-   engineering from here on out. First, we'll finish Chapter 3 by hand, then we
-   will rewrite Chapter 3 with the new meta-meta rule. *)
+   We're not quite ready to implement it, but we now more about know what we're
+   doing. First, we'll finish Chapter 3 by hand, then we will rewrite Chapter 3
+   with the new meta-meta rule (unless we find out better).
+
+*)
 
 ClearAll[notPRule, invNotPRule]
 notPRule    = not[p_] :> eqv[false, p]
@@ -1800,29 +1875,22 @@ invNotPRule = eqv[false, p_] :> not[p]
 expect[true
  ,
   Module[{proposition = eqv[or[p, false], p]},
-
     proposition
     // expectBy[    eqv[or[p, false], p]          , "proposition"] //
-
-    eqv[#1[[1]], #1[[2]] /. invIdempotencyOfDisjunction]&
+    eqv[#1[[1]], #1[[2]] /. invIdempotencyOfDisjunction] &
     // expectBy[    eqv[or[p, false], or[p, p]]   , "3.26, idempotency"]//
-
     fireRule[factoringDisjunction, 0]
     // expectBy[    or[p, eqv[false, p]]     , "3.27, distributivity of \/"] //
-
     fireRule[invNotPRule, 1]
     // expectBy[    or[p, not[p]]            , "3.15, unnamed theorem"] //
-
     fireRule[invExcludedMiddle, 0]
     // expectBy[    true                     , "3.28, excluded middle"] //
-
     Identity
-    ]
-]
+    ] ]
 
 (*
 
-   Notice we needed a new hash, ampersand, wheel rule to get idempotency of
+   Notice we needed a new hash, ampersand rule to get idempotency of
    disjunction, 3.26, applied just to the second part of its input. We'll have
    to modify "fireRule" to mechanize this subtlety. Mixing Part and level will
    be a challenge, so we will break up the challenge, getting it right in
@@ -1830,9 +1898,9 @@ expect[true
 
    EMPHASIS:
 
-   For parts greater than 1, the following only works on associative (Flat)
-   heads like eqv, because it recurses on head[args], introducing inner copies
-   of "head".
+   For parts greater than 1, the following "fireRuleOnPart" only works on
+   associative (Flat) heads like eqv, because it recurses on head[args],
+   introducing inner copies of "head".
 
    It uses a new pattern, "args___", which matches zero or more things in an
    argument list enclosed in square brackets (a "Sequence"). I leave it to you
@@ -1860,25 +1928,18 @@ fireRuleOnPart[rule_, part_][head_[arg_, args___]] :=
 expect[true
      ,
        Module[{proposition = eqv[or[p, false], p]},
-
               proposition
               // expectBy[    eqv[or[p, false], p]          , "proposition"] //
-
               fireRuleOnPart[invIdempotencyOfDisjunction, 2]
               // expectBy[    eqv[or[p, false], or[p, p]]   , "3.26, idempotency"]//
-
               fireRule[factoringDisjunction, 0]
               // expectBy[    or[p, eqv[false, p]]     , "3.27, distributivity of \/"] //
-
               fireRule[invNotPRule, 1]
               // expectBy[    or[p, not[p]]            , "3.15, unnamed theorem"] //
-
               fireRule[invExcludedMiddle, 0]
               // expectBy[    true                     , "3.28, excluded middle"] //
-
               Identity
-       ]
-]
+       ] ]
 
 (* Again, this works only at top level. We will need new rules (later) to apply
    "on-part" rules at lower levels. *)
@@ -1886,7 +1947,7 @@ expect[true
 (* We introduce a couple of rules, as usual, for use downstream. Note that the
    specific form of the proof would not make it easy to generate these rules
    mechanically. We'll have to address this issue as we reach for greater
-   automation. Most likely, we'll standardize a few forms of proofs, then write
+   automation. Most likely, we'll standardize a few proof heuristics, then write
    metarules for each form to generate rules from proofs. *)
 
 ClearAll[identityOfDisjunction, invIdentityOfDisjunction]
@@ -1901,54 +1962,42 @@ expect[
     or[or[p, q], or[p, r]]
    ,
 Module[{proposition = or[p, or[q, r]]},
-
        proposition
        // expectBy[   or[p, or[q, r]], "proposition"] //
-
        fireRuleOnPart[invIdempotencyOfDisjunction, 1]
        // expectBy[   or[or[p, p], or[q, r]], "3.26 idempotency [[1]]"] //
-
        fireRule[leftAssociativityOfDisjunction   , 0]
        // expectBy[   or[p, or[p, or[q, r]]], "3.25 associativity /@ 0"] //
-
        fireRule[rightAssociativityOfDisjunction  , 1]
        // expectBy[   or[p, or[or[p, q], r]], "3.25 associativity /@ 1"] //
-
        fireRule[symmetryOfDisjunction            , 1]
        // expectBy[   or[p, or[r, or[p, q]]], "3.24 symmetry of \/ /@ 1"] //
-
        fireRule[rightAssociativityOfDisjunction  , 0]
        // expectBy[   or[or[p, r], or[p, q]], "3.25 associativity /@ 0"] //
-
        fireRule[symmetryOfDisjunction            , 0]
        // expectBy[   or[or[p, q], or[p, r]], "3.24 symmetry of \/ /@ 0"] //
-
        Identity
 ] ]
 
-
+ClearAll[distributivityOfOrOverOr, invDistributivityOfOverOr]
+distributivityOfOrOverOr  = or[p_, or[q_, r_]] :> or[or[p, q], or[p, r]]
+invDistributivityOfOverOr = or[or[p_, q_], or[p_, q_]] :> or[p, or[q, r]]
 
 (* (3.32) Unnamed Theorem *)
 
 expect[p
      ,
 Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
-
        proposition
        // expectBy[   eqv[or[p, q], or[p, not[q]]], "proposition"] //
-
        fireRule[factoringDisjunction , 0]
        // expectBy[   or[p, eqv[q, not[q]]], "3.27 distributivity /@ 0"] //
-
        fireRule[symmetryOfEqv        , 1]
        // expectBy[   or[p, eqv[not[q], q]], "3.2 symmetry of eqv /@ 0"] //
-
-       fireRule[contradiction        , 1] (* 0 would work here, too. *)
-       // expectBy[   or[p, false],          "3.15 contradiction /@ 1"] //
-
+       fireRule[contradictionByNot    , 1] (* 0 would work here, too. *)
+       // expectBy[   or[p, false],          "3.15 contradictionByNot /@ 1"] //
        fireRule[identityOfDisjunction, 0]
        // expectBy[   p,                     "3.30 identity of \/ /@ 0"] //
-
        Identity
 ] ]
 
@@ -1962,11 +2011,11 @@ Module[{proposition = eqv[or[p, q], or[p, not[q]]]},
    Throughout the entire programme, so far, is the gradual liberalization of
    Leibniz. First, just a formal rule of inference. Next, a method to derive
    posterior replacements from premises and prior replacements ("prior" and
-   "posterior" are new jargon, devised to help us move forward). Finally, an
-   informal, implicit justification for proof heuristics, that is, for
-   concluding that eqv[p, q] by transforming p into q with fireRule and
-   fireRuleOnPart. We shlll be forced, eventually, to formalize this final use
-   of Leibniz as we automate more of the proof process.
+   "posterior" are new jargon to help us move forward). Finally, an informal,
+   implicit justification for proof heuristics, that is, for concluding that
+   eqv[p, q] by transforming p into q with fireRule and fireRuleOnPart. We shall
+   be forced, eventually, to formalize this final use of Leibniz as we automate
+   more of the proof process.
 
  *)
 
@@ -1995,22 +2044,16 @@ goldenRule2 = eqv[p_, q_] :> eqv[and[p, q], or[p, q]]
 expect[ and[q, p]
       ,
 Module[{proposition = and[p, q]},
-
        proposition
        // expectBy[and[p, q], "proposition"] //
-
        fireRule[goldenRule1, 0]
        // expectBy[eqv[p, q, or[p, q]], "3.35 golden rule /@ 0"] //
-
        fireRule[symmetryOfDisjunction, 0]
        // expectBy[eqv[p, q, or[q, p]], "3.24 symmetry of \/"] //
-
        fireRule[eqv[p_, q_, r_] :> eqv[q, p, r], 0]
        // expectBy[eqv[q, p, or[q, p]], "3.2 ad-hoc symmetry of eqv"] //
-
        fireRule[invGoldenRule1, 0]
        // expectBy[and[q, p], "3.35 golden rule /@ 0"] //
-
        Identity
 ] ]
 
@@ -2021,11 +2064,22 @@ Module[{proposition = and[p, q]},
 (* Because the Golden Rule expands into a three-part expression, our proofs can
    get very long, with many steps just re-arranging and flattening combinations
    of "eqv" and "or". At this point, we've seen enough and we trust mathics to
-   automate associativity ("Flat") and symmetry ("Orderless").
- *)
+   automate associativity ("Flat") and symmetry ("Orderless"). Mathematica
+   implements Orderless by a trick: put terms in alphabetical order. That way,
+   they don't have to search over combinatorially large spaces of alternatives.
+   I'm not sure mathics does that. Sergey Markelov fixed a bug in mathics that
+   broke "Orderless" (https://github.com/mathics/Mathics/issues/749). In his
+   investigations, it looks like mathics might be looping over all permutations.
+   We're not sure, yet.
 
-SetAttributes[or, {Flat, Orderless}]
-SetAttributes[eqv, {Flat, Orderless}]
+   In the offing, We'll add "OneIdentity", which allows a symbol's "Default" to
+   be filled in on a pattern match
+   (https://reference.wolfram.com/language/ref/OneIdentity.html). "OneIdentity"
+   doesn't work properly in mathics, but its defects also won't get in our way
+   for now (https://github.com/mathics/Mathics/issues/747). *)
+
+SetAttributes[or,  {Flat, Orderless, OneIdentity}]
+SetAttributes[eqv, {Flat, Orderless, OneIdentity}]
 
 expect[True,
 Module[
@@ -2050,7 +2104,6 @@ Module[
            "3.27 distributivity of \/ over eqv"] //
        Identity
 ],
-
 right = Module[{proposition = and[p, and[q, r]]},
        proposition
        // expectBy[and[p, and[q, r]], "proposition"] //
@@ -2070,8 +2123,223 @@ right = Module[{proposition = and[p, and[q, r]]},
            eqv[p, q, r, or[p, q], or[p, q, r], or[p, r], or[q, r]],
            "3.27 distributivity of \/ and implicit associativity"] //
        Identity
-        ]}],
+]}],
 left === right]
+
+
+
+(* (3.38) Idempotency of /\ : p /\ p === p *)
+
+expect[p
+,
+Module[{proposition = and[p, p]},
+       proposition
+       // expectBy[ and[p, p], "proposition" ] //
+       fireRule[goldenRule1, 0]
+       // expectBy[ eqv[p, p, or[p, p]], "3.35 golden rule" ] //
+       fireRule[identity, 0]
+       // expectBy[ eqv[true, or[p, p]], "identity of eqv"  ] //
+       leibnizF[true, #1, z, z] &
+       // expectBy[or[p, p], "1.5 leibniz"] //
+       fireRule[idempotencyOfDisjunction, 0]
+       // expectBy[p, "3.26 idempotency of \/"] //
+       Identity
+] ]
+
+(*
+
+   This proof brings up again the question whether we need a rule form for
+   leibnizF. There have been a few recent proofs where we brought in leibnizF in
+   "hash-ampersand" form just for the purpose of picking one side of an
+   equivalence. If we start with eqv[a, b] and we know a is true, then we pick b
+   going forward, or vice-versa.
+
+   We can, instead, imagine a "pick" rule that extracts the part of a Leibniz
+   application we want. With Flat, "multiary" eqv (new jargon, meaning an eqv
+   with any number of arguments), we will extract the First and Rest of a
+   premise (lispers will recognize "car" and "cdr"). Mathics bug #747 won't
+   affect us because in both mathics and Mathematica,
+
+       First[eqv[p, q, r]] === p
+       Rest[eqv[p, q, r]] === eqv[q, r]]
+
+   for all combinations of {Flat, Orderless, OneIdentity}. Proof:
+
+   Generate all combinations as follows:
+
+       In[66]:=
+       Flatten[
+         Table[
+           Union[
+             Sort/@Permutations[{Flat,Orderless,OneIdentity}, {i}]],
+           {i,3}],
+         1]
+       Out[66]= {{Flat},
+                 {OneIdentity},
+                 {Orderless},
+                 {Flat, OneIdentity},
+                 {Flat, Orderless},
+                 {OneIdentity, Orderless},
+                 {Flat, OneIdentity, Orderless}}
+
+   Then check as follows:
+
+      In[67]:=
+      Table[
+        Module[{e = eqv[p,q,r]},    <~~~ HERE IS THE MONEY
+          ClearAll[eqv];
+          SetAttributes[eqv,j];
+          {j, First@e, Rest@e}],
+       {j, ... the above ...}]
+
+      Out[67]= {{{Flat},                         p, eqv[q, r]},
+                {{OneIdentity},                  p, eqv[q, r]},
+                {{Orderless},                    p, eqv[q, r]},
+                {{Flat, OneIdentity},            p, eqv[q, r]},
+                {{Flat, Orderless},              p, eqv[q, r]},
+                {{OneIdentity, Orderless},       p, eqv[q, r]},
+                {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   We only get differences, and subtle ones, when we pattern-match:
+
+       Table[
+         Module[{ e = (eqv[p,q,r] /. {eqv[x_,y_] :> {x,y}}) },    <~~~ DIFF'T
+           ClearAll[eqv];
+           SetAttributes[eqv,j];
+           {j, First@e, Rest@e}],
+        {j, ... the above ...}]
+
+   produces, in Mathematica
+
+       {{{Flat},                         p, {eqv[q, r]}},
+        {{OneIdentity},                  eqv[p], {eqv[q, r]}},
+        {{Orderless},                    p, eqv[q, r]},
+        {{Flat, OneIdentity},            p, eqv[q, r]},
+        {{Flat, Orderless},              p, {eqv[q, r]}},
+        {{OneIdentity, Orderless},       q, {eqv[p, r]}},
+        {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   but, in mathics
+
+       {{{Flat},                         p, {eqv[q, r]}},
+        {{OneIdentity},                  p, {eqv[q, r]}},    <~~~ OOPS
+        {{Orderless},                    p, eqv[q, r]},
+        {{Flat, OneIdentity},            p, eqv[q, r]},
+        {{Flat, Orderless},              p, {eqv[q, r]}},
+        {{OneIdentity, Orderless},       p, {eqv[q, r]}},    <~~~ OOPS
+        {{Flat, OneIdentity, Orderless}, p, eqv[q, r]}}
+
+   There are enough subtleties that making mathics consistent with Mathematica
+   is a lengthy debugging exercise if not a total rewrite of mathics because
+   everything depends on pattern-matching.
+
+   However, we note the good fortune that pattern-matching produces the same
+   results when our symbols are Flat, OneIdentity, Orderless, so we can postpone
+   the debugging or rewriting work so long as we only use such symbols.
+
+   LESSON:
+
+   Use "Part" instead of pattern-matching for Leibniz when possible. When
+   pattern-matching, ensure Flat, OneIdentity, and Orderless.
+
+   WHAT WE WANT:
+
+       Module[{proposition = and[p, p]},
+              proposition
+              // expectBy[ and[p, p], "proposition" ] //
+              fireRule[goldenRule1, 0]
+              // expectBy[ eqv[p, p, or[p, p]], "3.35 golden rule" ] //
+              fireRule[identity, 0]
+              // expectBy[ eqv[true, or[p, p]], "identity of eqv"  ] //
+       ~~~>   fireRule[leibnizPick[2][true]]    <~~~ THE MONEY SHOT
+              // expectBy[or[p, p], "1.5 leibniz"] //
+              fireRule[idempotencyOfDisjunction, 0]
+              // expectBy[p, "3.26 idempotency of \/"] //
+              Identity
+       ]
+
+   When we unpack a Flat premise, say eqv[true, or[p, p]], with First and Rest,
+   we'll get
+
+       First[premise] ~~> true
+       Rest[premise]  ~~> eqv[or[p, p]]
+
+   When we say "leibnizPick[2]," we want the second part of the premise. We
+   really want the first part of the recursively unpacked eqv, i.e., the first
+   part of eqv[or[p, p]]. We'll do a non-recursive version first, one that only
+   works at the top level of a proof.
+
+   Note that we check the condition (part >= 2) in the definition.
+
+*)
+
+ClearAll[leibnizPick]
+leibnizPick[part_ /; (part >= 2)][proposition_] =
+premise_ :> Module[{x = First[premise], y = Rest[premise]},
+                   If[Not[SameQ[proposition, x]],
+                      Print["\nFAILED MATCH OF PROPOSITION"];
+                      Print[ToString[proposition]];
+                      Print["WITH FIRST TERM OF EQV"];
+                      Print[ToString[x]],
+                      (* else *)
+                      y[[part - 1]]
+                   ] ]
+
+expect[p
+     ,
+       Module[{proposition = and[p, p]},
+              proposition
+              // expectBy[ and[p, p], "proposition" ] //
+              fireRule[goldenRule1, 0]
+              // expectBy[ eqv[p, p, or[p, p]], "3.35 golden rule" ] //
+              fireRule[identity, 0]
+              // expectBy[ eqv[true, or[p, p]], "identity of eqv"  ] //
+              fireRule[leibnizPick[2][true]]
+              // expectBy[or[p, p], "1.5 leibniz"] //
+              fireRule[idempotencyOfDisjunction, 0]
+              // expectBy[p, "3.26 idempotency of \/"] //
+              Identity
+       ] ]
+
+(* (3.39) Identity of /\ : p /\ true === p *)
+
+Module[{proposition = and[p, true]},
+       proposition
+       // expectBy[ and[p, true]              , "proposition" ] //
+       fireRule[goldenRule1, 0]
+       // expectBy[ eqv[p, true, or[p, true]] , "3.35 golden rule" ] //
+       fireRule[zeroOfOr[p], 1]
+       // expectBy[eqv[p, true, true]         , "3.29 zero of or"] //
+       Identity
+]
+
+(*
+
+   Our leibnizPick rule isn't good enough (yet). It can't pick the first part
+   from an eqv[p, true, ...]. We need another variation on the theme. Let's scan
+   the arguments of any eqv for a "true", then pick any element.
+
+*)
+
+ClearAll[leibnizPick1]
+leibnizPick1[part_] =
+    expr:eqv[args___] /; MemberQ[expr, true] :> {args}[[part]]
+
+
+
+expect[p
+       ,
+Module[{proposition = and[p, true]},
+       proposition
+       // expectBy[    and[p, true]              , "proposition" ] //
+       fireRule[goldenRule1, 0]
+       // expectBy[    eqv[p, true, or[p, true]] , "3.35 golden rule" ] //
+       fireRule[zeroOfOr[p], 1]
+       // expectBy[    eqv[p, true, true]        , "3.29 zero of or"] //
+       fireRule[leibnizPick1[1], 0]
+       // expectBy[    p                         , "1.5 leibniz"] //
+       Identity
+] ]
 
 
 (* ****************************************************************************
@@ -2082,7 +2350,7 @@ left === right]
                                 |_|                     |__/
  *************************************************************************** *)
 
-(* We leave this at the very bottom so we can get a count of right and wrong
+(* we leave this at the very bottom so we can get a count of right and wrong
 results during development. The final result of the script, no matter what its
 intermediate state, is the result of the following tautology. *)
 
