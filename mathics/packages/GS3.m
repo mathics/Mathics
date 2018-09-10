@@ -1804,9 +1804,10 @@ expect[true
               Identity
        ] ]
 
+ClearAll[zeroOfOr]
+zeroOfOr[p_] := or[p, true] -> true
 
-
-(* (3.30) Theorem, Identity of \/ *)
+(* (3.30) Theorem, Identity of \/ : p \/ false === p *)
 
 (*
 
@@ -1828,7 +1829,7 @@ expect[true
 
  *)
 
-expect[not[p]
+expect[not[p]                   (* 3.15, again *)
      ,
        Module[{proposition = eqv[false, p]},
               proposition
@@ -2299,6 +2300,47 @@ expect[p
               // expectBy[p, "3.26 idempotency of \/"] //
               Identity
        ] ]
+
+(* (3.38) Identity of /\ : p /\ true === p *)
+
+Module[{proposition = and[p, true]},
+       proposition
+       // expectBy[ and[p, true]              , "proposition" ] //
+       fireRule[goldenRule1, 0]
+       // expectBy[ eqv[p, true, or[p, true]] , "3.35 golden rule" ] //
+       fireRule[zeroOfOr[p], 1]
+       // expectBy[eqv[p, true, true]         , "3.29 zero of or"] //
+       Identity
+]
+
+(*
+
+   Our leibnizPick rule isn't good enough (yet). It can't pick the first part
+   from an eqv[p, true, ...]. We need another variation on the theme. Let's scan
+   the arguments of any eqv for a "true", then pick any element.
+
+*)
+
+ClearAll[leibnizPick1]
+leibnizPick1[part_] =
+    expr:eqv[args___] /; MemberQ[expr, true] :> {args}[[part]]
+
+
+
+expect[p
+       ,
+Module[{proposition = and[p, true]},
+       proposition
+       // expectBy[    and[p, true]              , "proposition" ] //
+       fireRule[goldenRule1, 0]
+       // expectBy[    eqv[p, true, or[p, true]] , "3.35 golden rule" ] //
+       fireRule[zeroOfOr[p], 1]
+       // expectBy[    eqv[p, true, true]        , "3.29 zero of or"] //
+       fireRule[leibnizPick1[1], 0]
+       // expectBy[    p                         , "1.5 leibniz"] //
+       Identity
+] ]
+
 
 (* ****************************************************************************
  _____ _          _____                                        ___         _
