@@ -11,6 +11,11 @@ Installing
 ----------
 `Here <https://github.com/mathics/Mathics/wiki/Installing>`_ is a short guide on how to install Mathics on your computer.
 
+Docker
+------
+
+Alternatively to the installation step above, `mathics` can be installed and run via [docker](https://www.docker.com/). Please refer to [sealemar/mathics-dockerized](https://github.com/sealemar/mathics-dockerized) repo for instructions.
+
 Contributing
 ------------
 
