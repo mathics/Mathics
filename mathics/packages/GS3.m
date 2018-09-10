@@ -2301,7 +2301,7 @@ expect[p
               Identity
        ] ]
 
-(* (3.38) Identity of /\ : p /\ true === p *)
+(* (3.39) Identity of /\ : p /\ true === p *)
 
 Module[{proposition = and[p, true]},
        proposition
