@@ -14,7 +14,7 @@ Installing
 Docker
 ------
 
-Alternatively to the installation step above, `mathics` can be installed and run via [docker](https://www.docker.com/). Please refer to [sealemar/mathics-dockerized](https://github.com/sealemar/mathics-dockerized) repo for instructions.
+Alternatively to the installation step above, ``mathics`` can be installed and run via `docker <https://www.docker.com/>`_. Please refer to `sealemar/mathics-dockerized <https://github.com/sealemar/mathics-dockerized>`_ repo for instructions.
 
 Contributing
 ------------
