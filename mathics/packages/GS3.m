@@ -80,6 +80,104 @@
         and [ sameq[x_, y_], sameq[y_, z_] ]     ] :=
         sameq[x, z]
 
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   transitivityLaw[sameq[x_, y_], sameq[y_, z_]] := sameq[x, z]
+
+
+ _____ ___  ___   ___
+|_   _/ _ \|   \ / _ \
+  | || (_) | |) | (_) |
+  |_| \___/|___/ \___/
+
+       Transitivity above Known to be wrong
+
+Discussion copied from
+
+https://github.com/rebcabin/Mathics/pull/3
+
+Ok, here is a potential solution. I will criticize this solution after giving a
+couple of philosophical comments:
+
+   transitivityLaw[sameq[x_, y_], sameq[y_, z_]] := sameq[x, z]
+
+PHILOSOPHY:
+
+We can't use and because it's not been defined. But there is a much deeper
+reason we must not use ANYTHING except pattern matching: no ifs, ands, or buts
+(excuse the pun).
+
+At this stage of development, we are writing a SEQUENCE of axioms and theorems,
+each depending ONLY on the ones before it in the sequence. We are using ONLY
+pattern matching, the particular forms of it allowed by mathics, to recognize
+terms that we can rewrite. Pattern-matching, as we're allowing it, can use
+built-ins on the conditional side of the patterns, as in
+
+leibnizPick1[part_] =
+    expr:eqv[args___] /; MemberQ[expr, true] :> {args}[[part]]
+
+where /; is Condition and the expression is
+
+RuleDelayed[
+  Condition[
+    Pattern[expr, eqv[
+      Pattern[args, BlankNullSequence[]]]],
+    MemberQ[expr, true]],
+  Part[List[args], part]]
+
+The reason (meta-reason?) we don't allow built-ins on the right-hand side of any
+rule is that we are writing rules that represent our (human) reasoning about the
+manipulation of inert symbols, and that's it, no interpretation of the symbols.
+We're building up logic by just syntactic rules. If we allowed the testing of
+things at run time, the way you would do with your use of built-in "If", we
+wouldn't just be rewriting symbols, we would be testing them, dipping into
+MEANING before we even have any idea what MEANING might MEAN!
+
+My bad solution using "and" is kind of a halfway dip into "meaning." I was
+trying to express the idea that TWO patterns must match before transitivity can
+fire, and I inadvertently expressed that idea using "and". That use of "and" is
+AT THE WRONG LEVEL. I should express that pattern 1 (sameq[x_,y_]) AND pattern 2
+(sameq[y_,z_]) must match at the level of the pattern, NOT INSIDE the pattern.
+
+You see how nicely this critique is evolving? We make a fuzzy philosophical
+critique like "at the wrong level" into a syntactic issue: I can't say "and""
+INSIDE the pattern because inside is at the wrong level; I have to say it
+OUTSIDE the pattern, and we only have one way to do that, and it's with extra
+arguments (curried or not --- that's something I haven't figured out yet).
+
+So my use of the symbol "and" isn't only wrong because we haven't defined "and"
+yet, it's also a level mistake.
+
+Your use of "If" to affect the outcome is using tools we're not allowed to use
+(yet), but is also at the wrong level. You purport to return "False" if the
+conditions of transitivity are not met. But that's not a correct definition of
+transitivity. Transitivity isn't "True" or "False" (unless we lift the entire
+project into some kind of higher-level "Maybe" monad, but I digress
+unhelpfully). Transitivity either pertains or it doesn't, and our only tool for
+testing pertinence is pattern matching. If transitivity pertains, we get to
+rewrite a pair of patterns as a certain outcome. If transitivity doesn't
+pertain, then we don't get to rewrite the pair of patterns as anything, let
+alone as "False".
+
+Built-ins in the "Condition part" of a pattern aren't supposed to do any
+rewriting (I suppose one could do some awful side-effectful hackery, but then I
+would just disallow it). Those Conditions just test whether some pattern
+pertains, they can't affect the outcome.
+
+I need to think a lot more about this, but I'm pretty sure I'm on the correct
+road, here, and your issue is a GREAT CATCH, and exposed some carelessness on my
+part. Keep it up!
+
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
     (* 1.5 *) leibniz[ sameq[x_, y_], e_, z_     ] :=
         sameq[e /. {z -> x}, e /. {z -> y}]
 

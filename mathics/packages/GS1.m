@@ -551,6 +551,32 @@ symmetryLaw[x_, y_] := sameq[ sameq[x, y], sameq[y, x] ]
 ClearAll[transitivityLaw];
 transitivityLaw [ and [ sameq[x_, y_], sameq[y_, z_] ] ] := sameq[x, z]
 
+(*
+
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   transitivityLaw[sameq[x_, y_], sameq[y_, z_]] := sameq[x, z]
+
+
+ _____ ___  ___   ___
+|_   _/ _ \|   \ / _ \
+  | || (_) | |) | (_) |
+  |_| \___/|___/ \___/
+
+       Transitivity above known to be wrong; wasn't used in any proofs, that's
+       why it didn't break.
+
+Discussion copied in GS3.m and hosted at
+
+https://github.com/rebcabin/Mathics/pull/3
+
+
+ *)
+
 expect[ sameq[ x+y, 7 ],
         transitivityLaw [ and [ sameq [ x+y, w+1 ],
                                 sameq [ w+1, 7 ] ] ] ]
