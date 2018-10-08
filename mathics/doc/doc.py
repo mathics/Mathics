@@ -847,7 +847,8 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                tests.tests.append(test)
+                if not test.ignore:
+                    tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
@@ -923,12 +924,31 @@ class DocTests(object):
 
 
 class DocTest(object):
+    """
+    DocTest formatting rules:
+
+    #> signifies private test that does not appear as part of the documentation
+    X> outputs the docs as normal, but the test is not run
+    = compares the result text
+    : compares an (error) Message
+    | signifies Print outpt
+    """
     def __init__(self, index, testcase):
         self.index = index
-        self.test = testcase[1].strip()
         self.result = None
         self.outs = []
+        # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
+        # Ignored test cases are NOT executed, but shown as part of the docs
+        if testcase[0] == 'X':
+            self.ignore = True
+            # substitute '>' again so we get the correct formatting
+            testcase[0] = '>'
+        else:
+            self.ignore = False
+
+        self.test = testcase[1].strip()
+
         self.key = None
         outs = testcase[2].splitlines()
         for line in outs:

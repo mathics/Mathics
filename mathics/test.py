@@ -107,6 +107,8 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
     count = failed = skipped = 0
     failed_symbols = set()
     for test in tests.tests:
+        if test.ignore:
+            continue
         count += 1
         index += 1
         if index < start_at:
@@ -124,6 +126,8 @@ def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
         definitions.reset_user_definitions()
         for test in tests.tests:
+            if test.ignore:
+                continue
             key = test.key
             evaluation = Evaluation(definitions, format=format, catch_interrupt=False, output=TestOutput())
             result = evaluation.parse_evaluate(test.test)
@@ -144,6 +148,8 @@ def test_section(section, quiet=False, stop_on_failure=False):
     for tests in documentation.get_tests():
         if tests.section == section or tests.section == '$' + section:
             for test in tests.tests:
+                if test.ignore:
+                    continue
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1
