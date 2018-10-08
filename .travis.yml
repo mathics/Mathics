@@ -3,9 +3,6 @@ python:
   - 2.7
   - pypy
   - 3.5
-  - 3.4
-  - 3.3
-  - 3.2
   - pypy3
 env:
   global:
@@ -20,10 +17,11 @@ matrix:
       env: DOC="true"
     - python: 3.5
       env: DOC="true"
-    - python: 2.7
-      env: SYMPY_SRC=master
-    - python: 3.5
-      env: SYMPY_SRC=master
+    # Useless to test with master for now
+    # - python: 2.7
+    #   env: SYMPY_SRC=master
+    # - python: 3.5
+    #   env: SYMPY_SRC=master
     - python: 2.7
       env: ALL_MODULES="true"
     - python: 3.5
@@ -39,7 +37,7 @@ matrix:
     - python: 3.5
       env: ALL_MODULES="true" CYTHON="true"
   allow_failures:
-    - python: 3.2
+    - python: pypy
     - python: pypy3
     - env: SYMPY_SRC=master
     - env: DOC="true"
