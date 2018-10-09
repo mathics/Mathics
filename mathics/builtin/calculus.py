@@ -389,11 +389,13 @@ class Integrate(SympyFunction):
     #> Integrate[x ^ 3.5 + x, x]
      = x ^ 2 / 2 + 0.222222 x ^ 4.5
 
-    Sometimes there is a loss of precision during integration
-    >> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
-     = 4.000
-    >> % // Precision
+    Sometimes there is a loss of precision during integration.
+    You can check the precision of your result with the following sequence
+    of commands.
+    >> Integrate[Abs[Sin[phi]], {phi, 0, 2Pi}] // N
      = 4.
+     >> % // Precision
+     = MachinePrecision
 
     #> Integrate[1/(x^5+1), x]
      = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5

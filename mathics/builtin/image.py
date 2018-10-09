@@ -587,6 +587,7 @@ class ImageResize(_ImageBuiltin):
 
         try:
             from skimage import transform
+            multichannel = (image.pixels.ndim == 3)
 
             sy = h / old_h
             sx = w / old_w
@@ -600,9 +601,9 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s, multichannel=multichannel).clip(0, 1)
             else:
-                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+                pixels = transform.pyramid_reduce(image.pixels, multichannel=multichannel, downscale=(1. / s)).clip(0, 1)
 
             return Image(pixels, image.color_space)
         except ImportError:

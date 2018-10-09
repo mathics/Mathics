@@ -1740,7 +1740,7 @@ class Sum(_IterationFunction, SympyFunction):
      = 0
 
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}}, -1 + (a ^ n) ^ m]
+     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1870,7 +1870,7 @@ class Piecewise(SympyFunction):
     ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
+     = Piecewise[{{x, x <= 0}, {-x, True}}]
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
@@ -1931,7 +1931,7 @@ class Piecewise(SympyFunction):
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
         else:
-            sympy_cases.append((Integer(0), True))
+            sympy_cases.append((Integer(0).to_sympy(**kwargs), True))
 
         return sympy.Piecewise(*sympy_cases)
 
