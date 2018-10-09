@@ -497,7 +497,7 @@ class ImageResize(_ImageBuiltin):
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
         'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
-        'skimage': 'Please install skimage to use Resampling -> Gaussian.',
+        'skimage': 'Please install scikit-image to use Resampling -> Gaussian.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
