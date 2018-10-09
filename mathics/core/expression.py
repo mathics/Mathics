@@ -1674,7 +1674,7 @@ class Integer(Number):
 
 
 class Rational(Number):
-    def __new__(cls, numerator, denominator=None):
+    def __new__(cls, numerator, denominator=1):
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
