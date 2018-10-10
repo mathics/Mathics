@@ -934,12 +934,18 @@ class ComplexInfinity(SympyConstant):
 
     >> 1 / ComplexInfinity
      = 0
-    >> ComplexInfinity + ComplexInfinity
-     = ComplexInfinity
     >> ComplexInfinity * Infinity
      = ComplexInfinity
     >> FullForm[ComplexInfinity]
      = DirectedInfinity[]
+
+    ## Issue689
+    #> ComplexInfinity + ComplexInfinity
+     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
+     = Indeterminate
+    #> ComplexInfinity + Infinity
+     : Indeterminate expression ComplexInfinity + Infinity encountered.
+     = Indeterminate
     """
 
     sympy_name = 'ComplexInfinity'
@@ -990,6 +996,10 @@ class DirectedInfinity(SympyFunction):
         'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
             'Message[Infinity::indet,'
             '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
+        'DirectedInfinity[] + DirectedInfinity[args___]': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[] + DirectedInfinity[args]]];'
             'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
@@ -1132,6 +1142,59 @@ class Abs(_MPMathFunction):
 
     sympy_name = 'Abs'
     mpmath_name = 'fabs'  # mpmath actually uses python abs(x) / x.__abs__()
+
+
+class Sign(Builtin):
+    """
+    <dl>
+    <dt>'Sign[$x$]'
+        <dd>return -1, 0, or 1 depending on whether $x$ is negative, zero, or positive.
+    </dl>
+    
+    >> Sign[19]
+     = 1
+    >> Sign[-6]
+     = -1
+    >> Sign[0]
+     = 0
+    >> Sign[{-5, -10, 15, 20, 0}]
+     = {-1, -1, 1, 1, 0}
+    #> Sign[{1, 2.3, 4/5, {-6.7, 0}, {8/9, -10}}]
+     = {1, 1, 1, {-1, 0}, {1, -1}}
+    >> Sign[3 - 4*I]
+     = 3 / 5 - 4 I / 5
+    #> Sign[1 - 4*I] == (1/17 - 4 I/17) Sqrt[17]
+     = True
+    #> Sign[4, 5, 6]
+     : Sign called with 3 arguments; 1 argument is expected.
+     = Sign[4, 5, 6]
+    #> Sign["20"]
+     = Sign[20]
+    """
+    
+    # Sympy and mpmath do not give the desired form of complex number
+    # sympy_name = 'sign'
+    # mpmath_name = 'sign'
+    
+    attributes = ('Listable', 'NumericFunction')
+    
+    messages = {
+        'argx':  'Sign called with `1` arguments; 1 argument is expected.',
+    }
+    
+    def apply(self, x, evaluation):
+        'Sign[x_]'
+        if isinstance(x, Complex):
+            return Expression('Times', x, Expression('Power', Expression('Abs', x), -1))
+        
+        sympy_x = x.to_sympy()
+        if sympy_x is None:
+            return None
+        return from_sympy(sympy.sign(sympy_x))
+    
+    def apply_error(self, x, seqs, evaluation):
+        'Sign[x_, seqs__]'
+        return evaluation.message('Sign', 'argx', Integer(len(seqs.get_sequence())+1))
 
 
 class I(Predefined):

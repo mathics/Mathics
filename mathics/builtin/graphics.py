@@ -772,12 +772,19 @@ class ColorDistance(Builtin):
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
         "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
-
     }
 
 
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
+
+        # If numpy is not installed, 100 * c1.to_color_space returns
+        # a list of 100 x 3 elements, instead of doing elementwise multiplication
+        try:
+            import numpy as np
+        except:
+            raise RuntimeError("NumPy needs to be installed for ColorDistance")
+
         distance_function = options.get('System`DistanceFunction')
         compute = None
         if isinstance(distance_function, String):

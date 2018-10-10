@@ -815,12 +815,15 @@ class Limit(Builtin):
     >> Limit[1/x, x->0, Direction->1]
      = -Infinity
 
-    #> Limit[(1 + cos[x]) / x, x -> 0]
-     = Limit[(1 + cos[x]) / x, x -> 0]
-
     #> Limit[x, x -> x0, Direction -> x]
      : Value of Direction -> x should be -1 or 1.
      = Limit[x, x -> x0, Direction -> x]
+    """
+
+    """
+    The following test is currently causing PyPy to segfault...
+     #> Limit[(1 + cos[x]) / x, x -> 0]
+     = Limit[(1 + cos[x]) / x, x -> 0]
     """
 
     attributes = ('Listable',)

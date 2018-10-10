@@ -17,6 +17,7 @@ from itertools import combinations
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
+from mathics.core.convert import from_sympy
 
 
 class PowerMod(Builtin):
@@ -272,6 +273,41 @@ class FactorInteger(Builtin):
                                         for factor, exp in factors))
         else:
             return evaluation.message('FactorInteger', 'exact', n)
+
+
+class Divisors(Builtin):
+    """
+    <dl>
+    <dt>'Divisors[$n$]'
+        <dd>returns a list of the integers that divide $n$.
+    </dl>
+
+    >> Divisors[96]
+     = {1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 96}
+    >> Divisors[704]
+     = {1, 2, 4, 8, 11, 16, 22, 32, 44, 64, 88, 176, 352, 704}
+    >> Divisors[{87, 106, 202, 305}]
+     = {{1, 3, 29, 87}, {1, 2, 53, 106}, {1, 2, 101, 202}, {1, 5, 61, 305}}
+    #> Divisors[0]
+     = Divisors[0]
+    #> Divisors[{-206, -502, -1702, 9}]
+     = {{1, 2, 103, 206}, {1, 2, 251, 502}, {1, 2, 23, 37, 46, 74, 851, 1702}, {1, 3, 9}}
+    #> Length[Divisors[1000*369]]
+     = 96
+    #> Length[Divisors[305*176*369*100]]
+     = 672
+    """
+
+    # TODO: support GaussianIntegers
+    # e.g. Divisors[2, GaussianIntegers -> True]
+    
+    attributes = ('Listable',)
+
+    def apply(self, n, evaluation):
+        'Divisors[n_Integer]'
+        if n == Integer(0):
+            return None
+        return Expression('List', *[from_sympy(i) for i in sympy.divisors(n.to_sympy())])
 
 
 class IntegerExponent(Builtin):
@@ -707,3 +743,51 @@ class Quotient(Builtin):
             evaluation.message('Quotient', 'infy', Expression('Quotient', m, n))
             return Symbol('ComplexInfinity')
         return Integer(py_m // py_n)
+
+
+class QuotientRemainder(Builtin):
+    '''
+    <dl>
+    <dt>'QuotientRemainder[m, n]'
+      <dd>computes a list of the quotient and remainder from division of $m$ by $n$.
+    </dl>
+
+    >> QuotientRemainder[23, 7]
+     = {3, 2}
+
+    #> QuotientRemainder[13, 0]
+     : The argument 0 in QuotientRemainder[13, 0] should be nonzero.
+     = QuotientRemainder[13, 0]
+    #> QuotientRemainder[-17, 7]
+     = {-3, 4}
+    #> QuotientRemainder[-17, -4]
+     = {4, -1}
+    #> QuotientRemainder[19, -4]
+     = {-5, -1}
+    #> QuotientRemainder[a, 0]
+     = QuotientRemainder[a, 0]
+    #> QuotientRemainder[a, b]
+     = QuotientRemainder[a, b]
+    #> QuotientRemainder[5.2,2.5]
+     = {2, 0.2}
+    #> QuotientRemainder[5, 2.]
+     = {2, 1.}
+    '''
+
+    attributes = ('Listable', 'NumericFunction')
+
+    messages = {
+        'divz': 'The argument 0 in `1` should be nonzero.',
+    }
+
+    def apply(self, m, n, evaluation):
+        'QuotientRemainder[m_, n_]'
+        if m.is_numeric() and n.is_numeric():
+            py_m = m.to_python()
+            py_n = n.to_python()
+            if py_n == 0:
+                return evaluation.message('QuotientRemainder', 'divz', Expression('QuotientRemainder', m, n))
+            return Expression('List', Integer(py_m // py_n), (py_m % py_n))
+        else:
+            return Expression('QuotientRemainder', m, n)
+
