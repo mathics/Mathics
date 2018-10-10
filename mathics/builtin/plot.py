@@ -30,6 +30,7 @@ try:
 except ImportError as e:
     has_compile = False
 
+
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression('ColorData', color_function).evaluate(evaluation)
@@ -197,6 +198,7 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
     expr = Expression('N', expr)
     quiet_expr = Expression('Quiet', expr, Expression(
         'List', Expression('MessageName', Symbol('Power'), String('infy'))))
+
     def quiet_f(*args):
         vars = {arg_name: Real(arg) for arg_name, arg in zip(arg_names, args)}
         value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)

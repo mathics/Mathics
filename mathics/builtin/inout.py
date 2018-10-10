@@ -261,7 +261,7 @@ def number_form(expr, n, f, evaluation, options):
         if start > 0:
             yield s[:start]
         for i in range(start, len(s), step):
-            yield s[i:i+step]
+            yield s[i:i + step]
 
     # insert NumberSeparator
     digit_block = options['DigitBlock']
@@ -1928,15 +1928,19 @@ class _NumberForm(Builtin):
     def check_ExponentFunction(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_ExponentFunction
+
         def exp_function(x):
             return Expression(value, x).evaluate(evaluation)
+
         return exp_function
 
     def check_NumberFormat(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_NumberFormat
+
         def num_function(man, base, exp, options):
             return Expression(value, man, base, exp).evaluate(evaluation)
+
         return num_function
 
     def check_NumberMultiplier(self, value, evaluation):

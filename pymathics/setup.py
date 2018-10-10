@@ -163,9 +163,9 @@ setup(
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
         'mathics.web', 'mathics.web.templatetags',
-        'pymathics',
-        'pymathics.testpymathicsmodule',
-        'pymathics.natlang',
+	'pymathics',
+	'pymathics.testpymathicsmodule',
+	'pymathics.natlang',
     ],
 
     install_requires=INSTALL_REQUIRES,
@@ -185,7 +185,6 @@ setup(
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
-        'pymathics': ['doc/documentation/*.mdoc', 'doc/xml/data'],
     },
 
     entry_points={

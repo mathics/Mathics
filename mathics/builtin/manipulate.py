@@ -31,6 +31,7 @@ A basic implementation of Manipulate[]. There is currently no support for Dynami
 This implementation is basically a port from ipywidget.widgets.interaction for Mathics.
 """
 
+
 def _interactive(interact_f, kwargs_widgets):
     # this is a modified version of interactive() in ipywidget.widgets.interaction
 
@@ -64,7 +65,7 @@ class JupyterWidgetError(Exception):
         self.err = err
 
 
-class ManipulateParameter(Builtin): # parses one Manipulate[] parameter spec, e.g. {x, 1, 2}, see _WidgetInstantiator
+class ManipulateParameter(Builtin):       # parses one Manipulate[] parameter spec, e.g. {x, 1, 2}, see _WidgetInstantiator
     context = 'System`Private`'
 
     rules = {
@@ -159,10 +160,10 @@ class _WidgetInstantiator():
             default_value = min(max(default.to_python(), minimum_value), maximum_value)
             if all(isinstance(x, Integer) for x in [minimum, maximum, default, step]):
                 widget = _create_widget(IntSlider, value=default_value, min=minimum_value, max=maximum_value,
-                                   step=step_value)
+                                        step=step_value)
             else:
                 widget = _create_widget(FloatSlider, value=default_value, min=minimum_value, max=maximum_value,
-                                     step=step_value)
+                                        step=step_value)
             self._add_widget(widget, symbol.get_name(), lambda x: from_python(x), label)
 
     def _add_options_widget(self, symbol, options, default, label, evaluation):
@@ -254,7 +255,7 @@ class Manipulate(Builtin):
     messages = {
         'jupyter': 'Manipulate[] only works inside a Jupyter notebook.',
         'imathics': 'Your IMathics kernel does not seem to support all necessary operations. ' +
-            'Please check that you have the latest version installed.',
+        'Please check that you have the latest version installed.',
         'widgetmake': 'Jupyter widget construction failed with "``".',
         'widgetargs': 'Illegal variable range or step parameters for ``.',
         'widgetdisp': 'Jupyter failed to display the widget.',

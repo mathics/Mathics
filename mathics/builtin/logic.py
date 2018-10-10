@@ -412,4 +412,3 @@ class AllTrue(_ManyTrue):
 
     def _no_short_circuit(self):
         return Symbol('True')
-

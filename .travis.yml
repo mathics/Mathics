@@ -8,7 +8,7 @@ env:
   global:
     - SYMPY_SRC=sympy-1.0
     - DOC="false"
-    - ALL_MODULES="false"
+    - PYMATHICS_MODULES="false"
     - CYTHON="false"
 matrix:
   fast_finish: true
@@ -23,19 +23,19 @@ matrix:
     # - python: 3.5
     #   env: SYMPY_SRC=master
     - python: 2.7
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: 3.5
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: pypy
-      env: ALL_MODULES="true"
+      env: PYMATHICS_MODULES="true"
     - python: 2.7
       env: CYTHON="true"
     - python: 3.5
       env: CYTHON="true"
     - python: 2.7
-      env: ALL_MODULES="true" CYTHON="true"
+      env: PYMATHICS_MODULES="true" CYTHON="true"
     - python: 3.5
-      env: ALL_MODULES="true" CYTHON="true"
+      env: PYMATHICS_MODULES="true" CYTHON="true"
   allow_failures:
     - python: pypy
     - python: pypy3
@@ -63,7 +63,7 @@ before_install:
     fi
   - if [[ "$DOC" == "true" ]]; then
       sudo apt-get update -qq &&
-      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+      sudo apt-get install -qq asymptote inkscape imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
@@ -76,14 +76,26 @@ install:
 script:
   - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      python mathics/test.py -o &&
-      python mathics/test.py -t &&
-      cd mathics/doc/ &&
-      ./images.sh &&
-      cd tex/ &&
-      make latex;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py -o &&
+         python pymathics/test.py -t  &&
+         cd pymathics/doc/ &&
+         cd tex/ &&
+         make latex;
+      else
+         python mathics/test.py -o &&
+         python mathics/test.py -t &&
+         cd mathics/doc/ &&
+         ./images.sh &&
+         cd tex/ &&
+         make latex;
+      fi
     else
-      python mathics/test.py;
+      if [["$PYMATHICS_MODULES" == "true" ]]; then
+        python pymathics/test.py;
+      else
+        python mathics/test.py --stop-on-failure;
+      fi
     fi
 notifications:
     email: false

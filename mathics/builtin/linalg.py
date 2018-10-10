@@ -24,11 +24,11 @@ def matrix_data(m):
     if not m.has_form('List', None):
         return None
     if all(leaf.has_form('List', None) for leaf in m.leaves):
-        result =[[item.to_sympy() for item in row.leaves] for row in m.leaves]
+        result = [[item.to_sympy() for item in row.leaves] for row in m.leaves]
         if not any(None in row for row in result):
             return result
     elif not any(leaf.has_form('List', None) for leaf in m.leaves):
-        result =[item.to_sympy() for item in m.leaves]
+        result = [item.to_sympy() for item in m.leaves]
         if None not in result:
             return result
 

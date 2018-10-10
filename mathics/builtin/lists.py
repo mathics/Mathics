@@ -1526,6 +1526,7 @@ class Cases(Builtin):
             from mathics.core.rules import Rule
             match = Matcher(pattern.leaves[0]).match
             rule = Rule(pattern.leaves[0], pattern.leaves[1])
+
             def callback(level):
                 if match(level, evaluation):
                     result = rule.apply(level, evaluation)
@@ -1534,6 +1535,7 @@ class Cases(Builtin):
                 return level
         else:
             match = Matcher(pattern).match
+
             def callback(level):
                 if match(level, evaluation):
                     results.append(level)

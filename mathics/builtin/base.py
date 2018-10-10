@@ -43,7 +43,7 @@ class Builtin(object):
     def __init__(self, *args, **kwargs):
         super(Builtin, self).__init__()
 
-    def contribute(self, definitions):
+    def contribute(self, definitions, pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
@@ -143,7 +143,10 @@ class Builtin(object):
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
             defaultvalues=defaults)
-        definitions.builtin[name] = definition
+        if pymodule:
+            definitions.pymathics[name] = definition
+        else:
+            definitions.builtin[name] = definition
 
         makeboxes_def = definitions.builtin['System`MakeBoxes']
         for rule in box_rules:
@@ -171,6 +174,7 @@ class Builtin(object):
         unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
+
                 function = getattr(self, name)
                 pattern = function.__doc__
                 if pattern is None:  # Fixes PyPy bug
@@ -240,6 +244,7 @@ class Builtin(object):
                 if s.get_name().startswith(prefix):
                     return s.get_name()[len(prefix):], s
         return None, s
+
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):

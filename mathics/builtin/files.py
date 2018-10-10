@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 import os
+import sys
 import io
 import shutil
 import zlib
@@ -83,7 +84,10 @@ def count():
         n += 1
 
 NSTREAMS = count()      # use next(NSTREAMS)
-STREAMS = []
+STREAMS = [sys.stdin, sys.stdout, sys.stderr]
+next(NSTREAMS)
+next(NSTREAMS)
+next(NSTREAMS)
 
 
 def _channel_to_stream(channel, mode='r'):
@@ -3507,8 +3511,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(six.text_type(pystring))
-
+        stream = io.StringIO(six.text_type(pystring))        
         name = Symbol('String')
         n = next(NSTREAMS)
 

@@ -34,6 +34,7 @@ from mathics.core.expression import (
     MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
 
+
 class N(Builtin):
     """
     <dl>

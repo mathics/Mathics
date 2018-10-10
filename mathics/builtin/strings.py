@@ -101,7 +101,7 @@ def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patter
                 c = result[j]
                 if c == '\\' and j + 1 < len(result):
                     pieces.append(re.escape(result[i:j]))
-                    pieces.append(re.escape(result[j+1]))
+                    pieces.append(re.escape(result[j + 1]))
                     j += 2
                     i = j
                 elif c == '*':
