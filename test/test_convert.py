@@ -79,13 +79,12 @@ class SympyConvert(unittest.TestCase):
                 sympy.Symbol('_Mathics_User_Global`y')))
 
     def testDerivative(self):
-        pass
-        # self.compare(
-        #     mathics.Expression(
-        #         'D', mathics.Symbol('Global`x'), mathics.Symbol('Global`y')),
-        #     sympy.Derivative(
-        #         sympy.Symbol('_Mathics_User_Global`x'),
-        #         sympy.Symbol('_Mathics_User_Global`y')))
+        self.compare(
+            mathics.Expression(
+                'D', mathics.Symbol('Global`x'), mathics.Symbol('Global`y')),
+            sympy.Derivative(
+                sympy.Symbol('_Mathics_User_Global`x'),
+                sympy.Symbol('_Mathics_User_Global`y')))
 
     def testDerivative2(self):
         kwargs = {'converted_functions': set(['Global`f'])}
@@ -112,10 +111,10 @@ class SympyConvert(unittest.TestCase):
             sympy.Symbol('_Mathics_User_Global`x'), sympy.Symbol('_Mathics_User_Global`y'))
         self.compare(marg2, sarg2, **kwargs)
 
-        # self.compare(
-        #     mathics.Expression('D', marg2, mathics.Symbol('Global`x')),
-        #     sympy.Derivative(sarg2, sympy.Symbol('_Mathics_User_Global`x')),
-        #     **kwargs)
+        self.compare(
+            mathics.Expression('D', marg2, mathics.Symbol('Global`x')),
+            sympy.Derivative(sarg2, sympy.Symbol('_Mathics_User_Global`x')),
+            **kwargs)
 
     def testExpression(self):
         self.compare(

@@ -238,6 +238,20 @@ def from_sympy(expr):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
             name = 'Derivative'
+            margs = []
+            for arg in expr.args:
+                # parse (x, 1) ==> just x for test_conversion
+                # IMHO this should be removed in future versions
+                if isinstance(arg, sympy.Tuple):
+                    if arg[1] == 1:
+                        margs.append(from_sympy(arg[0]))
+                    else:
+                        margs.append(from_sympy(arg))
+                else:
+                    margs.append(from_sympy(arg))
+            builtin = sympy_to_mathics.get(name)
+            return builtin.from_sympy(name, margs)
+
         elif isinstance(expr, sympy.sign):
             name = 'Sign'
         else:
