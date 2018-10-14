@@ -199,17 +199,6 @@ class _EqualityOperator(_InequalityOperator):
             return False
         elif isinstance(l1, String) and isinstance(l2, String):
             return False
-
-        l1_sympy = l1.to_sympy()
-        l2_sympy = l2.to_sympy()
-        if l1_sympy is None or l2_sympy is None:
-            return None
-        if l1_sympy.is_number and l2_sympy.is_number:
-            # assert min_prec(l1, l2) is None
-            prec = 64  # TODO: Use $MaxExtraPrecision
-            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
-                return True
-            return False
         elif l1.has_form('List', None) and l2.has_form('List', None):
             if len(l1.leaves) != len(l2.leaves):
                 return False
@@ -218,6 +207,18 @@ class _EqualityOperator(_InequalityOperator):
                 if not result:
                     return result
             return True
+
+        l1_sympy = l1.to_sympy()
+        l2_sympy = l2.to_sympy()
+
+        if l1_sympy is None or l2_sympy is None:
+            return None
+        if l1_sympy.is_number and l2_sympy.is_number:
+            # assert min_prec(l1, l2) is None
+            prec = 64  # TODO: Use $MaxExtraPrecision
+            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
+                return True
+            return False
         else:
             return None
 
