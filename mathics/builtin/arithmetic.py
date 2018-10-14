@@ -948,7 +948,7 @@ class ComplexInfinity(SympyConstant):
      = Indeterminate
     """
 
-    sympy_name = 'ComplexInfinity'
+    sympy_name = 'zoo'
 
     rules = {
         'ComplexInfinity': 'DirectedInfinity[]',
