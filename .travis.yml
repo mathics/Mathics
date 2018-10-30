@@ -6,7 +6,7 @@ python:
   - pypy3
 env:
   global:
-    - SYMPY_SRC=sympy-1.0
+    - SYMPY_SRC=sympy-1.3
     - DOC="false"
     - ALL_MODULES="false"
     - CYTHON="false"

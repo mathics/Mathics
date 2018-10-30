@@ -768,7 +768,8 @@ class MatrixPower(Builtin):
      = {{169, -70}, {-70, 29}}
 
     #> MatrixPower[{{0, x}, {0, 0}}, n]
-     = {{0 ^ n, n x 0 ^ (-1 + n)}, {0, 0 ^ n}}
+     : Matrix det == 0; not invertible
+     = MatrixPower[{{0, x}, {0, 0}}, n]
 
     #> MatrixPower[{{1, 0}, {0}}, 2]
      : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
@@ -776,8 +777,9 @@ class MatrixPower(Builtin):
     """
 
     messages = {
-        'matrixpowernotimplemented': ('Matrix power not implemented for matrix `1`.'),
-        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        'matrixpowernotimplemented': 'Matrix power not implemented for matrix `1`.',
+        'matrix': 'Argument `1` at position `2` is not a non-empty rectangular matrix.',
+        'matrixpowernotinvertible': 'Matrix det == 0; not invertible'
     }
 
     def apply(self, m, power, evaluation):
@@ -794,6 +796,8 @@ class MatrixPower(Builtin):
             res = sympy_m ** sympy_power
         except NotImplementedError:
             return evaluation.message('MatrixPower', 'matrixpowernotimplemented', m)
+        except ValueError as e:
+            return evaluation.message('MatrixPower', 'matrixpowernotinvertible', m)
         return from_sympy(res)
 
 

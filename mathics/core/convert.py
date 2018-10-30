@@ -176,6 +176,11 @@ def from_sympy(expr):
             return Symbol('Indeterminate')
         elif isinstance(expr, function.FunctionClass):
             return Symbol(six.text_type(expr))
+        elif expr is sympy.true:
+            return Symbol('True')
+        elif expr is sympy.false:
+            return Symbol('False')
+
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):
         # Hack to convert 3 * I to Complex[0, 3]
         return Complex(*[from_sympy(arg) for arg in expr.as_real_imag()])
@@ -195,18 +200,8 @@ def from_sympy(expr):
 
     elif isinstance(expr, sympy.Piecewise):
         args = expr.args
-        default = []
-        if len(args) > 0:
-            default_case, default_cond = args[-1]
-            if default_cond == sympy.true:
-                args = args[:-1]
-                if isinstance(default_case, sympy.Integer) and int(default_case) == 0:
-                    pass  # ignore, as 0 default case is always implicit in Piecewise[]
-                else:
-                    default = [from_sympy(default_case)]
         return Expression('Piecewise', Expression('List', *[Expression(
-            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]), *default)
-
+            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]))
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))
@@ -243,6 +238,20 @@ def from_sympy(expr):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
             name = 'Derivative'
+            margs = []
+            for arg in expr.args:
+                # parse (x, 1) ==> just x for test_conversion
+                # IMHO this should be removed in future versions
+                if isinstance(arg, sympy.Tuple):
+                    if arg[1] == 1:
+                        margs.append(from_sympy(arg[0]))
+                    else:
+                        margs.append(from_sympy(arg))
+                else:
+                    margs.append(from_sympy(arg))
+            builtin = sympy_to_mathics.get(name)
+            return builtin.from_sympy(name, margs)
+
         elif isinstance(expr, sympy.sign):
             name = 'Sign'
         else:
@@ -281,9 +290,5 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
                           *[from_sympy(arg) for arg in expr.args])
-    elif expr is sympy.true:
-        return Symbol('True')
-    elif expr is sympy.false:
-        return Symbol('False')
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)
