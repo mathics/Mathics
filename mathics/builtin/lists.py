@@ -632,7 +632,11 @@ def python_seq(start, stop, step, length):
         return None
 
     # special empty case
-    if start is not None and stop is not None and stop + 1 == start and step > 0:
+    if stop is None and length is not None:
+        empty_stop = length
+    else:
+        empty_stop = stop
+    if start is not None and empty_stop + 1 == start and step > 0:
         return slice(0, 0, 1)
 
     if start == 0 or stop == 0:
