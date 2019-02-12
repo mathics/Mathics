@@ -1110,6 +1110,142 @@ class ReplacePart(Builtin):
         return new_expr
 
 
+class FirstPosition(Builtin):
+    """
+    <dl>
+    <dt>'FirstPosition[$expr$, $pattern$]'
+        <dd>gives the position of the first element in $expr$ that matches $pattern$, or Missing["NotFound"] if no such element is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$]'
+        <dd>gives default if no element matching $pattern$ is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$, $levelspec$]'
+        <dd>finds only objects that appear on levels specified by $levelspec$.
+    </dl>
+
+    >> FirstPosition[{a, b, a, a, b, c, b}, b]
+     = {2}
+     
+    >> FirstPosition[{{a, a, b}, {b, a, a}, {a, b, a}}, b]
+     = {1, 3}
+     
+    >> FirstPosition[{x, y, z}, b]
+     = Missing[NotFound]
+
+    Find the first position at which x^2 to appears:
+    >> FirstPosition[{1 + x^2, 5, x^4, a + (1 + x^2)^2}, x^2]
+     = {1, 2}
+    
+    #> FirstPosition[{1, 2, 3}, _?StringQ, "NoStrings"]
+     = NoStrings 
+     
+    #> FirstPosition[a, a]
+     = {}
+     
+    #> FirstPosition[{{{1, 2}, {2, 3}, {3, 1}}, {{1, 2}, {2, 3}, {3, 1}}},3]
+     = {1, 2, 2} 
+    
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],2]
+     = {2, 1}
+     
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],4]
+     = {1, 2, 1}
+     
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1}]
+     = Missing[NotFound]
+     
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], 0]
+     = Missing[NotFound]
+     
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], {3}]
+     = {2, 2, 1}
+     
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], 3]
+     = {1, 2}
+     
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2,  Missing["NotFound"], {}]
+     = {1, 2}
+     
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, 2, 3}]
+     : Level specification {1, 2, 3} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, 2, 3}]
+     
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], a]
+     : Level specification a is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], a]
+     
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, a}]
+     : Level specification {1, a} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, a}]
+     
+    """
+
+    messages = {
+        'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.',
+    }
+
+    def apply(self, expr, pattern, evaluation, default = None, minLevel = None, maxLevel = None):
+        'FirstPosition[expr_, pattern_]'
+
+        if expr == pattern:
+            return Expression("List")
+       
+        result  = [] 
+        def check_pattern(input_list, pat, result, beginLevel):
+            for i in range(0, len(input_list.leaves)) :
+                nested_level = beginLevel
+                result.append(i + 1)
+                if input_list.leaves[i] == pat:
+                    #found the pattern
+                    if(minLevel is None or nested_level >= minLevel):
+                        return True
+                    
+                else:
+                    if isinstance(input_list.leaves[i], Expression) and (maxLevel is None or maxLevel > nested_level): 
+                        nested_level = nested_level + 1
+                        if check_pattern(input_list.leaves[i], pat, result, nested_level):
+                            return True
+                        
+                result.pop()
+            return False          
+        
+        is_found = False  
+        if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0): 
+            is_found = check_pattern(expr, pattern, result, 1)
+        if is_found:
+            return Expression("List", *result)
+        else:
+            return Expression("Missing", "NotFound") if default is None else default
+        
+    def apply_default(self, expr, pattern, default, evaluation):
+        'FirstPosition[expr_, pattern_, default_]'
+        return self.apply(expr, pattern, evaluation, default = default)
+    
+    def apply_level(self, expr, pattern, default, level, evaluation):
+        'FirstPosition[expr_, pattern_, default_, level_]'
+        
+        def is_interger_list(expr_list):
+            return all(
+                isinstance(expr_list.leaves[i], Integer) for i in range(len(expr_list.leaves))
+            )
+        
+        if level.has_form("List", None):
+            len_list  = len(level.leaves)
+            if len_list > 2 or not is_interger_list(level):
+                return evaluation.message('FirstPosition', 'level', level)
+            elif len_list == 0:
+                min_Level = max_Level = None
+            elif len_list == 1:
+                min_Level = max_Level = level.leaves[0].get_int_value()
+            elif len_list == 2:
+                min_Level = level.leaves[0].get_int_value()
+                max_Level = level.leaves[1].get_int_value()
+        elif isinstance(level, Integer):
+            min_Level = 0
+            max_Level = level.get_int_value()
+        else:    
+            return evaluation.message('FirstPosition', 'level', level)
+               
+        return self.apply(expr, pattern, evaluation, default = default, minLevel = min_Level, maxLevel = max_Level)
+    
 def _drop_take_selector(name, seq, sliced):
     seq_tuple = convert_seq(seq)
     if seq_tuple is None:
