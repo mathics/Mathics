@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 
+from builtins import str
+
 import sys
 import traceback
 
@@ -322,7 +324,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         return result
 
     result = {
-        'content': unicode(result),
+        'content': str(result),
     }
     if data is not None:
         result['data'] = data
