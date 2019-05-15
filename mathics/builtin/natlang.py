@@ -562,8 +562,8 @@ class TextPosition(_SpacyBuiltin):
       <dd>returns the positions of elements of type $form$ in $text$ in order of their appearance.
     </dl>
 
-    >> TextPosition["Liverpool and Manchester are two English cities.", "City"]
-     = {{1, 9}, {15, 24}}
+    >> TextPosition["Liverpool and London are two English cities.", "City"]
+     = {{1, 9}, {15, 20}}
     """
 
     def apply(self, text, form, evaluation, options):
