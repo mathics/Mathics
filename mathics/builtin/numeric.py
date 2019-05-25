@@ -9,8 +9,6 @@ Precision is not "guarded" through the evaluation process. Only integer precisio
 However, things like 'N[Pi, 100]' should work as expected.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -19,7 +17,6 @@ import math
 import hashlib
 import zlib
 import math
-from six.moves import range
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain

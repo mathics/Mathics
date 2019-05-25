@@ -5,10 +5,6 @@
 Importing and Exporting
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-
 from mathics.core.expression import Expression, from_python, strip_context
 from mathics.builtin.base import Builtin, Predefined, Symbol, String
 from mathics.builtin.options import options_to_rules
@@ -530,7 +526,7 @@ class Import(Builtin):
         'Import[filename_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
         # Check filename
         path = filename.to_python()
-        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
 
@@ -869,7 +865,7 @@ class Export(Builtin):
 
     def _check_filename(self, filename, evaluation):
         path = filename.to_python()
-        if isinstance(path, six.string_types) and path[0] == path[-1] == '"':
+        if isinstance(path, str) and path[0] == path[-1] == '"':
             return True
         evaluation.message('Export', 'chtype', filename)
         return False
@@ -1043,7 +1039,7 @@ class B64Decode(Builtin):
         'System`Convert`B64Dump`B64Decode[expr_String]'
         try:
             clearstring = base64.b64decode(bytearray(expr.get_string_value(), 'utf8')).decode('utf8')
-            clearstring = String(six.text_type(clearstring))
+            clearstring = String(str(clearstring))
         except Exception as e:
             evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")

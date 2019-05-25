@@ -5,13 +5,6 @@
 Linear algebra
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-from six.moves import zip
-
 import sympy
 from mpmath import mp
 
@@ -729,7 +722,7 @@ class Eigenvalues(Builtin):
             return evaluation.message('Eigenvalues', 'matsq', m)
         eigenvalues = matrix.eigenvals()
         try:
-            eigenvalues = sorted(six.iteritems(eigenvalues),
+            eigenvalues = sorted(eigenvalues.items(),
                                  key=lambda v_c: (abs(v_c[0]), -v_c[0]), reverse=True)
         except TypeError as e:
             if not str(e).startswith('cannot determine truth value of'):

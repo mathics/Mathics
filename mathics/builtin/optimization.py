@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-from six.moves import zip
-
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, Integer, Number, from_python
 from mathics.core.convert import (

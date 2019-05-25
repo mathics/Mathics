@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-import six.moves.cPickle as pickle
+import pickle
 
 import os
 import base64
@@ -164,13 +160,13 @@ class Definitions(object):
         return context_path
 
     def set_current_context(self, context):
-        assert isinstance(context, six.string_types)
+        assert isinstance(context, str)
         self.set_ownvalue('System`$Context', String(context))
         self.clear_cache()
 
     def set_context_path(self, context_path):
         assert isinstance(context_path, list)
-        assert all([isinstance(c, six.string_types) for c in context_path])
+        assert all([isinstance(c, str) for c in context_path])
         self.set_ownvalue('System`$ContextPath',
                           Expression('System`List',
                                      *[String(c) for c in context_path]))
@@ -254,7 +250,7 @@ class Definitions(object):
         if cached is not None:
             return cached
 
-        assert isinstance(name, six.string_types)
+        assert isinstance(name, str)
 
         # Bail out if the name we're being asked to look up is already
         # fully qualified.
@@ -323,7 +319,7 @@ class Definitions(object):
             options = builtin.options.copy()
             options.update(user.options)
             formatvalues = builtin.formatvalues.copy()
-            for form, rules in six.iteritems(user.formatvalues):
+            for form, rules in user.formatvalues.items():
                 if form in formatvalues:
                     formatvalues[form].extend(rules)
                 else:
@@ -380,7 +376,7 @@ class Definitions(object):
         return self.get_definition(name).defaultvalues
 
     def get_value(self, name, pos, pattern, evaluation):
-        assert isinstance(name, six.string_types)
+        assert isinstance(name, str)
         assert '`' in name
         rules = self.get_definition(name).get_values_list(valuesname(pos))
         for rule in rules:
@@ -500,17 +496,11 @@ class Definitions(object):
         # TODO changed
 
     def get_user_definitions(self):
-        if six.PY2:
-            return base64.encodestring(pickle.dumps(self.user, protocol=2)).decode('ascii')
-        else:
-            return base64.encodebytes(pickle.dumps(self.user, protocol=2)).decode('ascii')
+        return base64.encodebytes(pickle.dumps(self.user, protocol=2)).decode('ascii')
 
     def set_user_definitions(self, definitions):
         if definitions:
-            if six.PY2:
-                self.user = pickle.loads(base64.decodestring(definitions.encode('ascii')))
-            else:
-                self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
+            self.user = pickle.loads(base64.decodebytes(definitions.encode('ascii')))
         else:
             self.user = {}
         self.clear_cache()

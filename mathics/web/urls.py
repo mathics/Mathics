@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from django.conf.urls import url
 from mathics.web.views import query, main_view, login, logout, save, open, get_worksheets, doc_search, doc_part, doc_chapter, doc_section, doc

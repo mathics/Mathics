@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six import unichr
 
 import re
 import sys
@@ -181,7 +176,7 @@ def unicode_superscript(value):
             value = 8318
         else:
             value = ord(c)
-        return unichr(value)
+        return chr(value)
     return ''.join(repl_char(c) for c in value)
 
 

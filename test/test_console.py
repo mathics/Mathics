@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import os
 import sys
 import pexpect
 import unittest
-from six.moves import range
 
 
 class ConsoleTest(unittest.TestCase):

@@ -5,12 +5,6 @@
 Number theoretic functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-from six.moves import map
-from six.moves import range
-
 import sympy
 from itertools import combinations
 
@@ -259,16 +253,16 @@ class FactorInteger(Builtin):
 
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
-            factors = sorted(six.iteritems(factors))
+            factors = sorted(factors.items())
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
 
         elif isinstance(n, Rational):
             factors, factors_denom = list(map(
                 sympy.factorint, n.value.as_numer_denom()))
-            for factor, exp in six.iteritems(factors_denom):
+            for factor, exp in factors_denom.items():
                 factors[factor] = factors.get(factor, 0) - exp
-            factors = sorted(six.iteritems(factors))
+            factors = sorted(factors.items())
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
         else:
@@ -342,7 +336,7 @@ class IntegerExponent(Builtin):
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
 
-        if not isinstance(py_n, six.integer_types):
+        if not isinstance(py_n, int):
             evaluation.message('IntegerExponent', 'int', expr)
         py_n = abs(py_n)
 

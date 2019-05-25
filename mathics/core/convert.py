@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
 """
-
-import six
-from six.moves import range
-from six.moves import zip
 
 import sympy
 
@@ -117,7 +110,7 @@ def from_sympy(expr):
         return Real(expr)
     if isinstance(expr, complex):
         return Complex(Real(expr.real), Real(expr.imag))
-    if isinstance(expr, six.string_types):
+    if isinstance(expr, str):
         return String(expr)
     if expr is None:
         return Symbol('Null')
@@ -132,7 +125,7 @@ def from_sympy(expr):
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
-            name = six.text_type(expr)
+            name = str(expr)
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
@@ -144,7 +137,7 @@ def from_sympy(expr):
                 index = name[len(sympy_slot_prefix):]
                 return Expression('Slot', int(index))
         elif expr.is_NumberSymbol:
-            name = six.text_type(expr)
+            name = str(expr)
         if name is not None:
             builtin = sympy_to_mathics.get(name)
             if builtin is not None:
@@ -175,7 +168,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')
         elif isinstance(expr, function.FunctionClass):
-            return Symbol(six.text_type(expr))
+            return Symbol(str(expr))
         elif expr is sympy.true:
             return Symbol('True')
         elif expr is sympy.false:

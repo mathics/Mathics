@@ -5,16 +5,10 @@
 Graphics
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import json
 import base64
-from six.moves import map
-from six.moves import range
-from six.moves import zip
 from itertools import chain
 from math import sin, cos, pi
 

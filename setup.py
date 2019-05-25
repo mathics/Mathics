@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import absolute_import
-
 """Setuptools based setup script for Mathics.
 
 For the easiest installation just type the following command (you'll probably
@@ -34,7 +31,7 @@ import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 3):
+if sys.version_info < (3, 3):
     print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
 
@@ -67,7 +64,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += ['sympy==1.4', 'django >= 1.8, < 1.12',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
+                     'mpmath>=0.19', 'python-dateutil', 'colorama']
 
 
 def subdirs(root, file='*.*', depth=10):
@@ -208,7 +205,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',

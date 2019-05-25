@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import os.path
 import logging
-import six
-from six.moves import range
 
 
 class MagicRule(object):
@@ -32,7 +28,7 @@ class MagicDetector(object):
     def match(self, filename, data=None):
         if not data:
             file = open(filename, 'rb')
-        elif isinstance(data, str) or isinstance(data, six.text_type):
+        elif isinstance(data, str) or isinstance(data, str):
             from StringIO import StringIO
 
             file = StringIO(data)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from mathics.core.parser.util import (
     parse, parse_builtin_rule)

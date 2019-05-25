@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import sys
 import re
 import pickle
 import os
 from argparse import ArgumentParser
-import six
-from six.moves import zip
 
 import mathics
 from mathics.core.definitions import Definitions
@@ -85,7 +79,7 @@ def test_case(test, tests, index=0, quiet=False):
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
-            fail_msg += '\n'.join(six.text_type(o) for o in out)
+            fail_msg += '\n'.join(str(o) for o in out)
         return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
@@ -97,8 +91,8 @@ def test_case(test, tests, index=0, quiet=False):
                 break
     if not output_ok:
         return fail("Output:\n%s\nWanted:\n%s" % (
-            '\n'.join(six.text_type(o) for o in out),
-            '\n'.join(six.text_type(o) for o in wanted_out)))
+            '\n'.join(str(o) for o in out),
+            '\n'.join(str(o) for o in wanted_out)))
     return True
 
 

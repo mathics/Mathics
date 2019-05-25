@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-
 import sys
 import os
 import argparse
@@ -17,9 +13,6 @@ from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
-
-import six
-from six.moves import input
 
 
 class TerminalShell(LineFeeder):
@@ -100,7 +93,7 @@ class TerminalShell(LineFeeder):
         return newline.join(text.splitlines())
 
     def out_callback(self, out):
-        print(self.to_output(six.text_type(out)))
+        print(self.to_output(str(out)))
 
     def read_line(self, prompt):
         if self.using_readline:
@@ -109,7 +102,7 @@ class TerminalShell(LineFeeder):
 
     def print_result(self, result):
         if result is not None and result.result is not None:
-            output = self.to_output(six.text_type(result.result))
+            output = self.to_output(str(result.result))
             print(self.get_out_prompt() + output + '\n')
 
     def rl_read_line(self, prompt):
@@ -118,22 +111,7 @@ class TerminalShell(LineFeeder):
         prompt = self.ansi_color_re.sub(
             lambda m: "\001" + m.group(0) + "\002", prompt)
 
-        # For Py2 sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py which interferes with raw_input's use of readline
-        #
-        # To work around this issue, call raw_input with the original
-        # file object as sys.stdout, which is in the undocumented
-        # 'stream' field of codecs.StreamWriter.
-        if six.PY2:
-            orig_stdout = sys.stdout
-            try:
-                sys.stdout = sys.stdout.stream
-                ret = input(prompt).decode(self.input_encoding)
-                return ret
-            finally:
-                sys.stdout = orig_stdout
-        else:
-            return input(prompt)
+        return input(prompt)
 
     def complete_symbol_name(self, text, state):
         try:

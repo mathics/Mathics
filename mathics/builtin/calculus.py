@@ -5,13 +5,6 @@
 Calculus functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-from six.moves import zip
-
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, Integer, Number
 from mathics.core.convert import (
@@ -704,7 +697,7 @@ class Solve(Builtin):
         def transform_dict(sols):
             if not sols:
                 yield sols
-            for var, sol in six.iteritems(sols):
+            for var, sol in sols.items():
                 rest = sols.copy()
                 del rest[var]
                 rest = transform_dict(rest)

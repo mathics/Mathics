@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import sympy
 import mpmath
 import math
@@ -13,14 +10,9 @@ from itertools import chain
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
-import six
-from six.moves import map
-from six.moves import range
-from six.moves import zip
-
 
 def fully_qualified_symbol_name(name):
-    return (isinstance(name, six.string_types) and
+    return (isinstance(name, str) and
             '`' in name and
             not name.startswith('`') and
             not name.endswith('`') and
@@ -28,14 +20,14 @@ def fully_qualified_symbol_name(name):
 
 
 def valid_context_name(ctx, allow_initial_backquote=False):
-    return (isinstance(ctx, six.string_types) and
+    return (isinstance(ctx, str) and
             ctx.endswith('`') and
             '``' not in ctx and
             (allow_initial_backquote or not ctx.startswith('`')))
 
 
 def ensure_context(name):
-    assert isinstance(name, six.string_types)
+    assert isinstance(name, str)
     assert name != ''
     if '`' in name:
         # Symbol has a context mark -> it came from the parser
@@ -59,7 +51,7 @@ def system_symbols(*symbols):
 
 # system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
 def system_symbols_dict(d):
-    return {ensure_context(k): v for k, v in six.iteritems(d)}
+    return {ensure_context(k): v for k, v in d.items()}
 
 
 class BoxError(Exception):
@@ -87,7 +79,7 @@ class ExpressionPointer(object):
 
 def from_python(arg):
     number_type = get_type(arg)
-    if isinstance(arg, six.integer_types) or number_type == 'z':
+    if isinstance(arg, int) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
         return Real(arg)
@@ -97,7 +89,7 @@ def from_python(arg):
         return Complex(Real(arg.real), Real(arg.imag))
     elif number_type == 'c':
         return Complex(arg.real, arg.imag)
-    elif isinstance(arg, six.string_types):
+    elif isinstance(arg, str):
         return String(arg)
         # if arg[0] == arg[-1] == '"':
         #     return String(arg[1:-1])
@@ -457,8 +449,8 @@ class Monomial(object):
                 other_exps[var] -= dec
                 if not other_exps[var]:
                     del other_exps[var]
-        self_exps = sorted((var, exp) for var, exp in six.iteritems(self_exps))
-        other_exps = sorted((var, exp) for var, exp in six.iteritems(other_exps))
+        self_exps = sorted((var, exp) for var, exp in self_exps.items())
+        other_exps = sorted((var, exp) for var, exp in other_exps.items())
 
         index = 0
         self_len = len(self_exps)
@@ -506,7 +498,7 @@ def _sequences(leaves):
 class Expression(BaseExpression):
     def __new__(cls, head, *leaves):
         self = super(Expression, cls).__new__(cls)
-        if isinstance(head, six.string_types):
+        if isinstance(head, str):
             head = Symbol(head)
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
@@ -992,7 +984,7 @@ class Expression(BaseExpression):
 
     def __str__(self):
         return '%s[%s]' % (
-            self.head, ', '.join([six.text_type(leaf) for leaf in self.leaves]))
+            self.head, ', '.join([str(leaf) for leaf in self.leaves]))
 
     def __repr__(self):
         return '<Expression: %s>' % self
@@ -1248,7 +1240,7 @@ class Expression(BaseExpression):
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
-                vars = {var: value for var, value in six.iteritems(vars)
+                vars = {var: value for var, value in vars.items()
                         if var not in scoping_vars}
 
         leaves = self.leaves
@@ -1767,7 +1759,7 @@ class Rational(Number):
 
 class Real(Number):
     def __new__(cls, value, p=None):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             value = str(value)
             if p is None:
                 digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
@@ -2142,7 +2134,7 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 class String(Atom):
     def __new__(cls, value):
         self = super(String, cls).__new__(cls)
-        self.value = six.text_type(value)
+        self.value = str(value)
         return self
 
     def __str__(self):
@@ -2160,7 +2152,7 @@ class String(Atom):
         from mathics.builtin import builtins
 
         operators = set()
-        for name, builtin in six.iteritems(builtins):
+        for name, builtin in builtins.items():
             operator = builtin.get_operator_display()
             if operator is not None:
                 operators.add(operator)
@@ -2195,7 +2187,7 @@ class String(Atom):
         from mathics.builtin import builtins
 
         operators = set()
-        for name, builtin in six.iteritems(builtins):
+        for name, builtin in builtins.items():
             operator = builtin.get_operator_display()
             if operator is not None:
                 operators.add(operator)
@@ -2247,7 +2239,7 @@ class String(Atom):
                 return render('%s', text)
 
     def atom_to_boxes(self, f, evaluation):
-        return String('"' + six.text_type(self.value) + '"')
+        return String('"' + str(self.value) + '"')
 
     def do_copy(self):
         return String(self.value)
