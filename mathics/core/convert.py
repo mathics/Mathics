@@ -15,7 +15,7 @@ sympy_slot_prefix = '_Mathics_Slot_'
 BasicSympy = sympy.Expr
 
 
-def is_Cn_expr(name):
+def is_Cn_expr(name) -> bool:
     if name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix):
         return False
     if not name.startswith('C'):
@@ -23,6 +23,7 @@ def is_Cn_expr(name):
     n = name[1:]
     if n and n.isdigit():
         return True
+    return False
 
 
 class SympyExpression(BasicSympy):
@@ -66,7 +67,7 @@ class SympyExpression(BasicSympy):
                 # *(from_sympy(arg) for arg in args[1:])))
         return SympyExpressionFunc
 
-    def has_any_symbols(self, *syms):
+    def has_any_symbols(self, *syms) -> bool:
         result = any(arg.has_any_symbols(*syms) for arg in self.args)
         return result
 
@@ -84,13 +85,13 @@ class SympyExpression(BasicSympy):
         return self
 
     @property
-    def is_commutative(self):
+    def is_commutative(self) -> bool:
         if all(getattr(t, 'is_commutative', False) for t in self.args):
             return True
         else:
             return False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
 
 
@@ -283,5 +284,13 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
                           *[from_sympy(arg) for arg in expr.args])
+
+    elif isinstance(expr, sympy.O):
+        if expr.args[0].func == sympy.power.Pow:
+            [var, power] = [from_sympy(arg) for arg in expr.args[0].args]
+            o = Expression('O', var)
+            return Expression('Power', o, power)
+        else:
+            return Expression('O', from_sympy(expr.args[0]))
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)

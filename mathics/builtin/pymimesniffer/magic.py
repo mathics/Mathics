@@ -29,13 +29,13 @@ class MagicDetector(object):
         if not data:
             file = open(filename, 'rb')
         elif isinstance(data, str) or isinstance(data, str):
-            from StringIO import StringIO
+            from io import StringIO
 
             file = StringIO(data)
         elif hasattr(data, 'read'):
             file = data
         else:
-            from StringIO import StringIO
+            from io import StringIO
 
             file = StringIO(str(data))
 
