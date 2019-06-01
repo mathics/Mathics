@@ -41,3 +41,4 @@ mathics/web/media/pdf/
 Test/
 .vscode
 *.nix
+.mypy_cache

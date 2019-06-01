@@ -9,7 +9,7 @@ import sys
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
 
-def interpolate_string(text, get_param):
+def interpolate_string(text, get_param) -> str:
     index = [1]
 
     def get_item(index):
@@ -158,7 +158,7 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
                    (items[:start], items[start + length:]))
 
 
-def unicode_superscript(value):
+def unicode_superscript(value) -> str:
     def repl_char(c):
         if c == '1':
             value = 185
