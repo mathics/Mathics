@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import re
 from os import listdir, path
 import pickle
@@ -18,9 +15,6 @@ from mathics import builtin
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
-
-import six
-from six.moves import range
 
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
@@ -266,7 +260,7 @@ def escape_latex(text):
     text = SUBSECTION_RE.sub(repl_subsection, text)
     text = SUBSECTION_END_RE.sub('', text)
 
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         # "\" has been escaped already => 2 \
         text = text.replace('\\\\' + key, tex)
 
@@ -512,7 +506,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = '<code>%s</code>' % text
     text = text.replace("'", '&#39;')
     text = text.replace('---', '&mdash;')
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         text = text.replace('\\' + key, xml)
 
     if not single_line:

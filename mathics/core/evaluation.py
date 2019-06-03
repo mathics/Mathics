@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-
-import six
-import six.moves.cPickle as pickle
-from six.moves.queue import Queue
+import pickle
+from queue import Queue
 
 import os
 import sys
@@ -109,7 +104,7 @@ def run_with_timeout_and_stack(request, timeout):
     if success:
         return result
     else:
-        six.reraise(*result)
+        raise result[0].with_traceback(result[1], result[2])
 
 
 class Out(KeyComparable):
@@ -295,7 +290,7 @@ class Evaluation(object):
                 else:
                     raise
             except ValueError as exc:
-                text = six.text_type(exc)
+                text = str(exc)
                 if (text == 'mpz.pow outrageous exponent' or    # noqa
                     text == 'mpq.pow outrageous exp num'):
                     self.message('General', 'ovfl')

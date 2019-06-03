@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
-from six import unichr
 
 from mathics.core.characters import named_characters
 from mathics.core.parser.errors import ScanError, IncompleteSyntaxError
@@ -97,7 +94,7 @@ class Prescanner(object):
             self.feeder.message('Syntax', 'sntxb', self.code[self.pos:].rstrip('\n'))
             raise ScanError()
         self.stubs.append(self.code[self.start:self.pos])
-        self.stubs.append(unichr(result))
+        self.stubs.append(chr(result))
         self.newstub(end)
 
     def try_parse_longname(self, start_shift):

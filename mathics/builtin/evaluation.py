@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer

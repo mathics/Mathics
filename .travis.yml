@@ -1,7 +1,6 @@
 language: python
 python:
-  - 2.7
-  - pypy
+  - 3.6
   - 3.5
   - pypy3
 env:
@@ -13,31 +12,15 @@ env:
 matrix:
   fast_finish: true
   include:
-    - python: 2.7
+    - python: 3.6
       env: DOC="true"
-    - python: 3.5
-      env: DOC="true"
-    # Useless to test with master for now
-    # - python: 2.7
-    #   env: SYMPY_SRC=master
-    # - python: 3.5
-    #   env: SYMPY_SRC=master
-    - python: 2.7
+    - python: 3.6
       env: ALL_MODULES="true"
-    - python: 3.5
-      env: ALL_MODULES="true"
-    - python: pypy
-      env: ALL_MODULES="true"
-    - python: 2.7
+    - python: 3.6
       env: CYTHON="true"
-    - python: 3.5
-      env: CYTHON="true"
-    - python: 2.7
-      env: ALL_MODULES="true" CYTHON="true"
-    - python: 3.5
+    - python: 3.6
       env: ALL_MODULES="true" CYTHON="true"
   allow_failures:
-    - python: pypy
     - python: pypy3
     - env: SYMPY_SRC=master
     - env: DOC="true"
@@ -50,15 +33,6 @@ before_install:
       sudo apt-get install -qq python-enchant &&
       pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
-      if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
-          pip install pattern;
-      fi &&
-      if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
-          pip install Pillow wordcloud pyocr scipy scikit-image &&
-          pip install spacy &&
-          python travis.py &&
-          python -m spacy download en;
-      fi &&
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$DOC" == "true" ]]; then

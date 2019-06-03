@@ -39,3 +39,5 @@ mathics/Makefile
 mathics/web/db/mathics.sqlite
 mathics/web/media/pdf/
 Test/
+.vscode
+*.nix

@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
 """
-
-import six
-from six.moves import range
-from six.moves import zip
 
 import sympy
 
@@ -22,7 +15,7 @@ sympy_slot_prefix = '_Mathics_Slot_'
 BasicSympy = sympy.Expr
 
 
-def is_Cn_expr(name):
+def is_Cn_expr(name) -> bool:
     if name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix):
         return False
     if not name.startswith('C'):
@@ -30,6 +23,7 @@ def is_Cn_expr(name):
     n = name[1:]
     if n and n.isdigit():
         return True
+    return False
 
 
 class SympyExpression(BasicSympy):
@@ -73,7 +67,7 @@ class SympyExpression(BasicSympy):
                 # *(from_sympy(arg) for arg in args[1:])))
         return SympyExpressionFunc
 
-    def has_any_symbols(self, *syms):
+    def has_any_symbols(self, *syms) -> bool:
         result = any(arg.has_any_symbols(*syms) for arg in self.args)
         return result
 
@@ -91,13 +85,13 @@ class SympyExpression(BasicSympy):
         return self
 
     @property
-    def is_commutative(self):
+    def is_commutative(self) -> bool:
         if all(getattr(t, 'is_commutative', False) for t in self.args):
             return True
         else:
             return False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
 
 
@@ -117,7 +111,7 @@ def from_sympy(expr):
         return Real(expr)
     if isinstance(expr, complex):
         return Complex(Real(expr.real), Real(expr.imag))
-    if isinstance(expr, six.string_types):
+    if isinstance(expr, str):
         return String(expr)
     if expr is None:
         return Symbol('Null')
@@ -132,7 +126,7 @@ def from_sympy(expr):
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
-            name = six.text_type(expr)
+            name = str(expr)
             if isinstance(expr, symbol.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
@@ -144,7 +138,7 @@ def from_sympy(expr):
                 index = name[len(sympy_slot_prefix):]
                 return Expression('Slot', int(index))
         elif expr.is_NumberSymbol:
-            name = six.text_type(expr)
+            name = str(expr)
         if name is not None:
             builtin = sympy_to_mathics.get(name)
             if builtin is not None:
@@ -175,7 +169,7 @@ def from_sympy(expr):
         elif isinstance(expr, numbers.NaN):
             return Symbol('Indeterminate')
         elif isinstance(expr, function.FunctionClass):
-            return Symbol(six.text_type(expr))
+            return Symbol(str(expr))
         elif expr is sympy.true:
             return Symbol('True')
         elif expr is sympy.false:
@@ -290,5 +284,13 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
                           *[from_sympy(arg) for arg in expr.args])
+
+    elif isinstance(expr, sympy.O):
+        if expr.args[0].func == sympy.power.Pow:
+            [var, power] = [from_sympy(arg) for arg in expr.args[0].args]
+            o = Expression('O', var)
+            return Expression('Power', o, power)
+        else:
+            return Expression('O', from_sympy(expr.args[0]))
     else:
         raise ValueError("Unknown SymPy expression: %s" % expr)

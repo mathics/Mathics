@@ -5,10 +5,6 @@
 Input and Output
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-
 import re
 import sympy
 import mpmath
@@ -237,9 +233,9 @@ def number_form(expr, n, f, evaluation, options):
         python round() for integers but with correct rounding.
         e.g. `_round(14225, -1)` is `14230` not `14220`.
         '''
-        assert isinstance(ndigits, six.integer_types)
+        assert isinstance(ndigits, int)
         assert ndigits < 0
-        assert isinstance(number, six.integer_types)
+        assert isinstance(number, int)
         assert number >= 0
         number += 5 * int(10 ** -(1 + ndigits))
         number //= int(10 ** -ndigits)
@@ -719,7 +715,7 @@ class GridBox(BoxConstruct):
             # invalid column alignment
             raise BoxConstructError
         attrs = ' '.join('{0}="{1}"'.format(name, value)
-                         for name, value in six.iteritems(attrs))
+                         for name, value in attrs.items())
         result = '<mtable {0}>\n'.format(attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True

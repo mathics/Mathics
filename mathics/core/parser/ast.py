@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-
-import six
-
 
 class Node(object):
     def __init__(self, head, *children):
@@ -60,12 +56,12 @@ class Atom(Node):
 
 class Number(Atom):
     def __init__(self, value, sign=1, base=10, suffix=None, exp=0):
-        assert isinstance(value, six.string_types)
+        assert isinstance(value, str)
         assert sign in (-1, 1)
         assert isinstance(base, int)
         assert 2 <= base <= 36
         assert isinstance(exp, int)
-        assert suffix is None or isinstance(suffix, six.string_types)
+        assert suffix is None or isinstance(suffix, str)
         super(Number, self).__init__(None)
         self.value = value
         self.sign = sign

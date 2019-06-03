@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 from django import forms
-import six
 
 
 class AjaxForm(forms.Form):
     def as_json(self, general_errors=[]):
-        field_errors = dict((key, [six.text_type(error) for error in errors])
+        field_errors = dict((key, [str(error) for error in errors])
                             for key, errors in self.errors.items())
         gen_errors = general_errors + self.non_field_errors()
         result = {}

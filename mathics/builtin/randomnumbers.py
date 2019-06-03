@@ -7,12 +7,7 @@ Random number generation
 Random numbers are generated using the Mersenne Twister.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-import six.moves.cPickle as pickle
+import pickle
 
 import binascii
 import hashlib
@@ -465,7 +460,7 @@ class RandomComplex(Builtin):
     @staticmethod
     def to_complex(value, evaluation):
         result = value.to_python(n_evaluation=evaluation)
-        if isinstance(result, (float,) + six.integer_types):
+        if isinstance(result, (float, int)):
             result = complex(result)
         if isinstance(result, complex):
             return result
@@ -495,7 +490,7 @@ class RandomComplex(Builtin):
         if not isinstance(py_ns, list):
             py_ns = [py_ns]
 
-        if not all([isinstance(i, six.integer_types) and i >= 0 for i in py_ns]):
+        if not all([isinstance(i, int) and i >= 0 for i in py_ns]):
             return evaluation.message('RandomComplex', 'array', ns, expr)
 
         with RandomEnv(evaluation) as rand:

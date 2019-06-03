@@ -4,15 +4,12 @@ Image[] and image related functions.
 Note that you (currently) need scikit-image installed in order for this module to work.
 '''
 
-from __future__ import division
-
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
 
-import six
 import base64
 import functools
 import itertools
@@ -2177,8 +2174,6 @@ class Image(Atom):
             stream.close()
 
         encoded = base64.b64encode(contents)
-        if not six.PY2:
-            encoded = encoded.decode('utf8')
         encoded = 'data:image/png;base64,' + encoded
 
         return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
