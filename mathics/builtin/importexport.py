@@ -6,7 +6,7 @@ Importing and Exporting
 """
 
 from mathics.core.expression import Expression, from_python, strip_context
-from mathics.builtin.base import Builtin, Predefined, Symbol, String
+from mathics.builtin.base import Builtin, Predefined, Symbol, String, Integer
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
@@ -508,6 +508,7 @@ class Import(Builtin):
         'noelem': (
             'The Import element `1` is not present when importing as `2`.'),
         'fmtnosup': '`1` is not a supported Import format.',
+        'emptyfch': 'Function Channel not defined.'
     }
 
     rules = {
@@ -549,7 +550,8 @@ class Import(Builtin):
         return self._import(findfile, determine_filetype, elements, evaluation, options)
 
     @staticmethod
-    def _import(findfile, determine_filetype, elements, evaluation, options):
+    def _import(findfile, determine_filetype, elements, evaluation, options, data = None):
+        current_predetermined_out = evaluation.predetermined_out
         # Check elements
         if elements.has_form('List', None):
             elements = elements.get_leaves()
@@ -560,6 +562,7 @@ class Import(Builtin):
             if not isinstance(el, String):
 
                 evaluation.message('Import', 'noelem', el)
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
 
         elements = [el.get_string_value() for el in elements]
@@ -575,6 +578,7 @@ class Import(Builtin):
 
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         # Load the importer
@@ -587,34 +591,60 @@ class Import(Builtin):
 
         if function_channels is None:
             # TODO message
+            if data is None:
+                evaluation.message('Import', 'emptyfch')
+            else:
+                evaluation.message('ImportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
 
         default_element = importer_options.get("System`DefaultElement")
         if default_element is None:
             # TODO message
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
-        def get_results(tmp_function):
+        def get_results(tmp_function, findfile):
             if function_channels == Expression('List', String('FileNames')):
                 joined_options = list(chain(stream_options, custom_options))
+                tmpfile = False
+                if findfile is None:
+                    tmpfile = True
+                    stream = Expression('OpenWrite').evaluate(evaluation)
+                    findfile = stream.leaves[0]
+                    if not data is None:
+                        Expression('WriteString', data).evaluate(evaluation)
+                    else:
+                        Expression('WriteString', String("")).evaluate(evaluation)
+                    Expression('Close', stream).evaluate(evaluation)
+                    stream = None
                 tmp = Expression(tmp_function, findfile, *joined_options).evaluate(evaluation)
+                if tmpfile:
+                     Expression("DeleteFile", findfile).evaluate(evaluation)
             elif function_channels == Expression('List', String('Streams')):
-                stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
+                if findfile is None:
+                    stream = Expression('StringToStream', data).evaluate(evaluation)
+                else:
+                    stream = Expression('OpenRead', findfile, *stream_options).evaluate(evaluation)
                 if stream.get_head_name() != 'System`InputStream':
                     evaluation.message('Import', 'nffil')
+                    evaluation.predetermined_out = current_predetermined_out
                     return None
                 tmp = Expression(tmp_function, stream, *custom_options).evaluate(evaluation)
                 Expression('Close', stream).evaluate(evaluation)
             else:
                 # TODO message
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
+                evaluation.predetermined_out = current_predetermined_out
                 return None
 
             # return {a.get_string_value() : b for (a,b) in map(lambda x:
             # x.get_leaves(), tmp)}
+            evaluation.predetermined_out = current_predetermined_out
             return dict((a.get_string_value(), b)
                         for (a, b) in [x.get_leaves() for x in tmp])
 
@@ -622,10 +652,12 @@ class Import(Builtin):
         defaults = None
 
         if not elements:
-            defaults = get_results(default_function)
+            defaults = get_results(default_function, findfile)
             if defaults is None:
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             if default_element == Symbol("Automatic"):
+                evaluation.predetermined_out = current_predetermined_out
                 return Expression('List', *(
                     Expression('Rule', String(key), defaults[key])
                     for key in defaults.keys()))
@@ -634,43 +666,151 @@ class Import(Builtin):
                 if result is None:
                     evaluation.message('Import', 'noelem', default_element,
                                        from_python(filetype))
+                    evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
+                evaluation.predetermined_out = current_predetermined_out
                 return result
         else:
             assert len(elements) == 1
             el = elements[0]
             if el == "Elements":
-                defaults = get_results(default_function)
+                defaults = get_results(default_function, findfile)
                 if defaults is None:
+                    evaluation.predetermined_out = current_predetermined_out
                     return Symbol('$Failed')
                 # Use set() to remove duplicates
+                evaluation.predetermined_out = current_predetermined_out
                 return from_python(sorted(set(
                     list(conditionals.keys()) + list(defaults.keys()) + list(posts.keys()))))
             else:
                 if el in conditionals.keys():
-                    result = get_results(conditionals[el])
+                    result = get_results(conditionals[el], findfile)
                     if result is None:
+                        evaluation.predetermined_out = current_predetermined_out
                         return Symbol('$Failed')
                     if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
+                        evaluation.predetermined_out = current_predetermined_out
                         return list(result.values())[0]
                 elif el in posts.keys():
                     # TODO: allow use of conditionals
                     result = get_results(posts[el])
                     if result is None:
+                        evaluation.predetermined_out = current_predetermined_out
                         return Symbol('$Failed')
                 else:
                     if defaults is None:
-                        defaults = get_results(default_function)
+                        defaults = get_results(default_function, findfile)
                         if defaults is None:
+                            evaluation.predetermined_out = current_predetermined_out
                             return Symbol('$Failed')
                     if el in defaults.keys():
+                        evaluation.predetermined_out = current_predetermined_out
                         return defaults[el]
                     else:
                         evaluation.message('Import', 'noelem', from_python(el),
                                            from_python(filetype))
+                        evaluation.predetermined_out = current_predetermined_otu
                         return Symbol('$Failed')
 
 
+class ImportString(Import):
+    """
+    <dl>
+    <dt>'ImportString["$data$", "$format$"]'
+      <dd>imports data in the specified format from a string.
+    <dt>'ImportString["$file$", $elements$]'
+      <dd>imports the specified elements from a string.
+    <dt>'ImportString["$data$"]' 
+      <dd>attempts to determine the format of the string from its content.
+    </dl>
+
+     
+    #> ImportString[x]
+     : First argument x is not a string.
+     = $Failed
+
+    ## CSV
+    #> datastring = "0.88, 0.60, 0.94\\n.076, 0.19, .51\\n0.97, 0.04, .26";
+    #> ImportString[datastring, "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
+    #> ImportString[datastring, {"CSV","Elements"}]
+     = {Data, Grid}
+    #> ImportString[datastring, {"CSV", "Data"}]
+    = {{0.88,  0.60,  0.94}, {.076,  0.19,  .51}, {0.97,  0.04,  .26}}
+    #> ImportString[datastring]
+    = 0.88, 0.60, 0.94
+    .  .076, 0.19, .51
+    .  0.97, 0.04, .26
+    #> ImportString[datastring, "CSV","FieldSeparators" -> "."]
+    = {{0, 88, 0, 60, 0, 94}, {076, 0, 19, , 51}, {0, 97, 0, 04, , 26}}
+
+    ## Text
+    >> str = "Hello!\\n    This is a testing text\\n";
+    >> ImportString[str, "Elements"]
+     = {Data, Lines, Plaintext, String, Words}
+    >> ImportString[str, "Lines"]
+     = ...
+    """
+       
+    messages = {
+        'string': 'First argument `1` is not a string.',
+        'noelem': (
+            'The Import element `1` is not present when importing as `2`.'),
+        'fmtnosup': '`1` is not a supported Import format.',
+    }
+
+    rules = {
+            }
+
+        
+    def apply(self, data, evaluation, options={}):
+        'ImportString[data_, OptionsPattern[]]'
+        return self.apply_elements(data, Expression('List'), evaluation, options)
+
+    def apply_element(self, data, element, evaluation, options={}):
+        'ImportString[data_, element_String, OptionsPattern[]]'
+        
+        return self.apply_elements(data, Expression('List', element), evaluation, options)
+
+    
+    def apply_elements(self, data, elements, evaluation, options={}):
+        'ImportString[data_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
+        if not (isinstance(data, String)):
+            evaluation.message('ImportString', 'string', data)
+            return Symbol('$Failed')
+        
+        def determine_filetype():
+            if not FileFormat.detector:
+                loader = magic.MagicLoader()
+                loader.load()
+                FileFormat.detector = magic.MagicDetector(loader.mimetypes)
+            mime = set(FileFormat.detector.match("", data=data.to_python()))
+
+            result = []
+            for key in mimetype_dict.keys():
+                if key in mime:
+                    result.append(mimetype_dict[key])
+
+            # the following fixes an extremely annoying behaviour on some (not all)
+            # installations of Windows, where we end up classifying .csv files als XLS.
+            if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
+                return String('CSV')
+            
+            if len(result) == 0:
+                result = 'Binary'
+            elif len(result) == 1:
+                result = result[0]
+            else:
+                return None
+
+            return result
+        
+        return self._import(None, determine_filetype, elements, evaluation, options, data = data)
+
+
+
+    
+                    
 class Export(Builtin):
     """
     <dl>
@@ -765,6 +905,8 @@ class Export(Builtin):
         'chtype': "First argument `1` is not a valid file specification.",
         'infer': "Cannot infer format of file `1`.",
         'noelem': "`1` is not a valid set of export elements for the `2` format.",
+        'emptyfch': 'Function Channel not defined.',
+        'nffil':  'File `1` could not be opened',
     }
 
     _extdict = {
@@ -831,12 +973,15 @@ class Export(Builtin):
             else:
                 elems_spec.append(leaf)
 
+        # Just to be sure that the following calls do not change the state of this property
+        current_predetermined_out =  evaluation.predetermined_out
         # Infer format if not present
         if not found_form:
             assert format_spec == []
             format_spec = self._infer_form(filename, evaluation)
             if format_spec is None:
                 evaluation.message('Export', 'infer', filename)
+                evaluation.predetermined_out = current_predetermined_out
                 return Symbol('$Failed')
             format_spec = [format_spec]
         else:
@@ -848,19 +993,39 @@ class Export(Builtin):
         if elems_spec != []:        # FIXME: support elems
             evaluation.message(
                 'Export', 'noelem', elems, String(format_spec[0]))
+            evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
 
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
-
+        function_channels = exporter_options.get("System`FunctionChannels")
+        
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, evaluation)
 
-        exporter_function = Expression(
-            exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
-
-        if exporter_function.evaluate(evaluation) == Symbol('Null'):
-            return filename
+        
+        if function_channels is None:
+            evaluation.message('Export', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
+            return Symbol('$Failed')
+        elif function_channels == Expression('List', String('FileNames')):
+            exporter_function = Expression(
+                exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+        elif function_channels == Expression('List', String('Streams')):
+            stream = Expression('OpenWrite', filename, *stream_options).evaluate(evaluation)
+            if stream.get_head_name() != 'System`OutputStream':
+                evaluation.message('Export', 'nffil')
+                evaluation.predetermined_out = current_predetermined_out
+                return Symbol("$Failed")
+            exporter_function = Expression(
+                exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+            Expression('Close', stream).evaluate(evaluation)            
+        if res == Symbol('Null'):
+            evaluation.predetermined_out = current_predetermined_out
+            return filename      
+        evaluation.predetermined_out = current_predetermined_out
         return Symbol('$Failed')
 
     def _check_filename(self, filename, evaluation):
@@ -874,6 +1039,142 @@ class Export(Builtin):
         ext = Expression('FileExtension', filename).evaluate(evaluation)
         ext = ext.get_string_value().lower()
         return self._extdict.get(ext)
+
+
+class ExportString(Builtin):
+    """
+    <dl>
+    <dt>'ExportString[$expr$, $form$]'
+      <dd>exports $expr$ to a string, in the format $form$.
+    <dt>'Export["$file$", $exprs$, $elems$]'
+      <dd>exports $exprs$ to a string as elements specified by $elems$.
+    </dl>
+
+    >> ExportString[{{1,2,3,4},{3},{2},{4}}, "CSV"]
+     = 1,2,3,4
+     . 3,
+     . 2,
+     . 4,
+
+    >> ExportString[{1,2,3,4}, "CSV"]
+     = 1,
+     . 2,
+     . 3,
+     . 4,
+    >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
+     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
+    """
+
+    messages = {
+        'noelem': "`1` is not a valid set of export elements for the `2` format.",
+        'emptyfch': 'Function Channel not defined.',
+    }
+
+    rules = {
+        'ExportString[expr_, elems_?NotListQ]': (
+            'ExportString[expr, {elems}]'),
+    }
+
+
+    def apply_element(self, expr, element, evaluation, options={}):
+        'ExportString[expr_, element_String, OptionsPattern[]]'
+        return self.apply_elements(expr, Expression('List', element), evaluation, options)
+
+    def apply_elements(self, expr, elems, evaluation, options={}):
+        "ExportString[expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
+        # Process elems {comp* format?, elem1*}
+        leaves = elems.get_leaves()
+
+        format_spec, elems_spec = [], []
+        found_form = False
+        for leaf in leaves[::-1]:
+            leaf_str = leaf.get_string_value()
+
+            if not found_form and leaf_str in EXPORTERS:
+                found_form = True
+                
+            if found_form:
+                format_spec.append(leaf_str)
+            else:
+                elems_spec.append(leaf)
+
+        # Just to be sure that the following evaluations do not change the value of this property
+        current_predetermined_out =  evaluation.predetermined_out
+
+        # Infer format if not present
+        if format_spec is None:
+            evaluation.message('ExportString', 'infer', filename)
+            evaluation.predetermined_out = current_predetermined_out
+            return Symbol('$Failed')
+
+        # First item in format_spec is the explicit format.
+        # The other elements (if present) are compression formats
+
+        if elems_spec != []:        # FIXME: support elems
+            if format_spec != []:
+                evaluation.message(
+                    'ExportString', 'noelem', elems, String(format_spec[0]))
+            else:
+                evaluation.message(
+                    'ExportString', 'noelem', elems, String("Unknown"))
+            evaluation.predetermined_out = current_predetermined_out
+            return Symbol('$Failed')
+
+        # Load the exporter
+        exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
+        function_channels = exporter_options.get("System`FunctionChannels")
+
+        stream_options, custom_options = _importer_exporter_options(
+            exporter_options.get("System`Options"), options, evaluation)
+        
+        if function_channels is None:
+            evaluation.message('ExportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
+            return Symbol('$Failed')
+        elif function_channels == Expression('List', String('FileNames')):
+            # Generates a temporary file
+            import tempfile
+            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir())
+            filename = String(tmpfile.name)
+            tmpfile.close()
+            exporter_function = Expression(
+                exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
+            if exporter_function.evaluate(evaluation) != Symbol('Null'):
+                evaluation.predetermined_out = current_predetermined_out
+                return Symbol('$Failed')
+            else:
+                try:
+                    tmpstream = open(filename.value, 'rb')
+                    res = tmpstream.read().decode('utf-8')
+                    tmpstream.close()
+                except Exception as e:
+                    print("something went wrong")
+                    print(e)
+                    evaluation.predetermined_out = current_predetermined_out
+                    return Symbol('$Failed')
+                res = String(str(res))
+        elif function_channels == Expression('List', String('Streams')):
+            from io import StringIO
+            from mathics.builtin.files import STREAMS, NSTREAMS
+            pystream = StringIO()
+            n = next(NSTREAMS)
+            STREAMS.append(pystream)
+            stream = Expression('OutputStream', String('String'), Integer(n))
+            exporter_function = Expression(
+                exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
+            res = exporter_function.evaluate(evaluation)
+            if res == Symbol('Null'):
+                res = String(str(pystream.getvalue()))
+            else:
+                res = Symbol("$Failed")
+            Expression('Close', stream).evaluate(evaluation)
+        else:
+            evaluation.message('ExportString', 'emptyfch')
+            evaluation.predetermined_out = current_predetermined_out
+            return Symbol('$Failed')
+        
+        evaluation.predetermined_out = current_predetermined_out
+        return res
 
 
 class FileFormat(Builtin):
@@ -1044,4 +1345,3 @@ class B64Decode(Builtin):
             evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")
         return clearstring
-

@@ -8,12 +8,10 @@ Options[ImportCSV] = {
     "FieldSeparators" -> ","
 };
 
-ImportCSV[filename_String, OptionsPattern[]]:=
-    Module[{stream, data, grid, sep = OptionValue["FieldSeparators"]},
-        stream = OpenRead[filename, CharacterEncoding -> OptionValue["CharacterEncoding"]];
+ImportCSV[stream_InputStream, OptionsPattern[]]:=
+    Module[{data, grid, sep = OptionValue["FieldSeparators"]},        
         data = StringSplit[#, sep]& /@ ReadList[stream, String];
         grid = Grid[data];
-        Close[stream];
         {
             "Data" -> data,
             "Grid" -> grid
@@ -28,7 +26,7 @@ ImportExport`RegisterImport[
 	    "Grid" :> GetGrid
     },
     (* Sources -> ImportExport`DefaultSources["Table"], *)
-    FunctionChannels -> {"FileNames"},
+    FunctionChannels -> {"Streams"},
     AvailableElements -> {"Data", "Grid"},
     DefaultElement -> "Data",
     Options -> {
