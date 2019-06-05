@@ -272,10 +272,6 @@ class QRDecomposition(Builtin):
     >> QRDecomposition[{{1, 2}, {3, 4}, {5, 6}}]
      = {{{Sqrt[35] / 35, 3 Sqrt[35] / 35, Sqrt[35] / 7}, {13 Sqrt[210] / 210, 2 Sqrt[210] / 105, -Sqrt[210] / 42}}, {{Sqrt[35], 44 Sqrt[35] / 35}, {0, 2 Sqrt[210] / 35}}}
 
-    #> QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
-     : Sympy is unable to perform the QR decomposition.
-     = QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
-
     #> QRDecomposition[{1, {2}}]
      : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
      = QRDecomposition[{1, {2}}]
@@ -761,7 +757,6 @@ class MatrixPower(Builtin):
      = {{169, -70}, {-70, 29}}
 
     #> MatrixPower[{{0, x}, {0, 0}}, n]
-     : Matrix det == 0; not invertible
      = MatrixPower[{{0, x}, {0, 0}}, n]
 
     #> MatrixPower[{{1, 0}, {0}}, 2]
