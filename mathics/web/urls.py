@@ -3,7 +3,11 @@
 
 
 from django.conf.urls import url
-from mathics.web.views import query, main_view, login, logout, save, open, get_worksheets, doc_search, doc_part, doc_chapter, doc_section, doc
+from mathics.web.views import (
+    blank_worksheet, worksheets, main_view,
+    query, login, logout, save, open, delete,
+    get_worksheets, doc_search, doc_part,
+    doc_chapter, doc_section, doc)
 
 urlpatterns = [
     url('^$', blank_worksheet),
@@ -19,10 +23,9 @@ urlpatterns = [
     url('^ajax/getworksheets/$', get_worksheets),
     url('^(?P<ajax>(?:ajax/)?)doc/$', doc),
     url('^ajax/doc/search/$', doc_search),
-    url('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/$',
-     doc_part),
+    url('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/$', doc_part),
     url('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/$',
-     doc_chapter),
+        doc_chapter),
     url('^(?P<ajax>(?:ajax/)?)doc/(?P<part>[\w-]+)/(?P<chapter>[\w-]+)/'
-     '(?P<section>[$\w-]+)/$', doc_section),
+        '(?P<section>[$\w-]+)/$', doc_section)
 ]
