@@ -52,9 +52,6 @@ def require_ajax_login(func):
 definitions = Definitions(add_builtin=True)
 
 
-def require_ajax_login(f):
-    return f
-
 def main_view(request, name):
     if settings.REQUIRE_LOGIN and not request.user.is_authenticated():
         raise Http404
@@ -76,25 +73,26 @@ def main_view(request, name):
     }
     return render(request, 'main.html', context)
 
+
 def blank_worksheet(request):
     content_type = get_content_type(request)
-    return render_to_response('main.html', {
+    context = {
         'login_form': LoginForm(),
         'save_new_form': SaveNewForm(),
         'require_login': settings.REQUIRE_LOGIN,
         'worksheet': '',
-    }, context_instance=RequestContext(request), content_type=content_type)
+    }
+    return render(request, 'main.html', context)
 
 
 def worksheets(request):
-    content_type = get_content_type(request)
-    return render_to_response('worksheets.html', {
+    context = {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'delete_form': DeleteForm(),
         'require_login': settings.REQUIRE_LOGIN,
     }
-    return render(request, 'main.html', context)
+    return render(request, 'worksheets.html', context)
 
 
 def error_404_view(request):
