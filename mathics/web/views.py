@@ -75,7 +75,6 @@ def main_view(request, name):
 
 
 def blank_worksheet(request):
-    content_type = get_content_type(request)
     context = {
         'login_form': LoginForm(),
         'save_new_form': SaveNewForm(),
