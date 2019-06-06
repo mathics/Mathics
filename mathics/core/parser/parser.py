@@ -459,6 +459,20 @@ class Parser(object):
         q = prefix_ops['PreDecrement']
         return Node('PreDecrement', self.parse_exp(q))
 
+    def p_PatternTest(self, token):
+        self.consume()
+        q = prefix_ops['Definition']
+        child = self.parse_exp(q)
+        return Node('Information', child, Node('Rule', Symbol("LongForm"), Symbol("False")))
+
+    def p_Information(self, token):
+        self.consume()
+        q = prefix_ops['Information']
+        child = self.parse_exp(q)
+        if child.__class__ is not Symbol:
+            raise InvalidSyntaxError()
+        return Node('Information', child, Node('Rule', Symbol("LongForm"), Symbol("True")))
+
     # E methods
     #
     # e_xxx methods are called from parse_e.
