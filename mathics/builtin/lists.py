@@ -1729,7 +1729,7 @@ class Delete(Builtin):
     def del_rec(self, cur, rest):
         if cur.is_atom():
             raise PartDepthError
-        if len(rest)>1:
+        if len(rest) > 1:
             pos = rest[0]
             try:
                 if pos > 0:
