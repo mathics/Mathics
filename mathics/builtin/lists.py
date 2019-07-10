@@ -1708,9 +1708,7 @@ def del_part(expr,indices,evaluation):
             pos = rest[0]
             try:
                 if pos > 0:
-                    print("cur=",cur)
                     part = get_part(cur,[pos])
-                    print("part=",part)
                     part = del_rec(part,rest[1:])
                     cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
                     return cur
