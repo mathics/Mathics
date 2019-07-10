@@ -1743,13 +1743,13 @@ class Delete(Builtin):
     </dl>
 
     >> Delete[{a, b, c, d}, 3]
-     = {a,b,d}
+     = {a, b, d}
     >> Delete[{a, b, c, d}, -2]
      = {a, b, d}
-    >> Delete[{{1,2},{3,4}},{1,2}]
-     = {{1},{3,4}}
+    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
+     = {{1}, {3, 4}}
     #> Delete[{1,2,3,4},5]
-     Delete::delete: Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
+     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
      = Delete[{1, 2, 3, 4}, 5]
     """
 
