@@ -1734,7 +1734,7 @@ class Delete(Builtin):
             try:
                 if pos > 0:
                     part = get_part(cur,[pos])
-                    part = del_rec(part,rest[1:])
+                    part = self.del_rec(part,rest[1:])
                     cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
                     return cur
                 elif pos == 0:
