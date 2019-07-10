@@ -1683,54 +1683,6 @@ class Cases(Builtin):
 
         return Expression('List', *results)
 
-def del_part(expr,indices,evaluation):
-    def del_one(cur,pos):
-        l = len(cur.leaves)
-        if cur.is_atom():
-            raise PartDepthError
-        if pos > l:
-            raise PartRangeError
-        if pos > 0:
-            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
-            return cur
-        elif pos == 0:
-            cur.head = Symbol('System`Sequence')
-            return cur
-        elif pos >= -l:
-            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
-            return cur
-        else:
-            raise PartRangeError
-    def del_rec(cur, rest):
-        if cur.is_atom():
-            raise PartDepthError
-        if len(rest)>1:
-            pos = rest[0]
-            try:
-                if pos > 0:
-                    part = get_part(cur,[pos])
-                    part = del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
-                    return cur
-                elif pos == 0:
-                    raise PartRangeError
-                elif pos >= -len(cur.leaves):
-                    l = len(cur.leaves)
-                    part = get_part(cur,[l+pos+1])
-                    part = del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
-                    return cur
-                else:
-                    raise PartRangeError
-            except IndexError:
-                raise PartRangeError
-        else:
-            return del_one(cur, rest[0])
-    if indices.is_atom():
-        return del_one(expr,indices.get_int_value())
-    else:
-        indices = [index.get_int_value() for index in indices.leaves]
-        return del_rec(expr.copy(), indices)
 
 
 class Delete(Builtin):
@@ -1756,6 +1708,56 @@ class Delete(Builtin):
         'delete': "Cannot delete position `1` in `2`.",
     }
 
+
+    def del_one(self,cur,pos):
+        l = len(cur.leaves)
+        if cur.is_atom():
+            raise PartDepthError
+        if pos > l:
+            raise PartRangeError
+        if pos > 0:
+            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
+            return cur
+        elif pos == 0:
+            cur.head = Symbol('System`Sequence')
+            return cur
+        elif pos >= -l:
+            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
+            return cur
+        else:
+            raise PartRangeError
+    def del_rec(self, cur, rest):
+        if cur.is_atom():
+            raise PartDepthError
+        if len(rest)>1:
+            pos = rest[0]
+            try:
+                if pos > 0:
+                    part = get_part(cur,[pos])
+                    part = del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
+                    return cur
+                elif pos == 0:
+                    raise PartRangeError
+                elif pos >= -len(cur.leaves):
+                    l = len(cur.leaves)
+                    part = get_part(cur,[l+pos+1])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
+                    return cur
+                else:
+                    raise PartRangeError
+            except IndexError:
+                raise PartRangeError
+        else:
+            return self.del_one(cur, rest[0])
+    def del_part(self, expr,indices,evaluation):
+        if indices.is_atom():
+            return self.del_one(expr,indices.get_int_value())
+        else:
+            indices = [index.get_int_value() for index in indices.leaves]
+            return self.del_rec(expr.copy(), indices)
+    
     def apply(self, items, n, evaluation):
         'Delete[items_, n_]'
 
@@ -1763,7 +1765,7 @@ class Delete(Builtin):
             return evaluation.message(
                 'Delete', 'normal', 1, Expression('Delete', items, n))
         try:
-            return del_part(items,n,evaluation)
+            return self.del_part(items,n,evaluation)
         except MessageException as e:
             e.message(evaluation)
         except PartRangeError:
