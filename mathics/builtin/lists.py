@@ -1752,6 +1752,7 @@ class Delete(Builtin):
                 raise PartRangeError
         else:
             return self.del_one(cur, rest[0])
+
     def del_part(self, expr,indices,evaluation):
         if indices.is_atom():
             return self.del_one(expr,indices.get_int_value())
