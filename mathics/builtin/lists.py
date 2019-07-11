@@ -1727,7 +1727,7 @@ class Delete(Builtin):
         else:
             raise PartRangeError
 
-def del_rec(self, cur, rest):
+    def del_rec(self, cur, rest):
         if cur.is_atom():
             raise PartDepthError
         if len(rest) > 1:
