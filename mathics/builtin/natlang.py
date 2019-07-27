@@ -1352,7 +1352,7 @@ class SpellingCorrectionList(Builtin):
     Results may differ depending on which dictionaries can be found by enchant.
 
     >> SpellingCorrectionList["hipopotamus"]
-     = {hippopotamus, hypothalamus...}
+     = {hippopotamus...}
     '''
 
     requires = (
