@@ -455,27 +455,26 @@ class FactorTermsList(Builtin):
         result = []
         numer, denom = sympy_expr.as_numer_denom()
         try:
-            from sympy import factor, factor_list, Poly
             if denom == 1:
                 # Get numerical part
-                num_coeff, num_polys = factor_list(Poly(numer))
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
                 result.append(num_coeff)
                 
                 # Get factors are independent of sub list of variables
                 if (sympy_vars and isinstance(expr, Expression) 
                     and any(x.free_symbols.issubset(sympy_expr.free_symbols) for x in sympy_vars)):
                     for i in reversed(range(len(sympy_vars))):
-                        numer = factor(numer) / factor(num_coeff)
-                        num_coeff, num_polys = factor_list(Poly(numer), *[x for x in sympy_vars[:(i+1)]])
+                        numer = sympy.factor(numer) / sympy.factor(num_coeff)
+                        num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer), *[x for x in sympy_vars[:(i+1)]])
                         result.append(sympy.expand(num_coeff))
                 
                 # Last factor
-                numer = factor(numer) / factor(num_coeff)
+                numer = sympy.factor(numer) / sympy.factor(num_coeff)
                 result.append(sympy.expand(numer))
             else:
-                num_coeff, num_polys = factor_list(Poly(numer))
-                den_coeff, den_polys = factor_list(Poly(denom))
-                result = [num_coeff / den_coeff, sympy.expand(factor(numer)/num_coeff / (factor(denom)/den_coeff))]
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
+                den_coeff, den_polys = sympy.factor_list(sympy.Poly(denom))
+                result = [num_coeff / den_coeff, sympy.expand(sympy.factor(numer)/num_coeff / (sympy.factor(denom)/den_coeff))]
         except sympy.PolynomialError: # MMA does not raise error for non poly
             result.append(sympy.expand(numer))
             # evaluation.message(self.get_name(), 'poly', expr)
