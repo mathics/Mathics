@@ -115,7 +115,7 @@ def from_sympy(expr):
         return String(expr)
     if expr is None:
         return Symbol('Null')
-    if isinstance(expr, sympy.Matrix):
+    if isinstance(expr, sympy.Matrix) or isinstance(expr, sympy.ImmutableMatrix):
         if len(expr.shape) == 2 and (expr.shape[1] == 1):
             # This is a vector (only one column)
             # Transpose and select first row to get result equivalent to Mathematica
@@ -123,6 +123,8 @@ def from_sympy(expr):
         else:
             return Expression('List', *[
                 [from_sympy(item) for item in row] for row in expr.tolist()])
+    if isinstance(expr, sympy.MatPow):
+        return Expression('MatrixPower', from_sympy(expr.base), from_sympy(expr.exp))
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
@@ -293,4 +295,5 @@ def from_sympy(expr):
         else:
             return Expression('O', from_sympy(expr.args[0]))
     else:
-        raise ValueError("Unknown SymPy expression: %s" % expr)
+        raise ValueError("Unknown SymPy expression: {} (instance of {})"
+            .format(expr, str(expr.__class__)))
