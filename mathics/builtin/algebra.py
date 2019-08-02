@@ -1200,7 +1200,7 @@ class CoefficientList(Builtin):
             else:
                 def _nth(poly, dims, exponents):
                     if not dims:
-                        return from_sympy(poly.nth(*[i for i in exponents]))
+                        return from_sympy(poly.coeff_monomial(exponents))
                     
                     result = Expression('List')
                     first_dim = dims[0]
