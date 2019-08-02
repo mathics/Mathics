@@ -2807,7 +2807,7 @@ def riffle_lists(items, seps):
     while i < len(items):
         yield items[i]
         if i == len(items) - 1 and len(items) != len(seps):
-            raise StopIteration
+            return
         yield seps[i % len(seps)]
         i += 1
 

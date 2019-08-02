@@ -2174,7 +2174,7 @@ class Image(Atom):
             stream.close()
 
         encoded = base64.b64encode(contents)
-        encoded = 'data:image/png;base64,' + encoded
+        encoded = b'data:image/png;base64,' + encoded
 
         return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
 
