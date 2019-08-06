@@ -874,7 +874,7 @@ class MinimalPolynomial(Builtin):
         sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
         if sympy_s is None or sympy_x is None:
             return None
-        sympy_result = sympy.minimal_polynomial(sympy_s, sympy_x)
+        sympy_result = sympy.minimal_polynomial(sympy_s, polys=True)(sympy_x)
         return from_sympy(sympy_result)
 
 
@@ -1200,7 +1200,7 @@ class CoefficientList(Builtin):
             else:
                 def _nth(poly, dims, exponents):
                     if not dims:
-                        return from_sympy(poly.nth(*[i for i in exponents]))
+                        return from_sympy(poly.coeff_monomial(exponents))
                     
                     result = Expression('List')
                     first_dim = dims[0]
