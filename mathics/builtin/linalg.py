@@ -701,9 +701,15 @@ class Eigenvalues(Builtin):
             eigenvalues = sorted(six.iteritems(eigenvalues),
                                  key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
                                  reverse=True)
+        # Complex numbers
         except TypeError:
-            eigenvalues = sorted(eigenvalues.items(), 
-                                 key=lambda v_c: -abs(v_c[0])
+            try:
+                eigenvalues = sorted(eigenvalues.items(), 
+                                     key=lambda v_c: -abs(v_c[0]))
+            # Something else: don't sort the results at all
+            except TypeError:
+                pass
+
         return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
 
 
@@ -972,16 +978,21 @@ class Eigenvectors(Builtin):
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
-        # The eigenvectors are given in the same order as the eigenvalues.
+        # The eigenvectors are given in the same order as the eigenvalues (if
+        # we are able to sort them).
         try:
             eigenvects = sorted(eigenvects, 
                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
                                 reverse=True)
-
         # Complex numbers
         except TypeError:
-            eigenvects = sorted(eigenvects, 
-                                key=lambda val_c_vect: -abs(v_c[0]))
+            try:
+                eigenvects = sorted(eigenvects, 
+                                    key=lambda v_c: -abs(v_c[0]))
+            # Something else: don't sort the results at all
+            except TypeError:
+                pass
+
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
