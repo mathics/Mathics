@@ -516,6 +516,46 @@ class Integrate(SympyFunction):
         return result
 
 
+class Root(Builtin):
+    """
+    <dl>
+    <dt>'Root[$poly$, $i$]'
+        <dd>represents the i-th complex root of $poly$
+    </dl>
+
+    >> Root[x ^ 2 - 1, 1]
+     = -1
+    >> Root[x ^ 2 - 1, 2]
+     = 1
+
+    Roots that can't be represented by radicals:
+    >> Root[x ^ 5 + 2 x + 1, 1]
+     = Root[x ^ 5 + 2 x + 1, 1]
+    """
+
+    messages = {
+        'nuni': "`1` is not a univariate polynomial",
+        'nint': "`1` is not an integer",
+        'iidx': "`1` is out of bounds"
+    }
+
+    def apply(self, f, i, evaluation):
+        'Root[f, i]'
+
+        try:
+            r = sympy.CRootOf(f.to_sympy(), int(i.to_python()) - 1)
+        except sympy.PolynomialError:
+            evaluation.message('Root', 'nuni', f)
+            return
+        except TypeError:
+            evaluation.message('Root', 'nint', i)
+            return
+        except IndexError:
+            evaluation.message('Root', 'iidx', i)
+            return
+
+        return from_sympy(r)
+
 class Solve(Builtin):
     """
     <dl>
