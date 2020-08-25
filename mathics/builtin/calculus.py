@@ -543,7 +543,7 @@ class Root(Builtin):
         'Root[f, i]'
 
         try:
-            r = sympy.CRootOf(f.to_sympy(), int(i.to_python()) - 1)
+            r = sympy.CRootOf(f.to_sympy(), i.to_sympy() - 1)
         except sympy.PolynomialError:
             evaluation.message('Root', 'nuni', f)
             return
