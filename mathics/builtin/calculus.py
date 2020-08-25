@@ -519,8 +519,8 @@ class Integrate(SympyFunction):
 class Root(Builtin):
     """
     <dl>
-    <dt>'Root[$poly$, $i$]'
-        <dd>represents the i-th complex root of $poly$
+    <dt>'Root[$f$, $i$]'
+        <dd>represents the i-th complex root of $f$
     </dl>
 
     >> Root[x ^ 2 - 1, 1]
@@ -534,9 +534,9 @@ class Root(Builtin):
     """
 
     messages = {
-        'nuni': "`1` is not a univariate polynomial",
-        'nint': "`1` is not an integer",
-        'iidx': "`1` is out of bounds"
+        'nuni': "Argument `1` at position 1 is not a univariate polymonial",
+        'nint': "Argument `1` at position 2 is not an integer",
+        'iidx': "Argument `1` at position 2 is out of bounds"
     }
 
     def apply(self, f, i, evaluation):
