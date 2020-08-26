@@ -546,6 +546,8 @@ class Root(SympyFunction):
 
         try:
             idx = i.to_sympy() - 1
+
+            # Check for negative indeces (they are not allowed in Mathematica)
             if idx < 0:
                 evaluation.message('Root', 'iidx', i)
                 return
