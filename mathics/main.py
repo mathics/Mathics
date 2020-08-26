@@ -288,9 +288,13 @@ def main():
                 shell.print_result(result)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
-        except (SystemExit, EOFError):
+        except EOFError:
             print("\n\nGoodbye!\n")
             break
+        except SystemExit:
+            print("\n\nGoodbye!\n")
+            # raise to pass the error code on, e.g. Quit[1]
+            raise
         finally:
             shell.reset_lineno()
 
