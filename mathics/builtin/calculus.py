@@ -516,7 +516,7 @@ class Integrate(SympyFunction):
         return result
 
 
-class Root(Builtin):
+class Root(SympyFunction):
     """
     <dl>
     <dt>'Root[$f$, $i$]'
@@ -539,11 +539,18 @@ class Root(Builtin):
         'iidx': "Argument `1` at position 2 is out of bounds"
     }
 
+    sympy_name = 'CRootOf'
+
     def apply(self, f, i, evaluation):
         'Root[f_, i_]'
 
         try:
-            r = sympy.CRootOf(f.to_sympy(), i.to_sympy() - 1)
+            idx = i.to_sympy() - 1
+            if idx < 0:
+                evaluation.message('Root', 'iidx', i)
+                return
+
+            r = sympy.CRootOf(f.to_sympy(), idx)
         except sympy.PolynomialError:
             evaluation.message('Root', 'nuni', f)
             return
@@ -555,6 +562,15 @@ class Root(Builtin):
             return
 
         return from_sympy(r)
+
+    def to_sympy(self, expr, **kwargs):
+        try:
+            f = expr.leaves[0].to_sympy(**kwargs)
+            i = expr.leaves[1].to_sympy(**kwargs)
+            return sympy.CRootOf(f, i)
+        except TypeError:
+            pass
+
 
 class Solve(Builtin):
     """
