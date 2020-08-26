@@ -39,19 +39,19 @@ class Minimize(Builtin):
         
         derivative        = sympy.diff(sympy_f, sympy_x)
         second_derivative = sympy.diff(derivative, sympy_x)
-        candidates        = sympy.solve(derivative, sympy_x, real=True)
+        candidates        = sympy.solve(derivative, sympy_x, real=True, dict=True)
             
         minimum_list   = []
         
         for candidate in candidates:
-            value = second_derivative.subs(sympy_x, candidate)
+            value = second_derivative.subs(candidate)
             if value.is_real and value  > 0:
                 
                 if candidate is not list:
                     candidate = candidate
                     
                 minimum_list.append(
-                    [candidate, sympy_f.subs(sympy_x, candidate)]
+                    [candidate[sympy_x], sympy_f.subs(candidate)]
                 )
 
         return Expression('List', *(Expression(
@@ -91,7 +91,7 @@ class Minimize(Builtin):
             if len(candidate) != len(vars_sympy):
                 for variable in candidate:
                     for i in range(len(candidate), len(vars_sympy)):
-                        candidate[variable] = candidate[variable].subs(vars_sympy[i], 1)
+                        candidate[variable] = candidate[variable].subs({vars_sympy[i]: 1})
                         
                 for i in range(len(candidate), len(vars_sympy)):
                     candidate[vars_sympy[i]] = 1
@@ -222,7 +222,7 @@ class Minimize(Builtin):
             if len(candidate) != len(vars_sympy):
                 for variable in candidate:
                     for i in range(len(candidate), len(vars_sympy)):
-                        candidate[variable] = candidate[variable].subs(vars_sympy[i], 1)
+                        candidate[variable] = candidate[variable].subs({vars_sympy[i]: 1})
                 for i in range(len(candidate), len(vars_sympy)):
                     candidate[vars_sympy[i]] = 1
 

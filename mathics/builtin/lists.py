@@ -1119,59 +1119,59 @@ class FirstPosition(Builtin):
 
     >> FirstPosition[{a, b, a, a, b, c, b}, b]
      = {2}
-     
+
     >> FirstPosition[{{a, a, b}, {b, a, a}, {a, b, a}}, b]
      = {1, 3}
-     
+
     >> FirstPosition[{x, y, z}, b]
      = Missing[NotFound]
 
     Find the first position at which x^2 to appears:
     >> FirstPosition[{1 + x^2, 5, x^4, a + (1 + x^2)^2}, x^2]
      = {1, 2}
-    
+
     #> FirstPosition[{1, 2, 3}, _?StringQ, "NoStrings"]
-     = NoStrings 
-     
+     = NoStrings
+
     #> FirstPosition[a, a]
      = {}
-     
+
     #> FirstPosition[{{{1, 2}, {2, 3}, {3, 1}}, {{1, 2}, {2, 3}, {3, 1}}},3]
-     = {1, 2, 2} 
-    
+     = {1, 2, 2}
+
     #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],2]
      = {2, 1}
-     
+
     #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],4]
      = {1, 2, 1}
-     
+
     #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1}]
      = Missing[NotFound]
-     
+
     #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], 0]
      = Missing[NotFound]
-     
+
     #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], {3}]
      = {2, 2, 1}
-     
+
     #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], 3]
      = {1, 2}
-     
+
     #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2,  Missing["NotFound"], {}]
      = {1, 2}
-     
+
     #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, 2, 3}]
      : Level specification {1, 2, 3} is not of the form n, {n}, or {m, n}.
      = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, 2, 3}]
-     
+
     #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], a]
      : Level specification a is not of the form n, {n}, or {m, n}.
      = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], a]
-     
+
     #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, a}]
      : Level specification {1, a} is not of the form n, {n}, or {m, n}.
      = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, a}]
-     
+
     """
 
     messages = {
@@ -1183,8 +1183,8 @@ class FirstPosition(Builtin):
 
         if expr == pattern:
             return Expression("List")
-       
-        result  = [] 
+
+        result  = []
         def check_pattern(input_list, pat, result, beginLevel):
             for i in range(0, len(input_list.leaves)) :
                 nested_level = beginLevel
@@ -1193,36 +1193,36 @@ class FirstPosition(Builtin):
                     #found the pattern
                     if(minLevel is None or nested_level >= minLevel):
                         return True
-                    
+
                 else:
-                    if isinstance(input_list.leaves[i], Expression) and (maxLevel is None or maxLevel > nested_level): 
+                    if isinstance(input_list.leaves[i], Expression) and (maxLevel is None or maxLevel > nested_level):
                         nested_level = nested_level + 1
                         if check_pattern(input_list.leaves[i], pat, result, nested_level):
                             return True
-                        
+
                 result.pop()
-            return False          
-        
-        is_found = False  
-        if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0): 
+            return False
+
+        is_found = False
+        if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0):
             is_found = check_pattern(expr, pattern, result, 1)
         if is_found:
             return Expression("List", *result)
         else:
             return Expression("Missing", "NotFound") if default is None else default
-        
+
     def apply_default(self, expr, pattern, default, evaluation):
         'FirstPosition[expr_, pattern_, default_]'
         return self.apply(expr, pattern, evaluation, default = default)
-    
+
     def apply_level(self, expr, pattern, default, level, evaluation):
         'FirstPosition[expr_, pattern_, default_, level_]'
-        
+
         def is_interger_list(expr_list):
             return all(
                 isinstance(expr_list.leaves[i], Integer) for i in range(len(expr_list.leaves))
             )
-        
+
         if level.has_form("List", None):
             len_list  = len(level.leaves)
             if len_list > 2 or not is_interger_list(level):
@@ -1237,11 +1237,11 @@ class FirstPosition(Builtin):
         elif isinstance(level, Integer):
             min_Level = 0
             max_Level = level.get_int_value()
-        else:    
+        else:
             return evaluation.message('FirstPosition', 'level', level)
-               
+
         return self.apply(expr, pattern, evaluation, default = default, minLevel = min_Level, maxLevel = max_Level)
-    
+
 def _drop_take_selector(name, seq, sliced):
     seq_tuple = convert_seq(seq)
     if seq_tuple is None:
@@ -1682,6 +1682,98 @@ class Cases(Builtin):
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
         return Expression('List', *results)
+
+
+
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $n$]'
+        <dd>returns $expr$ with part $n$ removed.
+    </dl>
+
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
+     = {{1}, {3, 4}}
+    #> Delete[{1,2,3,4},5]
+     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
+     = Delete[{1, 2, 3, 4}, 5]
+    """
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+        'delete': "Cannot delete position `1` in `2`.",
+    }
+
+
+    def del_one(self,cur,pos):
+        l = len(cur.leaves)
+        if cur.is_atom():
+            raise PartDepthError
+        if pos > l:
+            raise PartRangeError
+        if pos > 0:
+            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
+            return cur
+        elif pos == 0:
+            cur.head = Symbol('System`Sequence')
+            return cur
+        elif pos >= -l:
+            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
+            return cur
+        else:
+            raise PartRangeError
+
+    def del_rec(self, cur, rest):
+        if cur.is_atom():
+            raise PartDepthError
+        if len(rest) > 1:
+            pos = rest[0]
+            try:
+                if pos > 0:
+                    part = get_part(cur,[pos])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
+                    return cur
+                elif pos == 0:
+                    raise PartRangeError
+                elif pos >= -len(cur.leaves):
+                    l = len(cur.leaves)
+                    part = get_part(cur,[l+pos+1])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
+                    return cur
+                else:
+                    raise PartRangeError
+            except IndexError:
+                raise PartRangeError
+        else:
+            return self.del_one(cur, rest[0])
+
+    def del_part(self, expr,indices,evaluation):
+        if indices.is_atom():
+            return self.del_one(expr,indices.get_int_value())
+        else:
+            indices = [index.get_int_value() for index in indices.leaves]
+            return self.del_rec(expr.copy(), indices)
+    
+    def apply(self, items, n, evaluation):
+        'Delete[items_, n_]'
+
+        if items.is_atom():
+            return evaluation.message(
+                'Delete', 'normal', 1, Expression('Delete', items, n))
+        try:
+            return self.del_part(items,n,evaluation)
+        except MessageException as e:
+            e.message(evaluation)
+        except PartRangeError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
+        except PartDepthError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
 
 
 class DeleteCases(Builtin):
@@ -2426,12 +2518,12 @@ class PrependTo(Builtin):
     Assign s to a list
     >> s = {1, 2, 4, 9}
      = {1, 2, 4, 9}
-    
-    Add a new value at the beginning of the list: 
+
+    Add a new value at the beginning of the list:
     >> PrependTo[s, 0]
      = {0, 1, 2, 4, 9}
-    
-    The value assigned to s has changed: 
+
+    The value assigned to s has changed:
     >> s
      = {0, 1, 2, 4, 9}
 
@@ -2474,7 +2566,7 @@ class PrependTo(Builtin):
             if s != resolved_s:
                 return evaluation.message('PrependTo', 'normal', Expression('PrependTo', s, item))
         return evaluation.message('PrependTo', 'rvalue', s)
-    
+
 def get_tuples(items):
     if not items:
         yield []
@@ -2715,7 +2807,7 @@ def riffle_lists(items, seps):
     while i < len(items):
         yield items[i]
         if i == len(items) - 1 and len(items) != len(seps):
-            raise StopIteration
+            return
         yield seps[i % len(seps)]
         i += 1
 
@@ -4847,11 +4939,11 @@ class ContainsOnly(Builtin):
     Use Equal as the comparison function to have numerical tolerance:
     >> ContainsOnly[{a, 1.0}, {1, a, b}, {SameTest -> Equal}]
      = True
-     
+
     #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
      : Unknown option IgnoreCase for ContainsOnly.
      = True
-    
+
     #> ContainsOnly[{a, 1.0}, {1, a, b}, {IgnoreCase -> True, SameTest -> Equal}]
      : Unknown option IgnoreCase for ContainsOnly.
      = True
@@ -4872,7 +4964,7 @@ class ContainsOnly(Builtin):
     """
 
     attributes = ('ReadProtected',)
-    
+
     messages = {
         'lsa': "List or association expected instead of `1`.",
         'nodef': "Unknown option `1` for ContainsOnly.",

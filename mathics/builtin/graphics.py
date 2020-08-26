@@ -10,7 +10,6 @@ from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians
 import json
 import base64
 from itertools import chain
-from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)

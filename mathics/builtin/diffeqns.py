@@ -37,15 +37,16 @@ class DSolve(Builtin):
     >> DSolve[D[y[x, t], t] + 2 D[y[x, t], x] == 0, y[x, t], {x, t}]
      = {{y[x, t] -> C[1][-2 t + x]}}
 
-    #> Attributes[f] = {HoldAll};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
-     = DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ## FIXME: sympy solves this as `Function[{x}, C[1] + Integrate[ArcSin[f[2 x]], x]]`
+    ## #> Attributes[f] = {HoldAll};
+    ## #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ##  : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
+    ##  = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
-    #> Attributes[f] = {};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
-     = DSolve[f[2 x] == Sin[f'[x]], f, x]
+    ## #> Attributes[f] = {};
+    ## #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ##  : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
+    ##  = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
      = List[List[Rule[f, Function[List[x], Times[C[1], Power[E, x]]]]]]

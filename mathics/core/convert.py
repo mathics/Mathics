@@ -101,8 +101,6 @@ def from_sympy(expr):
         Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
     from mathics.core.numbers import machine_precision
 
-    from sympy.core import numbers, function, symbol
-
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
@@ -115,7 +113,7 @@ def from_sympy(expr):
         return String(expr)
     if expr is None:
         return Symbol('Null')
-    if isinstance(expr, sympy.Matrix):
+    if isinstance(expr, sympy.Matrix) or isinstance(expr, sympy.ImmutableMatrix):
         if len(expr.shape) == 2 and (expr.shape[1] == 1):
             # This is a vector (only one column)
             # Transpose and select first row to get result equivalent to Mathematica
@@ -123,11 +121,13 @@ def from_sympy(expr):
         else:
             return Expression('List', *[
                 [from_sympy(item) for item in row] for row in expr.tolist()])
+    if isinstance(expr, sympy.MatPow):
+        return Expression('MatrixPower', from_sympy(expr.base), from_sympy(expr.exp))
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
             name = str(expr)
-            if isinstance(expr, symbol.Dummy):
+            if isinstance(expr, sympy.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
             if is_Cn_expr(name):
@@ -144,31 +144,32 @@ def from_sympy(expr):
             if builtin is not None:
                 name = builtin.get_name()
             return Symbol(name)
-        elif isinstance(expr, (numbers.Infinity, numbers.ComplexInfinity)):
+        elif isinstance(expr, (sympy.numbers.Infinity, sympy.numbers.ComplexInfinity)):
             return Symbol(expr.__class__.__name__)
-        elif isinstance(expr, numbers.NegativeInfinity):
+        elif isinstance(expr, sympy.numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
-        elif isinstance(expr, numbers.ImaginaryUnit):
+        elif isinstance(expr, sympy.numbers.ImaginaryUnit):
             return Complex(Integer(0), Integer(1))
-        elif isinstance(expr, numbers.Integer):
-            return Integer(expr.p)
-        elif isinstance(expr, numbers.Rational):
-            if expr.q == 0:
-                if expr.p > 0:
+        elif isinstance(expr, sympy.Integer):
+            return Integer(int(expr))
+        elif isinstance(expr, sympy.Rational):
+            numerator, denominator = map(int, expr.as_numer_denom())
+            if denominator == 0:
+                if numerator > 0:
                     return Symbol('Infinity')
-                elif expr.p < 0:
+                elif numerator < 0:
                     return Expression('Times', Integer(-1), Symbol('Infinity'))
                 else:
-                    assert expr.p == 0
+                    assert numerator == 0
                     return Symbol('Indeterminate')
-            return Rational(expr.p, expr.q)
-        elif isinstance(expr, numbers.Float):
+            return Rational(numerator, denominator)
+        elif isinstance(expr, sympy.Float):
             if expr._prec == machine_precision:
                 return MachineReal(float(expr))
             return Real(expr)
-        elif isinstance(expr, numbers.NaN):
+        elif isinstance(expr, sympy.numbers.NaN):
             return Symbol('Indeterminate')
-        elif isinstance(expr, function.FunctionClass):
+        elif isinstance(expr, sympy.function.FunctionClass):
             return Symbol(str(expr))
         elif expr is sympy.true:
             return Symbol('True')
@@ -293,4 +294,5 @@ def from_sympy(expr):
         else:
             return Expression('O', from_sympy(expr.args[0]))
     else:
-        raise ValueError("Unknown SymPy expression: %s" % expr)
+        raise ValueError("Unknown SymPy expression: {} (instance of {})"
+            .format(expr, str(expr.__class__)))
