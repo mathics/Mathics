@@ -523,14 +523,14 @@ class Root(Builtin):
         <dd>represents the i-th complex root of the polynomial $f$
     </dl>
 
-    >> Root[x ^ 2 - 1, 1]
+    >> Root[-1 + x ^ 2, 1]
      = -1
-    >> Root[x ^ 2 - 1, 2]
+    >> Root[-1 + x ^ 2, 2]
      = 1
 
     Roots that can't be represented by radicals:
-    >> Root[x ^ 5 + 2 x + 1, 1]
-     = Root[x ^ 5 + 2 x + 1, 1]
+    >> Root[1 + 2 x + x ^ 5]
+     = Root[1 + 2 x + x ^ 5]
     """
 
     messages = {
