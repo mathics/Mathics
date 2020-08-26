@@ -719,11 +719,17 @@ class Eigenvalues(Builtin):
         eigenvalues = matrix.eigenvals()
         try:
             eigenvalues = sorted(eigenvalues.items(),
-                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), reverse=True)
-        except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
-            eigenvalues = list(eigenvalues.items())
+                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
+                                 reverse=True)
+        # Try to sort the results as complex numbers
+        except TypeError:
+            try:
+                eigenvalues = sorted(eigenvalues.items(),
+                                     key=lambda v_c: -abs(v_c[0]))
+            # Don't sort the results at all
+            except TypeError:
+                pass
+
         return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
 
 
@@ -996,7 +1002,19 @@ class Eigenvectors(Builtin):
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
         # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda val_c_vect: (abs(val_c_vect[0]), -val_c_vect[0]), reverse=True)
+        try:
+            eigenvects = sorted(eigenvects, 
+                                key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
+                                reverse=True)
+        # Try to sort the results as complex numbers
+        except TypeError:
+            try: 
+                eigenvects = sorted(eigenvects,
+                                    key=lambda v_c: -abs(v_c[0]))
+            # Don't sort the results at all
+            except TypeError:
+                pass
+
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
