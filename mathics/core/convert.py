@@ -221,7 +221,7 @@ def from_sympy(expr):
             else:
                 result.append(Integer(1))
         return Expression('Function', Expression('Plus', *result))
-    elif isinstance(expr, smypy.CRootOf):
+    elif isinstance(expr, sympy.CRootOf):
         try:
             e, i = expr.args
         except ValueError:
