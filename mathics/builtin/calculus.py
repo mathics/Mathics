@@ -520,7 +520,7 @@ class Root(Builtin):
     """
     <dl>
     <dt>'Root[$f$, $i$]'
-        <dd>represents the i-th complex root of $f$
+        <dd>represents the i-th complex root of the polynomial $f$
     </dl>
 
     >> Root[x ^ 2 - 1, 1]
@@ -534,7 +534,7 @@ class Root(Builtin):
     """
 
     messages = {
-        'nuni': "Argument `1` at position 1 is not a univariate polymonial",
+        'nuni': "Argument `1` at position 1 is not a univariate polynomial",
         'nint': "Argument `1` at position 2 is not an integer",
         'iidx': "Argument `1` at position 2 is out of bounds"
     }
