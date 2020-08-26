@@ -540,7 +540,7 @@ class Root(Builtin):
     }
 
     def apply(self, f, i, evaluation):
-        'Root[f, i]'
+        'Root[f_, i_]'
 
         try:
             r = sympy.CRootOf(f.to_sympy(), i.to_sympy() - 1)
