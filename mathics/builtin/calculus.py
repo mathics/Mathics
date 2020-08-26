@@ -529,8 +529,8 @@ class Root(Builtin):
      = 1
 
     Roots that can't be represented by radicals:
-    >> Root[1 + 2 x + x ^ 5]
-     = Root[1 + 2 x + x ^ 5]
+    >> Root[1 + 2 x + x ^ 5, 2]
+     = Root[1 + 2 x + x ^ 5, 2]
     """
 
     messages = {
