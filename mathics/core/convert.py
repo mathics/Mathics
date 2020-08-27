@@ -227,6 +227,11 @@ def from_sympy(expr):
         except ValueError:
             return Expression('Null')
 
+        try:
+            e = sympy.PurePoly(e)
+        except:
+            pass
+
         return Expression('Root', from_sympy(e), i + 1)
     elif isinstance(expr, sympy.Lambda):
         vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1))
