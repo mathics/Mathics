@@ -524,9 +524,9 @@ class Root(SympyFunction):
         <dd>represents the i-th complex root of the polynomial $f$
     </dl>
 
-    >> Root[-1 + #1 ^ 2&, 1]
+    >> Root[#1 ^ 2 - 1&, 1]
      = -1
-    >> Root[-1 + #1 ^ 2&, 2]
+    >> Root[#1 ^ 2 - 1&, 2]
      = 1
 
     Roots that can't be represented by radicals:
