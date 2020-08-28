@@ -43,7 +43,7 @@ before_install:
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
     fi
-  - pip install pint unittest2 pexpect
+  - pip install pint unittest2 pexpect scikit-image
   - pip install git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
