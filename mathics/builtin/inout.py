@@ -9,6 +9,9 @@ import re
 import sympy
 import mpmath
 
+import typing
+from typing import Any
+
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
 from mathics.builtin.tensors import get_dimensions
@@ -673,7 +676,7 @@ class GridBox(BoxConstruct):
             raise BoxConstructError
         return items, options
 
-    def boxes_to_tex(self, leaves, **box_options):
+    def boxes_to_tex(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
@@ -700,7 +703,7 @@ class GridBox(BoxConstruct):
         result += r'\end{array}'
         return result
 
-    def boxes_to_xml(self, leaves, **box_options):
+    def boxes_to_xml(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
@@ -714,21 +717,21 @@ class GridBox(BoxConstruct):
         except KeyError:
             # invalid column alignment
             raise BoxConstructError
-        attrs = ' '.join('{0}="{1}"'.format(name, value)
+        joined_attrs = ' '.join('{0}="{1}"'.format(name, value)
                          for name, value in attrs.items())
-        result = '<mtable {0}>\n'.format(attrs)
+        result = '<mtable {0}>\n'.format(joined_attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         for row in items:
             result += '<mtr>'
             for item in row:
                 result += '<mtd {0}>{1}</mtd>'.format(
-                    attrs, item.boxes_to_xml(**new_box_options))
+                    joined_attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
         return result
 
-    def boxes_to_text(self, leaves, **box_options):
+    def boxes_to_text(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         result = ''
@@ -784,7 +787,7 @@ class Grid(Builtin):
 
     options = GridBox.options
 
-    def apply_makeboxes(self, array, f, evaluation, options):
+    def apply_makeboxes(self, array, f, evaluation, options) -> Expression:
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
@@ -942,7 +945,7 @@ class Subscript(Builtin):
      = x_{1,2,3}
     """
 
-    def apply_makeboxes(self, x, y, f, evaluation):
+    def apply_makeboxes(self, x, y, f, evaluation) -> Expression:
         'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
 
         y = y.get_sequence()
@@ -1179,7 +1182,7 @@ class Message(Builtin):
         return Symbol('Null')
 
 
-def check_message(expr):
+def check_message(expr) -> bool:
     'checks if an expression is a valid message'
     if expr.has_form('MessageName', 2):
         symbol, tag = expr.get_leaves()
@@ -1419,7 +1422,7 @@ class MessageName(BinaryOperator):
 
     default_formats = False
 
-    formats = {
+    formats: typing.Dict[str, Any] = {
     }
 
     rules = {
@@ -1758,7 +1761,7 @@ class MathMLForm(Builtin):
      . </mtable> <mo>)</mo></mrow></math>
     """
 
-    def apply_mathml(self, expr, evaluation):
+    def apply_mathml(self, expr, evaluation) -> Expression:
         'MakeBoxes[expr_, MathMLForm]'
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
@@ -1794,7 +1797,7 @@ class TeXForm(Builtin):
      = a\text{ + }b*c
     """
 
-    def apply_tex(self, expr, evaluation):
+    def apply_tex(self, expr, evaluation) -> Expression:
         'MakeBoxes[expr_, TeXForm]'
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
@@ -1845,7 +1848,7 @@ class Precedence(Builtin):
      = 1000.
     """
 
-    def apply(self, expr, evaluation):
+    def apply(self, expr, evaluation) -> Real:
         'Precedence[expr_]'
 
         from mathics.builtin import builtins
@@ -2234,12 +2237,12 @@ class NumberForm(_NumberForm):
         else:
             return man
 
-    def apply_list_n(self, expr, n, evaluation, options):
+    def apply_list_n(self, expr, n, evaluation, options) -> Expression:
         'NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]'
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, n, *options) for leaf in expr.leaves])
 
-    def apply_list_nf(self, expr, n, f, evaluation, options):
+    def apply_list_nf(self, expr, n, f, evaluation, options) -> Expression:
         'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
