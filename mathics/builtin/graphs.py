@@ -389,11 +389,10 @@ class _FullGraphRewrite(Exception):
 
 def _normalize_edges(edges):
     for edge in edges:
-        head_name = edge.get_head_name()
-        if head_name == 'System`Property' and len(edge.leaves) == 2:
+        if edge.has_form('Property', 2):
             expr, prop = edge.leaves
             yield Expression(edge.get_head(), list(_normalize_edges([expr]))[0], prop)
-        elif head_name == 'System`Rule':
+        elif edge.get_head_name() == 'System`Rule':
             yield Expression('System`DirectedEdge', *edge.leaves)
         else:
             yield edge
@@ -894,7 +893,7 @@ class _GraphParseError(Exception):
 
 
 def _parse_item(x, attr_dict=None):
-    if x.get_head_name() == 'System`Property' and len(x.leaves) == 2:
+    if x.has_form('Property', 2):
         expr, prop = x.leaves
         attr_dict = _parse_property(prop, attr_dict)
         return _parse_item(expr, attr_dict)
@@ -938,7 +937,7 @@ def _create_graph(new_edges, new_edge_properties, options, from_graph=None):
     known_edges = set(edges)
 
     def add_vertex(x, attr_dict=None):
-        if x.get_head_name() == 'System`Property' and len(x.leaves) == 2:
+        if x.has_form('Property', 2):
             expr, prop = x.leaves
             attr_dict = _parse_property(prop, attr_dict)
             return add_vertex(expr, attr_dict)
