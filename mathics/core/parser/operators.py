@@ -130,6 +130,7 @@ flat_binary_ops = {
 }
 
 nonassoc_binary_ops = {
+    'UndirectedEdge': 120,
     'PatternTest': 680,
 }
 

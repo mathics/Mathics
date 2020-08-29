@@ -206,3 +206,11 @@ def function_arguments(f):
         return _python_function_arguments(f)
     except (TypeError, ValueError):
         return _cython_function_arguments(f)
+
+
+def robust_min(iterable):
+    minimum = None
+    for i in iterable:
+        if minimum is None or i < minimum:
+            minimum = i
+    return minimum
