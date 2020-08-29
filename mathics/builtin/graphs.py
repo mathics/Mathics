@@ -93,7 +93,7 @@ def _path_layout(G, root):
 def _auto_layout(G, warn):
     path_root = None
 
-    for v, d in G.degree(G.nodes_iter()).items():
+    for v, d in G.degree(G.nodes).items():
         if d == 1 and G.neighbors(v):
             path_root = v
         elif d > 2:
@@ -418,7 +418,7 @@ class Graph(Atom):
         return isinstance(self.G, (nx.MultiDiGraph, nx.MultiGraph))
 
     def is_loop_free(self):
-        return not self.G.nodes_with_selfloops()
+        return not any(True for _ in nx.nodes_with_selfloops(self.G))
 
     def add_vertices(self, new_vertices, new_vertex_properties):
         vertices = self.vertices.clone()
@@ -825,15 +825,15 @@ class Graph(Atom):
         G = self.G
 
         if self.is_multigraph():
-            for u, v, k, data in G.edges_iter(data=True, keys=True):
-                w = data.get('System`EdgeWeight')
+            for u, v, k, w in G.edges.data('System`EdgeWeight', default=None, keys=True):
+                data = G.get_edge_data(u, v, key=k)
+                w = data.get()
                 if w is not None:
                     w = w.evaluate(evaluation).to_mpmath()
                     G[u][v][k]['WEIGHT'] = w
                     weights = 'WEIGHT'
         else:
-            for u, v, data in G.edges_iter(data=True):
-                w = data.get('System`EdgeWeight')
+            for u, v, w in G.edges.data('System`EdgeWeight', default=None):
                 if w is not None:
                     w = w.evaluate(evaluation).to_mpmath()
                     G[u][v]['WEIGHT'] = w
@@ -846,8 +846,7 @@ class Graph(Atom):
             return self.G, 'WEIGHT'
 
         new_edges = defaultdict(lambda: 0)
-        for u, v, data in self.G.edges_iter(data=True):
-            w = data.get('System`EdgeWeight')
+        for u, v, w in self.G.edges.data('System`EdgeWeight', default=None):
             if w is not None:
                 w = w.evaluate(evaluation).to_mpmath()
             else:
@@ -1078,6 +1077,15 @@ class UndirectedEdge(Builtin):
     <dt>'UndirectedEdge[$u$, $v$]'
       <dd>an undirected edge between $u$ and $v$.
     </dl>
+
+    >> a <-> b
+     = UndirectedEdge[a, b]
+
+    >> (a <-> b) <-> c
+     = UndirectedEdge[UndirectedEdge[a, b], c]
+
+    >> a <-> (b <-> c)
+     = UndirectedEdge[a, UndirectedEdge[b, c]]
     '''
     pass
 
@@ -1196,7 +1204,7 @@ class PathGraphQ(_NetworkXBuiltin):
                 connected = nx.is_connected(G)
 
             if connected:
-                is_path = all(d <= 2 for d in G.degree(graph.vertices.expressions).values())
+                is_path = all(d <= 2 for _, d in G.degree(graph.vertices.expressions))
             else:
                 is_path = False
 
@@ -1690,7 +1698,7 @@ class AdjacencyList(_NetworkXBuiltin):
         if what.get_head_name() in pattern_objects:
             collected = set()
             match = Matcher(what).match
-            for v in graph.G.nodes_iter():
+            for v in graph.G.nodes:
                 if match(v, evaluation):
                     collected.update(neighbors(v))
             return Expression('List', *graph.sort_vertices(list(collected)))
@@ -1866,7 +1874,10 @@ class ClosenessCentrality(_Centrality):
         graph = self._build_graph(graph, evaluation, options, expression)
         if graph:
             weight = graph.update_weights(evaluation)
-            centrality = nx.closeness_centrality(graph.G, normalized=False, distance=weight)
+            G = graph.G
+            if G.is_directed():
+                G = G.reverse()
+            centrality = nx.closeness_centrality(G, distance=weight, wf_improved=False)
             return Expression('List', *[Real(centrality.get(v, 0.)) for v in graph.vertices.expressions])
 
 
@@ -2056,7 +2067,7 @@ class VertexDegree(_Centrality):
     def apply(self, graph, evaluation, options):
         '%(name)s[graph_, OptionsPattern[%(name)s]]'
         def degrees(graph):
-            degrees = graph.G.degree(graph.vertices.expressions)
+            degrees = dict(list(graph.G.degree(graph.vertices.expressions)))
             return Expression('List', *[Integer(degrees.get(v, 0)) for v in graph.vertices.expressions])
         return self._evaluate_atom(graph, options, degrees)
 
@@ -2199,9 +2210,9 @@ class CompleteGraph(_NetworkXBuiltin):
 
 
 def _convert_networkx_graph(G, options):
-    mapping = dict((v, Integer(i)) for i, v in enumerate(G.nodes_iter()))
+    mapping = dict((v, Integer(i)) for i, v in enumerate(G.nodes))
     G = nx.relabel_nodes(G, mapping)
-    edges = [Expression('System`UndirectedEdge', u, v) for u, v in G.edges_iter()]
+    edges = [Expression('System`UndirectedEdge', u, v) for u, v in G.edges]
     return Graph(
         _Collection(G.nodes()),
         _EdgeCollection(edges, n_undirected=len(edges)),
