@@ -558,7 +558,7 @@ class Root(SympyFunction):
                 evaluation.message('Root', 'iidx', i)
                 return
 
-            r = sympy.CRootOf(poly, idx)
+            r = sympy.CRootOf(poly.to_sympy(), idx)
         except sympy.PolynomialError:
             evaluation.message('Root', 'nuni', f)
             return
