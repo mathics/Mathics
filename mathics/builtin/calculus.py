@@ -546,7 +546,11 @@ class Root(SympyFunction):
         'Root[f_, i_]'
 
         try:
-            poly = function_to_sympy_poly(f, evaluation)
+            if not f.has_form('Function', 1):
+                raise sympy.PolynomialError
+
+            body = f.leaves[0]
+            poly = body.replace_slots([None, Symbol('_1')], evaluation)
             idx = i.to_sympy() - 1
 
             # Check for negative indeces (they are not allowed in Mathematica)
@@ -554,7 +558,7 @@ class Root(SympyFunction):
                 evaluation.message('Root', 'iidx', i)
                 return
 
-            r = sympy.CRootOf(poly, idx)
+            r = sympy.CRootOf(poly.to_sympy(), idx)
         except sympy.PolynomialError:
             evaluation.message('Root', 'nuni', f)
             return
@@ -1051,16 +1055,4 @@ class FindRoot(Builtin):
             evaluation.message('FindRoot', 'maxiter')
 
         return Expression('List', Expression('Rule', x, x0))
-
-def function_to_sympy_poly(f, evaluation):
-    if isinstance(f, Expression) and f.head == Symbol('System`Function'):
-        try:
-            body = f.leaves[0]
-            poly = body.replace_slots([None, Symbol('_1')], evaluation)
-
-            return poly.to_sympy()
-        except:
-            raise sympy.PolynomialError
-    else:
-        raise sympy.PolynomialError
 
