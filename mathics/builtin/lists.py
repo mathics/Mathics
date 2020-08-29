@@ -5,11 +5,7 @@
 List functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six.moves import zip
 from itertools import chain, permutations
 
 from mathics.builtin.base import (
@@ -632,7 +628,11 @@ def python_seq(start, stop, step, length):
         return None
 
     # special empty case
-    if start is not None and stop is not None and stop + 1 == start and step > 0:
+    if stop is None and length is not None:
+        empty_stop = length
+    else:
+        empty_stop = stop
+    if start is not None and empty_stop + 1 == start and step > 0:
         return slice(0, 0, 1)
 
     if start == 0 or stop == 0:
@@ -1106,6 +1106,142 @@ class ReplacePart(Builtin):
         return new_expr
 
 
+class FirstPosition(Builtin):
+    """
+    <dl>
+    <dt>'FirstPosition[$expr$, $pattern$]'
+        <dd>gives the position of the first element in $expr$ that matches $pattern$, or Missing["NotFound"] if no such element is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$]'
+        <dd>gives default if no element matching $pattern$ is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$, $levelspec$]'
+        <dd>finds only objects that appear on levels specified by $levelspec$.
+    </dl>
+
+    >> FirstPosition[{a, b, a, a, b, c, b}, b]
+     = {2}
+
+    >> FirstPosition[{{a, a, b}, {b, a, a}, {a, b, a}}, b]
+     = {1, 3}
+
+    >> FirstPosition[{x, y, z}, b]
+     = Missing[NotFound]
+
+    Find the first position at which x^2 to appears:
+    >> FirstPosition[{1 + x^2, 5, x^4, a + (1 + x^2)^2}, x^2]
+     = {1, 2}
+
+    #> FirstPosition[{1, 2, 3}, _?StringQ, "NoStrings"]
+     = NoStrings
+
+    #> FirstPosition[a, a]
+     = {}
+
+    #> FirstPosition[{{{1, 2}, {2, 3}, {3, 1}}, {{1, 2}, {2, 3}, {3, 1}}},3]
+     = {1, 2, 2}
+
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],2]
+     = {2, 1}
+
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],4]
+     = {1, 2, 1}
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1}]
+     = Missing[NotFound]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], 0]
+     = Missing[NotFound]
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], {3}]
+     = {2, 2, 1}
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], 3]
+     = {1, 2}
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2,  Missing["NotFound"], {}]
+     = {1, 2}
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, 2, 3}]
+     : Level specification {1, 2, 3} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, 2, 3}]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], a]
+     : Level specification a is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], a]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, a}]
+     : Level specification {1, a} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, a}]
+
+    """
+
+    messages = {
+        'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.',
+    }
+
+    def apply(self, expr, pattern, evaluation, default = None, minLevel = None, maxLevel = None):
+        'FirstPosition[expr_, pattern_]'
+
+        if expr == pattern:
+            return Expression("List")
+
+        result  = []
+        def check_pattern(input_list, pat, result, beginLevel):
+            for i in range(0, len(input_list.leaves)) :
+                nested_level = beginLevel
+                result.append(i + 1)
+                if input_list.leaves[i] == pat:
+                    #found the pattern
+                    if(minLevel is None or nested_level >= minLevel):
+                        return True
+
+                else:
+                    if isinstance(input_list.leaves[i], Expression) and (maxLevel is None or maxLevel > nested_level):
+                        nested_level = nested_level + 1
+                        if check_pattern(input_list.leaves[i], pat, result, nested_level):
+                            return True
+
+                result.pop()
+            return False
+
+        is_found = False
+        if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0):
+            is_found = check_pattern(expr, pattern, result, 1)
+        if is_found:
+            return Expression("List", *result)
+        else:
+            return Expression("Missing", "NotFound") if default is None else default
+
+    def apply_default(self, expr, pattern, default, evaluation):
+        'FirstPosition[expr_, pattern_, default_]'
+        return self.apply(expr, pattern, evaluation, default = default)
+
+    def apply_level(self, expr, pattern, default, level, evaluation):
+        'FirstPosition[expr_, pattern_, default_, level_]'
+
+        def is_interger_list(expr_list):
+            return all(
+                isinstance(expr_list.leaves[i], Integer) for i in range(len(expr_list.leaves))
+            )
+
+        if level.has_form("List", None):
+            len_list  = len(level.leaves)
+            if len_list > 2 or not is_interger_list(level):
+                return evaluation.message('FirstPosition', 'level', level)
+            elif len_list == 0:
+                min_Level = max_Level = None
+            elif len_list == 1:
+                min_Level = max_Level = level.leaves[0].get_int_value()
+            elif len_list == 2:
+                min_Level = level.leaves[0].get_int_value()
+                max_Level = level.leaves[1].get_int_value()
+        elif isinstance(level, Integer):
+            min_Level = 0
+            max_Level = level.get_int_value()
+        else:
+            return evaluation.message('FirstPosition', 'level', level)
+
+        return self.apply(expr, pattern, evaluation, default = default, minLevel = min_Level, maxLevel = max_Level)
+
 def _drop_take_selector(name, seq, sliced):
     seq_tuple = convert_seq(seq)
     if seq_tuple is None:
@@ -1548,6 +1684,98 @@ class Cases(Builtin):
         return Expression('List', *results)
 
 
+
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $n$]'
+        <dd>returns $expr$ with part $n$ removed.
+    </dl>
+
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
+     = {{1}, {3, 4}}
+    #> Delete[{1,2,3,4},5]
+     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
+     = Delete[{1, 2, 3, 4}, 5]
+    """
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+        'delete': "Cannot delete position `1` in `2`.",
+    }
+
+
+    def del_one(self,cur,pos):
+        l = len(cur.leaves)
+        if cur.is_atom():
+            raise PartDepthError
+        if pos > l:
+            raise PartRangeError
+        if pos > 0:
+            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
+            return cur
+        elif pos == 0:
+            cur.head = Symbol('System`Sequence')
+            return cur
+        elif pos >= -l:
+            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
+            return cur
+        else:
+            raise PartRangeError
+
+    def del_rec(self, cur, rest):
+        if cur.is_atom():
+            raise PartDepthError
+        if len(rest) > 1:
+            pos = rest[0]
+            try:
+                if pos > 0:
+                    part = get_part(cur,[pos])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
+                    return cur
+                elif pos == 0:
+                    raise PartRangeError
+                elif pos >= -len(cur.leaves):
+                    l = len(cur.leaves)
+                    part = get_part(cur,[l+pos+1])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
+                    return cur
+                else:
+                    raise PartRangeError
+            except IndexError:
+                raise PartRangeError
+        else:
+            return self.del_one(cur, rest[0])
+
+    def del_part(self, expr,indices,evaluation):
+        if indices.is_atom():
+            return self.del_one(expr,indices.get_int_value())
+        else:
+            indices = [index.get_int_value() for index in indices.leaves]
+            return self.del_rec(expr.copy(), indices)
+    
+    def apply(self, items, n, evaluation):
+        'Delete[items_, n_]'
+
+        if items.is_atom():
+            return evaluation.message(
+                'Delete', 'normal', 1, Expression('Delete', items, n))
+        try:
+            return self.del_part(items,n,evaluation)
+        except MessageException as e:
+            e.message(evaluation)
+        except PartRangeError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
+        except PartDepthError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
+
+
 class DeleteCases(Builtin):
     """
     <dl>
@@ -1597,6 +1825,66 @@ class Count(Builtin):
         'Count[pattern_][list_]': 'Count[list, pattern]',
         'Count[list_, arguments__]': 'Length[Cases[list, arguments]]',
     }
+
+class LeafCount(Builtin):
+    """
+    <dl>
+    <dt>'LeafCount[$expr$]'
+        <dd>returns the total number of indivisible subexpressions in $expr$.
+    </dl>
+
+    >> LeafCount[1 + x + y^a]
+     = 6
+
+    >> LeafCount[f[x, y]]
+     = 3
+
+    >> LeafCount[{1 / 3, 1 + I}]
+     = 7
+
+    >> LeafCount[Sqrt[2]]
+     = 5
+
+    >> LeafCount[100!]
+     = 1
+
+    #> LeafCount[f[a, b][x, y]]
+     = 5
+
+    #> NestList[# /. s[x_][y_][z_] -> x[z][y[z]] &, s[s][s][s[s]][s][s], 4];
+    #> LeafCount /@ %
+     = {7, 8, 8, 11, 11}
+
+    #> LeafCount[1 / 3, 1 + I]
+     : LeafCount called with 2 arguments; 1 argument is expected.
+     = LeafCount[1 / 3, 1 + I]
+    """
+
+    messages = {
+        'argx': 'LeafCount called with `1` arguments; 1 argument is expected.',
+    }
+
+    def apply(self, expr, evaluation):
+        'LeafCount[expr___]'
+
+        from mathics.core.expression import Rational, Complex
+        leaves = []
+
+        def callback(level):
+            if isinstance(level, Rational):
+                leaves.extend([level.get_head(), level.numerator(), level.denominator()])
+            elif isinstance(level, Complex):
+                leaves.extend([level.get_head(), level.real, level.imag])
+            else:
+                leaves.append(level)
+            return level
+
+        expr = expr.get_sequence()
+        if len(expr) != 1:
+            return evaluation.message('LeafCount', 'argx', Integer(len(expr)))
+
+        walk_levels(expr[0], start=-1, stop=-1, heads=True, callback=callback)
+        return Integer(len(leaves))
 
 
 class Position(Builtin):
@@ -2220,6 +2508,65 @@ class Prepend(Builtin):
                           *([item] + expr.get_leaves()))
 
 
+class PrependTo(Builtin):
+    """
+    <dl>
+    <dt>'PrependTo[$s$, $item$]'
+        <dd>prepends $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    Assign s to a list
+    >> s = {1, 2, 4, 9}
+     = {1, 2, 4, 9}
+
+    Add a new value at the beginning of the list:
+    >> PrependTo[s, 0]
+     = {0, 1, 2, 4, 9}
+
+    The value assigned to s has changed:
+    >> s
+     = {0, 1, 2, 4, 9}
+
+    'PrependTo' works with a head other than 'List':
+    >> y = f[a, b, c];
+    >> PrependTo[y, x]
+     = f[x, a, b, c]
+    >> y
+     = f[x, a, b, c]
+
+    #> PrependTo[{a, b}, 1]
+     :  {a, b} is not a variable with a value, so its value cannot be changed.
+     = PrependTo[{a, b}, 1]
+
+    #> PrependTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = PrependTo[a, b]
+
+    #> x = 1 + 2;
+    #> PrependTo[x, {3, 4}]
+     : Nonatomic expression expected at position 1 in PrependTo[x, {3, 4}].
+     =  PrependTo[x, {3, 4}]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+        'normal': 'Nonatomic expression expected at position 1 in `1`.'
+    }
+
+    def apply(self, s, item, evaluation):
+        'PrependTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Prepend', resolved_s, item))
+                return result.evaluate(evaluation)
+            if s != resolved_s:
+                return evaluation.message('PrependTo', 'normal', Expression('PrependTo', s, item))
+        return evaluation.message('PrependTo', 'rvalue', s)
+
 def get_tuples(items):
     if not items:
         yield []
@@ -2460,7 +2807,7 @@ def riffle_lists(items, seps):
     while i < len(items):
         yield items[i]
         if i == len(items) - 1 and len(items) != len(seps):
-            raise StopIteration
+            return
         yield seps[i % len(seps)]
         i += 1
 
@@ -4563,3 +4910,107 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+
+class ContainsOnly(Builtin):
+    """
+    <dl>
+    <dt>'ContainsOnly[$list1$, $list2$]'
+        <dd>yields True if $list1$ contains only elements that appear in $list2$.
+    </dl>
+
+    >> ContainsOnly[{b, a, a}, {a, b, c}]
+     = True
+
+    The first list contains elements not present in the second list:
+    >> ContainsOnly[{b, a, d}, {a, b, c}]
+     = False
+
+    >> ContainsOnly[{}, {a, b, c}]
+     = True
+
+    #> ContainsOnly[1, {1, 2, 3}]
+     : List or association expected instead of 1.
+     = ContainsOnly[1, {1, 2, 3}]
+
+    #> ContainsOnly[{1, 2, 3}, 4]
+     : List or association expected instead of 4.
+     = ContainsOnly[{1, 2, 3}, 4]
+
+    Use Equal as the comparison function to have numerical tolerance:
+    >> ContainsOnly[{a, 1.0}, {1, a, b}, {SameTest -> Equal}]
+     = True
+
+    #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
+     : Unknown option IgnoreCase for ContainsOnly.
+     = True
+
+    #> ContainsOnly[{a, 1.0}, {1, a, b}, {IgnoreCase -> True, SameTest -> Equal}]
+     : Unknown option IgnoreCase for ContainsOnly.
+     = True
+
+    #> ContainsOnly[Pi, "E", {IgnoreCase -> True, SameTest -> Equal}]
+     : List or association expected instead of E.
+     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
+     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
+
+    #> ContainsOnly["Pi", E, {IgnoreCase -> True, SameTest -> Equal}]
+     : List or association expected instead of Pi.
+     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
+     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
+
+    #> ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
+     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
+     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
+    """
+
+    attributes = ('ReadProtected',)
+
+    messages = {
+        'lsa': "List or association expected instead of `1`.",
+        'nodef': "Unknown option `1` for ContainsOnly.",
+        'optx': "Unknown option `1` in `2`.",
+    }
+
+    options = {
+        'SameTest': 'SameQ',
+    }
+
+    def check_options(self, expr, evaluation, options):
+        for key in options:
+            if key != 'System`SameTest':
+                if expr is None:
+                    evaluation.message('ContainsOnly', 'nodef', Symbol(key))
+                else:
+                    return evaluation.message('ContainsOnly', 'optx', Symbol(key), expr)
+        return None
+
+    def apply(self, list1, list2, evaluation, options={}):
+        'ContainsOnly[list1_?ListQ, list2_?ListQ, OptionsPattern[ContainsOnly]]'
+
+        same_test = self.get_option(options, 'SameTest', evaluation)
+
+        def same(a, b):
+            result = Expression(same_test, a, b).evaluate(evaluation)
+            return result.is_true()
+
+        self.check_options(None, evaluation, options)
+        for a in list1.leaves:
+            if not any(same(a, b) for b in list2.leaves):
+                return Symbol('False')
+        return Symbol('True')
+
+    def apply_msg(self, e1, e2, evaluation, options={}):
+        'ContainsOnly[e1_, e2_, OptionsPattern[ContainsOnly]]'
+
+        opts = options_to_rules(options) if len(options) <= 1 else [Expression('List', *options_to_rules(options))]
+        expr = Expression('ContainsOnly', e1, e2, *opts)
+
+        if not isinstance(e1, Symbol) and not e1.has_form('List', None):
+            evaluation.message('ContainsOnly', 'lsa', e1)
+            return self.check_options(expr, evaluation, options)
+
+        if not isinstance(e2, Symbol) and not e2.has_form('List', None):
+            evaluation.message('ContainsOnly', 'lsa', e2)
+            return self.check_options(expr, evaluation, options)
+
+        return self.check_options(expr, evaluation, options)

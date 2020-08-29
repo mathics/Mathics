@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import (Expression, String, Symbol, Integer,
@@ -414,7 +412,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
+     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
     """
 
     def apply(self, evaluation):

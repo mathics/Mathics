@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import re
 import string
@@ -116,6 +114,7 @@ tokens = [
 
     ('Rule', r' (\-\>)|\uF522 '),
     ('RuleDelayed', r' (\:\>)|\uF51F '),
+    ('UndirectedEdge', r' (\<\-\>)|\u29DF '),
     ('ReplaceRepeated', r' \/\/\. '),
     ('ReplaceAll', r' \/\. '),
 
@@ -227,7 +226,7 @@ literal_tokens = {
           'Postfix', 'TagSet', 'Condition', 'Divide'],
     ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
     ';': ['Span', 'Semicolon'],
-    '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
+    '<': ['UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
     '?': ['PatternTest'],

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
 
 from collections import defaultdict
 
@@ -131,6 +130,7 @@ flat_binary_ops = {
 }
 
 nonassoc_binary_ops = {
+    'UndirectedEdge': 120,
     'PatternTest': 680,
 }
 

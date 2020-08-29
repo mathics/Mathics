@@ -7,8 +7,6 @@ Arithmetic functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -887,6 +885,52 @@ class Sqrt(SympyFunction):
             'SqrtBox[MakeBoxes[x, f]]'),
     }
 
+class CubeRoot(Builtin):
+    """
+    <dl>
+    <dt>'CubeRoot[$n$]'
+        <dd>finds the real-valued cube root of the given $n$.
+    </dl>
+
+    >> CubeRoot[16]
+     = 2 2 ^ (1 / 3)
+
+    #> CubeRoot[-5]
+     = -5 ^ (1 / 3)
+    
+    #> CubeRoot[-510000]
+     = -10 510 ^ (1 / 3)
+     
+    #> CubeRoot[-5.1]
+     = -1.7213 
+    
+    #> CubeRoot[b]
+     = b ^ (1 / 3)
+     
+    #> CubeRoot[-0.5]
+     = -0.793701
+     
+    #> CubeRoot[3 + 4 I]
+     : The parameter 3 + 4 I should be real valued.
+     = (3 + 4 I) ^ (1 / 3)
+    """
+    
+    attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
+    
+    messages = {
+        'preal': 'The parameter `1` should be real valued.',
+    }
+    
+    rules = {
+        'CubeRoot[n_?NumericQ]': 'If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]]]',
+        'CubeRoot[n_]': 'Power[n, Divide[1, 3]]',
+    }
+    
+    def apply(self, n, evaluation):
+        'CubeRoot[n_Complex]'
+         
+        evaluation.message('CubeRoot', 'preal', n)
+        return Expression('Power', n, Expression('Divide', 1, 3))
 
 class Infinity(SympyConstant):
     """
@@ -934,15 +978,21 @@ class ComplexInfinity(SympyConstant):
 
     >> 1 / ComplexInfinity
      = 0
-    >> ComplexInfinity + ComplexInfinity
-     = ComplexInfinity
     >> ComplexInfinity * Infinity
      = ComplexInfinity
     >> FullForm[ComplexInfinity]
      = DirectedInfinity[]
+
+    ## Issue689
+    #> ComplexInfinity + ComplexInfinity
+     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
+     = Indeterminate
+    #> ComplexInfinity + Infinity
+     : Indeterminate expression ComplexInfinity + Infinity encountered.
+     = Indeterminate
     """
 
-    sympy_name = 'ComplexInfinity'
+    sympy_name = 'zoo'
 
     rules = {
         'ComplexInfinity': 'DirectedInfinity[]',
@@ -990,6 +1040,10 @@ class DirectedInfinity(SympyFunction):
         'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
             'Message[Infinity::indet,'
             '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
+        'DirectedInfinity[] + DirectedInfinity[args___]': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[] + DirectedInfinity[args]]];'
             'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
@@ -1132,6 +1186,59 @@ class Abs(_MPMathFunction):
 
     sympy_name = 'Abs'
     mpmath_name = 'fabs'  # mpmath actually uses python abs(x) / x.__abs__()
+
+
+class Sign(Builtin):
+    """
+    <dl>
+    <dt>'Sign[$x$]'
+        <dd>return -1, 0, or 1 depending on whether $x$ is negative, zero, or positive.
+    </dl>
+    
+    >> Sign[19]
+     = 1
+    >> Sign[-6]
+     = -1
+    >> Sign[0]
+     = 0
+    >> Sign[{-5, -10, 15, 20, 0}]
+     = {-1, -1, 1, 1, 0}
+    #> Sign[{1, 2.3, 4/5, {-6.7, 0}, {8/9, -10}}]
+     = {1, 1, 1, {-1, 0}, {1, -1}}
+    >> Sign[3 - 4*I]
+     = 3 / 5 - 4 I / 5
+    #> Sign[1 - 4*I] == (1/17 - 4 I/17) Sqrt[17]
+     = True
+    #> Sign[4, 5, 6]
+     : Sign called with 3 arguments; 1 argument is expected.
+     = Sign[4, 5, 6]
+    #> Sign["20"]
+     = Sign[20]
+    """
+    
+    # Sympy and mpmath do not give the desired form of complex number
+    # sympy_name = 'sign'
+    # mpmath_name = 'sign'
+    
+    attributes = ('Listable', 'NumericFunction')
+    
+    messages = {
+        'argx':  'Sign called with `1` arguments; 1 argument is expected.',
+    }
+    
+    def apply(self, x, evaluation):
+        'Sign[x_]'
+        if isinstance(x, Complex):
+            return Expression('Times', x, Expression('Power', Expression('Abs', x), -1))
+        
+        sympy_x = x.to_sympy()
+        if sympy_x is None:
+            return None
+        return from_sympy(sympy.sign(sympy_x))
+    
+    def apply_error(self, x, seqs, evaluation):
+        'Sign[x_, seqs__]'
+        return evaluation.message('Sign', 'argx', Integer(len(seqs.get_sequence())+1))
 
 
 class I(Predefined):
@@ -1677,7 +1784,7 @@ class Sum(_IterationFunction, SympyFunction):
      = 0
 
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}}, -1 + (a ^ n) ^ m]
+     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1807,7 +1914,7 @@ class Piecewise(SympyFunction):
     ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
+     = Piecewise[{{x, x <= 0}, {-x, True}}]
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
@@ -1868,7 +1975,7 @@ class Piecewise(SympyFunction):
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
         else:
-            sympy_cases.append((Integer(0), True))
+            sympy_cases.append((Integer(0).to_sympy(**kwargs), True))
 
         return sympy.Piecewise(*sympy_cases)
 

@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-
 import sys
 import traceback
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext, loader
 from django.http import (HttpResponse, HttpResponseNotFound,
                          HttpResponseServerError, Http404)
@@ -26,19 +22,13 @@ from mathics.web.models import Query, Worksheet
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
-import six
-from six.moves import range
+
 from string import Template
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
 else:
     JSON_CONTENT_TYPE = 'application/json'
-
-
-def get_content_type(request):
-    return ('text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '')
-            else 'application/xhtml+xml')
 
 
 class JsonResponse(HttpResponse):
@@ -66,12 +56,12 @@ def require_ajax_login(f):
 
 
 def main_view(request):
-    content_type = get_content_type(request)
-    return render_to_response('main.html', {
+    context = {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'require_login': settings.REQUIRE_LOGIN,
-    }, context_instance=RequestContext(request), content_type=content_type)
+    }
+    return render(request, 'main.html', context)
 
 
 def error_404_view(request):
@@ -102,7 +92,7 @@ def query(request):
                           remote_user=request.META.get('REMOTE_USER', ''),
                           remote_addr=request.META.get('REMOTE_ADDR', ''),
                           remote_host=request.META.get('REMOTE_HOST', ''),
-                          meta=six.text_type(request.META),
+                          meta=str(request.META),
                           log='',
                           )
         query_log.save()
@@ -137,7 +127,7 @@ def query(request):
 
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
-        query_log.result = six.text_type(result)  # evaluation.results
+        query_log.result = str(result)  # evaluation.results
         query_log.error = False
         query_log.save()
 
@@ -317,23 +307,21 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         'prev': object.get_prev() if object else None,
         'next': object.get_next() if object else None,
     })
-    if ajax:
-        template = loader.get_template('doc/%s' % template_name)
-        result = template.render(RequestContext(request, context))
-        result = {
-            'content': result,
-        }
-        if data is not None:
-            result['data'] = data
-        return JsonResponse(result)
-    else:
+    if not ajax:
         context.update({
             'data': data,
         })
-        return render_to_response(
-            'doc/%s' % template_name, context,
-            context_instance=RequestContext(request),
-            content_type=get_content_type(request))
+
+    result = render(request, 'doc/%s' % template_name, context)
+    if not ajax:
+        return result
+
+    result = {
+        'content': str(result),
+    }
+    if data is not None:
+        result['data'] = data
+    return JsonResponse(result)
 
 
 def doc(request, ajax=''):

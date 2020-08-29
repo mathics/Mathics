@@ -5,7 +5,6 @@
 XML
 """
 
-from __future__ import unicode_literals
 
 
 from mathics.builtin.base import Builtin

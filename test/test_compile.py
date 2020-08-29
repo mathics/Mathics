@@ -3,7 +3,7 @@ import unittest
 import mpmath
 import itertools
 import random
-from six import StringIO
+import io
 import math
 
 from mathics.core.expression import Expression, Symbol, Integer, MachineReal, String
@@ -268,7 +268,7 @@ class FlowControlTest(CompileTest):
         # XXX Hack to capture the output
         saved_stdout = sys.stdout
         try:
-            out = StringIO()
+            out = io.StringIO()
             sys.stdout = out
             cfunc()
             output = out.getvalue().strip()

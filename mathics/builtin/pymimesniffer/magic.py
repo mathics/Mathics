@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import os.path
 import logging
-import six
-from six.moves import range
+import io
 
 
 class MagicRule(object):
@@ -30,34 +27,35 @@ class MagicDetector(object):
         self.mimetypes = mimetypes
 
     def match(self, filename, data=None):
+        matches = {}
+        
         if not data:
             file = open(filename, 'rb')
-        elif isinstance(data, str) or isinstance(data, six.text_type):
-            from StringIO import StringIO
-
+            buf = b''
+        elif isinstance(data, str):
+            from io import StringIO
             file = StringIO(data)
+            matches['text/plain'] =  self.mimetypes['text/plain']
+            buf = ''
         elif hasattr(data, 'read'):
+            buf = b''
             file = data
         else:
-            from StringIO import StringIO
-
-            file = StringIO(str(data))
-
+            from io import BytesIO
+            file = BytesIO(data)
+            buf = b''
+            
         ext = os.path.splitext(filename)[1]
 
         if ext:
             ext = ext[1:]
-
-        matches = {}
-
-        buf = b''
 
         for mimetype, rules in self.mimetypes.items():
             for rule in rules:
                 if rule.parentType and rule.parentType not in list(matches.keys()):
                     continue
 
-                if rule.extensions and ext not in rule.extensions:
+                if rule.extensions and ext != ""  and ext not in rule.extensions:
                     continue
 
                 for offset, value in rule.magicNumbers:

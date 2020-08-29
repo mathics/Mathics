@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
+    graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic,
+    manipulate, natlang, quantities, numbertheory, numeric, options, patterns, 
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
+    strings, structure, system, tensors, xmlformat, optimization)
 
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
@@ -19,9 +18,10 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
+    graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic, 
+    manipulate, natlang, quantities, numbertheory, numeric, options, patterns, 
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
+    strings, structure, system, tensors, xmlformat, optimization]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
@@ -103,6 +103,7 @@ def get_module_doc(module):
     return title, text
 
 
+
 def contribute(definitions):
     # let MakeBoxes contribute first
     builtins['System`MakeBoxes'].contribute(definitions)
@@ -110,6 +111,14 @@ def contribute(definitions):
         if name != 'System`MakeBoxes':
             item.contribute(definitions)
 
+    # Is there another way to Unprotect these symbols at initialization?
+    definitions.get_attributes('System`$PreRead').clear()
+    definitions.get_attributes('System`$Pre').clear()
+    definitions.get_attributes('System`$Post').clear()
+    definitions.get_attributes('System`$PrePrint').clear()
+    definitions.get_attributes('System`$SyntaxHandler').clear()
+
+            
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition
@@ -121,3 +130,4 @@ def contribute(definitions):
         if not definitions.have_definition(ensure_context(operator)):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
+

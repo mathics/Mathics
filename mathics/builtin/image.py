@@ -4,15 +4,12 @@ Image[] and image related functions.
 Note that you (currently) need scikit-image installed in order for this module to work.
 '''
 
-from __future__ import division
-
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
 
-import six
 import base64
 import functools
 import itertools
@@ -500,7 +497,7 @@ class ImageResize(_ImageBuiltin):
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
         'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
-        'skimage': 'Please install skimage to use Resampling -> Gaussian.',
+        'skimage': 'Please install scikit-image to use Resampling -> Gaussian.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
@@ -587,6 +584,7 @@ class ImageResize(_ImageBuiltin):
 
         try:
             from skimage import transform
+            multichannel = (image.pixels.ndim == 3)
 
             sy = h / old_h
             sx = w / old_w
@@ -600,9 +598,9 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s, multichannel=multichannel).clip(0, 1)
             else:
-                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+                pixels = transform.pyramid_reduce(image.pixels, multichannel=multichannel, downscale=(1. / s)).clip(0, 1)
 
             return Image(pixels, image.color_space)
         except ImportError:
@@ -2176,9 +2174,7 @@ class Image(Atom):
             stream.close()
 
         encoded = base64.b64encode(contents)
-        if not six.PY2:
-            encoded = encoded.decode('utf8')
-        encoded = 'data:image/png;base64,' + encoded
+        encoded = b'data:image/png;base64,' + encoded
 
         return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
 

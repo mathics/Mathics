@@ -5,11 +5,6 @@
 Options and default arguments
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
@@ -90,7 +85,7 @@ class Options(Builtin):
         else:
             options = evaluation.definitions.get_options(name)
         result = []
-        for option, value in sorted(six.iteritems(options), key=lambda item: item[0]):
+        for option, value in sorted(options.items(), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be
             # assignable to Options again!
             result.append(Expression('RuleDelayed', Symbol(option), value))
@@ -291,5 +286,5 @@ class FilterRules(Builtin):
 
 
 def options_to_rules(options):
-    items = sorted(six.iteritems(options))
+    items = sorted(options.items())
     return [Expression('Rule', Symbol(name), value) for name, value in items]

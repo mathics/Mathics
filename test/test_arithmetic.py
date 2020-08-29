@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import division
 
 import os
 import sys
 import pexpect
 import unittest
-from six.moves import range
 from mathics.core.expression import Expression, Integer, Rational, Symbol, Real
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation

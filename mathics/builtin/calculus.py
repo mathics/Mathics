@@ -5,13 +5,6 @@
 Calculus functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-from six.moves import zip
-
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import Expression, Integer, Number
 from mathics.core.convert import (
@@ -19,6 +12,7 @@ from mathics.core.convert import (
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
+from mathics import Symbol
 
 import sympy
 
@@ -389,11 +383,13 @@ class Integrate(SympyFunction):
     #> Integrate[x ^ 3.5 + x, x]
      = x ^ 2 / 2 + 0.222222 x ^ 4.5
 
-    Sometimes there is a loss of precision during integration
-    >> Integrate[Abs[Sin[phi]],{phi,0,2Pi}]//N
-     = 4.000
-    >> % // Precision
+    Sometimes there is a loss of precision during integration.
+    You can check the precision of your result with the following sequence
+    of commands.
+    >> Integrate[Abs[Sin[phi]], {phi, 0, 2Pi}] // N
      = 4.
+     >> % // Precision
+     = MachinePrecision
 
     #> Integrate[1/(x^5+1), x]
      = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
@@ -521,13 +517,72 @@ class Integrate(SympyFunction):
         return result
 
 
+class Root(SympyFunction):
+    """
+    <dl>
+    <dt>'Root[$f$, $i$]'
+        <dd>represents the i-th complex root of the polynomial $f$
+    </dl>
+
+    >> Root[#1 ^ 2 - 1&, 1]
+     = -1
+    >> Root[#1 ^ 2 - 1&, 2]
+     = 1
+
+    Roots that can't be represented by radicals:
+    >> Root[#1 ^ 5 + 2 #1 + 1&, 2]
+     = Root[#1 ^ 5 + 2 #1 + 1&, 2]
+    """
+
+    messages = {
+        'nuni': "Argument `1` at position 1 is not a univariate polynomial function",
+        'nint': "Argument `1` at position 2 is not an integer",
+        'iidx': "Argument `1` at position 2 is out of bounds"
+    }
+
+    sympy_name = 'CRootOf'
+
+    def apply(self, f, i, evaluation):
+        'Root[f_, i_]'
+
+        try:
+            poly = function_to_sympy_poly(f, evaluation)
+            idx = i.to_sympy() - 1
+
+            # Check for negative indeces (they are not allowed in Mathematica)
+            if idx < 0:
+                evaluation.message('Root', 'iidx', i)
+                return
+
+            r = sympy.CRootOf(poly, idx)
+        except sympy.PolynomialError:
+            evaluation.message('Root', 'nuni', f)
+            return
+        except TypeError:
+            evaluation.message('Root', 'nint', i)
+            return
+        except IndexError:
+            evaluation.message('Root', 'iidx', i)
+            return
+
+        return from_sympy(r)
+
+    def to_sympy(self, expr, **kwargs):
+        try:
+            f = expr.leaves[0].to_sympy(**kwargs)
+            i = expr.leaves[1].to_sympy(**kwargs)
+            return sympy.CRootOf(f, i)
+        except TypeError:
+            pass
+
+
 class Solve(Builtin):
     """
     <dl>
     <dt>'Solve[$equation$, $vars$]'
         <dd>attempts to solve $equation$ for the variables $vars$.
     <dt>'Solve[$equation$, $vars$, $domain$]'
-        <dd>restricts variables to $domain$, which can be 'Complexes' or 'Reals'.
+        <dd>restricts variables to $domain$, which can be 'Complexes' or 'Reals' or 'Integers'.
     </dl>
 
     >> Solve[x ^ 2 - 3 x == 4, x]
@@ -593,7 +648,9 @@ class Solve(Builtin):
      = {{x -> -1}, {x -> 1}}
     >> Solve[x^2 == -1, x, Complexes]
      = {{x -> -I}, {x -> I}}
-
+    >> Solve[4 - 4 * x^2 - x^4 + x^6 == 0, x, Integers]
+     = {{x -> -1}, {x -> 1}}
+     
     #> Solve[x^2 +1 == 0, x] // FullForm
      = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
 
@@ -636,6 +693,8 @@ class Solve(Builtin):
         'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
         'Solve[eqs_, vars_, Reals]': (
             'Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]'),
+        'Solve[eqs_, vars_, Integers]': (
+            'Cases[Solve[eqs, vars], {Rule[x_,y_?IntegerQ]}]'),
     }
 
     def apply(self, eqs, vars, evaluation):
@@ -702,7 +761,7 @@ class Solve(Builtin):
         def transform_dict(sols):
             if not sols:
                 yield sols
-            for var, sol in six.iteritems(sols):
+            for var, sol in sols.items():
                 rest = sols.copy()
                 del rest[var]
                 rest = transform_dict(rest)
@@ -772,7 +831,20 @@ class Solve(Builtin):
             if str(exc).startswith("expected Symbol, Function or Derivative"):
                 evaluation.message('Solve', 'ivar', vars_original)
 
+class Integers(Builtin):
+    """
+    <dl>
+    <dt>'Integers'
+        <dd>is the set of integer numbers.
+    </dl>
 
+    Limit a solution to integer numbers:
+    >> Solve[-4 - 4 x + x^4 + x^5 == 0, x, Integers]
+     = {{x -> -1}}
+    >> Solve[x^4 == 4, x, Integers]
+     = {}
+    """
+    
 class Reals(Builtin):
     """
     <dl>
@@ -815,12 +887,15 @@ class Limit(Builtin):
     >> Limit[1/x, x->0, Direction->1]
      = -Infinity
 
-    #> Limit[(1 + cos[x]) / x, x -> 0]
-     = Limit[(1 + cos[x]) / x, x -> 0]
-
     #> Limit[x, x -> x0, Direction -> x]
      : Value of Direction -> x should be -1 or 1.
      = Limit[x, x -> x0, Direction -> x]
+    """
+
+    """
+    The following test is currently causing PyPy to segfault...
+     #> Limit[(1 + cos[x]) / x, x -> 0]
+     = Limit[(1 + cos[x]) / x, x -> 0]
     """
 
     attributes = ('Listable',)
@@ -976,3 +1051,16 @@ class FindRoot(Builtin):
             evaluation.message('FindRoot', 'maxiter')
 
         return Expression('List', Expression('Rule', x, x0))
+
+def function_to_sympy_poly(f, evaluation):
+    if isinstance(f, Expression) and f.head == Symbol('System`Function'):
+        try:
+            body = f.leaves[0]
+            poly = body.replace_slots([None, Symbol('_1')], evaluation)
+
+            return poly.to_sympy()
+        except:
+            raise sympy.PolynomialError
+    else:
+        raise sympy.PolynomialError
+
