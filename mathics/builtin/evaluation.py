@@ -451,7 +451,7 @@ class Out(Builtin):
 class Exit(Builtin):
     '''
     <dl>
-    <dt>'Exit[]'
+    <dt>'Exit'
       <dd>terminates the Mathics session.
     <dt>'Exit[n]'
       <dd>terminates with exit code $n$.
@@ -461,18 +461,18 @@ class Exit(Builtin):
     '''
 
     def apply(self, evaluation):
-        'Exit[]'
-        sys.exit()
+        'Exit'
+        exit()
 
     def apply_n(self, n, evaluation):
         'Exit[n_Integer]'
-        sys.exit(n.get_int_value())
+        exit(n.get_int_value())
 
 
 class Quit(Builtin):
     '''
     <dl>
-    <dt>'Quit[]'
+    <dt>'Quit'
       <dd>terminates the Mathics session.
     <dt>'Quit[n]'
       <dd>terminates with exit code $n$.
@@ -483,5 +483,5 @@ class Quit(Builtin):
 
     rules = {
         'Quit[n_Integer]': 'Exit[n]',
-        'Quit[]': 'Exit[]',
+        'Quit': 'Exit',
     }
