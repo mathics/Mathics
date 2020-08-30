@@ -1,4 +1,4 @@
-// to install: npm install mathjax-node svg2png
+// to install: npm install -g mathjax-node svg2png
 
 try {
     function server(methods) {
@@ -72,7 +72,7 @@ try {
         server.listen(0);  // pick a free port
     }
 
-    var mathjax = require("mathjax-node/lib/mj-single.js");
+    var mathjax = require("mathjax-node");
     mathjax.config({
         MathJax: {
             // traditional MathJax configuration

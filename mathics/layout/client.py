@@ -4,9 +4,9 @@
 # Your installation of nodejs with the following packages: mathjax-node svg2png (install them using
 # npm).
 
-# Tips for installing nodejs on OS X:
-# see https://gist.github.com/DanHerbert/9520689
-# export NODE_PATH=/your/path/to/homebrew/bin/node_modules:$NODE_PATH
+# Tips for troubleshooting:
+# https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally
+# export NODE_PATH=$(npm root --quiet -g)
 
 import subprocess
 from subprocess import Popen
@@ -162,7 +162,7 @@ class WebEngine:
             server_path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)), 'server.js')
 
-            if True:
+            if False:
                 # fixes problems on Windows network drives
                 import tempfile
                 fd, copied_path = tempfile.mkstemp(suffix='js')
@@ -172,7 +172,12 @@ class WebEngine:
                 server_path = copied_path
 
             def abort(message):
-                error_text = 'Node.js failed to startup %s:\n\n' % server_path
+                error_text = '\n'.join([
+                    '',
+                    'Node.js failed to start Mathics server.',
+                    'You might need to run: npm install -g mathjax-node svg2png',
+                    '',
+                    ''])
                 raise WebEngineUnavailable(error_text + message)
 
             process = Popen(
@@ -192,7 +197,7 @@ class WebEngine:
                     error += '  ' + line
 
                 process.terminate()
-                abort(error + '\nPlease check Node.js modules and NODE_PATH')
+                abort(error)
 
             port = int(status[len(hello):])
         except OSError as e:
