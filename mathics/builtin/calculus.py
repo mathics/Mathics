@@ -573,11 +573,25 @@ class Root(SympyFunction):
 
     def to_sympy(self, expr, **kwargs):
         try:
-            f = expr.leaves[0].to_sympy(**kwargs)
-            i = expr.leaves[1].to_sympy(**kwargs)
-            return sympy.CRootOf(f, i)
-        except TypeError:
-            pass
+            if not expr.has_form('Root', 2):
+                return None
+
+            f = expr.leaves[0]
+
+            if not f.has_form('Function', 1):
+                return None
+
+            body = f.leaves[0].replace_slots([None, Symbol('_1')], None)
+            poly = body.to_sympy(**kwargs)
+
+            i = expr.leaves[1].get_int_value(**kwargs)
+            
+            if i is None:
+                return None
+
+            return sympy.CRootOf(poly, i)
+        except:
+            return None
 
 
 class Solve(Builtin):
