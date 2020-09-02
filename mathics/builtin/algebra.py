@@ -632,7 +632,7 @@ class Expand(_Expand):
 
     'Expand' expands trigonometric identities
     >> Expand[Sin[x + y], Trig -> True]
-     = Cos[y] Sin[x] + Cos[x] Sin[y]
+     = Cos[x] Sin[y] + Cos[y] Sin[x]
 
     'Expand' does not change any other expression.
     >> Expand[Sin[x (1 + y)]]
