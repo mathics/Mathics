@@ -46,7 +46,9 @@ tokens = [
     ('RawRightBrace', r' \} '),
     ('RawLeftParenthesis', r' \( '),
     ('RawRightParenthesis', r' \) '),
-
+    ('RawLeftAssociation', r' \<\| '),
+    ('RawRightAssociation', r' \|\> '),     
+    
     ('RawComma', r' \, '),
 
     ('Span', r' \;\; '),
@@ -226,7 +228,7 @@ literal_tokens = {
           'Postfix', 'TagSet', 'Condition', 'Divide'],
     ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
     ';': ['Span', 'Semicolon'],
-    '<': ['UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
+    '<': ['RawLeftAssociation', 'UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
     '?': ['PatternTest'],
@@ -239,7 +241,7 @@ literal_tokens = {
     '^': ['UpSetDelayed', 'UpSet', 'Power'],
     '_': ['Pattern'],
     '`': ['Pattern', 'Symbol'],
-    '|': ['Or', 'Alternatives'],
+    '|': ['RawRightAssociation', 'Or', 'Alternatives'],
     '{': ['RawLeftBrace'],
     '}': ['RawRightBrace'],
     '~': ['StringExpression', 'Infix']
