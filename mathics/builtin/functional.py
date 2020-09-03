@@ -62,6 +62,7 @@ class Function(PostfixOperator):
         'slot': "`1` should contain a positive integer.",
         'slotn': "Slot number `1` cannot be filled.",
         'fpct': "Too many parameters to be filled.",
+        'iassoc': "Invalid association item `1`"
     }
 
     def apply_slots(self, body, args, evaluation):
