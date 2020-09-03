@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import sys
 import random
@@ -13,8 +11,6 @@ from mathics.core.parser.ast import Node, Symbol, Number, String, Filename
 from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.parser.parser import Parser
 
-import six
-
 
 class ParserTests(unittest.TestCase):
     def setUp(self):
@@ -24,9 +20,9 @@ class ParserTests(unittest.TestCase):
         return self.parser.parse(SingleLineFeeder(s))
 
     def check(self, expr1, expr2):
-        if isinstance(expr1, six.string_types):
+        if isinstance(expr1, str):
             expr1 = self.parse(expr1)
-        if isinstance(expr2, six.string_types):
+        if isinstance(expr2, str):
             expr2 = self.parse(expr2)
 
         if expr1 is None:
@@ -347,6 +343,9 @@ class GeneralTests(ParserTests):
         self.check('{, a, b}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b')))
         self.check('{,a,b,}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b'), Symbol('Null')))
 
+    def testAssociation(self):
+        self.check('<|x -> m|>', Node('Association', Node('Rule', Symbol('x'), Symbol('m'))))
+        
     def testSequence(self):
         self.check('Sin[x, y]', Node('Sin', Symbol('x'), Symbol('y')))
 

@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
-from six.moves import range
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)

@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
 import mpmath
-from six.moves import range
 
 
 def sympy_factor(expr_sympy):
@@ -49,8 +46,45 @@ def cancel(expr):
 
 def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
+    def _expand(expr):
+        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
+
     if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
         return Integer(0)
+
+    # A special case for trigonometric functions
+    if 'trig' in kwargs and kwargs['trig']:
+        if expr.has_form('Sin', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times', 
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times', 
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, b)
+
+        elif expr.has_form('Cos', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times',
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times',
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, -b)
 
     sub_exprs = []
 
@@ -94,9 +128,6 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
             return Expression(expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()])
 
     sympy_expr = convert_sympy(expr)
-
-    def _expand(expr):
-        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
 
     if deep:
         # thread over everything
@@ -176,6 +207,30 @@ def find_all_vars(expr):
             find_vars(e, e_sympy)
 
     return variables
+
+
+def find_exponents(expr, var):
+    """
+    Find all exponents of var in expr
+    """
+    f = expr.to_sympy()
+    x = var.to_sympy()
+    if f is None or x is None:
+        return {0}
+    
+    result = set()
+    for t in f.expand(power_exp=False).as_ordered_terms():
+        coeff, exponent = t.as_coeff_exponent(x)
+        if exponent:
+            result.add(from_sympy(exponent))
+        else:
+            # find exponent of terms multiplied with functions: sin, cos, log, exp, ...
+            # e.g: x^3 * Sin[x^2] should give 3
+            muls = [term.as_coeff_mul(x)[1] if term.as_coeff_mul(x)[1] else (sympy.Integer(0),)
+                    for term in coeff.as_ordered_terms()]
+            expos = [term.as_coeff_exponent(x)[1] for mul in muls for term in mul]
+            result.add(from_sympy(sympy.Max(*[e for e in expos])))
+    return sorted(result)
 
 
 class Cancel(Builtin):
@@ -312,6 +367,155 @@ class Factor(Builtin):
         return from_sympy(result)
 
 
+class FactorTermsList(Builtin):
+    """
+    <dl>
+    <dt>'FactorTermsList[poly]'
+        <dd>returns a list of 2 elements.
+        The first element is the numerical factor in $poly$.
+        The second one is the remaining of the polynomial with numerical factor removed
+    <dt>'FactorTermsList[poly, {x1, x2, ...}]'
+        <dd>returns a list of factors in $poly$.
+        The first element is the numerical factor in $poly$.
+        The next ones are factors that are independent of variables lists which
+        are created by removing each variable $xi$ from right to left.
+        The last one is the remaining of polynomial after dividing $poly$ to all previous factors
+    </dl>
+
+    >> FactorTermsList[2 x^2 - 2]
+     = {2, -1 + x ^ 2}
+    >> FactorTermsList[x^2 - 2 x + 1]
+     = {1, 1 - 2 x + x ^ 2}
+    #> FactorTermsList[2 x^2 - 2, x]
+     = {2, 1, -1 + x ^ 2}
+    
+    >> f = 3 (-1 + 2 x) (-1 + y) (1 - a)
+     = 3 (-1 + 2 x) (-1 + y) (1 - a)
+    >> FactorTermsList[f]
+     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+    >> FactorTermsList[f, x]
+     = {-3, 1 - a - y + a y, -1 + 2 x}
+    #> FactorTermsList[f, y]
+     = {-3, 1 - a - 2 x + 2 a x, -1 + y}
+    >> FactorTermsList[f, {x, y}]
+     = {-3, -1 + a, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, {y, x}]
+     = {-3, -1 + a, -1 + 2 x, -1 + y}
+    #> FactorTermsList[f, {x, y, z}]
+     = {-3, -1 + a, 1, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, {x, y, z, t}]
+     = {-3, -1 + a, 1, 1, -1 + y, -1 + 2 x}
+    #> FactorTermsList[f, 3/5]
+     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+    #> FactorTermsList[f, {x, 3, y}]
+     = {-3, -1 + a, -1 + y, -1 + 2 x}
+    
+    #> FactorTermsList[f/c]
+     = {-3, -1 / c + a / c - 2 a x / c - a y / c + 2 x / c + y / c - 2 x y / c + 2 a x y / c}
+    #> FactorTermsList[f/c, x] == FactorTermsList[f/c, {x, y}]
+     = True
+    
+    #> g = Sin[x]*Cos[y]*(1 - 2 a)
+     = Cos[y] (1 - 2 a) Sin[x]
+    #> FactorTermsList[g]
+     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
+    #> FactorTermsList[g, x]
+     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
+    #> FactorTermsList[g, x] == FactorTermsList[g, y] == FactorTermsList[g, {x, y}]
+     = True
+    
+    #> v = 3 * y * (1 - b) a^x
+     = 3 y (1 - b) a ^ x
+    #> FactorTermsList[v]
+     = {-3, -y a ^ x + b y a ^ x}
+    #> FactorTermsList[v, x]
+     = {-3, -y a ^ x + b y a ^ x}
+    #> FactorTermsList[v, y]
+     = {-3, b a ^ x - a ^ x, y}
+    
+    #> FactorTermsList[7]
+     = {7, 1}
+    #> FactorTermsList[0]
+     = {1, 0}
+    #> FactorTermsList[-3]
+     = {-3, 1}
+    #> FactorTermsList[7, {y, x}]
+     = {7, 1}
+    #> FactorTermsList[7, x]
+     = {7, 1}
+    #> FactorTermsList[7 - I, x]
+     = {7 - I, 1}
+    #> FactorTermsList[(x - 1) (1 + a), {c, d}]
+     = {1, -1 - a + x + a x}
+    #> FactorTermsList[(x - 1) (1 + a), {c, x}]
+     = {1, 1 + a, -1 + x, 1}
+    #> FactorTermsList[(x - 1) (1 + a), {}] == FactorTermsList[(x - 1) (1 + a)]
+     = True
+    
+    #> FactorTermsList[x]
+     = {1, x}
+    #> FactorTermsList["x"]
+     = {1, x}
+    """
+    
+    rules = {
+        'FactorTermsList[expr_]': 'FactorTermsList[expr, {}]',
+        'FactorTermsList[expr_, var_]': 'FactorTermsList[expr, {var}]',
+    }
+    
+    messages = {
+        # 'poly': '`1` is not a polynomial.',
+        'ivar': '`1` is not a valid variable.',
+    }
+    
+    def apply_list(self, expr, vars, evaluation):
+        'FactorTermsList[expr_, vars_List]'
+        if expr == Integer(0):
+            return Expression('List', Integer(1), Integer(0))
+        elif isinstance(expr, Number):
+            return Expression('List', expr, Integer(1))
+        
+        for x in vars.leaves:
+            if not(isinstance(x, Atom)):
+                return evaluation.message('CoefficientList', 'ivar', x)
+        
+        sympy_expr = expr.to_sympy()
+        if sympy_expr is None:
+            return Expression('List', Integer(1), expr)
+        sympy_expr = sympy.together(sympy_expr)
+        
+        sympy_vars = [x.to_sympy() for x in vars.leaves if isinstance(x, Symbol) and sympy_expr.is_polynomial(x.to_sympy())]
+        
+        result = []
+        numer, denom = sympy_expr.as_numer_denom()
+        try:
+            if denom == 1:
+                # Get numerical part
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
+                result.append(num_coeff)
+                
+                # Get factors are independent of sub list of variables
+                if (sympy_vars and isinstance(expr, Expression) 
+                    and any(x.free_symbols.issubset(sympy_expr.free_symbols) for x in sympy_vars)):
+                    for i in reversed(range(len(sympy_vars))):
+                        numer = sympy.factor(numer) / sympy.factor(num_coeff)
+                        num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer), *[x for x in sympy_vars[:(i+1)]])
+                        result.append(sympy.expand(num_coeff))
+                
+                # Last factor
+                numer = sympy.factor(numer) / sympy.factor(num_coeff)
+                result.append(sympy.expand(numer))
+            else:
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
+                den_coeff, den_polys = sympy.factor_list(sympy.Poly(denom))
+                result = [num_coeff / den_coeff, sympy.expand(sympy.factor(numer)/num_coeff / (sympy.factor(denom)/den_coeff))]
+        except sympy.PolynomialError: # MMA does not raise error for non poly
+            result.append(sympy.expand(numer))
+            # evaluation.message(self.get_name(), 'poly', expr)
+        
+        return Expression('List', *[from_sympy(i) for i in result])
+
+
 class Apart(Builtin):
     """
     <dl>
@@ -405,7 +609,8 @@ class Expand(_Expand):
     """
     <dl>
     <dt>'Expand[$expr$]'
-        <dd>expands out positive integer powers and products of sums in $expr$.
+        <dd>expands out positive integer powers and products of sums in $expr$,
+        as well as trigonometric identities.
     </dl>
 
     >> Expand[(x + y) ^ 3]
@@ -424,6 +629,10 @@ class Expand(_Expand):
     'Expand' expands items in lists and rules:
     >> Expand[{4 (x + y), 2 (x + y) -> 4 (x + y)}]
      = {4 x + 4 y, 2 x + 2 y -> 4 x + 4 y}
+
+    'Expand' expands trigonometric identities
+    >> Expand[Sin[x + y], Trig -> True]
+     = Cos[x] Sin[y] + Cos[y] Sin[x]
 
     'Expand' does not change any other expression.
     >> Expand[Sin[x (1 + y)]]
@@ -453,18 +662,13 @@ class Expand(_Expand):
      = 24 x / (5 + 3 x + x ^ 2) ^ 3 + 8 x ^ 2 / (5 + 3 x + x ^ 2) ^ 3 + 18 / (5 + 3 x + x ^ 2) ^ 3
     """
 
-    # TODO unwrap trig expressions in expand() so the following works
-    """
-    >> Expand[Sin[x + y], Trig -> True]
-     = Cos[y] Sin[x] + Cos[x] Sin[y]
-    """
-
     def apply(self, expr, evaluation, options):
         'Expand[expr_, OptionsPattern[Expand]]'
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
             return
+
         return expand(expr, True, False, **kwargs)
 
 
@@ -704,7 +908,7 @@ class MinimalPolynomial(Builtin):
         sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
         if sympy_s is None or sympy_x is None:
             return None
-        sympy_result = sympy.minimal_polynomial(sympy_s, sympy_x)
+        sympy_result = sympy.minimal_polynomial(sympy_s, polys=True)(sympy_x)
         return from_sympy(sympy_result)
 
 
@@ -1030,7 +1234,7 @@ class CoefficientList(Builtin):
             else:
                 def _nth(poly, dims, exponents):
                     if not dims:
-                        return from_sympy(poly.nth(*[i for i in exponents]))
+                        return from_sympy(poly.coeff_monomial(exponents))
                     
                     result = Expression('List')
                     first_dim = dims[0]
@@ -1044,5 +1248,98 @@ class CoefficientList(Builtin):
                 return _nth(sympy_poly, dimensions, [])
         except sympy.PolificationFailed:
             return evaluation.message('CoefficientList', 'poly', expr)
+
+
+class Exponent(Builtin):
+    """
+    <dl>
+    <dt>'Exponent[expr, form]'
+        <dd>returns the maximum power with which $form$ appears in the expanded form of $expr$.
+    <dt>'Exponent[expr, form, h]'
+        <dd>applies $h$ to the set of exponents with which $form$ appears in $expr$.
+    </dl>
+
+    >> Exponent[5 x^2 - 3 x + 7, x]
+     = 2
+    #> Exponent[5 x^2 - 3 x + 7, x, List]
+     = {0, 1, 2}
+    >> Exponent[(x^3 + 1)^2 + 1, x]
+     = 6
+    #> Exponent[(x^3 + 1)^2 + 1, x, List]
+     = {0, 3, 6}
+    #> Exponent[Sqrt[I + Sqrt[6]], x]
+     = 0
+    >> Exponent[x^(n + 1) + Sqrt[x] + 1, x]
+     = Max[1 / 2, 1 + n]
+    #> Exponent[x^(n + 1) + Sqrt[x] + 1, x, List]
+     = {0, 1 / 2, 1 + n}
+    #> Exponent[(x + y)^n - 1, x, List]
+     = {0}
+    #> Exponent[(x + 3 y)^5, x*y^4]
+     = 0
+    >> Exponent[x / y, y]
+     = -1
+    
+    >> Exponent[(x^2 + 1)^3 - 1, x, Min]
+     = 2
+    #> Exponent[(x^2 + 1)^3 - 1, x, List]
+     = {2, 4, 6}
+    >> Exponent[1 - 2 x^2 + a x^3, x, List]
+     = {0, 2, 3}
+    #> Exponent[(x + 1) + (x + 1)^2, x, List]
+     = {0, 1, 2}
+    
+    #> Exponent[(x + 3 y  - 2 z)^3 * (5 y + z), {x, y}, List]
+     = {{0, 1, 2, 3}, {0, 1, 2, 3, 4}}
+    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {"x", "y"}, List]
+     = {{0}, {0}}
+    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {}]
+     = {}
+    #> Exponent[x^a + b y^3 + c x + 2 y^e + 5, {x, y}, List]
+     = {{0, 1, a}, {0, 3, e}}
+    #> Exponent[x^2 / y^3, {x, y}]
+     = {2, -3}
+    #> Exponent[(x + 2)/(y - 3) + (x + 3)/(y - 2), {x, y, z}, List]
+     = {{0, 1}, {0}, {0}}
+    #> Exponent[x + 6 x^3 y^2 - 3/((x^2) (y^2)), {x, y}, List]
+     = {{-2, 1, 3}, {-2, 0, 2}}
+    #> Exponent[x^5 Sin[x^2] + x * x^3 Cos[x], x, List]
+     = {4, 5}
+    #> Exponent[x^5 Sin[x^2] + y Cos[y^2] + Log[x^3] + 6 y^4, {x, y}, List]
+     = {{0, 5}, {0, 1, 4}}
+     
+    >> Exponent[0, x]
+     = -Infinity
+    >> Exponent[1, x]
+     = 0
+     
+    ## errors:
+    #> Exponent[x^2]
+     : Exponent called with 1 argument; 2 or 3 arguments are expected.
+     = Exponent[x ^ 2]
+    """
+    
+    messages = {
+        'argtu': 'Exponent called with `1` argument; 2 or 3 arguments are expected.',
+    }
+    
+    rules = {
+        'Exponent[expr_, form_]': 'Exponent[expr, form, Max]',
+    }
+    
+    def apply_novar(self, expr, evaluation):
+        'Exponent[expr_]'
+        return evaluation.message('Exponent', 'argtu', Integer(1))
+    
+    def apply(self, expr, form, h, evaluation):
+        'Exponent[expr_, form_, h_]'
+        if expr == Integer(0):
+            return Expression('DirectedInfinity', Integer(-1))
         
+        if not form.has_form('List', None):
+            return Expression(h, *[i for i in find_exponents(expr, form)])
+        else:
+            exponents = [find_exponents(expr, var) for var in form.leaves]
+            return Expression('List', *[Expression(h, *[i for i in s]) for s in exponents])
+
 

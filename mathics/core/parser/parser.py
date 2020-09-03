@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import string
 
@@ -33,7 +31,7 @@ class Parser(object):
     def __init__(self):
         # no implicit times on these tokens
         self.halt_tags = set([
-            'END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace',
+            'END', 'RawRightAssociation', 'RawRightParenthesis', 'RawComma', 'RawRightBrace',
             'RawRightBracket', 'RawColon', 'DifferentialD'])
 
     def parse(self, feeder):
@@ -168,7 +166,7 @@ class Parser(object):
                 self.tokeniser.feeder.message('Syntax', 'com')
                 result.append(Symbol('Null'))
                 self.consume()
-            elif tag in ('RawRightBrace', 'RawRightBracket'):
+            elif tag in ('RawRightAssociation', 'RawRightBrace', 'RawRightBracket'):
                 if result:
                     self.tokeniser.feeder.message('Syntax', 'com')
                     result.append(Symbol('Null'))
@@ -180,7 +178,7 @@ class Parser(object):
                 if tag == 'RawComma':
                     self.consume()
                     continue
-                elif tag in ('RawRightBrace', 'RawRightBracket'):
+                elif tag in ('RawRightAssociation', 'RawRightBrace', 'RawRightBracket'):
                     break
         return result
 
@@ -271,6 +269,14 @@ class Parser(object):
         self.bracket_depth -= 1
         return Node('List', *seq)
 
+    def p_RawLeftAssociation(self, token):
+        self.consume()
+        self.bracket_depth += 1
+        seq = self.parse_seq()
+        self.expect('RawRightAssociation')
+        self.bracket_depth -= 1
+        return Node('Association', *seq)
+    
     def p_LeftRowBox(self, token):
         self.consume()
         children = []

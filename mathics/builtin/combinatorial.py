@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 
@@ -81,7 +79,7 @@ class Multinomial(Builtin):
      = 1
     Multinomial is expressed in terms of 'Binomial':
     >> Multinomial[a, b, c]
-     = Binomial[a + b, b] Binomial[a + b + c, c]
+     = Binomial[a, a] Binomial[a + b, b] Binomial[a + b + c, c]
     'Multinomial[$n$-$k$, $k$]' is equivalent to 'Binomial[$n$, $k$]'.
     >> Multinomial[2, 3]
      = 10

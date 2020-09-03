@@ -5,11 +5,7 @@
 Control statements
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six.moves import zip
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
@@ -622,7 +618,22 @@ class Abort(Builtin):
 
         raise AbortInterrupt
 
+class Interrupt(Builtin):
+    """
+    <dl>
+    <dt>'Interrupt[]'
+        <dd>Interrupt an evaluation and returns '$Aborted'.
+    </dl>
+    >> Print["a"]; Interrupt[]; Print["b"]
+     | a
+     = $Aborted
+    """
 
+    def apply(self, evaluation):
+        'Interrupt[]'
+
+        raise AbortInterrupt
+    
 class Return(Builtin):
     '''
     <dl>

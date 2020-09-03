@@ -259,7 +259,7 @@ class _SpacyBuiltin(Builtin):
         vocab = nlp.vocab
 
         def is_stop(word):
-            return vocab[word].is_stop
+            return vocab[word.lower()].is_stop
 
         return is_stop
 
@@ -420,7 +420,7 @@ class WordFrequency(_SpacyBuiltin):
     $word$ may also specify multiple words using $a$ | $b$ | ...
 
     >> WordFrequency[Import["ExampleData/EinsteinSzilLetter.txt"], "a" | "the"]
-     = 0.0667702
+     = 0.0665635
 
     >> WordFrequency["Apple Tree", "apple", IgnoreCase -> True]
      = 0.5
@@ -537,22 +537,22 @@ class TextCases(_SpacyBuiltin):
     >> TextCases["I was in London last year.", "City"]
      = {London}
 
-    >> TextCases[Import["ExampleData/EinsteinSzilLetter.txt"], "Person", 3]
-     = {Albert Einstein, E. Fermi, L. Szilard}
+    >> TextCases[Import["ExampleData/EinsteinSzilLetter.txt"], "Person", 4]
+     = {Albert Einstein, F. D. Roosevelt, E. Fermi, L. Szilard}
     """
 
     def apply(self, text, form, evaluation, options):
-        'TextCases[text_String, form_,  OptionsPattern[%(name)s]]'
+        'TextCases[text_String, form_, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return Expression('List', *[t.text for t in _cases(doc, form)])
+            return Expression('List', *[t.text.strip() for t in _cases(doc, form)])
 
     def apply_n(self, text, form, n, evaluation, options):
-        'TextCases[text_String, form_, n_Integer,  OptionsPattern[%(name)s]]'
+        'TextCases[text_String, form_, n_Integer, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
             return Expression('List', *itertools.islice(
-                (t.text for t in _cases(doc, form)), n.get_int_value()))
+                (t.text.strip() for t in _cases(doc, form)), n.get_int_value()))
 
 
 class TextPosition(_SpacyBuiltin):
@@ -562,8 +562,8 @@ class TextPosition(_SpacyBuiltin):
       <dd>returns the positions of elements of type $form$ in $text$ in order of their appearance.
     </dl>
 
-    >> TextPosition["Liverpool and Manchester are two English cities.", "City"]
-     = {{1, 9}, {15, 24}}
+    >> TextPosition["Liverpool and London are two English cities.", "City"]
+     = {{1, 9}, {15, 20}}
     """
 
     def apply(self, text, form, evaluation, options):
@@ -647,14 +647,23 @@ class WordSimilarity(_SpacyBuiltin):
       <dd>returns a measure of similarity of multiple words within two texts.
     </dl>
 
-    >> NumberForm[WordSimilarity["car", "train"], 3]
+    X> NumberForm[WordSimilarity["car", "train"], 3]
      = 0.5
 
-    >> NumberForm[WordSimilarity["car", "hedgehog"], 3]
+    X> NumberForm[WordSimilarity["car", "hedgehog"], 3]
      = 0.368
 
-    >> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
+    X> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
      = {0.253, 0.177}
+
+    #> WordSimilarity["car", "train"] > 0
+     = True
+
+    #> WordSimilarity["car", "hedgehog"] < WordSimilarity["car", "train"]
+     = True
+
+    #> Head @ WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}]
+     = List
     """
 
     messages = _merge_dictionaries(_SpacyBuiltin.messages, {
@@ -703,7 +712,7 @@ class WordSimilarity(_SpacyBuiltin):
                             evaluation.message('TextSimilarity', 'txtidx', i, pos, len(doc))
                             return
 
-                result = [Real(doc1[j1 - 1].similarity(doc2[j2 - 1])) for j1, j2 in zip(indices1, indices2)]
+                result = [Real(float(doc1[j1 - 1].similarity(doc2[j2 - 1]))) for j1, j2 in zip(indices1, indices2)]
 
                 if multiple:
                     return Expression('List', *result)
@@ -1343,7 +1352,7 @@ class SpellingCorrectionList(Builtin):
     Results may differ depending on which dictionaries can be found by enchant.
 
     >> SpellingCorrectionList["hipopotamus"]
-     = {hippopotamus, hypothalamus...}
+     = {hippopotamus...}
     '''
 
     requires = (

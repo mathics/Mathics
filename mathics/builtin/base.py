@@ -1,32 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import re
 import sympy
 from functools import total_ordering
 import importlib
 from itertools import chain
 
+import typing
+from typing import Any, cast
+
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      String, Integer, ensure_context,
                                      strip_context)
-import six
 
 
 class Builtin(object):
-    name = None
+    name: typing.Optional[str] = None
     context = 'System`'
     abstract = False
-    attributes = ()
-    rules = {}
-    formats = {}
-    messages = {}
-    options = {}
+    attributes: typing.Tuple[Any, ...] = ()
+    rules: typing.Dict[str, Any] = {}
+    formats: typing.Dict[str, Any] = {}
+    messages: typing.Dict[str, Any] = {}
+    options: typing.Dict[str, Any] = {}
     defaults = {}
 
     def __new__(cls, *args, **kwargs):
@@ -79,7 +78,7 @@ class Builtin(object):
                 return '' if f == '' else ensure_context(f)
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
-                if isinstance(forms, six.string_types):
+                if isinstance(forms, str):
                     forms = [contextify_form_name(forms)]
                 else:
                     forms = [contextify_form_name(f) for f in forms]
@@ -119,7 +118,7 @@ class Builtin(object):
             attributes = ['System`Protected']
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
-        for option, value in six.iteritems(self.options):
+        for option, value in self.options.items():
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
             if option.startswith('System`'):
@@ -130,7 +129,7 @@ class Builtin(object):
                     definitions.builtin[option] = Definition(
                         name=name, attributes=set())
         defaults = []
-        for spec, value in six.iteritems(self.defaults):
+        for spec, value in self.defaults.items():
             value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
@@ -150,7 +149,7 @@ class Builtin(object):
             makeboxes_def.add_rule(rule)
 
     @classmethod
-    def get_name(cls, short=False):
+    def get_name(cls, short=False) -> str:
         if cls.name is None:
             shortname = cls.__name__
         else:
@@ -159,10 +158,10 @@ class Builtin(object):
             return shortname
         return cls.context + shortname
 
-    def get_operator(self):
+    def get_operator(self) -> typing.Optional[str]:
         return None
 
-    def get_operator_display(self):
+    def get_operator_display(self) -> typing.Optional[str]:
         return None
 
     def get_functions(self, prefix='apply'):
@@ -271,23 +270,23 @@ class AtomBuiltin(Builtin):
     # which are by default not in the definitions' contribution pipeline.
     # see Image[] for an example of this.
 
-    def get_name(self):
+    def get_name(self) -> str:
         name = super(AtomBuiltin, self).get_name()
         return re.sub(r"Atom$", "", name)
 
 
 class Operator(Builtin):
-    operator = None
-    precedence = None
+    operator: typing.Optional[str] = None
+    precedence: typing.Optional[int] = None
     precedence_parse = None
     needs_verbatim = False
 
     default_formats = True
 
-    def get_operator(self):
+    def get_operator(self) -> typing.Optional[str]:
         return self.operator
 
-    def get_operator_display(self):
+    def get_operator_display(self) -> typing.Optional[str]:
         if hasattr(self, 'operator_display'):
             return self.operator_display
         else:
@@ -366,7 +365,7 @@ class BinaryOperator(Operator):
 
 
 class Test(Builtin):
-    def apply(self, expr, evaluation):
+    def apply(self, expr, evaluation) -> Symbol:
         '%(name)s[expr_]'
 
         if self.test(expr):
@@ -376,17 +375,17 @@ class Test(Builtin):
 
 
 class SympyObject(Builtin):
-    sympy_name = None
+    sympy_name: typing.Optional[str] = None
 
     def __init__(self, *args, **kwargs):
         super(SympyObject, self).__init__(*args, **kwargs)
         if self.sympy_name is None:
             self.sympy_name = strip_context(self.get_name()).lower()
 
-    def is_constant(self):
+    def is_constant(self) -> bool:
         return False
 
-    def get_sympy_names(self):
+    def get_sympy_names(self) -> typing.List[str]:
         if self.sympy_name:
             return [self.sympy_name]
         return []
@@ -423,7 +422,7 @@ class SympyFunction(SympyObject):
 class SympyConstant(SympyObject, Predefined):
     attributes = ('Constant', 'ReadProtected')
 
-    def is_constant(self):
+    def is_constant(self) -> bool:
         # free Symbol will be converted to corresponding SymPy symbol
         return True
 
@@ -463,13 +462,13 @@ class BoxConstruct(Builtin):
         default.update(options)
         return default
 
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves, **options) -> str:
         raise BoxConstructError
 
 
@@ -486,7 +485,7 @@ class PatternArgumentError(PatternError):
 class PatternObject(InstancableBuiltin, Pattern):
     needs_verbatim = True
 
-    arg_counts = []
+    arg_counts: typing.List[int] = []
 
     def init(self, expr):
         super(PatternObject, self).init(expr)
@@ -503,10 +502,10 @@ class PatternObject(InstancableBuiltin, Pattern):
     def error_args(self, count, *expected):
         raise PatternArgumentError(self.get_name(), count, *expected)
 
-    def get_lookup_name(self):
+    def get_lookup_name(self) -> str:
         return self.get_name()
 
-    def get_head_name(self):
+    def get_head_name(self) -> str:
         return self.get_name()
 
     def get_sort_key(self, pattern_sort=False):
@@ -546,6 +545,9 @@ class CountableInteger:
     # up in UpTo's parameter error messages as supported option; it would make
     # perfect sense. currently, we stick with MMA's current behaviour and set
     # _support_infinity to False.
+    _finite: bool
+    _upper_limit: bool
+    _integer: typing.Union[str, int]
     _support_infinity = False
 
     def __init__(self, value='Infinity', upper_limit=True):
@@ -558,32 +560,32 @@ class CountableInteger:
             self._integer = None
         self._upper_limit = upper_limit
 
-    def is_upper_limit(self):
+    def is_upper_limit(self) -> bool:
         return self._upper_limit
 
-    def get_int_value(self):
+    def get_int_value(self) -> int:
         assert self._finite
-        return self._integer
+        return cast(int, self._integer)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, CountableInteger):
             if self._finite:
-                return other._finite and self._integer == other._integer
+                return other._finite and cast(int, self._integer) == other._integer
             else:
                 return not other._finite
         elif isinstance(other, int):
-            return self._finite and self._integer == other
+            return self._finite and cast(int, self._integer) == other
         else:
             return False
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if isinstance(other, CountableInteger):
             if self._finite:
-                return other._finite and self._integer < other._value
+                return other._finite and cast(int, self._integer) < cast(int, other._integer)
             else:
                 return False
         elif isinstance(other, int):
-            return self._finite and self._integer < other
+            return self._finite and cast(int, self._integer) < other
         else:
             return False
 

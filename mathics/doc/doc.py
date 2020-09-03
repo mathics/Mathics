@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import re
 from os import listdir, path
 import pickle
@@ -18,9 +15,6 @@ from mathics import builtin
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
-
-import six
-from six.moves import range
 
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
@@ -266,7 +260,7 @@ def escape_latex(text):
     text = SUBSECTION_RE.sub(repl_subsection, text)
     text = SUBSECTION_END_RE.sub('', text)
 
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         # "\" has been escaped already => 2 \
         text = text.replace('\\\\' + key, tex)
 
@@ -512,7 +506,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = '<code>%s</code>' % text
     text = text.replace("'", '&#39;')
     text = text.replace('---', '&mdash;')
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         text = text.replace('\\' + key, xml)
 
     if not single_line:
@@ -847,7 +841,8 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                tests.tests.append(test)
+                if not test.ignore:
+                    tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
@@ -923,12 +918,31 @@ class DocTests(object):
 
 
 class DocTest(object):
+    """
+    DocTest formatting rules:
+
+    #> signifies private test that does not appear as part of the documentation
+    X> outputs the docs as normal, but the test is not run
+    = compares the result text
+    : compares an (error) Message
+    | signifies Print outpt
+    """
     def __init__(self, index, testcase):
         self.index = index
-        self.test = testcase[1].strip()
         self.result = None
         self.outs = []
+        # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
+        # Ignored test cases are NOT executed, but shown as part of the docs
+        if testcase[0] == 'X':
+            self.ignore = True
+            # substitute '>' again so we get the correct formatting
+            testcase[0] = '>'
+        else:
+            self.ignore = False
+
+        self.test = testcase[1].strip()
+
         self.key = None
         outs = testcase[2].splitlines()
         for line in outs:
