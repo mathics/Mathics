@@ -1284,29 +1284,51 @@ class Expression(BaseExpression):
               for leaf in leaves])
 
     def replace_slots(self, slots, evaluation) -> 'Expression':
-        if self.head.get_name() == 'System`Slot':
-            if len(self.leaves) != 1:
-                evaluation.message_args('Slot', len(self.leaves), 1)
+        if not isinstance(slots, dict):
+            # If the user passes an explicit association
+            if len(slots) == 2 and slots[1].has_form('Association', None, ):
+                rules = slots[1]
+                slots = {0: slots[0]}
+
+                for rule in rules.leaves:
+                    if rule.has_form('Rule', 2):
+                        name, val = rule.leaves
+                        slots[name] = val
+                    else:
+                        evaluation.message('Function', 'iassoc', rules)
+
+            # If the users passes a list of values
             else:
-                slot = self.leaves[0].get_int_value()
-                if slot is None or slot < 0:
-                    evaluation.message('Function', 'slot', self.leaves[0])
-                elif slot > len(slots) - 1:
-                    evaluation.message('Function', 'slotn', slot)
-                else:
-                    return slots[int(slot)]
-        elif self.head.get_name() == 'System`SlotSequence':
+                slots = dict(enumerate(slots))
+
+        if self.has_form('Slot', 1):
+            slot = self.leaves[0]
+            int_slot = slot.get_int_value()
+            
+            if int_slot is not None:
+                slot = int_slot
+
+            if slot not in slots:
+                evaluation.message('Function', 'slotn', slot)
+                return self
+
+            return slots[slot]
+        elif self.has_form('SlotSequence', None, ):
             if len(self.leaves) != 1:
                 evaluation.message_args('SlotSequence', len(self.leaves), 1)
-            else:
-                slot = self.leaves[0].get_int_value()
-                if slot is None or slot < 1:
-                    evaluation.error('Function', 'slot', self.leaves[0])
+            
+            slot = self.leaves[0].get_int_value()
+
+            if slot is None or slot < 1:
+                evaluation.error('Function', 'slot', self.leaves[0])
+
+            slots = [slots[i] for i in slots if isinstance(slot, int)]
             return Expression('Sequence', *slots[slot:])
-        elif (self.head.get_name() == 'System`Function' and
-              len(self.leaves) == 1):
-            # do not replace Slots in nested Functions
+
+        elif self.has_form('Function', 1):
+            # Do not replace Slots in nested Functions
             return self
+
         return Expression(self.head.replace_slots(slots, evaluation),
                           *[leaf.replace_slots(slots, evaluation)
                             for leaf in self.leaves])
