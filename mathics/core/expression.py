@@ -1303,7 +1303,10 @@ class Expression(BaseExpression):
 
         if self.has_form('Slot', 1):
             slot = self.leaves[0]
-            slot = slot.get_int_value() or slot
+            int_slot = slot.get_int_value()
+            
+            if int_slot is not None:
+                slot = int_slot
 
             if slot not in slots:
                 evaluation.message('Function', 'slotn', slot)
