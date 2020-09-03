@@ -550,7 +550,7 @@ class Root(SympyFunction):
                 raise sympy.PolynomialError
 
             body = f.leaves[0]
-            poly = body.replace_slots([None, Symbol('_1')], evaluation)
+            poly = body.replace_slots([f, Symbol('_1')], evaluation)
             idx = i.to_sympy() - 1
 
             # Check for negative indeces (they are not allowed in Mathematica)
@@ -581,7 +581,7 @@ class Root(SympyFunction):
             if not f.has_form('Function', 1):
                 return None
 
-            body = f.leaves[0].replace_slots([None, Symbol('_1')], None)
+            body = f.leaves[0].replace_slots([f, Symbol('_1')], None)
             poly = body.to_sympy(**kwargs)
 
             i = expr.leaves[1].get_int_value(**kwargs)
