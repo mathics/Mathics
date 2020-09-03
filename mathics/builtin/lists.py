@@ -30,7 +30,6 @@ import heapq
 from collections import defaultdict
 import functools
 
-
 class List(Builtin):
     """
     <dl>
@@ -279,6 +278,39 @@ def set_part(list, indices, new):
 
     rec(list, indices)
 
+def set_sequence(list, indices):
+    "Replace a part to Sequence. indices must be a list of python integers. "
+
+    def sequence(cur, rest):
+        if len(rest) > 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    part = cur.leaves[pos - 1]
+                elif pos == 0:
+                    part = cur.head
+                else:
+                    part = cur.leaves[pos]
+            except IndexError:
+                raise PartRangeError
+            sequence(part, rest[1:])
+        elif len(rest) == 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    cur.leaves[pos - 1] = Expression('Sequence')
+                elif pos == 0:
+                    cur.head = Symbol('Sequence')
+                else:
+                    cur.leaves[pos] = Expression('Sequence')
+            except IndexError:
+                raise PartRangeError
+
+    sequence(list, indices)
 
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
@@ -4910,6 +4942,222 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+      
+        
+class SubsetQ(Builtin):
+    """
+    <dl>
+    <dt>'SubsetQ[$list1$, $list2$]'
+        <dd>returns True if $list2$ is a subset of $list1$, and False otherwise.
+    </dl>
+
+    >> SubsetQ[{1, 2, 3}, {3, 1}]
+     = True
+
+    The empty list is a subset of every list:
+    >> SubsetQ[{}, {}]
+     = True
+
+    >> SubsetQ[{1, 2, 3}, {}]
+     = True
+
+    Every list is a subset of itself:
+    >> SubsetQ[{1, 2, 3}, {1, 2, 3}]
+     = True
+
+    #> SubsetQ[{1, 2, 3}, {0, 1}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}, {1, 2, 3, 4}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}]
+     : SubsetQ called with 1 argument; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}]
+
+    #> SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+     : SubsetQ called with 3 arguments; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+
+    #> SubsetQ[a + b + c, {1}]
+     : Heads Plus and List at positions 1 and 2 are expected to be the same.
+     = SubsetQ[a + b + c, {1}]
+
+    #> SubsetQ[{1, 2, 3}, n]
+     : Nonatomic expression expected at position 2 in SubsetQ[{1, 2, 3}, n].
+     = SubsetQ[{1, 2, 3}, n]
+
+    #> SubsetQ[f[a, b, c], f[a]]
+     = True
+    """
+
+    messages = {
+        'argr': "SubsetQ called with 1 argument; 2 arguments are expected.",
+        'argrx': "SubsetQ called with `1` arguments; 2 arguments are expected.",
+        'heads': "Heads `1` and `2` at positions 1 and 2 are expected to be the same.",
+        'normal': "Nonatomic expression expected at position `1` in `2`.",
+    }
+
+    def apply(self, expr, subset, evaluation):
+        'SubsetQ[expr_, subset___]'
+
+        if expr.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(1), Expression('SubsetQ', expr, subset))
+
+        subset = subset.get_sequence()
+        if len(subset) > 1:
+            return evaluation.message('SubsetQ', 'argrx', Integer(len(subset) + 1))
+        elif len(subset) == 0:
+            return evaluation.message('SubsetQ', 'argr')
+
+        subset = subset[0]
+        if subset.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(2), Expression('SubsetQ', expr, subset))
+        if expr.get_head_name() != subset.get_head_name():
+            return evaluation.message('SubsetQ', 'heads', expr.get_head(), subset.get_head())
+
+        if set(subset.leaves).issubset(set(expr.leaves)):
+            return Symbol('True')
+        else:
+            return Symbol('False')
+        
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $i$]'
+        <dd>deletes the element at position $i$ in $expr$. The position is counted from the end if $i$ is negative.
+    <dt>'Delete[$expr$, {$m$, $n$, ...}]'
+        <dd>deletes the element at position {$m$, $n$, ...}.
+    <dt>'Delete[$expr$, {{$m1$, $n1$, ...}, {$m2$, $n2$, ...}, ...}]'
+        <dd>deletes the elements at several positions.
+    </dl>
+
+    Delete the element at position 3:
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+
+    Delete at position 2 from the end:
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+
+    Delete at positions 1 and 3:
+    >> Delete[{a, b, c, d}, {{1}, {3}}]
+     = {b, d}
+
+    Delete in a 2D array:
+    >> Delete[{{a, b}, {c, d}}, {2, 1}]
+     = {{a, b}, {d}}
+
+    Deleting the head of a whole expression gives a Sequence object:
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    Delete in an expression with any head:
+    >> Delete[f[a, b, c, d], 3]
+     = f[a, b, d]
+
+    Delete a head to splice in its arguments:
+    >> Delete[f[a, b, u + v, c], {3, 0}]
+     = f[a, b, u, v, c]
+
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    #> Delete[1 + x ^ (a + b + c), {2, 2, 3}]
+     = 1 + x ^ (a + b)
+
+    #> Delete[f[a, g[b, c], d], {{2}, {2, 1}}]
+     = f[a, d]
+
+    #> Delete[f[a, g[b, c], d], m + n]
+     : The expression m + n cannot be used as a part specification. Use Key[m + n] instead.
+     = Delete[f[a, g[b, c], d], m + n]
+
+    Delete without the position:
+    >> Delete[{a, b, c, d}]
+     : Delete called with 1 argument; 2 arguments are expected.
+     = Delete[{a, b, c, d}]
+
+    Delete with many arguments:
+    >> Delete[{a, b, c, d}, 1, 2]
+     : Delete called with 3 arguments; 2 arguments are expected.
+     = Delete[{a, b, c, d}, 1, 2]
+
+    Delete the element out of range:
+    >> Delete[{a, b, c, d}, 5]
+     : Part {5} of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, 5]
+
+    #> Delete[{a, b, c, d}, {1, 2}]
+     : Part 2 of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, {1, 2}]
+
+    Delete the position not integer:
+    >> Delete[{a, b, c, d}, {1, n}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {1, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, n}]
+     : Position specification {n, {1}} in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, {n}}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, {n}}]
+    """
+
+    messages = {
+        'argr': "Delete called with 1 argument; 2 arguments are expected.",
+        'argt': "Delete called with `1` arguments; 2 arguments are expected.",
+        'partw': "Part `1` of `2` does not exist.",
+        'psl': "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
+        'pkspec': "The expression `1` cannot be used as a part specification. Use `2` instead.",
+    }
+
+    def apply_one(self, expr, position, evaluation):
+        'Delete[expr_, position_Integer]'
+
+        new_expr = expr.copy()
+        pos = [position.get_int_value()]
+        try:
+            set_sequence(new_expr, pos)
+        except PartError:
+            return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
+
+    def apply(self, expr, positions, evaluation):
+        'Delete[expr_, positions___]'
+
+        positions = positions.get_sequence()
+        if len(positions) > 1:
+            return evaluation.message('Delete', 'argt', Integer(len(positions) + 1))
+        elif len(positions) == 0:
+            return evaluation.message('Delete', 'argr')
+
+        positions = positions[0]
+        if not positions.has_form('List', None):
+            return evaluation.message('Delete', 'pkspec', positions, Expression('Key', positions))
+
+        # Create new python list of the positions and sort it
+        positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
+        positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+
+        new_expr = expr.copy()
+        for position in positions:
+            pos = [p.get_int_value() for p in position.get_leaves()]
+            if None in pos:
+                return evaluation.message('Delete', 'psl', position.leaves[pos.index(None)], expr)
+            if len(pos) == 0:
+                return evaluation.message('Delete', 'psl', Expression('List', *positions), expr)
+            try:
+                set_sequence(new_expr, pos)
+            except PartDepthError as exc:
+                return evaluation.message('Delete', 'partw', Integer(exc.index), expr)
+            except PartError:
+                return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
 
 class Association(Builtin):
     """
@@ -5348,4 +5596,3 @@ class ContainsOnly(Builtin):
             return self.check_options(expr, evaluation, options)
 
         return self.check_options(expr, evaluation, options)
-

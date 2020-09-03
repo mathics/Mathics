@@ -443,7 +443,8 @@ class PartError(Exception):
 
 
 class PartDepthError(PartError):
-    pass
+    def __init__(self, index=0):
+        self.index = index
 
 
 class PartRangeError(PartError):
