@@ -1314,7 +1314,7 @@ class Expression(BaseExpression):
             if len(self.leaves) != 1:
                 evaluation.message_args('SlotSequence', len(self.leaves), 1)
             
-            slot = slot.leaves[0].get_int_value()
+            slot = self.leaves[0].get_int_value()
 
             if slot is None or slot < 1:
                 evaluation.error('Function', 'slot', self.leaves[0])
