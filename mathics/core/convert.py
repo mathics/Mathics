@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 """
 Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
 """
-
-import six
-from six.moves import range
-from six.moves import zip
 
 import sympy
 
@@ -22,7 +15,7 @@ sympy_slot_prefix = '_Mathics_Slot_'
 BasicSympy = sympy.Expr
 
 
-def is_Cn_expr(name):
+def is_Cn_expr(name) -> bool:
     if name.startswith(sympy_symbol_prefix) or name.startswith(sympy_slot_prefix):
         return False
     if not name.startswith('C'):
@@ -30,6 +23,7 @@ def is_Cn_expr(name):
     n = name[1:]
     if n and n.isdigit():
         return True
+    return False
 
 
 class SympyExpression(BasicSympy):
@@ -73,7 +67,7 @@ class SympyExpression(BasicSympy):
                 # *(from_sympy(arg) for arg in args[1:])))
         return SympyExpressionFunc
 
-    def has_any_symbols(self, *syms):
+    def has_any_symbols(self, *syms) -> bool:
         result = any(arg.has_any_symbols(*syms) for arg in self.args)
         return result
 
@@ -91,13 +85,13 @@ class SympyExpression(BasicSympy):
         return self
 
     @property
-    def is_commutative(self):
+    def is_commutative(self) -> bool:
         if all(getattr(t, 'is_commutative', False) for t in self.args):
             return True
         else:
             return False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
 
 
@@ -107,8 +101,6 @@ def from_sympy(expr):
         Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
     from mathics.core.numbers import machine_precision
 
-    from sympy.core import numbers, function, symbol
-
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
@@ -117,11 +109,11 @@ def from_sympy(expr):
         return Real(expr)
     if isinstance(expr, complex):
         return Complex(Real(expr.real), Real(expr.imag))
-    if isinstance(expr, six.string_types):
+    if isinstance(expr, str):
         return String(expr)
     if expr is None:
         return Symbol('Null')
-    if isinstance(expr, sympy.Matrix):
+    if isinstance(expr, sympy.Matrix) or isinstance(expr, sympy.ImmutableMatrix):
         if len(expr.shape) == 2 and (expr.shape[1] == 1):
             # This is a vector (only one column)
             # Transpose and select first row to get result equivalent to Mathematica
@@ -129,11 +121,13 @@ def from_sympy(expr):
         else:
             return Expression('List', *[
                 [from_sympy(item) for item in row] for row in expr.tolist()])
+    if isinstance(expr, sympy.MatPow):
+        return Expression('MatrixPower', from_sympy(expr.base), from_sympy(expr.exp))
     if expr.is_Atom:
         name = None
         if expr.is_Symbol:
-            name = six.text_type(expr)
-            if isinstance(expr, symbol.Dummy):
+            name = str(expr)
+            if isinstance(expr, sympy.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
             if is_Cn_expr(name):
@@ -144,38 +138,44 @@ def from_sympy(expr):
                 index = name[len(sympy_slot_prefix):]
                 return Expression('Slot', int(index))
         elif expr.is_NumberSymbol:
-            name = six.text_type(expr)
+            name = str(expr)
         if name is not None:
             builtin = sympy_to_mathics.get(name)
             if builtin is not None:
                 name = builtin.get_name()
             return Symbol(name)
-        elif isinstance(expr, (numbers.Infinity, numbers.ComplexInfinity)):
+        elif isinstance(expr, (sympy.numbers.Infinity, sympy.numbers.ComplexInfinity)):
             return Symbol(expr.__class__.__name__)
-        elif isinstance(expr, numbers.NegativeInfinity):
+        elif isinstance(expr, sympy.numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
-        elif isinstance(expr, numbers.ImaginaryUnit):
+        elif isinstance(expr, sympy.numbers.ImaginaryUnit):
             return Complex(Integer(0), Integer(1))
-        elif isinstance(expr, numbers.Integer):
-            return Integer(expr.p)
-        elif isinstance(expr, numbers.Rational):
-            if expr.q == 0:
-                if expr.p > 0:
+        elif isinstance(expr, sympy.Integer):
+            return Integer(int(expr))
+        elif isinstance(expr, sympy.Rational):
+            numerator, denominator = map(int, expr.as_numer_denom())
+            if denominator == 0:
+                if numerator > 0:
                     return Symbol('Infinity')
-                elif expr.p < 0:
+                elif numerator < 0:
                     return Expression('Times', Integer(-1), Symbol('Infinity'))
                 else:
-                    assert expr.p == 0
+                    assert numerator == 0
                     return Symbol('Indeterminate')
-            return Rational(expr.p, expr.q)
-        elif isinstance(expr, numbers.Float):
+            return Rational(numerator, denominator)
+        elif isinstance(expr, sympy.Float):
             if expr._prec == machine_precision:
                 return MachineReal(float(expr))
             return Real(expr)
-        elif isinstance(expr, numbers.NaN):
+        elif isinstance(expr, sympy.numbers.NaN):
             return Symbol('Indeterminate')
-        elif isinstance(expr, function.FunctionClass):
-            return Symbol(six.text_type(expr))
+        elif isinstance(expr, sympy.function.FunctionClass):
+            return Symbol(str(expr))
+        elif expr is sympy.true:
+            return Symbol('True')
+        elif expr is sympy.false:
+            return Symbol('False')
+
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):
         # Hack to convert 3 * I to Complex[0, 3]
         return Complex(*[from_sympy(arg) for arg in expr.as_real_imag()])
@@ -195,18 +195,8 @@ def from_sympy(expr):
 
     elif isinstance(expr, sympy.Piecewise):
         args = expr.args
-        default = []
-        if len(args) > 0:
-            default_case, default_cond = args[-1]
-            if default_cond == sympy.true:
-                args = args[:-1]
-                if isinstance(default_case, sympy.Integer) and int(default_case) == 0:
-                    pass  # ignore, as 0 default case is always implicit in Piecewise[]
-                else:
-                    default = [from_sympy(default_case)]
         return Expression('Piecewise', Expression('List', *[Expression(
-            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]), *default)
-
+            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]))
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))
@@ -231,6 +221,18 @@ def from_sympy(expr):
             else:
                 result.append(Integer(1))
         return Expression('Function', Expression('Plus', *result))
+    elif isinstance(expr, sympy.CRootOf):
+        try:
+            e, i = expr.args
+        except ValueError:
+            return Expression('Null')
+
+        try:
+            e = sympy.PurePoly(e)
+        except:
+            pass
+
+        return Expression('Root', from_sympy(e), i + 1)
     elif isinstance(expr, sympy.Lambda):
         vars = [sympy.Symbol('%s%d' % (sympy_slot_prefix, index + 1))
                 for index in range(len(expr.variables))]
@@ -243,6 +245,20 @@ def from_sympy(expr):
             name = 'Integral'
         elif isinstance(expr, sympy.Derivative):
             name = 'Derivative'
+            margs = []
+            for arg in expr.args:
+                # parse (x, 1) ==> just x for test_conversion
+                # IMHO this should be removed in future versions
+                if isinstance(arg, sympy.Tuple):
+                    if arg[1] == 1:
+                        margs.append(from_sympy(arg[0]))
+                    else:
+                        margs.append(from_sympy(arg))
+                else:
+                    margs.append(from_sympy(arg))
+            builtin = sympy_to_mathics.get(name)
+            return builtin.from_sympy(name, margs)
+
         elif isinstance(expr, sympy.sign):
             name = 'Sign'
         else:
@@ -281,9 +297,14 @@ def from_sympy(expr):
     elif isinstance(expr, sympy.Equality):
         return Expression('Equal',
                           *[from_sympy(arg) for arg in expr.args])
-    elif expr is sympy.true:
-        return Symbol('True')
-    elif expr is sympy.false:
-        return Symbol('False')
+
+    elif isinstance(expr, sympy.O):
+        if expr.args[0].func == sympy.power.Pow:
+            [var, power] = [from_sympy(arg) for arg in expr.args[0].args]
+            o = Expression('O', var)
+            return Expression('Power', o, power)
+        else:
+            return Expression('O', from_sympy(expr.args[0]))
     else:
-        raise ValueError("Unknown SymPy expression: %s" % expr)
+        raise ValueError("Unknown SymPy expression: {} (instance of {})"
+            .format(expr, str(expr.__class__)))

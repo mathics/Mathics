@@ -7,8 +7,6 @@ Arithmetic functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -887,6 +885,52 @@ class Sqrt(SympyFunction):
             'SqrtBox[MakeBoxes[x, f]]'),
     }
 
+class CubeRoot(Builtin):
+    """
+    <dl>
+    <dt>'CubeRoot[$n$]'
+        <dd>finds the real-valued cube root of the given $n$.
+    </dl>
+
+    >> CubeRoot[16]
+     = 2 2 ^ (1 / 3)
+
+    #> CubeRoot[-5]
+     = -5 ^ (1 / 3)
+    
+    #> CubeRoot[-510000]
+     = -10 510 ^ (1 / 3)
+     
+    #> CubeRoot[-5.1]
+     = -1.7213 
+    
+    #> CubeRoot[b]
+     = b ^ (1 / 3)
+     
+    #> CubeRoot[-0.5]
+     = -0.793701
+     
+    #> CubeRoot[3 + 4 I]
+     : The parameter 3 + 4 I should be real valued.
+     = (3 + 4 I) ^ (1 / 3)
+    """
+    
+    attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
+    
+    messages = {
+        'preal': 'The parameter `1` should be real valued.',
+    }
+    
+    rules = {
+        'CubeRoot[n_?NumericQ]': 'If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]]]',
+        'CubeRoot[n_]': 'Power[n, Divide[1, 3]]',
+    }
+    
+    def apply(self, n, evaluation):
+        'CubeRoot[n_Complex]'
+         
+        evaluation.message('CubeRoot', 'preal', n)
+        return Expression('Power', n, Expression('Divide', 1, 3))
 
 class Infinity(SympyConstant):
     """
@@ -948,7 +992,7 @@ class ComplexInfinity(SympyConstant):
      = Indeterminate
     """
 
-    sympy_name = 'ComplexInfinity'
+    sympy_name = 'zoo'
 
     rules = {
         'ComplexInfinity': 'DirectedInfinity[]',
@@ -1051,6 +1095,11 @@ class Re(SympyFunction):
 
         return number
 
+    def apply(self, number, evaluation):
+        'Re[number_]'
+
+        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+
 
 class Im(SympyFunction):
     """
@@ -1082,6 +1131,11 @@ class Im(SympyFunction):
         'Im[number_?NumberQ]'
 
         return Integer(0)
+
+    def apply(self, number, evaluation):
+        'Im[number_]'
+
+        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
@@ -1740,7 +1794,7 @@ class Sum(_IterationFunction, SympyFunction):
      = 0
 
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}}, -1 + (a ^ n) ^ m]
+     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1870,7 +1924,7 @@ class Piecewise(SympyFunction):
     ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
+     = Piecewise[{{x, x <= 0}, {-x, True}}]
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
@@ -1931,7 +1985,7 @@ class Piecewise(SympyFunction):
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
         else:
-            sympy_cases.append((Integer(0), True))
+            sympy_cases.append((Integer(0).to_sympy(**kwargs), True))
 
         return sympy.Piecewise(*sympy_cases)
 

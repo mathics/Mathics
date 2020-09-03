@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
@@ -10,7 +8,6 @@ from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
 import mpmath
-from six.moves import range
 
 
 def sympy_factor(expr_sympy):
@@ -49,8 +46,45 @@ def cancel(expr):
 
 def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
+    def _expand(expr):
+        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
+
     if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
         return Integer(0)
+
+    # A special case for trigonometric functions
+    if 'trig' in kwargs and kwargs['trig']:
+        if expr.has_form('Sin', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times', 
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times', 
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, b)
+
+        elif expr.has_form('Cos', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times',
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times',
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, -b)
 
     sub_exprs = []
 
@@ -94,9 +128,6 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
             return Expression(expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()])
 
     sympy_expr = convert_sympy(expr)
-
-    def _expand(expr):
-        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
 
     if deep:
         # thread over everything
@@ -458,27 +489,26 @@ class FactorTermsList(Builtin):
         result = []
         numer, denom = sympy_expr.as_numer_denom()
         try:
-            from sympy import factor, factor_list, Poly
             if denom == 1:
                 # Get numerical part
-                num_coeff, num_polys = factor_list(Poly(numer))
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
                 result.append(num_coeff)
                 
                 # Get factors are independent of sub list of variables
                 if (sympy_vars and isinstance(expr, Expression) 
                     and any(x.free_symbols.issubset(sympy_expr.free_symbols) for x in sympy_vars)):
                     for i in reversed(range(len(sympy_vars))):
-                        numer = factor(numer) / factor(num_coeff)
-                        num_coeff, num_polys = factor_list(Poly(numer), *[x for x in sympy_vars[:(i+1)]])
+                        numer = sympy.factor(numer) / sympy.factor(num_coeff)
+                        num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer), *[x for x in sympy_vars[:(i+1)]])
                         result.append(sympy.expand(num_coeff))
                 
                 # Last factor
-                numer = factor(numer) / factor(num_coeff)
+                numer = sympy.factor(numer) / sympy.factor(num_coeff)
                 result.append(sympy.expand(numer))
             else:
-                num_coeff, num_polys = factor_list(Poly(numer))
-                den_coeff, den_polys = factor_list(Poly(denom))
-                result = [num_coeff / den_coeff, sympy.expand(factor(numer)/num_coeff / (factor(denom)/den_coeff))]
+                num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
+                den_coeff, den_polys = sympy.factor_list(sympy.Poly(denom))
+                result = [num_coeff / den_coeff, sympy.expand(sympy.factor(numer)/num_coeff / (sympy.factor(denom)/den_coeff))]
         except sympy.PolynomialError: # MMA does not raise error for non poly
             result.append(sympy.expand(numer))
             # evaluation.message(self.get_name(), 'poly', expr)
@@ -579,7 +609,8 @@ class Expand(_Expand):
     """
     <dl>
     <dt>'Expand[$expr$]'
-        <dd>expands out positive integer powers and products of sums in $expr$.
+        <dd>expands out positive integer powers and products of sums in $expr$,
+        as well as trigonometric identities.
     </dl>
 
     >> Expand[(x + y) ^ 3]
@@ -598,6 +629,10 @@ class Expand(_Expand):
     'Expand' expands items in lists and rules:
     >> Expand[{4 (x + y), 2 (x + y) -> 4 (x + y)}]
      = {4 x + 4 y, 2 x + 2 y -> 4 x + 4 y}
+
+    'Expand' expands trigonometric identities
+    >> Expand[Sin[x + y], Trig -> True]
+     = Cos[x] Sin[y] + Cos[y] Sin[x]
 
     'Expand' does not change any other expression.
     >> Expand[Sin[x (1 + y)]]
@@ -627,18 +662,13 @@ class Expand(_Expand):
      = 24 x / (5 + 3 x + x ^ 2) ^ 3 + 8 x ^ 2 / (5 + 3 x + x ^ 2) ^ 3 + 18 / (5 + 3 x + x ^ 2) ^ 3
     """
 
-    # TODO unwrap trig expressions in expand() so the following works
-    """
-    >> Expand[Sin[x + y], Trig -> True]
-     = Cos[y] Sin[x] + Cos[x] Sin[y]
-    """
-
     def apply(self, expr, evaluation, options):
         'Expand[expr_, OptionsPattern[Expand]]'
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
             return
+
         return expand(expr, True, False, **kwargs)
 
 
@@ -878,7 +908,7 @@ class MinimalPolynomial(Builtin):
         sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
         if sympy_s is None or sympy_x is None:
             return None
-        sympy_result = sympy.minimal_polynomial(sympy_s, sympy_x)
+        sympy_result = sympy.minimal_polynomial(sympy_s, polys=True)(sympy_x)
         return from_sympy(sympy_result)
 
 
@@ -1204,7 +1234,7 @@ class CoefficientList(Builtin):
             else:
                 def _nth(poly, dims, exponents):
                     if not dims:
-                        return from_sympy(poly.nth(*[i for i in exponents]))
+                        return from_sympy(poly.coeff_monomial(exponents))
                     
                     result = Expression('List')
                     first_dim = dims[0]

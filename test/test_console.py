@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import os
 import sys
 import pexpect
 import unittest
-from six.moves import range
 
 
 class ConsoleTest(unittest.TestCase):
@@ -20,16 +17,20 @@ class ConsoleTest(unittest.TestCase):
         return self.console.readline().decode('utf-8')
 
     def testLaunch(self):
-        cons = self.console
-
         self.assertRegexpMatches(self.readline(), '\r\n')
-
-        self.assertRegexpMatches(
-            self.readline(), 'Mathics \\d\\.\\d.*\r\n')
-        self.assertRegexpMatches(
-            self.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
-        self.assertRegexpMatches(
-            self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
+        # currently (Oct 2018) NumPy has a bug that prints out a warning at the import
+        # https://github.com/numpy/numpy/issues/11788
+        last_line = self.readline()
+        while not 'Mathics' in last_line:
+            print("Skipping warning: %s" % last_line)
+            last_line = self.readline()
+        self.assertRegexpMatches(last_line, 'Mathics \\d\\.\\d.*\r\n')
+        # check if either CPython or PyPy is mentioned in the next line
+        # note that the previous check failed for custom CPython builds, such as
+        # Anaconda / conda's
+        python_line = self.readline()
+        self.assertTrue(any([(x in python_line) for x in ["CPython", "PyPy"]]))
+        self.assertRegexpMatches(self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
 
         self.assertRegexpMatches(self.readline(), '\r\n')
 

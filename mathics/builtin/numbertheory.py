@@ -5,12 +5,6 @@
 Number theoretic functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-from six.moves import map
-from six.moves import range
-
 import sympy
 from itertools import combinations
 
@@ -18,6 +12,7 @@ from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
 from mathics.core.convert import from_sympy
+import mpmath
 
 
 class PowerMod(Builtin):
@@ -259,16 +254,16 @@ class FactorInteger(Builtin):
 
         if isinstance(n, Integer):
             factors = sympy.factorint(n.value)
-            factors = sorted(six.iteritems(factors))
+            factors = sorted(factors.items())
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
 
         elif isinstance(n, Rational):
             factors, factors_denom = list(map(
                 sympy.factorint, n.value.as_numer_denom()))
-            for factor, exp in six.iteritems(factors_denom):
+            for factor, exp in factors_denom.items():
                 factors[factor] = factors.get(factor, 0) - exp
-            factors = sorted(six.iteritems(factors))
+            factors = sorted(factors.items())
             return Expression('List', *(Expression('List', factor, exp)
                                         for factor, exp in factors))
         else:
@@ -342,7 +337,7 @@ class IntegerExponent(Builtin):
         py_n, py_b = n.to_python(), b.to_python()
         expr = Expression('IntegerExponent', n, b)
 
-        if not isinstance(py_n, six.integer_types):
+        if not isinstance(py_n, int):
             evaluation.message('IntegerExponent', 'int', expr)
         py_n = abs(py_n)
 
@@ -358,6 +353,193 @@ class IntegerExponent(Builtin):
 
         return from_python(result - 1)
 
+class MantissaExponent(Builtin):
+    """
+    <dl>
+    <dt>'MantissaExponent[$n$]'
+        <dd>finds a list containing the mantissa and exponent of a given number $n$.
+    <dt>'MantissaExponent[$n$, $b$]'
+        <dd>finds the base‐b mantissa and exponent of $n$.
+    </dl>
+
+    >> MantissaExponent[2.5*10^20]
+     = {0.25, 21}
+
+    >> MantissaExponent[125.24]
+     = {0.12524, 3}
+
+    >> MantissaExponent[125., 2]
+     = {0.976563, 7}
+      
+    >> MantissaExponent[10, b]
+     = MantissaExponent[10, b]
+     
+    #> MantissaExponent[E, Pi]
+     = {E / Pi, 1}
+     
+    #> MantissaExponent[Pi, Pi]
+     = {1 / Pi, 2}
+     
+    #> MantissaExponent[5/2 + 3, Pi]
+     = {11 / (2 Pi ^ 2), 2}
+     
+    #> MantissaExponent[b]
+     = MantissaExponent[b]
+     
+    #> MantissaExponent[17, E]
+     = {17 / E ^ 3, 3}
+     
+    #> MantissaExponent[17., E]
+     = {0.84638, 3}
+     
+    #> MantissaExponent[Exp[Pi], 2]
+     = {E ^ Pi / 32, 5}
+     
+    #> MantissaExponent[3 + 2 I, 2]
+     : The value 3 + 2 I is not a real number
+     = MantissaExponent[3 + 2 I, 2]
+     
+    #> MantissaExponent[25, 0.4]
+     : Base 0.4 is not a real number greater than 1.
+     = MantissaExponent[25, 0.4]
+     
+    #> MantissaExponent[0.0000124]
+     = {0.124, -4}
+    
+    #> MantissaExponent[0.0000124, 2]
+     = {0.812646, -16}
+    
+    #> MantissaExponent[0]
+     = {0, 0}
+     
+    #> MantissaExponent[0, 2]
+     = {0, 0}
+    """
+    
+    attributes = ('Listable',)
+    
+    rules = {
+        'MantissaExponent[0]': '{0, 0}',
+        'MantissaExponent[0, n_]': '{0, 0}',
+        }
+    
+    messages = {
+        'realx': 'The value `1` is not a real number',
+        'rbase': 'Base `1` is not a real number greater than 1.',
+    }
+    
+    def apply(self, n, b, evaluation):
+        'MantissaExponent[n_, b_]'
+        # Handle Input with special cases such as PI and E
+        n_sympy, b_sympy = n.to_sympy(), b.to_sympy()
+        
+        expr = Expression('MantissaExponent', n, b)
+        
+        if isinstance(n.to_python(), complex):
+            evaluation.message('MantissaExponent', 'realx', n)
+            return expr
+         
+        if n_sympy.is_constant():
+            temp_n = Expression('N', n).evaluate(evaluation)
+            py_n = temp_n.to_python()
+        else:
+            return expr
+              
+        if b_sympy.is_constant():
+            temp_b = Expression('N', b).evaluate(evaluation)
+            py_b = temp_b.to_python()
+        else:
+            return expr
+        
+        if not py_b > 1:
+            evaluation.message('MantissaExponent', 'rbase', b)
+            return expr
+            
+        base_exp = int(mpmath.log(py_n, py_b))
+        
+        exp = (base_exp + 1) if base_exp >= 0 else base_exp
+
+        return Expression('List', Expression('Divide', n , b ** exp), exp)
+                                 
+    def apply_2(self, n, evaluation):
+        'MantissaExponent[n_]'
+        n_sympy = n.to_sympy()
+        expr = Expression('MantissaExponent', n)
+        
+        if isinstance(n.to_python(), complex):
+            evaluation.message('MantissaExponent', 'realx', n)
+            return expr
+        # Handle Input with special cases such as PI and E
+        if n_sympy.is_constant():
+            temp_n = Expression('N', n).evaluate(evaluation)
+            py_n = temp_n.to_python()
+        else:
+            return expr
+        
+        base_exp = int(mpmath.log10(py_n))    
+        exp = (base_exp + 1) if base_exp >= 0 else base_exp
+         
+        return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
+    
+def _fractional_part(self, n, expr, evaluation):
+    n_sympy = n.to_sympy()
+    if n_sympy.is_constant():
+        if (n_sympy >= 0):
+            positive_integer_part = Expression("Floor", n).evaluate(evaluation).to_python()
+            result = n - positive_integer_part
+        else:
+            negative_integer_part = Expression("Ceiling", n).evaluate(evaluation).to_python()
+            result = n - negative_integer_part
+    else:
+        return expr
+        
+    return from_python(result)
+    
+class FractionalPart(Builtin):
+    """
+    <dl>
+    <dt>'FractionalPart[$n$]'
+        <dd>finds the fractional part of $n$.
+    </dl>
+
+    >> FractionalPart[4.1]
+     = 0.1
+
+    >> FractionalPart[-5.25]
+     = -0.25
+
+    #> FractionalPart[b]
+     = FractionalPart[b]
+    
+    #> FractionalPart[{-2.4, -2.5, -3.0}]
+     = {-0.4, -0.5, 0.}
+    
+    #> FractionalPart[14/32]
+     = 7 / 16
+      
+    #> FractionalPart[4/(1 + 3 I)]
+     = 2 / 5 - I / 5
+     
+    #> FractionalPart[Pi^20]
+     = -8769956796 + Pi ^ 20
+    """
+    
+    attributes = ('Listable', 'NumericFunction', 'ReadProtected')
+  
+    def apply(self, n, evaluation):
+        'FractionalPart[n_]'
+        expr = Expression('FractionalPart', n)
+        return _fractional_part(self.__class__.__name__, n, expr, evaluation)
+        
+    def apply_2(self, n, evaluation):
+        'FractionalPart[n_Complex]'
+        expr = Expression('FractionalPart', n)
+        n_real  = Expression("Re", n).evaluate(evaluation)
+        n_image  = Expression("Im", n).evaluate(evaluation)
+        
+        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation) 
+        image_fractional_part = _fractional_part(self.__class__.__name__, n_image, expr, evaluation)
+        return Expression('Complex', real_fractional_part, image_fractional_part)
 
 class Prime(Builtin):
     """
@@ -386,7 +568,6 @@ class Prime(Builtin):
         expr = Expression('Prime', n)
         evaluation.message('Prime', 'intpp', expr)
         return
-
 
 class PrimeQ(Builtin):
     """

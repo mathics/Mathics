@@ -3,7 +3,6 @@ Rather than trying to parse all the code at once this module implemets methods
 for returning one line code at a time.
 '''
 
-import six
 from abc import abstractmethod, ABCMeta
 
 
@@ -80,7 +79,7 @@ class MultiLineFeeder(LineFeeder):
     def __init__(self, lines, filename=''):
         super(MultiLineFeeder, self).__init__(filename)
         self.lineno = 0
-        if isinstance(lines, six.string_types):
+        if isinstance(lines, str):
             self.lines = lines.splitlines(True)
         else:
             self.lines = lines

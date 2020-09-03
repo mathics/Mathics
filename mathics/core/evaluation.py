@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-
-import six
-import six.moves.cPickle as pickle
-from six.moves.queue import Queue
+import pickle
+from queue import Queue
 
 import os
 import sys
 from threading import Thread, stack_size as set_thread_stack_size
+
+from typing import Tuple
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -47,7 +44,7 @@ class ContinueInterrupt(EvaluationInterrupt):
     pass
 
 
-def _thread_target(request, queue):
+def _thread_target(request, queue) -> None:
     try:
         result = request()
         queue.put((True, result))
@@ -63,19 +60,19 @@ MAX_RECURSION_DEPTH = max(settings.DEFAULT_MAX_RECURSION_DEPTH, int(os.getenv(
     'MATHICS_MAX_RECURSION_DEPTH', settings.DEFAULT_MAX_RECURSION_DEPTH)))
 
 
-def python_recursion_depth(n):
+def python_recursion_depth(n) -> int:
     # convert Mathics recursion depth to Python recursion depth. this estimates how many Python calls
     # we need at worst to process one Mathics recursion.
     return 200 + 30 * n
 
 
-def python_stack_size(n):  # n is a Mathics recursion depth
+def python_stack_size(n) -> int:  # n is a Mathics recursion depth
     # python_stack_frame_size is the (maximum) number of bytes Python needs for one call on the stack.
     python_stack_frame_size = 512  # value estimated experimentally
     return python_recursion_depth(n) * python_stack_frame_size
 
 
-def set_python_recursion_limit(n):
+def set_python_recursion_limit(n) -> None:
     "Sets the required python recursion limit given $RecursionLimit value"
     python_depth = python_recursion_depth(n)
     sys.setrecursionlimit(python_depth)
@@ -109,31 +106,31 @@ def run_with_timeout_and_stack(request, timeout):
     if success:
         return result
     else:
-        six.reraise(*result)
+        raise result[0].with_traceback(result[1], result[2])
 
 
 class Out(KeyComparable):
-    def __init__(self):
+    def __init__(self) -> None:
         self.is_message = False
         self.is_print = False
         self.text = ''
 
-    def get_sort_key(self):
-        (self.is_message, self.is_print, self.text)
+    def get_sort_key(self) -> Tuple[bool, bool, str]:
+        return (self.is_message, self.is_print, self.text)
 
 
 class Message(Out):
-    def __init__(self, symbol, tag, text):
+    def __init__(self, symbol, tag, text: str) -> None:
         super(Message, self).__init__()
         self.is_message = True
         self.symbol = symbol
         self.tag = tag
         self.text = text
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '{}::{}: {}'.format(self.symbol, self.tag, self.text)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
@@ -147,15 +144,15 @@ class Message(Out):
 
 
 class Print(Out):
-    def __init__(self, text):
+    def __init__(self, text) -> None:
         super(Print, self).__init__()
         self.is_print = True
         self.text = text
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.text
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
@@ -166,7 +163,7 @@ class Print(Out):
 
 
 class Result(object):
-    def __init__(self, out, result, line_no):
+    def __init__(self, out, result, line_no) -> None:
         self.out = out
         self.result = result
         self.line_no = line_no
@@ -180,7 +177,7 @@ class Result(object):
 
 
 class Output(object):
-    def max_stored_size(self, settings):
+    def max_stored_size(self, settings) -> int:
         return settings.MAX_STORED_SIZE
 
     def out(self, out):
@@ -195,7 +192,7 @@ class Output(object):
 
 class Evaluation(object):
     def __init__(self, definitions=None,
-                 output=None, format='text', catch_interrupt=True):
+                 output=None, format='text', catch_interrupt=True) -> None:
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -253,12 +250,23 @@ class Evaluation(object):
 
         result = None
         exc_result = None
+        
+        def check_io_hook(hook):
+            return  len(self.definitions.get_ownvalues(hook))>0
 
+            
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
                     Expression('In', line_no), query))
-            result = query.evaluate(self)
+            if check_io_hook('System`$Pre'):
+                result = Expression('System`$Pre', query).evaluate(self)
+            else:
+                result = query.evaluate(self)
+
+            if check_io_hook('System`$Post'):
+                result = Expression('System`$Post', result).evaluate(self)
+
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
@@ -270,6 +278,8 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
+                if check_io_hook('System`$PrePrint'):
+                    result = Expression('System`$PrePrint', result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
                 return None
@@ -282,7 +292,7 @@ class Evaluation(object):
                 else:
                     raise
             except ValueError as exc:
-                text = six.text_type(exc)
+                text = str(exc)
                 if (text == 'mpz.pow outrageous exponent' or    # noqa
                     text == 'mpq.pow outrageous exp num'):
                     self.message('General', 'ovfl')
@@ -347,7 +357,7 @@ class Evaluation(object):
                 return Symbol('Null')
         return result
 
-    def stop(self):
+    def stop(self) -> None:
         self.stopped = True
 
     def format_output(self, expr, format=None):
@@ -378,7 +388,7 @@ class Evaluation(object):
             boxes = None
         return boxes
 
-    def set_quiet_messages(self, messages):
+    def set_quiet_messages(self, messages) -> None:
         from mathics.core.expression import Expression, String
         value = Expression('List', *messages)
         self.definitions.set_ownvalue('Internal`$QuietMessages', value)
@@ -395,7 +405,7 @@ class Evaluation(object):
             return []
         return value.leaves
 
-    def message(self, symbol, tag, *args):
+    def message(self, symbol, tag, *args) -> None:
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
 
@@ -434,7 +444,7 @@ class Evaluation(object):
         self.out.append(Message(symbol_shortname, tag, text))
         self.output.out(self.out[-1])
 
-    def print_out(self, text):
+    def print_out(self, text) -> None:
         from mathics.core.expression import from_python
 
         text = self.format_output(from_python(text), 'text')
@@ -444,7 +454,7 @@ class Evaluation(object):
         if settings.DEBUG_PRINT:
             print('OUT: ' + text)
 
-    def error(self, symbol, tag, *args):
+    def error(self, symbol, tag, *args) -> None:
         # Temporarily reset the recursion limit, to allow the message being
         # formatted
         self.recursion_depth, depth = 0, self.recursion_depth
@@ -454,11 +464,11 @@ class Evaluation(object):
             self.recursion_depth = depth
         raise AbortInterrupt
 
-    def error_args(self, symbol, given, *needed):
+    def error_args(self, symbol, given, *needed) -> None:
         self.message_args(symbol, given, *needed)
         raise AbortInterrupt
 
-    def message_args(self, symbol, given, *needed):
+    def message_args(self, symbol, given, *needed) -> None:
         from mathics.core.expression import Symbol
 
         if len(needed) == 1:
@@ -477,11 +487,11 @@ class Evaluation(object):
         else:
             raise NotImplementedError
 
-    def check_stopped(self):
+    def check_stopped(self) -> None:
         if self.stopped:
             raise TimeoutInterrupt
 
-    def inc_recursion_depth(self):
+    def inc_recursion_depth(self) -> None:
         self.check_stopped()
         limit = self.definitions.get_config_value(
             '$RecursionLimit', MAX_RECURSION_DEPTH)
@@ -492,19 +502,19 @@ class Evaluation(object):
             if self.recursion_depth > limit:
                 self.error('$RecursionLimit', 'reclim', limit)
 
-    def dec_recursion_depth(self):
+    def dec_recursion_depth(self) -> None:
         self.recursion_depth -= 1
 
-    def add_listener(self, tag, listener):
+    def add_listener(self, tag, listener) -> None:
         existing = self.listeners.get(tag)
         if existing is None:
             existing = self.listeners[tag] = []
         existing.insert(0, listener)
 
-    def remove_listener(self, tag, listener):
+    def remove_listener(self, tag, listener) -> None:
         self.listeners.get(tag).remove(listener)
 
-    def publish(self, tag, *args, **kwargs):
+    def publish(self, tag, *args, **kwargs) -> None:
         listeners = self.listeners.get(tag, [])
         for listener in listeners:
             if listener(*args, **kwargs):

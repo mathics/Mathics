@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import zip
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
@@ -1016,34 +1013,6 @@ class Unset(PostfixOperator):
             if not expr.is_atom():
                 evaluation.message('Unset', 'norep', expr, Symbol(name))
                 return Symbol('$Failed')
-        return Symbol('Null')
-
-
-class Quit(Builtin):
-    """
-    <dl>
-    <dt>'Quit'[]
-        <dd>removes all user-defined definitions.
-    </dl>
-
-    >> a = 3
-     = 3
-    >> Quit[]
-    >> a
-     = a
-
-    'Quit' even removes the definitions of protected and locked symbols:
-    >> x = 5;
-    >> Attributes[x] = {Locked, Protected};
-    >> Quit[]
-    >> x
-     = x
-    """
-
-    def apply(self, evaluation):
-        'Quit[]'
-
-        evaluation.definitions.set_user_definitions({})
         return Symbol('Null')
 
 

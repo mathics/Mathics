@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import sys
 import re
 import pickle
 import os
 from argparse import ArgumentParser
-import six
-from six.moves import zip
 
 import mathics
 from mathics.core.definitions import Definitions
@@ -85,7 +79,7 @@ def test_case(test, tests, index=0, quiet=False):
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
-            fail_msg += '\n'.join(six.text_type(o) for o in out)
+            fail_msg += '\n'.join(str(o) for o in out)
         return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
@@ -97,8 +91,8 @@ def test_case(test, tests, index=0, quiet=False):
                 break
     if not output_ok:
         return fail("Output:\n%s\nWanted:\n%s" % (
-            '\n'.join(six.text_type(o) for o in out),
-            '\n'.join(six.text_type(o) for o in wanted_out)))
+            '\n'.join(str(o) for o in out),
+            '\n'.join(str(o) for o in wanted_out)))
     return True
 
 
@@ -107,6 +101,8 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
     count = failed = skipped = 0
     failed_symbols = set()
     for test in tests.tests:
+        if test.ignore:
+            continue
         count += 1
         index += 1
         if index < start_at:
@@ -124,6 +120,8 @@ def create_output(tests, output_xml, output_tex):
     for format, output in [('xml', output_xml), ('tex', output_tex)]:
         definitions.reset_user_definitions()
         for test in tests.tests:
+            if test.ignore:
+                continue
             key = test.key
             evaluation = Evaluation(definitions, format=format, catch_interrupt=False, output=TestOutput())
             result = evaluation.parse_evaluate(test.test)
@@ -144,6 +142,8 @@ def test_section(section, quiet=False, stop_on_failure=False):
     for tests in documentation.get_tests():
         if tests.section == section or tests.section == '$' + section:
             for test in tests.tests:
+                if test.ignore:
+                    continue
                 index += 1
                 if not test_case(test, tests, index, quiet=quiet):
                     failed += 1

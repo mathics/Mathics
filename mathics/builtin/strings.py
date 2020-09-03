@@ -5,19 +5,12 @@
 String functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import sys
 from sys import version_info
 import re
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
-
-import six
-from six.moves import range
-from six import unichr
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, String, Integer,
@@ -1466,7 +1459,7 @@ class CharacterRange(Builtin):
         start = ord(start.value[0])
         stop = ord(stop.value[0])
         return Expression('List', *[
-            String(unichr(code)) for code in range(start, stop + 1)])
+            String(chr(code)) for code in range(start, stop + 1)])
 
 
 class String_(Builtin):
@@ -1763,7 +1756,7 @@ class ToCharacterCode(Builtin):
 
         if isinstance(string, list):
             return Expression('List', *[convert(substring) for substring in string])
-        elif isinstance(string, six.string_types):
+        elif isinstance(string, str):
             return convert(string)
 
     def apply_default(self, string, evaluation):
@@ -1872,7 +1865,7 @@ class FromCharacterCode(Builtin):
                             'FromCharacterCode', 'notunicode',
                             Expression('List', *l), Integer(i + 1))
                         raise _InvalidCodepointError
-                    s += unichr(pyni)
+                    s += chr(pyni)
                 return s
             else:
                 codes = [x.get_int_value() & 0xff for x in l]
@@ -1898,7 +1891,7 @@ class FromCharacterCode(Builtin):
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
                 pyn = n.get_int_value()
-                if not (isinstance(pyn, six.integer_types) and pyn > 0 and pyn < sys.maxsize):
+                if not (isinstance(pyn, int) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))

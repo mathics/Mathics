@@ -9,8 +9,6 @@ Numerical values and derivatives can be computed; however, most special exact va
 rules are not implemented yet.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
