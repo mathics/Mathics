@@ -1322,7 +1322,7 @@ class Expression(BaseExpression):
             if slot is None or slot < 1:
                 evaluation.error('Function', 'slot', self.leaves[0])
 
-            slots = [slots[slot] for slot in slots if isinstance(slot, int)]
+            slots = [slots[i] for i in slots if isinstance(slot, int)]
             return Expression('Sequence', *slots[slot:])
 
         elif self.has_form('Function', 1):
