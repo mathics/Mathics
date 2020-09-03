@@ -1095,6 +1095,11 @@ class Re(SympyFunction):
 
         return number
 
+    def apply(self, number, evaluation):
+        'Re[number_]'
+
+        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+
 
 class Im(SympyFunction):
     """
@@ -1126,6 +1131,11 @@ class Im(SympyFunction):
         'Im[number_?NumberQ]'
 
         return Integer(0)
+
+    def apply(self, number, evaluation):
+        'Im[number_]'
+
+        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
