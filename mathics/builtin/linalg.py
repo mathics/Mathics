@@ -716,15 +716,15 @@ class Eigenvalues(Builtin):
 
         if matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals()
+        eigenvalues = matrix.eigenvals().items()
         try:
-            eigenvalues = sorted(eigenvalues.items(),
+            eigenvalues = sorted(eigenvalues,
                                  key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
                                  reverse=True)
         # Try to sort the results as complex numbers
         except TypeError:
             try:
-                eigenvalues = sorted(eigenvalues.items(),
+                eigenvalues = sorted(eigenvalues,
                                      key=lambda v_c: -abs(v_c[0]))
             # Don't sort the results at all
             except TypeError:

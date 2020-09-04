@@ -30,7 +30,6 @@ import heapq
 from collections import defaultdict
 import functools
 
-
 class List(Builtin):
     """
     <dl>
@@ -279,6 +278,39 @@ def set_part(list, indices, new):
 
     rec(list, indices)
 
+def set_sequence(list, indices):
+    "Replace a part to Sequence. indices must be a list of python integers. "
+
+    def sequence(cur, rest):
+        if len(rest) > 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    part = cur.leaves[pos - 1]
+                elif pos == 0:
+                    part = cur.head
+                else:
+                    part = cur.leaves[pos]
+            except IndexError:
+                raise PartRangeError
+            sequence(part, rest[1:])
+        elif len(rest) == 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    cur.leaves[pos - 1] = Expression('Sequence')
+                elif pos == 0:
+                    cur.head = Symbol('Sequence')
+                else:
+                    cur.leaves[pos] = Expression('Sequence')
+            except IndexError:
+                raise PartRangeError
+
+    sequence(list, indices)
 
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
@@ -4910,6 +4942,556 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+      
+        
+class SubsetQ(Builtin):
+    """
+    <dl>
+    <dt>'SubsetQ[$list1$, $list2$]'
+        <dd>returns True if $list2$ is a subset of $list1$, and False otherwise.
+    </dl>
+
+    >> SubsetQ[{1, 2, 3}, {3, 1}]
+     = True
+
+    The empty list is a subset of every list:
+    >> SubsetQ[{}, {}]
+     = True
+
+    >> SubsetQ[{1, 2, 3}, {}]
+     = True
+
+    Every list is a subset of itself:
+    >> SubsetQ[{1, 2, 3}, {1, 2, 3}]
+     = True
+
+    #> SubsetQ[{1, 2, 3}, {0, 1}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}, {1, 2, 3, 4}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}]
+     : SubsetQ called with 1 argument; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}]
+
+    #> SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+     : SubsetQ called with 3 arguments; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+
+    #> SubsetQ[a + b + c, {1}]
+     : Heads Plus and List at positions 1 and 2 are expected to be the same.
+     = SubsetQ[a + b + c, {1}]
+
+    #> SubsetQ[{1, 2, 3}, n]
+     : Nonatomic expression expected at position 2 in SubsetQ[{1, 2, 3}, n].
+     = SubsetQ[{1, 2, 3}, n]
+
+    #> SubsetQ[f[a, b, c], f[a]]
+     = True
+    """
+
+    messages = {
+        'argr': "SubsetQ called with 1 argument; 2 arguments are expected.",
+        'argrx': "SubsetQ called with `1` arguments; 2 arguments are expected.",
+        'heads': "Heads `1` and `2` at positions 1 and 2 are expected to be the same.",
+        'normal': "Nonatomic expression expected at position `1` in `2`.",
+    }
+
+    def apply(self, expr, subset, evaluation):
+        'SubsetQ[expr_, subset___]'
+
+        if expr.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(1), Expression('SubsetQ', expr, subset))
+
+        subset = subset.get_sequence()
+        if len(subset) > 1:
+            return evaluation.message('SubsetQ', 'argrx', Integer(len(subset) + 1))
+        elif len(subset) == 0:
+            return evaluation.message('SubsetQ', 'argr')
+
+        subset = subset[0]
+        if subset.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(2), Expression('SubsetQ', expr, subset))
+        if expr.get_head_name() != subset.get_head_name():
+            return evaluation.message('SubsetQ', 'heads', expr.get_head(), subset.get_head())
+
+        if set(subset.leaves).issubset(set(expr.leaves)):
+            return Symbol('True')
+        else:
+            return Symbol('False')
+        
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $i$]'
+        <dd>deletes the element at position $i$ in $expr$. The position is counted from the end if $i$ is negative.
+    <dt>'Delete[$expr$, {$m$, $n$, ...}]'
+        <dd>deletes the element at position {$m$, $n$, ...}.
+    <dt>'Delete[$expr$, {{$m1$, $n1$, ...}, {$m2$, $n2$, ...}, ...}]'
+        <dd>deletes the elements at several positions.
+    </dl>
+
+    Delete the element at position 3:
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+
+    Delete at position 2 from the end:
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+
+    Delete at positions 1 and 3:
+    >> Delete[{a, b, c, d}, {{1}, {3}}]
+     = {b, d}
+
+    Delete in a 2D array:
+    >> Delete[{{a, b}, {c, d}}, {2, 1}]
+     = {{a, b}, {d}}
+
+    Deleting the head of a whole expression gives a Sequence object:
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    Delete in an expression with any head:
+    >> Delete[f[a, b, c, d], 3]
+     = f[a, b, d]
+
+    Delete a head to splice in its arguments:
+    >> Delete[f[a, b, u + v, c], {3, 0}]
+     = f[a, b, u, v, c]
+
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    #> Delete[1 + x ^ (a + b + c), {2, 2, 3}]
+     = 1 + x ^ (a + b)
+
+    #> Delete[f[a, g[b, c], d], {{2}, {2, 1}}]
+     = f[a, d]
+
+    #> Delete[f[a, g[b, c], d], m + n]
+     : The expression m + n cannot be used as a part specification. Use Key[m + n] instead.
+     = Delete[f[a, g[b, c], d], m + n]
+
+    Delete without the position:
+    >> Delete[{a, b, c, d}]
+     : Delete called with 1 argument; 2 arguments are expected.
+     = Delete[{a, b, c, d}]
+
+    Delete with many arguments:
+    >> Delete[{a, b, c, d}, 1, 2]
+     : Delete called with 3 arguments; 2 arguments are expected.
+     = Delete[{a, b, c, d}, 1, 2]
+
+    Delete the element out of range:
+    >> Delete[{a, b, c, d}, 5]
+     : Part {5} of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, 5]
+
+    #> Delete[{a, b, c, d}, {1, 2}]
+     : Part 2 of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, {1, 2}]
+
+    Delete the position not integer:
+    >> Delete[{a, b, c, d}, {1, n}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {1, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, n}]
+     : Position specification {n, {1}} in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, {n}}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, {n}}]
+    """
+
+    messages = {
+        'argr': "Delete called with 1 argument; 2 arguments are expected.",
+        'argt': "Delete called with `1` arguments; 2 arguments are expected.",
+        'partw': "Part `1` of `2` does not exist.",
+        'psl': "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
+        'pkspec': "The expression `1` cannot be used as a part specification. Use `2` instead.",
+    }
+
+    def apply_one(self, expr, position, evaluation):
+        'Delete[expr_, position_Integer]'
+
+        new_expr = expr.copy()
+        pos = [position.get_int_value()]
+        try:
+            set_sequence(new_expr, pos)
+        except PartError:
+            return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
+
+    def apply(self, expr, positions, evaluation):
+        'Delete[expr_, positions___]'
+
+        positions = positions.get_sequence()
+        if len(positions) > 1:
+            return evaluation.message('Delete', 'argt', Integer(len(positions) + 1))
+        elif len(positions) == 0:
+            return evaluation.message('Delete', 'argr')
+
+        positions = positions[0]
+        if not positions.has_form('List', None):
+            return evaluation.message('Delete', 'pkspec', positions, Expression('Key', positions))
+
+        # Create new python list of the positions and sort it
+        positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
+        positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+
+        new_expr = expr.copy()
+        for position in positions:
+            pos = [p.get_int_value() for p in position.get_leaves()]
+            if None in pos:
+                return evaluation.message('Delete', 'psl', position.leaves[pos.index(None)], expr)
+            if len(pos) == 0:
+                return evaluation.message('Delete', 'psl', Expression('List', *positions), expr)
+            try:
+                set_sequence(new_expr, pos)
+            except PartDepthError as exc:
+                return evaluation.message('Delete', 'partw', Integer(exc.index), expr)
+            except PartError:
+                return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
+
+class Association(Builtin):
+    """
+    <dl>
+    <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
+    <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
+        <dd> represents an association between keys and values.
+    </dl>
+
+    'Association' is the head of associations:
+    >> Head[<|a -> x, b -> y, c -> z|>]
+     = Association
+
+    >> <|a -> x, b -> y|>
+     = <|a -> x, b -> y|>
+
+    >> Association[{a -> x, b -> y}]
+     = <|a -> x, b -> y|>
+
+    Associations can be nested:
+    >> <|a -> x, b -> y, <|a -> z, d -> t|>|>
+     = <|a -> z, b -> y, d -> t|>
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|>
+     = <|a -> x, b -> y, c -> <|d -> t|>|>
+    #> %["s"]
+     = Missing[KeyAbsent, s]
+
+    #> <|a -> x, b + c -> y, {<|{}|>, a -> {z}}|>
+     = <|a -> {z}, b + c -> y|>
+    #> %[a]
+     = {z}
+
+    #> <|"x" -> 1, {y} -> 1|>
+     = <|x -> 1, {y} -> 1|>
+    #> %["x"]
+     = 1
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {}, <||>|>, {d}|>[c]
+     =  Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {}, Association[]], {d}][c]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {d}|>, {}, <||>|>[a]
+     = Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {d}], {}, Association[]][a]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z, {d}|>, {}, <||>|>, {}, <||>|>
+     = <|<|a -> v|> -> x, b -> y, a -> Association[c -> z, {d}]|>
+    #> %[a]
+     = Association[c -> z, {d}]
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|> // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{d, ->, t}], |>}]}]}], |>}]
+
+    #> Association[a -> x, b -> y, c -> Association[d -> t, Association[e -> u]]] // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{RowBox[{d, ->, t}], ,, RowBox[{e, ->, u}]}], |>}]}]}], |>}]
+    """
+
+    error_idx = 0
+
+    attributes = ('HoldAllComplete', 'Protected',)
+
+    def apply_makeboxes(self, rules, f, evaluation):
+        '''MakeBoxes[<|rules___|>,
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+
+        def validate(exprs):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    if validate(expr.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        rules = rules.get_sequence()
+        if self.error_idx == 0 and validate(rules) is True:
+            expr = Expression('RowBox', Expression('List', *list_boxes(rules, f, "<|", "|>")))
+        else:
+            self.error_idx += 1
+            symbol = Expression('MakeBoxes', Symbol('Association'), f)
+            expr = Expression('RowBox', Expression('List', symbol, *list_boxes(rules, f, "[", "]")))
+
+        expr = expr.evaluate(evaluation)
+        if self.error_idx > 0:
+            self.error_idx -= 1
+        return expr
+
+    def apply(self, rules, evaluation):
+        'Association[rules__]'
+
+        def make_flatten(exprs, dic={}, keys=[]):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    key = expr.leaves[0].evaluate(evaluation)
+                    value = expr.leaves[1].evaluate(evaluation)
+                    dic[key] = Expression(expr.get_head(), key, value)
+                    if key not in keys:
+                        keys.append(key)
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    make_flatten(expr.leaves, dic, keys)
+                else:
+                    raise
+            return [dic[key] for key in keys]
+
+        try:
+            return Expression('Association', *make_flatten(rules.get_sequence()))
+        except:
+            return None
+
+    def apply_key(self, rules, key, evaluation):
+        'Association[rules__][key_]'
+
+        def find_key(exprs, dic={}):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    if expr.leaves[0] == key:
+                        dic[key] = expr.leaves[1]
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    find_key(expr.leaves)
+                else:
+                    raise
+            return dic
+
+        try:
+            result = find_key(rules.get_sequence())
+        except:
+            return None
+
+        return result[key] if result else Expression('Missing', Symbol('KeyAbsent'), key)
+    
+class AssociationQ(Test):
+    """
+    <dl>
+    <dt>'AssociationQ[$expr$]'
+        <dd>return True if $expr$ is a valid Association object, and False otherwise.
+    </dl>
+
+    >> AssociationQ[<|a -> 1, b :> 2|>]
+     = True
+
+    >> AssociationQ[<|a, b|>]
+     = False
+    """
+
+    def test(self, expr):
+        def validate(leaves):
+            for leaf in leaves:
+                if leaf.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif leaf.has_form('List', None) or leaf.has_form('Association', None):
+                    if validate(leaf.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        return expr.get_head_name() == 'System`Association' and validate(expr.leaves)
+        
+class Keys(Builtin):
+    """
+    <dl>
+    <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the keys $keyi$ in an association.
+    <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $keyi$ in a list of rules.
+    </dl>
+
+    >> Keys[<|a -> x, b -> y|>]
+     = {a, b}
+
+    >> Keys[{a -> x, b -> y}]
+     = {a, b}
+
+    Keys automatically threads over lists:
+    >> Keys[{<|a -> x, b -> y|>, {w -> z, {}}}]
+     = {{a, b}, {w, {}}}
+
+    Keys are listed in the order of their appearance:
+    >> Keys[{c -> z, b -> y, a -> x}]
+     = {c, b, a}
+
+    #> Keys[a -> x]
+     = a
+
+    #> Keys[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {a, a, {a, {b}, {}, {}}}
+
+    #> Keys[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {a, a, {a, b}}
+
+    #> Keys[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, Association[a -> y, b]]]
+
+    #> Keys[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, {a -> y, b}]]
+
+    #> Keys[{a -> x, <|a -> y, b|>}]
+     : The argument Association[a -> y, b] is not a valid Association or a list of rules.
+     = Keys[{a -> x, Association[a -> y, b]}]
+
+    #> Keys[{a -> x, {a -> y, b}}]
+     : The argument b is not a valid Association or a list of rules.
+     = Keys[{a -> x, {a -> y, b}}]
+
+    #> Keys[a -> x, b -> y]
+     : Keys called with 2 arguments; 1 argument is expected.
+     = Keys[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Keys called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Keys[rules___]'
+
+        def get_keys(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[0]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_keys(leaf) for leaf in expr.leaves])
+            else:
+                evaluation.message('Keys', 'invrl', expr)
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Keys', 'argx', Integer(len(rules)))
+
+        try:
+            return get_keys(rules[0])
+        except:
+            return None
+            
+class Values(Builtin):
+    """
+    <dl>
+    <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the values $vali$ in an association.
+    <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $vali$ in a list of rules.
+    </dl>
+
+    >> Values[<|a -> x, b -> y|>]
+     = {x, y}
+
+    >> Values[{a -> x, b -> y}]
+     = {x, y}
+
+    Values automatically threads over lists:
+    >> Values[{<|a -> x, b -> y|>, {c -> z, {}}}]
+     = {{x, y}, {z, {}}}
+
+    Values are listed in the order of their appearance:
+    >> Values[{c -> z, b -> y, a -> x}]
+     = {z, y, x}
+
+    #> Values[a -> x]
+     = x
+
+    #> Values[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {x, y, {z, {t}, {}, {}}}
+
+    #> Values[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {x, y, {z, t}}
+
+    #> Values[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {z, t}
+
+    #> Values[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {z, t}
+
+    #> Values[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, Association[a -> y, b]]]
+
+    #> Values[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, {a -> y, b}]]
+
+    #> Values[{a -> x, <|a -> y, b|>}]
+     : The argument {a -> x, Association[a -> y, b]} is not a valid Association or a list of rules.
+     = Values[{a -> x, Association[a -> y, b]}]
+
+    #> Values[{a -> x, {a -> y, b}}]
+     : The argument {a -> x, {a -> y, b}} is not a valid Association or a list of rules.
+     = Values[{a -> x, {a -> y, b}}]
+
+    #> Values[a -> x, b -> y]
+     : Values called with 2 arguments; 1 argument is expected.
+     = Values[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Values called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Values[rules___]'
+
+        def get_values(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[1]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_values(leaf) for leaf in expr.leaves])
+            else:
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Values', 'argx', Integer(len(rules)))
+
+        try:
+            return get_values(rules[0])
+        except:
+            return evaluation.message('Values', 'invrl', rules[0])
+
 
 class ContainsOnly(Builtin):
     """

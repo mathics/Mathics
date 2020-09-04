@@ -12,6 +12,7 @@ from mathics.core.convert import (
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
+from mathics import Symbol
 
 import sympy
 
@@ -516,6 +517,83 @@ class Integrate(SympyFunction):
         return result
 
 
+class Root(SympyFunction):
+    """
+    <dl>
+    <dt>'Root[$f$, $i$]'
+        <dd>represents the i-th complex root of the polynomial $f$
+    </dl>
+
+    >> Root[#1 ^ 2 - 1&, 1]
+     = -1
+    >> Root[#1 ^ 2 - 1&, 2]
+     = 1
+
+    Roots that can't be represented by radicals:
+    >> Root[#1 ^ 5 + 2 #1 + 1&, 2]
+     = Root[#1 ^ 5 + 2 #1 + 1&, 2]
+    """
+
+    messages = {
+        'nuni': "Argument `1` at position 1 is not a univariate polynomial function",
+        'nint': "Argument `1` at position 2 is not an integer",
+        'iidx': "Argument `1` at position 2 is out of bounds"
+    }
+
+    sympy_name = 'CRootOf'
+
+    def apply(self, f, i, evaluation):
+        'Root[f_, i_]'
+
+        try:
+            if not f.has_form('Function', 1):
+                raise sympy.PolynomialError
+
+            body = f.leaves[0]
+            poly = body.replace_slots([f, Symbol('_1')], evaluation)
+            idx = i.to_sympy() - 1
+
+            # Check for negative indeces (they are not allowed in Mathematica)
+            if idx < 0:
+                evaluation.message('Root', 'iidx', i)
+                return
+
+            r = sympy.CRootOf(poly.to_sympy(), idx)
+        except sympy.PolynomialError:
+            evaluation.message('Root', 'nuni', f)
+            return
+        except TypeError:
+            evaluation.message('Root', 'nint', i)
+            return
+        except IndexError:
+            evaluation.message('Root', 'iidx', i)
+            return
+
+        return from_sympy(r)
+
+    def to_sympy(self, expr, **kwargs):
+        try:
+            if not expr.has_form('Root', 2):
+                return None
+
+            f = expr.leaves[0]
+
+            if not f.has_form('Function', 1):
+                return None
+
+            body = f.leaves[0].replace_slots([f, Symbol('_1')], None)
+            poly = body.to_sympy(**kwargs)
+
+            i = expr.leaves[1].get_int_value(**kwargs)
+            
+            if i is None:
+                return None
+
+            return sympy.CRootOf(poly, i)
+        except:
+            return None
+
+
 class Solve(Builtin):
     """
     <dl>
@@ -991,3 +1069,4 @@ class FindRoot(Builtin):
             evaluation.message('FindRoot', 'maxiter')
 
         return Expression('List', Expression('Rule', x, x0))
+

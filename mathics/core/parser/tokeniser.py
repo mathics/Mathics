@@ -49,7 +49,9 @@ tokens = [
     ('RawRightBrace', r' \} '),
     ('RawLeftParenthesis', r' \( '),
     ('RawRightParenthesis', r' \) '),
-
+    ('RawLeftAssociation', r' \<\| '),
+    ('RawRightAssociation', r' \|\> '),     
+    
     ('RawComma', r' \, '),
 
     ('Span', r' \;\; '),
@@ -118,6 +120,7 @@ tokens = [
 
     ('Rule', r' (\-\>)|\uF522 '),
     ('RuleDelayed', r' (\:\>)|\uF51F '),
+    ('UndirectedEdge', r' (\<\-\>)|\u29DF '),
     ('ReplaceRepeated', r' \/\/\. '),
     ('ReplaceAll', r' \/\. '),
 
@@ -229,7 +232,7 @@ literal_tokens = {
           'Postfix', 'TagSet', 'Condition', 'Divide'],
     ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
     ';': ['Span', 'Semicolon'],
-    '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
+    '<': ['RawLeftAssociation', 'UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
     '?': ['Information', 'PatternTest'],
@@ -242,7 +245,7 @@ literal_tokens = {
     '^': ['UpSetDelayed', 'UpSet', 'Power'],
     '_': ['Pattern'],
     '`': ['Pattern', 'Symbol'],
-    '|': ['Or', 'Alternatives'],
+    '|': ['RawRightAssociation', 'Or', 'Alternatives'],
     '{': ['RawLeftBrace'],
     '}': ['RawRightBrace'],
     '~': ['StringExpression', 'Infix']

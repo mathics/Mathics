@@ -191,6 +191,11 @@ class N(Builtin):
                 expr.head, *[self.apply_other(leaf, prec, evaluation)
                              for leaf in expr.leaves])
 
+
+        # Special case for the Root builtin
+        if expr.has_form('Root', 2):
+            return from_sympy(sympy.N(expr.to_sympy(), d))
+
         if isinstance(expr, Number):
             return expr.round(d)
 

@@ -1953,12 +1953,151 @@ class Arrowheads(_GraphicsElement):
             yield self._arrow_size(self.spec, extent), 1, default_arrow
 
 
+def _norm(p, q):
+    px, py = p
+    qx, qy = q
+
+    dx = qx - px
+    dy = qy - py
+
+    length = sqrt(dx * dx + dy * dy)
+    return dx, dy, length
+
+
+class _Line:
+    def make_draw_svg(self, style):
+        def draw(points):
+            yield '<polyline points="'
+            yield ' '.join('%f,%f' % xy for xy in points)
+            yield '" style="%s" />' % style
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            yield 'draw('
+            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
+            yield ', % s);' % pen
+
+        return draw
+
+    def arrows(self, points, heads):  # heads has to be sorted by pos
+        def segments(points):
+            for i in range(len(points) - 1):
+                px, py = points[i]
+                dx, dy, dl = _norm((px, py), points[i + 1])
+                yield dl, px, py, dx, dy
+
+        seg = list(segments(points))
+
+        if not seg:
+            return
+
+        i = 0
+        t0 = 0.
+        n = len(seg)
+        dl, px, py, dx, dy = seg[i]
+        total = sum(segment[0] for segment in seg)
+
+        for s, t, draw in ((s, pos * total - t0, draw) for s, pos, draw in heads):
+            if s == 0.:  # ignore zero-sized arrows
+                continue
+
+            if i < n:  # not yet past last segment?
+                while t > dl:  # position past current segment?
+                    t -= dl
+                    t0 += dl
+                    i += 1
+                    if i == n:
+                        px += dx  # move to last segment's end
+                        py += dy
+                        break
+                    else:
+                        dl, px, py, dx, dy = seg[i]
+
+            for shape in draw(px, py, dx / dl, dy / dl, t, s):
+                yield shape
+
+
+def _bezier_derivative(p):
+    # see http://pomax.github.io/bezierinfo/, §12 Derivatives
+    n = len(p[0]) - 1
+    return [[n * (x1 - x0) for x1, x0 in zip(w, w[1:])] for w in p]
+
+
+def _bezier_evaluate(p, t):
+    # see http://pomax.github.io/bezierinfo/, §4 Controlling Bezier Curvatures
+    n = len(p[0]) - 1
+    if n == 3:
+        t2 = t * t
+        t3 = t2 * t
+        mt = 1 - t
+        mt2 = mt * mt
+        mt3 = mt2 * mt
+        return [w[0] * mt3 + 3 * w[1] * mt2 * t + 3 * w[2] * mt * t2 + w[3] * t3 for w in p]
+    elif n == 2:
+        t2 = t * t
+        mt = 1 - t
+        mt2 = mt * mt
+        return [w[0] * mt2 + w[1] * 2 * mt * t + w[2] * t2 for w in p]
+    elif n == 1:
+        mt = 1 - t
+        return [w[0] * mt + w[1] * t for w in p]
+    else:
+        raise ValueError('cannot compute bezier curve of order %d' % n)
+
+
+class _BezierCurve:
+    def __init__(self, spline_degree=3):
+        self.spline_degree = spline_degree
+
+    def make_draw_svg(self, style):
+        def draw(points):
+            s = ' '.join(_svg_bezier((self.spline_degree, points)))
+            yield '<path d="%s" style="%s"/>' % (s, style)
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            for path in _asy_bezier((self.spline_degree, points)):
+                yield 'draw(%s, %s);' % (path, pen)
+
+        return draw
+
+    def arrows(self, points, heads):  # heads has to be sorted by pos
+        if len(points) < 2:
+            return
+
+        # FIXME combined curves
+
+        cp = list(zip(*points))
+        if len(points) >= 3:
+            dcp = _bezier_derivative(cp)
+        else:
+            dcp = cp
+
+        for s, t, draw in heads:
+            if s == 0.:  # ignore zero-sized arrows
+                continue
+
+            px, py = _bezier_evaluate(cp, t)
+
+            tx, ty = _bezier_evaluate(dcp, t)
+            tl = -sqrt(tx * tx + ty * ty)
+            tx /= tl
+            ty /= tl
+
+            for shape in draw(px, py, tx, ty, 0., s):
+                yield shape
+
+
 class ArrowBox(_Polyline):
     def init(self, graphics, style, item=None):
-        super(ArrowBox, self).init(graphics, item, style)
-
         if not item:
             raise BoxConstructError
+
+        super(ArrowBox, self).init(graphics, item, style)
 
         leaves = item.leaves
         if len(leaves) == 2:
@@ -1968,8 +2107,27 @@ class ArrowBox(_Polyline):
         else:
             raise BoxConstructError
 
+        curve = leaves[0]
+
+        curve_head_name = curve.get_head_name()
+        if curve_head_name == 'System`List':
+            curve_points = curve
+            self.curve = _Line()
+        elif curve_head_name == 'System`Line':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _Line()
+        elif curve_head_name == 'System`BezierCurve':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _BezierCurve()
+        else:
+            raise BoxConstructError
+
         self.setback = setback
-        self.do_init(graphics, leaves[0])
+        self.do_init(graphics, curve_points)
         self.graphics = graphics
         self.edge_color, _ = style.get_style(_Color, face_element=False)
         self.heads, _ = style.get_style(Arrowheads, face_element=False)
@@ -2042,24 +2200,8 @@ class ArrowBox(_Polyline):
         else:
             heads = ((extent * Arrowheads.default_size, 1, default_arrow),)
 
-        def norm(p, q):
-            px, py = p
-            qx, qy = q
-
-            dx = qx - px
-            dy = qy - py
-
-            length = sqrt(dx * dx + dy * dy)
-            return dx, dy, length
-
-        def segments(points):
-            for i in range(len(points) - 1):
-                px, py = points[i]
-                dx, dy, dl = norm((px, py), points[i + 1])
-                yield dl, px, py, dx, dy
-
         def setback(p, q, d):
-            dx, dy, length = norm(p, q)
+            dx, dy, length = _norm(p, q)
             if d >= length:
                 return None, length
             else:
@@ -2082,37 +2224,6 @@ class ArrowBox(_Polyline):
             return list(reversed(shrink_one_end(
                 list(reversed(shrink_one_end(line[:], s1))), s2)))
 
-        def render(points, heads):  # heads has to be sorted by pos
-            seg = list(segments(points))
-
-            if not seg:
-                return
-
-            i = 0
-            t0 = 0.
-            n = len(seg)
-            dl, px, py, dx, dy = seg[i]
-            total = sum(segment[0] for segment in seg)
-
-            for s, t, draw in ((s, pos * total - t0, draw) for s, pos, draw in heads):
-                if s == 0.:  # ignore zero-sized arrows
-                    continue
-
-                if i < n:  # not yet past last segment?
-                    while t > dl:  # position past current segment?
-                        t -= dl
-                        t0 += dl
-                        i += 1
-                        if i == n:
-                            px += dx  # move to last segment's end
-                            py += dy
-                            break
-                        else:
-                            dl, px, py, dx, dy = seg[i]
-
-                for shape in draw(px, py, dx / dl, dy / dl, t, s):
-                    yield shape
-
         for line in self.lines:
             if len(line) < 2:
                 continue
@@ -2125,7 +2236,7 @@ class ArrowBox(_Polyline):
             for s in polyline(transformed_points):
                 yield s
 
-            for s in render(transformed_points, heads):
+            for s in self.curve.arrows(transformed_points, heads):
                 yield s
 
     def _custom_arrow(self, format, format_transform):
@@ -2154,12 +2265,9 @@ class ArrowBox(_Polyline):
     def to_svg(self):
         width = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=width)
-        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_svg(style)
 
-        def polyline(points):
-            yield '<polyline points="'
-            yield ' '.join('%f,%f' % xy for xy in points)
-            yield '" style="%s" />' % style
+        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield '<polygon points="'
@@ -2174,12 +2282,9 @@ class ArrowBox(_Polyline):
     def to_asy(self):
         width = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=width)
-        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_asy(pen)
 
-        def polyline(points):
-            yield 'draw('
-            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
-            yield ', % s);' % pen
+        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield 'filldraw('
