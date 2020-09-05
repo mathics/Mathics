@@ -980,7 +980,7 @@ class Eigenvectors(Builtin):
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{0.309017, 1.}, {-0.809017, 1.}}
+     = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
      = {{1 / 3, 7 / 3, 1}, {1, 1, 0}, {0, 0, 0}}
@@ -1005,8 +1005,6 @@ class Eigenvectors(Builtin):
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
-
-        print(eigenvects)
 
         # The eigenvectors are given in the same order as the eigenvalues.
         try:
