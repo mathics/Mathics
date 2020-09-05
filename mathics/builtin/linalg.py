@@ -433,6 +433,11 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
+
+        for leaf in b.leaves:
+            if leaf.has_form('List', None):
+                return evaluation.message('LinearSolve', 'matrix', b, 2)
+
         system = [mm + [v.to_sympy()] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
@@ -996,7 +1001,7 @@ class Eigenvectors(Builtin):
             return evaluation.message('Eigenvectors', 'matsq', m)
         # sympy raises an error for some matrices that Mathematica can compute.
         try:
-            eigenvects = matrix.eigenvects()
+            eigenvects = matrix.eigenvects(simplify=True)
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
