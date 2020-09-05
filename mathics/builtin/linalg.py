@@ -433,7 +433,7 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
-        system = [mm + [v] for mm, v in zip(matrix, b.leaves)]
+        system = [mm + [v.to_sympy()] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
             return evaluation.message('LinearSolve', 'matrix', b, 2)
@@ -1000,6 +1000,8 @@ class Eigenvectors(Builtin):
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
+
+        print(eigenvects)
 
         # The eigenvectors are given in the same order as the eigenvalues.
         try:

@@ -67,10 +67,6 @@ class DSolve(Builtin):
     ## Order of arguments shoudn't matter
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {x, y}]
      = {{f -> (Function[{x, y}, C[1][-x - y]])}}
-    ## FIXME SymPy can't handle this case:
-    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {y, x}]
-     : SymPy can't solve this form of DE.
-     = DSolve[...]
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {x, y}]
      = {{f[x, y] -> C[1][-x - y]}}
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {y, x}]
@@ -119,7 +115,7 @@ class DSolve(Builtin):
         if x.is_symbol():
             syms = [x]
         elif x.has_form('List', 1, None):
-            syms = x.get_leaves()
+            syms = sorted(x.get_leaves())
         else:
             return evaluation.message('DSolve', 'dsvar', x)
 
