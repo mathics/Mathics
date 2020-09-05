@@ -144,11 +144,11 @@ def from_sympy(expr):
             if builtin is not None:
                 name = builtin.get_name()
             return Symbol(name)
-        elif isinstance(expr, (sympy.numbers.Infinity, sympy.numbers.ComplexInfinity)):
+        elif isinstance(expr, (sympy.core.numbers.Infinity, sympy.core.numbers.ComplexInfinity)):
             return Symbol(expr.__class__.__name__)
-        elif isinstance(expr, sympy.numbers.NegativeInfinity):
+        elif isinstance(expr, sympy.core.numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
-        elif isinstance(expr, sympy.numbers.ImaginaryUnit):
+        elif isinstance(expr, sympy.core.numbers.ImaginaryUnit):
             return Complex(Integer(0), Integer(1))
         elif isinstance(expr, sympy.Integer):
             return Integer(int(expr))
@@ -167,9 +167,9 @@ def from_sympy(expr):
             if expr._prec == machine_precision:
                 return MachineReal(float(expr))
             return Real(expr)
-        elif isinstance(expr, sympy.numbers.NaN):
+        elif isinstance(expr, sympy.core.numbers.NaN):
             return Symbol('Indeterminate')
-        elif isinstance(expr, sympy.function.FunctionClass):
+        elif isinstance(expr, sympy.core.function.FunctionClass):
             return Symbol(str(expr))
         elif expr is sympy.true:
             return Symbol('True')
@@ -299,7 +299,7 @@ def from_sympy(expr):
                           *[from_sympy(arg) for arg in expr.args])
 
     elif isinstance(expr, sympy.O):
-        if expr.args[0].func == sympy.power.Pow:
+        if expr.args[0].func == sympy.core.power.Pow:
             [var, power] = [from_sympy(arg) for arg in expr.args[0].args]
             o = Expression('O', var)
             return Expression('Power', o, power)
