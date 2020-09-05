@@ -109,12 +109,9 @@ class NoNumPyRandomEnv(_RandomEnvBase):
 
     def randchoice(self, n, size, replace, p):
         if replace:
-            return self.randint(0, n, size=size)
+            return random.choices([i for i in range(n)], weights=p, k=size)
         else:
-            idxs = [i for i in range(n)]
-            random.shuffle(idxs)
-
-            return idxs[:size]
+            return random.sample([i for i in range(n)], size)
 
 
 class NumPyRandomEnv(_RandomEnvBase):
