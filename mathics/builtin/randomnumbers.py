@@ -108,7 +108,13 @@ class NoNumPyRandomEnv(_RandomEnvBase):
         return _create_array(size, lambda: random.uniform(a, b))
 
     def randchoice(self, n, size, replace, p):
-        raise NotImplementedError
+        if replace:
+            return self.randint(0, n, size=size)
+        else:
+            idxs = [i for i in range(n)]
+            random.shuffle(idxs)
+
+            return idxs[:size]
 
 
 class NumPyRandomEnv(_RandomEnvBase):
