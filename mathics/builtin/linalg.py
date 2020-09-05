@@ -29,13 +29,6 @@ def matrix_data(m):
 def to_sympy_matrix(data, **kwargs):
     if not isinstance(data, list):
         data = matrix_data(data)
-
-    if any(not isinstance(row, list) for row in data):
-        return None
-
-    if any(len(row) != len(data[0]) for row in data):
-        return None
-
     try:
         return sympy.Matrix(data)
     except (TypeError, AssertionError, ValueError):
@@ -440,15 +433,10 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
-
-        for leaf in b.leaves:
-            if leaf.has_form('List', None):
-                return evaluation.message('LinearSolve', 'matrix', b, 2)
-
         system = [mm + [v.to_sympy()] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
-                return evaluation.message('LinearSolve', 'matrix', b, 2)
+            return evaluation.message('LinearSolve', 'matrix', b, 2)
         syms = [sympy.Dummy('LinearSolve_var%d' % k)
                 for k in range(system.cols - 1)]
         sol = sympy.solve_linear_system(system, *syms)
@@ -728,13 +716,21 @@ class Eigenvalues(Builtin):
 
         if matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = [(from_sympy(v), w) 
-                       for (v, w) in matrix.eigenvals().items()]
+        eigenvalues = matrix.eigenvals().items()
+        try:
+            eigenvalues = sorted(eigenvalues,
+                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
+                                 reverse=True)
+        # Try to sort the results as complex numbers
+        except TypeError:
+            try:
+                eigenvalues = sorted(eigenvalues,
+                                     key=lambda v_c: -abs(v_c[0]))
+            # Don't sort the results at all
+            except TypeError:
+                pass
 
-        eigenvalues.sort(key=lambda v_c: v_c[0].get_sort_key(), reverse=True)
-        eigenvalues = [val for (v, w) in eigenvalues for val in [v] * w]
-
-        return Expression('List', *eigenvalues)
+        return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
 
 
 class Eigensystem(Builtin):
@@ -998,18 +994,28 @@ class Eigenvectors(Builtin):
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvectors', 'matsq', m)
-
         # sympy raises an error for some matrices that Mathematica can compute.
         try:
-            eigenvects = matrix.eigenvects(simplify=True)
+            eigenvects = matrix.eigenvects()
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
+        print(eigenvects)
+
         # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, 
-                            key=lambda v_c: from_sympy(v_c[0]).get_sort_key(), 
-                            reverse=True)
+        try:
+            eigenvects = sorted(eigenvects, 
+                                key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
+                                reverse=True)
+        # Try to sort the results as complex numbers
+        except TypeError:
+            try: 
+                eigenvects = sorted(eigenvects,
+                                    key=lambda v_c: -abs(v_c[0]))
+            # Don't sort the results at all
+            except TypeError:
+                pass
 
         result = []
         for val, count, basis in eigenvects:
