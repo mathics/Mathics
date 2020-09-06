@@ -103,7 +103,11 @@ class SympyPrime(sympy.Function):
     @classmethod 
     def eval(cls, n): 
         if n.is_Integer and n > 0: 
-            return sympy.prime(n) 
+            try:
+                return sympy.prime(n) 
+            except:
+                # n is too big, SymPy doesn't know the n-th prime
+                pass
 
 
 def from_sympy(expr):
