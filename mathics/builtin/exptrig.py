@@ -123,7 +123,7 @@ class Degree(SympyConstant):
      = Cos[Degree[x]]
 
     ## Issue 274
-    #> \[Degree] == ° == Degree
+    #> \\[Degree] == ° == Degree
      = True
 
     #> N[Degree]

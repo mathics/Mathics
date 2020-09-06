@@ -8,7 +8,7 @@ Differential equation solver functions
 import sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
-from mathics.core.convert import sympy_symbol_prefix, from_sympy
+from mathics.core.convert import from_sympy
 
 
 class DSolve(Builtin):
@@ -75,7 +75,7 @@ class DSolve(Builtin):
 
     # XXX sympy #11669 test
     """
-    #> DSolve[\[Gamma]'[x] == 0, \[Gamma], x]
+    #> DSolve[\\[Gamma]'[x] == 0, \\[Gamma], x]
      : Hit sympy bug #11669.
      = ...
     """

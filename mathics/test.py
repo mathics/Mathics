@@ -44,20 +44,18 @@ def compare(result, wanted):
             return False
     return True
 
-stars = "*" * 10
-def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
+
+def test_case(test, tests, index=0, quiet=False):
     test, wanted_out, wanted = test.test, test.outs, test.result
+    part, chapter, section = tests.part, tests.chapter, tests.section
 
     def fail(why):
-        part, chapter, section = tests.part, tests.chapter, tests.section
         print("%sTest failed: %s in %s / %s\n%s\n%s\n" % (
             sep, section, part, chapter, test, why))
         return False
 
     if not quiet:
-        if section:
-            print("%s %s / %s %s" % (stars, tests.chapter, section, stars))
-        print('%4d (%2d): TEST %s' % (index, subindex, test))
+        print('%4d. TEST %s' % (index, test))
 
     feeder = SingleLineFeeder(test, '<test>')
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
@@ -97,12 +95,12 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
             '\n'.join(str(o) for o in wanted_out)))
     return True
 
+
 def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
     definitions.reset_user_definitions()
     count = failed = skipped = 0
     failed_symbols = set()
-    section = tests.section
-    for subindex, test in enumerate(tests.tests):
+    for test in tests.tests:
         if test.ignore:
             continue
         count += 1
@@ -110,12 +108,11 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
         if index < start_at:
             skipped += 1
             continue
-        if not test_case(test, tests, index, subindex + 1, quiet, section):
+        if not test_case(test, tests, index, quiet):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
             if stop_on_failure:
                 break
-        section = None
     return count, failed, skipped, failed_symbols, index
 
 
@@ -260,13 +257,14 @@ def main():
 
     if args.tex:
         write_latex()
-    elif args.section:
-        test_section(args.section, stop_on_failure=args.stop_on_failure)
     else:
-        start_at = args.skip + 1
-        test_all(quiet=args.quiet, generate_output=args.output,
-                 stop_on_failure=args.stop_on_failure,
-                 start_at=start_at)
+        if args.section:
+            test_section(args.section, stop_on_failure=args.stop_on_failure)
+        else:
+            start_at = args.skip + 1
+            test_all(quiet=args.quiet, generate_output=args.output,
+                     stop_on_failure=args.stop_on_failure,
+                     start_at=start_at)
 
 if __name__ == '__main__':
     main()
