@@ -1007,6 +1007,7 @@ class Eigenvectors(Builtin):
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
+        # Sort the eigenvectors by their corresponding eigenvalues
         if all(v.is_complex for (v, _, _) in eigenvects):
             eigenvects.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
                             reverse=True)
