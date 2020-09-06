@@ -661,13 +661,14 @@ def total_extent_3d(extents):
 
 
 class Graphics3DElements(_GraphicsElements):
-    coords = Coords3D
-
     def __init__(self, content, evaluation, neg_y=False):
         super(Graphics3DElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
         self.xmin = self.ymin = self.pixel_width = self.pixel_height = \
             self.extent_width = self.extent_height = None
+
+    def make_coords(self, points):
+        return [Coords3D(self, p) for p in points]
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
