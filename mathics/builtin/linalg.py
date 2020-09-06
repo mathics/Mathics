@@ -433,7 +433,12 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
-        system = [mm + [v] for mm, v in zip(matrix, b.leaves)]
+
+        for leaf in b.leaves:
+            if leaf.has_form('List', None):
+                return evaluation.message('LinearSolve', 'matrix', b, 2)
+
+        system = [mm + [v.to_sympy()] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
             return evaluation.message('LinearSolve', 'matrix', b, 2)
@@ -975,10 +980,10 @@ class Eigenvectors(Builtin):
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{0.309017, 1.}, {-0.809017, 1.}}
+     = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
-     = {{1 / 3, 7 / 3, 1}, {1, 1, 0}, {0, 0, 0}}
+     = {{1, 7, 3}, {1, 1, 0}, {0, 0, 0}}
     """
 
     messages = {
@@ -996,7 +1001,7 @@ class Eigenvectors(Builtin):
             return evaluation.message('Eigenvectors', 'matsq', m)
         # sympy raises an error for some matrices that Mathematica can compute.
         try:
-            eigenvects = matrix.eigenvects()
+            eigenvects = matrix.eigenvects(simplify=True)
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)

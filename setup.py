@@ -63,8 +63,8 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==1.4', 'django >= 1.8, < 1.12',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama']
+INSTALL_REQUIRES += ['sympy>=1.6, < 1.7', 'django >= 1.8, < 1.12',
+                     'mpmath>=1.1.0', 'python-dateutil', 'colorama']
 
 
 def subdirs(root, file='*.*', depth=10):
