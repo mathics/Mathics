@@ -63,7 +63,7 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
             namespace = None
             localname = tag
         else:
-            m = re.match('\{(.*)\}(.*)', node.tag)
+            m = re.match(r'\{(.*)\}(.*)', node.tag)
             namespace = m.group(1)
             localname = m.group(2)
 
@@ -151,7 +151,7 @@ def parse_xml_stream(f):
             msg = str(e)
 
             # Different versions of lxml include different suffixes so trim.
-            m = re.search('line \d+, column \d+', msg)
+            m = re.search(r'line \d+, column \d+', msg)
             if m is not None:
                 msg = msg[:m.end()]
 
@@ -299,4 +299,3 @@ class XMLObjectImport(Builtin):
         '''%(name)s[text_String]'''
         xml = Expression('XML`Parser`XMLGet', text).evaluate(evaluation)
         return Expression('List', Expression('Rule', 'XMLObject', xml))
-

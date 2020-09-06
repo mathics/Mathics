@@ -123,7 +123,7 @@ class Degree(SympyConstant):
      = Cos[Degree[x]]
 
     ## Issue 274
-    #> \[Degree] == ° == Degree
+    #> \\[Degree] == ° == Degree
      = True
 
     #> N[Degree]
@@ -1123,7 +1123,7 @@ class LogisticSigmoid(Builtin):
     <dt>'LogisticSigmoid[$z$]'
         <dd>returns the logistic sigmoid of $z$.
     </dl>
-    
+
     >> LogisticSigmoid[0.5]
      = 0.622459
 
@@ -1138,7 +1138,5 @@ class LogisticSigmoid(Builtin):
     """
 
     attributes = ('Listable', 'NumericFunction',)
-    
-    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
 
-    
+    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}

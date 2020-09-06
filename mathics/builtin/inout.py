@@ -6,7 +6,6 @@ Input and Output
 """
 
 import re
-import sympy
 import mpmath
 
 import typing
@@ -19,10 +18,10 @@ from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
+    Expression, String, Symbol, Integer, Real, BoxError,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
-    dps, prec, convert_base, machine_precision, reconstruct_digits)
+    dps, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -305,33 +304,33 @@ class MakeBoxes(Builtin):
     <dt>'MakeBoxes[$expr$]'
         <dd>is a low-level formatting primitive that converts $expr$
         to box form, without evaluating it.
-    <dt>'\( ... \)'
+    <dt>'\\( ... \\)'
         <dd>directly inputs box objects.
     </dl>
 
     String representation of boxes
-    >> \(x \^ 2\)
+    >> \\(x \\^ 2\\)
      = SuperscriptBox[x, 2]
 
-    >> \(x \_ 2\)
+    >> \\(x \\_ 2\\)
      = SubscriptBox[x, 2]
 
-    >> \( a \+ b \% c\)
+    >> \\( a \\+ b \\% c\\)
      = UnderoverscriptBox[a, b, c]
 
-    >> \( a \& b \% c\)
+    >> \\( a \\& b \\% c\\)
      = UnderoverscriptBox[a, c, b]
 
-    #> \( \@ 5 \)
+    #> \\( \\@ 5 \\)
      = SqrtBox[5]
 
-    >> \(x \& y \)
+    >> \\(x \\& y \\)
      = OverscriptBox[x, y]
 
-    >> \(x \+ y \)
+    >> \\(x \\+ y \\)
      = UnderscriptBox[x, y]
 
-    #> \( x \^ 2 \_ 4 \)
+    #> \\( x \\^ 2 \\_ 4 \\)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
 
     ## Tests for issue 151 (infix operators in heads)
@@ -346,13 +345,13 @@ class MakeBoxes(Builtin):
 
     # TODO: Convert operators to appropriate representations e.g. 'Plus' to '+'
     """
-    >> \(a + b\)
+    >> \\(a + b\\)
      = RowBox[{a, +, b}]
 
-    >> \(TraditionalForm \` a + b\)
+    >> \\(TraditionalForm \\` a + b\\)
      = FormBox[RowBox[{a, +, b}], TraditionalForm]
 
-    >> \(x \/ \(y + z\)\)
+    >> \\(x \\/ \\(y + z\\)\\)
      =  FractionBox[x, RowBox[{y, +, z}]]
     """
 
@@ -395,24 +394,24 @@ class MakeBoxes(Builtin):
 
     # TODO: Correct precedence
     """
-    >> \(x \/ y + z\)
+    >> \\(x \\/ y + z\\)
      = RowBox[{FractionBox[x, y], +, z}]
-    >> \(x \/ (y + z)\)
+    >> \\(x \\/ (y + z)\\)
      = FractionBox[x, RowBox[{(, RowBox[{y, +, z}], )}]]
 
-    #> \( \@ a + b \)
+    #> \\( \\@ a + b \\)
      = RowBox[{SqrtBox[a], +, b}]
     """
 
     # FIXME: Don't insert spaces with brackets
     """
-    #> \(c (1 + x)\)
+    #> \\(c (1 + x)\\)
      = RowBox[{c, RowBox[{(, RowBox[{1, +, x}], )}]}]
     """
 
     # TODO: Required MakeExpression
     """
-    #> \!\(x \^ 2\)
+    #> \\!\\(x \\^ 2\\)
      = x ^ 2
     #> FullForm[%]
      = Power[x, 2]
@@ -426,7 +425,7 @@ class MakeBoxes(Builtin):
 
     # TODO: Parsing of special characters (like commas)
     """
-    >> \( a, b \)
+    >> \\( a, b \\)
      = RowBox[{a, ,, b}]
     """
 
@@ -835,7 +834,7 @@ class TableForm(Builtin):
      . -Graphics-   -Graphics-   -Graphics-
 
     #> TableForm[{}]
-     = 
+     =
     """
 
     options = {
@@ -1198,63 +1197,63 @@ class Check(Builtin):
     <dt>'Check[$expr$, $failexpr$, {s1::t1,s2::t2,…}]'
         <dd>checks only for the specified messages.
     </dl>
-    
+
     Return err when a message is generated:
     >> Check[1/0, err]
      : Infinite expression 1 / 0 encountered.
      = err
-     
+
     #> Check[1^0, err]
      = 1
-     
-    Check only for specific messages: 
+
+    Check only for specific messages:
     >> Check[Sin[0^0], err, Sin::argx]
      : Indeterminate expression 0 ^ 0 encountered.
      = Indeterminate
-     
+
     >> Check[1/0, err, Power::infy]
      : Infinite expression 1 / 0 encountered.
      = err
-     
+
     #> Check[1 + 2]
      : Check called with 1 argument; 2 or more arguments are expected.
      = Check[1 + 2]
-     
+
     #> Check[1 + 2, err, 3 + 1]
      : Message name 3 + 1 is not of the form symbol::name or symbol::name::language.
      = Check[1 + 2, err, 3 + 1]
-     
+
     #> Check[1 + 2, err, hello]
      : Message name hello is not of the form symbol::name or symbol::name::language.
      = Check[1 + 2, err, hello]
-      
+
     #> Check[1/0, err, Compile::cpbool]
      : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
-    
+
     #> Check[{0^0, 1/0}, err]
      : Indeterminate expression 0 ^ 0 encountered.
      : Infinite expression 1 / 0 encountered.
      = err
-    
+
     #> Check[0^0/0, err, Power::indet]
      : Indeterminate expression 0 ^ 0 encountered.
      : Infinite expression 1 / 0 encountered.
      = err
-     
+
     #> Check[{0^0, 3/0}, err, Power::indet]
      : Indeterminate expression 0 ^ 0 encountered.
      : Infinite expression 1 / 0 encountered.
      = err
-    
+
     #> Check[1 + 2, err, {a::b, 2 + 5}]
      : Message name 2 + 5 is not of the form symbol::name or symbol::name::language.
-     = Check[1 + 2, err, {a::b, 2 + 5}] 
-    
+     = Check[1 + 2, err, {a::b, 2 + 5}]
+
     #> Off[Power::infy]
     #> Check[1 / 0, err]
      = ComplexInfinity
-     
+
     #> On[Power::infy]
     #> Check[1 / 0, err]
      : Infinite expression 1 / 0 encountered.
@@ -1267,18 +1266,18 @@ class Check(Builtin):
         'argmu': 'Check called with 1 argument; 2 or more arguments are expected.',
         'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
     }
-    
+
     def apply_1_argument(self, expr, evaluation):
         'Check[expr_]'
         return evaluation.message('Check', 'argmu')
-    
+
     def apply(self, expr, failexpr, params, evaluation):
         'Check[expr_, failexpr_, params___]'
-        
-        #Todo: To implement the third form of this function , we need to implement the function $MessageGroups first          
+
+        #Todo: To implement the third form of this function , we need to implement the function $MessageGroups first
             #<dt>'Check[$expr$, $failexpr$, "name"]'
                #<dd>checks only for messages in the named message group.
-                 
+
         def get_msg_list(exprs):
             messages = []
             for expr in exprs:
@@ -1289,11 +1288,11 @@ class Check(Builtin):
                 else:
                     raise Exception(expr)
             return messages
-   
+
         check_messages = set(evaluation.get_quiet_messages())
         display_fail_expr = False
 
-        params = params.get_sequence()    
+        params = params.get_sequence()
         if len(params) == 0:
             result = expr.evaluate(evaluation)
             if(len(evaluation.out)):
@@ -1301,11 +1300,11 @@ class Check(Builtin):
         else:
             try:
                 msgs = get_msg_list(params)
-                for x in msgs: 
+                for x in msgs:
                     check_messages.add(x)
             except Exception as inst :
                 evaluation.message('Check', 'name', inst.args[0])
-                return 
+                return
             result = expr.evaluate(evaluation)
             for out_msg in evaluation.out:
                 pattern = Expression('MessageName', Symbol(out_msg.symbol), String(out_msg.tag))
@@ -1771,7 +1770,7 @@ class Print(Builtin):
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
 
-    #> Print["\[Mu]"]
+    #> Print["\\[Mu]"]
      | μ
     #> Print["μ"]
      | μ
@@ -1930,7 +1929,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
+            tex = tex.replace(' \uF74c', ' \\, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
