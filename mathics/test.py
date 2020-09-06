@@ -28,7 +28,6 @@ sep = "-" * 70 + "\n"
 definitions = None
 documentation = None
 
-
 def compare(result, wanted):
     if result == wanted:
         return True
@@ -237,12 +236,12 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
         print("\nOK")
 
         if generate_output:
-            print('Save XML')
-            with open_ensure_dir(documentation.xml_data_file, 'wb') as output_file:
+            print("Save XML")
+            with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
                 pickle.dump(output_xml, output_file, 0)
 
-            print('Save TEX')
-            with open_ensure_dir(documentation.tex_data_file, 'wb') as output_file:
+            print("Save TEX")
+            with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
                 pickle.dump(output_tex, output_file, 0)
     else:
         print("\nFAILED")
@@ -250,10 +249,12 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
 
 
 def write_latex():
-    with open_ensure_dir(documentation.tex_data_file, 'rb') as output_file:
+    print("Load data")
+    with open_ensure_dir(settings.DOC_TEX_DATA, "rb") as output_file:
         output_tex = pickle.load(output_file)
 
-    with open_ensure_dir(documentation.latex_file, 'wb') as doc:
+    print("Print documentation")
+    with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
         content = documentation.latex(output_tex)
         content = content.encode("utf-8")
         doc.write(content)
@@ -280,7 +281,7 @@ def main():
                         help="also checks pymathics modules.")
 
     parser.add_argument(
-    "--output",
+        "--output",
         "-o",
         dest="output",
         action="store_true",
@@ -323,6 +324,7 @@ def main():
             test_all(quiet=args.quiet, generate_output=args.output,
                      stop_on_failure=args.stop_on_failure,
                      start_at=start_at)
+
 
 if __name__ == "__main__":
     main()
