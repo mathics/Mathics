@@ -30,6 +30,9 @@ filename_pattern = r'''
 '''
 
 tokens = [
+    ('Definition', r'\? '),
+    ('Information', r'\?\? '),
+
     ('Number', number_pattern),
     ('String', r'"'),
     ('Pattern', pattern_pattern),
@@ -68,6 +71,7 @@ tokens = [
     ('SqrtBox', r' \\\@ '),
     ('FormBox', r' \\\` '),
 
+    ('Information', r'\?\?'),
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
     ('Decrement', r' \-\- '),
@@ -231,7 +235,7 @@ literal_tokens = {
     '<': ['RawLeftAssociation', 'UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['PatternTest'],
+    '?': ['Information', 'PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
