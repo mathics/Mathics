@@ -6,7 +6,6 @@ Input and Output
 """
 
 import re
-import sympy
 import mpmath
 
 import typing
@@ -19,10 +18,10 @@ from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
+    Expression, String, Symbol, Integer, Real, BoxError,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
-    dps, prec, convert_base, machine_precision, reconstruct_digits)
+    dps, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -305,33 +304,33 @@ class MakeBoxes(Builtin):
     <dt>'MakeBoxes[$expr$]'
         <dd>is a low-level formatting primitive that converts $expr$
         to box form, without evaluating it.
-    <dt>'\( ... \)'
+    <dt>'\\( ... \\)'
         <dd>directly inputs box objects.
     </dl>
 
     String representation of boxes
-    >> \(x \^ 2\)
+    >> \\(x \\^ 2\\)
      = SuperscriptBox[x, 2]
 
-    >> \(x \_ 2\)
+    >> \\(x \\_ 2\\)
      = SubscriptBox[x, 2]
 
-    >> \( a \+ b \% c\)
+    >> \\( a \\+ b \\% c\\)
      = UnderoverscriptBox[a, b, c]
 
-    >> \( a \& b \% c\)
+    >> \\( a \\& b \\% c\\)
      = UnderoverscriptBox[a, c, b]
 
-    #> \( \@ 5 \)
+    #> \\( \\@ 5 \\)
      = SqrtBox[5]
 
-    >> \(x \& y \)
+    >> \\(x \\& y \\)
      = OverscriptBox[x, y]
 
-    >> \(x \+ y \)
+    >> \\(x \\+ y \\)
      = UnderscriptBox[x, y]
 
-    #> \( x \^ 2 \_ 4 \)
+    #> \\( x \\^ 2 \\_ 4 \\)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
 
     ## Tests for issue 151 (infix operators in heads)
@@ -346,13 +345,13 @@ class MakeBoxes(Builtin):
 
     # TODO: Convert operators to appropriate representations e.g. 'Plus' to '+'
     """
-    >> \(a + b\)
+    >> \\(a + b\\)
      = RowBox[{a, +, b}]
 
-    >> \(TraditionalForm \` a + b\)
+    >> \\(TraditionalForm \\` a + b\\)
      = FormBox[RowBox[{a, +, b}], TraditionalForm]
 
-    >> \(x \/ \(y + z\)\)
+    >> \\(x \\/ \\(y + z\\)\\)
      =  FractionBox[x, RowBox[{y, +, z}]]
     """
 
@@ -395,24 +394,24 @@ class MakeBoxes(Builtin):
 
     # TODO: Correct precedence
     """
-    >> \(x \/ y + z\)
+    >> \\(x \\/ y + z\\)
      = RowBox[{FractionBox[x, y], +, z}]
-    >> \(x \/ (y + z)\)
+    >> \\(x \\/ (y + z)\\)
      = FractionBox[x, RowBox[{(, RowBox[{y, +, z}], )}]]
 
-    #> \( \@ a + b \)
+    #> \\( \\@ a + b \\)
      = RowBox[{SqrtBox[a], +, b}]
     """
 
     # FIXME: Don't insert spaces with brackets
     """
-    #> \(c (1 + x)\)
+    #> \\(c (1 + x)\\)
      = RowBox[{c, RowBox[{(, RowBox[{1, +, x}], )}]}]
     """
 
     # TODO: Required MakeExpression
     """
-    #> \!\(x \^ 2\)
+    #> \\!\\(x \\^ 2\\)
      = x ^ 2
     #> FullForm[%]
      = Power[x, 2]
@@ -426,7 +425,7 @@ class MakeBoxes(Builtin):
 
     # TODO: Parsing of special characters (like commas)
     """
-    >> \( a, b \)
+    >> \\( a, b \\)
      = RowBox[{a, ,, b}]
     """
 
@@ -1771,7 +1770,7 @@ class Print(Builtin):
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
 
-    #> Print["\[Mu]"]
+    #> Print["\\[Mu]"]
      | μ
     #> Print["μ"]
      | μ
@@ -1930,7 +1929,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
+            tex = tex.replace(' \uF74c', ' \\, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
