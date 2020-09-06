@@ -1893,6 +1893,9 @@ class Product(_IterationFunction, SympyFunction):
             r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
 
+    def get_result(self, items):
+        return Expression('Times', *items)
+
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
