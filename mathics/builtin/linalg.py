@@ -977,24 +977,22 @@ class Eigenvectors(Builtin):
     </dl>
 
     >> Eigenvectors[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
-     = {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}
+     = {{Sqrt[3] / 3, Sqrt[3] / 3, Sqrt[3] / 3}, {Sqrt[6] / 6, -Sqrt[6] / 3, Sqrt[6] / 6}, {-Sqrt[2] / 2, 0, Sqrt[2] / 2}}
     >> Eigenvectors[{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}]
      = {{0, 1, 0}, {1, 0, 0}, {0, 0, 1}}
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
+     = {{-0.295242, -0.955423}, {-0.62896, 0.777438}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
-     = {{1, 7, 3}, {1, 1, 0}, {0, 0, 0}}
+     = {{Sqrt[59] / 59, 7 Sqrt[59] / 59, 3 Sqrt[59] / 59}, {Sqrt[2] / 2, Sqrt[2] / 2, 0}, {0, 0, 0}}
     """
 
     messages = {
         'eigenvecnotimplemented': (
             "Eigenvectors is not yet implemented for the matrix `1`."),
     }
-
-    # TODO: Normalise the eigenvectors
 
     def apply(self, m, evaluation):
         'Eigenvectors[m_]'
@@ -1009,25 +1007,17 @@ class Eigenvectors(Builtin):
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
-        # The eigenvectors are given in the same order as the eigenvalues.
-        try:
-            eigenvects = sorted(eigenvects, 
-                                key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
-                                reverse=True)
-        # Try to sort the results as complex numbers
-        except TypeError:
-            try: 
-                eigenvects = sorted(eigenvects,
-                                    key=lambda v_c: -abs(v_c[0]))
-            # Don't sort the results at all
-            except TypeError:
-                pass
+        if all(v.is_complex for (v, _, _) in eigenvects):
+            eigenvects.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
+                            reverse=True)
+        else:
+            eigenvects.sort(key=lambda v: from_sympy(v[0]).get_sort_key())
 
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,
             # and convert from sympy
-            vects = [from_sympy(list(b)) for b in basis]
+            vects = [from_sympy(list(b.normalized())) for b in basis]
 
             # This follows Mathematica convention better; higher indexed pivots
             # are outputted first. e.g. {{0,1},{1,0}} instead of {{1,0},{0,1}}
