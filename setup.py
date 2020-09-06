@@ -27,7 +27,6 @@ mathics-users@googlegroups.com and ask for help.
 
 import sys
 import platform
-import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
