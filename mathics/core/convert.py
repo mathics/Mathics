@@ -95,6 +95,17 @@ class SympyExpression(BasicSympy):
         return '%s[%s]' % (super(SympyExpression, self).__str__(), self.expr)
 
 
+class SympyPrime(sympy.Function):
+    """
+    A safe wrapper for sympy.prime
+    """
+
+    @classmethod 
+    def eval(cls, n): 
+        if n.is_Integer and n > 0: 
+            return sympy.prime(n) 
+
+
 def from_sympy(expr):
     from mathics.builtin import sympy_to_mathics
     from mathics.core.expression import (
@@ -195,8 +206,14 @@ def from_sympy(expr):
 
     elif isinstance(expr, sympy.Piecewise):
         args = expr.args
-        return Expression('Piecewise', Expression('List', *[Expression(
-            'List', from_sympy(case), from_sympy(cond)) for case, cond in args]))
+        return Expression('Piecewise', 
+                          Expression('List', *[Expression( 'List', 
+                                                          from_sympy(case), 
+                                                          from_sympy(cond)) 
+                                               for case, cond in args]))
+
+    elif isinstance(expr, SympyPrime):
+        return Expression('Prime', from_sympy(expr.args[0]))
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))

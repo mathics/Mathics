@@ -8,12 +8,11 @@ Number theoretic functions
 import sympy
 from itertools import combinations
 
-from mathics.builtin.base import Builtin, Test
+from mathics.builtin.base import Builtin, Test, SympyFunction
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
-from mathics.core.convert import from_sympy
+from mathics.core.convert import from_sympy, SympyPrime
 import mpmath
-
 
 class PowerMod(Builtin):
     """
@@ -541,7 +540,7 @@ class FractionalPart(Builtin):
         image_fractional_part = _fractional_part(self.__class__.__name__, n_image, expr, evaluation)
         return Expression('Complex', real_fractional_part, image_fractional_part)
 
-class Prime(Builtin):
+class Prime(SympyFunction):
     """
     <dl>
     <dt>'Prime[$n$]'
@@ -555,19 +554,13 @@ class Prime(Builtin):
      = 991
     """
 
-    messages = {
-        'intpp': 'Positive integer argument expected in `1`.',
-    }
-
     def apply(self, n, evaluation):
         'Prime[n_]'
-        n_int = n.to_python()
-        if isinstance(n_int, int) and n_int > 0:
-            return Integer(sympy.prime(n_int))
+        return from_sympy(SympyPrime(n.to_sympy()))
 
-        expr = Expression('Prime', n)
-        evaluation.message('Prime', 'intpp', expr)
-        return
+    def to_sympy(self, expr, **kwargs):
+        if expr.has_form('Prime', 1):
+            return SympyPrime(expr.leaves[0].to_sympy(**kwargs))
 
 class PrimeQ(Builtin):
     """
