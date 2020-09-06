@@ -172,7 +172,7 @@ class InitialDirectory(Predefined):
     """
     <dl>
     <dt>'$InitialDirectory'
-      <dd>returns the directory from which \Mathics was started.
+      <dd>returns the directory from which \\Mathics was started.
     </dl>
 
     >> $InitialDirectory
@@ -190,7 +190,7 @@ class InstallationDirectory(Predefined):
     """
     <dl>
     <dt>'$InstallationDirectory'
-      <dd>returns the directory in which \Mathics was installed.
+      <dd>returns the directory in which \\Mathics was installed.
     </dl>
 
     >> $InstallationDirectory
@@ -1560,7 +1560,7 @@ class BinaryRead(Builtin):
     #> ToCharacterCode[WbR[{50, 154, 182, 236}, {"Character16", "Character16"}]]
      = {{39474}, {60598}}
     ## #> WbR[ {91, 146, 206, 54}, {"Character16", "Character16"}]
-    ##  = {\:925b, \:36ce}
+    ##  = {\\:925b, \\:36ce}
 
     ## Complex64
     #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"] // InputForm
@@ -2467,7 +2467,7 @@ class FileNameJoin(Builtin):
 
     ## TODO
     ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\dir2\dir3
+    ##  = dir1\\dir2\\dir3
     """
 
     attributes = ('Protected')
