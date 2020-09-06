@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
