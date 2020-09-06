@@ -6,6 +6,7 @@ Linear algebra
 """
 
 import sympy
+from sympy import re, im
 from mpmath import mp
 
 from mathics.builtin.base import Builtin
@@ -721,21 +722,23 @@ class Eigenvalues(Builtin):
 
         if matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals().items()
-        try:
-            eigenvalues = sorted(eigenvalues,
-                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
-                                 reverse=True)
-        # Try to sort the results as complex numbers
-        except TypeError:
-            try:
-                eigenvalues = sorted(eigenvalues,
-                                     key=lambda v_c: -abs(v_c[0]))
-            # Don't sort the results at all
-            except TypeError:
-                pass
+        eigenvalues = list(matrix.eigenvals().items())
 
-        return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
+        # Sort the eigenvalues in the Mathematica convention
+        if all(v.is_complex for (v, _) in eigenvalues):
+            eigenvalues.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
+                             reverse=True)
+
+            eigenvalues = [from_sympy(v) for (v, c) in eigenvalues 
+                           for _ in range(c)]
+        # Sort the eigenvalues in an arbitrary yet deterministic order
+        else:
+            eigenvalues = [(from_sympy(v), c) for (v, c) in eigenvalues]
+            eigenvalues.sort(key=lambda v: v[0].get_sort_key())
+
+            eigenvalues = [v for (v, c) in eigenvalues for _ in range(c)]
+
+        return Expression('List', *eigenvalues)
 
 
 class Eigensystem(Builtin):
@@ -1006,19 +1009,12 @@ class Eigenvectors(Builtin):
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
-        # The eigenvectors are given in the same order as the eigenvalues.
-        try:
-            eigenvects = sorted(eigenvects, 
-                                key=lambda v_c: (abs(v_c[0]), -v_c[0]), 
-                                reverse=True)
-        # Try to sort the results as complex numbers
-        except TypeError:
-            try: 
-                eigenvects = sorted(eigenvects,
-                                    key=lambda v_c: -abs(v_c[0]))
-            # Don't sort the results at all
-            except TypeError:
-                pass
+        # Sort the eigenvectors by their corresponding eigenvalues
+        if all(v.is_complex for (v, _, _) in eigenvects):
+            eigenvects.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
+                            reverse=True)
+        else:
+            eigenvects.sort(key=lambda v: from_sympy(v[0]).get_sort_key())
 
         result = []
         for val, count, basis in eigenvects:
