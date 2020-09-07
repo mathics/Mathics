@@ -330,7 +330,10 @@ class _ConditionalTransformer(ast.NodeTransformer):
 
         tree = self.visit(tree)
         tree = ast.fix_missing_locations(tree)
-        tree.posonlyargs = []
+        
+        for node in tree.body:
+            node.args.posonlyargs = []
+
         code = compile(tree, '<conditional:%s>'% func_name, 'exec')
 
         data = {}
