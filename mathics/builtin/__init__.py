@@ -6,7 +6,7 @@ from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic,
-    manipulate, natlang, quantities, numbertheory, numeric, options, patterns, 
+    manipulate, quantities, numbertheory, numeric, options, patterns, 
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
     strings, structure, system, tensors, xmlformat, optimization)
 
@@ -19,7 +19,7 @@ modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic, 
-    manipulate, natlang, quantities, numbertheory, numeric, options, patterns, 
+    manipulate, quantities, numbertheory, numeric, options, patterns, 
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
     strings, structure, system, tensors, xmlformat, optimization]
 
@@ -37,6 +37,7 @@ def is_builtin(var):
     if hasattr(var, '__bases__'):
         return any(is_builtin(base) for base in var.__bases__)
     return False
+
 
 for module in modules:
     builtins_by_module[module.__name__] = []
@@ -81,6 +82,7 @@ def add_builtins(new_builtins):
             pattern_objects[name] = builtin.__class__
     builtins.update(dict(new_builtins))
 
+
 new_builtins = builtins
 builtins = {}
 add_builtins(new_builtins)
@@ -103,7 +105,6 @@ def get_module_doc(module):
     return title, text
 
 
-
 def contribute(definitions):
     # let MakeBoxes contribute first
     builtins['System`MakeBoxes'].contribute(definitions)
@@ -118,7 +119,6 @@ def contribute(definitions):
     definitions.get_attributes('System`$PrePrint').clear()
     definitions.get_attributes('System`$SyntaxHandler').clear()
 
-            
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition
@@ -130,4 +130,3 @@ def contribute(definitions):
         if not definitions.have_definition(ensure_context(operator)):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
-

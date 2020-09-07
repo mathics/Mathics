@@ -1,5 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+from __future__ import print_function
+from __future__ import absolute_import
 
 """Setuptools based setup script for Mathics.
 
@@ -27,10 +30,11 @@ mathics-users@googlegroups.com and ask for help.
 
 import sys
 import platform
+import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if sys.version_info < (3, 6):
+if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
     print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
 
@@ -62,8 +66,8 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy>=1.6, < 1.7', 'django >= 1.8, < 1.12',
-                     'mpmath>=1.1.0', 'python-dateutil', 'colorama']
+INSTALL_REQUIRES += ['sympy==1.0', 'django >= 1.8, < 1.9a0',
+                     'mpmath>=0.19', 'python-dateutil', 'colorama', 'six>=1.10']
 
 
 def subdirs(root, file='*.*', depth=10):
@@ -158,10 +162,10 @@ setup(
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
-        'mathics.web', 'mathics.web.templatetags', 'mathics.web.migrations',
-        'pymathics',
-        'pymathics.testpymathicsmodule',
-        'pymathics.natlang',
+        'mathics.web', 'mathics.web.templatetags',
+	'pymathics',
+	'pymathics.testpymathicsmodule',
+	'pymathics.natlang',
     ],
 
     install_requires=INSTALL_REQUIRES,
@@ -181,7 +185,6 @@ setup(
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
-        'pymathics': ['doc/documentation/*.mdoc', 'doc/xml/data'],
     },
 
     entry_points={
@@ -208,9 +211,11 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering',

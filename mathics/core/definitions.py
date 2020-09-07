@@ -38,12 +38,17 @@ def valuesname(name) -> str:
         return name[7:-6].lower()
 
 
+class PyMathicsLoadException(Exception):
+    def __init__(self, module):
+        self.name = module + " is not a valid pymathics module"
+        self.module = module
+
 class Definitions(object):
-    def __init__(self, add_builtin=False, builtin_filename=None) -> None:
+    def __init__(self, add_builtin=False, builtin_filename=None, extension_modules=[]) -> None:
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-
+        self.pymathics = {} 
         self.definitions_cache = {}
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
@@ -65,10 +70,22 @@ class Definitions(object):
                     loaded = True
             if not loaded:
                 contribute(self)
+                for module in extension_modules:
+                    try:
+                        loaded_module = self.load_pymathics_module(module, remove_on_quit=False)
+                    except PyMathicsLoadException as e:
+                        print(e.module + ' is not a valid pymathics module.')
+                        continue
+                    except ImportError as e:
+                        print(e.__repr__())
+                        continue
+                    #print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
+
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, 'wb')
                     pickle.dump(self.builtin, builtin_file, -1)
 
+            # Load symbols from the autoload folder
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, 'autoload')):
                 for path in [os.path.join(root, f) for f in files if f.endswith('.m')]:
                     Expression('Get', String(path)).evaluate(Evaluation(self))
@@ -88,7 +105,72 @@ class Definitions(object):
             self.user = {}
             self.clear_cache()
 
-    def clear_cache(self, name=None) -> None:
+    def load_pymathics_module(self, module, remove_on_quit=True):
+        '''
+        loads Mathics builtin objects and their definitions
+        from an external python module
+        '''
+        import importlib
+        from mathics.builtin import is_builtin, builtins, builtins_by_module, Builtin
+        loaded_module = importlib.import_module(module)
+        builtins_by_module[loaded_module.__name__] = []
+        vars = dir(loaded_module)
+        newsymbols = {}
+        if not ('pymathics_version_data' in vars):
+            raise PyMathicsLoadException(module)
+        for name in vars:
+            var = getattr(loaded_module, name)
+            if (hasattr(var, '__module__') and
+                var.__module__ != 'mathics.builtin.base' and 
+                    is_builtin(var) and not name.startswith('_') and
+                var.__module__[:len(loaded_module.__name__)] == loaded_module.__name__):     # nopep8
+                instance = var(expression=False)
+                if isinstance(instance, Builtin):
+                    builtins[instance.get_name()] = instance
+                    builtins_by_module[loaded_module.__name__].append(instance)
+                    newsymbols[instance.get_name()] = instance
+
+        for name in newsymbols:
+            if remove_on_quit and name not in self.pymathics:
+                self.pymathics[name] = self.builtin.get(name, None)
+        self.builtin.update(newsymbols)
+        for name, item in newsymbols.items():
+            if name != 'System`MakeBoxes':
+                item.contribute(self)
+        return loaded_module
+
+    def clear_pymathics_modules(self):
+        from mathics.builtin import builtins, builtins_by_module
+        # Remove all modules that are not in mathics
+        # print("cleaning pymathics modules")
+        for key in list(builtins_by_module.keys()):
+            if key[:8] != "mathics.":
+                print("removing module ", key, " not in mathics.")
+                del builtins_by_module[key]
+        # print("reloading symbols from current builtins.")
+        for s in self.pymathics:
+            if s in self.builtin:
+                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol. 
+                if self.pymathics[s]:
+                    self.builtin[s] = self.pymathics[s]
+                    builtins[s] = None
+                    for key, val in builtins_by_module:
+                        for simb in val:
+                            if simb.get_name() == s:
+                                builtins[s] = simb
+                                break
+                        if builtins[s] is not None:
+                            break
+                    if builtins[s] is None:
+                        builtins.__delitem__(s)
+                else:
+                    self.builtin.__delitem__(s)
+                    builtins.__delitem__(s)
+        self.pymathics = {}
+        # print("everything is clean")
+        return None
+
+    def clear_cache(self, name=None):
         # the definitions cache (self.definitions_cache) caches (incomplete and complete) names -> Definition(),
         # e.g. "xy" -> d and "MyContext`xy" -> d. we need to clear this cache if a Definition() changes (which
         # would happen if a Definition is combined from a builtin and a user definition and some content in the
@@ -180,8 +262,11 @@ class Definitions(object):
     def get_user_names(self):
         return set(self.user)
 
+    def get_pymathics_names(self):
+        return set(self.pymathics)
+
     def get_names(self):
-        return self.get_builtin_names() | self.get_user_names()
+        return self.get_builtin_names() | self.get_pymathics_names() | self.get_user_names()
 
     def get_accessible_contexts(self):
         "Return the contexts reachable though $Context or $ContextPath."
@@ -301,7 +386,7 @@ class Definitions(object):
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
 
-        if user is None and builtin is None:
+        if user is None and builtin is None:            
             definition = None
         elif builtin is None:
             definition = user
@@ -310,13 +395,13 @@ class Definitions(object):
         else:
             if user:
                 attributes = user.attributes
-            elif builtin:
+            elif builtin:                        #  Never happens
                 attributes = builtin.attributes
-            else:
+            else:                                #  Never happens
                 attributes = set()
-            if not user:
+            if not user:                         #  Never happens
                 user = Definition(name=name)
-            if not builtin:
+            if not builtin:                      #  Never happens
                 builtin = Definition(name=name)
             options = builtin.options.copy()
             options.update(user.options)
@@ -328,18 +413,17 @@ class Definitions(object):
                     formatvalues[form] = rules
 
             definition = Definition(name=name,
-                              ownvalues=user.ownvalues + builtin.ownvalues,
-                              downvalues=user.downvalues + builtin.downvalues,
-                              subvalues=user.subvalues + builtin.subvalues,
-                              upvalues=user.upvalues + builtin.upvalues,
-                              formatvalues=formatvalues,
-                              messages=user.messages + builtin.messages,
-                              attributes=attributes,
-                              options=options,
-                              nvalues=user.nvalues + builtin.nvalues,
-                              defaultvalues=user.defaultvalues +
-                              builtin.defaultvalues,
-                              )
+                                    ownvalues=user.ownvalues + builtin.ownvalues,
+                                    downvalues=user.downvalues + builtin.downvalues,
+                                    subvalues=user.subvalues + builtin.subvalues,
+                                    upvalues=user.upvalues + builtin.upvalues,
+                                    formatvalues=formatvalues,
+                                    messages=user.messages + builtin.messages,
+                                    attributes=attributes,
+                                    options=options,
+                                    nvalues=user.nvalues + builtin.nvalues,
+                                    defaultvalues=user.defaultvalues +
+                                    builtin.defaultvalues,)
 
         if definition is not None:
             self.proxy[strip_context(original_name)].add(original_name)

@@ -99,6 +99,7 @@ def _make_forms():
 
     return forms
 
+
 # the following two may only be accessed after_WordNetBuiltin._load_wordnet has
 # been called.
 
@@ -259,7 +260,7 @@ class _SpacyBuiltin(Builtin):
         vocab = nlp.vocab
 
         def is_stop(word):
-            return vocab[word.lower()].is_stop
+            return vocab[word].is_stop
 
         return is_stop
 
@@ -420,7 +421,7 @@ class WordFrequency(_SpacyBuiltin):
     $word$ may also specify multiple words using $a$ | $b$ | ...
 
     >> WordFrequency[Import["ExampleData/EinsteinSzilLetter.txt"], "a" | "the"]
-     = 0.0665635
+     = 0.0667702
 
     >> WordFrequency["Apple Tree", "apple", IgnoreCase -> True]
      = 0.5
@@ -537,22 +538,22 @@ class TextCases(_SpacyBuiltin):
     >> TextCases["I was in London last year.", "City"]
      = {London}
 
-    >> TextCases[Import["ExampleData/EinsteinSzilLetter.txt"], "Person", 4]
-     = {Albert Einstein, F. D. Roosevelt, E. Fermi, L. Szilard}
+    >> TextCases[Import["ExampleData/EinsteinSzilLetter.txt"], "Person", 3]
+     = {Albert Einstein, E. Fermi, L. Szilard}
     """
 
     def apply(self, text, form, evaluation, options):
-        'TextCases[text_String, form_, OptionsPattern[%(name)s]]'
+        'TextCases[text_String, form_,  OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return Expression('List', *[t.text.strip() for t in _cases(doc, form)])
+            return Expression('List', *[t.text for t in _cases(doc, form)])
 
     def apply_n(self, text, form, n, evaluation, options):
-        'TextCases[text_String, form_, n_Integer, OptionsPattern[%(name)s]]'
+        'TextCases[text_String, form_, n_Integer,  OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
             return Expression('List', *itertools.islice(
-                (t.text.strip() for t in _cases(doc, form)), n.get_int_value()))
+                (t.text for t in _cases(doc, form)), n.get_int_value()))
 
 
 class TextPosition(_SpacyBuiltin):
@@ -562,8 +563,8 @@ class TextPosition(_SpacyBuiltin):
       <dd>returns the positions of elements of type $form$ in $text$ in order of their appearance.
     </dl>
 
-    >> TextPosition["Liverpool and London are two English cities.", "City"]
-     = {{1, 9}, {15, 20}}
+    >> TextPosition["Liverpool and Manchester are two English cities.", "City"]
+     = {{1, 9}, {15, 24}}
     """
 
     def apply(self, text, form, evaluation, options):
@@ -602,7 +603,7 @@ class TextStructure(_SpacyBuiltin):
             sub = ', '.join(self._to_constituent_string(next_node) for next_node in children)
             return '(%s, %s)' % (phrase_name, sub)
 
-    def _to_tree(self,tokens, path=[]):
+    def _to_tree(self, tokens, path=[]):
         roots = []
         i = 0
         while i < len(tokens):
@@ -647,23 +648,14 @@ class WordSimilarity(_SpacyBuiltin):
       <dd>returns a measure of similarity of multiple words within two texts.
     </dl>
 
-    X> NumberForm[WordSimilarity["car", "train"], 3]
+    >> NumberForm[WordSimilarity["car", "train"], 3]
      = 0.5
 
-    X> NumberForm[WordSimilarity["car", "hedgehog"], 3]
+    >> NumberForm[WordSimilarity["car", "hedgehog"], 3]
      = 0.368
 
-    X> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
+    >> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
      = {0.253, 0.177}
-
-    #> WordSimilarity["car", "train"] > 0
-     = True
-
-    #> WordSimilarity["car", "hedgehog"] < WordSimilarity["car", "train"]
-     = True
-
-    #> Head @ WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}]
-     = List
     """
 
     messages = _merge_dictionaries(_SpacyBuiltin.messages, {
@@ -712,7 +704,7 @@ class WordSimilarity(_SpacyBuiltin):
                             evaluation.message('TextSimilarity', 'txtidx', i, pos, len(doc))
                             return
 
-                result = [Real(float(doc1[j1 - 1].similarity(doc2[j2 - 1]))) for j1, j2 in zip(indices1, indices2)]
+                result = [Real(doc1[j1 - 1].similarity(doc2[j2 - 1])) for j1, j2 in zip(indices1, indices2)]
 
                 if multiple:
                     return Expression('List', *result)
@@ -1062,7 +1054,7 @@ class WordData(_WordListBuiltin):
             return word.get_string_value().lower()
         elif word.get_head_name() == 'System`List':
             if len(word.leaves) == 3 and all(isinstance(s, String) for s in word.leaves):
-               return tuple(s.get_string_value() for s in word.leaves)
+                return tuple(s.get_string_value() for s in word.leaves)
 
     def _standard_property(self, py_word, py_form, py_property, wordnet, language_code, evaluation):
         senses = self._senses(py_word, wordnet, language_code)
@@ -1306,17 +1298,14 @@ class LanguageIdentify(Builtin):
         'pycountry',
     )
 
-    messages = {'langnotfound': 'Language code "``" not found.'}
     def apply(self, text, evaluation):
         'LanguageIdentify[text_String]'
         import langid  # see https://github.com/saffsd/langid.py
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        try:
-            language = pycountry.languages.get(alpha_2=code)
-        except KeyError:
-            evaluation.message('LanguageIdentify', 'langnotfound', String(code))
+        language = pycountry.languages.get(alpha_2=code)
+        if language is None:
             return Symbol("$Failed")
         return String(language.name)
 

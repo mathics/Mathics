@@ -2049,15 +2049,19 @@ class _NumberForm(Builtin):
     def check_ExponentFunction(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_ExponentFunction
+
         def exp_function(x):
             return Expression(value, x).evaluate(evaluation)
+
         return exp_function
 
     def check_NumberFormat(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_NumberFormat
+
         def num_function(man, base, exp, options):
             return Expression(value, man, base, exp).evaluate(evaluation)
+
         return num_function
 
     def check_NumberMultiplier(self, value, evaluation):

@@ -1,3 +1,4 @@
+
 language: python
 python:
   - 3.7
@@ -8,6 +9,7 @@ env:
     - SYMPY_SRC=sympy-1.6
     - DOC="false"
     - ALL_MODULES="false"
+    - PYMATHICS_MODULES="false"    
     - CYTHON="false"
 matrix:
   fast_finish: true
@@ -17,13 +19,18 @@ matrix:
     - python: 3.6
       env: ALL_MODULES="true"
     - python: 3.6
+      env: PYMATHICS="true"
+    - python: 3.6
       env: CYTHON="true"
     - python: 3.6
       env: ALL_MODULES="true" CYTHON="true"
+    - python: 3.6
+      env: PYMATHICS="true" CYTHON="true"
   allow_failures:
     - python: pypy3
     - env: SYMPY_SRC=master
     - env: DOC="true"
+    - env: DOC="true" PYMATHICS_MODULES="true"
 services:
   - xvfb
 before_install:
@@ -35,9 +42,23 @@ before_install:
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then  
+      sudo apt-get update -qq &&
+      sudo apt-get install -qq python-enchant &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
+      python -m nltk.downloader wordnet omw;
+    fi
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then  
+      sudo apt-get update -qq &&
+      sudo apt-get install -qq python-enchant &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
+      python -m nltk.downloader wordnet omw;
+    fi        
   - if [[ "$DOC" == "true" ]]; then
       sudo apt-get update -qq &&
-      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk inkscape;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
@@ -50,15 +71,28 @@ install:
 script:
   - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      python mathics/test.py -o &&
-      python mathics/test.py -t &&
-      cd mathics/doc/ &&
-      ./images.sh &&
-      cd tex/ &&
-      make latex;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py -o &&
+         python pymathics/test.py -t &&
+         cd pymathics/doc/ &&
+         cd tex/ &&
+         make latex;
+      else
+         python mathics/test.py -o &&
+         python mathics/test.py -t &&
+         cd mathics/doc/ &&
+         ./images.sh &&
+         cd tex/ &&
+         make latex;
+      fi
     else
-      python mathics/test.py;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+        python pymathics/test.py --stop-on-failure;
+      else
+        python mathics/test.py;
+      fi
     fi
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
+

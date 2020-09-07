@@ -142,7 +142,7 @@ tokens = [
     ('Minus', r' \-|\u2212 '),
     ('Plus', r' \+ '),
     ('RawBackslash', r' \\ '),
-
+    
     ('Factorial2', r' \!\! '),
     ('Factorial', r' \! '),
     ('Function', r' \& | \uF4A1 '),
