@@ -32,6 +32,27 @@ class Version(Predefined):
         return String(version_string.replace('\n', ' '))
 
 
+class Environment(Builtin):
+    """
+    <dl>
+    <dt>'Environment[$var$]'
+        <dd>returns the value of an operating system environment variable.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = Environment["HOME"]
+    Out[1] = rocky
+    </pre>
+    """
+
+    def apply(self, var, evaluation) -> String:
+        "Environment[var_]"
+        if not isinstance(var, String):
+            return
+        return String(os.environ.get(var.get_string_value(), ""))
+
+
 class Names(Builtin):
     """
     <dl>
