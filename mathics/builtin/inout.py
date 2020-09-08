@@ -1821,7 +1821,7 @@ class StandardForm(Builtin):
 
 
 class InputForm(Builtin):
-    """
+    r"""
     <dl>
     <dt>'InputForm[$expr$]'
         <dd>displays $expr$ in an unambiguous form suitable for input.
@@ -1837,6 +1837,8 @@ class InputForm(Builtin):
      = Derivative[1, 0][f][x]
     #> InputForm[2 x ^ 2 + 4z!]
      = 2*x^2 + 4*z!
+    #> InputForm["\$"]
+     = "\\$"
     """
 
 

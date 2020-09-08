@@ -2289,7 +2289,12 @@ class String(Atom):
                 return render('%s', text)
 
     def atom_to_boxes(self, f, evaluation):
-        return String('"' + str(self.value) + '"')
+        inner = str(self.value)
+
+        if f.get_name() in system_symbols('InputForm', 'FullForm'):
+            inner = inner.replace('\\', '\\\\')
+
+        return String('"' + inner + '"')
 
     def do_copy(self) -> 'String':
         return String(self.value)
