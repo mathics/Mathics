@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import pickle
@@ -250,15 +250,14 @@ class Evaluation(object):
 
         result = None
         exc_result = None
-        
-        def check_io_hook(hook):
-            return  len(self.definitions.get_ownvalues(hook))>0
 
-            
+        def check_io_hook(hook):
+            return len(self.definitions.get_ownvalues(hook)) > 0
+
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
-                    Expression('In', line_no), query))
+                   Expression('In', line_no), query))
             if check_io_hook('System`$Pre'):
                 result = Expression('System`$Pre', query).evaluate(self)
             else:
@@ -266,7 +265,6 @@ class Evaluation(object):
 
             if check_io_hook('System`$Post'):
                 result = Expression('System`$Post', result).evaluate(self)
-
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out

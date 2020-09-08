@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -123,7 +123,7 @@ class Degree(SympyConstant):
      = Cos[Degree[x]]
 
     ## Issue 274
-    #> \[Degree] == ° == Degree
+    #> \\[Degree] == ° == Degree
      = True
 
     #> N[Degree]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -108,7 +108,10 @@ class NoNumPyRandomEnv(_RandomEnvBase):
         return _create_array(size, lambda: random.uniform(a, b))
 
     def randchoice(self, n, size, replace, p):
-        raise NotImplementedError
+        if replace:
+            return random.choices([i for i in range(n)], weights=p, k=size)
+        else:
+            return random.sample([i for i in range(n)], size)
 
 
 class NumPyRandomEnv(_RandomEnvBase):

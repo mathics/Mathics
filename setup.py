@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """Setuptools based setup script for Mathics.
@@ -27,7 +27,6 @@ mathics-users@googlegroups.com and ask for help.
 
 import sys
 import platform
-import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
@@ -63,8 +62,8 @@ else:
     INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==1.4', 'django >= 1.8, < 1.12',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama']
+INSTALL_REQUIRES += ['sympy>=1.6, < 1.7', 'django >= 1.8, < 1.12',
+                     'mpmath>=1.1.0', 'python-dateutil', 'colorama']
 
 
 def subdirs(root, file='*.*', depth=10):
@@ -159,7 +158,10 @@ setup(
         'mathics.builtin', 'mathics.builtin.pymimesniffer', 'mathics.builtin.numpy_utils',
         'mathics.builtin.pympler', 'mathics.builtin.compile',
         'mathics.doc',
-        'mathics.web', 'mathics.web.templatetags', 'mathics.web.migrations'
+        'mathics.web', 'mathics.web.templatetags', 'mathics.web.migrations',
+        'pymathics',
+        'pymathics.testpymathicsmodule',
+        'pymathics.natlang',
     ],
 
     install_requires=INSTALL_REQUIRES,
@@ -179,6 +181,7 @@ setup(
             'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
             'templates/doc/*.html'] + mathjax_files,
         'mathics.builtin.pymimesniffer': ['mimetypes.xml'],
+        'pymathics': ['doc/documentation/*.mdoc', 'doc/xml/data'],
     },
 
     entry_points={

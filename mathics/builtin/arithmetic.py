@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -21,7 +21,7 @@ from mathics.core.numbers import (
     min_prec, dps, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy
+from mathics.core.convert import from_sympy, SympyPrime
 
 
 class _MPMathFunction(SympyFunction):
@@ -1900,9 +1900,12 @@ class Product(_IterationFunction, SympyFunction):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             try:
-                return sympy.product(expr.leaves[0].to_sympy(), (
-                    index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
-                    index.leaves[2].to_sympy()))
+                e = expr.leaves[0].to_sympy(**kwargs)
+                i = index.leaves[0].to_sympy(**kwargs)
+                start = index.leaves[1].to_sympy(**kwargs)
+                stop = index.leaves[2].to_sympy(**kwargs)
+
+                return sympy.product(e, (i, start, stop))
             except ZeroDivisionError:
                 pass
 

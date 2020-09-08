@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -6,9 +6,11 @@ System functions
 """
 
 
+import os
+import platform
 import sys
 
-from mathics.core.expression import Expression, String, strip_context
+from mathics.core.expression import Expression, Integer, String, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 
@@ -119,6 +121,66 @@ class CommandLine(Predefined):
         return Expression('List', *(String(arg) for arg in sys.argv))
 
 
+class Machine(Predefined):
+    """
+    <dl>
+    <dt>'$Machine'
+        <dd>returns a string describing the type of computer system on which the Mathics is being run.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $Machine
+    Out[1] = linux
+    </pre>
+    """
+
+    name = '$Machine'
+
+    def evaluate(self, evaluation):
+        return String(sys.platform)
+
+
+class MachineName(Predefined):
+    """
+    <dl>
+    <dt>'$MachineName'
+        <dd>returns a string that gives the assigned name of the computer on which Mathics is being run, if such a name is defined.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $MachineName
+    Out[1] = buster
+    </pre>
+    """
+
+    name = '$MachineName'
+
+    def evaluate(self, evaluation):
+        return String(os.uname().nodename)
+
+
+class ProcessorType(Predefined):
+    """
+    <dl>
+    <dt>'$ProcessorType'
+        <dd>returns a string giving the architecture of the processor on which the Wolfram System is being run.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $ProcessorType
+    Out[1] = x86_64
+    </pre>
+    """
+
+    name = '$ProcessorType'
+
+    def evaluate(self, evaluation):
+        return String(platform.machine())
+
+
 class ScriptCommandLine(Predefined):
     '''
     <dl>
@@ -139,3 +201,47 @@ class ScriptCommandLine(Predefined):
             return Expression('List')
 
         return Expression('List', *(String(arg) for arg in sys.argv[dash_index + 1:]))
+
+class SystemID(Predefined):
+    """
+    <dl>
+    <dt>'$SystemID'
+        <dd>returns a short string that identifies the type of computer system on which the Mathics is being run.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $SystemID
+    Out[1] = linux
+    </pre>
+    """
+
+    name = '$SystemID'
+
+    def evaluate(self, evaluation):
+        return String(sys.platform)
+
+class SystemWordLength(Predefined):
+    """
+    <dl>
+    <dt>'$SystemWordLength'
+        <dd>returns the effective number of bits in raw machine words on the computer system where Mathics is running
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $SystemWordLength
+    Out[1] = 64
+    </pre>
+    """
+
+    name = '$SystemWordLength'
+
+    def evaluate(self, evaluation):
+        # https://docs.python.org/3/library/platform.html#module-platform
+        # says it is more reliable to get bits using sys.maxsize
+        # than platform.architecture()[0]
+        size = 128
+        while not sys.maxsize > 2**size:
+            size >>= 1
+        return Integer(size << 1)

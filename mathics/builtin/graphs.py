@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -14,10 +14,11 @@ from __future__ import division
 from mathics.builtin.base import Builtin, AtomBuiltin
 from mathics.builtin.graphics import GraphicsBox
 from mathics.builtin.randomnumbers import RandomEnv
-from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, String, system_symbols_dict, from_python
+from mathics.core.expression import Expression, Symbol, Atom, Real, Integer, system_symbols_dict, from_python
 from mathics.core.util import robust_min
 from mathics.builtin.patterns import Matcher
 
+from inspect import isgenerator
 from itertools import permutations
 from collections import defaultdict
 from math import sqrt, ceil
@@ -69,7 +70,7 @@ def _path_layout(G, root):
 
         if not neighbors:
             break
-        v = neighbors[0]
+        v = next(neighbors) if isgenerator(neighbors) else neighbors[0]
         neighbors = G.neighbors(v)
 
         if k == 0:
@@ -93,7 +94,7 @@ def _path_layout(G, root):
 def _auto_layout(G, warn):
     path_root = None
 
-    for v, d in G.degree(G.nodes).items():
+    for v, d in G.degree(G.nodes):
         if d == 1 and G.neighbors(v):
             path_root = v
         elif d > 2:

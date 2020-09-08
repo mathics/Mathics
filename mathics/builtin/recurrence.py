@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -118,7 +118,7 @@ class RSolve(Builtin):
             converted_functions=set([func.get_head_name()]))
         if sym_eq is None:
             return
-        sym_n = sympy.symbols(str(sympy_symbol_prefix + n.name))
+        sym_n = sympy.core.symbols(str(sympy_symbol_prefix + n.name))
         sym_func = sympy.Function(str(
             sympy_symbol_prefix + func.get_head_name()))(sym_n)
 
