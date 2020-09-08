@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
@@ -15,7 +13,7 @@ class StopGenerator_BaseRule(StopGenerator):
 
 
 class BaseRule(KeyComparable):
-    def __init__(self, pattern, system=False):
+    def __init__(self, pattern, system=False) -> None:
         self.pattern = Pattern.create(pattern)
         self.system = system
 
@@ -76,7 +74,7 @@ class BaseRule(KeyComparable):
 
 
 class Rule(BaseRule):
-    def __init__(self, pattern, replace, system=False):
+    def __init__(self, pattern, replace, system=False) -> None:
         super(Rule, self).__init__(pattern, system=system)
         self.replace = replace
 
@@ -102,12 +100,12 @@ class Rule(BaseRule):
 
         return new
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<Rule: %s -> %s>' % (self.pattern, self.replace)
 
 
 class BuiltinRule(BaseRule):
-    def __init__(self, pattern, function, system=False):
+    def __init__(self, pattern, function, system=False) -> None:
         super(BuiltinRule, self).__init__(pattern, system=system)
         self.function = function
         self.pass_expression = 'expression' in function_arguments(function)
@@ -125,7 +123,7 @@ class BuiltinRule(BaseRule):
         else:
             return self.function(evaluation=evaluation, **vars_noctx)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
 
     def __getstate__(self):

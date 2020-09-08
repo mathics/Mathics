@@ -1,8 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
                                   MessageException)
@@ -13,9 +10,8 @@ from mathics.core.rules import Pattern
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
 from mathics.builtin.functional import Identity
-import six
+
 import platform
-from six.moves import range
 
 if platform.python_implementation() == 'PyPy':
     bytecount_support = False
@@ -971,7 +967,7 @@ class Flatten(Builtin):
 
         # build new tree inserting nodes as needed
         result = Expression(h)
-        leaves = sorted(six.iteritems(new_indices))
+        leaves = sorted(new_indices.items())
 
         def insert_leaf(expr, leaves):
             # gather leaves into groups with the same leading index

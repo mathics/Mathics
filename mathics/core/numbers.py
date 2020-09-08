@@ -1,16 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
 import sympy
 import mpmath
+
 from math import log, ceil
-from six.moves import range
 import string
 
+import typing
 
 C = log(10, 2)  # ~ 3.3219280948873626
 
@@ -22,7 +19,7 @@ machine_precision = 53
 machine_epsilon = 2 ** (1 - machine_precision)
 
 
-def reconstruct_digits(bits):
+def reconstruct_digits(bits) -> int:
     '''
     Number of digits needed to reconstruct a number with given bits of precision.
 
@@ -37,11 +34,11 @@ class PrecisionValueError(Exception):
 
 
 class SpecialValueError(Exception):
-    def __init__(self, name):
+    def __init__(self, name) -> None:
         self.name = name
 
 
-def _get_float_inf(value, evaluation):
+def _get_float_inf(value, evaluation) -> typing.Optional[float]:
     value = value.evaluate(evaluation)
     if value.has_form('DirectedInfinity', 1):
         if value.leaves[0].get_int_value() == 1:
@@ -53,7 +50,7 @@ def _get_float_inf(value, evaluation):
     return value.round_to_float(evaluation)
 
 
-def get_precision(value, evaluation):
+def get_precision(value, evaluation) -> typing.Optional[int]:
     from mathics.core.expression import Symbol, MachineReal
     if value.get_name() == 'System`MachinePrecision':
         return None
@@ -77,7 +74,7 @@ def get_precision(value, evaluation):
         raise PrecisionValueError()
 
 
-def get_type(value):
+def get_type(value) -> typing.Optional[str]:
     if isinstance(value, sympy.Integer):
         return 'z'
     elif isinstance(value, sympy.Rational):
@@ -91,15 +88,15 @@ def get_type(value):
         return None
 
 
-def same(v1, v2):
+def same(v1, v2) -> bool:
     return get_type(v1) == get_type(v2) and v1 == v2
 
 
-def dps(prec):
+def dps(prec) -> int:
     return max(1, int(round(int(prec) / C - 1)))
 
 
-def prec(dps):
+def prec(dps) -> int:
     return max(1, int(round((int(dps) + 1) * C)))
 
 
@@ -131,7 +128,7 @@ def unpickle_mp(value):
 # http://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python       # nopep8
 
 
-def convert_base(x, base, precision=10):
+def convert_base(x, base, precision=10) -> str:
     sign = -1 if x < 0 else 1
     x *= sign
 
@@ -161,13 +158,13 @@ def convert_base(x, base, precision=10):
         real_part = convert(x - int(x), base, fexps)
 
         return "%s.%s" % (''.join(int_part), ''.join(real_part))
-    elif isinstance(x, six.integer_types):
+    elif isinstance(x, int):
         return ''.join(int_part)
     else:
         raise TypeError(x)
 
 
-def convert_int_to_digit_list(x, base):
+def convert_int_to_digit_list(x, base) -> typing.List[int]:
     if x == 0:
         return [0]
 

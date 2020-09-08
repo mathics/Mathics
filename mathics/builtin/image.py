@@ -4,19 +4,17 @@ Image[] and image related functions.
 Note that you (currently) need scikit-image installed in order for this module to work.
 '''
 
-from __future__ import division
-
 from mathics.builtin.base import (
     Builtin, AtomBuiltin, Test, BoxConstruct, String)
 from mathics.core.expression import (
     Atom, Expression, Integer, Rational, Real, MachineReal, Symbol, from_python)
 from mathics.builtin.colors import convert as convert_color, colorspaces as known_colorspaces
 
-import six
 import base64
 import functools
 import itertools
 import math
+from collections import defaultdict
 
 _image_requires = (
     'numpy',
@@ -499,7 +497,7 @@ class ImageResize(_ImageBuiltin):
         'imgrssz': 'The size `1` is not a valid image size specification.',
         'imgrsm': 'Invalid resampling method `1`.',
         'gaussaspect': 'Gaussian resampling needs to maintain aspect ratio.',
-        'skimage': 'Please install skimage to use Resampling -> Gaussian.',
+        'skimage': 'Please install scikit-image to use Resampling -> Gaussian.',
     }
 
     def _get_image_size_spec(self, old_size, new_size):
@@ -586,6 +584,7 @@ class ImageResize(_ImageBuiltin):
 
         try:
             from skimage import transform
+            multichannel = (image.pixels.ndim == 3)
 
             sy = h / old_h
             sx = w / old_w
@@ -599,9 +598,9 @@ class ImageResize(_ImageBuiltin):
                 # TODO overcome this limitation
                 return evaluation.message('ImageResize', 'gaussaspect')
             elif s > 1:
-                pixels = transform.pyramid_expand(image.pixels, upscale=s).clip(0, 1)
+                pixels = transform.pyramid_expand(image.pixels, upscale=s, multichannel=multichannel).clip(0, 1)
             else:
-                pixels = transform.pyramid_reduce(image.pixels, downscale=1 / s).clip(0, 1)
+                pixels = transform.pyramid_reduce(image.pixels, multichannel=multichannel, downscale=(1. / s)).clip(0, 1)
 
             return Image(pixels, image.color_space)
         except ImportError:
@@ -2175,9 +2174,7 @@ class Image(Atom):
             stream.close()
 
         encoded = base64.b64encode(contents)
-        if not six.PY2:
-            encoded = encoded.decode('utf8')
-        encoded = 'data:image/png;base64,' + encoded
+        encoded = b'data:image/png;base64,' + encoded
 
         return Expression('ImageBox', String(encoded), Integer(scaled_width), Integer(scaled_height))
 
@@ -2333,9 +2330,18 @@ class WordCloud(Builtin):
     <dl>
     <dt>'WordCloud[{$word1$, $word2$, ...}]'
       <dd>Gives a word cloud with the given list of words.
+    <dt>'WordCloud[{$weight1$ -> $word1$, $weight2$ -> $word2$, ...}]'
+      <dd>Gives a word cloud with the words weighted using the given weights.
+    <dt>'WordCloud[{$weight1$, $weight2$, ...} -> {$word1$, $word2$, ...}]'
+      <dd>Also gives a word cloud with the words weighted using the given weights.
+    <dt>'WordCloud[{{$word1$, $weight1$}, {$word2$, $weight2$}, ...}]'
+      <dd>Gives a word cloud with the words weighted using the given weights.
     </dl>
 
     >> WordCloud[StringSplit[Import["ExampleData/EinsteinSzilLetter.txt"]]]
+     = -Image-
+
+    >> WordCloud[Range[50] -> ToString /@ Range[50]]
      = -Image-
     '''
 
@@ -2361,24 +2367,57 @@ class WordCloud(Builtin):
         (102, 102, 102),
     )
 
+    def apply_words_weights(self, weights, words, evaluation, options):
+        'WordCloud[weights_List -> words_List, OptionsPattern[%(name)s]]'
+        if len(weights.leaves) != len(words.leaves):
+            return
+
+        def weights_and_words():
+            for weight, word in zip(weights.leaves, words.leaves):
+                yield weight.round_to_float(), word.get_string_value()
+
+        return self._word_cloud(weights_and_words(), evaluation, options)
+
     def apply_words(self, words, evaluation, options):
         'WordCloud[words_List, OptionsPattern[%(name)s]]'
-        ignore_case = self.get_option(options, 'IgnoreCase', evaluation) == Symbol('True')
 
-        freq = dict()
-        for word in words.leaves:
-            if not isinstance(word, String):
+        if not words:
+            return
+        elif isinstance(words.leaves[0], String):
+            def weights_and_words():
+                for word in words.leaves:
+                    yield 1, word.get_string_value()
+        else:
+            def weights_and_words():
+                for word in words.leaves:
+                    if len(word.leaves) != 2:
+                        raise ValueError
+
+                    head_name = word.get_head_name()
+                    if head_name == 'System`Rule':
+                        weight, s = word.leaves
+                    elif head_name == 'System`List':
+                        s, weight = word.leaves
+                    else:
+                        raise ValueError
+
+                    yield weight.round_to_float(), s.get_string_value()
+
+        try:
+            return self._word_cloud(weights_and_words(), evaluation, options)
+        except ValueError:
+            return
+
+    def _word_cloud(self, words, evaluation, options):
+        ignore_case = self.get_option(
+            options, 'IgnoreCase', evaluation) == Symbol('True')
+
+        freq = defaultdict(int)
+        for py_weight, py_word in words:
+            if py_word is None or py_weight is None:
                 return
-            py_word = word.get_string_value()
-            if ignore_case:
-                key = py_word.lower()
-            else:
-                key = py_word
-            record = freq.get(key, None)
-            if record is None:
-                freq[key] = [py_word, 1]
-            else:
-                record[1] += 1
+            key = py_word.lower() if ignore_case else py_word
+            freq[key] += py_weight
 
         max_items = self.get_option(options, 'MaxItems', evaluation)
         if isinstance(max_items, Integer):
@@ -2420,7 +2459,7 @@ class WordCloud(Builtin):
             font_path=font_path, max_font_size=300, mode='RGB',
             background_color='white', max_words=py_max_items,
             color_func=color_func, random_state=42, stopwords=set())
-        wc.generate_from_frequencies(freq.values())
+        wc.generate_from_frequencies(freq)
 
         image = wc.to_image()
         return Image(numpy.array(image), 'RGB')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,8 +9,6 @@ Precision is not "guarded" through the evaluation process. Only integer precisio
 However, things like 'N[Pi, 100]' should work as expected.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -19,7 +17,6 @@ import math
 import hashlib
 import zlib
 import math
-from six.moves import range
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain
@@ -193,6 +190,11 @@ class N(Builtin):
             return Expression(
                 expr.head, *[self.apply_other(leaf, prec, evaluation)
                              for leaf in expr.leaves])
+
+
+        # Special case for the Root builtin
+        if expr.has_form('Root', 2):
+            return from_sympy(sympy.N(expr.to_sympy(), d))
 
         if isinstance(expr, Number):
             return expr.round(d)

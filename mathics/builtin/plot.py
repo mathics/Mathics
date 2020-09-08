@@ -1,16 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Plotting
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
 
-from six.moves import range
-from six.moves import zip
 
 from math import sin, cos, pi, sqrt, isnan, isinf
 import numbers

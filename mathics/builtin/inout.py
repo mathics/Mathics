@@ -1,17 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Input and Output
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-import six
-
 import re
-import sympy
 import mpmath
+
+import typing
+from typing import Any
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
@@ -20,10 +18,10 @@ from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
+    Expression, String, Symbol, Integer, Real, BoxError,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
-    dps, prec, convert_base, machine_precision, reconstruct_digits)
+    dps, convert_base, machine_precision, reconstruct_digits)
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
@@ -237,9 +235,9 @@ def number_form(expr, n, f, evaluation, options):
         python round() for integers but with correct rounding.
         e.g. `_round(14225, -1)` is `14230` not `14220`.
         '''
-        assert isinstance(ndigits, six.integer_types)
+        assert isinstance(ndigits, int)
         assert ndigits < 0
-        assert isinstance(number, six.integer_types)
+        assert isinstance(number, int)
         assert number >= 0
         number += 5 * int(10 ** -(1 + ndigits))
         number //= int(10 ** -ndigits)
@@ -306,33 +304,33 @@ class MakeBoxes(Builtin):
     <dt>'MakeBoxes[$expr$]'
         <dd>is a low-level formatting primitive that converts $expr$
         to box form, without evaluating it.
-    <dt>'\( ... \)'
+    <dt>'\\( ... \\)'
         <dd>directly inputs box objects.
     </dl>
 
     String representation of boxes
-    >> \(x \^ 2\)
+    >> \\(x \\^ 2\\)
      = SuperscriptBox[x, 2]
 
-    >> \(x \_ 2\)
+    >> \\(x \\_ 2\\)
      = SubscriptBox[x, 2]
 
-    >> \( a \+ b \% c\)
+    >> \\( a \\+ b \\% c\\)
      = UnderoverscriptBox[a, b, c]
 
-    >> \( a \& b \% c\)
+    >> \\( a \\& b \\% c\\)
      = UnderoverscriptBox[a, c, b]
 
-    #> \( \@ 5 \)
+    #> \\( \\@ 5 \\)
      = SqrtBox[5]
 
-    >> \(x \& y \)
+    >> \\(x \\& y \\)
      = OverscriptBox[x, y]
 
-    >> \(x \+ y \)
+    >> \\(x \\+ y \\)
      = UnderscriptBox[x, y]
 
-    #> \( x \^ 2 \_ 4 \)
+    #> \\( x \\^ 2 \\_ 4 \\)
      = SuperscriptBox[x, SubscriptBox[2, 4]]
 
     ## Tests for issue 151 (infix operators in heads)
@@ -347,13 +345,13 @@ class MakeBoxes(Builtin):
 
     # TODO: Convert operators to appropriate representations e.g. 'Plus' to '+'
     """
-    >> \(a + b\)
+    >> \\(a + b\\)
      = RowBox[{a, +, b}]
 
-    >> \(TraditionalForm \` a + b\)
+    >> \\(TraditionalForm \\` a + b\\)
      = FormBox[RowBox[{a, +, b}], TraditionalForm]
 
-    >> \(x \/ \(y + z\)\)
+    >> \\(x \\/ \\(y + z\\)\\)
      =  FractionBox[x, RowBox[{y, +, z}]]
     """
 
@@ -396,24 +394,24 @@ class MakeBoxes(Builtin):
 
     # TODO: Correct precedence
     """
-    >> \(x \/ y + z\)
+    >> \\(x \\/ y + z\\)
      = RowBox[{FractionBox[x, y], +, z}]
-    >> \(x \/ (y + z)\)
+    >> \\(x \\/ (y + z)\\)
      = FractionBox[x, RowBox[{(, RowBox[{y, +, z}], )}]]
 
-    #> \( \@ a + b \)
+    #> \\( \\@ a + b \\)
      = RowBox[{SqrtBox[a], +, b}]
     """
 
     # FIXME: Don't insert spaces with brackets
     """
-    #> \(c (1 + x)\)
+    #> \\(c (1 + x)\\)
      = RowBox[{c, RowBox[{(, RowBox[{1, +, x}], )}]}]
     """
 
     # TODO: Required MakeExpression
     """
-    #> \!\(x \^ 2\)
+    #> \\!\\(x \\^ 2\\)
      = x ^ 2
     #> FullForm[%]
      = Power[x, 2]
@@ -427,7 +425,7 @@ class MakeBoxes(Builtin):
 
     # TODO: Parsing of special characters (like commas)
     """
-    >> \( a, b \)
+    >> \\( a, b \\)
      = RowBox[{a, ,, b}]
     """
 
@@ -677,7 +675,7 @@ class GridBox(BoxConstruct):
             raise BoxConstructError
         return items, options
 
-    def boxes_to_tex(self, leaves, **box_options):
+    def boxes_to_tex(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
@@ -704,7 +702,7 @@ class GridBox(BoxConstruct):
         result += r'\end{array}'
         return result
 
-    def boxes_to_xml(self, leaves, **box_options):
+    def boxes_to_xml(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
@@ -718,21 +716,21 @@ class GridBox(BoxConstruct):
         except KeyError:
             # invalid column alignment
             raise BoxConstructError
-        attrs = ' '.join('{0}="{1}"'.format(name, value)
-                         for name, value in six.iteritems(attrs))
-        result = '<mtable {0}>\n'.format(attrs)
+        joined_attrs = ' '.join('{0}="{1}"'.format(name, value)
+                         for name, value in attrs.items())
+        result = '<mtable {0}>\n'.format(joined_attrs)
         new_box_options = box_options.copy()
         new_box_options['inside_list'] = True
         for row in items:
             result += '<mtr>'
             for item in row:
                 result += '<mtd {0}>{1}</mtd>'.format(
-                    attrs, item.boxes_to_xml(**new_box_options))
+                    joined_attrs, item.boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
         return result
 
-    def boxes_to_text(self, leaves, **box_options):
+    def boxes_to_text(self, leaves, **box_options) -> str:
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         result = ''
@@ -788,7 +786,7 @@ class Grid(Builtin):
 
     options = GridBox.options
 
-    def apply_makeboxes(self, array, f, evaluation, options):
+    def apply_makeboxes(self, array, f, evaluation, options) -> Expression:
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
@@ -946,7 +944,7 @@ class Subscript(Builtin):
      = x_{1,2,3}
     """
 
-    def apply_makeboxes(self, x, y, f, evaluation):
+    def apply_makeboxes(self, x, y, f, evaluation) -> Expression:
         'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
 
         y = y.get_sequence()
@@ -1183,7 +1181,7 @@ class Message(Builtin):
         return Symbol('Null')
 
 
-def check_message(expr):
+def check_message(expr) -> bool:
     'checks if an expression is a valid message'
     if expr.has_form('MessageName', 2):
         symbol, tag = expr.get_leaves()
@@ -1191,6 +1189,129 @@ def check_message(expr):
             return True
     return False
 
+class Check(Builtin):
+    """
+    <dl>
+    <dt>'Check[$expr$, $failexpr$]'
+        <dd>evaluates $expr$, and returns the result, unless messages were generated, in which case it evaluates and $failexpr$ will be returned.
+    <dt>'Check[$expr$, $failexpr$, {s1::t1,s2::t2,…}]'
+        <dd>checks only for the specified messages.
+    </dl>
+    
+    Return err when a message is generated:
+    >> Check[1/0, err]
+     : Infinite expression 1 / 0 encountered.
+     = err
+     
+    #> Check[1^0, err]
+     = 1
+     
+    Check only for specific messages: 
+    >> Check[Sin[0^0], err, Sin::argx]
+     : Indeterminate expression 0 ^ 0 encountered.
+     = Indeterminate
+     
+    >> Check[1/0, err, Power::infy]
+     : Infinite expression 1 / 0 encountered.
+     = err
+     
+    #> Check[1 + 2]
+     : Check called with 1 argument; 2 or more arguments are expected.
+     = Check[1 + 2]
+     
+    #> Check[1 + 2, err, 3 + 1]
+     : Message name 3 + 1 is not of the form symbol::name or symbol::name::language.
+     = Check[1 + 2, err, 3 + 1]
+     
+    #> Check[1 + 2, err, hello]
+     : Message name hello is not of the form symbol::name or symbol::name::language.
+     = Check[1 + 2, err, hello]
+      
+    #> Check[1/0, err, Compile::cpbool]
+     : Infinite expression 1 / 0 encountered.
+     = ComplexInfinity
+    
+    #> Check[{0^0, 1/0}, err]
+     : Indeterminate expression 0 ^ 0 encountered.
+     : Infinite expression 1 / 0 encountered.
+     = err
+    
+    #> Check[0^0/0, err, Power::indet]
+     : Indeterminate expression 0 ^ 0 encountered.
+     : Infinite expression 1 / 0 encountered.
+     = err
+     
+    #> Check[{0^0, 3/0}, err, Power::indet]
+     : Indeterminate expression 0 ^ 0 encountered.
+     : Infinite expression 1 / 0 encountered.
+     = err
+    
+    #> Check[1 + 2, err, {a::b, 2 + 5}]
+     : Message name 2 + 5 is not of the form symbol::name or symbol::name::language.
+     = Check[1 + 2, err, {a::b, 2 + 5}] 
+    
+    #> Off[Power::infy]
+    #> Check[1 / 0, err]
+     = ComplexInfinity
+     
+    #> On[Power::infy]
+    #> Check[1 / 0, err]
+     : Infinite expression 1 / 0 encountered.
+     = err
+    """
+
+    attributes = ('HoldAll',)
+
+    messages = {
+        'argmu': 'Check called with 1 argument; 2 or more arguments are expected.',
+        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+    }
+    
+    def apply_1_argument(self, expr, evaluation):
+        'Check[expr_]'
+        return evaluation.message('Check', 'argmu')
+    
+    def apply(self, expr, failexpr, params, evaluation):
+        'Check[expr_, failexpr_, params___]'
+        
+        #Todo: To implement the third form of this function , we need to implement the function $MessageGroups first          
+            #<dt>'Check[$expr$, $failexpr$, "name"]'
+               #<dd>checks only for messages in the named message group.
+                 
+        def get_msg_list(exprs):
+            messages = []
+            for expr in exprs:
+                if expr.has_form('List', None):
+                    messages.extend(get_msg_list(expr.leaves))
+                elif check_message(expr):
+                    messages.append(expr)
+                else:
+                    raise Exception(expr)
+            return messages
+   
+        check_messages = set(evaluation.get_quiet_messages())
+        display_fail_expr = False
+
+        params = params.get_sequence()    
+        if len(params) == 0:
+            result = expr.evaluate(evaluation)
+            if(len(evaluation.out)):
+                display_fail_expr = True
+        else:
+            try:
+                msgs = get_msg_list(params)
+                for x in msgs: 
+                    check_messages.add(x)
+            except Exception as inst :
+                evaluation.message('Check', 'name', inst.args[0])
+                return 
+            result = expr.evaluate(evaluation)
+            for out_msg in evaluation.out:
+                pattern = Expression('MessageName', Symbol(out_msg.symbol), String(out_msg.tag))
+                if pattern in check_messages:
+                    display_fail_expr = True
+                    break
+        return failexpr if display_fail_expr is True else result
 
 class Quiet(Builtin):
     """
@@ -1423,7 +1544,7 @@ class MessageName(BinaryOperator):
 
     default_formats = False
 
-    formats = {
+    formats: typing.Dict[str, Any] = {
     }
 
     rules = {
@@ -1571,10 +1692,12 @@ class General(Builtin):
                  "`3` or `4` arguments are expected."),
         'argtu': (
             "`1` called with 1 argument; `2` or `3` arguments are expected."),
+        'base': 'Requested base `1` in `2` should be between 2 and `3`.',
         'boxfmt': "`1` is not a box formatting type.",
         'color': "`1` is not a valid color or gray-level specification.",
         'cxt': "`1` is not a valid context name.",
         'divz': "The argument `1` should be nonzero.",
+        'digit': 'Digit at position `1` in `2` is too large to be used in base `3`.',
         'exact': "Argument `1` is not an exact number.",
         'fnsym': ("First argument in `1` is not a symbol "
                   "or a string naming a symbol."),
@@ -1647,7 +1770,7 @@ class Print(Builtin):
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
 
-    #> Print["\[Mu]"]
+    #> Print["\\[Mu]"]
      | μ
     #> Print["μ"]
      | μ
@@ -1760,7 +1883,7 @@ class MathMLForm(Builtin):
      . </mtable> <mo>)</mo></mrow></math>
     """
 
-    def apply_mathml(self, expr, evaluation):
+    def apply_mathml(self, expr, evaluation) -> Expression:
         'MakeBoxes[expr_, MathMLForm]'
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
@@ -1796,7 +1919,7 @@ class TeXForm(Builtin):
      = a\text{ + }b*c
     """
 
-    def apply_tex(self, expr, evaluation):
+    def apply_tex(self, expr, evaluation) -> Expression:
         'MakeBoxes[expr_, TeXForm]'
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
@@ -1806,7 +1929,7 @@ class TeXForm(Builtin):
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)
 
-            tex = tex.replace(' \uF74c', ' \, d')  # tmp hack for Integrate
+            tex = tex.replace(' \uF74c', ' \\, d')  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
@@ -1847,7 +1970,7 @@ class Precedence(Builtin):
      = 1000.
     """
 
-    def apply(self, expr, evaluation):
+    def apply(self, expr, evaluation) -> Real:
         'Precedence[expr_]'
 
         from mathics.builtin import builtins
@@ -1926,15 +2049,19 @@ class _NumberForm(Builtin):
     def check_ExponentFunction(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_ExponentFunction
+
         def exp_function(x):
             return Expression(value, x).evaluate(evaluation)
+
         return exp_function
 
     def check_NumberFormat(self, value, evaluation):
         if value.same(Symbol('Automatic')):
             return self.default_NumberFormat
+
         def num_function(man, base, exp, options):
             return Expression(value, man, base, exp).evaluate(evaluation)
+
         return num_function
 
     def check_NumberMultiplier(self, value, evaluation):
@@ -2236,12 +2363,12 @@ class NumberForm(_NumberForm):
         else:
             return man
 
-    def apply_list_n(self, expr, n, evaluation, options):
+    def apply_list_n(self, expr, n, evaluation, options) -> Expression:
         'NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]'
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, n, *options) for leaf in expr.leaves])
 
-    def apply_list_nf(self, expr, n, f, evaluation, options):
+    def apply_list_nf(self, expr, n, f, evaluation, options) -> Expression:
         'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
         options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
         return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])

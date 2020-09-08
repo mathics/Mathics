@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import pkg_resources
 import sys
@@ -60,6 +58,7 @@ DATABASES = {
 
 REQUIRE_LOGIN = False
 
+
 # if REQUIRE_LOGIN is True be sure to set up an email sender:
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'mathics'
@@ -92,14 +91,11 @@ ENABLE_FILES_MODULE = True
 # to load the internationalization machinery.
 USE_I18N = True
 
-# Absolute path to the directory that holds media.
-# Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = ROOT_DIR + 'web/media/'
+# Absolute path to the directory that holds static files.
+STATIC_ROOT = ROOT_DIR + 'web/media/'
 
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash if there is a path component (optional in other cases).
-# Examples: "http://media.lawrence.com", "http://example.com/media/"
-MEDIA_URL = '/media/'
+# URL that handles the media served from STATIC_ROOT.
+STATIC_URL = '/media/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
@@ -117,6 +113,8 @@ MIDDLEWARE_CLASSES = (
 )
 
 ROOT_URLCONF = 'mathics.urls'
+
+default_pymathics_modules = ["pymathics.natlang",]
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or

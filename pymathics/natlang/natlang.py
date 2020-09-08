@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -98,6 +98,7 @@ def _make_forms():
         forms[name] = filter_pos(tag)
 
     return forms
+
 
 # the following two may only be accessed after_WordNetBuiltin._load_wordnet has
 # been called.
@@ -602,7 +603,7 @@ class TextStructure(_SpacyBuiltin):
             sub = ', '.join(self._to_constituent_string(next_node) for next_node in children)
             return '(%s, %s)' % (phrase_name, sub)
 
-    def _to_tree(self,tokens, path=[]):
+    def _to_tree(self, tokens, path=[]):
         roots = []
         i = 0
         while i < len(tokens):
@@ -1053,7 +1054,7 @@ class WordData(_WordListBuiltin):
             return word.get_string_value().lower()
         elif word.get_head_name() == 'System`List':
             if len(word.leaves) == 3 and all(isinstance(s, String) for s in word.leaves):
-               return tuple(s.get_string_value() for s in word.leaves)
+                return tuple(s.get_string_value() for s in word.leaves)
 
     def _standard_property(self, py_word, py_form, py_property, wordnet, language_code, evaluation):
         senses = self._senses(py_word, wordnet, language_code)
@@ -1303,7 +1304,9 @@ class LanguageIdentify(Builtin):
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        language = pycountry.languages.get(iso639_1_code=code)
+        language = pycountry.languages.get(alpha_2=code)
+        if language is None:
+            return Symbol("$Failed")
         return String(language.name)
 
 
@@ -1338,7 +1341,7 @@ class SpellingCorrectionList(Builtin):
     Results may differ depending on which dictionaries can be found by enchant.
 
     >> SpellingCorrectionList["hipopotamus"]
-     = {hippopotamus, hypothalamus...}
+     = {hippopotamus...}
     '''
 
     requires = (

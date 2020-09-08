@@ -1,18 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Differential equation solver functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
 import sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
-from mathics.core.convert import sympy_symbol_prefix, from_sympy
+from mathics.core.convert import from_sympy
 
 
 class DSolve(Builtin):
@@ -41,15 +37,16 @@ class DSolve(Builtin):
     >> DSolve[D[y[x, t], t] + 2 D[y[x, t], x] == 0, y[x, t], {x, t}]
      = {{y[x, t] -> C[1][-2 t + x]}}
 
-    #> Attributes[f] = {HoldAll};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
-     = DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ## FIXME: sympy solves this as `Function[{x}, C[1] + Integrate[ArcSin[f[2 x]], x]]`
+    ## #> Attributes[f] = {HoldAll};
+    ## #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ##  : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
+    ##  = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
-    #> Attributes[f] = {};
-    #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
-     = DSolve[f[2 x] == Sin[f'[x]], f, x]
+    ## #> Attributes[f] = {};
+    ## #> DSolve[f[x + x] == Sin[f'[x]], f, x]
+    ##  : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
+    ##  = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
      = List[List[Rule[f, Function[List[x], Times[C[1], Power[E, x]]]]]]
@@ -70,10 +67,6 @@ class DSolve(Builtin):
     ## Order of arguments shoudn't matter
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {x, y}]
      = {{f -> (Function[{x, y}, C[1][-x - y]])}}
-    ## FIXME SymPy can't handle this case:
-    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {y, x}]
-     : SymPy can't solve this form of DE.
-     = DSolve[...]
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {x, y}]
      = {{f[x, y] -> C[1][-x - y]}}
     #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {y, x}]
@@ -82,7 +75,7 @@ class DSolve(Builtin):
 
     # XXX sympy #11669 test
     """
-    #> DSolve[\[Gamma]'[x] == 0, \[Gamma], x]
+    #> DSolve[\\[Gamma]'[x] == 0, \\[Gamma], x]
      : Hit sympy bug #11669.
      = ...
     """
@@ -122,7 +115,7 @@ class DSolve(Builtin):
         if x.is_symbol():
             syms = [x]
         elif x.has_form('List', 1, None):
-            syms = x.get_leaves()
+            syms = sorted(x.get_leaves())
         else:
             return evaluation.message('DSolve', 'dsvar', x)
 
@@ -143,14 +136,7 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqx')
             return
 
-        # Workaround sympy bug #11669.
-        # https://github.com/sympy/sympy/issues/11669https://github.com/sympy/sympy/issues/11669
         f_name = func.get_head_name()
-        if six.PY2:
-            try:
-                f_name = str(f_name)
-            except UnicodeEncodeError:
-                return evaluation.message('DSolve', 'sym11669', func.get_head_name())
 
         conversion_args = {'converted_functions': set([f_name])}
         sym_func = func.to_sympy(**conversion_args)

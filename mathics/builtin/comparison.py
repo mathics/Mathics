@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import itertools
@@ -11,8 +9,6 @@ from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, String)
 from mathics.core.numbers import get_type, dps
-from six.moves import range
-from six.moves import zip
 
 
 class SameQ(BinaryOperator):
@@ -92,6 +88,36 @@ class TrueQ(Builtin):
         'TrueQ[expr_]': 'If[expr, True, False, False]',
     }
 
+class BooleanQ(Builtin):
+    """
+    <dl>
+    <dt>'BooleanQ[$expr$]'
+        <dd>returns 'True' if $expr$ is either 'True' or 'False'.
+    </dl>
+
+    >> BooleanQ[True]
+     = True
+
+    >> BooleanQ[False]
+     = True
+
+    >> BooleanQ[a]
+     = False
+
+    >> BooleanQ[1 < 2]
+     = True
+
+    #> BooleanQ["string"]
+     = False
+
+    #> BooleanQ[Together[x/y + y/x]]
+     = False
+    """
+
+    rules = {
+        'BooleanQ[expr_]': 'If[expr, True, True, False]',
+    }
+
 
 class ValueQ(Builtin):
     """
@@ -169,17 +195,6 @@ class _EqualityOperator(_InequalityOperator):
             return False
         elif isinstance(l1, String) and isinstance(l2, String):
             return False
-
-        l1_sympy = l1.to_sympy()
-        l2_sympy = l2.to_sympy()
-        if l1_sympy is None or l2_sympy is None:
-            return None
-        if l1_sympy.is_number and l2_sympy.is_number:
-            # assert min_prec(l1, l2) is None
-            prec = 64  # TODO: Use $MaxExtraPrecision
-            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
-                return True
-            return False
         elif l1.has_form('List', None) and l2.has_form('List', None):
             if len(l1.leaves) != len(l2.leaves):
                 return False
@@ -188,6 +203,18 @@ class _EqualityOperator(_InequalityOperator):
                 if not result:
                     return result
             return True
+
+        l1_sympy = l1.to_sympy()
+        l2_sympy = l2.to_sympy()
+
+        if l1_sympy is None or l2_sympy is None:
+            return None
+        if l1_sympy.is_number and l2_sympy.is_number:
+            # assert min_prec(l1, l2) is None
+            prec = 64  # TODO: Use $MaxExtraPrecision
+            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
+                return True
+            return False
         else:
             return None
 
@@ -623,7 +650,7 @@ class NonNegative(Builtin):
 class NonPositive(Builtin):
     """
     <dl>
-    <dt>'NonNegative[$x$]'
+    <dt>'NonPositive[$x$]'
         <dd>returns 'True' if $x$ is a negative real number or zero.
     </dl>
 

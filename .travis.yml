@@ -1,76 +1,67 @@
+
 language: python
 python:
-  - 2.7
-  - pypy
-  - 3.5
-  - 3.4
-  - 3.3
-  - 3.2
-  - pypy3
+  - 3.8
+  - 3.7
+  - 3.6
+  - pypy3.6-7.3.1
 env:
   global:
-    - SYMPY_SRC=sympy-1.0
+    - SYMPY_SRC=sympy-1.6
     - DOC="false"
     - ALL_MODULES="false"
+    - PYMATHICS_MODULES="false"
     - CYTHON="false"
 matrix:
   fast_finish: true
   include:
-    - python: 2.7
+    - python: 3.6
       env: DOC="true"
-    - python: 3.5
-      env: DOC="true"
-    - python: 2.7
-      env: SYMPY_SRC=master
-    - python: 3.5
-      env: SYMPY_SRC=master
-    - python: 2.7
+    - python: 3.6
       env: ALL_MODULES="true"
-    - python: 3.5
-      env: ALL_MODULES="true"
-    - python: pypy
-      env: ALL_MODULES="true"
-    - python: 2.7
+    - python: 3.6
+      env: PYMATHICS="true"
+    - python: 3.6
       env: CYTHON="true"
-    - python: 3.5
-      env: CYTHON="true"
-    - python: 2.7
+    - python: 3.6
       env: ALL_MODULES="true" CYTHON="true"
-    - python: 3.5
-      env: ALL_MODULES="true" CYTHON="true"
+    - python: 3.6
+      env: PYMATHICS="true" CYTHON="true"
   allow_failures:
-    - python: 3.2
-    - python: pypy3
+    - python: pypy3.6-7.3.1
     - env: SYMPY_SRC=master
     - env: DOC="true"
+    - env: DOC="true" PYMATHICS_MODULES="true"
+services:
+  - xvfb
 before_install:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev
+  - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
-      sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
-      pip install numpy ipywidgets ipykernel IPython nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
-      if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then
-          pip install pattern;
-      fi &&
-      if [[ $TRAVIS_PYTHON_VERSION != pypy ]]; then
-          pip install Pillow wordcloud pyocr scipy scikit-image &&
-          pip install spacy==1.0.3 &&
-          python travis.py &&
-          sputnik --name spacy --repository-url http://index.spacy.io install en==1.1.0;
-      fi &&
+      python -m nltk.downloader wordnet omw;
+    fi
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+      sudo apt-get install -qq python-enchant &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
+      python -m nltk.downloader wordnet omw;
+    fi
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+      sudo apt-get install -qq python-enchant &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get update -qq &&
-      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk inkscape;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
     fi
-  - pip install unittest2
-  - pip install pexpect
+  - pip install pint unittest2 pexpect scikit-image
   - pip install git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
@@ -78,14 +69,26 @@ install:
 script:
   - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      python mathics/test.py -o &&
-      python mathics/test.py -t &&
-      cd mathics/doc/ &&
-      ./images.sh &&
-      cd tex/ &&
-      make latex;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py -o &&
+         python pymathics/test.py -t &&
+         cd pymathics/doc/ &&
+         cd tex/ &&
+         make latex;
+      else
+         python mathics/test.py -o &&
+         python mathics/test.py -t &&
+         cd mathics/doc/ &&
+         ./images.sh &&
+         cd tex/ &&
+         make latex;
+      fi
     else
-      python mathics/test.py;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+        python pymathics/test.py --stop-on-failure;
+      else
+        python mathics/test.py;
+      fi
     fi
 notifications:
     email: false
