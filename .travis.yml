@@ -1,15 +1,16 @@
 
 language: python
 python:
+  - 3.8
   - 3.7
   - 3.6
-  - pypy3
+  - pypy3.6-7.3.1
 env:
   global:
     - SYMPY_SRC=sympy-1.6
     - DOC="false"
     - ALL_MODULES="false"
-    - PYMATHICS_MODULES="false"    
+    - PYMATHICS_MODULES="false"
     - CYTHON="false"
 matrix:
   fast_finish: true
@@ -27,37 +28,34 @@ matrix:
     - python: 3.6
       env: PYMATHICS="true" CYTHON="true"
   allow_failures:
-    - python: pypy3
+    - python: pypy3.6-7.3.1
     - env: SYMPY_SRC=master
     - env: DOC="true"
     - env: DOC="true" PYMATHICS_MODULES="true"
 services:
   - xvfb
 before_install:
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
-      sudo apt-get update -qq &&
       sudo apt-get install -qq python-enchant &&
       pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
-  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then  
-      sudo apt-get update -qq &&
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
       pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
-  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then  
-      sudo apt-get update -qq &&
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
       pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
-    fi        
+    fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get update -qq &&
       sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk inkscape;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
@@ -95,4 +93,3 @@ script:
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
-

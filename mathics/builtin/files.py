@@ -3502,7 +3502,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(str(pystring))        
+        stream = io.StringIO(str(pystring))
 
         name = Symbol('String')
         n = next(NSTREAMS)
@@ -3595,7 +3595,7 @@ class Compress(Builtin):
 
         # TODO Implement other Methods
         result = zlib.compress(string)
-        result = base64.encodestring(result).decode('utf8')
+        result = base64.encodebytes(result).decode('utf8')
 
         return String(result)
 
@@ -3623,7 +3623,7 @@ class Uncompress(Builtin):
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
         string = string.get_string_value().encode('utf-8')
-        string = base64.decodestring(string)
+        string = base64.decodebytes(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
         return evaluation.parse(tmp)
