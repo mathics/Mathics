@@ -139,6 +139,6 @@ class TokeniserTest(unittest.TestCase):
         self.assertEqual(self.tokens('??Sin'), [Token('Information', '??', 0), Token('Symbol', 'Sin', 2)])
         self.assertEqual(self.tokens('? ?Sin'), [Token('PatternTest', '?', 0), Token('PatternTest', '?', 2), Token('Symbol', 'Sin', 3)])
 
-        def testAssociation(self):
+    def testAssociation(self):
         self.assertEqual(self.tokens('<|x -> m|>'), [Token('RawLeftAssociation', '<|', 0), Token('Symbol', "x", 2), Token('Rule', '->', 4), Token('Symbol', "m", 7), Token('RawRightAssociation', '|>', 8)])
 
