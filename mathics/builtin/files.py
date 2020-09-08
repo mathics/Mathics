@@ -2093,7 +2093,7 @@ class Get(PrefixOperator):
     #> Hold[<< ~/some_example/dir/] // FullForm
      = Hold[Get["~/some_example/dir/"]]
     #> Hold[<<`/.\-_:$*~?] // FullForm
-     = Hold[Get["`/.\\-_:$*~?"]]
+     = Hold[Get["`/.\\\\-_:$*~?"]]
     """
 
     operator = '<<'
