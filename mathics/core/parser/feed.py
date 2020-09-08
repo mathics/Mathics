@@ -3,7 +3,6 @@ Rather than trying to parse all the code at once this module implemets methods
 for returning one line code at a time.
 '''
 
-import six
 from abc import abstractmethod, ABCMeta
 
 
@@ -31,12 +30,25 @@ class LineFeeder(object):
         return
 
     def message(self, sym, tag, *args):
-        args = ['"' + args[i] + '"' if i < len(args) else '""'
-                for i in range(3)]
-        args.append(self.lineno)
-        args.append('"' + self.filename + '"')
-        assert len(args) == 5
-        self.messages.append([sym, tag] + args)
+        if sym == 'Syntax':
+            message = self.syntax_message(sym, tag, *args)
+        else:
+            message = [sym, tag] + list(args)
+        self.messages.append(message)
+
+    def syntax_message(self, sym, tag, *args):
+        if len(args) > 3:
+            raise ValueError('Too many args.')
+        message = [sym, tag]
+        for i in range(3):
+            if i < len(args):
+                message.append('"' + args[i] + '"')
+            else:
+                message.append('""')
+        message.append(self.lineno)
+        message.append('"' + self.filename + '"')
+        assert len(message) == 7
+        return message
 
     def send_messages(self, evaluation):
         for message in self.messages:
@@ -67,7 +79,7 @@ class MultiLineFeeder(LineFeeder):
     def __init__(self, lines, filename=''):
         super(MultiLineFeeder, self).__init__(filename)
         self.lineno = 0
-        if isinstance(lines, six.string_types):
+        if isinstance(lines, str):
             self.lines = lines.splitlines(True)
         else:
             self.lines = lines

@@ -1,9 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
 
 import sys
 import os
@@ -17,9 +13,6 @@ from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
-
-import six
-from six.moves import input
 
 
 class TerminalShell(LineFeeder):
@@ -100,7 +93,7 @@ class TerminalShell(LineFeeder):
         return newline.join(text.splitlines())
 
     def out_callback(self, out):
-        print(self.to_output(six.text_type(out)))
+        print(self.to_output(str(out)))
 
     def read_line(self, prompt):
         if self.using_readline:
@@ -109,7 +102,7 @@ class TerminalShell(LineFeeder):
 
     def print_result(self, result):
         if result is not None and result.result is not None:
-            output = self.to_output(six.text_type(result.result))
+            output = self.to_output(str(result.result))
             print(self.get_out_prompt() + output + '\n')
 
     def rl_read_line(self, prompt):
@@ -118,22 +111,7 @@ class TerminalShell(LineFeeder):
         prompt = self.ansi_color_re.sub(
             lambda m: "\001" + m.group(0) + "\002", prompt)
 
-        # For Py2 sys.stdout is wrapped by a codecs.StreamWriter object in
-        # mathics/__init__.py which interferes with raw_input's use of readline
-        #
-        # To work around this issue, call raw_input with the original
-        # file object as sys.stdout, which is in the undocumented
-        # 'stream' field of codecs.StreamWriter.
-        if six.PY2:
-            orig_stdout = sys.stdout
-            try:
-                sys.stdout = sys.stdout.stream
-                ret = input(prompt).decode(self.input_encoding)
-                return ret
-            finally:
-                sys.stdout = orig_stdout
-        else:
-            return input(prompt)
+        return input(prompt)
 
     def complete_symbol_name(self, text, state):
         try:
@@ -205,8 +183,16 @@ def main():
         '--help', '-h', help='show this help message and exit', action='help')
 
     argparser.add_argument(
+        '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
+
+    argparser.add_argument(
         '--persist', help='go to interactive shell after evaluating FILE or -e',
         action='store_true')
+
+    # --initfile is different from the combination FILE --persist since the first one
+    # leaves the history empty and sets the current $Line to 1.
+    argparser.add_argument(
+        '--initfile', help='the same that FILE and --persist together', type=argparse.FileType('r'))
 
     argparser.add_argument(
         '--quiet', '-q', help='don\'t print message at startup',
@@ -239,12 +225,35 @@ def main():
 
     quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
 
-    definitions = Definitions(add_builtin=True)
+    extension_modules = []
+    if args.pyextensions:
+        for ext in args.pyextensions:
+            extension_modules.append(ext)
+    else:
+        from mathics.settings import default_pymathics_modules 
+        extension_modules = default_pymathics_modules
+
+    definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
 
     shell = TerminalShell(
         definitions, args.colors, want_readline=not(args.no_readline),
         want_completion=not(args.no_completion))
+
+    if args.initfile:
+        feeder = FileLineFeeder(args.initfile)
+        try:
+            while not feeder.empty():
+                evaluation = Evaluation(
+                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                query = evaluation.parse_feeder(feeder)
+                if query is None:
+                    continue
+                evaluation.evaluate(query, timeout=settings.TIMEOUT)
+        except (KeyboardInterrupt):
+            print('\nKeyboardInterrupt')
+
+        definitions.set_line_no(0)
 
     if args.execute:
         for expr in args.execute:
@@ -291,11 +300,16 @@ def main():
                 shell.print_result(result)
         except (KeyboardInterrupt):
             print('\nKeyboardInterrupt')
-        except (SystemExit, EOFError):
+        except EOFError:
             print("\n\nGoodbye!\n")
             break
+        except SystemExit:
+            print("\n\nGoodbye!\n")
+            # raise to pass the error code on, e.g. Quit[1]
+            raise
         finally:
             shell.reset_lineno()
+
 
 if __name__ == '__main__':
     main()
