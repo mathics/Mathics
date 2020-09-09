@@ -142,7 +142,7 @@ def escape_latex(text):
 
     text = _replace_all(text, [
         ('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
-        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'),
+        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'), ('#','\#')
     ])
 
     def repl(match):
@@ -190,7 +190,9 @@ def escape_latex(text):
 
     text = _replace_all(text, [
         ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'), ('≠', r'$\ne$'),
-    ])
+        ('\u29E6','\equiv'), ('\u22BB','\xor'), ('\uF523',r'\Rightarrow'),
+        ('ç',r'\c{c}'),('é','\'e'),('ê','\^e'),('ñ','\~n'),
+         ('∫',r'\int'),('','d'),   ])
 
     def repl_char(match):
         char = match.group(1)

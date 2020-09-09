@@ -1,5 +1,6 @@
 TEX = pdflatex
-LATEXMK = latexmk -quiet
+LATEXMK = latexmk
+#-quiet
 
 mathics.pdf: mathics.tex documentation.tex
 	$(LATEXMK) -pdf -pdflatex=$(TEX) mathics
