@@ -43,6 +43,8 @@ class Environment(Builtin):
     <pre>
     In[1] = Environment["HOME"]
     Out[1] = rocky
+    In[2] = Environment["BOGUS"]
+    Out[1] = $Failed
     </pre>
     """
 
@@ -50,7 +52,10 @@ class Environment(Builtin):
         "Environment[var_]"
         if not isinstance(var, String):
             return
-        return String(os.environ.get(var.get_string_value(), ""))
+        var_str = var.get_string_value()
+        if var_str not in os.environ:
+            return Symbol('$Failed')
+        return String(os.environ[var_str])
 
 
 class Names(Builtin):
