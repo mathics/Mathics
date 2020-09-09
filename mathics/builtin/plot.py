@@ -800,10 +800,7 @@ class _Chart(Builtin):
         def to_number(x):
             if isinstance(x, Integer):
                 return float(x.get_int_value())
-            y = x.get_float_value()
-            if y is None:
-                return 0.0
-            return y
+            return x.round_to_float(evaluation=evaluation)
 
         data = [[to_number(x) for x in group.leaves] for group in groups]
 
