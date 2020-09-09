@@ -2057,7 +2057,7 @@ class _IterationFunction(Builtin):
     def apply_range(self, expr, i, imax, evaluation):
         '%(name)s[expr_, {i_Symbol, imax_}]'
 
-        if imax.get_head_name() == 'Range':
+        if imax.has_form('Range', None):
             seq = Expression('Sequence', *(imax.evaluate(evaluation).leaves))
             return self.apply_list(expr, i, seq, evaluation)
         else:
