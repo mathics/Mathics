@@ -10,7 +10,7 @@ import os
 import platform
 import sys
 
-from mathics.core.expression import Expression, Integer, String, strip_context
+from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 
@@ -57,6 +57,31 @@ class CommandLine(Predefined):
 
     def evaluate(self, evaluation) -> Expression:
         return Expression("List", *(String(arg) for arg in sys.argv))
+
+
+class Environment(Builtin):
+    """
+    <dl>
+    <dt>'Environment[$var$]'
+        <dd>returns the value of an operating system environment variable.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = Environment["HOME"]
+    Out[1] = rocky
+    </pre>
+    """
+
+    def apply(self, var, evaluation):
+        "Environment[var_]"
+        if not isinstance(var, String):
+            return
+        env_var = var.get_string_value()
+        if env_var not in os.environ:
+            return Symbol("$Failed")
+        else:
+            return String(os.environ[env_var])
 
 
 class Failed(Predefined):
