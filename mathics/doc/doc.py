@@ -1078,11 +1078,15 @@ class DocTests(object):
         return '\n'.join(str(test) for test in self.tests)
 
     def latex(self, output):
+        if len(self.tests) == 0:
+            return "\n"
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
             '%\n'.join(test.latex(output) for test in self.tests
                        if not test.private))
 
     def html(self, counters=None):
+        if len(self.tests) == 0:
+            return "\n"        
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
                       if not test.private))
