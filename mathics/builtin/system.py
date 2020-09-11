@@ -10,26 +10,133 @@ import os
 import platform
 import sys
 
-from mathics.core.expression import Expression, Integer, String, strip_context
+from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 
 
-class Version(Predefined):
+class Aborted(Predefined):
     """
     <dl>
-    <dt>'$Version'
-        <dd>returns a string with the current Mathics version and the versions of relevant libraries.
+    <dt>'$Aborted'
+        <dd>is returned by a calculation that has been aborted.
     </dl>
-
-    >> $Version
-     = Mathics ...
     """
 
-    name = '$Version'
+    name = "$Aborted"
+
+
+class ByteOrdering(Predefined):
+    """
+    <dl>
+    <dt>'$ByteOrdering'
+        <dd>returns the native ordering of bytes in binary data on your computer system.
+    </dl>
+
+    >> $ByteOrdering == -1 || $ByteOrdering == 1
+    = True
+    """
+
+    name = "$ByteOrdering"
+
+    def evaluate(self, evaluation) -> Integer:
+        return Integer(1 if sys.byteorder == "big" else -1)
+
+
+class CommandLine(Predefined):
+    """
+    <dl>
+    <dt>'$CommandLine'
+      <dd>is a list of strings passed on the command line to launch the Mathics session.
+    </dl>
+    >> $CommandLine
+     = {...}
+    """
+
+    name = "$CommandLine"
+
+    def evaluate(self, evaluation) -> Expression:
+        return Expression("List", *(String(arg) for arg in sys.argv))
+
+
+class Environment(Builtin):
+    """
+    <dl>
+    <dt>'Environment[$var$]'
+        <dd>returns the value of an operating system environment variable.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = Environment["HOME"]
+    Out[1] = rocky
+    </pre>
+    """
+
+    def apply(self, var, evaluation):
+        "Environment[var_]"
+        if not isinstance(var, String):
+            return
+        env_var = var.get_string_value()
+        if env_var not in os.environ:
+            return Symbol("$Failed")
+        else:
+            return String(os.environ[env_var])
+
+
+class Failed(Predefined):
+    """
+    <dl>
+    <dt>'$Failed'
+        <dd>is returned by some functions in the event of an error.
+    </dl>
+
+    >> Get["nonexistent_file.m"]
+     : Cannot open nonexistent_file.m.
+     = $Failed
+    """
+
+    name = "$Failed"
+
+
+class Machine(Predefined):
+    """
+    <dl>
+    <dt>'$Machine'
+        <dd>returns a string describing the type of computer system on which the Mathics is being run.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $Machine
+    Out[1] = linux
+    </pre>
+    """
+
+    name = "$Machine"
+
+    def evaluate(self, evaluation) -> String:
+        return String(sys.platform)
+
+
+class MachineName(Predefined):
+    """
+    <dl>
+    <dt>'$MachineName'
+        <dd>returns a string that gives the assigned name of the computer on which Mathics is being run, if such a name is defined.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = $MachineName
+    Out[1] = buster
+    </pre>
+    """
+
+    name = "$MachineName"
 
     def evaluate(self, evaluation):
-        return String(version_string.replace('\n', ' '))
+        return String(os.uname().nodename)
 
 
 class Names(Builtin):
@@ -63,7 +170,7 @@ class Names(Builtin):
     """
 
     def apply(self, pattern, evaluation):
-        'Names[pattern_]'
+        "Names[pattern_]"
 
         pattern = pattern.get_string_value()
         if pattern is None:
@@ -76,89 +183,7 @@ class Names(Builtin):
 
         # TODO: Mathematica ignores contexts when it sorts the list of
         # names.
-        return Expression('List', *[String(name) for name in sorted(names)])
-
-
-class Aborted(Predefined):
-    """
-    <dl>
-    <dt>'$Aborted'
-        <dd>is returned by a calculation that has been aborted.
-    </dl>
-    """
-
-    name = '$Aborted'
-
-
-class Failed(Predefined):
-    """
-    <dl>
-    <dt>'$Failed'
-        <dd>is returned by some functions in the event of an error.
-    </dl>
-
-    >> Get["nonexistent_file.m"]
-     : Cannot open nonexistent_file.m.
-     = $Failed
-    """
-
-    name = '$Failed'
-
-
-class CommandLine(Predefined):
-    '''
-    <dl>
-    <dt>'$CommandLine'
-      <dd>is a list of strings passed on the command line to launch the Mathics session.
-    </dl>
-    >> $CommandLine
-     = {...}
-    '''
-
-    name = '$CommandLine'
-
-    def evaluate(self, evaluation):
-        return Expression('List', *(String(arg) for arg in sys.argv))
-
-
-class Machine(Predefined):
-    """
-    <dl>
-    <dt>'$Machine'
-        <dd>returns a string describing the type of computer system on which the Mathics is being run.
-    </dl>
-
-    Example:
-    <pre>
-    In[1] = $Machine
-    Out[1] = linux
-    </pre>
-    """
-
-    name = '$Machine'
-
-    def evaluate(self, evaluation):
-        return String(sys.platform)
-
-
-class MachineName(Predefined):
-    """
-    <dl>
-    <dt>'$MachineName'
-        <dd>returns a string that gives the assigned name of the computer on which Mathics is being run, if such a name is defined.
-    </dl>
-
-    Example:
-    <pre>
-    In[1] = $MachineName
-    Out[1] = buster
-    </pre>
-    """
-
-    name = '$MachineName'
-
-    def evaluate(self, evaluation):
-        return String(os.uname().nodename)
+        return Expression("List", *[String(name) for name in sorted(names)])
 
 
 class ProcessorType(Predefined):
@@ -175,32 +200,33 @@ class ProcessorType(Predefined):
     </pre>
     """
 
-    name = '$ProcessorType'
+    name = "$ProcessorType"
 
     def evaluate(self, evaluation):
         return String(platform.machine())
 
 
 class ScriptCommandLine(Predefined):
-    '''
+    """
     <dl>
     <dt>'$ScriptCommandLine'
       <dd>is a list of string arguments when running the kernel is script mode.
     </dl>
     >> $ScriptCommandLine
      = {...}
-    '''
+    """
 
-    name = '$ScriptCommandLine'
+    name = "$ScriptCommandLine"
 
     def evaluate(self, evaluation):
         try:
-            dash_index = sys.argv.index('--')
+            dash_index = sys.argv.index("--")
         except ValueError:
             # not run in script mode
-            return Expression('List')
+            return Expression("List")
 
-        return Expression('List', *(String(arg) for arg in sys.argv[dash_index + 1:]))
+        return Expression("List", *(String(arg) for arg in sys.argv[dash_index + 1 :]))
+
 
 class SystemID(Predefined):
     """
@@ -216,10 +242,11 @@ class SystemID(Predefined):
     </pre>
     """
 
-    name = '$SystemID'
+    name = "$SystemID"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> String:
         return String(sys.platform)
+
 
 class SystemWordLength(Predefined):
     """
@@ -235,13 +262,30 @@ class SystemWordLength(Predefined):
     </pre>
     """
 
-    name = '$SystemWordLength'
+    name = "$SystemWordLength"
 
     def evaluate(self, evaluation):
         # https://docs.python.org/3/library/platform.html#module-platform
         # says it is more reliable to get bits using sys.maxsize
         # than platform.architecture()[0]
         size = 128
-        while not sys.maxsize > 2**size:
+        while not sys.maxsize > 2 ** size:
             size >>= 1
         return Integer(size << 1)
+
+
+class Version(Predefined):
+    """
+    <dl>
+    <dt>'$Version'
+        <dd>returns a string with the current Mathics version and the versions of relevant libraries.
+    </dl>
+
+    >> $Version
+     = Mathics ...
+    """
+
+    name = "$Version"
+
+    def evaluate(self, evaluation) -> String:
+        return String(version_string.replace("\n", " "))
