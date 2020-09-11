@@ -142,7 +142,7 @@ def escape_latex(text):
 
     text = _replace_all(text, [
         ('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
-        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'),
+        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'), ('#','\\#')
     ])
 
     def repl(match):
@@ -189,8 +189,11 @@ def escape_latex(text):
     text = LIST_RE.sub(repl_list, text)
 
     text = _replace_all(text, [
-        ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'), ('≠', r'$\ne$'),
-    ])
+        ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'),
+        ('≠', r'$\ne$'),
+        ('\u29E6',r'\equiv'), ('\u22BB',r'\xor'), ('\uF523',r'\Rightarrow'),
+        ('ç',r'\c{c}'),('é',r'\'e'),('ê',r'\^e'),('ñ',r'\~n'),
+         ('∫',r'\int'),('',r'd'),   ])
 
     def repl_char(match):
         char = match.group(1)
@@ -1075,11 +1078,15 @@ class DocTests(object):
         return '\n'.join(str(test) for test in self.tests)
 
     def latex(self, output):
+        if len(self.tests) == 0:
+            return "\n"
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
             '%\n'.join(test.latex(output) for test in self.tests
                        if not test.private))
 
     def html(self, counters=None):
+        if len(self.tests) == 0:
+            return "\n"        
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
                       if not test.private))
