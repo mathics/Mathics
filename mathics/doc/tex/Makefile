@@ -1,6 +1,6 @@
 
 TEX = xelatex
-LATEXMK = latexmk
+LATEXMK = latexmk -f 
 #-quiet
 
 mathics.pdf: mathics.tex documentation.tex
