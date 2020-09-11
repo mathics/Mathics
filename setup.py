@@ -74,7 +74,7 @@ INSTALL_REQUIRES += [
     "palettable",
 ]
 
-if not ((not is_PyPy and sys.version_info == (3, 8)) or (is_PyPy and sys.version_info == (3, 6))):
+if not ((not is_PyPy and sys.version_info >= (3, 8)) or (is_PyPy and sys.version_info >= (3, 6))):
     INSTALL_REQUIRES.append("llvmlite")
 
 
