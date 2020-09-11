@@ -61,6 +61,12 @@
     {ä}{{\"a}}1
     {ö}{{\"o}}1
     {~}{{\textasciitilde}}1
+    {⧦}{{===}}1
+    {}{{=>}}1
+    {⊻}{{xor}}1
+    {…}{{...}}1
+    {∫}{{S}}1
+    {}{{d}}1
 }
 
 \setlength{\columnsep}{1cm}
@@ -219,10 +225,12 @@
 \tableofcontents
 
 \lstset{
-breaklines=true,
-breakatwhitespace=false,
-showspaces=false,
-basicstyle=\ttfamily
+  inputencoding=utf8,
+  extendedchars=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  showspaces=false,
+  basicstyle=\ttfamily
 }
 
 \lstdefinestyle{python}{language=Python,tabsize=2,basicstyle=\scriptsize\ttfamily,showstringspaces=false,stringstyle=\color{pythonstring},commentstyle=\ttfamily\color{pythonstring},frame=lines}

@@ -1,10 +1,11 @@
-TEX = pdflatex
+#TEX = pdflatex
+TEX = xelatex
 LATEXMK = latexmk
 #-quiet
 
 mathics.pdf: mathics.tex documentation.tex
 	$(LATEXMK) -pdf -pdflatex=$(TEX) mathics
-	
+
 latex: mathics.pdf
 
 clean:
