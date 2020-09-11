@@ -35,7 +35,7 @@ matrix:
 services:
   - xvfb
 before_install:
-  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
