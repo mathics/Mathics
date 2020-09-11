@@ -68,6 +68,7 @@ else:
 INSTALL_REQUIRES += [
     "sympy>=1.6, < 1.7",
     "django >= 1.8, < 1.12",
+    "llvmlite",
     "mpmath>=1.1.0",
     "python-dateutil",
     "colorama",
