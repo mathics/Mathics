@@ -74,6 +74,11 @@ INSTALL_REQUIRES += [
     "palettable",
 ]
 
+# TODO Remove this check. This is only meant to prevent CI for failing entirelly
+#      due to incorrect configuration
+if (is_PyPy or not sys.version_info == (3, 8)) and (not is_PyPy or sys.version_info == (3, 6)):
+    INSTALL_REQUIRES.append("llvmlite")
+
 
 def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
