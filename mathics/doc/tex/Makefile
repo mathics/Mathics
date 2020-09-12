@@ -1,4 +1,4 @@
-#TEX = pdflatex
+
 TEX = xelatex
 LATEXMK = latexmk
 #-quiet
