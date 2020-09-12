@@ -69,9 +69,10 @@ INSTALL_REQUIRES += [
     "sympy>=1.6, < 1.7",
     "django >= 1.8, < 1.12",
     "mpmath>=1.1.0",
+    "palettable", # For bar charts, and portable, no-proprietary color palletes
+    "pydot", # For graphs
     "python-dateutil",
     "colorama",
-    "palettable",
 ]
 
 if not ((not is_PyPy and sys.version_info >= (3, 8)) or (is_PyPy and sys.version_info >= (3, 6))):
