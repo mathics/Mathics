@@ -191,7 +191,6 @@ def escape_latex(text):
     text = _replace_all(text, [
         ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'),
         ('≠', r'$\ne$'),
-        ('\u29E6',r'\equiv'), ('\u22BB',r'\xor'), ('\uF523',r'\Rightarrow'),
         ('ç',r'\c{c}'),('é',r'\'e'),('ê',r'\^e'),('ñ',r'\~n'),
          ('∫',r'\int'),('',r'd'),   ])
 
@@ -952,7 +951,8 @@ class DocSection(DocElement):
             '\\addcontentsline{toc}{section}{%(title)s}') % {
                 'title': title,
                 'index': index,
-                'content': self.doc.latex(output)}
+                'content': self.doc.latex(output)
+            }
 
     def get_url(self):
         return '/%s/%s/%s/' % (
@@ -1080,9 +1080,15 @@ class DocTests(object):
     def latex(self, output):
         if len(self.tests) == 0:
             return "\n"
+
+        testLatexStrings = [test.latex(output) for test in self.tests
+                       if not test.private]
+        testLatexStrings = [t for t in testLatexStrings if len(t)>1]
+        if len(testLatexStrings) == 0:
+            return "\n"
+        
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
-            '%\n'.join(test.latex(output) for test in self.tests
-                       if not test.private))
+            '%\n'.join(testLatexStrings))
 
     def html(self, counters=None):
         if len(self.tests) == 0:
