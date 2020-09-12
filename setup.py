@@ -74,6 +74,9 @@ INSTALL_REQUIRES += [
     "palettable",
 ]
 
+if not ((not is_PyPy and sys.version_info >= (3, 8)) or (is_PyPy and sys.version_info >= (3, 6))):
+    INSTALL_REQUIRES.append("llvmlite")
+
 
 def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
