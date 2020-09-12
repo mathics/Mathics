@@ -1836,8 +1836,10 @@ class Sum(_IterationFunction, SympyFunction):
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
-            arg = expr.leaves[0].to_sympy()
-            bounds = (index.leaves[0].to_sympy(), index.leaves[1].to_sympy(), index.leaves[2].to_sympy())
+            arg = expr.leaves[0].to_sympy(**kwargs)
+            bounds = (index.leaves[0].to_sympy(**kwargs), 
+                      index.leaves[1].to_sympy(**kwargs), 
+                      index.leaves[2].to_sympy(**kwargs))
             if arg is not None and None not in bounds:
                 return sympy.summation(arg, bounds)
 
