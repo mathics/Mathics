@@ -56,8 +56,8 @@ before_install:
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get install -qq asymptote texlive-latex-extra texlive-latex3 texlive-fonts-recommended;
-      sudo apt-get install -qq  texlive-font-utils latexmk texlive-xetex lmodern;
+      sudo apt-get install -qq graphviz asymptote texlive-latex-extra texlive-latex3 texlive-fonts-recommended;
+      sudo apt-get install -qq texlive-font-utils latexmk texlive-xetex lmodern;
       sudo add-apt-repository -y ppa:inkscape.dev/stable-daily && sudo apt-get update && sudo apt-get install -qq inkscape;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
