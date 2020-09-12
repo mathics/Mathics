@@ -27,7 +27,7 @@ function showOpen() {
 			method: 'get',
 			onSuccess: function(transport) {
 				var response = transport.responseText.evalJSON();
-				var tbody = $('openFilelist'); 
+				var tbody = $('openFilelist');
 				tbody.deleteChildNodes();
 				response.worksheets.each(function(worksheet) {
 					tbody.appendChild($E('tr', $E('td',
@@ -104,15 +104,15 @@ function getContent() {
 		queries.push(item);
 	});
 	var content = Object.toJSON(queries);
-	
+
 	return content;
 }
 
 function setContent(content) {
 	$('queries').deleteChildNodes();
-	
+
 	$('welcome').hide();
-	
+
 	var queries = content.evalJSON();
 	queries.each(function(item) {
 		var li = createQuery(null, true, true);
@@ -122,11 +122,11 @@ function setContent(content) {
 			li.textarea.results = item.results;
 		}
 	});
-	
+
 	createSortable();
-	
+
 	refreshInputSizes();
-	
+
 	lastFocus = null;
 	if ($('queries').lastChild)
 		$('queries').lastChild.textarea.focus();
@@ -163,7 +163,7 @@ function setQueries(queries) {
 				$('queries').lastChild.textarea.focus();
 		}
 	}
-	load(0);	
+	load(0);
 }
 
 function loadLink() {
@@ -189,11 +189,13 @@ function showGallery() {
 	setQueries([
 	  '1 + 2 - x * 3 x / y',
 	  'Sin[Pi]',
+	  'Graphics3D[Sphere[{0, 0, 0}, 1]]',
 	  'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
-	  'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]',
-	  'translate[graphics_, {dx_,dy_,dz_}] := graphics /. Sphere[{x_,y_,z_}, r_] -> Sphere[{x+dx, y+dy, z+dz}, r]',
-	  'sierpinski[block_, size_] := translate[block, #*size*2]& /@ {{0,0,.6124}, {-.2886,-.5,-.204}, {-.2886,.5,-.204}, {.5774,0,-.204}}',
-	  'Graphics3D[{Yellow, First[Nest[{sierpinski[First[#], Last[#]], Last[#]*2}&, {Sphere[{0,0,0}, 1], 1}, 3]]}]',
+	  'BarChart[{{1, 2, 3}, {2, 3, 4}}]',
+	  'Plot[{Abs[Sin[x]], Abs[Cos[x]]}, {x,0,4 Pi}, Mesh->Full]',
+	  'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}, PlotPoints->31]',
+          'Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full, PlotPoints->21]',
+          'Graph[{1 <-> 2, 2 <-> 3, 5 <-> 2, 3 <-> 4, 5 <-> 3}]',
 	  'N[E, 30]',
 	  'D[Sin[2x] + Log[x] ^ 2, x]',
 	  'Integrate[Tan[x] ^ 5, x]',
