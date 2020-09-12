@@ -36,7 +36,7 @@ ADMINS = (
 )
 MANAGERS = ADMINS
 
-ROOT_DIR = pkg_resources.resource_filename('mathics', '') + '/'
+ROOT_DIR = pkg_resources.resource_filename('mathics', '')
 if sys.platform.startswith('win'):
     DATA_DIR = os.environ['APPDATA'].replace(os.sep, '/') + '/Python/Mathics/'
 else:
@@ -44,10 +44,10 @@ else:
 # if not path.exists(DATA_DIR):
 #    os.makedirs(DATA_DIR)
 
-DOC_DIR = ROOT_DIR + 'doc/documentation/'
-DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
-DOC_XML_DATA = ROOT_DIR + 'doc/xml/data'
-DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
+DOC_DIR = os.path.join(ROOT_DIR, 'doc/documentation/')
+DOC_TEX_DATA = os.path.join(ROOT_DIR, 'doc/tex/data')
+DOC_XML_DATA = os.path.join(ROOT_DIR, 'doc/xml/data')
+DOC_LATEX_FILE = os.path.join(ROOT_DIR, 'doc/tex/documentation.tex')
 
 DATABASES = {
     'default': {
@@ -92,7 +92,7 @@ ENABLE_FILES_MODULE = True
 USE_I18N = True
 
 # Absolute path to the directory that holds static files.
-STATIC_ROOT = ROOT_DIR + 'web/media/'
+STATIC_ROOT = os.path.join(ROOT_DIR, 'web/media/')
 
 # URL that handles the media served from STATIC_ROOT.
 STATIC_URL = '/media/'
@@ -116,13 +116,12 @@ ROOT_URLCONF = 'mathics.urls'
 
 default_pymathics_modules = ["pymathics.natlang",]
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or
-    # "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    ROOT_DIR + 'web/templates/',
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [ os.path.join(ROOT_DIR, 'web/templates/') ],
+    }
+]
 
 AUTHENTICATION_BACKENDS = (
     'mathics.web.authentication.EmailModelBackend',

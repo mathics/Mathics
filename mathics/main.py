@@ -17,7 +17,7 @@ from mathics import settings
 
 class TerminalShell(LineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
-        super(TerminalShell, self).__init__('<stdin>')
+        super(TerminalShell, self).__init__("<stdin>")
         self.input_encoding = locale.getpreferredencoding()
         self.lineno = 0
 
@@ -26,13 +26,18 @@ class TerminalShell(LineFeeder):
         try:
             if want_readline:
                 import readline
+
                 self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
                 self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
                 if want_completion:
-                    readline.set_completer(lambda text, state: self.complete_symbol_name(text, state))
+                    readline.set_completer(
+                        lambda text, state: self.complete_symbol_name(text, state)
+                    )
 
                     # Make _ a delimiter, but not $ or `
-                    readline.set_completer_delims(' \t\n_~!@#%^&*()-=+[{]}\\|;:\'",<>/?')
+                    readline.set_completer_delims(
+                        " \t\n_~!@#%^&*()-=+[{]}\\|;:'\",<>/?"
+                    )
 
                     readline.parse_and_bind("tab: complete")
                     self.completion_candidates = []
@@ -44,23 +49,25 @@ class TerminalShell(LineFeeder):
         try:
             from colorama import init as colorama_init
         except ImportError:
-            colors = 'NoColor'
+            colors = "NoColor"
         else:
             colorama_init()
             if colors is None:
-                terminal_supports_color = (sys.stdout.isatty() and os.getenv('TERM') != 'dumb')
-                colors = 'Linux' if terminal_supports_color else 'NoColor'
+                terminal_supports_color = (
+                    sys.stdout.isatty() and os.getenv("TERM") != "dumb"
+                )
+                colors = "Linux" if terminal_supports_color else "NoColor"
 
         color_schemes = {
-            'NOCOLOR': (
-                ['', '', '', ''],
-                ['', '', '', '']),
-            'LINUX': (
-                ['\033[32m', '\033[1m', '\033[22m', '\033[39m'],
-                ['\033[31m', '\033[1m', '\033[22m', '\033[39m']),
-            'LIGHTBG': (
-                ['\033[34m', '\033[1m', '\033[22m', '\033[39m'],
-                ['\033[31m', '\033[1m', '\033[22m', '\033[39m']),
+            "NOCOLOR": (["", "", "", ""], ["", "", "", ""]),
+            "LINUX": (
+                ["\033[32m", "\033[1m", "\033[22m", "\033[39m"],
+                ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
+            ),
+            "LIGHTBG": (
+                ["\033[34m", "\033[1m", "\033[22m", "\033[39m"],
+                ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
+            ),
         }
 
         # Handle any case by using .upper()
@@ -79,17 +86,17 @@ class TerminalShell(LineFeeder):
     def get_in_prompt(self):
         next_line_number = self.get_last_line_number() + 1
         if self.lineno > 0:
-            return ' ' * len('In[{0}]:= '.format(next_line_number))
+            return " " * len("In[{0}]:= ".format(next_line_number))
         else:
-            return '{1}In[{2}{0}{3}]:= {4}'.format(next_line_number, *self.incolors)
+            return "{1}In[{2}{0}{3}]:= {4}".format(next_line_number, *self.incolors)
 
     def get_out_prompt(self):
         line_number = self.get_last_line_number()
-        return '{1}Out[{2}{0}{3}]= {4}'.format(line_number, *self.outcolors)
+        return "{1}Out[{2}{0}{3}]= {4}".format(line_number, *self.outcolors)
 
     def to_output(self, text):
         line_number = self.get_last_line_number()
-        newline = '\n' + ' ' * len('Out[{0}]= '.format(line_number))
+        newline = "\n" + " " * len("Out[{0}]= ".format(line_number))
         return newline.join(text.splitlines())
 
     def out_callback(self, out):
@@ -103,13 +110,12 @@ class TerminalShell(LineFeeder):
     def print_result(self, result):
         if result is not None and result.result is not None:
             output = self.to_output(str(result.result))
-            print(self.get_out_prompt() + output + '\n')
+            print(self.get_out_prompt() + output + "\n")
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
         # knows that they're nonprinting.
-        prompt = self.ansi_color_re.sub(
-            lambda m: "\001" + m.group(0) + "\002", prompt)
+        prompt = self.ansi_color_re.sub(lambda m: "\001" + m.group(0) + "\002", prompt)
 
         return input(prompt)
 
@@ -135,8 +141,8 @@ class TerminalShell(LineFeeder):
             return None
 
     def get_completion_candidates(self, text):
-        matches = self.definitions.get_matching_names(text + '*')
-        if '`' not in text:
+        matches = self.definitions.get_matching_names(text + "*")
+        if "`" not in text:
             matches = [strip_context(m) for m in matches]
         return matches
 
@@ -144,9 +150,9 @@ class TerminalShell(LineFeeder):
         self.lineno = 0
 
     def feed(self):
-        result = self.read_line(self.get_in_prompt()) + '\n'
-        if result == '\n':
-            return ''   # end of input
+        result = self.read_line(self.get_in_prompt()) + "\n"
+        if result == "\n":
+            return ""  # end of input
         self.lineno += 1
         return result
 
@@ -167,91 +173,126 @@ class TerminalOutput(Output):
 
 def main():
     argparser = argparse.ArgumentParser(
-        prog='mathics',
-        usage='%(prog)s [options] [FILE]',
+        prog="mathics",
+        usage="%(prog)s [options] [FILE]",
         add_help=False,
         description="Mathics is a general-purpose computer algebra system.",
         epilog="""Please feel encouraged to contribute to Mathics! Create
             your own fork, make the desired changes, commit, and make a pull
-            request.""")
+            request.""",
+    )
 
     argparser.add_argument(
-        'FILE', nargs='?', type=argparse.FileType('r'),
-        help='execute commands from FILE')
+        "FILE",
+        nargs="?",
+        type=argparse.FileType("r"),
+        help="execute commands from FILE",
+    )
 
     argparser.add_argument(
-        '--help', '-h', help='show this help message and exit', action='help')
+        "--help", "-h", help="show this help message and exit", action="help"
+    )
 
     argparser.add_argument(
-        '--pyextensions', '-l', action='append', metavar='PYEXT', help='directory to load extensions in python')
+        "--full-form",
+        "-F",
+        help="Show how input was parsed to FullForm",
+        action="store_true",
+    )
 
     argparser.add_argument(
-        '--persist', help='go to interactive shell after evaluating FILE or -e',
-        action='store_true')
+        "--pyextensions",
+        "-l",
+        action="append",
+        metavar="PYEXT",
+        help="directory to load extensions in python",
+    )
+
+    argparser.add_argument(
+        "--persist",
+        help="go to interactive shell after evaluating FILE or -e",
+        action="store_true",
+    )
 
     # --initfile is different from the combination FILE --persist since the first one
     # leaves the history empty and sets the current $Line to 1.
     argparser.add_argument(
-        '--initfile', help='the same that FILE and --persist together', type=argparse.FileType('r'))
+        "--initfile",
+        help="the same that FILE and --persist together",
+        type=argparse.FileType("r"),
+    )
 
     argparser.add_argument(
-        '--quiet', '-q', help='don\'t print message at startup',
-        action='store_true')
+        "--quiet", "-q", help="don't print message at startup", action="store_true"
+    )
 
     argparser.add_argument(
-        '-script', help='run a mathics file in script mode',
-        action='store_true')
+        "-script", help="run a mathics file in script mode", action="store_true"
+    )
 
     argparser.add_argument(
-        '--execute', '-e', action='append', metavar='EXPR',
-        help='evaluate EXPR before processing any input files (may be given '
-        'multiple times)')
+        "--execute",
+        "-e",
+        action="append",
+        metavar="EXPR",
+        help="evaluate EXPR before processing any input files (may be given "
+        "multiple times)",
+    )
+
+    argparser.add_argument("--colors", nargs="?", help="interactive shell colors")
 
     argparser.add_argument(
-        '--colors', nargs='?', help='interactive shell colors')
+        "--no-completion", help="disable tab completion", action="store_true"
+    )
 
     argparser.add_argument(
-        '--no-completion', help="disable tab completion", action='store_true')
+        "--no-readline",
+        help="disable line editing (implies --no-completion)",
+        action="store_true",
+    )
 
     argparser.add_argument(
-        '--no-readline', help="disable line editing (implies --no-completion)",
-        action='store_true')
-
-    argparser.add_argument(
-        '--version', '-v', action='version',
-        version='%(prog)s ' + __version__)
+        "--version", "-v", action="version", version="%(prog)s " + __version__
+    )
 
     args, script_args = argparser.parse_known_args()
 
-    quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-D'
+    quit_command = "CTRL-BREAK" if sys.platform == "win32" else "CONTROL-D"
 
     extension_modules = []
     if args.pyextensions:
         for ext in args.pyextensions:
             extension_modules.append(ext)
     else:
-        from mathics.settings import default_pymathics_modules 
+        from mathics.settings import default_pymathics_modules
+
         extension_modules = default_pymathics_modules
 
     definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
 
     shell = TerminalShell(
-        definitions, args.colors, want_readline=not(args.no_readline),
-        want_completion=not(args.no_completion))
+        definitions,
+        args.colors,
+        want_readline=not (args.no_readline),
+        want_completion=not (args.no_completion),
+    )
 
     if args.initfile:
         feeder = FileLineFeeder(args.initfile)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
-                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                    shell.definitions,
+                    output=TerminalOutput(shell),
+                    catch_interrupt=False,
+                )
                 query = evaluation.parse_feeder(feeder)
                 if query is None:
                     continue
                 evaluation.evaluate(query, timeout=settings.TIMEOUT)
         except (KeyboardInterrupt):
-            print('\nKeyboardInterrupt')
+            print("\nKeyboardInterrupt")
 
         definitions.set_line_no(0)
 
@@ -270,13 +311,16 @@ def main():
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
-                    shell.definitions, output=TerminalOutput(shell), catch_interrupt=False)
+                    shell.definitions,
+                    output=TerminalOutput(shell),
+                    catch_interrupt=False,
+                )
                 query = evaluation.parse_feeder(feeder)
                 if query is None:
                     continue
                 evaluation.evaluate(query, timeout=settings.TIMEOUT)
         except (KeyboardInterrupt):
-            print('\nKeyboardInterrupt')
+            print("\nKeyboardInterrupt")
 
         if args.persist:
             definitions.set_line_no(0)
@@ -285,8 +329,8 @@ def main():
 
     if not args.quiet:
         print()
-        print(version_string + '\n')
-        print(license_string + '\n')
+        print(version_string + "\n")
+        print(license_string + "\n")
         print("Quit by pressing {0}\n".format(quit_command))
 
     while True:
@@ -295,11 +339,13 @@ def main():
             query = evaluation.parse_feeder(shell)
             if query is None:
                 continue
+            if args.full_form:
+                print(query)
             result = evaluation.evaluate(query, timeout=settings.TIMEOUT)
             if result is not None:
                 shell.print_result(result)
         except (KeyboardInterrupt):
-            print('\nKeyboardInterrupt')
+            print("\nKeyboardInterrupt")
         except EOFError:
             print("\n\nGoodbye!\n")
             break
@@ -311,5 +357,5 @@ def main():
             shell.reset_lineno()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -35,7 +35,7 @@ matrix:
 services:
   - xvfb
 before_install:
-  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
@@ -56,7 +56,9 @@ before_install:
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk inkscape;
+      sudo apt-get install -qq asymptote texlive-latex-extra texlive-latex3 texlive-fonts-recommended;
+      sudo apt-get install -qq  texlive-font-utils latexmk  lmodern;
+      sudo add-apt-repository -y ppa:inkscape.dev/stable-daily && sudo apt-get update && sudo apt-get install -qq inkscape;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
