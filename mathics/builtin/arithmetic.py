@@ -1788,6 +1788,8 @@ class Sum(_IterationFunction, SympyFunction):
      = 1 + 2 I
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
+    >> Sum[f[i], {i, 1, 7}]
+     = f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7]
 
     Verify algebraic identities:
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
@@ -1868,6 +1870,8 @@ class Product(_IterationFunction, SympyFunction):
      = x ^ 110
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
+    >> Product[f[i], {i, 1, 7}]
+     = f[1] f[2] f[3] f[4] f[5] f[6] f[7]
 
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
