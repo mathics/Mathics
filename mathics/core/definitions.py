@@ -48,7 +48,7 @@ class Definitions(object):
         super(Definitions, self).__init__()
         self.builtin = {}
         self.user = {}
-        self.pymathics = {} 
+        self.pymathics = {}
         self.definitions_cache = {}
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
@@ -121,7 +121,7 @@ class Definitions(object):
         for name in vars:
             var = getattr(loaded_module, name)
             if (hasattr(var, '__module__') and
-                var.__module__ != 'mathics.builtin.base' and 
+                var.__module__ != 'mathics.builtin.base' and
                     is_builtin(var) and not name.startswith('_') and
                 var.__module__[:len(loaded_module.__name__)] == loaded_module.__name__):     # nopep8
                 instance = var(expression=False)
@@ -150,7 +150,7 @@ class Definitions(object):
         # print("reloading symbols from current builtins.")
         for s in self.pymathics:
             if s in self.builtin:
-                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol. 
+                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol.
                 if self.pymathics[s]:
                     self.builtin[s] = self.pymathics[s]
                     builtins[s] = None
@@ -359,6 +359,9 @@ class Definitions(object):
                     return n
         return with_context
 
+    def get_package_names(self) -> typing.List[str]:
+        return sorted({name.split("`")[0] for name in self.get_names()})
+
     def shorten_name(self, name_with_ctx) -> str:
         if '`' not in name_with_ctx:
             return name_with_ctx
@@ -386,7 +389,7 @@ class Definitions(object):
         user = self.user.get(name, None)
         builtin = self.builtin.get(name, None)
 
-        if user is None and builtin is None:            
+        if user is None and builtin is None:
             definition = None
         elif builtin is None:
             definition = user
