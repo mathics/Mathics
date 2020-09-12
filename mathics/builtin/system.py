@@ -186,6 +186,29 @@ class Names(Builtin):
         return Expression("List", *[String(name) for name in sorted(names)])
 
 
+class Packages(Predefined):
+    """
+    <dl>
+    <dt>'$Packages'
+        <dd>returns a list of the contexts corresponding to all packages which have been loaded into Mathics.
+    </dl>
+
+    >>> MemberQ[$Packages, "System`"]
+    == True
+    """
+
+    name = "$Packages"
+
+    def evaluate(self, evaluation):
+        return Expression(
+            "List",
+            *(
+                String(name)
+                for name in evaluation.definitions.get_package_names()
+            ),
+        )
+
+
 class ProcessorType(Predefined):
     """
     <dl>
