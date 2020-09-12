@@ -637,15 +637,16 @@ class Expression(BaseExpression):
         if None in sym_args:
             return None
 
-        func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name()))
-        return func(*sym_args)
+        f = sympy.Function(str(sympy_symbol_prefix + self.get_head_name()))
+        return f(*sym_args)
 
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
 
-        if 'converted_functions_all' in kwargs:
-            if len(self.leaves) > 0 and kwargs['converted_functions_all']:
-                return self._as_sympy_function(**kwargs)
+        if 'convert_all_global_functions' in kwargs:
+            if len(self.leaves) > 0 and kwargs['convert_all_global_functions']:
+                if self.get_head_name().startswith('Global`'): 
+                    return self._as_sympy_function(**kwargs)
 
         if 'converted_functions' in kwargs:
             functions = kwargs['converted_functions']
