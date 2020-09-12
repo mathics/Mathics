@@ -4,12 +4,11 @@
 from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
                                   MessageException)
 from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     Rational, strip_context)
+                                     strip_context)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (python_levelspec, walk_levels,
                                    InvalidLevelspecError)
-from mathics.builtin.functional import Identity
 
 import platform
 
@@ -155,88 +154,6 @@ class SortBy(Builtin):
             new_indices = sorted(list(range(len(raw_keys))), key=Key)
             new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
             return Expression(l.head, *new_leaves)
-
-
-class BinarySearch(Builtin):
-    """
-    <dl>
-    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
-        <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
-        exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
-        to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
-        need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
-
-    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
-        <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
-        needs to yield a sorted sequence if applied to the elements of $l.
-    </dl>
-
-    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
-     = 4
-
-    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
-     = 2.5
-
-    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
-     = 1.5
-
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
-     = 0.5
-
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
-     = 4.5
-
-    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
-     = 2
-    """
-
-    context = 'Combinatorica`'
-
-    rules = {
-        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
-    }
-
-    def apply(self, l, k, f, evaluation):
-        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
-
-        leaves = l.leaves
-
-        lower_index = 1
-        upper_index = len(leaves)
-
-        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
-            return Symbol('$Aborted')
-
-        # "transform" is a handy wrapper for applying "f" or nothing
-        if f.get_name() == 'System`Identity':
-            def transform(x):
-                return x
-        else:
-            def transform(x):
-                return Expression(f, x).evaluate(evaluation)
-
-        # loop invariants (true at any time in the following loop):
-        # (1) lower_index <= upper_index
-        # (2) k > leaves[i] for all i < lower_index
-        # (3) k < leaves[i] for all i > upper_index
-        while True:
-            pivot_index = (lower_index + upper_index) >> 1  # i.e. a + (b - a) // 2
-            # as lower_index <= upper_index, lower_index <= pivot_index <= upper_index
-            pivot = transform(leaves[pivot_index - 1])  # 1-based to 0-based
-
-            # we assume a trichotomous relation: k < pivot, or k = pivot, or k > pivot
-            if k < pivot:
-                if pivot_index == lower_index:  # see invariant (2), to see that
-                    # k < leaves[pivot_index] and k > leaves[pivot_index - 1]
-                    return Rational((pivot_index - 1) + pivot_index, 2)
-                upper_index = pivot_index - 1
-            elif k == pivot:
-                return Integer(pivot_index)
-            else:  # k > pivot
-                if pivot_index == upper_index:  # see invariant (3), to see that
-                    # k > leaves[pivot_index] and k < leaves[pivot_index + 1]
-                    return Rational(pivot_index + (pivot_index + 1), 2)
-                lower_index = pivot_index + 1
 
 
 class PatternsOrderedQ(Builtin):
@@ -1021,7 +938,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
+     =
     (watch the empty line).
     """
 
