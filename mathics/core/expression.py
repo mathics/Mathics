@@ -631,18 +631,26 @@ class Expression(BaseExpression):
         return self.head.has_symbol(symbol_name) or any(
             leaf.has_symbol(symbol_name) for leaf in self.leaves)
 
+    def _as_sympy_function(self, **kwargs) -> sympy.Function:
+        sym_args = [leaf.to_sympy(**kwargs) for leaf in self.leaves]
+
+        if None in sym_args:
+            return None
+
+        func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name()))
+        return func(*sym_args)
+
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
+
+        if 'converted_functions_all' in kwargs:
+            if len(self.leaves) > 0 and kwargs['converted_functions_all']:
+                return self._as_sympy_function(**kwargs)
 
         if 'converted_functions' in kwargs:
             functions = kwargs['converted_functions']
             if len(self.leaves) > 0 and self.get_head_name() in functions:
-                sym_args = [leaf.to_sympy() for leaf in self.leaves]
-                if None in sym_args:
-                    return None
-                func = sympy.Function(str(
-                    sympy_symbol_prefix + self.get_head_name()))(*sym_args)
-                return func
+                return self._as_sympy_function(**kwargs)
 
         lookup_name = self.get_lookup_name()
         builtin = mathics_to_sympy.get(lookup_name)

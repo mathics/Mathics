@@ -1836,10 +1836,13 @@ class Sum(_IterationFunction, SympyFunction):
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
-            arg = expr.leaves[0].to_sympy(**kwargs)
+            arg_kwargs = kwargs.copy()
+            arg_kwargs['converted_functions_all'] = True
+            arg = expr.leaves[0].to_sympy(**arg_kwargs)
             bounds = (index.leaves[0].to_sympy(**kwargs), 
                       index.leaves[1].to_sympy(**kwargs), 
                       index.leaves[2].to_sympy(**kwargs))
+
             if arg is not None and None not in bounds:
                 return sympy.summation(arg, bounds)
 
@@ -1902,7 +1905,9 @@ class Product(_IterationFunction, SympyFunction):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             try:
-                e = expr.leaves[0].to_sympy(**kwargs)
+                e_kwargs = kwargs.copy()
+                e_kwargs['converted_functions_all'] = True
+                e = expr.leaves[0].to_sympy(**e_kwargs)
                 i = index.leaves[0].to_sympy(**kwargs)
                 start = index.leaves[1].to_sympy(**kwargs)
                 stop = index.leaves[2].to_sympy(**kwargs)
