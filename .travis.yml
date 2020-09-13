@@ -76,13 +76,13 @@ script:
          cd tex/ &&
          make latex;
       else
-         make doc
+         make doc;
       fi
     else
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
         python pymathics/test.py --stop-on-failure;
       else
-        make doctest
+        make doctest;
       fi
     fi
 notifications:
