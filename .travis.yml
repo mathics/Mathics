@@ -1,4 +1,4 @@
-dist: focal
+dist: bionic
 language: python
 python:
   - 3.8
@@ -34,6 +34,7 @@ services:
   - xvfb
 before_install:
   - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
+  - sudo apt-get install -qq gfortran
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get install -qq &&
@@ -47,16 +48,12 @@ before_install:
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
-  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
-      sudo apt-get install -qq python-enchant &&
-      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry lxml matplotlib networkx &&
-      python travis.py &&
-      python -m nltk.downloader wordnet omw;
-    fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get install -qq asymptote texlive-latex-extra texlive-latex3 texlive-fonts-recommended;
-      sudo apt-get install -qq texlive-font-utils latexmk texlive-xetex lmodern;
-      sudo add-apt-repository -y ppa:inkscape.dev/stable-daily && sudo apt-get update && sudo apt-get install -qq inkscape;
+      sudo apt-get install -qq texlive-font-utils latexmk texlive-xetex;
+      sudo apt-get install -qq lmodern inkscape;
+      sudo apt-get install -qq texlive-latex-extra texlive-latex;
+      sudo apt-get install -qq texlive-fonts-recommended;
+      sudo apt-get install -qq asymptote;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
