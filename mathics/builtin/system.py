@@ -34,7 +34,7 @@ class ByteOrdering(Predefined):
     </dl>
 
     >> $ByteOrdering == -1 || $ByteOrdering == 1
-    = True
+     = True
     """
 
     name = "$ByteOrdering"
@@ -194,7 +194,7 @@ class Packages(Predefined):
     </dl>
 
     >>> MemberQ[$Packages, "System`"]
-    == True
+    = True
     """
 
     name = "$Packages"
@@ -209,11 +209,43 @@ class Packages(Predefined):
         )
 
 
+class ParentProcessID(Predefined):
+    """
+    <dl>
+    <dt>'$ParentProcesID'
+        <dd>gives the ID assigned to the process which invokes the Mathics by the operating system under which it is run.
+    </dl>
+
+    >>> Head[$ParentProcessID] == Integer
+     = True
+    """
+
+    name = "$ParentProcessID"
+
+    def evaluate(self, evaluation):
+        return Integer(os.getppid())
+
+class ProcessID(Predefined):
+    """
+    <dl>
+    <dt>'$ProcessID'
+        <dd>gives the ID assigned to the Mathics process by the operating system under which it is run.
+    </dl>
+
+    >>> Head[$ProcessID] == Integer
+     = True
+    """
+
+    name = "$ProcessID"
+
+    def evaluate(self, evaluation):
+        return Integer(os.getpid())
+
 class ProcessorType(Predefined):
     """
     <dl>
     <dt>'$ProcessorType'
-        <dd>returns a string giving the architecture of the processor on which the Wolfram System is being run.
+        <dd>gives a string giving the architecture of the processor on which the Mathics is being run.
     </dl>
 
     Example:
@@ -275,7 +307,7 @@ class SystemWordLength(Predefined):
     """
     <dl>
     <dt>'$SystemWordLength'
-        <dd>returns the effective number of bits in raw machine words on the computer system where Mathics is running
+        <dd>gives the effective number of bits in raw machine words on the computer system where Mathics is running.
     </dl>
 
     Example:
@@ -283,6 +315,9 @@ class SystemWordLength(Predefined):
     In[1] = $SystemWordLength
     Out[1] = 64
     </pre>
+
+    >> Head[$SystemWordLength] == Integer
+     = True
     """
 
     name = "$SystemWordLength"

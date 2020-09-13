@@ -1,3 +1,4 @@
+#!/bin/bash
 for filename in $(find documentation/images/ -name "*.eps"); do
 	pdf="$(dirname "$filename")/$(basename "$filename" .eps).pdf"
 	png="$(dirname "$filename")/$(basename "$filename" .eps).png"
