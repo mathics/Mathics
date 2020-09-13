@@ -12,27 +12,34 @@ Installing
 
 To install so that you run from the source tree:
 
-    $ make develop
-   
 
-More detailed information is available on the Mathics Wiki. `here <https://github.com/mathics/Mathics/wiki/Installing>`_.
+::
+
+    $ make develop
+
+
+More detailed information is available on the Mathics Wiki `here <https://github.com/mathics/Mathics/wiki/Installing>`_.
 
 Running
 -------
 
 Once Mathics is installed you can run the Django-based web front-end like this:
 
+::
+
     $ mathicsserver
 
 
 For a crude GNU-Readline command-line interface that doesn't provide graphics run
+
+::
 
   $ mathics
 
 
 To get more information on both commands add `--help` at the end of the command.
 
-For Jupyter-based consoles and web interfaces see `iwolfram <https://github.com/mmatera/iwolfram>`_.
+For an experiemental Jupyter-based consoles and web interfaces see `iwolfram <https://github.com/mmatera/iwolfram>`_. (We this will drop the "experimental" by the next release.)
 
 Docker
 ------
