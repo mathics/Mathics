@@ -1,4 +1,4 @@
-
+dist: focal
 language: python
 python:
   - 3.8
@@ -38,20 +38,20 @@ before_install:
   - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
-      sudo apt-get install -qq python-enchant &&
+      sudo apt-get install -qq &&
       pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
-      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
   - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
-      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
