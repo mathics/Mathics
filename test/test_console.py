@@ -37,7 +37,7 @@ class ConsoleTest(unittest.TestCase):
         self.assertRegex(self.readline(), "\r\n")
 
         self.assertRegex(
-            self.readline(), "Copyright \\(C\\) 2011\-20\\d\\d The Mathics Team.\r\n"
+            self.readline(), "Copyright \\(C\\) 2011-20\\d\\d The Mathics Team.\r\n"
         )
 
         self.assertEqual(
