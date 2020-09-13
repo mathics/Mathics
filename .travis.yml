@@ -2,8 +2,6 @@ dist: focal
 language: python
 python:
   - 3.8
-  - 3.7
-  - 3.6
   - pypy3.6-7.3.1
 env:
   global:
@@ -69,7 +67,7 @@ install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - python setup.py test
+  - make check
   - if [[ "$DOC" == "true" ]]; then
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
          python pymathics/test.py -o &&
@@ -78,18 +76,13 @@ script:
          cd tex/ &&
          make latex;
       else
-         python mathics/test.py -o &&
-         python mathics/test.py -t &&
-         cd mathics/doc/ &&
-         ./images.sh &&
-         cd tex/ &&
-         make latex;
+         make doc;
       fi
     else
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
         python pymathics/test.py --stop-on-failure;
       else
-        python mathics/test.py;
+        make doctest;
       fi
     fi
 notifications:

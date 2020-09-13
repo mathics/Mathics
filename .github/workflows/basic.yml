@@ -33,5 +33,5 @@ jobs:
         python setup.py install
     - name: Test Mathics
       run: |
-        python setup.py test
-        python mathics/test.py
+        pip install pytest pexpect
+        make check
