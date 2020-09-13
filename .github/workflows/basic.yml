@@ -20,17 +20,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
+        sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
         python -m pip install --upgrade pip
-        pip install numpy
-        pip install flake8 pytest
-        pip install pint unittest2 pexpect scikit-image
-        pip install git+https://github.com/sympy/sympy.git@sympy-1.6
     - name: Install Mathics
       run: |
         sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
-        python setup.py install
+        make
     - name: Test Mathics
       run: |
-        python setup.py test
-        python mathics/test.py
+        pip install pytest pexpect
+        make check
