@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Before releasing:
+# In root directory
 # Clear directory build/
 # python setup.py develop
 # mathics/
@@ -10,6 +11,10 @@
 #   make latex
 # Then run this file.
 
+admin_dir=$(dirname ${BASH_SOURCE[0]})
+cd $(dirname ${BASH_SOURCE[0]})
+owd=$(pwd)
+cd ..
 version=`python -c "import mathics; print(mathics.__version__)"`
 echo "Releasing Mathics $version"
 
