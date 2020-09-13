@@ -15,17 +15,17 @@ env:
 matrix:
   fast_finish: true
   include:
-    - python: 3.6
+    - python: 3.8
       env: DOC="true"
-    - python: 3.6
+    - python: 3.8
       env: ALL_MODULES="true"
-    - python: 3.6
+    - python: 3.8
       env: PYMATHICS="true"
-    - python: 3.6
+    - python: 3.8
       env: CYTHON="true"
-    - python: 3.6
+    - python: 3.8
       env: ALL_MODULES="true" CYTHON="true"
-    - python: 3.6
+    - python: 3.8
       env: PYMATHICS="true" CYTHON="true"
   allow_failures:
     - python: pypy3.6-7.3.1
