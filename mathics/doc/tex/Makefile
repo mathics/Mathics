@@ -1,5 +1,5 @@
 
-XETEX ?= "xelatex -halt-on-error"
+XETEX ?= xelatex
 LATEXMK ?= latexmk
 BASH ?= /bin/bash
 #-quiet

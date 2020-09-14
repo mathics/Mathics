@@ -309,8 +309,9 @@ def main():
         help="skip the first N tests",
     )
     args = parser.parse_args()
-    generate_output = args.output or args.tex
 
+    if args.tex:
+        write_latex()
     elif args.section:
         test_section(args.section, stop_on_failure=args.stop_on_failure)
     else:
@@ -320,12 +321,9 @@ def main():
             test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
             start_at = args.skip + 1
-            test_all(quiet=args.quiet, generate_output=generate_output,
+            test_all(quiet=args.quiet, generate_output=args.output,
                      stop_on_failure=args.stop_on_failure,
                      start_at=start_at)
-
-            if args.tex:
-                write_latex()
 
 
 if __name__ == "__main__":
