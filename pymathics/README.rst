@@ -10,7 +10,7 @@ The we have here modules are:
 In the future we will add `pymathics.graphs` to work with graphs, using the OS dependency `graphviz` and `pyplot`.
 
 
-To load a module, say `pymathics.graphs` inside Mathics run:
+To load a module, say `pymathics.natlang` inside Mathics run:
 
 ::
    LoadModule["pymathics.natlang"]
