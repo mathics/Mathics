@@ -64,8 +64,8 @@ install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - make check
   - if [[ "$DOC" == "true" ]]; then
+      make check output="--output";
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
          python pymathics/test.py -o &&
          python pymathics/test.py -t &&
@@ -74,6 +74,7 @@ script:
          make doc;
       fi
     else
+      make check;
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
         make doctest o="--stop-on-failure";
       else

@@ -34,7 +34,7 @@ pytest:
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py -o
+	$(PYTHON) mathics/test.py $(output)
 
 #: Make Mathics PDF manual
 doc:
