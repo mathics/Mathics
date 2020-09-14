@@ -1949,7 +1949,8 @@ class StringTake(Builtin):
     >> StringTake["abcde", 2]
     = ab
     >> StringTake["abcde", 0]
-    =
+    = 
+    (watch the empty line).
     >> StringTake["abcde", -2]
     = de
     >> StringTake["abcde", {2}]
@@ -2488,8 +2489,8 @@ class StringInsert(Builtin):
      = abcdefghijklm
 
     #> StringInsert["", "", 1]
-     =
-
+     = 
+    (watch the empty line).
     #> StringInsert[abcdefghijklm, "X", 4]
      : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
      = StringInsert[abcdefghijklm, X, 4]
@@ -2520,7 +2521,8 @@ class StringInsert(Builtin):
      = X
 
     #> StringInsert["", "", -1]
-     =
+     = 
+    (watch the empty line).
     #> StringInsert["abcdefghijklm", "", -1]
      = abcdefghijklm
 
@@ -2541,8 +2543,9 @@ class StringInsert(Builtin):
      = XX
 
     #> StringInsert["", "", {1}]
-     =
-
+     = 
+    
+    (watch the empty line).
     #> StringInsert["", "X", {1, 2}]
      : Cannot insert at position 2 in .
      = StringInsert[, X, {1, 2}]

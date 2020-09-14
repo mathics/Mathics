@@ -17,11 +17,11 @@ all: develop
 build:
 	$(PYTHON) ./setup.py build
 
-#: Set up to run from source
+#: Set up to run from the source tree
 develop:
 	$(PIP) install -e .
 
-#: Set up to run from source
+#: Install pymathics
 install:
 	$(PYTHON) setup.py install
 

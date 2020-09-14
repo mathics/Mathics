@@ -812,17 +812,17 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
             usagetext = Doc(bio.__class__.__doc__).text(0)
         usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
     # For built-in symbols, looks for a docstring.
-    # if symbol.function. is Builtin:            
+    # if symbol.function. is Builtin:
     # evaluation.print_out(String("found: " + usagetext))
     # usagetext = information_interpret_doc_string(symbol.__doc__)
     # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
     for rulemsg in ruleusage:
         if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
-            usagetext = rulemsg.replace.value        
+            usagetext = rulemsg.replace.value
     return usagetext
 
 
-class Information(PrefixOperator):    
+class Information(PrefixOperator):
     """
     <dl>
     <dt>'Information[$symbol$]'
@@ -858,7 +858,7 @@ class Information(PrefixOperator):
      .   'Table[expr, {i, {e1, e2, ..., ei}}]'
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
-     .      
+     .
 
     >> Information[Table]
      = 
@@ -886,18 +886,18 @@ class Information(PrefixOperator):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
         from mathics.core.expression import from_python
         lines = []
-        if isinstance(symbol, String): 
+        if isinstance(symbol, String):
             evaluation.print_out(symbol)
-            evaluation.evaluate(Expression('Information', Symbol('System`String')))        
+            evaluation.evaluate(Expression('Information', Symbol('System`String')))
             return
-        if not isinstance(symbol, Symbol): 
-            evaluation.message('Information', 'notfound', symbol)                         
+        if not isinstance(symbol, Symbol):
+            evaluation.message('Information', 'notfound', symbol)
             return Symbol('Null')
         # Print the "usage" message if available.
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
             lines.append(String(usagetext))
-        
+
         if self.get_option(options, 'LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
 
@@ -977,7 +977,7 @@ class Information(PrefixOperator):
                     Expression('List', *(
                         Expression('Rule', Symbol(name), value)
                         for name, value in options)))))
-        return 
+        return
 
     def format_definition_input(self, symbol, evaluation, options):
         'InputForm: Information[symbol_, OptionsPattern[Information]]'
@@ -1047,7 +1047,7 @@ class Information(PrefixOperator):
      .   'Table[expr, {i, {e1, e2, ..., ei}}]'
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
-     .      
+     .
 
     >> Information[Table]
      = 
@@ -1241,7 +1241,7 @@ class Information(PrefixOperator):
      .   'Table[expr, {i, {e1, e2, ..., ei}}]'
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
-     .      
+     .
 
     >> Information[Table]
      = 
@@ -2098,23 +2098,23 @@ class LoadModule(Builtin):
     >> LoadModule["sys"]
      : Python module sys is not a pymathics module.
      = $Failed
-    >>  LoadModule["pymathics.testpymathicsmodule"]
-     =  pymathics.testpymathicsmodule
-    >>  MyPyTestContext`MyPyTestFunction[a]
-     = This is a PyMathics output
-    >> MyPyTestContext`MyPyTestSymbol
-     = 1234
-    >> ?? MyPyTestContext`MyPyTestFunction
-     =  
-     . 'MyPyTestFunction'[m]
-     . Just an example function in pymathics module.
-     .
-     . Attributes[MyPyTestContext`MyPyTestFunction] = {HoldFirst, OneIdentity, Protected}
-    >> Quit[]
-    >> MyPyTestContext`MyPyTestSymbol
-     = MyPyTestContext`MyPyTestSymbol
-    >> ?? MyPyTestContext`MyPyTestFunction
-     =  Null
+    # >>  LoadModule["pymathics.testpymathicsmodule"]
+    # =  pymathics.testpymathicsmodule
+    # >>  MyPyTestContext`MyPyTestFunction[a]
+    # = This is a PyMathics output
+    # >> MyPyTestContext`MyPyTestSymbol
+    # = 1234
+    # >> ?? MyPyTestContext`MyPyTestFunction
+    # =
+    # . 'MyPyTestFunction'[m]
+    # . Just an example function in pymathics module.
+    # .
+    # . Attributes[MyPyTestContext`MyPyTestFunction] = {HoldFirst, OneIdentity, Protected}
+    # >> Quit[]
+    #n>> MyPyTestContext`MyPyTestSymbol
+    #  = MyPyTestContext`MyPyTestSymbol
+    # >> ?? MyPyTestContext`MyPyTestFunction
+    # =  Null
     """
     name = "LoadModule"
     messages = {'notfound': 'Python module `1` does not exist.',
@@ -2125,12 +2125,12 @@ class LoadModule(Builtin):
         try:
             module_loaded = evaluation.definitions.load_pymathics_module(module.value)
         except PyMathicsLoadException as e:
-            evaluation.message(self.name, 'notmathicslib', module)            
+            evaluation.message(self.name, 'notmathicslib', module)
             return Symbol("$Failed")
         except ImportError as e:
-            evaluation.message(self.get_name(), 'notfound', module)            
+            evaluation.message(self.get_name(), 'notfound', module)
             return Symbol('$Failed')
         except PyMathicsLoadException as e:
-            evaluation.message(self.get_name(), 'notmathicslib', module)        
+            evaluation.message(self.get_name(), 'notmathicslib', module)
             return Symbol('$Failed')
         return module
