@@ -127,8 +127,15 @@ def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
     return count, failed, skipped, failed_symbols, index
 
 
-def create_output(tests, output_xml, output_tex):
+def create_output(tests, output_xml=None, output_tex=None):
+    if output_xml is None and output_tex is None:
+        raise TypeError(
+                "At least one if output_xml and output_tex must be specified")
+
     for format, output in [("xml", output_xml), ("tex", output_tex)]:
+        if output is None:
+            continue
+
         definitions.reset_user_definitions()
         for test in tests.tests:
             if test.ignore:
@@ -248,10 +255,11 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
         return sys.exit(1)  # Travis-CI knows the tests have failed
 
 
-def write_latex():
-    print("Load data")
-    with open_ensure_dir(settings.DOC_TEX_DATA, "rb") as output_file:
-        output_tex = pickle.load(output_file)
+def write_latex(output_tex=None):
+    if output_tex is None:
+        print("Load data")
+        with open_ensure_dir(settings.DOC_TEX_DATA, "rb") as output_file:
+            output_tex = pickle.load(output_file)
 
     print("Print documentation")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
@@ -311,7 +319,11 @@ def main():
     args = parser.parse_args()
 
     if args.tex:
-        write_latex()
+        output_tex = {}
+        for tests in documentation.get_tests():
+            create_output(tests, output_tex=output_tex)
+
+        write_latex(output_tex)
     elif args.section:
         test_section(args.section, stop_on_failure=args.stop_on_failure)
     else:
