@@ -9,7 +9,7 @@ PYTHON ?= python3
 PIP ?= pip3
 RM  ?= rm
 
-PHONY: all build check clean develop dist doc pytest test rmChangeLog
+.PHONY: all build check clean develop dist doc pytest test rmChangeLog
 
 #: Default target - same as "develop"
 all: develop
@@ -35,7 +35,7 @@ clean:
 	   $(MAKE) -C $$dir clean; \
 	done
 
-#: Run py.test tests. You can environment variable "o" for pytest options
+#: Run py.test tests. You can set environment variable "o" for pytest options
 pytest:
 	py.test test $o
 
