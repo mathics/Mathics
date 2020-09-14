@@ -6,7 +6,7 @@
 
 PYTHON ?= python3
 PIP ?= pip3
-RM      ?= rm
+RM ?= rm
 
 PHONY=all build check clean develop dist doc pytest test rmChangeLog
 
