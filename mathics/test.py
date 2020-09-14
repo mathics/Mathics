@@ -243,6 +243,7 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
             print("Save TEX")
             with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
                 pickle.dump(output_tex, output_file, 0)
+        return True
     else:
         print("\nFAILED")
         return sys.exit(1)  # Travis-CI knows the tests have failed
@@ -313,12 +314,14 @@ def main():
     if args.tex:
         write_latex()
     elif args.section:
+        if args.pymathics:
+            documentation.load_pymathics_doc()
+
         test_section(args.section, stop_on_failure=args.stop_on_failure)
     else:
         if args.pymathics:
+            print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
-        if args.section:
-            test_section(args.section, stop_on_failure=args.stop_on_failure)
         else:
             start_at = args.skip + 1
             test_all(quiet=args.quiet, generate_output=args.output,
