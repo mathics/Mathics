@@ -38,7 +38,7 @@ doctest:
 
 #: Make Mathics PDF manual
 doc:
-	(cd mathics && $(PYTHON) test.py -ot && \
+	(cd mathics && $(PYTHON) test.py -t && \
 	cd doc/tex && make)
 
 #: Remove ChangeLog
