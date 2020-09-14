@@ -5,10 +5,10 @@ BASH ?= /bin/bash
 #-quiet
 
 #: Default target: Make everything
-all: mathics.pdf
+all: mathics.pdf mathics/doc/tex/data
 
 #: Build mathics PDF
-mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf
+mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf 
 	$(LATEXMK) -f -pdf -pdflatex=$(XETEX) mathics
 
 #: Generate logos used in the titlepage

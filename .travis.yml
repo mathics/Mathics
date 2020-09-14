@@ -71,6 +71,7 @@ script:
          python pymathics/test.py -t &&
          cd pymathics/doc/tex &&  make latex;
       else
+         python test.py -o
          make doc;
       fi
     else
