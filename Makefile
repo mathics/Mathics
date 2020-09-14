@@ -5,8 +5,8 @@
 # remake --tasks to shows the targets and the comments
 
 GIT2CL ?= admin-tools/git2cl
-PYTHON ?= /opt/miniconda3/bin/pypy3
-PIP ?= "/opt/miniconda3/bin/pip3"
+PYTHON ?= python3
+PIP ?= pip3
 RM      ?= rm
 
 PHONY=all build check clean develop dist doc pytest test rmChangeLog
