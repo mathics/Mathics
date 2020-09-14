@@ -4,7 +4,6 @@
 # These comments before the targets start with #:
 # remake --tasks to shows the targets and the comments
 
-GIT2CL ?= admin-tools/git2cl
 PYTHON ?= python3
 PIP ?= pip3
 RM      ?= rm
@@ -22,29 +21,14 @@ build:
 develop:
 	$(PIP) install -e .
 
-#: Install mathics
+#: Install pymathics
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest
-
-# Run py.test tests. You can environment variable o for pytest options
-pytest:
-	py.test test $o
-
-#: Run tests that appear in docstring in the code.
-doctest:
-	$(PYTHON) mathics/test.py
-
-#: Make Mathics PDF manual
-doc:
-	(cd mathics && $(PYTHON) test.py -ot && \
-	cd doc/tex && make)
-
-#: Remove ChangeLog
-rmChangeLog:
-	$(RM) ChangeLog || true
+# Run tests. For now there's not much here
+check:
+	python test.py
 
 #: Create a ChangeLog from git via git log and git2cl
-ChangeLog: rmChangeLog
-	git log --pretty --numstat --summary | $(GIT2CL) >$@
+doc doctest ChangeLog:
+	$(MAKE) -C .. $@
