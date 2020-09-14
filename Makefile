@@ -7,9 +7,9 @@
 GIT2CL ?= admin-tools/git2cl
 PYTHON ?= python3
 PIP ?= pip3
-RM      ?= rm
+RM  ?= rm
 
-PHONY=all build check clean develop dist doc pytest test rmChangeLog
+PHONY: all build check clean develop dist doc pytest test rmChangeLog
 
 #: Default target - same as "develop"
 all: develop
@@ -28,7 +28,14 @@ install:
 
 check: pytest doctest
 
-# Run py.test tests. You can environment variable o for pytest options
+# FIXME More directories will be added as Makefiles get improved
+#: Remove derived files
+clean:
+	for dir in mathics/doc; do \
+	   $(MAKE) -C $$dir clean; \
+	done
+
+#: Run py.test tests. You can environment variable "o" for pytest options
 pytest:
 	py.test test $o
 
@@ -37,9 +44,9 @@ doctest:
 	$(PYTHON) mathics/test.py
 
 #: Make Mathics PDF manual
-doc:
-	(cd mathics && $(PYTHON) test.py -ot && \
-	cd doc/tex && make)
+latex doc:
+	(cd mathics && $(PYTHON) test.py -o && \
+	$(PYTHON) test.py -t && cd doc/tex && make)
 
 #: Remove ChangeLog
 rmChangeLog:
