@@ -19,7 +19,7 @@ logo-heptatom.pdf logo-text-nodrop.pdf:
 documentation.tex:
 	(cd ../.. && $(PYTHON) test.py -o && $(PYTHON) test.py -t)
 
-#: Same as
+#: Same as mathics.pdf
 latex: mathics.pdf
 
 #: Remove all auto-generated files
