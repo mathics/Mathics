@@ -26,7 +26,7 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest
+check: pytest doctest 
 
 # Run py.test tests. You can environment variable o for pytest options
 pytest:
@@ -34,11 +34,11 @@ pytest:
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py
+	$(PYTHON) mathics/test.py $(output)
 
 #: Make Mathics PDF manual
 doc:
-	(cd mathics && $(PYTHON) test.py -ot && \
+	(cd mathics && $(PYTHON) test.py -t && \
 	cd doc/tex && make)
 
 #: Remove ChangeLog
