@@ -32,7 +32,7 @@ check: pytest doctest
 #: Remove derived files
 clean:
 	for dir in mathics/doc; do \
-	   $(MAKE) -C $$dir clean; \
+	   $(MAKE) -C "$$dir" clean; \
 	done
 
 #: Run py.test tests. You can set environment variable "o" for pytest options
