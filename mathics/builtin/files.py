@@ -269,7 +269,7 @@ class Input(Predefined):
     </dl>
 
     >> $Input
-     = 
+     = (* trailing space *)
     """
 
     attributes = ('Protected', 'ReadProtected')
@@ -289,7 +289,7 @@ class InputFileName(Predefined):
 
     While in interactive mode, '$InputFileName' is "".
     >> $InputFileName
-     = 
+     = (* trailing space *)
     """
 
     name = '$InputFileName'
@@ -2526,9 +2526,9 @@ class FileExtension(Builtin):
      = gz
 
     #> FileExtension["file."]
-     = 
+     = (* trailing space *)
     #> FileExtension["file"]
-     = 
+     = (* trailing space *)
     """
 
     attributes = ('Protected')

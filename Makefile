@@ -26,7 +26,7 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest 
+check: pytest doctest
 
 # FIXME More directories will be added as Makefiles get improved
 #: Remove derived files
@@ -35,13 +35,13 @@ clean:
 	   $(MAKE) -C "$$dir" clean; \
 	done
 
-#: Run py.test tests. You can set environment variable "o" for pytest options
+#: Run py.test tests. You can set environment variable "opts" for pytest options
 pytest:
-	py.test test $o
+	py.test test $(opts)
 
-#: Run tests that appear in docstring in the code.
+#: Run tests that appear in docstring in the code; set  variable "opts" for test options
 doctest:
-	$(PYTHON) mathics/test.py $(output)
+	$(PYTHON) mathics/test.py $(opts)
 
 #: Make Mathics PDF manual
 doc:

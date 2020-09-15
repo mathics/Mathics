@@ -1021,8 +1021,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
-    (watch the empty line).
+     =  (* trailing space *)
     """
 
 
