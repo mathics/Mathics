@@ -6,9 +6,9 @@
 
 PYTHON ?= python3
 PIP ?= pip3
-RM ?= rm
+RM  ?= rm
 
-PHONY=all build check clean develop dist doc pytest test rmChangeLog
+.PHONY: all build check clean develop dist doc pytest test rmChangeLog
 
 #: Default target - same as "develop"
 all: develop
@@ -17,15 +17,15 @@ all: develop
 build:
 	$(PYTHON) ./setup.py build
 
-#: Set up to run from the source tree
+#: Set up to run from source
 develop:
 	$(PIP) install -e .
 
-#: Install pymathics
+#: Set up to run from source
 install:
 	$(PYTHON) setup.py install
 
-# Run tests. For now there's not much here
+#: Run tests. For now there's not much here
 check:
 	python test.py
 
