@@ -17,7 +17,6 @@ import math
 import hashlib
 import zlib
 import math
-import six
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain
@@ -936,7 +935,7 @@ def convert_float_base(x, base, precision=10):
         fexps = list(range(-1, -int(precision + 1), -1))
         real_part = convert_float(x - int(x), base, precision + 1)
         return int_part + real_part
-    elif isinstance(x, six.integer_types):
+    elif isinstance(x, int):
         return int_part
     else:
         raise TypeError(x)

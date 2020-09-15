@@ -75,7 +75,6 @@ INSTALL_REQUIRES += [
     "mpmath>=1.1.0",
     "python-dateutil",
     "colorama",
-    "six>=1.10",
 ]
 
 
