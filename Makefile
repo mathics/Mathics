@@ -18,11 +18,11 @@ all: develop
 build:
 	$(PYTHON) ./setup.py build
 
-#: Set up to run from source
+#: Set up to run from the source tree
 develop:
 	$(PIP) install -e .
 
-#: Set up to run from source
+#: Install mathics
 install:
 	$(PYTHON) setup.py install
 
@@ -39,12 +39,18 @@ clean:
 pytest:
 	py.test test $o
 
+
+#: Run mathics/test.py asking for output to build "mathics/doc/tex/data"
+
+mathics/doc/tex/data:
+	$(PYTHON) mathics/test.py -o
+
 #: Run tests that appear in docstring in the code.
 doctest:
 	$(PYTHON) mathics/test.py $(output)
 
 #: Make Mathics PDF manual
-doc:
+doc: mathics/doc/tex/data
 	(cd mathics && $(PYTHON) test.py -t && \
 	cd doc/tex && make)
 

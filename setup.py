@@ -184,9 +184,7 @@ setup(
         "mathics.web",
         "mathics.web.templatetags",
         "mathics.web.migrations",
-        "pymathics",
-        "pymathics.testpymathicsmodule",
-        "pymathics.natlang",
+        "pymathics.testpymathicsmodule"
     ],
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
@@ -233,7 +231,7 @@ setup(
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.github.io/",
-    download_url="https://github.com/mathics/Mathics/tarball/v0.9",
+    download_url="https://github.com/mathics/Mathics/tarball/v1.1dev",
     keywords=["Mathematica", "Wolfram", "Interpreter", "Shell", "Math", "CAS"],
     classifiers=[
         "Intended Audience :: Developers",
