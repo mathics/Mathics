@@ -26,7 +26,7 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest
+check: pytest doctest 
 
 # FIXME More directories will be added as Makefiles get improved
 #: Remove derived files
@@ -41,12 +41,12 @@ pytest:
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py
+	$(PYTHON) mathics/test.py $(output)
 
 #: Make Mathics PDF manual
-latex doc:
-	(cd mathics && $(PYTHON) test.py -o && \
-	$(PYTHON) test.py -t && cd doc/tex && make)
+doc:
+	(cd mathics && $(PYTHON) test.py -t && \
+	cd doc/tex && make)
 
 #: Remove ChangeLog
 rmChangeLog:
