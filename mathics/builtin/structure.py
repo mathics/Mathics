@@ -1,22 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator, Test,
-                                  MessageException)
-from mathics.core.expression import (Expression, String, Symbol, Integer,
-                                     Rational, strip_context)
+from mathics.builtin.base import (
+    Builtin,
+    Predefined,
+    BinaryOperator,
+    Test,
+    MessageException,
+)
+from mathics.core.expression import (
+    Expression,
+    String,
+    Symbol,
+    Integer,
+    Rational,
+    strip_context,
+)
 from mathics.core.rules import Pattern
 
-from mathics.builtin.lists import (python_levelspec, walk_levels,
-                                   InvalidLevelspecError)
+from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError
 from mathics.builtin.functional import Identity
 
 import platform
 
-if platform.python_implementation() == 'PyPy':
+if platform.python_implementation() == "PyPy":
     bytecount_support = False
 else:
     from .pympler.asizeof import asizeof as count_bytes
+
     bytecount_support = True
 
 
@@ -65,26 +76,31 @@ class Sort(Builtin):
     """
 
     def apply(self, list, evaluation):
-        'Sort[list_]'
+        "Sort[list_]"
 
         if list.is_atom():
-            evaluation.message('Sort', 'normal')
+            evaluation.message("Sort", "normal")
         else:
             new_leaves = sorted(list.leaves)
             return Expression(list.head, *new_leaves)
 
     def apply_predicate(self, list, p, evaluation):
-        'Sort[list_, p_]'
+        "Sort[list_, p_]"
 
         if list.is_atom():
-            evaluation.message('Sort', 'normal')
+            evaluation.message("Sort", "normal")
         else:
+
             class Key(object):
                 def __init__(self, leaf):
                     self.leaf = leaf
 
                 def __gt__(self, other):
-                    return not Expression(p, self.leaf, other.leaf).evaluate(evaluation).is_true()
+                    return (
+                        not Expression(p, self.leaf, other.leaf)
+                        .evaluate(evaluation)
+                        .is_true()
+                    )
 
             new_leaves = sorted(list.leaves, key=Key)
             return Expression(list.head, *new_leaves)
@@ -109,31 +125,34 @@ class SortBy(Builtin):
     """
 
     rules = {
-        'SortBy[f_]': 'SortBy[#, f]&',
+        "SortBy[f_]": "SortBy[#, f]&",
     }
 
     messages = {
-        'list': 'List expected at position `2` in `1`.',
-        'func': 'Function expected at position `2` in `1`.',
+        "list": "List expected at position `2` in `1`.",
+        "func": "Function expected at position `2` in `1`.",
     }
 
     def apply(self, l, f, evaluation):
-        'SortBy[l_, f_]'
+        "SortBy[l_, f_]"
 
         if l.is_atom():
-            return evaluation.message('Sort', 'normal')
-        elif l.get_head_name() != 'System`List':
-            expr = Expression('SortBy', l, f)
-            return evaluation.message(self.get_name(), 'list', expr, 1)
+            return evaluation.message("Sort", "normal")
+        elif l.get_head_name() != "System`List":
+            expr = Expression("SortBy", l, f)
+            return evaluation.message(self.get_name(), "list", expr, 1)
         else:
-            keys_expr = Expression('Map', f, l).evaluate(evaluation)  # precompute:
+            keys_expr = Expression("Map", f, l).evaluate(evaluation)  # precompute:
             # even though our sort function has only (n log n) comparisons, we should
             # compute f no more than n times.
 
-            if keys_expr is None or keys_expr.get_head_name() != 'System`List'\
-                    or len(keys_expr.leaves) != len(l.leaves):
-                expr = Expression('SortBy', l, f)
-                return evaluation.message('SortBy', 'func', expr, 2)
+            if (
+                keys_expr is None
+                or keys_expr.get_head_name() != "System`List"
+                or len(keys_expr.leaves) != len(l.leaves)
+            ):
+                expr = Expression("SortBy", l, f)
+                return evaluation.message("SortBy", "func", expr, 2)
 
             keys = keys_expr.leaves
             raw_keys = l.leaves
@@ -190,28 +209,33 @@ class BinarySearch(Builtin):
      = 2
     """
 
-    context = 'Combinatorica`'
+    context = "Combinatorica`"
 
     rules = {
-        'Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0': 'Combinatorica`BinarySearch[l, k, Identity]'
+        "Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0": "Combinatorica`BinarySearch[l, k, Identity]"
     }
 
     def apply(self, l, k, f, evaluation):
-        'Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0'
+        "Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0"
 
         leaves = l.leaves
 
         lower_index = 1
         upper_index = len(leaves)
 
-        if lower_index > upper_index:  # empty list l? Length[l] > 0 condition should guard us, but check anyway
-            return Symbol('$Aborted')
+        if (
+            lower_index > upper_index
+        ):  # empty list l? Length[l] > 0 condition should guard us, but check anyway
+            return Symbol("$Aborted")
 
         # "transform" is a handy wrapper for applying "f" or nothing
-        if f.get_name() == 'System`Identity':
+        if f.get_name() == "System`Identity":
+
             def transform(x):
                 return x
+
         else:
+
             def transform(x):
                 return Expression(f, x).evaluate(evaluation)
 
@@ -256,12 +280,12 @@ class PatternsOrderedQ(Builtin):
     """
 
     def apply(self, p1, p2, evaluation):
-        'PatternsOrderedQ[p1_, p2_]'
+        "PatternsOrderedQ[p1_, p2_]"
 
         if p1.get_sort_key(True) <= p2.get_sort_key(True):
-            return Symbol('True')
+            return Symbol("True")
         else:
-            return Symbol('False')
+            return Symbol("False")
 
 
 class OrderedQ(Builtin):
@@ -279,12 +303,12 @@ class OrderedQ(Builtin):
     """
 
     def apply(self, e1, e2, evaluation):
-        'OrderedQ[e1_, e2_]'
+        "OrderedQ[e1_, e2_]"
 
         if e1 <= e2:
-            return Symbol('True')
+            return Symbol("True")
         else:
-            return Symbol('False')
+            return Symbol("False")
 
 
 class Order(Builtin):
@@ -309,7 +333,7 @@ class Order(Builtin):
     """
 
     def apply(self, x, y, evaluation):
-        'Order[x_, y_]'
+        "Order[x_, y_]"
         if x < y:
             return Integer(1)
         elif x > y:
@@ -334,7 +358,7 @@ class Head(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Head[expr_]'
+        "Head[expr_]"
 
         return expr.get_head()
 
@@ -351,12 +375,12 @@ class ApplyLevel(BinaryOperator):
      = {f[a, b], f[c, d]}
     """
 
-    operator = '@@@'
+    operator = "@@@"
     precedence = 620
-    grouping = 'Right'
+    grouping = "Right"
 
     rules = {
-        'ApplyLevel[f_, expr_]': 'Apply[f, expr, {1}]',
+        "ApplyLevel[f_, expr_]": "Apply[f, expr, {1}]",
     }
 
 
@@ -399,27 +423,27 @@ class Apply(BinaryOperator):
      = Apply[f, {a, b, c}, x + y]
     """
 
-    operator = '@@'
+    operator = "@@"
     precedence = 620
-    grouping = 'Right'
+    grouping = "Right"
 
     options = {
-        'Heads': 'False',
+        "Heads": "False",
     }
 
     def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
-        'Apply[f_, expr_, ls_, OptionsPattern[Apply]]'
+        "Apply[f_, expr_, ls_, OptionsPattern[Apply]]"
 
-        evaluation.message('Apply', 'level', ls)
+        evaluation.message("Apply", "level", ls)
 
     def apply(self, f, expr, ls, evaluation, options={}):
-        '''Apply[f_, expr_, Optional[Pattern[ls, _?LevelQ], {0}],
-                OptionsPattern[Apply]]'''
+        """Apply[f_, expr_, Optional[Pattern[ls, _?LevelQ], {0}],
+        OptionsPattern[Apply]]"""
 
         try:
             start, stop = python_levelspec(ls)
         except InvalidLevelspecError:
-            evaluation.message('Apply', 'level', ls)
+            evaluation.message("Apply", "level", ls)
             return
 
         def callback(level):
@@ -428,9 +452,8 @@ class Apply(BinaryOperator):
             else:
                 return Expression(f, *level.leaves)
 
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
-        result, depth = walk_levels(
-            expr, start, stop, heads=heads, callback=callback)
+        heads = self.get_option(options, "Heads", evaluation).is_true()
+        result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
         return result
 
@@ -462,41 +485,40 @@ class Map(BinaryOperator):
      = Map[f, expr, a + b, Heads -> True]
     """
 
-    operator = '/@'
+    operator = "/@"
     precedence = 620
-    grouping = 'Right'
+    grouping = "Right"
 
     options = {
-        'Heads': 'False',
+        "Heads": "False",
     }
 
     def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
-        'Map[f_, expr_, ls_, OptionsPattern[Map]]'
+        "Map[f_, expr_, ls_, OptionsPattern[Map]]"
 
-        evaluation.message('Map', 'level', ls)
+        evaluation.message("Map", "level", ls)
 
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        '''Map[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
-                OptionsPattern[Map]]'''
+        """Map[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+        OptionsPattern[Map]]"""
 
         try:
             start, stop = python_levelspec(ls)
         except InvalidLevelspecError:
-            evaluation.message('Map', 'level', ls)
+            evaluation.message("Map", "level", ls)
             return
 
         def callback(level):
             return Expression(f, level)
 
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
-        result, depth = walk_levels(
-            expr, start, stop, heads=heads, callback=callback)
+        heads = self.get_option(options, "Heads", evaluation).is_true()
+        result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
         return result
 
 
 class Scan(Builtin):
-    '''
+    """
     <dl>
     <dt>'Scan[$f$, $expr$]'
       <dd>applies $f$ to each element of $expr$ and returns 'Null'.
@@ -519,40 +541,39 @@ class Scan(Builtin):
 
     #> Scan[Return, {1, 2}]
      = 1
-    '''
+    """
 
     options = {
-        'Heads': 'False',
+        "Heads": "False",
     }
 
     rules = {
-        'Scan[f_][expr_]': 'Scan[f, expr]',
+        "Scan[f_][expr_]": "Scan[f, expr]",
     }
 
     def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
-        'Scan[f_, expr_, ls_, OptionsPattern[Map]]'
+        "Scan[f_, expr_, ls_, OptionsPattern[Map]]"
 
-        return evaluation.message('Map', 'level', ls)
+        return evaluation.message("Map", "level", ls)
 
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        '''Scan[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
-                OptionsPattern[Map]]'''
+        """Scan[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+        OptionsPattern[Map]]"""
 
         try:
             start, stop = python_levelspec(ls)
         except InvalidLevelspecError:
-            evaluation.message('Map', 'level', ls)
+            evaluation.message("Map", "level", ls)
             return
 
         def callback(level):
             Expression(f, level).evaluate(evaluation)
             return level
 
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
-        result, depth = walk_levels(
-            expr, start, stop, heads=heads, callback=callback)
+        heads = self.get_option(options, "Heads", evaluation).is_true()
+        result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class MapIndexed(Builtin):
@@ -596,31 +617,31 @@ class MapIndexed(Builtin):
     """
 
     options = {
-        'Heads': 'False',
+        "Heads": "False",
     }
 
     def apply_invalidlevel(self, f, expr, ls, evaluation, options={}):
-        'MapIndexed[f_, expr_, ls_, OptionsPattern[MapIndexed]]'
+        "MapIndexed[f_, expr_, ls_, OptionsPattern[MapIndexed]]"
 
-        evaluation.message('MapIndexed', 'level', ls)
+        evaluation.message("MapIndexed", "level", ls)
 
     def apply_level(self, f, expr, ls, evaluation, options={}):
-        '''MapIndexed[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
-                OptionsPattern[MapIndexed]]'''
+        """MapIndexed[f_, expr_, Optional[Pattern[ls, _?LevelQ], {1}],
+        OptionsPattern[MapIndexed]]"""
 
         try:
             start, stop = python_levelspec(ls)
         except InvalidLevelspecError:
-            evaluation.message('MapIndexed', 'level', ls)
+            evaluation.message("MapIndexed", "level", ls)
             return
 
         def callback(level, pos):
-            return Expression(f, level, Expression('List', *[
-                Integer(p) for p in pos]))
+            return Expression(f, level, Expression("List", *[Integer(p) for p in pos]))
 
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
-        result, depth = walk_levels(expr, start, stop, heads=heads,
-                                    callback=callback, include_pos=True)
+        heads = self.get_option(options, "Heads", evaluation).is_true()
+        result, depth = walk_levels(
+            expr, start, stop, heads=heads, callback=callback, include_pos=True
+        )
 
         return result
 
@@ -667,51 +688,67 @@ class MapThread(Builtin):
     """
 
     messages = {
-        'intnm': 'Non-negative machine-sized integer expected at position `2` in `1`.',
-        'mptc': 'Incompatible dimensions of objects at positions {2, `1`} and {2, `2`} of `3`; dimensions are `4` and `5`.',
-        'mptd': 'Object `1` at position {2, `2`} in `3` has only `4` of required `5` dimensions.',
-        'list': 'List expected at position `2` in `1`.',
+        "intnm": "Non-negative machine-sized integer expected at position `2` in `1`.",
+        "mptc": "Incompatible dimensions of objects at positions {2, `1`} and {2, `2`} of `3`; dimensions are `4` and `5`.",
+        "mptd": "Object `1` at position {2, `2`} in `3` has only `4` of required `5` dimensions.",
+        "list": "List expected at position `2` in `1`.",
     }
 
     def apply(self, f, expr, evaluation):
-        'MapThread[f_, expr_]'
+        "MapThread[f_, expr_]"
 
         return self.apply_n(f, expr, None, evaluation)
 
     def apply_n(self, f, expr, n, evaluation):
-        'MapThread[f_, expr_, n_]'
+        "MapThread[f_, expr_, n_]"
 
         if n is None:
             n = 1
-            full_expr = Expression('MapThread', f, expr)
+            full_expr = Expression("MapThread", f, expr)
         else:
-            full_expr = Expression('MapThread', f, expr, n)
+            full_expr = Expression("MapThread", f, expr, n)
             n = n.get_int_value()
 
         if n is None or n < 0:
-            return evaluation.message('MapThread', 'intnm', full_expr, 3)
+            return evaluation.message("MapThread", "intnm", full_expr, 3)
 
-        if expr.has_form('List', 0):
-            return Expression('List')
-        if not expr.has_form('List', None):
-            return evaluation.message('MapThread', 'list', 2, full_expr)
+        if expr.has_form("List", 0):
+            return Expression("List")
+        if not expr.has_form("List", None):
+            return evaluation.message("MapThread", "list", 2, full_expr)
 
         heads = expr.get_leaves()
 
         def walk(args, depth=0):
-            'walk all trees concurrently and build result'
+            "walk all trees concurrently and build result"
             if depth == n:
                 return Expression(f, *args)
             else:
                 dim = None
                 for i, arg in enumerate(args):
-                    if not arg.has_form('List', None):
-                        raise MessageException('MapThread', 'mptd', heads[i], i + 1, full_expr, depth, n)
+                    if not arg.has_form("List", None):
+                        raise MessageException(
+                            "MapThread", "mptd", heads[i], i + 1, full_expr, depth, n
+                        )
                     if dim is None:
                         dim = len(arg.leaves)
                     if dim != len(arg.leaves):
-                        raise MessageException('MapThread', 'mptc', 1, i + 1, full_expr, dim, len(arg.leaves))
-                return Expression('List', *[walk([arg.leaves[i] for arg in args], depth + 1) for i in range(dim)])
+                        raise MessageException(
+                            "MapThread",
+                            "mptc",
+                            1,
+                            i + 1,
+                            full_expr,
+                            dim,
+                            len(arg.leaves),
+                        )
+                return Expression(
+                    "List",
+                    *[
+                        walk([arg.leaves[i] for arg in args], depth + 1)
+                        for i in range(dim)
+                    ]
+                )
 
         try:
             return walk(heads)
@@ -741,15 +778,15 @@ class Thread(Builtin):
     """
 
     messages = {
-        'tdlen': "Objects of unequal length cannot be combined.",
+        "tdlen": "Objects of unequal length cannot be combined.",
     }
 
     rules = {
-        'Thread[f_[args___]]': 'Thread[f[args], List]',
+        "Thread[f_[args___]]": "Thread[f[args], List]",
     }
 
     def apply(self, f, args, h, evaluation):
-        'Thread[f_[args___], h_]'
+        "Thread[f_[args___], h_]"
 
         args = args.get_sequence()
         expr = Expression(f, *args)
@@ -780,17 +817,17 @@ class FreeQ(Builtin):
     """
 
     rules = {
-        'FreeQ[form_][expr_]': 'FreeQ[expr, form]',
+        "FreeQ[form_][expr_]": "FreeQ[expr, form]",
     }
 
     def apply(self, expr, form, evaluation):
-        'FreeQ[expr_, form_]'
+        "FreeQ[expr_, form_]"
 
         form = Pattern.create(form)
         if expr.is_free(form, evaluation):
-            return Symbol('True')
+            return Symbol("True")
         else:
-            return Symbol('False')
+            return Symbol("False")
 
 
 class Flatten(Builtin):
@@ -888,35 +925,37 @@ class Flatten(Builtin):
     """
 
     rules = {
-        'Flatten[expr_]': 'Flatten[expr, Infinity, Head[expr]]',
-        'Flatten[expr_, n_]': 'Flatten[expr, n, Head[expr]]',
+        "Flatten[expr_]": "Flatten[expr, Infinity, Head[expr]]",
+        "Flatten[expr_, n_]": "Flatten[expr, n, Head[expr]]",
     }
 
     messages = {
-        'flpi': (
+        "flpi": (
             "Levels to be flattened together in `1` "
-            "should be lists of positive integers."),
-        'flrep': (
-            "Level `1` specified in `2` should not be repeated."),
-        'fldep': (
+            "should be lists of positive integers."
+        ),
+        "flrep": ("Level `1` specified in `2` should not be repeated."),
+        "fldep": (
             "Level `1` specified in `2` exceeds the levels, `3`, "
-            "which can be flattened together in `4`."),
+            "which can be flattened together in `4`."
+        ),
     }
 
     def apply_list(self, expr, n, h, evaluation):
-        'Flatten[expr_, n_List, h_]'
+        "Flatten[expr_, n_List, h_]"
 
         # prepare levels
         # find max depth which matches `h`
         expr, max_depth = walk_levels(expr)
-        max_depth = {'max_depth': max_depth}    # hack to modify max_depth from callback
+        max_depth = {"max_depth": max_depth}  # hack to modify max_depth from callback
 
         def callback(expr, pos):
-            if len(pos) < max_depth['max_depth'] and (expr.is_atom() or expr.head != h):
-                max_depth['max_depth'] = len(pos)
+            if len(pos) < max_depth["max_depth"] and (expr.is_atom() or expr.head != h):
+                max_depth["max_depth"] = len(pos)
             return expr
+
         expr, depth = walk_levels(expr, callback=callback, include_pos=True, start=0)
-        max_depth = max_depth['max_depth']
+        max_depth = max_depth["max_depth"]
 
         levels = n.to_python()
 
@@ -926,20 +965,20 @@ class Flatten(Builtin):
 
         # verify levels is list of lists of positive ints
         if not (isinstance(levels, list) and len(levels) > 0):
-            evaluation.message('Flatten', 'flpi', n)
+            evaluation.message("Flatten", "flpi", n)
             return
         seen_levels = []
         for level in levels:
             if not (isinstance(level, list) and len(level) > 0):
-                evaluation.message('Flatten', 'flpi', n)
+                evaluation.message("Flatten", "flpi", n)
                 return
             for l in level:
                 if not (isinstance(l, int) and l > 0):
-                    evaluation.message('Flatten', 'flpi', n)
+                    evaluation.message("Flatten", "flpi", n)
                     return
                 if l in seen_levels:
                     # level repeated
-                    evaluation.message('Flatten', 'flrep', l)
+                    evaluation.message("Flatten", "flrep", l)
                     return
                 seen_levels.append(l)
 
@@ -952,7 +991,7 @@ class Flatten(Builtin):
         for level in levels:
             for l in level:
                 if l > max_depth:
-                    evaluation.message('Flatten', 'fldep', l, n, max_depth, expr)
+                    evaluation.message("Flatten", "fldep", l, n, max_depth, expr)
                     return
 
         # assign new indices to each leaf
@@ -963,6 +1002,7 @@ class Flatten(Builtin):
                 new_depth = tuple(tuple(pos[i - 1] for i in level) for level in levels)
                 new_indices[new_depth] = expr
             return expr
+
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
         # build new tree inserting nodes as needed
@@ -984,24 +1024,25 @@ class Flatten(Builtin):
             # for each group of leaves we either insert them into the current level
             # or make a new level and recurse
             for group in grouped_leaves:
-                if len(group[0][0]) == 0:   # bottom level leaf
+                if len(group[0][0]) == 0:  # bottom level leaf
                     assert len(group) == 1
                     expr.leaves.append(group[0][1])
                 else:
                     expr.leaves.append(Expression(h))
                     insert_leaf(expr.leaves[-1], group)
+
         insert_leaf(result, leaves)
         return result
 
     def apply(self, expr, n, h, evaluation):
-        'Flatten[expr_, n_, h_]'
+        "Flatten[expr_, n_, h_]"
 
-        if n == Expression('DirectedInfinity', 1):
+        if n == Expression("DirectedInfinity", 1):
             n = None
         else:
             n_int = n.get_int_value()
             if n_int is None or n_int < 0:
-                return evaluation.message('Flatten', 'flpi', n)
+                return evaluation.message("Flatten", "flpi", n)
             n = n_int
 
         return expr.flatten(h, level=n)
@@ -1083,21 +1124,23 @@ class Symbol_(Builtin):
     >> Symbol["x"] + Symbol["x"]
      = 2 x
 
-    #> {\[Eta], \[CapitalGamma]\[Beta], Z\[Infinity], \[Angle]XYZ, \[FilledSquare]r, i\[Ellipsis]j}
+    #> {\\[Eta], \\[CapitalGamma]\\[Beta], Z\\[Infinity], \\[Angle]XYZ, \\[FilledSquare]r, i\\[Ellipsis]j}
      = {\u03b7, \u0393\u03b2, Z\u221e, \u2220XYZ, \u25a0r, i\u2026j}
     """
 
-    name = 'Symbol'
-    attributes = ('Locked',)
+    name = "Symbol"
+    attributes = ("Locked",)
 
     messages = {
-        'symname': ("The string `1` cannot be used for a symbol name. "
-                    "A symbol name must start with a letter "
-                    "followed by letters and numbers."),
+        "symname": (
+            "The string `1` cannot be used for a symbol name. "
+            "A symbol name must start with a letter "
+            "followed by letters and numbers."
+        ),
     }
 
     def apply(self, string, evaluation):
-        'Symbol[string_String]'
+        "Symbol[string_String]"
 
         from mathics.core.parser import is_symbol_name
 
@@ -1105,7 +1148,7 @@ class Symbol_(Builtin):
         if is_symbol_name(text):
             return Symbol(evaluation.definitions.lookup_name(string.value))
         else:
-            evaluation.message('Symbol', 'symname', string)
+            evaluation.message("Symbol", "symname", string)
 
 
 class SymbolName(Builtin):
@@ -1124,7 +1167,7 @@ class SymbolName(Builtin):
     """
 
     def apply(self, symbol, evaluation):
-        'SymbolName[symbol_Symbol]'
+        "SymbolName[symbol_Symbol]"
 
         # MMA docs say "SymbolName always gives the short name,
         # without any context"
@@ -1159,7 +1202,7 @@ class Depth(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Depth[expr_]'
+        "Depth[expr_]"
         expr, depth = walk_levels(expr)
         return Integer(depth + 1)
 
@@ -1204,16 +1247,17 @@ class Operate(Builtin):
     """
 
     messages = {
-        'intnn': "Non-negative integer expected at position `2` in `1`.",
+        "intnn": "Non-negative integer expected at position `2` in `1`.",
     }
 
     def apply(self, p, expr, n, evaluation):
-        'Operate[p_, expr_, Optional[n_, 1]]'
+        "Operate[p_, expr_, Optional[n_, 1]]"
 
         head_depth = n.get_int_value()
         if head_depth is None or head_depth < 0:
-            return evaluation.message('Operate', 'intnn',
-                                      Expression('Operate', p, expr, n), 3)
+            return evaluation.message(
+                "Operate", "intnn", Expression("Operate", p, expr, n), 3
+            )
 
         if head_depth == 0:
             # Act like Apply
@@ -1263,7 +1307,7 @@ class Through(Builtin):
     """
 
     def apply(self, p, args, x, evaluation):
-        'Through[p_[args___][x___]]'
+        "Through[p_[args___][x___]]"
 
         items = []
         for leaf in args.get_sequence():
@@ -1282,8 +1326,8 @@ class ByteCount(Builtin):
     """
 
     def apply(self, expression, evaluation):
-        'ByteCount[expression_]'
+        "ByteCount[expression_]"
         if not bytecount_support:
-            return evaluation.message('ByteCount', 'pypy')
+            return evaluation.message("ByteCount", "pypy")
         else:
             return Integer(count_bytes(expression))

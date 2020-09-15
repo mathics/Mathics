@@ -25,12 +25,27 @@ from itertools import chain
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
-    dps, convert_int_to_digit_list, machine_precision, machine_epsilon,
-    get_precision, PrecisionValueError)
+    dps,
+    convert_int_to_digit_list,
+    machine_precision,
+    machine_epsilon,
+    get_precision,
+    PrecisionValueError,
+)
 from mathics.core.expression import (
-    Integer, Real, Complex, Expression, Number, Symbol, Rational, from_python,
-    MachineReal, PrecisionReal)
+    Integer,
+    Real,
+    Complex,
+    Expression,
+    Number,
+    Symbol,
+    Rational,
+    from_python,
+    MachineReal,
+    PrecisionReal,
+)
 from mathics.core.convert import from_sympy
+
 
 class N(Builtin):
     """
@@ -168,68 +183,72 @@ class N(Builtin):
     """
 
     messages = {
-        'precbd': "Requested precision `1` is not a machine-sized real number.",
-        'preclg': ('Requested precision `1` is larger than $MaxPrecision. '
-                   'Using current $MaxPrecision of `2` instead. '
-                   '$MaxPrecision = Infinity specifies that any precision should be allowed.'),
-        'precsm': 'Requested precision `1` is smaller than $MinPrecision. Using current $MinPrecision of `2` instead.',
+        "precbd": "Requested precision `1` is not a machine-sized real number.",
+        "preclg": (
+            "Requested precision `1` is larger than $MaxPrecision. "
+            "Using current $MaxPrecision of `2` instead. "
+            "$MaxPrecision = Infinity specifies that any precision should be allowed."
+        ),
+        "precsm": "Requested precision `1` is smaller than $MinPrecision. Using current $MinPrecision of `2` instead.",
     }
 
     rules = {
-        'N[expr_]': 'N[expr, MachinePrecision]',
+        "N[expr_]": "N[expr, MachinePrecision]",
     }
 
     def apply_other(self, expr, prec, evaluation):
-        'N[expr_, prec_]'
+        "N[expr_, prec_]"
 
         try:
             d = get_precision(prec, evaluation)
         except PrecisionValueError:
             return
 
-        if expr.get_head_name() in ('System`List', 'System`Rule'):
+        if expr.get_head_name() in ("System`List", "System`Rule"):
             return Expression(
-                expr.head, *[self.apply_other(leaf, prec, evaluation)
-                             for leaf in expr.leaves])
-
+                expr.head,
+                *[self.apply_other(leaf, prec, evaluation) for leaf in expr.leaves]
+            )
 
         # Special case for the Root builtin
-        if expr.has_form('Root', 2):
+        if expr.has_form("Root", 2):
             return from_sympy(sympy.N(expr.to_sympy(), d))
 
         if isinstance(expr, Number):
             return expr.round(d)
 
         name = expr.get_lookup_name()
-        if name != '':
-            nexpr = Expression('N', expr, prec)
+        if name != "":
+            nexpr = Expression("N", expr, prec)
             result = evaluation.definitions.get_value(
-                name, 'System`NValues', nexpr, evaluation)
+                name, "System`NValues", nexpr, evaluation
+            )
             if result is not None:
                 if not result.same(nexpr):
-                    result = Expression('N', result, prec).evaluate(evaluation)
+                    result = Expression("N", result, prec).evaluate(evaluation)
                 return result
 
         if expr.is_atom():
             return expr
         else:
             attributes = expr.head.get_attributes(evaluation.definitions)
-            if 'System`NHoldAll' in attributes:
+            if "System`NHoldAll" in attributes:
                 eval_range = ()
-            elif 'System`NHoldFirst' in attributes:
+            elif "System`NHoldFirst" in attributes:
                 eval_range = range(1, len(expr.leaves))
-            elif 'System`NHoldRest' in attributes:
+            elif "System`NHoldRest" in attributes:
                 if len(expr.leaves) > 0:
                     eval_range = (0,)
                 else:
                     eval_range = ()
             else:
                 eval_range = range(len(expr.leaves))
-            head = Expression('N', expr.head, prec).evaluate(evaluation)
+            head = Expression("N", expr.head, prec).evaluate(evaluation)
             leaves = expr.leaves[:]
             for index in eval_range:
-                leaves[index] = Expression(
-                    'N', leaves[index], prec).evaluate(evaluation)
+                leaves[index] = Expression("N", leaves[index], prec).evaluate(
+                    evaluation
+                )
             return Expression(head, *leaves)
 
 
@@ -253,12 +272,12 @@ class MachinePrecision(Predefined):
     """
 
     rules = {
-        'N[MachinePrecision, prec_]': 'N[Log[10, 2] * %i, prec]' % machine_precision,
+        "N[MachinePrecision, prec_]": "N[Log[10, 2] * %i, prec]" % machine_precision,
     }
 
 
 class MachineEpsilon_(Predefined):
-    '''
+    """
     <dl>
     <dt>'$MachineEpsilon'
         <dd>is the distance between '1.0' and the next nearest representable machine-precision number.
@@ -270,16 +289,16 @@ class MachineEpsilon_(Predefined):
     >> x = 1.0 + {0.4, 0.5, 0.6} $MachineEpsilon;
     >> x - 1
      = {0., 0., 2.22045*^-16}
-    '''
+    """
 
-    name = '$MachineEpsilon'
+    name = "$MachineEpsilon"
 
     def evaluate(self, evaluation):
         return MachineReal(machine_epsilon)
 
 
 class MachinePrecision_(Predefined):
-    '''
+    """
     <dl>
     <dt>'$MachinePrecision'
         <dd>is the number of decimal digits of precision for machine-precision numbers.
@@ -287,12 +306,12 @@ class MachinePrecision_(Predefined):
 
     >> $MachinePrecision
      = 15.9546
-    '''
+    """
 
-    name = '$MachinePrecision'
+    name = "$MachinePrecision"
 
     rules = {
-        '$MachinePrecision': 'N[MachinePrecision]',
+        "$MachinePrecision": "N[MachinePrecision]",
     }
 
 
@@ -335,14 +354,14 @@ class Precision(Builtin):
     """
 
     rules = {
-        'Precision[z_?MachineNumberQ]': 'MachinePrecision',
+        "Precision[z_?MachineNumberQ]": "MachinePrecision",
     }
 
     def apply(self, z, evaluation):
-        'Precision[z_]'
+        "Precision[z_]"
 
         if not z.is_inexact():
-            return Symbol('Infinity')
+            return Symbol("Infinity")
         elif z.to_sympy().is_zero:
             return Real(0)
         else:
@@ -350,7 +369,7 @@ class Precision(Builtin):
 
 
 class MinPrecision(Builtin):
-    '''
+    """
     <dl>
     <dt>'$MinPrecision'
       <dd>represents the minimum number of digits of precision permitted in abitrary-precision numbers.
@@ -386,20 +405,21 @@ class MinPrecision(Builtin):
     #> $MinPrecision
      = 0
     #> $MaxPrecision = Infinity;
-    '''
-    name = '$MinPrecision'
+    """
+
+    name = "$MinPrecision"
     rules = {
-        '$MinPrecision': '0',
+        "$MinPrecision": "0",
     }
 
     messages = {
-        'precset': 'Cannot set `1` to `2`; value must be a non-negative number.',
-        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+        "precset": "Cannot set `1` to `2`; value must be a non-negative number.",
+        "preccon": "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
     }
 
 
 class MaxPrecision(Predefined):
-    '''
+    """
     <dl>
     <dt>'$MaxPrecision'
       <dd>represents the maximum number of digits of precision permitted in abitrary-precision numbers.
@@ -435,16 +455,17 @@ class MaxPrecision(Predefined):
     #> $MaxPrecision
      = Infinity
     #> $MinPrecision = 0;
-    '''
-    name = '$MaxPrecision'
+    """
+
+    name = "$MaxPrecision"
 
     rules = {
-        '$MaxPrecision': 'Infinity',
+        "$MaxPrecision": "Infinity",
     }
 
     messages = {
-        'precset': 'Cannot set `1` to `2`; value must be a positive number or Infinity.',
-        'preccon': 'Cannot set `1` such that $MaxPrecision < $MinPrecision.',
+        "precset": "Cannot set `1` to `2`; value must be a positive number or Infinity.",
+        "preccon": "Cannot set `1` such that $MaxPrecision < $MinPrecision.",
     }
 
 
@@ -493,18 +514,21 @@ class Round(Builtin):
      = Round[1.5, k]
     """
 
-    attributes = ('Listable', 'NumericFunction')
+    attributes = ("Listable", "NumericFunction")
 
     rules = {
-        'Round[expr_?NumericQ]': 'Round[Re[expr], 1] + I * Round[Im[expr], 1]',
-        'Round[expr_Complex, k_?RealNumberQ]': (
-            'Round[Re[expr], k] + I * Round[Im[expr], k]'),
+        "Round[expr_?NumericQ]": "Round[Re[expr], 1] + I * Round[Im[expr], 1]",
+        "Round[expr_Complex, k_?RealNumberQ]": (
+            "Round[Re[expr], k] + I * Round[Im[expr], k]"
+        ),
     }
 
     def apply(self, expr, k, evaluation):
         "Round[expr_?NumericQ, k_?NumericQ]"
 
-        n = Expression('Divide', expr, k).round_to_float(evaluation, permit_complex=True)
+        n = Expression("Divide", expr, k).round_to_float(
+            evaluation, permit_complex=True
+        )
         if n is None:
             return
         elif isinstance(n, complex):
@@ -512,11 +536,11 @@ class Round(Builtin):
         else:
             n = round(n)
         n = int(n)
-        return Expression('Times', Integer(n), k)
+        return Expression("Times", Integer(n), k)
 
 
 class Rationalize(Builtin):
-    '''
+    """
     <dl>
     <dt>'Rationalize[$x$]'
         <dd>converts a real number $x$ to a nearby rational number.
@@ -564,19 +588,19 @@ class Rationalize(Builtin):
     #> Rationalize[x, y]
      : Tolerance specification y must be a non-negative number.
      = Rationalize[x, y]
-    '''
+    """
 
     messages = {
-        'tolnn': 'Tolerance specification `1` must be a non-negative number.',
+        "tolnn": "Tolerance specification `1` must be a non-negative number.",
     }
 
     rules = {
-        'Rationalize[z_Complex]': 'Rationalize[Re[z]] + I Rationalize[Im[z]]',
-        'Rationalize[z_Complex, dx_?Internal`RealValuedNumberQ]/;dx >= 0': 'Rationalize[Re[z], dx] + I Rationalize[Im[z], dx]',
+        "Rationalize[z_Complex]": "Rationalize[Re[z]] + I Rationalize[Im[z]]",
+        "Rationalize[z_Complex, dx_?Internal`RealValuedNumberQ]/;dx >= 0": "Rationalize[Re[z], dx] + I Rationalize[Im[z], dx]",
     }
 
     def apply(self, x, evaluation):
-        'Rationalize[x_]'
+        "Rationalize[x_]"
 
         py_x = x.to_sympy()
         if py_x is None or (not py_x.is_number) or (not py_x.is_real):
@@ -586,10 +610,12 @@ class Rationalize(Builtin):
     @staticmethod
     def find_approximant(x):
         c = 1e-4
-        it = sympy.ntheory.continued_fraction_convergents(sympy.ntheory.continued_fraction_iterator(x))
+        it = sympy.ntheory.continued_fraction_convergents(
+            sympy.ntheory.continued_fraction_iterator(x)
+        )
         for i in it:
             p, q = i.as_numer_denom()
-            tol = c / q**2
+            tol = c / q ** 2
             if abs(i - x) <= tol:
                 return i
             if tol < machine_epsilon:
@@ -599,20 +625,27 @@ class Rationalize(Builtin):
     @staticmethod
     def find_exact(x):
         p, q = x.as_numer_denom()
-        it = sympy.ntheory.continued_fraction_convergents(sympy.ntheory.continued_fraction_iterator(x))
+        it = sympy.ntheory.continued_fraction_convergents(
+            sympy.ntheory.continued_fraction_iterator(x)
+        )
         for i in it:
             p, q = i.as_numer_denom()
             if abs(x - i) < machine_epsilon:
                 return i
 
     def apply_dx(self, x, dx, evaluation):
-        'Rationalize[x_, dx_]'
+        "Rationalize[x_, dx_]"
         py_x = x.to_sympy()
         if py_x is None:
             return x
         py_dx = dx.to_sympy()
-        if py_dx is None or (not py_dx.is_number) or (not py_dx.is_real) or py_dx.is_negative:
-            return evaluation.message('Rationalize', 'tolnn', dx)
+        if (
+            py_dx is None
+            or (not py_dx.is_number)
+            or (not py_dx.is_real)
+            or py_dx.is_negative
+        ):
+            return evaluation.message("Rationalize", "tolnn", dx)
         elif py_dx == 0:
             return from_sympy(self.find_exact(py_x))
         a = self.approx_interval_continued_fraction(py_x - py_dx, py_x + py_dx)
@@ -646,8 +679,7 @@ def chop(expr, delta=10.0 ** (-10.0)):
             imag = Integer(0)
         return Complex(real, imag)
     elif isinstance(expr, Expression):
-        return Expression(chop(expr.head), *[
-            chop(leaf) for leaf in expr.leaves])
+        return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
     return expr
 
 
@@ -671,19 +703,19 @@ class Chop(Builtin):
     """
 
     messages = {
-        'tolnn': "Tolerance specification a must be a non-negative number.",
+        "tolnn": "Tolerance specification a must be a non-negative number.",
     }
 
     rules = {
-        'Chop[expr_]': 'Chop[expr, 10^-10]',
+        "Chop[expr_]": "Chop[expr, 10^-10]",
     }
 
     def apply(self, expr, delta, evaluation):
-        'Chop[expr_, delta_:(10^-10)]'
+        "Chop[expr_, delta_:(10^-10)]"
 
         delta = delta.round_to_float(evaluation)
         if delta is None or delta < 0:
-            return evaluation.message('Chop', 'tolnn')
+            return evaluation.message("Chop", "tolnn")
 
         return chop(expr, delta=delta)
 
@@ -704,46 +736,46 @@ class NumericQ(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'NumericQ[expr_]'
+        "NumericQ[expr_]"
 
         def test(expr):
             if isinstance(expr, Expression):
-                attr = evaluation.definitions.get_attributes(
-                    expr.head.get_name())
-                return 'System`NumericFunction' in attr and all(
-                    test(leaf) for leaf in expr.leaves)
+                attr = evaluation.definitions.get_attributes(expr.head.get_name())
+                return "System`NumericFunction" in attr and all(
+                    test(leaf) for leaf in expr.leaves
+                )
             else:
                 return expr.is_numeric()
 
-        return Symbol('True') if test(expr) else Symbol('False')
+        return Symbol("True") if test(expr) else Symbol("False")
 
 
 class RealValuedNumericQ(Builtin):
-    '''
+    """
     #> Internal`RealValuedNumericQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa,  I}
      = {True, True, True, True, True, True, False, False}
-    '''
+    """
 
-    context = 'Internal`'
+    context = "Internal`"
 
     rules = {
-        'Internal`RealValuedNumericQ[x_]': 'Head[N[x]] === Real',
+        "Internal`RealValuedNumericQ[x_]": "Head[N[x]] === Real",
     }
 
 
 class RealValuedNumberQ(Builtin):
-    '''
+    """
     #>  Internal`RealValuedNumberQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa, I}
      = {True, True, True, True, False, True, False, False}
-    '''
+    """
 
-    context = 'Internal`'
+    context = "Internal`"
 
     rules = {
-        'Internal`RealValuedNumberQ[x_Real]': 'True',
-        'Internal`RealValuedNumberQ[x_Integer]': 'True',
-        'Internal`RealValuedNumberQ[x_Rational]': 'True',
-        'Internal`RealValuedNumberQ[x_]': 'False',
+        "Internal`RealValuedNumberQ[x_Real]": "True",
+        "Internal`RealValuedNumberQ[x_Integer]": "True",
+        "Internal`RealValuedNumberQ[x_Rational]": "True",
+        "Internal`RealValuedNumberQ[x_]": "False",
     }
 
 
@@ -780,42 +812,41 @@ class IntegerDigits(Builtin):
      = {0}
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     messages = {
-        'int': 'Integer expected at position 1 in `1`',
-        'ibase': 'Base `1` is not an integer greater than 1.',
+        "int": "Integer expected at position 1 in `1`",
+        "ibase": "Base `1` is not an integer greater than 1.",
     }
 
     rules = {
-        'IntegerDigits[n_]': 'IntegerDigits[n, 10]',
+        "IntegerDigits[n_]": "IntegerDigits[n, 10]",
     }
 
     def apply_len(self, n, base, length, evaluation):
-        'IntegerDigits[n_, base_, length_]'
+        "IntegerDigits[n_, base_, length_]"
 
-        if not(isinstance(length, Integer) and length.get_int_value() >= 0):
-            return evaluation.message('IntegerDigits', 'intnn')
+        if not (isinstance(length, Integer) and length.get_int_value() >= 0):
+            return evaluation.message("IntegerDigits", "intnn")
 
-        return self.apply(n, base, evaluation,
-                          nr_elements=length.get_int_value())
+        return self.apply(n, base, evaluation, nr_elements=length.get_int_value())
 
     def apply(self, n, base, evaluation, nr_elements=None):
-        'IntegerDigits[n_, base_]'
+        "IntegerDigits[n_, base_]"
 
-        if not(isinstance(n, Integer)):
-            return evaluation.message('IntegerDigits', 'int',
-                                      Expression('IntegerDigits', n, base))
+        if not (isinstance(n, Integer)):
+            return evaluation.message(
+                "IntegerDigits", "int", Expression("IntegerDigits", n, base)
+            )
 
-        if not(isinstance(base, Integer) and base.get_int_value() > 1):
-            return evaluation.message('IntegerDigits', 'ibase', base)
+        if not (isinstance(base, Integer) and base.get_int_value() > 1):
+            return evaluation.message("IntegerDigits", "ibase", base)
 
         if nr_elements == 0:
             # trivial case: we don't want any digits
-            return Expression('List')
+            return Expression("List")
 
-        digits = convert_int_to_digit_list(
-            n.get_int_value(), base.get_int_value())
+        digits = convert_int_to_digit_list(n.get_int_value(), base.get_int_value())
 
         if nr_elements is not None:
             if len(digits) >= nr_elements:
@@ -825,7 +856,8 @@ class IntegerDigits(Builtin):
                 # Pad with zeroes
                 digits = [0] * (nr_elements - len(digits)) + digits
 
-        return Expression('List', *digits)
+        return Expression("List", *digits)
+
 
 def check_finite_decimal(denominator):
     # The rational number is finite decimal if the denominator has form 2^a * 5^b
@@ -836,6 +868,7 @@ def check_finite_decimal(denominator):
         denominator = denominator / 2
 
     return True if denominator == 1 else False
+
 
 def convert_repeating_decimal(numerator, denominator, base):
     head = [x for x in str(numerator // denominator)]
@@ -855,21 +888,22 @@ def convert_repeating_decimal(numerator, denominator, base):
     for i in range(len(head) - 1, -1, -1):
         j = len(tails) - 1
         if head[i] != tails[j]:
-            break;
+            break
         else:
-            del(tails[j])
+            del tails[j]
             tails.insert(0, head[i])
-            del(head[i])
+            del head[i]
             j = j - 1
 
     # truncate all leading 0's
-    if all(elem == '0' for elem in head):
+    if all(elem == "0" for elem in head):
         for i in range(0, len(tails)):
-            if tails[0] == '0':
-               tails = tails[1:] + [str(0)]
+            if tails[0] == "0":
+                tails = tails[1:] + [str(0)]
             else:
-               break
+                break
     return (head, tails)
+
 
 def convert_float_base(x, base, precision=10):
 
@@ -906,6 +940,7 @@ def convert_float_base(x, base, precision=10):
         return int_part
     else:
         raise TypeError(x)
+
 
 class RealDigits(Builtin):
     """
@@ -1096,83 +1131,108 @@ class RealDigits(Builtin):
      = RealDigits[Round[x + y]]
 
     """
-    attributes = ('Listable',)
+
+    attributes = ("Listable",)
 
     messages = {
-        'realx': 'The value `1` is not a real number.',
-        'ndig': 'The number of digits to return cannot be determined.',
-        'rbase': 'Base `1` is not a real number greater than 1.',
-        'intnm': 'Non-negative machine-sized integer expected at position 3 in `1`.',
-        'intm' : 'Machine-sized integer expected at position 4 in `1`.',
+        "realx": "The value `1` is not a real number.",
+        "ndig": "The number of digits to return cannot be determined.",
+        "rbase": "Base `1` is not a real number greater than 1.",
+        "intnm": "Non-negative machine-sized integer expected at position 3 in `1`.",
+        "intm": "Machine-sized integer expected at position 4 in `1`.",
     }
 
     def apply_complex(self, n, var, evaluation):
-        'RealDigits[n_Complex, var___]'
-        return evaluation.message('RealDigits', 'realx', n)
+        "RealDigits[n_Complex, var___]"
+        return evaluation.message("RealDigits", "realx", n)
 
     def apply_rational_with_base(self, n, b, evaluation):
-        'RealDigits[n_Rational, b_Integer]'
+        "RealDigits[n_Rational, b_Integer]"
 
-        expr = Expression('RealDigits', n)
+        expr = Expression("RealDigits", n)
 
         py_n = abs(n.value)
         py_b = b.get_int_value()
-        if check_finite_decimal(n.denominator().get_int_value()) and not py_b % 2 :
+        if check_finite_decimal(n.denominator().get_int_value()) and not py_b % 2:
             return self.apply_2(n, b, evaluation)
         else:
             exp = int(mpmath.ceil(mpmath.log(py_n, py_b)))
-            (head, tails) = convert_repeating_decimal(py_n.as_numer_denom()[0], py_n.as_numer_denom()[1], py_b)
+            (head, tails) = convert_repeating_decimal(
+                py_n.as_numer_denom()[0], py_n.as_numer_denom()[1], py_b
+            )
 
-            list_str = Expression('List')
+            list_str = Expression("List")
             for x in head:
-                if not x == '0':
+                if not x == "0":
                     list_str.leaves.append(from_python(int(x)))
             list_str.leaves.append(from_python(tails))
 
-        return Expression('List', list_str, exp)
+        return Expression("List", list_str, exp)
 
     def apply_rational_without_base(self, n, evaluation):
-        'RealDigits[n_Rational]'
+        "RealDigits[n_Rational]"
 
         return self.apply_rational_with_base(n, from_python(10), evaluation)
 
     def apply(self, n, evaluation):
-        'RealDigits[n_]'
+        "RealDigits[n_]"
 
         # Handling the testcases that throw the error message and return the ouput that doesn't include `base` argument
-        if isinstance(n, Symbol)and n.name.startswith('System`'):
-            return evaluation.message('RealDigits', 'ndig', n)
+        if isinstance(n, Symbol) and n.name.startswith("System`"):
+            return evaluation.message("RealDigits", "ndig", n)
 
         if n.is_numeric():
             return self.apply_2(n, from_python(10), evaluation)
 
     def apply_2(self, n, b, evaluation, nr_elements=None, pos=None):
-        'RealDigits[n_?NumericQ, b_Integer]'
+        "RealDigits[n_?NumericQ, b_Integer]"
 
-        expr = Expression('RealDigits', n)
-        rational_no = True if isinstance(n, Rational) else False  #it is used for checking whether the input n is a rational or not
+        expr = Expression("RealDigits", n)
+        rational_no = (
+            True if isinstance(n, Rational) else False
+        )  # it is used for checking whether the input n is a rational or not
         py_b = b.get_int_value()
         if isinstance(n, (Expression, Symbol, Rational)):
             pos_len = abs(pos) + 1 if pos is not None and pos < 0 else 1
             if nr_elements is not None:
-                n = Expression('N', n, int(mpmath.log(py_b ** (nr_elements + pos_len), 10)) + 1).evaluate(evaluation)
+                n = Expression(
+                    "N", n, int(mpmath.log(py_b ** (nr_elements + pos_len), 10)) + 1
+                ).evaluate(evaluation)
             else:
                 if rational_no:
-                    n = Expression('N', n).evaluate(evaluation)
+                    n = Expression("N", n).evaluate(evaluation)
                 else:
-                    return evaluation.message('RealDigits', 'ndig', expr)
+                    return evaluation.message("RealDigits", "ndig", expr)
         py_n = abs(n.value)
 
         if not py_b > 1:
-            return evaluation.message('RealDigits', 'rbase', py_b)
+            return evaluation.message("RealDigits", "rbase", py_b)
 
         if isinstance(py_n, complex):
-            return evaluation.message('RealDigits', 'realx', expr)
+            return evaluation.message("RealDigits", "realx", expr)
 
         if isinstance(n, Integer):
-            display_len = int(mpmath.floor(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
+            display_len = (
+                int(mpmath.floor(mpmath.log(py_n, py_b)))
+                if py_n != 0 and py_n != 1
+                else 1
+            )
         else:
-            display_len = int(Expression('N', Expression('Round', Expression('Divide', Expression('Precision', py_n), Expression('Log', 10, py_b)))).evaluate(evaluation).to_python())
+            display_len = int(
+                Expression(
+                    "N",
+                    Expression(
+                        "Round",
+                        Expression(
+                            "Divide",
+                            Expression("Precision", py_n),
+                            Expression("Log", 10, py_b),
+                        ),
+                    ),
+                )
+                .evaluate(evaluation)
+                .to_python()
+            )
 
         exp = int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
 
@@ -1185,16 +1245,16 @@ class RealDigits(Builtin):
             # truncate all the leading 0's
             i = 0
             while digits and digits[i] == 0:
-                i+=1
+                i += 1
             digits = digits[i:]
 
             if not isinstance(n, Integer):
                 if len(digits) > display_len:
-                    digits = digits[:display_len-1]
+                    digits = digits[: display_len - 1]
         else:
             # drop any leading zeroes
             for x in str(py_n):
-                if x != '.' and (digits or x != '0'):
+                if x != "." and (digits or x != "0"):
                     digits.append(x)
 
         if pos is not None:
@@ -1204,17 +1264,16 @@ class RealDigits(Builtin):
             if move <= 0:
                 digits = [0] * abs(move) + digits
             else:
-                digits = digits[abs(move):]
+                digits = digits[abs(move) :]
                 display_len = display_len - move
 
-        list_str = Expression('List')
+        list_str = Expression("List")
 
         for x in digits:
-            if x == 'e' or x == 'E':
+            if x == "e" or x == "E":
                 break
             # Convert to Mathics' list format
             list_str.leaves.append(from_python(int(x)))
-
 
         if not rational_no:
             while len(list_str.leaves) < display_len:
@@ -1227,46 +1286,51 @@ class RealDigits(Builtin):
                 list_str = list_str.leaves[:nr_elements]
             else:
                 if isinstance(n, Integer):
-                    while(len(list_str.leaves) < nr_elements):
+                    while len(list_str.leaves) < nr_elements:
                         list_str.leaves.append(from_python(0))
                 else:
                     # Adding Indeterminate if the length is greater than the precision
-                    while(len(list_str.leaves) < nr_elements):
-                        list_str.leaves.append(from_python(Symbol('Indeterminate')))
+                    while len(list_str.leaves) < nr_elements:
+                        list_str.leaves.append(from_python(Symbol("Indeterminate")))
 
-        return Expression('List', list_str, exp)
+        return Expression("List", list_str, exp)
 
     def apply_3(self, n, b, length, evaluation, pos=None):
-        'RealDigits[n_?NumericQ, b_Integer, length_]'
+        "RealDigits[n_?NumericQ, b_Integer, length_]"
 
-        expr = Expression('RealDigits', n, b, length)
+        expr = Expression("RealDigits", n, b, length)
 
         if pos is not None:
             expr.leaves.append(from_python(pos))
 
-        if not(isinstance(length, Integer) and length.get_int_value() >= 0):
-            return evaluation.message('RealDigits', 'intnm', expr)
+        if not (isinstance(length, Integer) and length.get_int_value() >= 0):
+            return evaluation.message("RealDigits", "intnm", expr)
 
-        return self.apply_2(n, b, evaluation, nr_elements=length.get_int_value(), pos=pos)
+        return self.apply_2(
+            n, b, evaluation, nr_elements=length.get_int_value(), pos=pos
+        )
 
     def apply_4(self, n, b, length, p, evaluation):
-        'RealDigits[n_?NumericQ, b_Integer, length_, p_]'
+        "RealDigits[n_?NumericQ, b_Integer, length_, p_]"
 
         if not isinstance(p, Integer):
-            return evaluation.message('RealDigits', 'intm', Expression('RealDigits', n, b, length, p))
+            return evaluation.message(
+                "RealDigits", "intm", Expression("RealDigits", n, b, length, p)
+            )
 
         return self.apply_3(n, b, length, evaluation, pos=p.get_int_value())
 
+
 class _ZLibHash:  # make zlib hashes behave as if they were from hashlib
     def __init__(self, fn):
-        self._bytes = b''
+        self._bytes = b""
         self._fn = fn
 
     def update(self, bytes):
         self._bytes += bytes
 
     def hexdigest(self):
-        return format(self._fn(self._bytes), 'x')
+        return format(self._fn(self._bytes), "x")
 
 
 class Hash(Builtin):
@@ -1299,21 +1363,21 @@ class Hash(Builtin):
     """
 
     rules = {
-        'Hash[expr_]': 'Hash[expr, "MD5"]',
+        "Hash[expr_]": 'Hash[expr, "MD5"]',
     }
 
-    attributes = ('Protected', 'ReadProtected')
+    attributes = ("Protected", "ReadProtected")
 
     # FIXME md2
     _supported_hashes = {
-        'Adler32': lambda: _ZLibHash(zlib.adler32),
-        'CRC32': lambda: _ZLibHash(zlib.crc32),
-        'MD5': hashlib.md5,
-        'SHA': hashlib.sha1,
-        'SHA224': hashlib.sha224,
-        'SHA256': hashlib.sha256,
-        'SHA384': hashlib.sha384,
-        'SHA512': hashlib.sha512,
+        "Adler32": lambda: _ZLibHash(zlib.adler32),
+        "CRC32": lambda: _ZLibHash(zlib.crc32),
+        "MD5": hashlib.md5,
+        "SHA": hashlib.sha1,
+        "SHA224": hashlib.sha224,
+        "SHA256": hashlib.sha256,
+        "SHA384": hashlib.sha384,
+        "SHA512": hashlib.sha512,
     }
 
     @staticmethod
@@ -1326,7 +1390,7 @@ class Hash(Builtin):
         return from_python(int(h.hexdigest(), 16))
 
     def apply(self, expr, hashtype, evaluation):
-        'Hash[expr_, hashtype_String]'
+        "Hash[expr_, hashtype_String]"
         return Hash.compute(expr.user_hash, hashtype.get_string_value())
 
 
@@ -1339,8 +1403,7 @@ class Fold(object):
     # allows inherited classes to specify a single algorithm implementation that
     # can be called with machine precision, arbitrary precision or symbolically.
 
-    ComputationFunctions = namedtuple(
-        'ComputationFunctions', ('sin', 'cos'))
+    ComputationFunctions = namedtuple("ComputationFunctions", ("sin", "cos"))
 
     FLOAT = 0
     MPMATH = 1
@@ -1356,9 +1419,9 @@ class Fold(object):
             sin=mpmath.sin,
         ),
         SYMBOLIC: ComputationFunctions(
-            cos=lambda x: Expression('Cos', x),
-            sin=lambda x: Expression('Sin', x),
-        )
+            cos=lambda x: Expression("Cos", x),
+            sin=lambda x: Expression("Sin", x),
+        ),
     }
 
     operands = {
@@ -1414,21 +1477,29 @@ class Fold(object):
 
             if mode == self.MPMATH:
                 from mathics.core.numbers import min_prec
+
                 precision = min_prec(*[t for t in chain(*s_operands) if t is not None])
                 working_precision = mpmath.workprec
             else:
+
                 @contextmanager
                 def working_precision(_):
                     yield
+
                 precision = None
 
             if mode == self.FLOAT:
+
                 def out(z):
                     return Real(z)
+
             elif mode == self.MPMATH:
+
                 def out(z):
                     return Real(z, precision)
+
             else:
+
                 def out(z):
                     return z
 
@@ -1442,13 +1513,15 @@ class Fold(object):
                 c_operands = converted_operands()
 
                 if init is not None:
-                    c_init = tuple((None if t is None else as_operand(from_python(t))) for t in init)
+                    c_init = tuple(
+                        (None if t is None else as_operand(from_python(t)))
+                        for t in init
+                    )
                 else:
                     c_init = next(c_operands)
                     init = tuple((None if t is None else out(t)) for t in c_init)
 
-                generator = self._fold(
-                    c_init, c_operands, self.math.get(mode))
+                generator = self._fold(c_init, c_operands, self.math.get(mode))
 
                 for y in generator:
                     y = tuple(out(t) for t in y)
