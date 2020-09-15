@@ -1,3 +1,4 @@
+.PHONY: latex doc clean
 
 XETEX ?= xelatex
 LATEXMK ?= latexmk
