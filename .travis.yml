@@ -44,7 +44,7 @@ before_install:
     fi
   - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
       sudo apt-get install -qq python-enchant &&
-      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry lxml matplotlib networkx &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
       python travis.py &&
       python -m nltk.downloader wordnet omw;
     fi
