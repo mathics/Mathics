@@ -4,7 +4,6 @@
 # These comments before the targets start with #:
 # remake --tasks to shows the targets and the comments
 
-GIT2CL ?= admin-tools/git2cl
 PYTHON ?= python3
 PIP ?= pip3
 RM  ?= rm
@@ -26,32 +25,10 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest 
-
-# FIXME More directories will be added as Makefiles get improved
-#: Remove derived files
-clean:
-	for dir in mathics/doc; do \
-	   $(MAKE) -C "$$dir" clean; \
-	done
-
-#: Run py.test tests. You can set environment variable "o" for pytest options
-pytest:
-	py.test test $o
-
-#: Run tests that appear in docstring in the code.
-doctest:
-	$(PYTHON) mathics/test.py $(output)
-
-#: Make Mathics PDF manual
-doc:
-	(cd mathics && $(PYTHON) test.py -t && \
-	cd doc/tex && make)
-
-#: Remove ChangeLog
-rmChangeLog:
-	$(RM) ChangeLog || true
+#: Run tests. For now there's not much here
+check:
+	python test.py
 
 #: Create a ChangeLog from git via git log and git2cl
-ChangeLog: rmChangeLog
-	git log --pretty --numstat --summary | $(GIT2CL) >$@
+doc doctest ChangeLog:
+	$(MAKE) -C .. $@

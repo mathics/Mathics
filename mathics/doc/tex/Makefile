@@ -1,3 +1,4 @@
+.PHONY: latex doc clean
 
 XETEX ?= xelatex
 LATEXMK ?= latexmk
@@ -8,8 +9,8 @@ BASH ?= /bin/bash
 all: mathics.pdf
 
 #: Build mathics PDF
-mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf
-	$(LATEXMK) -f -pdf -pdflatex=$(XETEX) mathics
+mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf data
+	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
 
 #: Generate logos used in the titlepage
 logo-heptatom.pdf logo-text-nodrop.pdf:
