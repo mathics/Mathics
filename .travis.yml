@@ -35,7 +35,8 @@ services:
 before_install:
   - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10-dev llvm-dev
   - sudo apt-get install -qq gfortran
-  - pip install numpy
+  - pip install numpy conda
+  - conda install --channel=numba llvmlite
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get install -qq &&
       pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
