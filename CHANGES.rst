@@ -27,7 +27,8 @@ New features:
 - ``FirstPostions``, ``Integers``, ``PrePendTo[]``
 - ``Integers``, ``PrependTo`` and ``ContainsOnly``
 - ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
-- ``Quit[]``, ``Exit[]`` #523, #814, ``Root``
+- ``Quit[]``, ``Exit[]`` #523, #814, 
+- ``Root`` #806
 - parsing support for ``<->``
 - ``VertexDelete``, ``EdgeDelete``, `` DirectedEdges`` option for ``Graph[]``- ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
 - ``SubsetQ`` and ``Delete[]`` #688, #784,
@@ -53,6 +54,8 @@ Ehancements and Bug fixes:
 - improved error messages
 - fixes ``MixedGraphQ[]``, and ``AcyclicGraphQ``
 - fixes ``Check``, ``Interrupt``, and ``Unique`` #696
+- fixes ``Eigenvalues``, ``Eigenvectors`` #804
+- fixes ``Solve`` #806
 - proper sympolic expantion for ``Re`` and ``Im``
 - fixes a bug in the evaluation of ``SympyPrime`` #827
 - clean up ``ColorData``
