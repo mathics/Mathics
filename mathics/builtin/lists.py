@@ -1791,7 +1791,7 @@ class Delete(Builtin):
         else:
             indices = [index.get_int_value() for index in indices.leaves]
             return self.del_rec(expr.copy(), indices)
-    
+
     def apply(self, items, n, evaluation):
         'Delete[items_, n_]'
 
@@ -4942,8 +4942,8 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
-      
-        
+
+
 class SubsetQ(Builtin):
     """
     <dl>
@@ -5020,7 +5020,7 @@ class SubsetQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
-        
+
 class Delete(Builtin):
     """
     <dl>
@@ -5288,7 +5288,7 @@ class Association(Builtin):
             return None
 
         return result[key] if result else Expression('Missing', Symbol('KeyAbsent'), key)
-    
+
 class AssociationQ(Test):
     """
     <dl>
@@ -5316,7 +5316,7 @@ class AssociationQ(Test):
             return True
 
         return expr.get_head_name() == 'System`Association' and validate(expr.leaves)
-        
+
 class Keys(Builtin):
     """
     <dl>
@@ -5404,7 +5404,7 @@ class Keys(Builtin):
             return get_keys(rules[0])
         except:
             return None
-            
+
 class Values(Builtin):
     """
     <dl>
@@ -5523,26 +5523,9 @@ class ContainsOnly(Builtin):
      = True
 
     #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
-     : Unknown option IgnoreCase for ContainsOnly.
+     : Unknown option IgnoreCase -> True in ContainsOnly.
+     : Unknown option IgnoreCase in .
      = True
-
-    #> ContainsOnly[{a, 1.0}, {1, a, b}, {IgnoreCase -> True, SameTest -> Equal}]
-     : Unknown option IgnoreCase for ContainsOnly.
-     = True
-
-    #> ContainsOnly[Pi, "E", {IgnoreCase -> True, SameTest -> Equal}]
-     : List or association expected instead of E.
-     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
-     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
-
-    #> ContainsOnly["Pi", E, {IgnoreCase -> True, SameTest -> Equal}]
-     : List or association expected instead of Pi.
-     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
-     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
-
-    #> ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
-     : Unknown option IgnoreCase in ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}].
-     = ContainsOnly[Pi, E, {IgnoreCase -> True, SameTest -> Equal}]
     """
 
     attributes = ('ReadProtected',)
@@ -5561,7 +5544,7 @@ class ContainsOnly(Builtin):
         for key in options:
             if key != 'System`SameTest':
                 if expr is None:
-                    evaluation.message('ContainsOnly', 'nodef', Symbol(key))
+                    evaluation.message('ContainsOnly', 'optx', Symbol(key))
                 else:
                     return evaluation.message('ContainsOnly', 'optx', Symbol(key), expr)
         return None

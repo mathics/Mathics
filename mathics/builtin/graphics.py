@@ -365,10 +365,6 @@ class Graphics(Builtin):
      . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
-
-    Invalid graphics directives yield invalid box structures:
-    >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
     """
 
     options = {
@@ -381,6 +377,7 @@ class Graphics(Builtin):
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
         'Background': 'Automatic',
+        '$OptionSyntax': 'Ignore',
     }
 
     box_suffix = 'Box'
