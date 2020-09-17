@@ -26,14 +26,14 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest 
+check: pytest doctest
 
-# FIXME More directories will be added as Makefiles get improved
 #: Remove derived files
 clean:
-	for dir in mathics/doc; do \
-	   $(MAKE) -C "$$dir" clean; \
-	done
+	rm mathics/*/*.so; \
+	for dir in mathics/doc ; do \
+	   ($(MAKE) -C "$$dir" clean); \
+	done;
 
 #: Run py.test tests. You can set environment variable "o" for pytest options
 pytest:

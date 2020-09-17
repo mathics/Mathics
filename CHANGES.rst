@@ -27,10 +27,11 @@ New features:
 - ``FirstPostions``, ``Integers``, ``PrePendTo[]``
 - ``Integers``, ``PrependTo`` and ``ContainsOnly``
 - ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
-- ``Quit[]``, ``Exit[]`` #523, #814, 
+- ``Quit[]``, ``Exit[]`` #523, #814,
 - ``Root`` #806
 - parsing support for ``<->``
-- ``VertexDelete``, ``EdgeDelete``, `` DirectedEdges`` option for ``Graph[]``- ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
+- ``VertexDelete``, ``EdgeDelete``, ``DirectedEdges`` option for ``Graph[]``
+- ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
 - ``SubsetQ`` and ``Delete[]`` #688, #784,
 - ``randchoice`` option for ``NoNumPyRandomEnv`` #820
 - ``BarChart[]``, ``PieChart``, ``Histogram``, ``DensityPlot`` #499
@@ -62,6 +63,7 @@ Ehancements and Bug fixes:
 - fixes unicode characters in TeX document
 - update Django gallery examples
 - fixes ``Sum`` and ``Product`` #869, #873
+- warn when using options not supported by a Builtin #898, #645
 
 Mathematica tracking changes:
 
@@ -70,6 +72,7 @@ Mathematica tracking changes:
 Performance improvements:
 
 - Speed up pattern matching for large lists
+- In-memory sessions #623
 
 Other Changes:
 
