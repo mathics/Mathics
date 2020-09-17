@@ -115,8 +115,6 @@ class Definitions(object):
         loaded_module = importlib.import_module(module)
         builtins_by_module[loaded_module.__name__] = []
         vars = dir(loaded_module)
-
-        print(repr(loaded_module), vars)
         newsymbols = {}
         if not ('pymathics_version_data' in vars):
             raise PyMathicsLoadException(module)
