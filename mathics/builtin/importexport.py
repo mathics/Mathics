@@ -153,7 +153,7 @@ IMPORTERS = {}
 EXPORTERS = {}
 
 
-def _importer_exporter_options(available_options, options, builtin, evaluation):
+def _importer_exporter_options(available_options, options, builtin_name: str, evaluation):
     stream_options = []
     custom_options = []
     remaining_options = options.copy()
@@ -176,13 +176,15 @@ def _importer_exporter_options(available_options, options, builtin, evaluation):
                     else:
                         custom_options.append(expr)
 
-    # warn about unsupported options.
-    for name, value in remaining_options.items():
-        evaluation.message(
-            builtin,
-            'optx',
-            Expression('Rule', strip_context(name), value),
-            strip_context(builtin))
+    syntax_option = remaining_options.get("System`$OptionSyntax", None)
+    if syntax_option and syntax_option !=  Symbol("System`Ignore"):
+        # warn about unsupported options.
+        for name, value in remaining_options.items():
+            evaluation.message(
+                builtin_name,
+                "optx",
+                Expression('Rule', strip_context(name), value),
+                strip_context(builtin_name))
 
     return stream_options, custom_options
 
@@ -599,7 +601,7 @@ class Import(Builtin):
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
         stream_options, custom_options = _importer_exporter_options(
-            importer_options.get("System`Options"), options, 'System`Import', evaluation)
+            importer_options.get("System`Options"), options, "System`Import", evaluation)
 
         function_channels = importer_options.get("System`FunctionChannels")
 
@@ -1143,7 +1145,7 @@ class ExportString(Builtin):
         function_channels = exporter_options.get("System`FunctionChannels")
 
         stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
+            exporter_options.get("System`Options"), options, "System Options", evaluation)
 
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
