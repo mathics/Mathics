@@ -645,7 +645,7 @@ class Expression(BaseExpression):
 
         if 'convert_all_global_functions' in kwargs:
             if len(self.leaves) > 0 and kwargs['convert_all_global_functions']:
-                if self.get_head_name().startswith('Global`'): 
+                if self.get_head_name().startswith('Global`'):
                     return self._as_sympy_function(**kwargs)
 
         if 'converted_functions' in kwargs:
@@ -1312,7 +1312,7 @@ class Expression(BaseExpression):
         if self.has_form('Slot', 1):
             slot = self.leaves[0]
             int_slot = slot.get_int_value()
-            
+
             if int_slot is not None:
                 slot = int_slot
 
@@ -1324,7 +1324,7 @@ class Expression(BaseExpression):
         elif self.has_form('SlotSequence', None, ):
             if len(self.leaves) != 1:
                 evaluation.message_args('SlotSequence', len(self.leaves), 1)
-            
+
             slot = self.leaves[0].get_int_value()
 
             if slot is None or slot < 1:
