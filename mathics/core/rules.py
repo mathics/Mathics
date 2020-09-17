@@ -4,9 +4,7 @@
 
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
-
 from mathics.core.util import function_arguments
-
 
 class StopGenerator_BaseRule(StopGenerator):
     pass
@@ -105,12 +103,17 @@ class Rule(BaseRule):
 
 
 class BuiltinRule(BaseRule):
-    def __init__(self, pattern, function, system=False) -> None:
+    def __init__(self, name, pattern, function, check_options, system=False) -> None:
         super(BuiltinRule, self).__init__(pattern, system=system)
+        self.name = name
         self.function = function
+        self.check_options = check_options
         self.pass_expression = 'expression' in function_arguments(function)
 
     def do_replace(self, expression, vars, options, evaluation):
+        if options and self.check_options:
+            if not self.check_options(options, evaluation):
+                return None
         # The Python function implementing this builtin expects
         # argument names corresponding to the symbol names without
         # context marks.
