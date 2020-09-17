@@ -51,5 +51,4 @@ mathics/web/db/mathics.sqlite
 mathics/web/media/pdf/
 mathics/web/media/doc/classes.pdf
 mathics/web/media/doc/classes.png
-mathics/web/migrations/*_auto_*.py
 tmp
