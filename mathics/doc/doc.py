@@ -756,6 +756,7 @@ class PyMathicsDocumentation(Documentation):
             print("Module does not exist")
             mainfolder = ""
             self.pymathicsmodule = None
+            self.parts = []
             return
 
         if hasattr(self.pymathicsmodule, "pymathics_version_data"):
@@ -766,6 +767,7 @@ class PyMathicsDocumentation(Documentation):
             print(module + " is not a pymathics module.")
             mainfolder = ""
             self.pymathicsmodule = None
+            self.parts = []
             return
 
         # Paths
