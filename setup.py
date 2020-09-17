@@ -69,9 +69,12 @@ INSTALL_REQUIRES += [
     "sympy>=1.6, < 1.7",
     "django >= 1.8, < 1.12",
     "mpmath>=1.1.0",
+    "numpy",
+    "palettable", # For bar charts, and portable, no-proprietary color palletes
+    "pint",
+    "pydot", # For graphs
     "python-dateutil",
     "colorama",
-    "palettable",
 ]
 
 if not ((not is_PyPy and sys.version_info >= (3, 8)) or (is_PyPy and sys.version_info >= (3, 6))):
@@ -181,9 +184,7 @@ setup(
         "mathics.web",
         "mathics.web.templatetags",
         "mathics.web.migrations",
-        "pymathics",
-        "pymathics.testpymathicsmodule",
-        "pymathics.natlang",
+        "pymathics.testpymathicsmodule"
     ],
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
@@ -230,7 +231,7 @@ setup(
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.github.io/",
-    download_url="https://github.com/mathics/Mathics/tarball/v0.9",
+    download_url="https://github.com/mathics/Mathics/tarball/v1.1dev",
     keywords=["Mathematica", "Wolfram", "Interpreter", "Shell", "Math", "CAS"],
     classifiers=[
         "Intended Audience :: Developers",

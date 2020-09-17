@@ -360,6 +360,7 @@ class Graphics(Builtin):
     >> Graphics[Circle[]] // TeXForm
      = 
      . \begin{asy}
+     . usepackage("amsmath");
      . size(5.8556cm, 5.8333cm);
      . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
@@ -1545,6 +1546,8 @@ class BezierCurveBox(_Polyline):
         asy = ''
         for line in self.lines:
             for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
+                if path[:2] == "..":
+                    path = "(0.,0.)" + path
                 asy += 'draw(%s, %s);' % (path, pen)
         return asy
 
@@ -2903,6 +2906,7 @@ class GraphicsBox(BoxConstruct):
 
         tex = r"""
 \begin{asy}
+usepackage("amsmath");
 size(%scm, %scm);
 %s
 %s

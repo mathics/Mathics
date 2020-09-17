@@ -5,7 +5,8 @@
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic,
+    graphics, graphics3d, # graphs, 
+    image, inout, integer, iohooks, linalg, lists, logic,
     manipulate, quantities, numbertheory, numeric, options, patterns, 
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
     strings, structure, system, tensors, xmlformat, optimization)
@@ -18,7 +19,8 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, graphs, image, inout, integer, iohooks, linalg, lists, logic, 
+    graphics, graphics3d, # graphs, 
+    image, inout, integer, iohooks, linalg, lists, logic, 
     manipulate, quantities, numbertheory, numeric, options, patterns, 
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
     strings, structure, system, tensors, xmlformat, optimization]

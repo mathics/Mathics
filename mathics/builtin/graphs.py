@@ -5,7 +5,7 @@
 Graphs
 """
 
-# uses GraphViz, if it's installed in your PATH (see pydotplus.graphviz.find_graphviz and http://www.graphviz.org).
+# uses GraphViz, if it's installed in your PATH (see pydot.graphviz.find_graphviz and http://www.graphviz.org).
 
 from __future__ import unicode_literals
 from __future__ import absolute_import
@@ -43,14 +43,13 @@ def _shell_layout(G):
 
 def _generic_layout(G, warn):
     try:
-        import pydotplus
-
-        if pydotplus.graphviz.find_graphviz():
-            return nx.nx_pydot.graphviz_layout(G, prog='dot')
+        import pydot
     except ImportError:
         pass
+    else:
+        return nx.nx_pydot.graphviz_layout(G, prog='dot')
 
-    warn('Could not find pydotplus/dot; graph layout quality might be low.')
+    warn('Could not find pydot; graph layout quality might be low.')
     return nx.drawing.fruchterman_reingold_layout(G, pos=None, k=1.0)
 
 
@@ -70,7 +69,10 @@ def _path_layout(G, root):
 
         if not neighbors:
             break
-        v = next(neighbors) if isgenerator(neighbors) else neighbors[0]
+        try:
+            v = next(neighbors) if isgenerator(neighbors) else neighbors[0]
+        except StopIteration:
+            break
         neighbors = G.neighbors(v)
 
         if k == 0:
@@ -162,7 +164,7 @@ def _pos_into_box(vertices, pos, min_box, max_box):
 
         zx = (x0 + x1) / 2
         zy = (y0 + y1) / 2
-        s = 1.0 / max((x1 - x0) / dx, (y1 - y0) / dy)
+        s = 1.0 / max(max(x1 - x0, 1) / dx, (max(y1 - y0, 1)) / dy)
         for k, p in pos.items():
             x, y = p
             new_pos[k] = (cx + (x - zx) * s, cy + (y - zy) * s)

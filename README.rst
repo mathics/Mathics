@@ -3,13 +3,43 @@ Welcome to Mathics!
 
 |Travis|_ |SlackStatus|_
 
-Mathics is a general-purpose computer algebra system (CAS). It is meant to be a free, lightweight alternative to Mathematica.
+Mathics is a general-purpose computer algebra system (CAS). It is an open-source alternative to Mathematica. It is free both as in "free beer" and as in "freedom".
 
 The home page of Mathics is http://mathics.github.io.
 
 Installing
 ----------
-`Here <https://github.com/mathics/Mathics/wiki/Installing>`_ is a short guide on how to install Mathics on your computer.
+
+To install so that you run from the source tree:
+
+
+::
+
+    $ make develop
+
+
+More detailed information is available on the Mathics Wiki `here <https://github.com/mathics/Mathics/wiki/Installing>`_.
+
+Running
+-------
+
+Once Mathics is installed you can run the Django-based web front-end like this:
+
+::
+
+    $ mathicsserver
+
+
+For a crude GNU-Readline command-line interface that doesn't provide graphics run
+
+::
+
+  $ mathics
+
+
+To get more information on both commands add `--help` at the end of the command.
+
+For an experiemental Jupyter-based consoles and web interfaces see `iwolfram <https://github.com/mmatera/iwolfram>`_. (We this will drop the "experimental" by the next release.)
 
 Docker
 ------
@@ -29,4 +59,4 @@ Please feel encouraged to contribute to Mathics! Create your own fork, make the 
 License
 -------
 
-Mathics is released under the GNU General Public License (GPL).
+Mathics is released under the GNU General Public License Version 3 (GPL3).

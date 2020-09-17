@@ -27,7 +27,7 @@ function showOpen() {
 			method: 'get',
 			onSuccess: function(transport) {
 				var response = transport.responseText.evalJSON();
-				var tbody = $('openFilelist'); 
+				var tbody = $('openFilelist');
 				tbody.deleteChildNodes();
 				response.worksheets.each(function(worksheet) {
 					tbody.appendChild($E('tr', $E('td',
@@ -104,15 +104,15 @@ function getContent() {
 		queries.push(item);
 	});
 	var content = Object.toJSON(queries);
-	
+
 	return content;
 }
 
 function setContent(content) {
 	$('queries').deleteChildNodes();
-	
+
 	$('welcome').hide();
-	
+
 	var queries = content.evalJSON();
 	queries.each(function(item) {
 		var li = createQuery(null, true, true);
@@ -122,11 +122,11 @@ function setContent(content) {
 			li.textarea.results = item.results;
 		}
 	});
-	
+
 	createSortable();
-	
+
 	refreshInputSizes();
-	
+
 	lastFocus = null;
 	if ($('queries').lastChild)
 		$('queries').lastChild.textarea.focus();
@@ -163,7 +163,7 @@ function setQueries(queries) {
 				$('queries').lastChild.textarea.focus();
 		}
 	}
-	load(0);	
+	load(0);
 }
 
 function loadLink() {
@@ -187,20 +187,31 @@ function loadLink() {
 
 function showGallery() {
 	setQueries([
-	  '1 + 2 - x * 3 x / y',
-	  'Sin[Pi]',
-	  'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
-	  'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]',
-	  'translate[graphics_, {dx_,dy_,dz_}] := graphics /. Sphere[{x_,y_,z_}, r_] -> Sphere[{x+dx, y+dy, z+dz}, r]',
-	  'sierpinski[block_, size_] := translate[block, #*size*2]& /@ {{0,0,.6124}, {-.2886,-.5,-.204}, {-.2886,.5,-.204}, {.5774,0,-.204}}',
-	  'Graphics3D[{Yellow, First[Nest[{sierpinski[First[#], Last[#]], Last[#]*2}&, {Sphere[{0,0,0}, 1], 1}, 3]]}]',
-	  'N[E, 30]',
-	  'D[Sin[2x] + Log[x] ^ 2, x]',
-	  'Integrate[Tan[x] ^ 5, x]',
-	  'A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}; MatrixForm[A]',
-	  'LinearSolve[A, {1, 1, 1}] // MatrixForm',
-	  'Eigenvalues[A]',
-	  '# ^ 2 & /@ Range[10]',
-	  'Graphics[Table[{EdgeForm[{GrayLevel[0, 0.5]}], Hue[(-11+q+10r)/72, 1, 1, 0.6], Disk[(8-r){Cos[2Pi q/12], Sin [2Pi q/12]}, (8-r)/3]}, {r, 6}, {q, 12}]]'
+	    '1 + 2 - x * 3 x / y',
+	    'Apart[1 / (x^2 + 5x + 6)]',
+	    'Cancel[x / x ^ 2]',
+	    'Expand[(x + y)^ 3]',
+	    'Factor[x ^ 2 + 2 x + 1]',
+	    'Sin[Pi]',
+	    'Simplify[5*Sin[x]^2 + 5*Cos[x]^2]',
+	    'Graphics3D[Sphere[{0, 0, 0}, 1]]',
+	    'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
+	    'BarChart[{{1, 2, 3}, {2, 3, 4}}]',
+	    'Plot[{Abs[Sin[x]], Abs[Cos[x]]}, {x,0,4 Pi}, Mesh->Full]',
+	    'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}, PlotPoints->21]',
+            'Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full, PlotPoints->21]',
+	    'N[E, 30]',
+	    'D[Sin[2x] + Log[x] ^ 2, x]',
+	    'Integrate[Tan[x] ^ 5, x]',
+	    'A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}; MatrixForm[A]',
+	    'LinearSolve[A, {1, 1, 1}] // MatrixForm',
+	    'Eigenvalues[A]',
+	    '# ^ 2 & /@ Range[10]',
+	    'Graphics[Table[{EdgeForm[{GrayLevel[0, 0.5]}], Hue[(-11+q+10r)/72, 1, 1, 0.6], Disk[(8-r){Cos[2Pi q/12], Sin [2Pi q/12]}, (8-r)/3]}, {r, 6}, {q, 12}]]',
+	    'ElementData[74]',
+	    'ElementData["He", "AbsoluteBoilingPoint"]',
+	    'ListLinePlot[Table[Sin[x], {x,-5, 5, 0.5}], Filling->Axis]',
+	    'Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]',
+	    'Graphics[Line[AnglePath[Table[1.7, {50}]]]]'
 	]);
 }
