@@ -33,8 +33,9 @@ matrix:
 services:
   - xvfb
 before_install:
-  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10-dev llvm-dev
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10 llvm-10-dev
   - sudo apt-get install -qq gfortran
+  - LLVM_CONFIG=/usr/bin/llvm-config-10  CXXFLAGS=-fPIC python -m pip install llvmlite
   - pip install numpy
   - if [[ "$ALL_MODULES" == "true" ]]; then
       sudo apt-get install -qq &&
