@@ -893,7 +893,7 @@ class Information(PrefixOperator):
         # Print the "usage" message if available.
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
-            lines.append(String(usagetext))
+            lines.append(usagetext)
 
         if self.get_option(options, 'LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
@@ -916,7 +916,6 @@ class Information(PrefixOperator):
         # Instead, I just copy the code from Definition
 
     def show_definitions(self, symbol, evaluation, lines):
-
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
