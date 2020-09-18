@@ -76,6 +76,7 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "colorama",
     "llvmlite",
+    "requests",
 ]
 
 def subdirs(root, file="*.*", depth=10):
