@@ -727,7 +727,7 @@ class MathicsMainDocumentation(Documentation):
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
                 for ch in part.chapters:
-                    ch.title = pymmodule.name + " " + part.title + " " + ch.title
+                    ch.title = f"{pymmodule.name} {part.title} {ch.title}"
                     ch.part = pymathicspart
                     pymathicspart.chapters_by_slug[ch.slug] = ch
                     pymathicspart.chapters.append(ch)
