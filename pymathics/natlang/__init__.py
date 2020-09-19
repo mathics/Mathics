@@ -7,6 +7,7 @@ This module provides tools to work with expressions in natural language, using t
 
 from .natlang import *
 
-pymathics_version_data = {'author': '',
+pymathics_version_data = {'author': 'The Mathics Team',
                           'version': '0.0.0',
+                          'name': 'Natlang',
                           'requires': ['nltk', 'spacy'], }

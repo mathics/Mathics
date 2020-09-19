@@ -727,7 +727,7 @@ class MathicsMainDocumentation(Documentation):
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
                 for ch in part.chapters:
-                    ch.title = f"{pymmodule.name} {part.title} {ch.title}"
+                    ch.title = f"{pymmodule} {part.title} {ch.title}"
                     ch.part = pymathicspart
                     pymathicspart.chapters_by_slug[ch.slug] = ch
                     pymathicspart.chapters.append(ch)
@@ -760,12 +760,12 @@ class PyMathicsDocumentation(Documentation):
             self.parts = []
             return
 
-        if hasattr(self.pymathicsmodule, "pymathics_version_data"):
+        try:
             mainfolder = self.pymathicsmodule.__path__[0]
             self.name = self.pymathicsmodule.pymathics_version_data['name']
             self.version = self.pymathicsmodule.pymathics_version_data['version']
             self.author = self.pymathicsmodule.pymathics_version_data['author']
-        else:
+        except (AttributeError, KeyError, IndexError):
             print(module + " is not a pymathics module.")
             mainfolder = ""
             self.pymathicsmodule = None
