@@ -1,30 +1,89 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 String functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import sys
+from sys import version_info
 import re
 import unicodedata
+from binascii import hexlify, unhexlify
+from heapq import heappush, heappop
 
-import six
-from six.moves import range
-from six import unichr
-
-from mathics.builtin.base import BinaryOperator, Builtin, Test
+from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
 from mathics.builtin.lists import python_seq, convert_seq
 
 
-def to_regex(expr, abbreviated_patterns=False):
+_regex_longest = {
+    '+': '+',
+    '*': '*',
+}
+
+_regex_shortest = {
+    '+': '+?',
+    '*': '*?',
+}
+
+
+def _encode_pname(name):
+    return 'n' + hexlify(name.encode('utf8')).decode('utf8')
+
+
+def _decode_pname(name):
+    return unhexlify(name[1:]).decode('utf8')
+
+
+def _evaluate_match(s, m, evaluation):
+    replace = dict((_decode_pname(name), String(value)) for name, value in m.groupdict().items())
+    return s.replace_vars(replace, in_scoping=False).evaluate(evaluation)
+
+
+def _parallel_match(text, rules, flags, limit):
+    heap = []
+
+    def push(i, iter, form):
+        m = None
+        try:
+            m = next(iter)
+        except StopIteration:
+            pass
+        if m is not None:
+            heappush(heap, (m.start(), i, m, form, iter))
+
+    for i, (patt, form) in enumerate(rules):
+        push(i, re.finditer(patt, text, flags=flags), form)
+
+    k = 0
+    n = 0
+
+    while heap:
+        start, i, match, form, iter = heappop(heap)
+
+        if start >= k:
+            yield match, form
+
+            n += 1
+            if n >= limit > 0:
+                break
+
+            k = match.end()
+
+        push(i, iter, form)
+
+
+def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patterns=False):
     if expr is None:
         return None
+
+    if groups is None:
+        groups = {}
+
+    def recurse(x, quantifiers=q):
+        return to_regex(x, evaluation, q=quantifiers, groups=groups)
 
     if isinstance(expr, String):
         result = expr.get_string_value()
@@ -71,16 +130,16 @@ def to_regex(expr, abbreviated_patterns=False):
     if isinstance(expr, Symbol):
         return {
             'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
-            'System`Whitespace': r'\s+',
+            'System`Whitespace': r'(?u)\s+',
             'System`DigitCharacter': r'\d',
-            'System`WhitespaceCharacter': r'\s',
-            'System`WordCharacter': r'[0-9a-zA-Z]',
+            'System`WhitespaceCharacter': r'(?u)\s',
+            'System`WordCharacter': r'(?u)[^\W_]',
             'System`StartOfLine': r'^',
             'System`EndOfLine': r'$',
             'System`StartOfString': r'\A',
             'System`EndOfString': r'\Z',
             'System`WordBoundary': r'\b',
-            'System`LetterCharacter': r'[a-zA-Z]',
+            'System`LetterCharacter': r'(?u)[^\W_0-9]',
             'System`HexidecimalCharacter': r'[0-9a-fA-F]',
         }.get(expr.get_name())
 
@@ -92,15 +151,15 @@ def to_regex(expr, abbreviated_patterns=False):
     if expr.has_form('Blank', 0):
         return r'(.|\n)'
     if expr.has_form('BlankSequence', 0):
-        return r'(.|\n)+'
+        return r'(.|\n)' + q['+']
     if expr.has_form('BlankNullSequence', 0):
-        return r'(.|\n)*'
+        return r'(.|\n)' + q['*']
     if expr.has_form('Except', 1, 2):
         if len(expr.leaves) == 1:
             leaves = [expr.leaves[0], Expression('Blank')]
         else:
             leaves = [expr.leaves[0], expr.leaves[1]]
-        leaves = [to_regex(leaf) for leaf in leaves]
+        leaves = [recurse(leaf) for leaf in leaves]
         if all(leaf is not None for leaf in leaves):
             return '(?!{0}){1}'.format(*leaves)
     if expr.has_form('Characters', 1):
@@ -108,22 +167,41 @@ def to_regex(expr, abbreviated_patterns=False):
         if leaf is not None:
             return '[{0}]'.format(re.escape(leaf))
     if expr.has_form('StringExpression', None):
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if None in leaves:
             return None
         return "".join(leaves)
     if expr.has_form('Repeated', 1):
-        leaf = to_regex(expr.leaves[0])
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})+'.format(leaf)
+            return '({0})'.format(leaf) + q['+']
     if expr.has_form('RepeatedNull', 1):
-        leaf = to_regex(expr.leaves[0])
+        leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})*'.format(leaf)
+            return '({0})'.format(leaf) + q['*']
     if expr.has_form('Alternatives', None):
-        leaves = [to_regex(leaf) for leaf in expr.leaves]
+        leaves = [recurse(leaf) for leaf in expr.leaves]
         if all(leaf is not None for leaf in leaves):
             return "|".join(leaves)
+    if expr.has_form('Shortest', 1):
+        return recurse(expr.leaves[0], quantifiers=_regex_shortest)
+    if expr.has_form('Longest', 1):
+        return recurse(expr.leaves[0], quantifiers=_regex_longest)
+    if expr.has_form('Pattern', 2) and isinstance(expr.leaves[0], Symbol):
+        name = expr.leaves[0].get_name()
+        patt = groups.get(name, None)
+        if patt is not None:
+            if expr.leaves[1].has_form('Blank', 0):
+                pass  # ok, no warnings
+            elif not expr.leaves[1].same(patt):
+                evaluation.message('StringExpression', 'cond', expr.leaves[0], expr, expr.leaves[0])
+            return '(?P=%s)' % _encode_pname(name)
+        else:
+            groups[name] = expr.leaves[1]
+            return '(?P<%s>%s)' % (
+                _encode_pname(name),
+                recurse(expr.leaves[1]))
+
     return None
 
 
@@ -160,6 +238,97 @@ def mathics_split(patt, string, flags):
     return [string[start:stop] for start, stop in indices]
 
 
+if version_info >= (3, 0):
+    def pack_bytes(codes):
+        return bytes(codes)
+
+    def unpack_bytes(codes):
+        return [int(code) for code in codes]
+else:
+    from struct import pack, unpack
+
+    def pack_bytes(codes):
+        return pack('B' * len(codes), *codes)
+
+    def unpack_bytes(codes):
+        return unpack('B' * len(codes), codes)
+
+
+class CharacterEncoding(Predefined):
+    """
+    <dl>
+    <dt>'CharacterEncoding'
+        <dd>specifies the default character encoding to use if no other encoding is
+        specified.
+    </dl>
+    """
+
+    name = '$CharacterEncoding'
+    value = '"UTF-8"'
+
+    rules = {
+        '$CharacterEncoding': value,
+    }
+
+
+_encodings = {
+    # see https://docs.python.org/2/library/codecs.html#standard-encodings
+    "ASCII": "ascii",
+    "CP949": "cp949",
+    "CP950": "cp950",
+    "EUC-JP": "euc_jp",
+    "IBM-850": "cp850",
+    "ISOLatin1": "iso8859_1",
+    "ISOLatin2": "iso8859_2",
+    "ISOLatin3": "iso8859_3",
+    "ISOLatin4": "iso8859_4",
+    "ISOLatinCyrillic": "iso8859_5",
+    "ISO8859-1": "iso8859_1",
+    "ISO8859-2": "iso8859_2",
+    "ISO8859-3": "iso8859_3",
+    "ISO8859-4": "iso8859_4",
+    "ISO8859-5": "iso8859_5",
+    "ISO8859-6": "iso8859_6",
+    "ISO8859-7": "iso8859_7",
+    "ISO8859-8": "iso8859_8",
+    "ISO8859-9": "iso8859_9",
+    "ISO8859-10": "iso8859_10",
+    "ISO8859-13": "iso8859_13",
+    "ISO8859-14": "iso8859_14",
+    "ISO8859-15": "iso8859_15",
+    "ISO8859-16": "iso8859_16",
+    "koi8-r": "koi8_r",
+    "MacintoshCyrillic": "mac_cyrillic",
+    "MacintoshGreek": "mac_greek",
+    "MacintoshIcelandic": "mac_iceland",
+    "MacintoshRoman": "mac_roman",
+    "MacintoshTurkish": "mac_turkish",
+    "ShiftJIS": "shift_jis",
+    "Unicode": "utf_16",
+    "UTF-8": "utf_8",
+    "UTF8": "utf_8",
+    "WindowsANSI": "cp1252",
+    "WindowsBaltic": "cp1257",
+    "WindowsCyrillic": "cp1251",
+    "WindowsEastEurope": "cp1250",
+    "WindowsGreek": "cp1253",
+    "WindowsTurkish": "cp1254",
+}
+
+
+def to_python_encoding(encoding):
+    return _encodings.get(encoding)
+
+
+class CharacterEncodings(Predefined):
+    name = '$CharacterEncodings'
+    value = '{%s}' % ','.join(map(lambda s: '"%s"' % s, _encodings.keys()))
+
+    rules = {
+        '$CharacterEncodings': value,
+    }
+
+
 class StringExpression(BinaryOperator):
     """
     <dl>
@@ -183,6 +352,7 @@ class StringExpression(BinaryOperator):
 
     messages = {
         'invld': 'Element `1` is not a valid string or pattern element in `2`.',
+        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`.',
     }
 
     def apply(self, args, evaluation):
@@ -422,15 +592,15 @@ class LetterCharacter(Builtin):
     """
     <dl>
     <dt>'LetterCharacter'
-      <dd>represents the letters a-z and A-Z.
+      <dd>represents letters.
     </dl>
 
     >> StringMatchQ[#, LetterCharacter] & /@ {"a", "1", "A", " ", "."}
      = {True, False, True, False, False}
 
-    LetterCharacter does not match unicode characters.
-    >> StringMatchQ["\[Lambda]", LetterCharacter]
-     = False
+    LetterCharacter also matches unicode characters.
+    >> StringMatchQ["\\[Lambda]", LetterCharacter]
+     = True
     """
 
 
@@ -444,6 +614,76 @@ class HexidecimalCharacter(Builtin):
     >> StringMatchQ[#, HexidecimalCharacter] & /@ {"a", "1", "A", "x", "H", " ", "."}
      = {True, True, True, False, False, False, False}
     """
+
+
+class DigitQ(Builtin):
+    """
+    <dl>
+    <dt>'DigitQ[$string$]'
+        yields 'True' if all the characters in the $string$ are digits, and yields 'False' otherwise.
+    </dl>
+
+    >> DigitQ["9"]
+     = True
+
+    >> DigitQ["a"]
+     = False
+
+    >> DigitQ["01001101011000010111010001101000011010010110001101110011"]
+     = True
+
+    >> DigitQ["-123456789"]
+     = False
+
+    #> DigitQ[""]
+     = True
+
+    #> DigitQ["."]
+     = False
+
+    #> DigitQ[1==2]
+     = False
+
+    #> DigitQ[a=1]
+     = False
+    """
+
+    rules = {
+        'DigitQ[string_]': (
+            'If[StringQ[string], StringMatchQ[string, DigitCharacter...], False, False]'),
+    }
+
+
+class LetterQ(Builtin):
+    """
+    <dl>
+    <dt>'LetterQ[$string$]'
+        yields 'True' if all the characters in the $string$ are letters, and yields 'False' otherwise.
+    </dl>
+
+    >> LetterQ["m"]
+     = True
+
+    >> LetterQ["9"]
+     = False
+
+    >> LetterQ["Mathics"]
+     = True
+
+    >> LetterQ["Welcome to Mathics"]
+     = False
+
+    #> LetterQ[""]
+     = True
+
+    #> LetterQ["\\[Alpha]\\[Beta]\\[Gamma]\\[Delta]\\[Epsilon]\\[Zeta]\\[Eta]\\[Theta]"]
+     = True
+    """
+
+    rules = {
+        'LetterQ[string_]': (
+            'If[StringQ[string], StringMatchQ[string, LetterCharacter...], False, False]'),
+    }
 
 
 class StringMatchQ(Builtin):
@@ -522,7 +762,7 @@ class StringMatchQ(Builtin):
             return evaluation.message('StringMatchQ', 'strse', Integer(1),
                                       Expression('StringMatchQ', string, patt))
 
-        re_patt = to_regex(patt, abbreviated_patterns=True)
+        re_patt = to_regex(patt, evaluation, abbreviated_patterns=True)
         if re_patt is None:
             return evaluation.message('StringExpression', 'invld', patt,
                                       Expression('StringExpression', patt))
@@ -654,7 +894,7 @@ class StringSplit(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -777,7 +1017,7 @@ class StringPosition(Builtin):
             patts = [patt]
         re_patts = []
         for p in patts:
-            py_p = to_regex(p)
+            py_p = to_regex(p, evaluation)
             if py_p is None:
                 return evaluation.message('StringExpression', 'invld', p, patt)
             re_patts.append(py_p)
@@ -846,7 +1086,90 @@ class StringLength(Builtin):
         return Integer(len(str.value))
 
 
-class StringReplace(Builtin):
+class _StringFind(Builtin):
+    attributes = ('Protected')
+
+    options = {
+        'IgnoreCase': 'False',
+        'MetaCharacters': 'None',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+        'srep': '`1` is not a valid string replacement rule.',
+        'innf': ('Non-negative integer or Infinity expected at '
+                 'position `1` in `2`.'),
+    }
+
+    def _find(py_stri, py_rules, py_n, flags):
+        raise NotImplementedError()
+
+    def _apply(self, string, rule, n, evaluation, options, cases):
+        if n.same(Symbol('System`Private`Null')):
+            expr = Expression(self.get_name(), string, rule)
+            n = None
+        else:
+            expr = Expression(self.get_name(), string, rule, n)
+
+        # convert string
+        if string.has_form('List', None):
+            py_strings = [stri.get_string_value() for stri in string.leaves]
+            if None in py_strings:
+                return evaluation.message(
+                    self.get_name(), 'strse', Integer(1), expr)
+        else:
+            py_strings = string.get_string_value()
+            if py_strings is None:
+                return evaluation.message(
+                    self.get_name(), 'strse', Integer(1), expr)
+
+        # convert rule
+        def convert_rule(r):
+            if r.has_form('Rule', None) and len(r.leaves) == 2:
+                py_s = to_regex(r.leaves[0], evaluation)
+                if py_s is None:
+                    return evaluation.message(
+                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
+                py_sp = r.leaves[1]
+                return py_s, py_sp
+            elif cases:
+                py_s = to_regex(r, evaluation)
+                if py_s is None:
+                    return evaluation.message('StringExpression', 'invld', r, r)
+                return py_s, None
+
+            return evaluation.message(self.get_name(), 'srep', r)
+
+        if rule.has_form('List', None):
+            py_rules = [convert_rule(r) for r in rule.leaves]
+        else:
+            py_rules = [convert_rule(rule)]
+        if None in py_rules:
+            return None
+
+        # convert n
+        if n is None:
+            py_n = 0
+        elif n == Expression('DirectedInfinity', Integer(1)):
+            py_n = 0
+        else:
+            py_n = n.get_int_value()
+            if py_n is None or py_n < 0:
+                return evaluation.message(self.get_name(), 'innf', Integer(3), expr)
+
+        # flags
+        flags = re.MULTILINE
+        if options['System`IgnoreCase'] == Symbol('True'):
+            flags = flags | re.IGNORECASE
+
+        if isinstance(py_strings, list):
+            return Expression(
+                'List', *[self._find(py_stri, py_rules, py_n, flags, evaluation) for py_stri in py_strings])
+        else:
+            return self._find(py_strings, py_rules, py_n, flags, evaluation)
+
+
+class StringReplace(_StringFind):
     """
     <dl>
     <dt>'StringReplace["$string$", "$a$"->"$b$"]'
@@ -869,9 +1192,13 @@ class StringReplace(Builtin):
     >> StringReplace["xyzwxyzwxxyzxyzw", {"xyz" -> "A", "w" -> "BCD"}]
      = ABCDABCDxAABCD
 
-    Only replace the first 2 occurances:
+    Only replace the first 2 occurences:
     >> StringReplace["xyxyxyyyxxxyyxy", "xy" -> "A", 2]
      = AAxyyyxxxyyxy
+
+    Also works for multiple rules:
+    >> StringReplace["abba", {"a" -> "A", "b" -> "B"}, 2]
+     = ABba
 
     StringReplace acts on lists of strings too:
     >> StringReplace[{"xyxyxxy", "yxyxyxxxyyxy"}, "xy" -> "A"]
@@ -891,6 +1218,9 @@ class StringReplace(Builtin):
     #> StringReplace["abcabc", "a" -> "b", -1]
      : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, -1].
      = StringReplace[abcabc, a -> b, -1]
+    #> StringReplace["abc", "b" -> 4]
+     : String expected.
+     = a <> 4 <> c
 
     #> StringReplace["01101100010", "01" .. -> "x"]
      = x1x100x0
@@ -926,95 +1256,99 @@ class StringReplace(Builtin):
 
     # TODO Special Characters
     """
-    #> StringReplace["product: A \[CirclePlus] B" , "\[CirclePlus]" -> "x"]
+    #> StringReplace["product: A \\[CirclePlus] B" , "\\[CirclePlus]" -> "x"]
      = A x B
     """
-
-    attributes = ('Protected')
-
-    options = {
-        'IgnoreCase': 'False',
-        'MetaCharacters': 'None',
-    }
-
-    messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
-        'srep': '`1` is not a valid string replacement rule.',
-        'innf': ('Non-negative integer or Infinity expected at '
-                 'position `1` in `2`.'),
-    }
 
     rules = {
         'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
     }
 
-    def apply_n(self, string, rule, n, evaluation, options):
-        'StringReplace[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            k = 0
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                start, end = match.span()
+                if start > k:
+                    yield String(py_stri[k:start])
+                yield _evaluate_match(form, match, evaluation)
+                k = end
+            if k < len(py_stri):
+                yield String(py_stri[k:])
+
+        return Expression('StringJoin', *list(cases()))
+
+    def apply(self, string, rule, n, evaluation, options):
+        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
         # this pattern is a slight hack to get around missing Shortest/Longest.
+        return self._apply(string, rule, n, evaluation, options, False)
 
-        if n.same(Symbol('System`Private`Null')):
-            expr = Expression('StringReplace', string, rule)
-            n = None
-        else:
-            expr = Expression('StringReplace', string, rule, n)
 
-        # convert string
-        if string.has_form('List', None):
-            py_strings = [stri.get_string_value() for stri in string.leaves]
-            if None in py_strings:
-                return evaluation.message(
-                    'StringReplace', 'strse', Integer(1), expr)
-        else:
-            py_strings = string.get_string_value()
-            if py_strings is None:
-                return evaluation.message(
-                    'StringReplace', 'strse', Integer(1), expr)
+class StringCases(_StringFind):
+    '''
+    <dl>
+    <dt>'StringCases["$string$", $pattern$]'
+        <dd>gives all occurences of $pattern$ in $string$.
+    <dt>'StringReplace["$string$", $pattern$ -> $form$]'
+        <dd>gives all instances of $form$ that stem from occurences of $pattern$ in $string$.
+    <dt>'StringCases["$string$", {$pattern1$, $pattern2$, ...}]'
+        <dd>gives all occurences of $pattern1$, $pattern2$, ....
+    <dt>'StringReplace["$string$", $pattern$, $n$]'
+        <dd>gives only the first $n$ occurences.
+    <dt>'StringReplace[{"$string1$", "$string2$", ...}, $pattern$]'
+        <dd>gives occurences in $string1$, $string2$, ...
+    </dl>
 
-        # convert rule
-        def convert_rule(r):
-            if r.has_form('Rule', None) and len(r.leaves) == 2:
-                py_s = to_regex(r.leaves[0])
-                if py_s is None:
-                    return evaluation.message(
-                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
-                # TODO: py_sp is allowed to be more general (function, etc)
-                py_sp = r.leaves[1].get_string_value()
-                if py_sp is not None:
-                    return (py_s, py_sp)
-            return evaluation.message('StringReplace', 'srep', r)
+    >> StringCases["axbaxxb", "a" ~~ x_ ~~ "b"]
+     = {axb}
 
-        if rule.has_form('List', None):
-            py_rules = [convert_rule(r) for r in rule.leaves]
-        else:
-            py_rules = [convert_rule(rule)]
-        if None in py_rules:
-            return None
+    >> StringCases["axbaxxb", "a" ~~ x__ ~~ "b"]
+     = {axbaxxb}
 
-        # convert n
-        if n is None:
-            py_n = 0
-        elif n == Expression('DirectedInfinity', Integer(1)):
-            py_n = 0
-        else:
-            py_n = n.get_int_value()
-            if py_n is None or py_n < 0:
-                return evaluation.message('StringReplace', 'innf', Integer(3), expr)
+    >> StringCases["axbaxxb", Shortest["a" ~~ x__ ~~ "b"]]
+     = {axb, axxb}
 
-        # flags
-        flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
-            flags = flags | re.IGNORECASE
+    >> StringCases["-abc- def -uvw- xyz", Shortest["-" ~~ x__ ~~ "-"] -> x]
+     = {abc, uvw}
 
-        def do_subs(py_stri):
-            for py_s, py_sp in py_rules:
-                py_stri = re.sub(py_s, py_sp, py_stri, py_n, flags=flags)
-            return py_stri
+    >> StringCases["-öhi- -abc- -.-", "-" ~~ x : WordCharacter .. ~~ "-" -> x]
+     = {öhi, abc}
 
-        if isinstance(py_strings, list):
-            return Expression(
-                'List', *[String(do_subs(py_stri)) for py_stri in py_strings])
-        else:
-            return String(do_subs(py_strings))
+    >> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x_] -> x]
+     = {abc}
+
+    #> StringCases["abc-abc xyz-uvw", Shortest[x : WordCharacter .. ~~ "-" ~~ x : LetterCharacter] -> x]
+     : Ignored restriction given for x in x : LetterCharacter as it does not match previous occurences of x.
+     = {abc}
+
+    >> StringCases["abba", {"a" -> 10, "b" -> 20}, 2]
+     = {10, 20}
+
+    >> StringCases["a#ä_123", WordCharacter]
+     = {a, ä, 1, 2, 3}
+
+    >> StringCases["a#ä_123", LetterCharacter]
+     = {a, ä}
+    '''
+
+    rules = {
+        'StringCases[rule_][string_]': 'StringCases[string, rule]',
+    }
+
+    def _find(self, py_stri, py_rules, py_n, flags, evaluation):
+        def cases():
+            for match, form in _parallel_match(py_stri, py_rules, flags, py_n):
+                if form is None:
+                    yield String(match.group(0))
+                else:
+                    yield _evaluate_match(form, match, evaluation)
+
+        return Expression('List', *list(cases()))
+
+    def apply(self, string, rule, n, evaluation, options):
+        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        # this pattern is a slight hack to get around missing Shortest/Longest.
+        return self._apply(string, rule, n, evaluation, options, True)
 
 
 class StringRepeat(Builtin):
@@ -1031,33 +1365,38 @@ class StringRepeat(Builtin):
 
     >> StringRepeat["abc", 10, 7]
      = abcabca
+
+    #> StringRepeat["x", 0]
+     : A positive integer is expected at position 2 in StringRepeat[x, 0].
+     = StringRepeat[x, 0]
     """
 
     messages = {
         'intp': 'A positive integer is expected at position `1` in `2`.',
     }
 
-    def apply(self, s, n, evaluation):
+    def apply(self, s, n, expression, evaluation):
         'StringRepeat[s_String, n_]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
-        return String(s.get_string_value() * py_n)
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        else:
+            return String(s.get_string_value() * py_n)
 
-    def apply_truncated(self, s, n, m, evaluation):
+    def apply_truncated(self, s, n, m, expression, evaluation):
         'StringRepeat[s_String, n_Integer, m_Integer]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         py_m = m.get_int_value() if isinstance(m, Integer) else 0
 
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
-        if py_m < 1:
-            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        elif py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, expression)
+        else:
+            py_s = s.get_string_value()
+            py_n = min(1 + py_m // len(py_s), py_n)
 
-        py_s = s.get_string_value()
-        py_n = min(1 + py_m // len(py_s), py_n)
-
-        return String((py_s * py_n)[:py_m])
+            return String((py_s * py_n)[:py_m])
 
 
 class Characters(Builtin):
@@ -1120,7 +1459,7 @@ class CharacterRange(Builtin):
         start = ord(start.value[0])
         stop = ord(stop.value[0])
         return Expression('List', *[
-            String(unichr(code)) for code in range(start, stop + 1)])
+            String(chr(code)) for code in range(start, stop + 1)])
 
 
 class String_(Builtin):
@@ -1350,8 +1689,14 @@ class ToCharacterCode(Builtin):
     >> FromCharacterCode[%]
      = abc
 
-    >> ToCharacterCode["\[Alpha]\[Beta]\[Gamma]"]
+    >> ToCharacterCode["\\[Alpha]\\[Beta]\\[Gamma]"]
      = {945, 946, 947}
+
+    >> ToCharacterCode["ä", "UTF8"]
+     = {195, 164}
+
+    >> ToCharacterCode["ä", "ISO8859-1"]
+     = {228}
 
     >> ToCharacterCode[{"ab", "c"}]
      = {{97, 98}, {99}}
@@ -1382,11 +1727,7 @@ class ToCharacterCode(Builtin):
         'strse': 'String or list of strings expected at position `1` in `2`.',
     }
 
-    # TODO encoding
-
-    def apply(self, string, evaluation):
-        "ToCharacterCode[string_]"
-
+    def _encode(self, string, encoding, evaluation):
         exp = Expression('ToCharacterCode', string)
 
         if string.has_form('List', None):
@@ -1401,11 +1742,34 @@ class ToCharacterCode(Builtin):
                 evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
                 return None
 
+        if encoding == 'Unicode':
+            def convert(s):
+                return Expression('List', *[Integer(ord(code)) for code in s])
+        else:
+            py_encoding = to_python_encoding(encoding)
+            if py_encoding is None:
+                evaluation.message('General', 'charcode', encoding)
+                return
+
+            def convert(s):
+                return Expression('List', *[Integer(x) for x in unpack_bytes(s.encode(py_encoding))])
+
         if isinstance(string, list):
-            codes = [[ord(char) for char in substring] for substring in string]
-        elif isinstance(string, six.string_types):
-            codes = [ord(char) for char in string]
-        return from_python(codes)
+            return Expression('List', *[convert(substring) for substring in string])
+        elif isinstance(string, str):
+            return convert(string)
+
+    def apply_default(self, string, evaluation):
+        "ToCharacterCode[string_]"
+        return self._encode(string, 'Unicode', evaluation)
+
+    def apply(self, string, encoding, evaluation):
+        "ToCharacterCode[string_, encoding_String]"
+        return self._encode(string, encoding.get_string_value(), evaluation)
+
+
+class _InvalidCodepointError(ValueError):
+    pass
 
 
 class FromCharacterCode(Builtin):
@@ -1421,6 +1785,9 @@ class FromCharacterCode(Builtin):
 
     >> FromCharacterCode[100]
      = d
+
+    >> FromCharacterCode[228, "ISO8859-1"]
+     = ä
 
     >> FromCharacterCode[{100, 101, 102}]
      = def
@@ -1477,30 +1844,32 @@ class FromCharacterCode(Builtin):
         'intnm': (
             'Non-negative machine-sized integer expected at '
             'position `2` in `1`.'),
+        'utf8': 'The given codes could not be decoded as utf-8.',
     }
 
-    def apply(self, n, evaluation):
-        "FromCharacterCode[n_]"
+    def _decode(self, n, encoding, evaluation):
         exp = Expression('FromCharacterCode', n)
 
-        class InvalidCodepointError(ValueError):
-            pass
+        py_encoding = to_python_encoding(encoding)
+        if py_encoding is None:
+            evaluation.message('General', 'charcode', encoding)
+            return
 
-        def convert_codepoint_list(l, encoding=None):
-            if encoding is not None:
-                raise NotImplementedError
-
-            s = ''
-            for i, ni in enumerate(l):
-                pyni = ni.get_int_value()
-                if not(pyni is not None and 0 <= pyni <= 0xffff):
-                    evaluation.message(
-                        'FromCharacterCode', 'notunicode',
-                        Expression('List', *l), Integer(i + 1))
-                    raise InvalidCodepointError
-                s += unichr(pyni)
-
-            return s
+        def convert_codepoint_list(l):
+            if encoding == 'Unicode':
+                s = ''
+                for i, ni in enumerate(l):
+                    pyni = ni.get_int_value()
+                    if not(pyni is not None and 0 <= pyni <= 0xffff):
+                        evaluation.message(
+                            'FromCharacterCode', 'notunicode',
+                            Expression('List', *l), Integer(i + 1))
+                        raise _InvalidCodepointError
+                    s += chr(pyni)
+                return s
+            else:
+                codes = [x.get_int_value() & 0xff for x in l]
+                return pack_bytes(codes).decode(py_encoding)
 
         try:
             if n.has_form('List', None):
@@ -1522,14 +1891,25 @@ class FromCharacterCode(Builtin):
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
                 pyn = n.get_int_value()
-                if not (isinstance(pyn, six.integer_types) and pyn > 0 and pyn < sys.maxsize):
+                if not (isinstance(pyn, int) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
                         'FromCharacterCode', 'intnm', exp, Integer(1))
                 return String(convert_codepoint_list([n]))
-        except InvalidCodepointError:
+        except _InvalidCodepointError:
+            return
+        except UnicodeDecodeError:
+            evaluation.message(self.get_name(), 'utf8')
             return
 
         assert False, "can't get here"
+
+    def apply_default(self, n, evaluation):
+        "FromCharacterCode[n_]"
+        return self._decode(n, 'Unicode', evaluation)
+
+    def apply(self, n, encoding, evaluation):
+        "FromCharacterCode[n_, encoding_String]"
+        return self._decode(n, encoding.get_string_value(), evaluation)
 
 
 class StringQ(Test):
@@ -1570,6 +1950,7 @@ class StringTake(Builtin):
     = ab
     >> StringTake["abcde", 0]
     = 
+    (watch the empty line).
     >> StringTake["abcde", -2]
     = de
     >> StringTake["abcde", {2}]
@@ -1973,3 +2354,643 @@ class DamerauLevenshteinDistance(_StringDistance):
 
     def _distance(self, s1, s2, same):
         return _levenshtein_like_or_border_cases(s1, s2, same, _damerau_levenshtein)
+
+
+class RemoveDiacritics(Builtin):
+    """
+    <dl>
+    <dt>'RemoveDiacritics[$s$]'
+        <dd>returns a version of $s$ with all diacritics removed.
+    </dl>
+
+    >> RemoveDiacritics["en prononçant pêcher et pécher"]
+     = en prononcant pecher et pecher
+
+    >> RemoveDiacritics["piñata"]
+     = pinata
+    """
+
+    def apply(self, s, evaluation):
+        'RemoveDiacritics[s_String]'
+        return String(unicodedata.normalize(
+            'NFKD', s.get_string_value()).encode('ascii', 'ignore').decode('ascii'))
+
+
+class Transliterate(Builtin):
+    """
+    <dl>
+    <dt>'Transliterate[$s$]'
+        <dd>transliterates a text in some script into an ASCII string.
+    </dl>
+
+    # The following examples were taken from
+    # https://en.wikipedia.org/wiki/Iliad,
+    # https://en.wikipedia.org/wiki/Russian_language, and
+    # https://en.wikipedia.org/wiki/Hiragana
+
+    >> Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
+     = meter gar te me phesi thea Thetis arguropeza
+
+    >> Transliterate["Алекса́ндр Пу́шкин"]
+     = Aleksandr Pushkin
+
+    >> Transliterate["つかう"]
+     = tsukau
+    """
+
+    requires = (
+        'unidecode',
+    )
+
+    def apply(self, s, evaluation):
+        'Transliterate[s_String]'
+        from unidecode import unidecode
+        return String(unidecode(s.get_string_value()))
+
+
+class StringTrim(Builtin):
+    """
+    <dl>
+    <dt>'StringTrim[$s$]'
+        <dd>returns a version of $s$ with whitespace removed from start and end.
+    </dl>
+
+    >> StringJoin["a", StringTrim["  \\tb\\n "], "c"]
+     = abc
+
+    >> StringTrim["ababaxababyaabab", RegularExpression["(ab)+"]]
+     = axababya
+    """
+
+    def apply(self, s, evaluation):
+        'StringTrim[s_String]'
+        return String(s.get_string_value().strip(" \t\n"))
+
+    def apply_pattern(self, s, patt, expression, evaluation):
+        'StringTrim[s_String, patt_]'
+        text = s.get_string_value()
+        if not text:
+            return s
+
+        py_patt = to_regex(patt, evaluation)
+        if py_patt is None:
+            return evaluation.message('StringExpression', 'invld', patt, expression)
+
+        if not py_patt.startswith(r'\A'):
+            left_patt = r'\A' + py_patt
+        else:
+            left_patt = py_patt
+
+        if not py_patt.endswith(r'\Z'):
+            right_patt = py_patt + r'\Z'
+        else:
+            right_patt = py_patt
+
+        m = re.search(left_patt, text)
+        left = m.end(0) if m else 0
+
+        m = re.search(right_patt, text)
+        right = m.start(0) if m else len(text)
+
+        return String(text[left:right])
+
+
+class StringInsert(Builtin):
+    """
+    <dl>
+    <dt>'StringInsert["$strsource$", "$strnew$", pos]'
+        <dd>returns a string with $strnew$ inserted starting at position $pos$ in $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", -pos]'
+        <dd>returns a string with $strnew$ inserted at position $pos$ from the end of $strsource$.
+    <dt>'StringInsert["$strsource$", "$strnew$", {pos_1, pos_2, ...}]'
+        <dd>returns a string with $strnew$ inserted at each position $pos_i$ in $strsource$,
+            the $pos_i$ are taken before any insertion is done.
+    <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$strnew$", pos]'
+        <dd>inserts $strnew$ to each of $s_i$ at the position $pos$
+    </dl>
+
+    >> StringInsert["abcdefghijklm", "X", 4]
+     = abcXdefghijklm
+
+    >> StringInsert["abcdefghijklm", "X", 1]
+     = Xabcdefghijklm
+
+    >> StringInsert["abcdefghijklm", "X", 14]
+     = abcdefghijklmX
+
+    #> StringInsert["abcdefghijklm", "X", 15]
+     : Cannot insert at position 15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, 15]
+
+    #> StringInsert["", "X", 1]
+     = X
+
+    #> StringInsert["abcdefghijklm", "", 1]
+     = abcdefghijklm
+
+    #> StringInsert["", "", 1]
+     = 
+    (watch the empty line).
+    #> StringInsert[abcdefghijklm, "X", 4]
+     : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+
+    #> StringInsert["abcdefghijklm", X, 4]
+     : String expected at position 2 in StringInsert[abcdefghijklm, X, 4].
+     = StringInsert[abcdefghijklm, X, 4]
+
+    #> StringInsert["abcdefghijklm", "X", a]
+     : Position specification a in StringInsert[abcdefghijklm, X, a] is not a machine-sized integer or a list of machine-sized integers.
+     = StringInsert[abcdefghijklm, X, a]
+
+    #> StringInsert["abcdefghijklm", "X", 0]
+     : Cannot insert at position 0 in abcdefghijklm.
+     =  StringInsert[abcdefghijklm, X, 0]
+
+    >> StringInsert["abcdefghijklm", "X", -1]
+     = abcdefghijklmX
+
+    >> StringInsert["abcdefghijklm", "X", -14]
+     = Xabcdefghijklm
+
+    #> StringInsert["abcdefghijklm", "X", -15]
+     : Cannot insert at position -15 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, -15]
+
+    #> StringInsert["", "X", -1]
+     = X
+
+    #> StringInsert["", "", -1]
+     = 
+    (watch the empty line).
+    #> StringInsert["abcdefghijklm", "", -1]
+     = abcdefghijklm
+
+    >> StringInsert["abcdefghijklm", "X", {1, 4, 9}]
+     = XabcXdefghXijklm
+
+    #> StringInsert["abcdefghijklm", "X", {1, -1, 14, -14}]
+     = XXabcdefghijklmXX
+
+    #> StringInsert["abcdefghijklm", "X", {1, 0}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     = StringInsert[abcdefghijklm, X, {1, 0}]
+
+    #> StringInsert["", "X", {1}]
+     = X
+
+    #> StringInsert["", "X", {1, -1}]
+     = XX
+
+    #> StringInsert["", "", {1}]
+     = 
+    
+    (watch the empty line).
+    #> StringInsert["", "X", {1, 2}]
+     : Cannot insert at position 2 in .
+     = StringInsert[, X, {1, 2}]
+
+    #> StringInsert["abcdefghijklm", "", {1, 2, 3, 4 ,5, -6}]
+     = abcdefghijklm
+
+    #> StringInsert["abcdefghijklm", "X", {}]
+     = abcdefghijklm
+
+    >> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 4]
+     = {abcXdefghijklm, MatXhics}
+
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 13]
+     : Cannot insert at position 13 in Mathics.
+     = {abcdefghijklXm, StringInsert[Mathics, X, 13]}
+
+    #> StringInsert[{"", ""}, "", {1, 1, 1, 1}]
+     = {, }
+
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {0, 2}]
+     : Cannot insert at position 0 in abcdefghijklm.
+     : Cannot insert at position 0 in Mathics.
+     = {StringInsert[abcdefghijklm, X, {0, 2}], StringInsert[Mathics, X, {0, 2}]}
+
+    #> StringInsert[{"abcdefghijklm", Mathics}, "X", {1, 2}]
+     : String or list of strings expected at position 1 in StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}].
+     = StringInsert[{abcdefghijklm, Mathics}, X, {1, 2}]
+
+    #> StringInsert[{"", "Mathics"}, "X", {1, 1, -1}]
+     = {XXX, XXMathicsX}
+
+    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]
+     = {abcdefghijklm, Mathics}
+
+    >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
+     = 1.234.567.890.123.456    """
+
+    messages = {
+        'strse':  'String or list of strings expected at position `1` in `2`.',
+        'string': 'String expected at position `1` in `2`.',
+        'ins':    'Cannot insert at position `1` in `2`.',
+        'psl':    'Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.',
+    }
+
+    def _insert(self, str, add, lpos, evaluation):
+        for pos in lpos:
+            if abs(pos) < 1 or abs(pos) > len(str)+1:
+                evaluation.message('StringInsert', 'ins', Integer(pos), String(str))
+                return evaluation.format_output(Expression('StringInsert', str, add, lpos[0] if len(lpos) == 1 else lpos))
+
+        # Create new list of position which are rearranged
+        pos_limit = len(str) + 2
+        listpos = [p if p > 0 else pos_limit+p for p in lpos]
+        listpos.sort()
+
+        result = ''
+        start = 0
+        for pos in listpos:
+            stop = pos - 1
+            result += str[start:stop] + add
+            start = stop
+        else:
+            result += str[start:len(str)]
+
+        return result
+
+    def apply(self, strsource, strnew, pos, evaluation):
+        'StringInsert[strsource_, strnew_, pos_]'
+
+        exp = Expression('StringInsert', strsource, strnew, pos)
+
+        py_strnew = strnew.get_string_value()
+        if py_strnew is None:
+            return evaluation.message('StringInsert', 'string', Integer(2), exp)
+
+        # Check and create list of position
+        listpos = []
+        if pos.has_form('List', None):
+            leaves = pos.get_leaves()
+            if not leaves:
+                return strsource
+            else:
+                for i, posi in enumerate(leaves):
+                    py_posi = posi.get_int_value()
+                    if py_posi is None:
+                        return evaluation.message('StringInsert', 'psl', pos, exp)
+                    listpos.append(py_posi)
+        else:
+            py_pos = pos.get_int_value()
+            if py_pos is None:
+                return evaluation.message('StringInsert', 'psl', pos, exp)
+            listpos.append(py_pos)
+
+        # Check and perform the insertion
+        if strsource.has_form('List', None):
+            py_strsource = [sub.get_string_value()
+                            for sub in strsource.leaves]
+            if any(sub is None for sub in py_strsource):
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return Expression('List', *[String(self._insert(s, py_strnew, listpos, evaluation)) for s in py_strsource])
+        else:
+            py_strsource = strsource.get_string_value()
+            if py_strsource is None:
+                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+            return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
+
+
+def _pattern_search(name, string, patt, evaluation, options, matched):
+    # Get the pattern list and check validity for each
+    if patt.has_form('List', None):
+        patts = patt.get_leaves()
+    else:
+        patts = [patt]
+    re_patts = []
+    for p in patts:
+        py_p = to_regex(p, evaluation)
+        if py_p is None:
+            return evaluation.message('StringExpression', 'invld', p, patt)
+        re_patts.append(py_p)
+
+    flags = re.MULTILINE
+    if options['System`IgnoreCase'] == Symbol('True'):
+        flags = flags | re.IGNORECASE
+
+    def _search(patts, str, flags, matched):
+        if any(re.search(p, str, flags=flags) for p in patts):
+            return Symbol('True') if matched else Symbol('False')
+        return Symbol('False') if matched else Symbol('True')
+
+    # Check string validity and perform regex searchhing
+    if string.has_form('List', None):
+        py_s = [s.get_string_value() for s in string.leaves]
+        if any(s is None for s in py_s):
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return Expression('List', *[_search(re_patts, s, flags, matched) for s in py_s])
+    else:
+        py_s = string.get_string_value()
+        if py_s is None:
+            return evaluation.message(name, 'strse', Integer(1),
+                                      Expression(name, string, patt))
+        return _search(re_patts, py_s, flags, matched)
+
+
+class StringContainsQ(Builtin):
+    """
+    <dl>
+    <dt>'StringContainsQ["$string$", $patt$]'
+        <dd>returns True if any part of $string$ matches $patt$, and returns False otherwise.
+    <dt>'StringContainsQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringContainsQ[patt]'
+        <dd>represents an operator form of StringContainsQ that can be applied to an expression.
+    </dl>
+
+    >> StringContainsQ["mathics", "m" ~~ __ ~~ "s"]
+     = True
+
+    >> StringContainsQ["mathics", "a" ~~ __ ~~ "m"]
+     = False
+
+    #> StringContainsQ["Hello", "o"]
+     = True
+
+    #> StringContainsQ["a"]["abcd"]
+     = True
+
+    #> StringContainsQ["Mathics", "ma", IgnoreCase -> False]
+     = False
+
+    >> StringContainsQ["Mathics", "MA" , IgnoreCase -> True]
+     = True
+
+    #> StringContainsQ["", "Empty String"]
+     = False
+
+    #> StringContainsQ["", ___]
+     = True
+
+    #> StringContainsQ["Empty Pattern", ""]
+     = True
+
+    #> StringContainsQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringContainsQ[notastring, n].
+     = StringContainsQ[notastring, n]
+
+    #> StringContainsQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringContainsQ[Welcome, notapattern]
+
+    >> StringContainsQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {False, False, False, True, True}
+
+    #> StringContainsQ[{}, "list of string is empty"]
+     = {}
+
+    >> StringContainsQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {True, True, True, False, False, False, False, False, True}
+
+    ## special cases, Mathematica allows list of patterns
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {False, False, True, True, False}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {False, False, True, True, True}
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {False, False, False, False, False}
+
+    #> StringContainsQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringContainsQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringContainsQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+
+    options = {
+        'IgnoreCase': 'False',
+    }
+
+    rules = {
+        'StringContainsQ[patt_][expr_]': 'StringContainsQ[expr, patt]',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]'
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, True)
+
+
+class StringFreeQ(Builtin):
+    """
+    <dl>
+    <dt>'StringFreeQ["$string$", $patt$]'
+        <dd>returns True if no substring in $string$ matches the string expression $patt$, and returns False otherwise.
+    <dt>'StringFreeQ[{"s1", "s2", ...}, patt]'
+        <dd>returns the list of results for each element of string list.
+    <dt>'StringFreeQ["string", {p1, p2, ...}]'
+        <dd>returns True if no substring matches any of the $pi$.
+    <dt>'StringFreeQ[patt]'
+        <dd>represents an operator form of StringFreeQ that can be applied to an expression.
+    </dl>
+
+    >> StringFreeQ["mathics", "m" ~~ __ ~~ "s"]
+     = False
+
+    >> StringFreeQ["mathics", "a" ~~ __ ~~ "m"]
+     = True
+
+    #> StringFreeQ["Hello", "o"]
+     = False
+
+    #> StringFreeQ["a"]["abcd"]
+     = False
+
+    #> StringFreeQ["Mathics", "ma", IgnoreCase -> False]
+     = True
+
+    >> StringFreeQ["Mathics", "MA" , IgnoreCase -> True]
+     = False
+
+    #> StringFreeQ["", "Empty String"]
+     = True
+
+    #> StringFreeQ["", ___]
+     = False
+
+    #> StringFreeQ["Empty Pattern", ""]
+     = False
+
+    #> StringFreeQ[notastring, "n"]
+     : String or list of strings expected at position 1 in StringFreeQ[notastring, n].
+     = StringFreeQ[notastring, n]
+
+    #> StringFreeQ["Welcome", notapattern]
+     : Element notapattern is not a valid string or pattern element in notapattern.
+     = StringFreeQ[Welcome, notapattern]
+
+    >> StringFreeQ[{"g", "a", "laxy", "universe", "sun"}, "u"]
+     = {True, True, True, False, False}
+
+    #> StringFreeQ[{}, "list of string is empty"]
+     = {}
+
+    >> StringFreeQ["e" ~~ ___ ~~ "u"] /@ {"The Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"}
+     = {False, False, False, True, True, True, True, True, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     = {True, True, False, False, True}
+
+    >> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}, IgnoreCase -> True]
+     = {True, True, False, False, False}
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {}]
+     = {True, True, True, True, True}
+
+    #> StringFreeQ[{"A", Galaxy, "Far", "Far", Away}, {"F" ~~ __ ~~ "r", "aw" ~~ ___}]
+     : String or list of strings expected at position 1 in StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}].
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+
+    #> StringFreeQ[{"A", "Galaxy", "Far", "Far", "Away"}, {F ~~ __ ~~ "r", aw ~~ ___}]
+     : Element F ~~ __ ~~ r is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+     = StringFreeQ[{A, Galaxy, Far, Far, Away}, {F ~~ __ ~~ r, aw ~~ ___}]
+    ## Mathematica can detemine correct invalid element in the pattern, it reports error:
+    ## Element F is not a valid string or pattern element in {F ~~ __ ~~ r, aw ~~ ___}.
+    """
+
+    options = {
+        'IgnoreCase': 'False',
+    }
+
+    rules = {
+        'StringFreeQ[patt_][expr_]': 'StringFreeQ[expr, patt]',
+    }
+
+    messages = {
+        'strse': 'String or list of strings expected at position `1` in `2`.',
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        'StringFreeQ[string_, patt_, OptionsPattern[%(name)s]]'
+        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, False)
+
+
+class StringRiffle(Builtin):
+    """
+    <dl>
+    <dt>'StringRiffle[{s1, s2, s3, ...}]'
+      <dd>returns a new string by concatenating all the $si$, with spaces inserted between them.
+    <dt>'StringRiffle[list, sep]'
+      <dd>inserts the separator $sep$ between all elements in $list$.
+    <dt>'StringRiffle[list, {"left", "sep", "right"}]'
+      <dd>use $left$ and $right$ as delimiters after concatenation.
+
+    ## These 2 forms are not currently implemented
+    ## <dt>'StringRiffle[{{s11, s12, ...}, {s21, s22, ...}, ...}]'
+    ##   <dd>returns a new string by concatenating the $sij$, and inserting spaces at the lowest level and newlines at the higher level.
+    ## <dt>'StringRiffle[list, sep1, sep2, ...]'
+    ##   <dd>inserts separator $sepi$ between elements of list at level i.
+    </dl>
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}]
+     = a b c d e
+
+    #> StringRiffle[{a, b, c, "d", e, "f"}]
+     = a b c d e f
+
+    ## 1st is not a list
+    #> StringRiffle["abcdef"]
+     : List expected at position 1 in StringRiffle[abcdef].
+     : StringRiffle called with 1 argument; 2 or more arguments are expected.
+     = StringRiffle[abcdef]
+
+    #> StringRiffle[{"", "", ""}] // FullForm
+     = "  "
+
+    ## This form is not supported
+    #> StringRiffle[{{"a", "b"}, {"c", "d"}}]
+     : Sublist form in position 1 is is not implemented yet.
+     = StringRiffle[{{a, b}, {c, d}}]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, ", "]
+     = a, b, c, d, e
+
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, sep]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, sep].
+     = StringRiffle[{a, b, c, d, e}, sep]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, {"(", " ", ")"}]
+     = (a b c d e)
+
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {" ", ")"}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, { , )}].
+     = StringRiffle[{a, b, c, d, e}, { , )}]
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {left, " ", "."}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, {left,  , .}].
+     = StringRiffle[{a, b, c, d, e}, {left,  , .}]
+
+    ## This form is not supported
+    #> StringRiffle[{"a", "b", "c"}, "+", "-"]
+    ## Mathematica result: a+b+c, but we are not support multiple separators
+     :  Multiple separators form is not implemented yet.
+     = StringRiffle[{a, b, c}, +, -]
+    """
+
+    attributes = ('ReadProtected', )
+
+    messages = {
+        'list': 'List expected at position `1` in `2`.',
+        'argmu': 'StringRiffle called with 1 argument; 2 or more arguments are expected.',
+        'argm':  'StringRiffle called with 0 arguments; 2 or more arguments are expected.',
+        'string': 'String expected at position `1` in `2`.',
+        'sublist': 'Sublist form in position 1 is is not implemented yet.',
+        'mulsep':  'Multiple separators form is not implemented yet.',
+    }
+
+    def apply(self, liststr, seps, evaluation):
+        'StringRiffle[liststr_, seps___]'
+        separators = seps.get_sequence()
+        exp = Expression('StringRiffle', liststr, seps) if separators else Expression('StringRiffle', liststr)
+
+        # Validate separators
+        if len(separators) > 1:
+            return evaluation.message('StringRiffle', 'mulsep')
+        elif len(separators) == 1:
+            if separators[0].has_form('List', None):
+                if len(separators[0].leaves) != 3 or any(not isinstance(s, String) for s in separators[0].leaves):
+                    return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+            elif not isinstance(separators[0], String):
+                return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+
+        # Validate list of string
+        if not liststr.has_form('List', None):
+            evaluation.message('StringRiffle', 'list', Integer(1), exp)
+            return evaluation.message('StringRiffle', 'argmu', exp)
+        elif any(leaf.has_form('List', None) for leaf in liststr.leaves):
+            return evaluation.message('StringRiffle', 'sublist')
+
+        # Determine the separation token
+        left, right = '', ''
+        if len(separators) == 0:
+            sep = ' '
+        else:
+            if separators[0].has_form('List', None):
+                left  = separators[0].leaves[0].value
+                sep   = separators[0].leaves[1].value
+                right = separators[0].leaves[2].value
+            else:
+                sep   = separators[0].get_string_value()
+
+        # Getting all together
+        result = left
+        for i in range(len(liststr.leaves)):
+            text = liststr.leaves[i].format(evaluation, 'System`OutputForm').boxes_to_text(evaluation=evaluation)
+            if i == len(liststr.leaves) - 1:
+                result += text + right
+            else:
+                result += text + sep
+
+        return String(result)

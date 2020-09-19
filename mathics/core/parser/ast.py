@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
 
 
 class Node(object):
@@ -57,8 +55,34 @@ class Atom(Node):
 
 
 class Number(Atom):
+    def __init__(self, value, sign=1, base=10, suffix=None, exp=0):
+        assert isinstance(value, str)
+        assert sign in (-1, 1)
+        assert isinstance(base, int)
+        assert 2 <= base <= 36
+        assert isinstance(exp, int)
+        assert suffix is None or isinstance(suffix, str)
+        super(Number, self).__init__(None)
+        self.value = value
+        self.sign = sign
+        self.base = base
+        self.suffix = suffix
+        self.exp = exp
+
     def __repr__(self):
-        return self.value
+        result = self.value
+        if self.base != 10:
+            result = '%i^^%s' % (self.base, result)
+        if self.sign == -1:
+            result = '-%s' % result
+        if self.suffix is not None:
+            result = '%s`%s' % (result, self.suffix)
+        if self.exp != 0:
+            result = '%s*^%i' % (result, self.exp)
+        return result
+
+    def __eq__(self, other):
+        return isinstance(other, Number) and repr(self) == repr(other)
 
 
 class Symbol(Atom):

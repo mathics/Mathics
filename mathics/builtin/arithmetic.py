@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,8 +7,6 @@ Arithmetic functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -23,7 +21,7 @@ from mathics.core.numbers import (
     min_prec, dps, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy
+from mathics.core.convert import from_sympy, SympyPrime
 
 
 class _MPMathFunction(SympyFunction):
@@ -887,6 +885,52 @@ class Sqrt(SympyFunction):
             'SqrtBox[MakeBoxes[x, f]]'),
     }
 
+class CubeRoot(Builtin):
+    """
+    <dl>
+    <dt>'CubeRoot[$n$]'
+        <dd>finds the real-valued cube root of the given $n$.
+    </dl>
+
+    >> CubeRoot[16]
+     = 2 2 ^ (1 / 3)
+
+    #> CubeRoot[-5]
+     = -5 ^ (1 / 3)
+
+    #> CubeRoot[-510000]
+     = -10 510 ^ (1 / 3)
+
+    #> CubeRoot[-5.1]
+     = -1.7213
+
+    #> CubeRoot[b]
+     = b ^ (1 / 3)
+
+    #> CubeRoot[-0.5]
+     = -0.793701
+
+    #> CubeRoot[3 + 4 I]
+     : The parameter 3 + 4 I should be real valued.
+     = (3 + 4 I) ^ (1 / 3)
+    """
+
+    attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
+
+    messages = {
+        'preal': 'The parameter `1` should be real valued.',
+    }
+
+    rules = {
+        'CubeRoot[n_?NumericQ]': 'If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]]]',
+        'CubeRoot[n_]': 'Power[n, Divide[1, 3]]',
+    }
+
+    def apply(self, n, evaluation):
+        'CubeRoot[n_Complex]'
+
+        evaluation.message('CubeRoot', 'preal', n)
+        return Expression('Power', n, Expression('Divide', 1, 3))
 
 class Infinity(SympyConstant):
     """
@@ -934,15 +978,21 @@ class ComplexInfinity(SympyConstant):
 
     >> 1 / ComplexInfinity
      = 0
-    >> ComplexInfinity + ComplexInfinity
-     = ComplexInfinity
     >> ComplexInfinity * Infinity
      = ComplexInfinity
     >> FullForm[ComplexInfinity]
      = DirectedInfinity[]
+
+    ## Issue689
+    #> ComplexInfinity + ComplexInfinity
+     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
+     = Indeterminate
+    #> ComplexInfinity + Infinity
+     : Indeterminate expression ComplexInfinity + Infinity encountered.
+     = Indeterminate
     """
 
-    sympy_name = 'ComplexInfinity'
+    sympy_name = 'zoo'
 
     rules = {
         'ComplexInfinity': 'DirectedInfinity[]',
@@ -990,6 +1040,10 @@ class DirectedInfinity(SympyFunction):
         'DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a': (
             'Message[Infinity::indet,'
             '  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];'
+            'Indeterminate'),
+        'DirectedInfinity[] + DirectedInfinity[args___]': (
+            'Message[Infinity::indet,'
+            '  Unevaluated[DirectedInfinity[] + DirectedInfinity[args]]];'
             'Indeterminate'),
         'DirectedInfinity[args___] + _?NumberQ': 'DirectedInfinity[args]',
     }
@@ -1041,6 +1095,11 @@ class Re(SympyFunction):
 
         return number
 
+    def apply(self, number, evaluation):
+        'Re[number_]'
+
+        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+
 
 class Im(SympyFunction):
     """
@@ -1072,6 +1131,11 @@ class Im(SympyFunction):
         'Im[number_?NumberQ]'
 
         return Integer(0)
+
+    def apply(self, number, evaluation):
+        'Im[number_]'
+
+        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
@@ -1132,6 +1196,59 @@ class Abs(_MPMathFunction):
 
     sympy_name = 'Abs'
     mpmath_name = 'fabs'  # mpmath actually uses python abs(x) / x.__abs__()
+
+
+class Sign(Builtin):
+    """
+    <dl>
+    <dt>'Sign[$x$]'
+        <dd>return -1, 0, or 1 depending on whether $x$ is negative, zero, or positive.
+    </dl>
+
+    >> Sign[19]
+     = 1
+    >> Sign[-6]
+     = -1
+    >> Sign[0]
+     = 0
+    >> Sign[{-5, -10, 15, 20, 0}]
+     = {-1, -1, 1, 1, 0}
+    #> Sign[{1, 2.3, 4/5, {-6.7, 0}, {8/9, -10}}]
+     = {1, 1, 1, {-1, 0}, {1, -1}}
+    >> Sign[3 - 4*I]
+     = 3 / 5 - 4 I / 5
+    #> Sign[1 - 4*I] == (1/17 - 4 I/17) Sqrt[17]
+     = True
+    #> Sign[4, 5, 6]
+     : Sign called with 3 arguments; 1 argument is expected.
+     = Sign[4, 5, 6]
+    #> Sign["20"]
+     = Sign[20]
+    """
+
+    # Sympy and mpmath do not give the desired form of complex number
+    # sympy_name = 'sign'
+    # mpmath_name = 'sign'
+
+    attributes = ('Listable', 'NumericFunction')
+
+    messages = {
+        'argx':  'Sign called with `1` arguments; 1 argument is expected.',
+    }
+
+    def apply(self, x, evaluation):
+        'Sign[x_]'
+        if isinstance(x, Complex):
+            return Expression('Times', x, Expression('Power', Expression('Abs', x), -1))
+
+        sympy_x = x.to_sympy()
+        if sympy_x is None:
+            return None
+        return from_sympy(sympy.sign(sympy_x))
+
+    def apply_error(self, x, seqs, evaluation):
+        'Sign[x_, seqs__]'
+        return evaluation.message('Sign', 'argx', Integer(len(seqs.get_sequence())+1))
 
 
 class I(Predefined):
@@ -1367,6 +1484,24 @@ class Real_(Builtin):
      : "1.5 *" cannot be followed by "^10" (line 1 of "<test>").
     #> 1.5*^ 10
      : "1.5*" cannot be followed by "^ 10" (line 1 of "<test>").
+
+    ## Issue654
+    #> 1^^2
+     : Requested base 1 in 1^^2 should be between 2 and 36.
+     : Expression cannot begin with "1^^2" (line 1 of "<test>").
+    #> 2^^0101
+     = 5
+    #> 2^^01210
+     : Digit at position 3 in 01210 is too large to be used in base 2.
+     : Expression cannot begin with "2^^01210" (line 1 of "<test>").
+    #> 16^^5g
+     : Digit at position 2 in 5g is too large to be used in base 16.
+     : Expression cannot begin with "16^^5g" (line 1 of "<test>").
+    #> 36^^0123456789abcDEFxyzXYZ
+     = 14142263610074677021975869033659
+    #> 37^^3
+     : Requested base 37 in 37^^3 should be between 2 and 36.
+     : Expression cannot begin with "37^^3" (line 1 of "<test>").
     """
 
     name = 'Real'
@@ -1653,13 +1788,15 @@ class Sum(_IterationFunction, SympyFunction):
      = 1 + 2 I
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
+    >> Sum[f[i], {i, 1, 7}]
+     = f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7]
 
     Verify algebraic identities:
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
     >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}}, -1 + (a ^ n) ^ m]
+     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1671,7 +1808,7 @@ class Sum(_IterationFunction, SympyFunction):
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
 
     ## Issue431
-    #> Sum[2^(-i), {i, 1, \[Infinity]}]
+    #> Sum[2^(-i), {i, 1, \\[Infinity]}]
      = 1
 
     ## Issue302
@@ -1690,7 +1827,7 @@ class Sum(_IterationFunction, SympyFunction):
     rules.update({
         'MakeBoxes[Sum[f_, {i_, a_, b_, 1}],'
         '  form:StandardForm|TraditionalForm]': (
-            r'RowBox[{SubsuperscriptBox["\[Sum]",'
+            r'RowBox[{SubsuperscriptBox["\\[Sum]",'
             r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
             r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
@@ -1701,8 +1838,13 @@ class Sum(_IterationFunction, SympyFunction):
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
-            arg = expr.leaves[0].to_sympy()
-            bounds = (index.leaves[0].to_sympy(), index.leaves[1].to_sympy(), index.leaves[2].to_sympy())
+            arg_kwargs = kwargs.copy()
+            arg_kwargs['convert_all_global_functions'] = True
+            arg = expr.leaves[0].to_sympy(**arg_kwargs)
+            bounds = (index.leaves[0].to_sympy(**kwargs),
+                      index.leaves[1].to_sympy(**kwargs),
+                      index.leaves[2].to_sympy(**kwargs))
+
             if arg is not None and None not in bounds:
                 return sympy.summation(arg, bounds)
 
@@ -1728,6 +1870,8 @@ class Product(_IterationFunction, SympyFunction):
      = x ^ 110
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
+    >> Product[f[i], {i, 1, 7}]
+     = f[1] f[2] f[3] f[4] f[5] f[6] f[7]
 
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
@@ -1753,7 +1897,7 @@ class Product(_IterationFunction, SympyFunction):
     rules.update({
         'MakeBoxes[Product[f_, {i_, a_, b_, 1}],'
         '  form:StandardForm|TraditionalForm]': (
-            r'RowBox[{SubsuperscriptBox["\[Product]",'
+            r'RowBox[{SubsuperscriptBox["\\[Product]",'
             r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
             r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
@@ -1765,9 +1909,14 @@ class Product(_IterationFunction, SympyFunction):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             try:
-                return sympy.product(expr.leaves[0].to_sympy(), (
-                    index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
-                    index.leaves[2].to_sympy()))
+                e_kwargs = kwargs.copy()
+                e_kwargs['convert_all_global_functions'] = True
+                e = expr.leaves[0].to_sympy(**e_kwargs)
+                i = index.leaves[0].to_sympy(**kwargs)
+                start = index.leaves[1].to_sympy(**kwargs)
+                stop = index.leaves[2].to_sympy(**kwargs)
+
+                return sympy.product(e, (i, start, stop))
             except ZeroDivisionError:
                 pass
 
@@ -1789,7 +1938,7 @@ class Piecewise(SympyFunction):
     ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x <= 0}, {-x, x > 0}}]
+     = Piecewise[{{x, x <= 0}, {-x, True}}]
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
@@ -1850,7 +1999,7 @@ class Piecewise(SympyFunction):
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
         else:
-            sympy_cases.append((Integer(0), True))
+            sympy_cases.append((Integer(0).to_sympy(**kwargs), True))
 
         return sympy.Piecewise(*sympy_cases)
 

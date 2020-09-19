@@ -1,15 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 List functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six.moves import zip
 from itertools import chain, permutations
 
 from mathics.builtin.base import (
@@ -33,7 +29,6 @@ import heapq
 
 from collections import defaultdict
 import functools
-
 
 class List(Builtin):
     """
@@ -60,7 +55,7 @@ class List(Builtin):
 
         items = items.get_sequence()
         return Expression(
-            'RowBox', Expression('List', *list_boxes(items, f, evaluation, "{", "}")))
+            'RowBox', Expression('List', *list_boxes(items, f, "{", "}")))
 
 
 class ListQ(Test):
@@ -93,8 +88,8 @@ class NotListQ(Test):
         return expr.get_head_name() != 'System`List'
 
 
-def list_boxes(items, f, evaluation, open=None, close=None):
-    result = evaluation.make_boxes(items, f)
+def list_boxes(items, f, open=None, close=None):
+    result = [Expression('MakeBoxes', item, f) for item in items]
     if f.get_name() in ('System`OutputForm', 'System`InputForm'):
         sep = ", "
     else:
@@ -246,7 +241,7 @@ def get_part(list, indices):
             return rec(part, rest[1:])
         else:
             return cur
-    return rec(list, indices)
+    return rec(list, indices).copy()
 
 
 def set_part(list, indices, new):
@@ -283,131 +278,188 @@ def set_part(list, indices, new):
 
     rec(list, indices)
 
+def set_sequence(list, indices):
+    "Replace a part to Sequence. indices must be a list of python integers. "
 
-def walk_parts(list_of_list, indices, evaluation, assign_list=None):
-    list = list_of_list[0]
+    def sequence(cur, rest):
+        if len(rest) > 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    part = cur.leaves[pos - 1]
+                elif pos == 0:
+                    part = cur.head
+                else:
+                    part = cur.leaves[pos]
+            except IndexError:
+                raise PartRangeError
+            sequence(part, rest[1:])
+        elif len(rest) == 1:
+            pos = rest[0]
+            if cur.is_atom():
+                raise PartDepthError(pos)
+            try:
+                if pos > 0:
+                    cur.leaves[pos - 1] = Expression('Sequence')
+                elif pos == 0:
+                    cur.head = Symbol('Sequence')
+                else:
+                    cur.leaves[pos] = Expression('Sequence')
+            except IndexError:
+                raise PartRangeError
 
-    # To get rid of duplicate entries (TODO: could be made faster!)
-    list = list.copy()
+    sequence(list, indices)
 
-    list.set_positions()
-    list_of_list = [list]
+def _parts_span_selector(pspec):
+    if len(pspec.leaves) > 3:
+        raise MessageException('Part', 'span', pspec)
+    start = 1
+    stop = None
+    step = 1
+    if len(pspec.leaves) > 0:
+        start = pspec.leaves[0].get_int_value()
+    if len(pspec.leaves) > 1:
+        stop = pspec.leaves[1].get_int_value()
+        if stop is None:
+            if pspec.leaves[1].get_name() == 'System`All':
+                stop = None
+            else:
+                raise MessageException('Part', 'span', pspec)
+    if len(pspec.leaves) > 2:
+        step = pspec.leaves[2].get_int_value()
 
-    result = list.copy()
-    result.set_positions()
+    if start == 0 or stop == 0:
+        # index 0 is undefined
+        raise MessageException('Part', 'span', 0)
 
-    inner_list = [result]   # changed in loop
+    if start is None or step is None:
+        raise MessageException('Part', 'span', pspec)
 
-    list_of_result = [result]   # to be able to change it in replace_result
+    def select(inner):
+        if inner.is_atom():
+            raise MessageException('Part', 'partd')
+        py_slice = python_seq(start, stop, step, len(inner.leaves))
+        if py_slice is None:
+            raise MessageException('Part', 'take', start, stop, inner)
+        return inner.leaves[py_slice]
 
-    def replace_item(all, item, new):
-        if item.position is None:
-            all[0] = new
-        else:
-            item.position.replace(new)
+    return select
+
+
+def _parts_sequence_selector(pspec):
+    if not isinstance(pspec, list):
+        indices = [pspec]
+    else:
+        indices = pspec
 
     for index in indices:
-        index = index.evaluate(evaluation)
-        if index.has_form('Span', None):
-            if len(index.leaves) > 3:
-                evaluation.message('Part', 'span', index)
-                return False
-            start = 1
-            stop = None
-            step = 1
-            if len(index.leaves) > 0:
-                start = index.leaves[0].get_int_value()
-            if len(index.leaves) > 1:
-                stop = index.leaves[1].get_int_value()
-                if stop is None:
-                    if index.leaves[1].get_name() == 'System`All':
-                        stop = None
-                    else:
-                        evaluation.message('Part', 'span', index)
-                        return False
-            if len(index.leaves) > 2:
-                step = index.leaves[2].get_int_value()
+        if not isinstance(index, Integer):
+            raise MessageException('Part', 'pspec', pspec)
 
-            if start == 0 or stop == 0:
-                # index 0 is undefined
-                evaluation.message('Part', 'span', 0)
-                return False
+    def select(inner):
+        if inner.is_atom():
+            raise MessageException('Part', 'partd')
 
-            if start is None or step is None:
-                evaluation.message('Part', 'span', index)
-                return False
+        leaves = inner.leaves
+        n = len(leaves)
 
-            for inner in inner_list:
-                py_slice = python_seq(start, stop, step, len(inner.leaves))
-                if py_slice is None:
-                    evaluation.message('Part', 'take', start, stop, inner)
-                    return False
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
-                inner.leaves = inner.leaves[py_slice]
-                inner.original = None
-                inner.set_positions()
-            inner_list = join_lists(inner.leaves for inner in inner_list)
-        elif index.has_form('List', None):
-            index_list = index
-            indices = []
-            for index in index_list.leaves:
-                if not isinstance(index, Integer):
-                    evaluation.message('Part', 'pspec', index_list)
-                    return False
-                index = index.value
-                if index > 0:
-                    py_index = index - 1
-                else:
-                    py_index = index
-                indices.append((py_index, index))
+        for index in indices:
+            int_index = index.value
 
-            for inner in inner_list:
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
-
-                new_leaves = []
-                for py_index, index in indices:
-                    try:
-                        if index != 0:
-                            part = inner.leaves[py_index]
-                        else:
-                            part = inner.head
-                        new_leaves.append(part)
-                    except IndexError:
-                        evaluation.message('Part', 'partw', index, inner)
-                        return False
-                inner.leaves = new_leaves
-                inner.original = None
-                inner.set_positions()
-            inner_list = join_lists(inner.leaves for inner in inner_list)
-        elif isinstance(index, Integer):
-            index = index.value
-            if index > 0:
-                py_index = index - 1
+            if int_index == 0:
+                yield inner.head
+            elif 1 <= int_index <= n:
+                yield leaves[int_index - 1]
+            elif -n <= int_index <= -1:
+                yield leaves[int_index]
             else:
-                py_index = index
-            for inner in inner_list:
-                if inner.is_atom():
-                    evaluation.message('Part', 'partd')
-                    return False
-                try:
-                    if index != 0:
-                        part = inner.leaves[py_index]
-                    else:
-                        part = inner.head
-                except IndexError:
-                    evaluation.message('Part', 'partw', index, inner)
-                    return False
-                replace_item(list_of_result, inner, part)
-                part.set_positions()
-            inner_list = [inner.leaves[py_index] for inner in inner_list]
+                raise MessageException('Part', 'partw', index, inner)
 
-    result = list_of_result[0]
+    return select
+
+
+def _part_selectors(indices):
+    for index in indices:
+        if index.has_form('Span', None):
+            yield _parts_span_selector(index)
+        elif index.has_form('List', None):
+            yield _parts_sequence_selector(index.leaves)
+        elif isinstance(index, Integer):
+            yield _parts_sequence_selector(index), lambda x: x[0]
+        else:
+            raise MessageException('Part', 'pspec', index)
+
+
+def _list_parts(items, selectors, assignment):
+    if not selectors:
+        for item in items:
+            yield item
+    else:
+        selector = selectors[0]
+        if isinstance(selector, tuple):
+            select, unwrap = selector
+        else:
+            select = selector
+            unwrap = None
+
+        for item in items:
+            selected = list(select(item))
+
+            picked = list(_list_parts(
+                selected, selectors[1:], assignment))
+
+            if unwrap is None:
+                expr = item.shallow_copy()
+                expr.leaves = picked
+                expr.last_evaluated = None
+
+                if assignment:
+                    expr.original = None
+                    expr.set_positions()
+
+                yield expr
+            else:
+                yield unwrap(picked)
+
+
+def _parts(items, selectors, assignment=False):
+    return list(_list_parts([items], list(selectors), assignment))[0]
+
+
+def walk_parts(list_of_list, indices, evaluation, assign_list=None):
+    walk_list = list_of_list[0]
 
     if assign_list is not None:
+        # this double copying is needed to make the current logic in
+        # the assign_list and its access to original work.
+
+        walk_list = walk_list.copy()
+        walk_list.set_positions()
+        list_of_list = [walk_list]
+
+        walk_list = walk_list.copy()
+        walk_list.set_positions()
+
+    indices = [index.evaluate(evaluation) for index in indices]
+
+    try:
+        result = _parts(
+            walk_list,
+            _part_selectors(indices),
+            assign_list is not None)
+    except MessageException as e:
+        e.message(evaluation)
+        return False
+
+    if assign_list is not None:
+        def replace_item(all, item, new):
+            if item.position is None:
+                all[0] = new
+            else:
+                item.position.replace(new)
+
         def process_level(item, assignment):
             if item.is_atom():
                 replace_item(list_of_list, item.original, assignment)
@@ -422,9 +474,12 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
                 for sub_item, sub_assignment in zip(item.leaves,
                                                     assignment.leaves):
                     process_level(sub_item, sub_assignment)
+
         process_level(result, assign_list)
+
         result = list_of_list[0]
-    result.last_evaluated = None
+        result.last_evaluated = None
+
     return result
 
 
@@ -605,7 +660,11 @@ def python_seq(start, stop, step, length):
         return None
 
     # special empty case
-    if start is not None and stop is not None and stop + 1 == start and step > 0:
+    if stop is None and length is not None:
+        empty_stop = length
+    else:
+        empty_stop = stop
+    if start is not None and empty_stop + 1 == start and step > 0:
         return slice(0, 0, 1)
 
     if start == 0 or stop == 0:
@@ -800,7 +859,7 @@ class Part(Builtin):
             open, close = "[[", "]]"
         else:
             open, close = "\u301a", "\u301b"
-        indices = list_boxes(i, f, evaluation, open, close)
+        indices = list_boxes(i, f, open, close)
         result = Expression('RowBox', Expression('List', list, *indices))
         return result
 
@@ -1079,6 +1138,175 @@ class ReplacePart(Builtin):
         return new_expr
 
 
+class FirstPosition(Builtin):
+    """
+    <dl>
+    <dt>'FirstPosition[$expr$, $pattern$]'
+        <dd>gives the position of the first element in $expr$ that matches $pattern$, or Missing["NotFound"] if no such element is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$]'
+        <dd>gives default if no element matching $pattern$ is found.
+    <dt>'FirstPosition[$expr$, $pattern$, $default$, $levelspec$]'
+        <dd>finds only objects that appear on levels specified by $levelspec$.
+    </dl>
+
+    >> FirstPosition[{a, b, a, a, b, c, b}, b]
+     = {2}
+
+    >> FirstPosition[{{a, a, b}, {b, a, a}, {a, b, a}}, b]
+     = {1, 3}
+
+    >> FirstPosition[{x, y, z}, b]
+     = Missing[NotFound]
+
+    Find the first position at which x^2 to appears:
+    >> FirstPosition[{1 + x^2, 5, x^4, a + (1 + x^2)^2}, x^2]
+     = {1, 2}
+
+    #> FirstPosition[{1, 2, 3}, _?StringQ, "NoStrings"]
+     = NoStrings
+
+    #> FirstPosition[a, a]
+     = {}
+
+    #> FirstPosition[{{{1, 2}, {2, 3}, {3, 1}}, {{1, 2}, {2, 3}, {3, 1}}},3]
+     = {1, 2, 2}
+
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],2]
+     = {2, 1}
+
+    #> FirstPosition[{{1, {2, 1}}, {2, 3}, {3, 1}}, 2, Missing["NotFound"],4]
+     = {1, 2, 1}
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1}]
+     = Missing[NotFound]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], 0]
+     = Missing[NotFound]
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], {3}]
+     = {2, 2, 1}
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2, Missing["NotFound"], 3]
+     = {1, 2}
+
+    #> FirstPosition[{{1, 2}, {1, {2, 1}}, {2, 3}}, 2,  Missing["NotFound"], {}]
+     = {1, 2}
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, 2, 3}]
+     : Level specification {1, 2, 3} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, 2, 3}]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], a]
+     : Level specification a is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], a]
+
+    #> FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing["NotFound"], {1, a}]
+     : Level specification {1, a} is not of the form n, {n}, or {m, n}.
+     = FirstPosition[{{1, 2}, {2, 3}, {3, 1}}, 3, Missing[NotFound], {1, a}]
+
+    """
+
+    messages = {
+        'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.',
+    }
+
+    def apply(self, expr, pattern, evaluation, default = None, minLevel = None, maxLevel = None):
+        'FirstPosition[expr_, pattern_]'
+
+        if expr == pattern:
+            return Expression("List")
+
+        result  = []
+        def check_pattern(input_list, pat, result, beginLevel):
+            for i in range(0, len(input_list.leaves)) :
+                nested_level = beginLevel
+                result.append(i + 1)
+                if input_list.leaves[i] == pat:
+                    #found the pattern
+                    if(minLevel is None or nested_level >= minLevel):
+                        return True
+
+                else:
+                    if isinstance(input_list.leaves[i], Expression) and (maxLevel is None or maxLevel > nested_level):
+                        nested_level = nested_level + 1
+                        if check_pattern(input_list.leaves[i], pat, result, nested_level):
+                            return True
+
+                result.pop()
+            return False
+
+        is_found = False
+        if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0):
+            is_found = check_pattern(expr, pattern, result, 1)
+        if is_found:
+            return Expression("List", *result)
+        else:
+            return Expression("Missing", "NotFound") if default is None else default
+
+    def apply_default(self, expr, pattern, default, evaluation):
+        'FirstPosition[expr_, pattern_, default_]'
+        return self.apply(expr, pattern, evaluation, default = default)
+
+    def apply_level(self, expr, pattern, default, level, evaluation):
+        'FirstPosition[expr_, pattern_, default_, level_]'
+
+        def is_interger_list(expr_list):
+            return all(
+                isinstance(expr_list.leaves[i], Integer) for i in range(len(expr_list.leaves))
+            )
+
+        if level.has_form("List", None):
+            len_list  = len(level.leaves)
+            if len_list > 2 or not is_interger_list(level):
+                return evaluation.message('FirstPosition', 'level', level)
+            elif len_list == 0:
+                min_Level = max_Level = None
+            elif len_list == 1:
+                min_Level = max_Level = level.leaves[0].get_int_value()
+            elif len_list == 2:
+                min_Level = level.leaves[0].get_int_value()
+                max_Level = level.leaves[1].get_int_value()
+        elif isinstance(level, Integer):
+            min_Level = 0
+            max_Level = level.get_int_value()
+        else:
+            return evaluation.message('FirstPosition', 'level', level)
+
+        return self.apply(expr, pattern, evaluation, default = default, minLevel = min_Level, maxLevel = max_Level)
+
+def _drop_take_selector(name, seq, sliced):
+    seq_tuple = convert_seq(seq)
+    if seq_tuple is None:
+        raise MessageException(name, 'seqs', seq)
+
+    def select(inner):
+        start, stop, step = seq_tuple
+        if inner.is_atom():
+            py_slice = None
+        else:
+            py_slice = python_seq(start, stop, step, len(inner.leaves))
+        if py_slice is None:
+            if stop is None:
+                stop = Symbol('Infinity')
+            raise MessageException(name, name.lower(), start, stop, inner)
+        return sliced(inner.leaves, py_slice)
+
+    return select
+
+
+def _take_span_selector(seq):
+    return _drop_take_selector('Take', seq, lambda x, s: x[s])
+
+
+def _drop_span_selector(seq):
+    def sliced(x, s):
+        y = x[:]
+        del y[s]
+        return y
+
+    return _drop_take_selector('Drop', seq, sliced)
+
+
 class Take(Builtin):
     """
     <dl>
@@ -1135,35 +1363,19 @@ class Take(Builtin):
         'normal': 'Nonatomic expression expected at position `1` in `2`.',
     }
 
-    def apply(self, list, seqs, evaluation):
-        'Take[list_, seqs___]'
+    def apply(self, items, seqs, evaluation):
+        'Take[items_, seqs___]'
 
-        expr = Expression('Take', list, seqs)
         seqs = seqs.get_sequence()
 
-        list = list.copy()
-        inner_list = [list]
+        if items.is_atom():
+            return evaluation.message(
+                'Take', 'normal', 1, Expression('Take', items, *seqs))
 
-        for inner in inner_list:
-            if inner.is_atom():
-                return evaluation.message('Take', 'normal', 1, expr)
-
-        for seq in seqs:
-            seq_tuple = convert_seq(seq)
-            if seq_tuple is None:
-                evaluation.message('Take', 'seqs', seq)
-                return
-            start, stop, step = seq_tuple
-            for inner in inner_list:
-                py_slice = python_seq(start, stop, step, len(inner.leaves))
-                if py_slice is None:
-                    if stop is None:
-                        stop = Symbol('Infinity')
-                    return evaluation.message('Take', 'take', start, stop, inner)
-                inner.leaves = inner.leaves[py_slice]
-            inner_list = join_lists(inner.leaves for inner in inner_list)
-
-        return list
+        try:
+            return _parts(items, [_take_span_selector(seq) for seq in seqs])
+        except MessageException as e:
+            e.message(evaluation)
 
 
 class Drop(Builtin):
@@ -1197,31 +1409,23 @@ class Drop(Builtin):
     """
 
     messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
         'drop': "Cannot drop positions `1` through `2` in `3`.",
     }
 
-    def apply(self, list, seqs, evaluation):
-        'Drop[list_, seqs___]'
+    def apply(self, items, seqs, evaluation):
+        'Drop[items_, seqs___]'
 
         seqs = seqs.get_sequence()
 
-        list = list.copy()
-        inner_list = [list]
+        if items.is_atom():
+            return evaluation.message(
+                'Drop', 'normal', 1, Expression('Drop', items, *seqs))
 
-        for seq in seqs:
-            seq_tuple = convert_seq(seq)
-            if seq_tuple is None:
-                evaluation.message('Drop', 'seqs', seq)
-                return
-            start, stop, step = seq_tuple
-            for inner in inner_list:
-                py_slice = python_seq(start, stop, step, len(inner.leaves))
-                if inner.is_atom() or py_slice is None:
-                    return evaluation.message('Drop', 'drop', start, stop, inner)
-                del inner.leaves[py_slice]
-            inner_list = join_lists(inner.leaves for inner in inner_list)
-
-        return list
+        try:
+            return _parts(items, [_drop_span_selector(seq) for seq in seqs])
+        except MessageException as e:
+            e.message(evaluation)
 
 
 class Select(Builtin):
@@ -1387,6 +1591,50 @@ class SplitBy(Builtin):
         return result
 
 
+class Pick(Builtin):
+    """
+    <dl>
+    <dt>'Pick[$list$, $sel$]'
+        <dd>returns those items in $list$ that are True in $sel$.
+    <dt>'Pick[$list$, $sel$, $patt$]'
+        <dd>returns those items in $list$ that match $patt$ in $sel$.
+    </dl>
+
+    >> Pick[{a, b, c}, {False, True, False}]
+     = {b}
+
+    >> Pick[f[g[1, 2], h[3, 4]], {{True, False}, {False, True}}]
+     = f[g[1], h[4]]
+
+    >> Pick[{a, b, c, d, e}, {1, 2, 3.5, 4, 5.5}, _Integer]
+     = {a, b, d}
+    """
+
+    def _do(self, items0, sel0, match):
+        def pick(items, sel):
+            for x, s in zip(items, sel):
+                if match(s):
+                    yield x
+                elif not x.is_atom() and not s.is_atom():
+                    yield Expression(x.get_head(), *list(pick(x.leaves, s.leaves)))
+
+        r = list(pick([items0], [sel0]))
+        if not r:
+            return Expression('Sequence')
+        else:
+            return r[0]
+
+    def apply(self, items, sel, evaluation):
+        'Pick[items_, sel_]'
+        return self._do(items, sel, lambda s: s.is_true())
+
+    def apply_pattern(self, items, sel, pattern, evaluation):
+        'Pick[items_, sel_, pattern_]'
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+        return self._do(items, sel, lambda s: match(s, evaluation))
+
+
 class Cases(Builtin):
     """
     <dl>
@@ -1468,6 +1716,98 @@ class Cases(Builtin):
         return Expression('List', *results)
 
 
+
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $n$]'
+        <dd>returns $expr$ with part $n$ removed.
+    </dl>
+
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
+     = {{1}, {3, 4}}
+    #> Delete[{1,2,3,4},5]
+     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
+     = Delete[{1, 2, 3, 4}, 5]
+    """
+
+    messages = {
+        'normal': 'Nonatomic expression expected at position `1` in `2`.',
+        'delete': "Cannot delete position `1` in `2`.",
+    }
+
+
+    def del_one(self,cur,pos):
+        l = len(cur.leaves)
+        if cur.is_atom():
+            raise PartDepthError
+        if pos > l:
+            raise PartRangeError
+        if pos > 0:
+            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
+            return cur
+        elif pos == 0:
+            cur.head = Symbol('System`Sequence')
+            return cur
+        elif pos >= -l:
+            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
+            return cur
+        else:
+            raise PartRangeError
+
+    def del_rec(self, cur, rest):
+        if cur.is_atom():
+            raise PartDepthError
+        if len(rest) > 1:
+            pos = rest[0]
+            try:
+                if pos > 0:
+                    part = get_part(cur,[pos])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
+                    return cur
+                elif pos == 0:
+                    raise PartRangeError
+                elif pos >= -len(cur.leaves):
+                    l = len(cur.leaves)
+                    part = get_part(cur,[l+pos+1])
+                    part = self.del_rec(part,rest[1:])
+                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
+                    return cur
+                else:
+                    raise PartRangeError
+            except IndexError:
+                raise PartRangeError
+        else:
+            return self.del_one(cur, rest[0])
+
+    def del_part(self, expr,indices,evaluation):
+        if indices.is_atom():
+            return self.del_one(expr,indices.get_int_value())
+        else:
+            indices = [index.get_int_value() for index in indices.leaves]
+            return self.del_rec(expr.copy(), indices)
+
+    def apply(self, items, n, evaluation):
+        'Delete[items_, n_]'
+
+        if items.is_atom():
+            return evaluation.message(
+                'Delete', 'normal', 1, Expression('Delete', items, n))
+        try:
+            return self.del_part(items,n,evaluation)
+        except MessageException as e:
+            e.message(evaluation)
+        except PartRangeError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
+        except PartDepthError:
+            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
+
+
 class DeleteCases(Builtin):
     """
     <dl>
@@ -1517,6 +1857,66 @@ class Count(Builtin):
         'Count[pattern_][list_]': 'Count[list, pattern]',
         'Count[list_, arguments__]': 'Length[Cases[list, arguments]]',
     }
+
+class LeafCount(Builtin):
+    """
+    <dl>
+    <dt>'LeafCount[$expr$]'
+        <dd>returns the total number of indivisible subexpressions in $expr$.
+    </dl>
+
+    >> LeafCount[1 + x + y^a]
+     = 6
+
+    >> LeafCount[f[x, y]]
+     = 3
+
+    >> LeafCount[{1 / 3, 1 + I}]
+     = 7
+
+    >> LeafCount[Sqrt[2]]
+     = 5
+
+    >> LeafCount[100!]
+     = 1
+
+    #> LeafCount[f[a, b][x, y]]
+     = 5
+
+    #> NestList[# /. s[x_][y_][z_] -> x[z][y[z]] &, s[s][s][s[s]][s][s], 4];
+    #> LeafCount /@ %
+     = {7, 8, 8, 11, 11}
+
+    #> LeafCount[1 / 3, 1 + I]
+     : LeafCount called with 2 arguments; 1 argument is expected.
+     = LeafCount[1 / 3, 1 + I]
+    """
+
+    messages = {
+        'argx': 'LeafCount called with `1` arguments; 1 argument is expected.',
+    }
+
+    def apply(self, expr, evaluation):
+        'LeafCount[expr___]'
+
+        from mathics.core.expression import Rational, Complex
+        leaves = []
+
+        def callback(level):
+            if isinstance(level, Rational):
+                leaves.extend([level.get_head(), level.numerator(), level.denominator()])
+            elif isinstance(level, Complex):
+                leaves.extend([level.get_head(), level.real, level.imag])
+            else:
+                leaves.append(level)
+            return level
+
+        expr = expr.get_sequence()
+        if len(expr) != 1:
+            return evaluation.message('LeafCount', 'argx', Integer(len(expr)))
+
+        walk_levels(expr[0], start=-1, stop=-1, heads=True, callback=callback)
+        return Integer(len(leaves))
 
 
 class Position(Builtin):
@@ -1657,7 +2057,7 @@ class _IterationFunction(Builtin):
     def apply_range(self, expr, i, imax, evaluation):
         '%(name)s[expr_, {i_Symbol, imax_}]'
 
-        if imax.get_head_name() == 'Range':
+        if imax.has_form('Range', None):
             seq = Expression('Sequence', *(imax.evaluate(evaluation).leaves))
             return self.apply_list(expr, i, seq, evaluation)
         else:
@@ -2140,6 +2540,65 @@ class Prepend(Builtin):
                           *([item] + expr.get_leaves()))
 
 
+class PrependTo(Builtin):
+    """
+    <dl>
+    <dt>'PrependTo[$s$, $item$]'
+        <dd>prepends $item$ to value of $s$ and sets $s$ to the result.
+    </dl>
+
+    Assign s to a list
+    >> s = {1, 2, 4, 9}
+     = {1, 2, 4, 9}
+
+    Add a new value at the beginning of the list:
+    >> PrependTo[s, 0]
+     = {0, 1, 2, 4, 9}
+
+    The value assigned to s has changed:
+    >> s
+     = {0, 1, 2, 4, 9}
+
+    'PrependTo' works with a head other than 'List':
+    >> y = f[a, b, c];
+    >> PrependTo[y, x]
+     = f[x, a, b, c]
+    >> y
+     = f[x, a, b, c]
+
+    #> PrependTo[{a, b}, 1]
+     :  {a, b} is not a variable with a value, so its value cannot be changed.
+     = PrependTo[{a, b}, 1]
+
+    #> PrependTo[a, b]
+     : a is not a variable with a value, so its value cannot be changed.
+     = PrependTo[a, b]
+
+    #> x = 1 + 2;
+    #> PrependTo[x, {3, 4}]
+     : Nonatomic expression expected at position 1 in PrependTo[x, {3, 4}].
+     =  PrependTo[x, {3, 4}]
+    """
+
+    attributes = ('HoldFirst',)
+
+    messages = {
+        'rvalue': '`1` is not a variable with a value, so its value cannot be changed.',
+        'normal': 'Nonatomic expression expected at position 1 in `1`.'
+    }
+
+    def apply(self, s, item, evaluation):
+        'PrependTo[s_, item_]'
+        if isinstance(s, Symbol):
+            resolved_s = s.evaluate(evaluation)
+
+            if not resolved_s.is_atom():
+                result = Expression('Set', s, Expression('Prepend', resolved_s, item))
+                return result.evaluate(evaluation)
+            if s != resolved_s:
+                return evaluation.message('PrependTo', 'normal', Expression('PrependTo', s, item))
+        return evaluation.message('PrependTo', 'rvalue', s)
+
 def get_tuples(items):
     if not items:
         yield []
@@ -2380,7 +2839,7 @@ def riffle_lists(items, seps):
     while i < len(items):
         yield items[i]
         if i == len(items) - 1 and len(items) != len(seps):
-            raise StopIteration
+            return
         yield seps[i % len(seps)]
         i += 1
 
@@ -2529,38 +2988,45 @@ class _GatherOperation(Builtin):
                   "every pair of elements."),
     }
 
-    def apply(self, list, test, evaluation):
-        '%(name)s[list_, test_]'
-
-        if list.is_atom():
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'normal', 1, expr)
-
-        if list.get_head_name() != 'System`List':
-            expr = Expression(self.get_name(), list, test)
-            return evaluation.message(self.get_name(), 'list', expr, 1)
+    def apply(self, values, test, evaluation):
+        '%(name)s[values_, test_]'
+        if not self._check_list(values, test, evaluation):
+            return
 
         if _is_sameq(test):
-            return self._gather(list, _FastEquivalence())
+            return self._gather(values, values, _FastEquivalence())
         else:
-            return self._gather(list, _SlowEquivalence(test, evaluation, self.get_name()))
+            return self._gather(values, values, _SlowEquivalence(test, evaluation, self.get_name()))
 
-    def _gather(self, a_list, equivalence):
+    def _check_list(self, values, arg2, evaluation):
+        if values.is_atom():
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'normal', 1, expr)
+            return False
+
+        if values.get_head_name() != 'System`List':
+            expr = Expression(self.get_name(), values, arg2)
+            evaluation.message(self.get_name(), 'list', expr, 1)
+            return False
+
+        return True
+
+    def _gather(self, keys, values, equivalence):
         bins = []
         Bin = self._bin
 
-        for elem in a_list.leaves:
-            selection = equivalence.select(elem)
+        for key, value in zip(keys.leaves, values.leaves):
+            selection = equivalence.select(key)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.same(prototype, elem):
-                    add_to_bin(elem)  # add to existing bin
+                if equivalence.same(prototype, key):
+                    add_to_bin(value)  # add to existing bin
                     break
             else:
-                a_bin = Bin(elem)  # create new bin
-                selection.append((elem, a_bin.add_to))
-                bins.append(a_bin)
+                new_bin = Bin(value)  # create new bin
+                selection.append((key, new_bin.add_to))
+                bins.append(new_bin)
 
-        return Expression('List', *[a_bin.from_python() for a_bin in bins])
+        return Expression('List', *[b.from_python() for b in bins])
 
 
 class Gather(_GatherOperation):
@@ -2585,7 +3051,7 @@ class Gather(_GatherOperation):
     _bin = _GatherBin
 
 
-class GatherBy(Builtin):
+class GatherBy(_GatherOperation):
     """
     <dl>
     <dt>'GatherBy[$list$, $f$]'
@@ -2613,8 +3079,21 @@ class GatherBy(Builtin):
         'GatherBy[l_]': 'GatherBy[l, Identity]',
         'GatherBy[l_, {r__, f_}]': 'Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]',
         'GatherBy[l_, {f_}]': 'GatherBy[l, f]',
-        'GatherBy[l_, f_]': 'Gather[l, SameQ[f[#1], f[#2]]&]'
     }
+
+    _bin = _GatherBin
+
+    def apply(self, values, func, evaluation):
+        '%(name)s[values_, func_]'
+
+        if not self._check_list(values, func, evaluation):
+            return
+
+        keys = Expression('Map', func, values).evaluate(evaluation)
+        if len(keys.leaves) != len(values.leaves):
+            return
+
+        return self._gather(keys, values, _FastEquivalence())
 
 
 class Tally(_GatherOperation):
@@ -3016,6 +3495,55 @@ class Reverse(Builtin):
             return Reverse._reverse(expr, 1, py_levels)
 
 
+class CentralMoment(Builtin):  # see https://en.wikipedia.org/wiki/Central_moment
+    '''
+    <dl>
+    <dt>'CentralMoment[$list$, $r$]'
+      <dd>gives the the $r$th central moment (i.e. the $r$th moment about the mean) of $list$.
+    </dl>
+
+    >> CentralMoment[{1.1, 1.2, 1.4, 2.1, 2.4}, 4]
+     = 0.100845
+    '''
+
+    rules = {
+        'CentralMoment[list_List, r_]': 'Total[(list - Mean[list]) ^ r] / Length[list]',
+    }
+
+
+class Skewness(Builtin):  # see https://en.wikipedia.org/wiki/Skewness
+    '''
+    <dl>
+    <dt>'Skewness[$list$]'
+      <dd>gives Pearson's moment coefficient of skewness for $list$ (a measure for estimating
+      the symmetry of a distribution).
+    </dl>
+
+    >> Skewness[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 0.407041
+    '''
+
+    rules = {
+        'Skewness[list_List]': 'CentralMoment[list, 3] / (CentralMoment[list, 2] ^ (3 / 2))',
+    }
+
+
+class Kurtosis(Builtin):  # see https://en.wikipedia.org/wiki/Kurtosis
+    '''
+    <dl>
+    <dt>'Kurtosis[$list$]'
+      <dd>gives the Pearson measure of kurtosis for $list$ (a measure of existing outliers).
+    </dl>
+
+    >> Kurtosis[{1.1, 1.2, 1.4, 2.1, 2.4}]
+     = 1.42098
+    '''
+
+    rules = {
+        'Kurtosis[list_List]': 'CentralMoment[list, 4] / (CentralMoment[list, 2] ^ 2)',
+    }
+
+
 class Mean(Builtin):
     """
     <dl>
@@ -3407,6 +3935,98 @@ class RankedMax(Builtin):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
             return introselect(l.leaves[:], len(l.leaves) - py_n)
+
+
+class Quantile(Builtin):
+    """
+    <dl>
+    <dt>'Quantile[$list$, $q$]'
+      <dd>returns the $q$th quantile of $list$.
+    </dl>
+
+    >> Quantile[Range[11], 1/3]
+     = 4
+
+    >> Quantile[Range[16], 1/4]
+     = 5
+    """
+
+    rules = {
+        'Quantile[list_List, q_, abcd_]': 'Quantile[list, {q}, abcd]',
+        'Quantile[list_List, q_]': 'Quantile[list, q, {{0, 1}, {1, 0}}]',
+    }
+
+    messages = {
+        'nquan': 'The quantile `1` has to be between 0 and 1.',
+    }
+
+    def apply(self, l, qs, a, b, c, d, evaluation):
+        '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
+
+        n = len(l.leaves)
+        partially_sorted = l.leaves[:]
+
+        def ranked(i):
+            return introselect(partially_sorted, min(max(0, i - 1), n - 1))
+
+        numeric_qs = qs.evaluate(evaluation).numerify(evaluation)
+        results = []
+
+        for q in numeric_qs.leaves:
+            py_q = q.to_mpmath()
+
+            if py_q is None or not 0. <= py_q <= 1.:
+                evaluation.message('Quantile', 'nquan', q)
+                return
+
+            x = Expression('Plus', a, Expression(
+                'Times', Expression('Plus', Integer(n), b), q))
+
+            numeric_x = x.evaluate(evaluation).numerify(evaluation)
+
+            if isinstance(numeric_x, Integer):
+                results.append(ranked(numeric_x.get_int_value()))
+            else:
+                py_x = numeric_x.to_mpmath()
+
+                if py_x is None:
+                    return
+
+                from mpmath import floor as mpfloor, ceil as mpceil
+
+                if c.get_int_value() == 1 and d.get_int_value() == 0:  # k == 1?
+                    results.append(ranked(int(mpceil(py_x))))
+                else:
+                    py_floor_x = mpfloor(py_x)
+                    s0 = ranked(int(py_floor_x))
+                    s1 = ranked(int(mpceil(py_x)))
+
+                    k = Expression('Plus', c, Expression(
+                        'Times', d, Expression('Subtract', x, Expression('Floor', x))))
+
+                    results.append(Expression('Plus', s0, Expression(
+                        'Times', k, Expression('Subtract', s1, s0))))
+
+        if len(results) == 1:
+            return results[0]
+        else:
+            return Expression('List', *results)
+
+
+class Quartiles(Builtin):
+    """
+    <dl>
+    <dt>'Quartiles[$list$]'
+      <dd>returns the 1/4, 1/2, and 3/4 quantiles of $list$.
+    </dl>
+
+    >> Quartiles[Range[25]]
+     = {27 / 4, 13, 77 / 4}
+    """
+
+    rules = {
+        'Quartiles[list_List]': 'Quantile[list, {1/4, 1/2, 3/4}, {{1/2, 0}, {0, 1}}]',
+    }
 
 
 class _RankedTake(Builtin):
@@ -3857,6 +4477,22 @@ class _LazyDistances(LazyDistances):
         return _to_real_distance(d)
 
 
+def _dist_repr(p):
+    dist_p = repr_p = None
+    if p.has_form('Rule', 2):
+        if all(q.get_head_name() == 'System`List' for q in p.leaves):
+            dist_p, repr_p = (q.leaves for q in p.leaves)
+        elif p.leaves[0].get_head_name() == 'System`List' and p.leaves[1].get_name() == 'System`Automatic':
+            dist_p = p.leaves[0].leaves
+            repr_p = [Integer(i + 1) for i in range(len(dist_p))]
+    elif p.get_head_name() == 'System`List':
+        if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
+            dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
+        else:
+            dist_p = repr_p = p.leaves
+    return dist_p, repr_p
+
+
 class _Cluster(Builtin):
     options = {
         'Method': 'Optimize',
@@ -3887,15 +4523,7 @@ class _Cluster(Builtin):
             evaluation.message(self.get_name(), 'bdmtd', Expression('Rule', 'Method', method))
             return
 
-        dist_p = None
-        if p.get_head_name() == 'System`Rule':
-            if all(q.get_head_name() == 'System`List' for q in p.leaves):
-                dist_p, repr_p = (q.leaves for q in p.leaves)
-        elif p.get_head_name() == 'System`List':
-            if all(q.get_head_name() == 'System`Rule' for q in p.leaves):
-                dist_p, repr_p = ([q.leaves[i] for q in p.leaves] for i in range(2))
-            else:
-                dist_p = repr_p = p.leaves
+        dist_p, repr_p = _dist_repr(p)
 
         if dist_p is None or len(dist_p) != len(repr_p):
             evaluation.message(self.get_name(), 'list', expr)
@@ -4120,6 +4748,136 @@ class ClusteringComponents(_Cluster):
                              Expression('ClusteringComponents', p, k, *options_to_rules(options)))
 
 
+class Nearest(Builtin):
+    '''
+    <dl>
+    <dt>'Nearest[$list$, $x$]'
+        <dd>returns the one item in $list$ that is nearest to $x$.
+    <dt>'Nearest[$list$, $x$, $n$]'
+        <dd>returns the $n$ nearest items.
+    <dt>'Nearest[$list$, $x$, {$n$, $r$}]'
+        <dd>returns up to $n$ nearest items that are not farther from $x$ than $r$.
+    <dt>'Nearest[{$p1$ -> $q1$, $p2$ -> $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    <dt>'Nearest[{$p1$, $p2$, ...} -> {$q1$, $q2$, ...}, $x$]'
+        <dd>returns $q1$, $q2$, ... but measures the distances using $p1$, $p2$, ...
+    </dl>
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12]
+     = {11}
+
+    Return all items within a distance of 5:
+
+    >> Nearest[{5, 2.5, 10, 11, 15, 8.5, 14}, 12, {All, 5}]
+     = {11, 10, 14}
+
+    >> Nearest[{Blue -> "blue", White -> "white", Red -> "red", Green -> "green"}, {Orange, Gray}]
+     = {{red}, {white}}
+
+    >> Nearest[{{0, 1}, {1, 2}, {2, 3}} -> {a, b, c}, {1.1, 2}]
+     = {b}
+    '''
+
+    options = {
+        'DistanceFunction': 'Automatic',
+        'Method': '"Scan"',
+    }
+
+    messages = {
+        'amtd': '`1` failed to pick a suitable distance function for `2`.',
+        'list': 'Expected a list or a rule with equally sized lists at position 1 in ``.',
+        'nimp': 'Method `1` is not implemented yet.',
+    }
+
+    rules = {
+        'Nearest[list_, pattern_]': 'Nearest[list, pattern, 1]',
+        'Nearest[pattern_][list_]': 'Nearest[list, pattern]',
+    }
+
+    def apply(self, items, pivot, limit, expression, evaluation, options):
+        'Nearest[items_, pivot_, limit_, OptionsPattern[%(name)s]]'
+
+        method = self.get_option(options, 'Method', evaluation)
+        if not isinstance(method, String) or method.get_string_value() != 'Scan':
+            evaluation('Nearest', 'nimp', method)
+            return
+
+        dist_p, repr_p = _dist_repr(items)
+
+        if dist_p is None or len(dist_p) != len(repr_p):
+            evaluation.message(self.get_name(), 'list', expression)
+            return
+
+        if limit.has_form('List', 2):
+            up_to = limit.leaves[0]
+            py_r = limit.leaves[1].to_mpmath()
+        else:
+            up_to = limit
+            py_r = None
+
+        if isinstance(up_to, Integer):
+            py_n = up_to.get_int_value()
+        elif up_to.get_name() == 'System`All':
+            py_n = None
+        else:
+            return
+
+        if not dist_p or (py_n is not None and py_n < 1):
+            return Expression('List')
+
+        multiple_x = False
+
+        distance_function_string, distance_function = self.get_option_string(
+            options, 'DistanceFunction', evaluation)
+        if distance_function_string == 'Automatic':
+            from mathics.builtin.tensors import get_default_distance
+
+            distance_function = get_default_distance(dist_p)
+            if distance_function is None:
+                evaluation.message(self.get_name(), 'amtd', 'Nearest', Expression('List', *dist_p))
+                return
+
+            if pivot.get_head_name() == 'System`List':
+                _, depth_x = walk_levels(pivot)
+                _, depth_items = walk_levels(dist_p[0])
+
+                if depth_x > depth_items:
+                    multiple_x = True
+
+        def nearest(x):
+            calls = [Expression(distance_function, x, y) for y in dist_p]
+            distances = Expression('List', *calls).evaluate(evaluation)
+
+            if not distances.has_form('List', len(dist_p)):
+                raise ValueError()
+
+            py_distances = [(_to_real_distance(d), i) for i, d in enumerate(distances.leaves)]
+
+            if py_r is not None:
+                py_distances = [(d, i) for d, i in py_distances if d <= py_r]
+
+            def pick():
+                if py_n is None:
+                    candidates = sorted(py_distances)
+                else:
+                    candidates = heapq.nsmallest(py_n, py_distances)
+
+                for d, i in candidates:
+                    yield repr_p[i]
+
+            return Expression('List', *list(pick()))
+
+        try:
+            if not multiple_x:
+                return nearest(pivot)
+            else:
+                return Expression('List', *[nearest(t) for t in pivot.leaves])
+        except _IllegalDistance:
+            return Symbol('$Failed')
+        except ValueError:
+            return Symbol('$Failed')
+
+
 class Permutations(Builtin):
     '''
     <dl>
@@ -4184,3 +4942,640 @@ class Permutations(Builtin):
         return Expression('List', *[Expression('List', *p)
                                     for r in rs
                                     for p in permutations(l.leaves, r)])
+
+
+class SubsetQ(Builtin):
+    """
+    <dl>
+    <dt>'SubsetQ[$list1$, $list2$]'
+        <dd>returns True if $list2$ is a subset of $list1$, and False otherwise.
+    </dl>
+
+    >> SubsetQ[{1, 2, 3}, {3, 1}]
+     = True
+
+    The empty list is a subset of every list:
+    >> SubsetQ[{}, {}]
+     = True
+
+    >> SubsetQ[{1, 2, 3}, {}]
+     = True
+
+    Every list is a subset of itself:
+    >> SubsetQ[{1, 2, 3}, {1, 2, 3}]
+     = True
+
+    #> SubsetQ[{1, 2, 3}, {0, 1}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}, {1, 2, 3, 4}]
+     = False
+
+    #> SubsetQ[{1, 2, 3}]
+     : SubsetQ called with 1 argument; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}]
+
+    #> SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+     : SubsetQ called with 3 arguments; 2 arguments are expected.
+     = SubsetQ[{1, 2, 3}, {1, 2}, {3}]
+
+    #> SubsetQ[a + b + c, {1}]
+     : Heads Plus and List at positions 1 and 2 are expected to be the same.
+     = SubsetQ[a + b + c, {1}]
+
+    #> SubsetQ[{1, 2, 3}, n]
+     : Nonatomic expression expected at position 2 in SubsetQ[{1, 2, 3}, n].
+     = SubsetQ[{1, 2, 3}, n]
+
+    #> SubsetQ[f[a, b, c], f[a]]
+     = True
+    """
+
+    messages = {
+        'argr': "SubsetQ called with 1 argument; 2 arguments are expected.",
+        'argrx': "SubsetQ called with `1` arguments; 2 arguments are expected.",
+        'heads': "Heads `1` and `2` at positions 1 and 2 are expected to be the same.",
+        'normal': "Nonatomic expression expected at position `1` in `2`.",
+    }
+
+    def apply(self, expr, subset, evaluation):
+        'SubsetQ[expr_, subset___]'
+
+        if expr.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(1), Expression('SubsetQ', expr, subset))
+
+        subset = subset.get_sequence()
+        if len(subset) > 1:
+            return evaluation.message('SubsetQ', 'argrx', Integer(len(subset) + 1))
+        elif len(subset) == 0:
+            return evaluation.message('SubsetQ', 'argr')
+
+        subset = subset[0]
+        if subset.is_atom():
+            return evaluation.message('SubsetQ', 'normal', Integer(2), Expression('SubsetQ', expr, subset))
+        if expr.get_head_name() != subset.get_head_name():
+            return evaluation.message('SubsetQ', 'heads', expr.get_head(), subset.get_head())
+
+        if set(subset.leaves).issubset(set(expr.leaves)):
+            return Symbol('True')
+        else:
+            return Symbol('False')
+
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $i$]'
+        <dd>deletes the element at position $i$ in $expr$. The position is counted from the end if $i$ is negative.
+    <dt>'Delete[$expr$, {$m$, $n$, ...}]'
+        <dd>deletes the element at position {$m$, $n$, ...}.
+    <dt>'Delete[$expr$, {{$m1$, $n1$, ...}, {$m2$, $n2$, ...}, ...}]'
+        <dd>deletes the elements at several positions.
+    </dl>
+
+    Delete the element at position 3:
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+
+    Delete at position 2 from the end:
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+
+    Delete at positions 1 and 3:
+    >> Delete[{a, b, c, d}, {{1}, {3}}]
+     = {b, d}
+
+    Delete in a 2D array:
+    >> Delete[{{a, b}, {c, d}}, {2, 1}]
+     = {{a, b}, {d}}
+
+    Deleting the head of a whole expression gives a Sequence object:
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    Delete in an expression with any head:
+    >> Delete[f[a, b, c, d], 3]
+     = f[a, b, d]
+
+    Delete a head to splice in its arguments:
+    >> Delete[f[a, b, u + v, c], {3, 0}]
+     = f[a, b, u, v, c]
+
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    #> Delete[1 + x ^ (a + b + c), {2, 2, 3}]
+     = 1 + x ^ (a + b)
+
+    #> Delete[f[a, g[b, c], d], {{2}, {2, 1}}]
+     = f[a, d]
+
+    #> Delete[f[a, g[b, c], d], m + n]
+     : The expression m + n cannot be used as a part specification. Use Key[m + n] instead.
+     = Delete[f[a, g[b, c], d], m + n]
+
+    Delete without the position:
+    >> Delete[{a, b, c, d}]
+     : Delete called with 1 argument; 2 arguments are expected.
+     = Delete[{a, b, c, d}]
+
+    Delete with many arguments:
+    >> Delete[{a, b, c, d}, 1, 2]
+     : Delete called with 3 arguments; 2 arguments are expected.
+     = Delete[{a, b, c, d}, 1, 2]
+
+    Delete the element out of range:
+    >> Delete[{a, b, c, d}, 5]
+     : Part {5} of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, 5]
+
+    #> Delete[{a, b, c, d}, {1, 2}]
+     : Part 2 of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, {1, 2}]
+
+    Delete the position not integer:
+    >> Delete[{a, b, c, d}, {1, n}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {1, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, n}]
+     : Position specification {n, {1}} in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, {n}}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, {n}}]
+    """
+
+    messages = {
+        'argr': "Delete called with 1 argument; 2 arguments are expected.",
+        'argt': "Delete called with `1` arguments; 2 arguments are expected.",
+        'partw': "Part `1` of `2` does not exist.",
+        'psl': "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
+        'pkspec': "The expression `1` cannot be used as a part specification. Use `2` instead.",
+    }
+
+    def apply_one(self, expr, position, evaluation):
+        'Delete[expr_, position_Integer]'
+
+        new_expr = expr.copy()
+        pos = [position.get_int_value()]
+        try:
+            set_sequence(new_expr, pos)
+        except PartError:
+            return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
+
+    def apply(self, expr, positions, evaluation):
+        'Delete[expr_, positions___]'
+
+        positions = positions.get_sequence()
+        if len(positions) > 1:
+            return evaluation.message('Delete', 'argt', Integer(len(positions) + 1))
+        elif len(positions) == 0:
+            return evaluation.message('Delete', 'argr')
+
+        positions = positions[0]
+        if not positions.has_form('List', None):
+            return evaluation.message('Delete', 'pkspec', positions, Expression('Key', positions))
+
+        # Create new python list of the positions and sort it
+        positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
+        positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+
+        new_expr = expr.copy()
+        for position in positions:
+            pos = [p.get_int_value() for p in position.get_leaves()]
+            if None in pos:
+                return evaluation.message('Delete', 'psl', position.leaves[pos.index(None)], expr)
+            if len(pos) == 0:
+                return evaluation.message('Delete', 'psl', Expression('List', *positions), expr)
+            try:
+                set_sequence(new_expr, pos)
+            except PartDepthError as exc:
+                return evaluation.message('Delete', 'partw', Integer(exc.index), expr)
+            except PartError:
+                return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+
+        return new_expr
+
+class Association(Builtin):
+    """
+    <dl>
+    <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
+    <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
+        <dd> represents an association between keys and values.
+    </dl>
+
+    'Association' is the head of associations:
+    >> Head[<|a -> x, b -> y, c -> z|>]
+     = Association
+
+    >> <|a -> x, b -> y|>
+     = <|a -> x, b -> y|>
+
+    >> Association[{a -> x, b -> y}]
+     = <|a -> x, b -> y|>
+
+    Associations can be nested:
+    >> <|a -> x, b -> y, <|a -> z, d -> t|>|>
+     = <|a -> z, b -> y, d -> t|>
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|>
+     = <|a -> x, b -> y, c -> <|d -> t|>|>
+    #> %["s"]
+     = Missing[KeyAbsent, s]
+
+    #> <|a -> x, b + c -> y, {<|{}|>, a -> {z}}|>
+     = <|a -> {z}, b + c -> y|>
+    #> %[a]
+     = {z}
+
+    #> <|"x" -> 1, {y} -> 1|>
+     = <|x -> 1, {y} -> 1|>
+    #> %["x"]
+     = 1
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {}, <||>|>, {d}|>[c]
+     =  Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {}, Association[]], {d}][c]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {d}|>, {}, <||>|>[a]
+     = Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {d}], {}, Association[]][a]
+
+    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z, {d}|>, {}, <||>|>, {}, <||>|>
+     = <|<|a -> v|> -> x, b -> y, a -> Association[c -> z, {d}]|>
+    #> %[a]
+     = Association[c -> z, {d}]
+
+    #> <|a -> x, b -> y, c -> <|d -> t|>|> // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{d, ->, t}], |>}]}]}], |>}]
+
+    #> Association[a -> x, b -> y, c -> Association[d -> t, Association[e -> u]]] // ToBoxes
+     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{RowBox[{d, ->, t}], ,, RowBox[{e, ->, u}]}], |>}]}]}], |>}]
+    """
+
+    error_idx = 0
+
+    attributes = ('HoldAllComplete', 'Protected',)
+
+    def apply_makeboxes(self, rules, f, evaluation):
+        '''MakeBoxes[<|rules___|>,
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+
+        def validate(exprs):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    if validate(expr.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        rules = rules.get_sequence()
+        if self.error_idx == 0 and validate(rules) is True:
+            expr = Expression('RowBox', Expression('List', *list_boxes(rules, f, "<|", "|>")))
+        else:
+            self.error_idx += 1
+            symbol = Expression('MakeBoxes', Symbol('Association'), f)
+            expr = Expression('RowBox', Expression('List', symbol, *list_boxes(rules, f, "[", "]")))
+
+        expr = expr.evaluate(evaluation)
+        if self.error_idx > 0:
+            self.error_idx -= 1
+        return expr
+
+    def apply(self, rules, evaluation):
+        'Association[rules__]'
+
+        def make_flatten(exprs, dic={}, keys=[]):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    key = expr.leaves[0].evaluate(evaluation)
+                    value = expr.leaves[1].evaluate(evaluation)
+                    dic[key] = Expression(expr.get_head(), key, value)
+                    if key not in keys:
+                        keys.append(key)
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    make_flatten(expr.leaves, dic, keys)
+                else:
+                    raise
+            return [dic[key] for key in keys]
+
+        try:
+            return Expression('Association', *make_flatten(rules.get_sequence()))
+        except:
+            return None
+
+    def apply_key(self, rules, key, evaluation):
+        'Association[rules__][key_]'
+
+        def find_key(exprs, dic={}):
+            for expr in exprs:
+                if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                    if expr.leaves[0] == key:
+                        dic[key] = expr.leaves[1]
+                elif expr.has_form('List', None) or expr.has_form('Association', None):
+                    find_key(expr.leaves)
+                else:
+                    raise
+            return dic
+
+        try:
+            result = find_key(rules.get_sequence())
+        except:
+            return None
+
+        return result[key] if result else Expression('Missing', Symbol('KeyAbsent'), key)
+
+class AssociationQ(Test):
+    """
+    <dl>
+    <dt>'AssociationQ[$expr$]'
+        <dd>return True if $expr$ is a valid Association object, and False otherwise.
+    </dl>
+
+    >> AssociationQ[<|a -> 1, b :> 2|>]
+     = True
+
+    >> AssociationQ[<|a, b|>]
+     = False
+    """
+
+    def test(self, expr):
+        def validate(leaves):
+            for leaf in leaves:
+                if leaf.has_form(('Rule', 'RuleDelayed'), 2):
+                    pass
+                elif leaf.has_form('List', None) or leaf.has_form('Association', None):
+                    if validate(leaf.leaves) is not True:
+                        return False
+                else:
+                    return False
+            return True
+
+        return expr.get_head_name() == 'System`Association' and validate(expr.leaves)
+
+class Keys(Builtin):
+    """
+    <dl>
+    <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the keys $keyi$ in an association.
+    <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $keyi$ in a list of rules.
+    </dl>
+
+    >> Keys[<|a -> x, b -> y|>]
+     = {a, b}
+
+    >> Keys[{a -> x, b -> y}]
+     = {a, b}
+
+    Keys automatically threads over lists:
+    >> Keys[{<|a -> x, b -> y|>, {w -> z, {}}}]
+     = {{a, b}, {w, {}}}
+
+    Keys are listed in the order of their appearance:
+    >> Keys[{c -> z, b -> y, a -> x}]
+     = {c, b, a}
+
+    #> Keys[a -> x]
+     = a
+
+    #> Keys[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {a, a, {a, {b}, {}, {}}}
+
+    #> Keys[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {a, a, {a, b}}
+
+    #> Keys[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {a, b}
+
+    #> Keys[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, Association[a -> y, b]]]
+
+    #> Keys[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Keys[Association[a -> x, {a -> y, b}]]
+
+    #> Keys[{a -> x, <|a -> y, b|>}]
+     : The argument Association[a -> y, b] is not a valid Association or a list of rules.
+     = Keys[{a -> x, Association[a -> y, b]}]
+
+    #> Keys[{a -> x, {a -> y, b}}]
+     : The argument b is not a valid Association or a list of rules.
+     = Keys[{a -> x, {a -> y, b}}]
+
+    #> Keys[a -> x, b -> y]
+     : Keys called with 2 arguments; 1 argument is expected.
+     = Keys[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Keys called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Keys[rules___]'
+
+        def get_keys(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[0]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_keys(leaf) for leaf in expr.leaves])
+            else:
+                evaluation.message('Keys', 'invrl', expr)
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Keys', 'argx', Integer(len(rules)))
+
+        try:
+            return get_keys(rules[0])
+        except:
+            return None
+
+class Values(Builtin):
+    """
+    <dl>
+    <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+        <dd>return a list of the values $vali$ in an association.
+    <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+        <dd>return a list of the $vali$ in a list of rules.
+    </dl>
+
+    >> Values[<|a -> x, b -> y|>]
+     = {x, y}
+
+    >> Values[{a -> x, b -> y}]
+     = {x, y}
+
+    Values automatically threads over lists:
+    >> Values[{<|a -> x, b -> y|>, {c -> z, {}}}]
+     = {{x, y}, {z, {}}}
+
+    Values are listed in the order of their appearance:
+    >> Values[{c -> z, b -> y, a -> x}]
+     = {z, y, x}
+
+    #> Values[a -> x]
+     = x
+
+    #> Values[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
+     = {x, y, {z, {t}, {}, {}}}
+
+    #> Values[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
+     = {x, y, {z, t}}
+
+    #> Values[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
+     = {z, t}
+
+    #> Values[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
+     = {z, t}
+
+    #> Values[<|a -> x, <|a -> y, b|>|>]
+     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, Association[a -> y, b]]]
+
+    #> Values[<|a -> x, {a -> y, b}|>]
+     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
+     = Values[Association[a -> x, {a -> y, b}]]
+
+    #> Values[{a -> x, <|a -> y, b|>}]
+     : The argument {a -> x, Association[a -> y, b]} is not a valid Association or a list of rules.
+     = Values[{a -> x, Association[a -> y, b]}]
+
+    #> Values[{a -> x, {a -> y, b}}]
+     : The argument {a -> x, {a -> y, b}} is not a valid Association or a list of rules.
+     = Values[{a -> x, {a -> y, b}}]
+
+    #> Values[a -> x, b -> y]
+     : Values called with 2 arguments; 1 argument is expected.
+     = Values[a -> x, b -> y]
+    """
+
+    attributes = ('Protected',)
+
+    messages = {
+        'argx': 'Values called with `1` arguments; 1 argument is expected.',
+        'invrl': 'The argument `1` is not a valid Association or a list of rules.',
+    }
+
+    def apply(self, rules, evaluation):
+        'Values[rules___]'
+
+        def get_values(expr):
+            if expr.has_form(('Rule', 'RuleDelayed'), 2):
+                return expr.leaves[1]
+            elif expr.has_form('List', None) \
+                    or (expr.has_form('Association', None) and AssociationQ(expr).evaluate(evaluation) == Symbol('True')):
+                return Expression('List', *[get_values(leaf) for leaf in expr.leaves])
+            else:
+                raise
+
+        rules = rules.get_sequence()
+        if len(rules) != 1:
+            return evaluation.message('Values', 'argx', Integer(len(rules)))
+
+        try:
+            return get_values(rules[0])
+        except:
+            return evaluation.message('Values', 'invrl', rules[0])
+
+
+class ContainsOnly(Builtin):
+    """
+    <dl>
+    <dt>'ContainsOnly[$list1$, $list2$]'
+        <dd>yields True if $list1$ contains only elements that appear in $list2$.
+    </dl>
+
+    >> ContainsOnly[{b, a, a}, {a, b, c}]
+     = True
+
+    The first list contains elements not present in the second list:
+    >> ContainsOnly[{b, a, d}, {a, b, c}]
+     = False
+
+    >> ContainsOnly[{}, {a, b, c}]
+     = True
+
+    #> ContainsOnly[1, {1, 2, 3}]
+     : List or association expected instead of 1.
+     = ContainsOnly[1, {1, 2, 3}]
+
+    #> ContainsOnly[{1, 2, 3}, 4]
+     : List or association expected instead of 4.
+     = ContainsOnly[{1, 2, 3}, 4]
+
+    Use Equal as the comparison function to have numerical tolerance:
+    >> ContainsOnly[{a, 1.0}, {1, a, b}, {SameTest -> Equal}]
+     = True
+
+    #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
+     : Unknown option IgnoreCase -> True in ContainsOnly.
+     : Unknown option IgnoreCase in .
+     = True
+    """
+
+    attributes = ('ReadProtected',)
+
+    messages = {
+        'lsa': "List or association expected instead of `1`.",
+        'nodef': "Unknown option `1` for ContainsOnly.",
+        'optx': "Unknown option `1` in `2`.",
+    }
+
+    options = {
+        'SameTest': 'SameQ',
+    }
+
+    def check_options(self, expr, evaluation, options):
+        for key in options:
+            if key != 'System`SameTest':
+                if expr is None:
+                    evaluation.message('ContainsOnly', 'optx', Symbol(key))
+                else:
+                    return evaluation.message('ContainsOnly', 'optx', Symbol(key), expr)
+        return None
+
+    def apply(self, list1, list2, evaluation, options={}):
+        'ContainsOnly[list1_?ListQ, list2_?ListQ, OptionsPattern[ContainsOnly]]'
+
+        same_test = self.get_option(options, 'SameTest', evaluation)
+
+        def same(a, b):
+            result = Expression(same_test, a, b).evaluate(evaluation)
+            return result.is_true()
+
+        self.check_options(None, evaluation, options)
+        for a in list1.leaves:
+            if not any(same(a, b) for b in list2.leaves):
+                return Symbol('False')
+        return Symbol('True')
+
+    def apply_msg(self, e1, e2, evaluation, options={}):
+        'ContainsOnly[e1_, e2_, OptionsPattern[ContainsOnly]]'
+
+        opts = options_to_rules(options) if len(options) <= 1 else [Expression('List', *options_to_rules(options))]
+        expr = Expression('ContainsOnly', e1, e2, *opts)
+
+        if not isinstance(e1, Symbol) and not e1.has_form('List', None):
+            evaluation.message('ContainsOnly', 'lsa', e1)
+            return self.check_options(expr, evaluation, options)
+
+        if not isinstance(e2, Symbol) and not e2.has_form('List', None):
+            evaluation.message('ContainsOnly', 'lsa', e2)
+            return self.check_options(expr, evaluation, options)
+
+        return self.check_options(expr, evaluation, options)

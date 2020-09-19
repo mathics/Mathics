@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+
+import string
 
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
 from mathics.core.parser.tokeniser import Tokeniser, is_symbol_name
@@ -23,11 +23,15 @@ special_symbols = {
 }
 
 
+permitted_digits = {c: i for i, c in enumerate(string.digits + string.ascii_lowercase)}
+permitted_digits['.'] = 0
+
+
 class Parser(object):
     def __init__(self):
         # no implicit times on these tokens
         self.halt_tags = set([
-            'END', 'RawRightParenthesis', 'RawComma', 'RawRightBrace',
+            'END', 'RawRightAssociation', 'RawRightParenthesis', 'RawComma', 'RawRightBrace',
             'RawRightBracket', 'RawColon', 'DifferentialD'])
 
     def parse(self, feeder):
@@ -162,7 +166,7 @@ class Parser(object):
                 self.tokeniser.feeder.message('Syntax', 'com')
                 result.append(Symbol('Null'))
                 self.consume()
-            elif tag in ('RawRightBrace', 'RawRightBracket'):
+            elif tag in ('RawRightAssociation', 'RawRightBrace', 'RawRightBracket'):
                 if result:
                     self.tokeniser.feeder.message('Syntax', 'com')
                     result.append(Symbol('Null'))
@@ -174,7 +178,7 @@ class Parser(object):
                 if tag == 'RawComma':
                     self.consume()
                     continue
-                elif tag in ('RawRightBrace', 'RawRightBracket'):
+                elif tag in ('RawRightAssociation', 'RawRightBrace', 'RawRightBracket'):
                     break
         return result
 
@@ -265,6 +269,14 @@ class Parser(object):
         self.bracket_depth -= 1
         return Node('List', *seq)
 
+    def p_RawLeftAssociation(self, token):
+        self.consume()
+        self.bracket_depth += 1
+        seq = self.parse_seq()
+        self.expect('RawRightAssociation')
+        self.bracket_depth -= 1
+        return Node('Association', *seq)
+    
     def p_LeftRowBox(self, token):
         self.consume()
         children = []
@@ -287,7 +299,49 @@ class Parser(object):
         return result
 
     def p_Number(self, token):
-        result = Number(token.text)
+        s = token.text
+
+        # sign
+        if s[0] == '-':
+            s = s[1:]
+            sign = -1
+        else:
+            sign = 1
+
+        # base
+        s = s.split('^^')
+        if len(s) == 1:
+            base, s = 10, s[0]
+        else:
+            assert len(s) == 2
+            base, s = int(s[0]), s[1]
+            if not 2 <= base <= 36:
+                self.tokeniser.feeder.message('General', 'base', base, token.text, 36)
+                self.tokeniser.sntx_message(token.pos)
+                raise InvalidSyntaxError()
+
+        # mantissa
+        s = s.split('*^')
+        if len(s) == 1:
+            exp, s = 0, s[0]
+        else:
+            # TODO modify regex and provide error if `exp` is not an int
+            exp, s = int(s[1]), s[0]
+
+        # precision/accuracy
+        s = s.split('`', 1)
+        if len(s) == 1:
+            s, suffix = s[0], None
+        else:
+            s, suffix = s[0], s[1]
+
+        for i, c in enumerate(s.lower()):
+            if permitted_digits[c] >= base:
+                self.tokeniser.feeder.message('General', 'digit', i + 1, s, base)
+                self.tokeniser.sntx_message(token.pos)
+                raise InvalidSyntaxError()
+
+        result = Number(s, sign=sign, base=base, suffix=suffix, exp=exp)
         self.consume()
         return result
 
@@ -352,7 +406,7 @@ class Parser(object):
             expr.value = '-' + expr.value
             return expr
         else:
-            return Node('Times', Number('-1'), expr).flatten()
+            return Node('Times', Number('1', sign=-1), expr).flatten()
 
     def p_Plus(self, token):
         self.consume()
@@ -412,6 +466,20 @@ class Parser(object):
         self.consume()
         q = prefix_ops['PreDecrement']
         return Node('PreDecrement', self.parse_exp(q))
+
+    def p_PatternTest(self, token):
+        self.consume()
+        q = prefix_ops['Definition']
+        child = self.parse_exp(q)
+        return Node('Information', child, Node('Rule', Symbol("LongForm"), Symbol("False")))
+
+    def p_Information(self, token):
+        self.consume()
+        q = prefix_ops['Information']
+        child = self.parse_exp(q)
+        if child.__class__ is not Symbol:
+            raise InvalidSyntaxError()
+        return Node('Information', child, Node('Rule', Symbol("LongForm"), Symbol("True")))
 
     # E methods
     #
@@ -575,7 +643,7 @@ class Parser(object):
         if isinstance(expr2, Number) and not expr2.value.startswith('-'):
             expr2.value = '-' + expr2.value
         else:
-            expr2 = Node('Times', Number('-1'), expr2).flatten()
+            expr2 = Node('Times', Number('1', sign=-1), expr2).flatten()
         return Node('Plus', expr1, expr2).flatten()
 
     def e_TagSet(self, expr1, token, p):
@@ -626,7 +694,7 @@ class Parser(object):
             return None
         self.consume()
         expr2 = self.parse_exp(q + 1)
-        return Node('Times', expr1, Node('Power', expr2, Number('-1'))).flatten()
+        return Node('Times', expr1, Node('Power', expr2, Number('1', sign=-1))).flatten()
 
     def e_Alternatives(self, expr1, token, p):
         q = flat_binary_ops['Alternatives']

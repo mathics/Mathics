@@ -1,17 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
+import pickle
+from queue import Queue
 
-import six
-import six.moves.cPickle as pickle
-from six.moves.queue import Queue
-
+import os
 import sys
-from threading import Thread
-import itertools
+from threading import Thread, stack_size as set_thread_stack_size
+
+from typing import Tuple
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
@@ -20,18 +17,6 @@ FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
            'OutputForm', 'InputForm',
            'TeXForm', 'MathMLForm',
            'MatrixForm', 'TableForm']
-
-
-def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
-    active = [gen for gen in gens]
-    while len(active) > 0:
-        i = 0
-        while i < len(active):
-            try:
-                yield next(active[i])
-                i += 1
-            except StopIteration:
-                del active[i]
 
 
 class EvaluationInterrupt(Exception):
@@ -59,7 +44,7 @@ class ContinueInterrupt(EvaluationInterrupt):
     pass
 
 
-def _thread_target(request, queue):
+def _thread_target(request, queue) -> None:
     try:
         result = request()
         queue.put((True, result))
@@ -68,11 +53,45 @@ def _thread_target(request, queue):
         queue.put((False, exc_info))
 
 
-def run_with_timeout(request, timeout):
+# MAX_RECURSION_DEPTH gives the maximum value allowed for $RecursionLimit. it's usually set to its
+# default settings.DEFAULT_MAX_RECURSION_DEPTH.
+
+MAX_RECURSION_DEPTH = max(settings.DEFAULT_MAX_RECURSION_DEPTH, int(os.getenv(
+    'MATHICS_MAX_RECURSION_DEPTH', settings.DEFAULT_MAX_RECURSION_DEPTH)))
+
+
+def python_recursion_depth(n) -> int:
+    # convert Mathics recursion depth to Python recursion depth. this estimates how many Python calls
+    # we need at worst to process one Mathics recursion.
+    return 200 + 30 * n
+
+
+def python_stack_size(n) -> int:  # n is a Mathics recursion depth
+    # python_stack_frame_size is the (maximum) number of bytes Python needs for one call on the stack.
+    python_stack_frame_size = 512  # value estimated experimentally
+    return python_recursion_depth(n) * python_stack_frame_size
+
+
+def set_python_recursion_limit(n) -> None:
+    "Sets the required python recursion limit given $RecursionLimit value"
+    python_depth = python_recursion_depth(n)
+    sys.setrecursionlimit(python_depth)
+    if sys.getrecursionlimit() != python_depth:
+        raise OverflowError
+
+
+def run_with_timeout_and_stack(request, timeout):
     '''
-    interrupts evaluation after a given time period.
+    interrupts evaluation after a given time period. provides a suitable stack environment.
     '''
-    if timeout is None:
+
+    # only use set_thread_stack_size if max recursion depth was changed via the environment variable
+    # MATHICS_MAX_RECURSION_DEPTH. if it is set, we always use a thread, even if timeout is None, in
+    # order to be able to set the thread stack size.
+
+    if MAX_RECURSION_DEPTH > settings.DEFAULT_MAX_RECURSION_DEPTH:
+        set_thread_stack_size(python_stack_size(MAX_RECURSION_DEPTH))
+    elif timeout is None:
         return request()
 
     queue = Queue(maxsize=1)   # stores the result or exception
@@ -87,31 +106,31 @@ def run_with_timeout(request, timeout):
     if success:
         return result
     else:
-        six.reraise(*result)
+        raise result[0].with_traceback(result[1], result[2])
 
 
 class Out(KeyComparable):
-    def __init__(self):
+    def __init__(self) -> None:
         self.is_message = False
         self.is_print = False
         self.text = ''
 
-    def get_sort_key(self):
-        (self.is_message, self.is_print, self.text)
+    def get_sort_key(self) -> Tuple[bool, bool, str]:
+        return (self.is_message, self.is_print, self.text)
 
 
 class Message(Out):
-    def __init__(self, symbol, tag, text):
+    def __init__(self, symbol, tag, text: str) -> None:
         super(Message, self).__init__()
         self.is_message = True
         self.symbol = symbol
         self.tag = tag
         self.text = text
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '{}::{}: {}'.format(self.symbol, self.tag, self.text)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
@@ -125,15 +144,15 @@ class Message(Out):
 
 
 class Print(Out):
-    def __init__(self, text):
+    def __init__(self, text) -> None:
         super(Print, self).__init__()
         self.is_print = True
         self.text = text
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.text
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
@@ -144,7 +163,7 @@ class Print(Out):
 
 
 class Result(object):
-    def __init__(self, out, result, line_no):
+    def __init__(self, out, result, line_no) -> None:
         self.out = out
         self.result = result
         self.line_no = line_no
@@ -158,7 +177,7 @@ class Result(object):
 
 
 class Output(object):
-    def max_stored_size(self, settings):
+    def max_stored_size(self, settings) -> int:
         return settings.MAX_STORED_SIZE
 
     def out(self, out):
@@ -173,7 +192,7 @@ class Output(object):
 
 class Evaluation(object):
     def __init__(self, definitions=None,
-                 output=None, format='text', catch_interrupt=True):
+                 output=None, format='text', catch_interrupt=True) -> None:
         from mathics.core.definitions import Definitions
 
         if definitions is None:
@@ -190,7 +209,6 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
-        self.output_size_limit = None
         self.catch_interrupt = catch_interrupt
 
     def parse(self, query):
@@ -233,11 +251,20 @@ class Evaluation(object):
         result = None
         exc_result = None
 
+        def check_io_hook(hook):
+            return len(self.definitions.get_ownvalues(hook)) > 0
+
         def evaluate():
             if history_length > 0:
                 self.definitions.add_rule('In', Rule(
-                    Expression('In', line_no), query))
-            result = query.evaluate(self)
+                   Expression('In', line_no), query))
+            if check_io_hook('System`$Pre'):
+                result = Expression('System`$Pre', query).evaluate(self)
+            else:
+                result = query.evaluate(self)
+
+            if check_io_hook('System`$Post'):
+                result = Expression('System`$Post', result).evaluate(self)
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
@@ -249,19 +276,21 @@ class Evaluation(object):
                 self.definitions.add_rule('Out', Rule(
                     Expression('Out', line_no), stored_result))
             if result != Symbol('Null'):
+                if check_io_hook('System`$PrePrint'):
+                    result = Expression('System`$PrePrint', result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
                 return None
         try:
             try:
-                result = run_with_timeout(evaluate, timeout)
+                result = run_with_timeout_and_stack(evaluate, timeout)
             except KeyboardInterrupt:
                 if self.catch_interrupt:
                     exc_result = Symbol('$Aborted')
                 else:
                     raise
             except ValueError as exc:
-                text = six.text_type(exc)
+                text = str(exc)
                 if (text == 'mpz.pow outrageous exponent' or    # noqa
                     text == 'mpq.pow outrageous exp num'):
                     self.message('General', 'ovfl')
@@ -308,22 +337,13 @@ class Evaluation(object):
         return result
 
     def get_stored_result(self, result):
-        from mathics.core.expression import Symbol
-
         # Remove outer format
         if result.has_form(FORMATS, 1):
             result = result.leaves[0]
 
-        # Prevent too large results from being stored, as this can exceed the
-        # DB's max_allowed_packet size
-        max_stored_size = self.output.max_stored_size(settings)
-        if max_stored_size is not None:
-            data = pickle.dumps(result)
-            if len(data) > max_stored_size:
-                return Symbol('Null')
         return result
 
-    def stop(self):
+    def stop(self) -> None:
         self.stopped = True
 
     def format_output(self, expr, format=None):
@@ -335,40 +355,26 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        orig_output_size_limit = self.output_size_limit
+        if format == 'text':
+            result = expr.format(self, 'System`OutputForm')
+        elif format == 'xml':
+            result = Expression(
+                'StandardForm', expr).format(self, 'System`MathMLForm')
+        elif format == 'tex':
+            result = Expression('StandardForm', expr).format(
+                self, 'System`TeXForm')
+        else:
+            raise ValueError
+
         try:
-            self.output_size_limit = self.definitions.get_config_value('System`$OutputSizeLimit')
-            options = {}
-
-            if format == 'text':
-                result = expr.format(self, 'System`OutputForm')
-                # for MathMLForm and TexForm, output size limits are applied in the form's apply
-                # methods (e.g. see MathMLForm.apply) and then passed through result.boxes_to_text
-                # which must, in these cases, not apply additional clipping, as this would clip
-                # already clipped string material. for OutputForm, on the other hand, the call to
-                # result.boxes_to_text is the only place we have to apply output size limits.
-                options['output_size_limit'] = self.output_size_limit
-            elif format == 'xml':
-                result = Expression(
-                    'StandardForm', expr).format(self, 'System`MathMLForm')
-            elif format == 'tex':
-                result = Expression('StandardForm', expr).format(
-                    self, 'System`TeXForm')
-            else:
-                raise ValueError
-
-            try:
-                boxes = result.boxes_to_text(evaluation=self, **options)
-            except BoxError:
-                self.message('General', 'notboxes',
-                             Expression('FullForm', result).evaluate(self))
-                boxes = None
-        finally:
-            self.output_size_limit = orig_output_size_limit
-
+            boxes = result.boxes_to_text(evaluation=self)
+        except BoxError:
+            self.message('General', 'notboxes',
+                         Expression('FullForm', result).evaluate(self))
+            boxes = None
         return boxes
 
-    def set_quiet_messages(self, messages):
+    def set_quiet_messages(self, messages) -> None:
         from mathics.core.expression import Expression, String
         value = Expression('List', *messages)
         self.definitions.set_ownvalue('Internal`$QuietMessages', value)
@@ -385,67 +391,7 @@ class Evaluation(object):
             return []
         return value.leaves
 
-    def make_boxes(self, items, form, segment=None):
-        from mathics.core.expression import Expression, Omitted
-
-        if self.output_size_limit is None or len(items) < 1:
-            if segment is not None:
-                segment.extend((False, 0, 0))
-            return [Expression('MakeBoxes', item, form) for item in items]
-
-        old_capacity = self.output_size_limit
-        capacity = old_capacity
-
-        left_leaves = []
-        right_leaves = []
-
-        middle = len(items) // 2
-        # note that we use generator expressions, not list comprehensions, here, since we
-        # might quit early in the loop below, and copying all leaves might prove inefficient.
-        from_left = ((leaf, left_leaves.append) for leaf in items[:middle])
-        from_right = ((leaf, right_leaves.append) for leaf in reversed(items[middle:]))
-
-        try:
-            for item, push in _interleave(from_left, from_right):
-                self.output_size_limit = capacity
-
-                # calling evaluate() here is a serious difference to the implementation
-                # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
-                # the leaves get evaluated first, since we need to estimate their size
-                # here.
-                #
-                # without $OutputSizeLimit, on the other hand, the expression
-                # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
-                # each expression, then we call evaluate on the root node. assuming that
-                # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
-                # should be identical.
-                #
-                # we could work around this difference by pushing the unevaluated
-                # expression here (see "push(box)" below), instead of the evaluated.
-                # this would be very inefficient though, since we would get quadratic
-                # runtime (quadratic in the depth of the tree).
-                box = Expression('MakeBoxes', item, form).evaluate(self)
-
-                cost = len(box.boxes_to_xml(evaluation=self))  # evaluate len as XML
-                if capacity < cost:
-                    break
-                capacity -= cost
-                push(box)
-        finally:
-            self.output_size_limit = old_capacity
-
-        ellipsis_size = len(items) - (len(left_leaves) + len(right_leaves))
-        ellipsis = [Omitted('<<%d>>' % ellipsis_size)] if ellipsis_size > 0 else []
-
-        if segment is not None:
-            if ellipsis_size > 0:
-                segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
-            else:
-                segment.extend((False, 0, 0))
-
-        return list(itertools.chain(left_leaves, ellipsis, reversed(right_leaves)))
-
-    def message(self, symbol, tag, *args):
+    def message(self, symbol, tag, *args) -> None:
         from mathics.core.expression import (String, Symbol, Expression,
                                              from_python)
 
@@ -484,7 +430,7 @@ class Evaluation(object):
         self.out.append(Message(symbol_shortname, tag, text))
         self.output.out(self.out[-1])
 
-    def print_out(self, text):
+    def print_out(self, text) -> None:
         from mathics.core.expression import from_python
 
         text = self.format_output(from_python(text), 'text')
@@ -494,7 +440,7 @@ class Evaluation(object):
         if settings.DEBUG_PRINT:
             print('OUT: ' + text)
 
-    def error(self, symbol, tag, *args):
+    def error(self, symbol, tag, *args) -> None:
         # Temporarily reset the recursion limit, to allow the message being
         # formatted
         self.recursion_depth, depth = 0, self.recursion_depth
@@ -504,11 +450,11 @@ class Evaluation(object):
             self.recursion_depth = depth
         raise AbortInterrupt
 
-    def error_args(self, symbol, given, *needed):
+    def error_args(self, symbol, given, *needed) -> None:
         self.message_args(symbol, given, *needed)
         raise AbortInterrupt
 
-    def message_args(self, symbol, given, *needed):
+    def message_args(self, symbol, given, *needed) -> None:
         from mathics.core.expression import Symbol
 
         if len(needed) == 1:
@@ -527,14 +473,14 @@ class Evaluation(object):
         else:
             raise NotImplementedError
 
-    def check_stopped(self):
+    def check_stopped(self) -> None:
         if self.stopped:
             raise TimeoutInterrupt
 
-    def inc_recursion_depth(self):
+    def inc_recursion_depth(self) -> None:
         self.check_stopped()
         limit = self.definitions.get_config_value(
-            '$RecursionLimit', settings.MAX_RECURSION_DEPTH)
+            '$RecursionLimit', MAX_RECURSION_DEPTH)
         if limit is not None:
             if limit < 20:
                 limit = 20
@@ -542,19 +488,19 @@ class Evaluation(object):
             if self.recursion_depth > limit:
                 self.error('$RecursionLimit', 'reclim', limit)
 
-    def dec_recursion_depth(self):
+    def dec_recursion_depth(self) -> None:
         self.recursion_depth -= 1
 
-    def add_listener(self, tag, listener):
+    def add_listener(self, tag, listener) -> None:
         existing = self.listeners.get(tag)
         if existing is None:
             existing = self.listeners[tag] = []
         existing.insert(0, listener)
 
-    def remove_listener(self, tag, listener):
+    def remove_listener(self, tag, listener) -> None:
         self.listeners.get(tag).remove(listener)
 
-    def publish(self, tag, *args, **kwargs):
+    def publish(self, tag, *args, **kwargs) -> None:
         listeners = self.listeners.get(tag, [])
         for listener in listeners:
             if listener(*args, **kwargs):

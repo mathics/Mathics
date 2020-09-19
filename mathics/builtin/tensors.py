@@ -1,13 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Tensor functions
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, Integer, String
@@ -246,6 +243,15 @@ class Inner(Builtin):
     Inner works with tensors of any depth:
     >> Inner[f, {{{a, b}}, {{c, d}}}, {{1}, {2}}, g]
      = {{{g[f[a, 1], f[b, 2]]}}, {{g[f[c, 1], f[d, 2]]}}}
+
+
+    ## Issue #670
+    #> A = {{ b ^ ( -1 / 2), 0}, {a * b ^ ( -1 / 2 ), b ^ ( 1 / 2 )}}
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
+    #> A . Inverse[A]
+     = {{1, 0}, {0, 1}}
+    #> A
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
     """
 
     rules = {
@@ -470,4 +476,8 @@ def get_default_distance(p):
     elif all(isinstance(q, String) for q in p):
         return 'EditDistance'
     else:
+        from mathics.builtin.graphics import expression_to_color
+        if all(expression_to_color(q) is not None for q in p):
+            return 'ColorDistance'
+
         return None

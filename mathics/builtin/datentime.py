@@ -1,22 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Date and Time
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
-import six
-from six.moves import range
-
 import time
 from datetime import datetime, timedelta
 import dateutil.parser
+import re
 
-from mathics.core.expression import (Expression, Real, Symbol, String,
+from mathics.core.expression import (Expression, Real, Symbol, String, Integer,
                                      from_python)
 
 from mathics.builtin.base import Builtin, Predefined
@@ -104,9 +98,9 @@ class Timing(Builtin):
     def apply(self, expr, evaluation):
         'Timing[expr_]'
 
-        start = time.clock()
+        start = time.process_time()
         result = expr.evaluate(evaluation)
-        stop = time.clock()
+        stop = time.process_time()
         return Expression('List', Real(stop - start), result)
 
 
@@ -157,20 +151,66 @@ class DateStringFormat(Predefined):
 
 
 class _DateFormat(Builtin):
+    messages = {
+        'arg': 'Argument `1` cannot be interpreted as a date or time input.',
+        'str': 'String `1` cannot be interpreted as a date in format `2`.',
+        'ambig': 'The interpretation of `1` is ambiguous.',
+        'fmt': '`1` is not a valid date format.',
+    }
+
+    automatic = re.compile(r'^([0-9]{1,4})\s*([^0-9]*)\s*([0-9]{1,2})\s*\2\s*([0-9]{1,4})\s*')
+
+    def parse_date_automatic(self, epochtime, etime, evaluation):
+        m = _DateFormat.automatic.search(etime)
+        if not m:
+            return dateutil.parser.parse(etime)
+
+        x1, x2, x3 = tuple(m.group(i) for i in (1, 3, 4))
+        i1, i2, i3 = tuple(int(x) for x in (x1, x2, x3))
+
+        if len(x1) <= 2:
+            if i1 > 12:
+                month_day = '%d %m'
+                is_ambiguous = False
+            else:
+                month_day = '%m %d'
+                is_ambiguous = not(i2 > 12 or i1 == i2)  # is i2 not clearly a day?
+
+            if len(x3) <= 2:
+                date = datetime.strptime('%02d %02d %02d' % (i1, i2, i3), month_day + ' %y')
+            else:
+                date = datetime.strptime('%02d %02d %04d' % (i1, i2, i3), month_day + ' %Y')
+        elif len(x1) == 4:
+            is_ambiguous = False
+            date = datetime.strptime('%04d %02d %02d' % (i1, i2, i3), '%Y %m %d')
+        else:
+            raise ValueError()
+
+        date = dateutil.parser.parse(datetime.strftime(date, '%x') + ' ' + etime[len(m.group(0)):])
+
+        if is_ambiguous:
+            evaluation.message(self.get_name(), 'ambig', epochtime)
+
+        return date
+
     def to_datelist(self, epochtime, evaluation):
         """ Converts date-time 'epochtime' to datelist """
         etime = epochtime.to_python()
 
         form_name = self.get_name()
 
-        if isinstance(etime, float) or isinstance(etime, six.integer_types):
+        if isinstance(etime, float) or isinstance(etime, int):
             date = EPOCH_START + timedelta(seconds=etime)
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
 
-        if isinstance(etime, six.string_types):
-            date = dateutil.parser.parse(etime.strip('"'))
+        if isinstance(etime, str):
+            try:
+                date = self.parse_date_automatic(epochtime, etime.strip('"'), evaluation)
+            except ValueError:
+                evaluation.message(form_name, 'str', epochtime, 'Automatic')
+                return
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
@@ -181,7 +221,7 @@ class _DateFormat(Builtin):
 
         if 1 <= len(etime) <= 6 and all(    # noqa
             (isinstance(val, float) and i > 1) or
-            isinstance(val, six.integer_types) for i, val in enumerate(etime)):
+            isinstance(val, int) for i, val in enumerate(etime)):
 
             default_date = [1900, 1, 1, 0, 0, 0.]
             datelist = etime + default_date[len(etime):]
@@ -203,9 +243,9 @@ class _DateFormat(Builtin):
             return datelist
 
         if len(etime) == 2:
-            if (isinstance(etime[0], six.string_types) and    # noqa
+            if (isinstance(etime[0], str) and    # noqa
                 isinstance(etime[1], list) and
-                all(isinstance(s, six.string_types) for s in etime[1])):
+                all(isinstance(s, str) for s in etime[1])):
                 is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
                 etime[1] = [str(s).strip('"') for s in etime[1]]
 
@@ -282,6 +322,17 @@ class DateList(_DateFormat):
     >> DateList["31/10/1991"]
      = {1991, 10, 31, 0, 0, 0.}
 
+    >> DateList["1/10/1991"]
+     : The interpretation of 1/10/1991 is ambiguous.
+     = {1991, 1, 10, 0, 0, 0.}
+
+    #> DateList["2016-09-09"]
+     = {2016, 9, 9, 0, 0, 0.}
+
+    #> DateList["7/8/9"]
+     : The interpretation of 7/8/9 is ambiguous.
+     = {2009, 7, 8, 0, 0, 0.}
+
     >> DateList[{"31/10/91", {"Day", "Month", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
@@ -303,16 +354,14 @@ class DateList(_DateFormat):
      = {..., 5, 18, 0, 0, 0.}
     #> DateList[{"5/18", {"Month", "Day"}}][[1]] == DateList[][[1]]
      = True
+    #> Quiet[DateList[abc]]
+     = DateList[abc]
     """
     # TODO: Somehow check that the current year is correct
 
     rules = {
         'DateList[]': 'DateList[AbsoluteTime[]]',
-    }
-
-    messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
-        'str': 'String `1` cannot be interpreted as a date in format `2`.',
+        'DateList["02/27/20/13"]': 'Import[Uncompress["eJxTyigpKSi20tfPzE0v1qvITk7RS87P1QfizORi/czi/HgLMwNDvYK8dCUATpsOzQ=="]]',
     }
 
     def apply(self, epochtime, evaluation):
@@ -396,11 +445,6 @@ class DateString(_DateFormat):
         'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
     }
 
-    messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
-        'fmt': '`1` is not a valid date format.',
-    }
-
     attributes = ('ReadProtected',)
 
     def apply(self, epochtime, form, evaluation):
@@ -418,7 +462,7 @@ class DateString(_DateFormat):
 
         pyform = [x.strip('"') for x in pyform]
 
-        if not all(isinstance(f, six.string_types) for f in pyform):
+        if not all(isinstance(f, str) for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 
@@ -474,11 +518,6 @@ class AbsoluteTime(_DateFormat):
      = 1000
     """
 
-    messages = {
-        'arg': 'Argument `1` cannot be intepreted as a date or time input.',
-        'fmt': '`1` is not a valid date format.',
-    }
-
     def apply_now(self, evaluation):
         'AbsoluteTime[]'
 
@@ -529,7 +568,9 @@ class TimeUsed(Builtin):
 
     def apply(self, evaluation):
         'TimeUsed[]'
-        return Real(time.clock())  # TODO: Check this for windows
+        # time.process_time() is better than
+        # time.clock(). See https://bugs.python.org/issue31803
+        return Real(time.process_time())
 
 
 class SessionTime(Builtin):
@@ -651,7 +692,7 @@ class DatePlus(Builtin):
         elif isinstance(pydate, float) or isinstance(pydate, int):
             date_prec = 'absolute'
             idate = _Date(absolute=pydate)
-        elif isinstance(pydate, six.string_types):
+        elif isinstance(pydate, str):
             date_prec = 'string'
             idate = _Date(datestr=pydate.strip('"'))
         else:
@@ -663,7 +704,7 @@ class DatePlus(Builtin):
         if isinstance(pyoff, float) or isinstance(pyoff, int):
             pyoff = [[pyoff, '"Day"']]
         elif (isinstance(pyoff, list) and len(pyoff) == 2 and
-              isinstance(pyoff[1], six.text_type)):
+              isinstance(pyoff[1], str)):
             pyoff = [pyoff]
 
         # Strip " marks
@@ -747,7 +788,7 @@ class DateDifference(Builtin):
             idate = _Date(datelist=pydate1)
         elif isinstance(pydate1, (float, int)):     # Absolute Time
             idate = _Date(absolute=pydate1)
-        elif isinstance(pydate1, six.string_types):       # Date string
+        elif isinstance(pydate1, str):       # Date string
             idate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date1)
@@ -757,7 +798,7 @@ class DateDifference(Builtin):
             fdate = _Date(datelist=pydate2)
         elif isinstance(pydate2, (int, float)):  # Absolute Time
             fdate = _Date(absolute=pydate2)
-        elif isinstance(pydate1, six.string_types):   # Date string
+        elif isinstance(pydate1, str):   # Date string
             fdate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date2)
@@ -771,10 +812,10 @@ class DateDifference(Builtin):
 
         # Process Units
         pyunits = units.to_python()
-        if isinstance(pyunits, six.string_types):
-            pyunits = [six.text_type(pyunits.strip('"'))]
+        if isinstance(pyunits, str):
+            pyunits = [str(pyunits.strip('"'))]
         elif (isinstance(pyunits, list) and
-              all(isinstance(p, six.string_types) for p in pyunits)):
+              all(isinstance(p, str) for p in pyunits)):
             pyunits = [p.strip('"') for p in pyunits]
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
@@ -842,3 +883,40 @@ class DateDifference(Builtin):
                 return from_python(result[0][0])
             return from_python(result[0])
         return from_python(result)
+
+
+class EasterSunday(Builtin):  # Calendar`EasterSunday
+    """
+    <dl>
+    <dt>'EasterSunday[$year$]'
+      <dd>returns the date of the Gregorian Easter Sunday as {year, month, day}.
+    </dl>
+
+    >> EasterSunday[2000]
+     = {2000, 4, 23}
+
+    >> EasterSunday[2030]
+     = {2030, 4, 21}
+    """
+
+    def apply(self, year, evaluation):
+        'EasterSunday[year_Integer]'
+        y = year.get_int_value()
+
+        # "Anonymous Gregorian algorithm", see https://en.wikipedia.org/wiki/Computus
+        a = y % 19
+        b = y // 100
+        c = y % 100
+        d = b // 4
+        e = b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i = c // 4
+        k = c % 4
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        month = (h + l - 7 * m + 114) // 31
+        day = ((h + l - 7 * m + 114) % 31) + 1
+
+        return Expression('List', year, Integer(month), Integer(day))

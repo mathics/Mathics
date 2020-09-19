@@ -7,8 +7,8 @@ SVGExport[filename_, expr_, opts___] :=
   Module[{strm, data}, 
     strm = OpenWrite[filename];
     If[strm === $Failed, Return[$Failed]];
-    data = StringTake[ToString[MathMLForm[expr]],{25,-29}];
-    WriteString[strm, data];
+    data = StringTake[ToString[MathMLForm[expr]],{7,-8}];
+    WriteString[strm, "<svg>" <> data <> "</svg>"];
     Close[strm];
   ]
 

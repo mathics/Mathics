@@ -1,6 +1,6 @@
 <chapter title="Introduction">
 
-\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, light-weight alternative to \Mathematica. It is free both as in "free beer" and as in "freedom". There are various online mirrors running \Mathics but it is also possible to run \Mathics locally. A list of mirrors can be found at the \Mathics homepage, <url>http://mathics.github.io</url>.
+\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, open-source alternative to \Mathematica. It is free both as in "free beer" and as in "freedom". There are various online mirrors running \Mathics but it is also possible to run \Mathics locally. A list of mirrors can be found at the \Mathics homepage, <url>http://mathics.github.io</url>.
 
 The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Mathematica as much as possible. However, \Mathics is in no way affiliated or supported by \Wolfram. \Mathics will probably never have the power to compete with \Mathematica in industrial applications; yet, it might be an interesting alternative for educational purposes.
 
@@ -66,7 +66,10 @@ Furthermore, SQLite support is needed. Debian/Ubuntu provides the package <con>l
 </console>
 (as super-user, i.e. either after having issued <con>su</con> or by preceding the command with <con>sudo</con>).
 
-On Mac OS X, consider using Fink (<url>http://www.finkproject.org</url>) and install the <con>sqlite3-dev</con> package.
+On Mac OS X
+<console>
+# brew install sqlite3
+</console>
 
 If you are on Windows, please figure out yourself how to install SQLite.
 
@@ -78,9 +81,9 @@ Simply run:
 <console>
 # python setup.py install
 </console>
-In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python2.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/lib/python2.x/site-packages</con> on Mac OS X).
+In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python3.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/3.x/lib/python3.x/site-packages</con> on Mac OS X).
 
-Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/2.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
+Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/3.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
 </section>
 
 <section title="Running \Mathics">
@@ -618,7 +621,11 @@ Thus, 'Block' can be used to temporarily assign a value to a variable:
 >> Block[{$RecursionLimit = 30}, x = 2 x]
  : Recursion depth of 30 exceeded.
  = $Aborted
- 
+
+>> f[x_] := f[x + 1]; Block[{$IterationLimit = 30}, f[1]]
+ : Iteration limit of 30 exceeded.
+ = $Aborted
+
 It is common to use scoping constructs for function definitions with local variables:
 >> fac[n_] := Module[{k, p}, p = 1; For[k = 1, k <= n, ++k, p *= k]; p]
 >> fac[10]
