@@ -38,7 +38,7 @@ class UseSansSerif(Predefined):
 
     When True, the output in MathMLForm uses SansSerif fonts instead 
     of the standard ones...
-    #> Unprotect[System`$UseSansSerif]; System`$UseSansSerif  = True; MathMLForm[TableForm[{{a,b},{c,d}}]]
+    #> System`$UseSansSerif  = True; MathMLForm[TableForm[{{a,b},{c,d}}]]
      = <math display="block"><mstyle mathvariant="..."><mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
      . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
@@ -46,7 +46,7 @@ class UseSansSerif(Predefined):
 
     #> System`$UseSansSerif
      = True
-    #> System`$UseSansSerif = False;Protect[System`$UseSansSerif]; 
+    #> System`$UseSansSerif = False;
     #> System`$UseSansSerif
      = False
   
