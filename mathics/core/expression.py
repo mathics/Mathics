@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#cython: language_level=3
+# cython: language_level=3
 # -*- coding: utf-8 -*-
 
 
@@ -1353,7 +1353,7 @@ class Expression(BaseExpression):
             if leaf.get_head().same(head):
                 if dim is None:
                     dim = len(leaf.leaves)
-                    items = [(items + [innerleaf]) for innerleaf in leaf.leaves]
+                    items = [(items + [subleaf]) for subleaf in leaf.leaves]
                 elif len(leaf.leaves) != dim:
                     evaluation.message('Thread', 'tdlen')
                     return True, self
@@ -2146,7 +2146,8 @@ class Complex(Number):
 def encode_mathml(text: str) -> str:
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
-    return text.replace('\n', '<mspace linebreak="newline" />')
+    text = text.replace('\n', '<mspace linebreak="newline" />')
+    return text
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -2221,13 +2222,17 @@ class String(Atom):
         text = self.value
 
         def render(format, string):
-            return format % encode_mathml(string)
+            encoded_text = encode_mathml(string)
+            return format % encoded_text
 
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
                 return render('<ms>%s</ms>', text[1:-1])
             else:
-                return render('<mtext>%s</mtext>', text[1:-1])
+                outtext = ""
+                for line in text[1:-1].split("\n"):
+                    outtext +=  render('<mtext>%s</mtext>', line)
+                return outtext
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
             return render('<mn>%s</mn>', text)
         else:
@@ -2242,7 +2247,10 @@ class String(Atom):
             elif is_symbol_name(text):
                 return render('<mi>%s</mi>', text)
             else:
-                return render('<mtext>%s</mtext>', text)
+                outtext = ""
+                for line in text.split("\n"):
+                    outtext +=  render('<mtext>%s</mtext>', line)
+                return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
         from mathics.builtin import builtins

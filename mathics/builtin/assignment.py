@@ -812,7 +812,6 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
             usagetext = Doc(bio.__class__.__doc__).text(0)
         usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
     # For built-in symbols, looks for a docstring.
-
     # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
     for rulemsg in ruleusage:
         if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
@@ -856,6 +855,7 @@ class Information(PrefixOperator):
      .   'Table[expr, {i, {e1, e2, ..., ei}}]'
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
+     .
 
     >> Information[Table]
      = 
@@ -893,7 +893,7 @@ class Information(PrefixOperator):
         # Print the "usage" message if available.
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
-            lines.append(String(usagetext))
+            lines.append(usagetext)
 
         if self.get_option(options, 'LongForm', evaluation).to_python():
             self.show_definitions(symbol, evaluation, lines)
