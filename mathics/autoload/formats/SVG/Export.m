@@ -7,7 +7,7 @@ SVGExport[filename_, expr_, opts___] :=
   Module[{strm, data}, 
     strm = OpenWrite[filename];
     If[strm === $Failed, Return[$Failed]];
-	 If[System`UseSansSerif,
+    If[System`$UseSansSerif,
 	    data = StringTake[ToString[MathMLForm[expr]],{22,-8}],
 	    data = StringTake[ToString[MathMLForm[expr]],{22,-8}]];
     WriteString[strm, "<svg>" <> data <> "</svg>"];

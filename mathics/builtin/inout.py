@@ -697,7 +697,7 @@ class GridBox(BoxConstruct):
      = \begin{array}{cc} a & b\\ c & d\end{array}
 
     #> MathMLForm[TableForm[{{a,b},{c,d}}]]
-     = <math><mtable columnalign="center">
+     = <math display="block"><mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
      . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
      . </mtable></math>
