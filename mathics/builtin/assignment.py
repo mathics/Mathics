@@ -916,6 +916,7 @@ class Information(PrefixOperator):
         # Instead, I just copy the code from Definition
 
     def show_definitions(self, symbol, evaluation, lines):
+
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):

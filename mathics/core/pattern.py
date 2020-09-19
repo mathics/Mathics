@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# cython: language_level=3
 # cython: profile=False
+# -*- coding: utf-8 -*-
+
+
 
 
 from mathics.core.expression import (Expression, system_symbols,
