@@ -11,8 +11,10 @@ import mpmath
 import typing
 from typing import Any
 
+
 from mathics.builtin.base import (
-    Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator)
+    Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator,
+    Predefined)
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
@@ -25,6 +27,49 @@ from mathics.core.numbers import (
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
+
+
+class UseSansSerif(Predefined):
+    """
+    <dl>
+    <dt>'$UseSansSerif'
+        <dd>specifies the font of the web interface.
+    </dl>
+
+    When True, the output in MathMLForm uses SansSerif fonts instead 
+    of the standard ones...
+    #> Unprotect[System`$UseSansSerif]; System`$UseSansSerif  = True; MathMLForm[TableForm[{{a,b},{c,d}}]]
+     = <math display="block"><mstyle mathvariant="..."><mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
+     . </mtable></mstyle></math>
+
+    #> System`$UseSansSerif
+     = True
+    #> System`$UseSansSerif = False;Protect[System`$UseSansSerif]; 
+    #> System`$UseSansSerif
+     = False
+  
+    #> MathMLForm[TableForm[{{a,b},{c,d}}]]
+     = <math display="block"><mtable columnalign="center">
+     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
+     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
+     . </mtable></math>
+    """
+    context = "System`"
+    name = '$UseSansSerif'
+    value = False
+
+    rules = {
+        '$UseSansSerif': str(value),
+    }
+
+    messages = {
+    }
+
+    def evaluate(self, evaluation):
+        print("evaluation $UseSansSerif")
+        return Integer(self.value)
 
 class Format(Builtin):
     """
@@ -652,10 +697,10 @@ class GridBox(BoxConstruct):
      = \begin{array}{cc} a & b\\ c & d\end{array}
 
     #> MathMLForm[TableForm[{{a,b},{c,d}}]]
-     = <math display="block"><mstyle mathvariant="..."><mtable columnalign="center">
+     = <math><mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
      . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
-     . </mtable></mstyle></math>
+     . </mtable></math>
     """
 
     options = {
@@ -1898,7 +1943,9 @@ class MathMLForm(Builtin):
             xml = ''
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        if True:  # configuration to be defined
+        query = evaluation.parse('System`$UseSansSerif')
+        usesansserif = query.evaluate(evaluation).to_python()
+        if  usesansserif:  
             xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression('RowBox', Expression('List', String(mathml)))
