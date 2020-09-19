@@ -1913,21 +1913,21 @@ class MathMLForm(Builtin):
     </dl>
 
     >> MathMLForm[HoldForm[Sqrt[a^3]]]
-     = <math display="block"><mstyle mathvariant="..."><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></mstyle></math>
+     = <math display="block"><msqrt><msup><mi>a</mi> <mn>3</mn></msup></msqrt></math>
 
     ## Test cases for Unicode
     #> MathMLForm[\\[Mu]]
-     = <math display="block"><mstyle mathvariant="..."><mi>\u03bc</mi></mstyle></math>
+     = <math display="block"><mi>\u03bc</mi></math>
 
     #> MathMLForm[Graphics[Text["\u03bc"]]]
-     = <math display="block"><mstyle mathvariant="..."><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></mstyle></math>
+     = <math display="block"><mglyph width="..." height="..." src="data:image/svg+xml;base64,..."/></math>
 
     ## The <mo> should contain U+2062 INVISIBLE TIMES
     #> MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
-     = <math display="block"><mstyle mathvariant="..."><mrow><mo>(</mo> <mtable columnalign="center">
+     = <math display="block"><mrow><mo>(</mo> <mtable columnalign="center">
      . <mtr><mtd columnalign="center"><mrow><mn>2</mn> <mo form="prefix" lspace="0" rspace="0.2em">\u2062</mo> <mi>a</mi></mrow></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
      . <mtr><mtd columnalign="center"><mn>0</mn></mtd><mtd columnalign="center"><mn>0</mn></mtd></mtr>
-     . </mtable> <mo>)</mo></mrow></mstyle></math>
+     . </mtable> <mo>)</mo></mrow></math>
     """
 
     def apply_mathml(self, expr, evaluation) -> Expression:
@@ -1945,8 +1945,9 @@ class MathMLForm(Builtin):
         # #convert_box(boxes)
         query = evaluation.parse('System`$UseSansSerif')
         usesansserif = query.evaluate(evaluation).to_python()
-        if  usesansserif:  
+        if  usesansserif:
             xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression('RowBox', Expression('List', String(mathml)))
 
