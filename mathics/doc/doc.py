@@ -762,7 +762,10 @@ class PyMathicsDocumentation(Documentation):
 
         try:
             mainfolder = self.pymathicsmodule.__path__[0]
-            self.name = self.pymathicsmodule.pymathics_version_data['name']
+            if "name" in self.pymathicsmodule.pymathics_version_data:
+                self.name = self.version = self.pymathicsmodule.pymathics_version_data['name']
+            else:
+                self.name = (self.pymathicsmodule.__package__)[10:]
             self.version = self.pymathicsmodule.pymathics_version_data['version']
             self.author = self.pymathicsmodule.pymathics_version_data['author']
         except (AttributeError, KeyError, IndexError):
