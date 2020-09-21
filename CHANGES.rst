@@ -30,8 +30,6 @@ New features:
 - ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
 - ``Quit[]``, ``Exit[]`` #523, #814,
 - ``Root`` #806
-- parsing support for ``<->``
-- ``VertexDelete``, ``EdgeDelete``, ``DirectedEdges`` option for ``Graph[]``
 - ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
 - ``SubsetQ`` and ``Delete[]`` #688, #784,
 - ``randchoice`` option for ``NoNumPyRandomEnv`` #820
@@ -52,9 +50,7 @@ Ehancements and Bug fixes:
 - fixes ``XMLGetString`` and parse error
 - fixes ``LanguageIdentify``
 - fixes 2 <= base <= 36 in number parsing
-- fixes two calls to Graph()
 - improved error messages
-- fixes ``MixedGraphQ[]``, and ``AcyclicGraphQ``
 - fixes ``Check``, ``Interrupt``, and ``Unique`` #696
 - fixes ``Eigenvalues``, ``Eigenvectors`` #804
 - fixes ``Solve`` #806
