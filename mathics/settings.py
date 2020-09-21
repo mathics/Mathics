@@ -9,7 +9,6 @@ from os import path
 
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 # set only to True in DEBUG mode
 DEBUG_MAIL = True
@@ -106,7 +105,7 @@ SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 #    'django.template.loaders.app_directories.load_template_source',
 # )
 
-MIDDLEWARE = (
+MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -120,6 +119,9 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [ os.path.join(ROOT_DIR, 'web/templates/') ],
+        'OPTIONS': {
+            'debug': DEBUG,
+        }
     }
 ]
 

@@ -53,7 +53,6 @@ class Query(models.Model):
 
 class Worksheet(models.Model):
     user = models.ForeignKey(User, 
-                             on_delete=models.SET_NULL, 
                              related_name='worksheets', 
                              null=True)
 
