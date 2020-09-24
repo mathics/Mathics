@@ -406,7 +406,7 @@ class FetchURL(Builtin):
     #> Quiet[FetchURL["https:////", {}]]
      = $Failed
 
-    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+    #> Quiet[FetchURL["https://www.example.com", {}]]
      = $Failed
     '''
 
