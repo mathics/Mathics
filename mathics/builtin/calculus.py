@@ -12,7 +12,7 @@ from mathics.core.convert import (
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
-from mathics import Symbol
+from mathics import Symbol, String
 
 import sympy
 
@@ -960,6 +960,67 @@ class Limit(Builtin):
             pass
         else:
             return from_sympy(result)
+
+
+class DiscreteLimit(Builtin):
+    """
+    <dl>
+    <dt>'DiscreteLimit[$f$, $k$->Infinity]'
+        <dd>gives the limit of the sequence $f$ as $k$ tends to infinity.
+    </dl>
+
+    >> DiscreteLimit[n/(n + 1), n -> Infinity]
+     = 1
+
+    >> DiscreteLimit[f[n], n -> Infinity]
+     = f[Infinity]
+    """
+
+    # TODO: Make this work
+    """
+    >> DiscreteLimit[(n/(n + 2)) E^(-m/(m + 1)), {m -> Infinity, n -> Infinity}]
+     = 1 / E
+    """
+
+    attributes = ('Listable',)
+
+    options = {
+        'PerformanceGoal': '"Quality"',
+    }
+
+    messages = {
+        'lperf': "Value of PerformanceGoal -> `1` should be \"Quality\" or \"Speed\".",
+    }
+
+    def apply(self, f, n, n0, evaluation, options={}):
+        'DiscreteLimit[f_, n_->n0_, OptionsPattern[DiscreteLimit]]'
+
+        f = f.to_sympy(convert_all_global_functions=True)
+        n = n.to_sympy()
+        n0 = n0.to_sympy()
+
+        if n0 != sympy.oo:
+            return
+
+        if f is None or n is None:
+            return
+
+        perf_goal = options['System`PerformanceGoal'].to_python()
+        if perf_goal == '"Quality"':
+            trials = 50
+        elif perf_goal == '"Speed"':
+            trials = 5
+        else:
+            evaluation.message('DiscreteLimit', 
+                               'lperf', 
+                               options['System`PerformanceGoal'])
+            trials = 50
+
+        try:
+            return from_sympy(sympy.limit_seq(f, n, trials))
+        except:
+            pass
+            
 
 
 class FindRoot(Builtin):
