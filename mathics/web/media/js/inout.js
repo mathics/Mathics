@@ -208,8 +208,8 @@ function showGallery() {
 	    'Eigenvalues[A]',
 	    '# ^ 2 & /@ Range[10]',
 	    'Graphics[Table[{EdgeForm[{GrayLevel[0, 0.5]}], Hue[(-11+q+10r)/72, 1, 1, 0.6], Disk[(8-r){Cos[2Pi q/12], Sin [2Pi q/12]}, (8-r)/3]}, {r, 6}, {q, 12}]]',
-	    'ElementData[74]',
-	    'ElementData["He", "AbsoluteBoilingPoint"]',
+	    'Grid[{Table[ElementData[i], {i, 3, 10}], Table[ElementData[i], {i, 11, 18}]}]',
+	    'ListLinePlot[Table[ElementData[z, "MeltingPoint"], {z, 118}]]',
 	    'ListLinePlot[Table[Sin[x], {x,-5, 5, 0.5}], Filling->Axis]',
 	    'Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]',
 	    'Graphics[Line[AnglePath[Table[1.7, {50}]]]]'
