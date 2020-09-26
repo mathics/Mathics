@@ -12,6 +12,7 @@ Major package dependencies ave been up dated to more recent releases. These incl
 
 New features:
 
+- ``DiscreteLimit``
 - ``IterationLimit``
 - support for ``MATHICS_MAX_RECURSION_DEPTH``
 - ``RemoveDiacritics[]``, ``Transliterate[]`` #617
