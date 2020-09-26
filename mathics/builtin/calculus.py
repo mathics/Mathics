@@ -12,7 +12,7 @@ from mathics.core.convert import (
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
-from mathics import Symbol, String
+from mathics import Symbol
 
 import sympy
 
