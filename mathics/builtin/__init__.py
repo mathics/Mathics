@@ -5,10 +5,10 @@
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, 
+    graphics, graphics3d,
     image, inout, integer, iohooks, linalg, lists, logic,
-    manipulate, quantities, numbertheory, numeric, options, patterns, 
-    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
+    manipulate, quantities, numbertheory, numeric, options, patterns,
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
     strings, structure, system, tensors, xmlformat, optimization)
 
 from mathics.builtin.base import (
@@ -19,10 +19,10 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, 
-    image, inout, integer, iohooks, linalg, lists, logic, 
-    manipulate, quantities, numbertheory, numeric, options, patterns, 
-    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping, 
+    graphics, graphics3d,
+    image, inout, integer, iohooks, linalg, lists, logic,
+    manipulate, quantities, numbertheory, numeric, options, patterns,
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
     strings, structure, system, tensors, xmlformat, optimization]
 
 if ENABLE_FILES_MODULE:
@@ -120,6 +120,7 @@ def contribute(definitions):
     definitions.get_attributes('System`$Post').clear()
     definitions.get_attributes('System`$PrePrint').clear()
     definitions.get_attributes('System`$SyntaxHandler').clear()
+    definitions.get_attributes('System`$TimeZone').clear()
     definitions.get_attributes('System`$UseSansSerif').clear()
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names

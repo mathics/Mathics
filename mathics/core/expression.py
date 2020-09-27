@@ -7,7 +7,6 @@ import sympy
 import mpmath
 import math
 import re
-from itertools import chain
 
 import typing
 from typing import Any

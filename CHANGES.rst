@@ -36,6 +36,7 @@ New features:
 - option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 - ``Environment``
 - ``System`Byteordering`` ``System`Environemnt`` #859
+- ``SystemTimeZone`` and correct ``TimeZone`` #924
 
 Ehancements and Bug fixes:
 
