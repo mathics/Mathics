@@ -187,6 +187,7 @@ function loadLink() {
 
 function showGallery() {
 	setQueries([
+	    '$UseSansSerif = True (* Use Sans Serif font *)',
 	    '1 + 2 - x * 3 x / y',
 	    'Apart[1 / (x^2 + 5x + 6)]',
 	    'Cancel[x / x ^ 2]',
