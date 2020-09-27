@@ -180,7 +180,6 @@ class Quantity(Builtin):
 
     def apply_n(self, mag, unit, evaluation):
         'Quantity[mag_, unit_?StringQ]'
-        Expression('Quantity', mag, unit)
 
         if(self.validate(unit, evaluation)):
             if(mag.has_form("List", None)):
