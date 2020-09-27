@@ -5,7 +5,7 @@ Welcome to Mathics!
 
 Mathics is a general-purpose computer algebra system (CAS). It is an open-source alternative to Mathematica. It is free both as in "free beer" and as in "freedom".
 
-The home page of Mathics is http://mathics.github.io.
+The home page of Mathics is http://mathics.org.
 
 Installing
 ----------
