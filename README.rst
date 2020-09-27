@@ -44,7 +44,18 @@ For an experiemental Jupyter-based consoles and web interfaces see `iwolfram <ht
 Docker
 ------
 
-Alternatively to the installation step above, ``mathics`` can be installed and run via `docker <https://www.docker.com/>`_. Please refer to `sealemar/mathics-dockerized <https://github.com/sealemar/mathics-dockerized>`_ repo for instructions.
+Another way to run ``mathics`` is via `docker <https://www.docker.com/>`_ and the `Mathics docker image <https://hub.docker.com/repository/docker/rockyb/mathics>`_ on dockerhub.
+
+To run the command-line interface using docker image:
+::
+   $ docker run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data rockyb:mathics --mode cli
+
+To run the Django web interface using docker image:
+::
+   $docker run --rm -it --name mathics-web -p 8000:8000 -v /tmp:/usr/src/app/data rockyb/mathics --mode ui
+
+
+This dockeriztion was modified from `sealemar/mathics-dockerized <https://github.com/sealemar/mathics-dockerized>`_. See that for more details on how this works.
 
 Contributing
 ------------
