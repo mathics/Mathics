@@ -550,9 +550,10 @@ class SystemTimeZone(Predefined):
     """
 
     name = '$SystemTimeZone'
+    value = Real(-time.timezone / 3600.)
 
     def evaluate(self, evaluation):
-        return Real(-time.timezone / 3600.)
+        return self.value
 
 
 class TimeZone(Predefined):
@@ -567,8 +568,7 @@ class TimeZone(Predefined):
     """
 
     name = "$TimeZone"
-    value = Real(-time.timezone / 3600.)
-    attributes = []
+    value = SystemTimeZone.value.copy()
 
     rules = {
         "$TimeZone": str(value),
@@ -581,7 +581,7 @@ class TimeZone(Predefined):
         return rhs
 
     def evaluate(self, evaluation) -> Real:
-        return Real(self.value)
+        return self.value
 
 
 class TimeUsed(Builtin):
