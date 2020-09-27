@@ -113,7 +113,9 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'mathics.urls'
 
-default_pymathics_modules = ["pymathics.natlang",]
+# Rocky: this is probably a hack. LoadModule[] needs to handle
+# whatever it is that setting this thing did.
+default_pymathics_modules = []
 
 TEMPLATES = [
     {
