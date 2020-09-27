@@ -72,9 +72,7 @@ INSTALL_REQUIRES += [
     "numpy",
     "palettable", # For bar charts, and portable, no-proprietary color palletes
     "pint",
-    "pydot", # For graphs
     "python-dateutil",
-    "colorama",
     "llvmlite",
     "requests",
 ]

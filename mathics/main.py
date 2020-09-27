@@ -44,38 +44,7 @@ class TerminalShell(LineFeeder):
         except ImportError:
             pass
 
-        # Try importing colorama to escape ansi sequences for cross platform
-        # colors
-        try:
-            from colorama import init as colorama_init
-        except ImportError:
-            colors = "NoColor"
-        else:
-            colorama_init()
-            if colors is None:
-                terminal_supports_color = (
-                    sys.stdout.isatty() and os.getenv("TERM") != "dumb"
-                )
-                colors = "Linux" if terminal_supports_color else "NoColor"
-
-        color_schemes = {
-            "NOCOLOR": (["", "", "", ""], ["", "", "", ""]),
-            "LINUX": (
-                ["\033[32m", "\033[1m", "\033[22m", "\033[39m"],
-                ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
-            ),
-            "LIGHTBG": (
-                ["\033[34m", "\033[1m", "\033[22m", "\033[39m"],
-                ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
-            ),
-        }
-
-        # Handle any case by using .upper()
-        term_colors = color_schemes.get(colors.upper())
-        if term_colors is None:
-            out_msg = "The 'colors' argument must be {0} or None"
-            print(out_msg.format(repr(list(color_schemes.keys()))))
-            quit()
+        term_colors = (["", "", "", ""], ["", "", "", ""])
 
         self.incolors, self.outcolors = term_colors
         self.definitions = definitions
