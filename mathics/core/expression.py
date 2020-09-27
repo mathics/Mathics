@@ -877,7 +877,7 @@ class Expression(BaseExpression):
 
         # "Return gets discarded only if it was called from within the r.h.s.
         # of a user-defined rule."
-        # https://mathematica.stackexchange.com/questions/29353/how-does-return-work
+        # http://mathematica.stackexchange.com/questions/29353/how-does-return-work
         # Otherwise it propogates up.
         #
         except ReturnInterrupt as ret:

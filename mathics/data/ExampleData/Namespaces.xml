@@ -4,7 +4,7 @@
    <title>Cheaper by the Dozen</title>
    <isbn:number>1568491379</isbn:number>
    <notes>
-      <p xmlns='https://www.w3.org/1999/xhtml'>
+      <p xmlns='http://www.w3.org/1999/xhtml'>
          This is a <i>funny</i> book!
      </p>
    </notes>

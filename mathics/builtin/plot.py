@@ -1259,7 +1259,7 @@ class Histogram(Builtin):
                 return len(self.bins)
 
             def cost(self):
-                # see https://toyoizumilab.brain.riken.jp/hideaki/res/histogram.html
+                # see http://toyoizumilab.brain.riken.jp/hideaki/res/histogram.html
                 bins = self.bins
                 n_bins = len(bins)
                 k = sum(bins) / n_bins

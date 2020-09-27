@@ -1,15 +1,15 @@
-element.csv generated from data on https://en.wikipedia.org/wiki/List_of_elements as of 31 August 2012
-Series data taken from https://en.wikipedia.org/wiki/Template:Periodic_table as of 07 September 2012
-Hardness data taken from https://en.wikipedia.org/wiki/Hardnesses_of_the_elements_(data_page) as of 07 September 2012
-Radius data (AtomicRadius, VanDerWaalsRadius, CovalentRadius) from https://en.wikipedia.org/wiki/List_of_elements_by_atomic_properties as of 07 September 2012
-IonizationEnergies from https://en.wikipedia.org/wiki/Ionization_energies_of_the_elements_(data_page) as of 07 September 2012
-Elastic properties (BulkModulus, ShearModulus, YoungsModulus) from https://en.wikipedia.org/wiki/Elastic_properties_of_the_elements_(data_page) as of 07 September 2012
-Electronic configurations (ElectronConfiguration, ElectronShellConfiguration, ElectronConfigurationString) from https://en.wikipedia.org/wiki/Electron_configurations_of_the_elements_(data_page) as of 07 September 2012
-LiquidDensity from https://en.wikipedia.org/wiki/Densities_of_the_elements_(data_page) as of 08 September 2012
-ThermalConductivity from https://en.wikipedia.org/wiki/Thermal_conductivities_of_the_elements_(data_page) as of 08 September 2012
-DiscoveryYear from https://en.wikipedia.org/wiki/Timeline_of_chemical_elements_discoveries as of 08 September 2012
-FusionHeat from https://en.wikipedia.org/wiki/Heats_of_fusion_of_the_elements_(data_page) as of 08 September 2012
-VaporizationHeat from https://en.wikipedia.org/wiki/Heats_of_vaporization_of_the_elements_(data_page) as of 08 September 2012
+element.csv generated from data on http://en.wikipedia.org/wiki/List_of_elements as of 31 August 2012
+Series data taken from http://en.wikipedia.org/wiki/Template:Periodic_table as of 07 September 2012
+Hardness data taken from http://en.wikipedia.org/wiki/Hardnesses_of_the_elements_(data_page) as of 07 September 2012
+Radius data (AtomicRadius, VanDerWaalsRadius, CovalentRadius) from http://en.wikipedia.org/wiki/List_of_elements_by_atomic_properties as of 07 September 2012
+IonizationEnergies from http://en.wikipedia.org/wiki/Ionization_energies_of_the_elements_(data_page) as of 07 September 2012
+Elastic properties (BulkModulus, ShearModulus, YoungsModulus) from http://en.wikipedia.org/wiki/Elastic_properties_of_the_elements_(data_page) as of 07 September 2012
+Electronic configurations (ElectronConfiguration, ElectronShellConfiguration, ElectronConfigurationString) from http://en.wikipedia.org/wiki/Electron_configurations_of_the_elements_(data_page) as of 07 September 2012
+LiquidDensity from http://en.wikipedia.org/wiki/Densities_of_the_elements_(data_page) as of 08 September 2012
+ThermalConductivity from http://en.wikipedia.org/wiki/Thermal_conductivities_of_the_elements_(data_page) as of 08 September 2012
+DiscoveryYear from http://en.wikipedia.org/wiki/Timeline_of_chemical_elements_discoveries as of 08 September 2012
+FusionHeat from http://en.wikipedia.org/wiki/Heats_of_fusion_of_the_elements_(data_page) as of 08 September 2012
+VaporizationHeat from http://en.wikipedia.org/wiki/Heats_of_vaporization_of_the_elements_(data_page) as of 08 September 2012
 
 Notes:
 Mathematica appears to use an Algorithmic approach to classifying elements by Series. This gives discrepancy with Mathics

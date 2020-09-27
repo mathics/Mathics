@@ -58,7 +58,7 @@ def path_search(filename):
         # If filename is an internet address, download the file
         # and store it in a temporal location
         lenfn = len(filename)
-        if (lenfn>7 and filename[:7]=="https://") or \
+        if (lenfn>7 and filename[:7]=="http://") or \
            (lenfn>8 and filename[:8]=="https://") or \
            (lenfn>6 and filename[:6]=="ftp://"):
             try:

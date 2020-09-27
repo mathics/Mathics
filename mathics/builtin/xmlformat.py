@@ -36,7 +36,7 @@ def xml_comments(node):
         return Expression('List', *[String(s.text) for s in node.xpath('//comment()')])
 
 
-_namespace_key = Expression('List', String('https://www.w3.org/2000/xmlns/'), String('xmlns'))
+_namespace_key = Expression('List', String('http://www.w3.org/2000/xmlns/'), String('xmlns'))
 
 
 def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
@@ -124,7 +124,7 @@ class ParseError(Exception):
 
 
 def parse_xml_stream(f):
-    def parse(iter):  # inspired by https://effbot.org/zone/element-namespaces.htm
+    def parse(iter):  # inspired by http://effbot.org/zone/element-namespaces.htm
         root = None
         namespace = None
 
@@ -290,7 +290,7 @@ class XMLObjectImport(Builtin):
      = XMLElement[identification, {}, {XMLElement[encoding, {}, {XMLElement[software, {}, {MuseScore 1.2}], XMLElement[encoding-date, {}, {2012-09-12}]}]}]
 
     >> Part[Import["ExampleData/Namespaces.xml"], 2]
-     = XMLElement[book, {{https://www.w3.org/2000/xmlns/, xmlns} -> urn:loc.gov:books}, {XMLElement[title, {}, {Cheaper by the Dozen}], XMLElement[{urn:ISBN:0-395-36341-6, number}, {}, {1568491379}], XMLElement[notes, {}, {XMLElement[p, {{https://www.w3.org/2000/xmlns/, xmlns} -> https://www.w3.org/1999/xhtml}, {This is a, XMLElement[i, {}, {funny, book!}]}]}]}]
+     = XMLElement[book, {{http://www.w3.org/2000/xmlns/, xmlns} -> urn:loc.gov:books}, {XMLElement[title, {}, {Cheaper by the Dozen}], XMLElement[{urn:ISBN:0-395-36341-6, number}, {}, {1568491379}], XMLElement[notes, {}, {XMLElement[p, {{http://www.w3.org/2000/xmlns/, xmlns} -> http://www.w3.org/1999/xhtml}, {This is a, XMLElement[i, {}, {funny, book!}]}]}]}]
     """
 
     context = 'XML`'

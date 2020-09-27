@@ -125,7 +125,7 @@ def unpickle_mp(value):
         return value
 
 # algorithm based on
-# https://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python       # nopep8
+# http://stackoverflow.com/questions/5110177/how-to-convert-floating-point-number-to-base-3-in-python       # nopep8
 
 
 def convert_base(x, base, precision=10) -> str:

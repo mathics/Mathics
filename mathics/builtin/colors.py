@@ -37,7 +37,7 @@ class _PerfectReflectingDiffuser:
 
 _ref_white = _PerfectReflectingDiffuser(0.96422, 1., 0.82521)
 
-# use rRGB D50 conversion like MMA. see https://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
+# use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
 
 _xyz_from_rgb = [
@@ -46,7 +46,7 @@ _xyz_from_rgb = [
     [0.0139322, 0.0971045, 0.714173]
 ]
 
-# for matrix, see https://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
+# for matrix, see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
 # MMA seems to round matrix values to six significant digits. we do the same.
 
 _rgb_from_xyz = [
@@ -197,7 +197,7 @@ def _scale_xyz_to_lab(t):
 
 
 def xyz_to_lab(x, y, z, *rest):
-    # see https://www.brucelindbloom.com/Eqn_XYZ_to_Lab.html
+    # see http://www.brucelindbloom.com/Eqn_XYZ_to_Lab.html
     xyz = array([u / v for u, v in zip([x, y, z], _ref_white.xyz)])
     x, y, z = map(_scale_xyz_to_lab, xyz)
 
@@ -214,7 +214,7 @@ def _xyz_to_luv_scale_y(y):
 
 
 def xyz_to_luv(x, y, z, *rest):
-    # see https://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
+    # see http://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
     # and https://en.wikipedia.org/wiki/CIELUV
     xyz = _clip1((x, y, z))
 
@@ -251,7 +251,7 @@ def _luv_to_xyz_clip_zero(cie_l_is_zero, t):
 
 
 def luv_to_xyz(cie_l, cie_u, cie_v, *rest):
-    # see https://www.easyrgb.com/index.php?X=MATH&H=17#text17
+    # see http://www.easyrgb.com/index.php?X=MATH&H=17#text17
     u = cie_u / (13. * cie_l) + _ref_white.u_r
     v = cie_v / (13. * cie_l) + _ref_white.v_r
 
@@ -289,7 +289,7 @@ def lab_to_lch(l, a, b, *rest):
 
 
 def lab_to_xyz(l, a, b, *rest):
-    # see https://www.easyrgb.com/index.php?X=MATH&H=08#text8
+    # see http://www.easyrgb.com/index.php?X=MATH&H=08#text8
     f_y = (l * 100. + 16.) / 116.
     x, y, z = a / 5. + f_y, f_y, f_y - b / 2.
     x, y, z = map(_scale_lab_to_xyz, (x, y, z))
@@ -299,7 +299,7 @@ def lab_to_xyz(l, a, b, *rest):
 
     return (x, y, z) + rest
 
-# for an overview of color conversions see https://www.brucelindbloom.com/Math.html
+# for an overview of color conversions see http://www.brucelindbloom.com/Math.html
 
 # the following table was computed by starting with the allowed hard
 # coded conversions from "conversions" and then finding the shortest

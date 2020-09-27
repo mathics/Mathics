@@ -3,7 +3,7 @@
 Begin["System`Convert`JSONDump`"]
 
 
-(* Based on converter at https://stackoverflow.com/questions/2633003/parsing-and-generating-json *)
+(* Based on converter at http://stackoverflow.com/questions/2633003/parsing-and-generating-json *)
 importJSON[filename_String]:= 
     Module[{data},
         data = Import[filename, {"Text", "String"}];
