@@ -3,8 +3,8 @@
 # Copyright, license and disclaimer are at the very end of this file.
 
 # This is the latest, enhanced version of the asizeof.py recipes at
-# <http://ASPN.ActiveState.com/ASPN/Cookbook/Python/Recipe/546530>
-# <http://ASPN.ActiveState.com/ASPN/Cookbook/Python/Recipe/544288>
+# <https://ASPN.ActiveState.com/ASPN/Cookbook/Python/Recipe/546530>
+# <https://ASPN.ActiveState.com/ASPN/Cookbook/Python/Recipe/544288>
 
 # Note, objects like ``namedtuples``, ``closure``, and NumPy data
 # ``arange``, ``array``, ``matrix``, etc. are only handled by recent
@@ -491,7 +491,7 @@ def _isframe(obj):
 
 def _isnamedtuple(obj):
     '''Named tuples are identified via duck typing:
-       <http://www.gossamer-threads.com/lists/python/dev/1142178>
+       <https://www.gossamer-threads.com/lists/python/dev/1142178>
     '''
     return isinstance(obj, tuple) and hasattr(obj, '_fields')
 
@@ -501,7 +501,7 @@ def _isNULL(obj):
 
        Sizing gc.get_objects() crashes in Pythonista3 with
        Python 3.5.1 on iOS due to 1-tuple (<Null>,) object,
-       see <http://forum.omz-software.com/user/mrjean1>.
+       see <https://forum.omz-software.com/user/mrjean1>.
     '''
     return isinstance(obj, tuple) and len(obj) == 1 \
                                   and repr(obj) == '(<NULL>,)'
@@ -1136,7 +1136,7 @@ class _NamedRef(object):
 #        The instance-specific __slots__ attributes are stored in
 #        a "tuple-like" space inside the instance, see Luciano
 #        Ramalho, "Fluent Python", page 274+, O'Reilly, 2016 or
-#        at <http://Books.Google.com/books>, then search for
+#        at <https://Books.Google.com/books>, then search for
 #        "Fluent Python" "Space Savings with the __slots__".
 #     '''
 #     pass
@@ -2000,7 +2000,7 @@ class Asizer(object):
         '''Rank 100 largest objects by size.
         '''
         rs = self._ranks
-        # bisect, see <http://GitHub.com/python/cpython/blob/master/Lib/bisect.py>
+        # bisect, see <https://GitHub.com/python/cpython/blob/master/Lib/bisect.py>
         i, j = 0, len(rs)
         while i < j:
             m = (i + j) // 2

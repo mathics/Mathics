@@ -20,7 +20,7 @@ that cannot be parsed by the standard precedence climbing algorithm.
 Instead of giving an introduction to  precedence climbing, here are two
 references that explain the algorithm better than I could:
 - [Wikipedia: Operator-precedence parser](https://en.wikipedia.org/wiki/Operator-precedence_parser#Precedence_climbing_method)
-- [Eli Bendersky's blog entry: Parsing expressions by precedence climbing](http://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing)
+- [Eli Bendersky's blog entry: Parsing expressions by precedence climbing](https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing)
 
 ### Precedence
 
@@ -238,16 +238,16 @@ be enough for most parse trees. Try parsing `1 + 2 + ... 1000`!
 
 ## References
 
-1. http://www.antlr.org/papers/Clarke-expr-parsing-1986.pdf
+1. https://www.antlr.org/papers/Clarke-expr-parsing-1986.pdf
 
    Clarke 1986, 'The top-down parsing of expressions'
 
-2. http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
+2. https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
 
    Recursive descent parsers, shunting yard algorithm, precedence climbing, and
    efficient parsers with large number of operator precedences.
 
-3. http://eli.thegreenplace.net/2009/03/14/some-problems-of-recursive-descent-parsers
+3. https://eli.thegreenplace.net/2009/03/14/some-problems-of-recursive-descent-parsers
 
    How to handle right/left associativity in recursive descent parsers and how
    to write efficient of RD parsers.
@@ -256,7 +256,7 @@ be enough for most parse trees. Try parsing `1 + 2 + ... 1000`!
 
    MMA docs with grouping and relative precedences.
 
-5. http://home.pipeline.com/~hbaker1/CheneyMTA.html
+5. https://home.pipeline.com/~hbaker1/CheneyMTA.html
 
    Henry Baker 1994, 'CONS Should Not CONS Its Arguments, Part II: Cheney on the M.T.A.[1]',
    unpublished note on implementing TCO with trampolines.

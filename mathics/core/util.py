@@ -35,9 +35,9 @@ def interpolate_string(text, get_param) -> str:
 
 """
 NOTE: Maybe see
-http://www.cosc.canterbury.ac.nz/tad.takaoka/isaac.pdf
+https://www.cosc.canterbury.ac.nz/tad.takaoka/isaac.pdf
 resp.
-http://www.cosc.canterbury.ac.nz/tad.takaoka/perm.p
+https://www.cosc.canterbury.ac.nz/tad.takaoka/perm.p
 for a permutation generating algorithm for multisets.
 """
 

@@ -151,7 +151,7 @@ def benchmark_parser():
     for expression_string in PARSING_BENCHMARKS:
         benchmark_parse(expression_string)
     benchmark_parse_file(
-        'http://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
+        'https://www.cs.uiowa.edu/~sriram/Combinatorica/NewCombinatorica.m')
 
 
 def benchmark_format(expression_string):

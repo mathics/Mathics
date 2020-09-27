@@ -2,7 +2,7 @@
  *  (c) 2005-2010 Sam Stephenson
  *
  *  Prototype is freely distributable under the terms of an MIT-style license.
- *  For details, see the Prototype web site: http://www.prototypejs.org/
+ *  For details, see the Prototype web site: https://www.prototypejs.org/
  *
  *--------------------------------------------------------------------------*/
 
@@ -4534,11 +4534,11 @@ Prototype._original_property = window.Sizzle;
 
 /*!
  * Sizzle CSS Selector Engine v1.10.18
- * http://sizzlejs.com/
+ * https://sizzlejs.com/
  *
  * Copyright 2013 jQuery Foundation, Inc. and other contributors
  * Released under the MIT license
- * http://jquery.org/license
+ * https://jquery.org/license
  *
  * Date: 2014-02-05
  */

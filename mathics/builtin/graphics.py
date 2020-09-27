@@ -320,7 +320,7 @@ class _ASYTransform():
         # a c e
         # b d f
         # 0 0 1
-        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
+        # see https://asymptote.sourceforge.net/doc/Transforms.html#Transforms
         self.transforms.append('(%f, %f, %f, %f, %f, %f)' % (e, f, a, c, b, d))
 
     def translate(self, x, y):
@@ -1428,7 +1428,7 @@ def _svg_bezier(*segments):
 
 
 def _asy_bezier(*segments):
-    # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
+    # see https://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
 
     while segments and not segments[0][1]:
         segments = segments[1:]
@@ -1441,7 +1441,7 @@ def _asy_bezier(*segments):
 
     def quadratric(qp0, qp1, qp2):
         # asymptote only supports cubic beziers, so we convert this quadratic
-        # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
+        # bezier to a cubic bezier, see https://fontforge.github.io/bezier.html
 
         # CP0 = QP0
         # CP3 = QP2
@@ -2021,13 +2021,13 @@ class _Line:
 
 
 def _bezier_derivative(p):
-    # see http://pomax.github.io/bezierinfo/, §12 Derivatives
+    # see https://pomax.github.io/bezierinfo/, §12 Derivatives
     n = len(p[0]) - 1
     return [[n * (x1 - x0) for x1, x0 in zip(w, w[1:])] for w in p]
 
 
 def _bezier_evaluate(p, t):
-    # see http://pomax.github.io/bezierinfo/, §4 Controlling Bezier Curvatures
+    # see https://pomax.github.io/bezierinfo/, §4 Controlling Bezier Curvatures
     n = len(p[0]) - 1
     if n == 3:
         t2 = t * t
@@ -2939,8 +2939,8 @@ clip(%s);
         h += 2
 
         svg_xml = '''
-            <svg xmlns:svg="http://www.w3.org/2000/svg"
-                xmlns="http://www.w3.org/2000/svg"
+            <svg xmlns:svg="https://www.w3.org/2000/svg"
+                xmlns="https://www.w3.org/2000/svg"
                 version="1.1"
                 viewBox="%s">
                 %s

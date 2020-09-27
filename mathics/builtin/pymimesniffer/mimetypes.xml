@@ -129,12 +129,12 @@ returned, else the parent type is returned.
 LINKS
 =====
 
-See http://www.filext.com/ for an online database of MIME types and magic numbers.
+See https://www.filext.com/ for an online database of MIME types and magic numbers.
 
-See also http://www.garykessler.net/library/file_sigs.html for magic numbers
+See also https://www.garykessler.net/library/file_sigs.html for magic numbers
 (still need to merge this info with our list).
 
-See http://www.wotsit.org/ for an online database of file format descriptions.
+See https://www.wotsit.org/ for an online database of file format descriptions.
 
 -->
 
@@ -461,7 +461,7 @@ See http://www.wotsit.org/ for an online database of file format descriptions.
 	     Drawing/Stencil/Template Files) but these are XML files, not binary Office files.
 	     As long as the Extractor handling application/vnd.visio does not support these
 	     formats, we're actually better off treating those files as general XML documents.
-	     See e.g. http://msdn2.microsoft.com/en-us/library/aa218409(office.10).aspx for
+	     See e.g. https://msdn2.microsoft.com/en-us/library/aa218409(office.10).aspx for
 	     a description of the VDX format. -->
 </description>
 

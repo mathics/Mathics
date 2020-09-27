@@ -171,7 +171,7 @@ class _Exif:
                     continue
 
                 # EXIF has the following types: Short, Long, Rational, Ascii, Byte
-                # (see http://www.exiv2.org/tags.html). we detect the type from the
+                # (see https://www.exiv2.org/tags.html). we detect the type from the
                 # Python type Pillow gives us and do the appropiate MMA handling.
 
                 if isinstance(v, tuple) and len(v) == 2:  # Rational
@@ -2077,7 +2077,7 @@ class Image(Atom):
         return Image(numpy.dstack(channels), self.color_space)
 
     def pil(self):
-        # see http://pillow.readthedocs.io/en/3.1.x/handbook/concepts.html#concept-modes
+        # see https://pillow.readthedocs.io/en/3.1.x/handbook/concepts.html#concept-modes
         n = self.channels()
 
         if n == 1:
@@ -2440,7 +2440,7 @@ class WordCloud(Builtin):
         else:
             return
 
-        # inspired by http://minimaxir.com/2016/05/wordclouds/
+        # inspired by https://minimaxir.com/2016/05/wordclouds/
         import random
         import os
 

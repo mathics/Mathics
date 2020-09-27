@@ -16,7 +16,7 @@ function grayOut(vis, options) {
   if (!dark) {
     // The dark layer doesn't exist, it's never been created.  So we'll
     // create it here and apply some basic styles.
-    // If you are getting errors in IE see: http://support.microsoft.com/default.aspx/kb/927917
+    // If you are getting errors in IE see: https://support.microsoft.com/default.aspx/kb/927917
     var tbody = $$("body")[0];
     var tnode = new Element('div', {'class': 'dark', 'id': 'dark'}).hide(); // Create the layer.
     tbody.appendChild(tnode);                            // Add it to the web page
@@ -41,7 +41,7 @@ function showPopup(element, options) {
 	var body = $$('body')[0];
 	var container = new Element('div', {'class': 'popupContainer'});
 	var div = new Element('div', {'class': 'popup'});
-	// to fix IE SELECT z-index bug, see http://drupal.org/node/84608
+	// to fix IE SELECT z-index bug, see https://drupal.org/node/84608
 	var frameContainer = new Element('div', {'class': 'popupFrameContainer'});
 	var frame = new Element('iframe', {'class': 'popupFrame'});
 	element = $(element).show();

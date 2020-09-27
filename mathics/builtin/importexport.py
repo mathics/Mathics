@@ -473,7 +473,7 @@ class Import(Builtin):
       <dd>imports data from a file.
     <dt>'Import["$file$", $elements$]'
       <dd>imports the specified elements from a file.
-    <dt>'Import["http://$url$", ...]' and 'Import["ftp://$url$", ...]'
+    <dt>'Import["https://$url$", ...]' and 'Import["ftp://$url$", ...]'
       <dd>imports from a URL.
     </dl>
 
@@ -549,7 +549,7 @@ class Import(Builtin):
 
         # Download via URL
         if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
+            if any(filename.get_string_value().startswith(prefix) for prefix in ('https://', 'https://', 'ftp://')):
                 return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file

@@ -131,7 +131,7 @@ function drawMeshGradient(ctx, points) {
 
 function createMathNode(nodeName) {
   if (['svg', 'g', 'rect', 'circle', 'polyline', 'polygon', 'path', 'ellipse', 'foreignObject'].include(nodeName))
-    return document.createElementNS("http://www.w3.org/2000/svg", nodeName);
+    return document.createElementNS("https://www.w3.org/2000/svg", nodeName);
   else {
     return document.createElement(nodeName);
   }
@@ -173,8 +173,8 @@ function translateDOMElement(element, svg) {
   if (nodeName == 'meshgradient') {
     if (!MathJax.Hub.Browser.isOpera) {
       var data = element.getAttribute('data').evalJSON();
-      var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-      var foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      var div = document.createElementNS('https://www.w3.org/1999/xhtml', 'div');
+      var foreign = document.createElementNS('https://www.w3.org/2000/svg', 'foreignObject');
       foreign.setAttribute('width', svg.getAttribute('width'));
       foreign.setAttribute('height', svg.getAttribute('height'));
       foreign.setAttribute('x', '0px');
@@ -280,7 +280,7 @@ function convertMathGlyphs(dom) {
     // convert mglyphs to their classic representation (<svg> or <img>), so the new mglyph logic does not make
     // anything worse in the classic Mathics frontend for now. In the long run, this code should vanish.
 
-    var MML = "http://www.w3.org/1998/Math/MathML";
+    var MML = "https://www.w3.org/1998/Math/MathML";
     var glyphs = dom.getElementsByTagName("mglyph");
     for (var i = 0; i < glyphs.length; i++) {
         var glyph = glyphs[i];

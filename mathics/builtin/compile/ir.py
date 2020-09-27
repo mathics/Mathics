@@ -182,7 +182,7 @@ class IRGenerator(object):
         '''
         Inserts a caller to a python function
         '''
-        # see http://eli.thegreenplace.net/2015/calling-back-into-python-from-llvmlite-jited-code/
+        # see https://eli.thegreenplace.net/2015/calling-back-into-python-from-llvmlite-jited-code/
 
         c_func_type = ctypes.CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))
         c_func = c_func_type(py_f)

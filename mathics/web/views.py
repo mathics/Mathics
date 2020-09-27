@@ -128,7 +128,7 @@ def query(request):
 
     return JsonResponse(result)
 
-# taken from http://code.activestate.com/recipes/410076/
+# taken from https://code.activestate.com/recipes/410076/
 
 
 def nicepass(alpha=6, numeric=2):
