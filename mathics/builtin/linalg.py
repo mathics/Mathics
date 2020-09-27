@@ -136,12 +136,14 @@ class Cross(Builtin):
                   'their length.'),
     }
 
-    # TODO Vectors of length other than 3
-
     def apply(self, a, b, evaluation):
         'Cross[a_, b_]'
         a = to_sympy_matrix(a)
         b = to_sympy_matrix(b)
+
+        if a is None or b is None:
+            return evaluation.message('Cross', 'nonn1')
+
         try:
             res = a.cross(b)
         except sympy.ShapeError:
