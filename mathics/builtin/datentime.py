@@ -538,6 +538,23 @@ class AbsoluteTime(_DateFormat):
         return from_python(total_seconds(tdelta))
 
 
+class SystemTimeZone(Predefined):
+    """
+    <dl>
+    <dt>'$SystemTimeZone'
+      <dd> gives the current time zone for the computer system on which Mathics is being run.
+    </dl>
+
+    >> $SystemTimeZone
+     = ...
+    """
+
+    name = '$SystemTimeZone'
+
+    def evaluate(self, evaluation):
+        return Real(-time.timezone / 3600.)
+
+
 class TimeZone(Predefined):
     """
     <dl>
@@ -549,10 +566,22 @@ class TimeZone(Predefined):
      = ...
     """
 
-    name = '$TimeZone'
+    name = "$TimeZone"
+    value = Real(-time.timezone / 3600.)
+    attributes = []
 
-    def evaluate(self, evaluation):
-        return Real(-time.timezone / 3600.)
+    rules = {
+        "$TimeZone": str(value),
+    }
+
+    def apply(self, lhs, rhs, evaluation):
+        'lhs_ = rhs_'
+
+        self.assign(lhs, rhs, evaluation)
+        return rhs
+
+    def evaluate(self, evaluation) -> Real:
+        return Real(self.value)
 
 
 class TimeUsed(Builtin):

@@ -76,7 +76,7 @@ class RecursionLimit(Predefined):
         '$RecursionLimit': str(value),
     }
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         return Integer(self.value)
 
 
@@ -490,4 +490,3 @@ class Exit(Builtin):
 #        'Quit[n_Integer]': 'Exit[n]',
 #        'Quit': 'Exit',
 #    }
-
