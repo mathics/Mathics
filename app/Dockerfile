@@ -12,8 +12,7 @@ COPY requirements.txt ./
 RUN apt-get update
 RUN apt-get install -qq liblapack-dev llvm-dev gfortran
 RUN pip install --no-cache-dir -r requirements.txt
-RUN cd pymathics && pip install
-RUN python -m nltk.downloader wordnet omw
+# RUN python -m nltk.downloader wordnet omw
 COPY requirements-tmathics.txt ./
 RUN pip install --no-cache-dir -r requirements-tmathics.txt
 
