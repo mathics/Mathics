@@ -1,72 +1,84 @@
+dist: bionic
 language: python
 python:
-  - 2.7
-  - pypy
-  - 3.5
-  - 3.4
-  - 3.3
-  - 3.2
-  - pypy3
+  - 3.8
+  - pypy3.6-7.3.1
 env:
   global:
-    - SYMPY_SRC=sympy-1.0
+    - SYMPY_SRC=sympy-1.6
     - DOC="false"
-    - PYPY_NUMPY="false"
-  matrix:
+    - ALL_MODULES="false"
+    - PYMATHICS_MODULES="false"
     - CYTHON="false"
-    - CYTHON="true"
 matrix:
   fast_finish: true
   include:
-    - python: 2.7
-      env: DOC="true" CYTHON="false"
-    - python: 3.5
-      env: DOC="true" CYTHON="false"
-    - python: 2.7
-      env: SYMPY_SRC=master CYTHON="false"
-    - python: 3.5
-      env: SYMPY_SRC=master CYTHON="false"
-    - python: pypy
-      env: PYPY_NUMPY="true"
-  exclude:
-    # PyPy is not compatible with Cython
-    - python: pypy
+    - python: 3.8
+      env: DOC="true"
+    - python: 3.8
+      env: ALL_MODULES="true"
+    - python: 3.8
+      env: PYMATHICS="true"
+    - python: 3.8
       env: CYTHON="true"
-    - python: pypy3
-      env: CYTHON="true"
+    - python: 3.8
+      env: ALL_MODULES="true" CYTHON="true"
+    - python: 3.8
+      env: PYMATHICS="true" CYTHON="true"
   allow_failures:
-    - python: 3.2
-    - python: pypy3
-    - env: SYMPY_SRC=master CYTHON="false"
-    - env: DOC="true" CYTHON="false"
-    - env: PYPY_NUMPY="true"
+    - python: pypy3.6-7.3.1
+    - env: SYMPY_SRC=master
+    - env: DOC="true"
+    - env: DOC="true" PYMATHICS_MODULES="true"
+services:
+  - xvfb
 before_install:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
+  - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10 llvm-10-dev
+  - sudo apt-get install -qq gfortran
+  - LLVM_CONFIG=/usr/bin/llvm-config-10  CXXFLAGS=-fPIC python -m pip install llvmlite
+  - pip install numpy
+  - if [[ "$ALL_MODULES" == "true" ]]; then
+      sudo apt-get install -qq &&
+      pip install ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
+      python -m nltk.downloader wordnet omw;
+    fi
+  - if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+      sudo apt-get install -qq python-enchant &&
+      pip install numpy ipywidgets ipykernel requests IPython==5.0.0 nltk langid pycountry pyenchant lxml matplotlib networkx &&
+      python travis.py &&
+      python -m nltk.downloader wordnet omw;
+    fi
   - if [[ "$DOC" == "true" ]]; then
-      sudo apt-get update -qq &&
-      sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
+      sudo apt-get install -qq texlive-font-utils latexmk texlive-xetex;
+      sudo apt-get install -qq lmodern inkscape;
+      sudo apt-get install -qq texlive-latex-extra texlive-latex;
+      sudo apt-get install -qq texlive-fonts-recommended;
+      sudo apt-get install -qq asymptote;
     fi
   - if [[ "$CYTHON" == "true" ]]; then
       pip install cython;
     fi
-  - pip install unittest2
-  - pip install pexpect
+  - pip install pint unittest2 pexpect scikit-image
   - pip install git+https://github.com/sympy/sympy.git@$SYMPY_SRC
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - if [[ "$DOC" == "true" ]]; then python setup.py develop; else python setup.py install; fi
 script:
-  - python setup.py test
   - if [[ "$DOC" == "true" ]]; then
-      python mathics/test.py -o &&
-      python mathics/test.py -t &&
-      cd mathics/doc/ &&
-      ./images.sh &&
-      cd tex/ &&
-      make latex;
+      make check output="--output";
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+         python pymathics/test.py -o &&
+         python pymathics/test.py -t &&
+         cd pymathics/doc/tex &&  make latex;
+      else
+         make doc;
+      fi
     else
-      python mathics/test.py;
+      make check;
+      if [[ "$PYMATHICS_MODULES" == "true" ]]; then
+        make doctest o="--stop-on-failure";
+      fi
     fi
 notifications:
     email: false

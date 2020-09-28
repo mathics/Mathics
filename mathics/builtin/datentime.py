@@ -1,23 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Date and Time
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
-import six
-from six.moves import range
-
 import time
 from datetime import datetime, timedelta
 import dateutil.parser
 import re
 
-from mathics.core.expression import (Expression, Real, Symbol, String,
+from mathics.core.expression import (Expression, Real, Symbol, String, Integer,
                                      from_python)
 
 from mathics.builtin.base import Builtin, Predefined
@@ -105,9 +98,9 @@ class Timing(Builtin):
     def apply(self, expr, evaluation):
         'Timing[expr_]'
 
-        start = time.clock()
+        start = time.process_time()
         result = expr.evaluate(evaluation)
-        stop = time.clock()
+        stop = time.process_time()
         return Expression('List', Real(stop - start), result)
 
 
@@ -206,13 +199,13 @@ class _DateFormat(Builtin):
 
         form_name = self.get_name()
 
-        if isinstance(etime, float) or isinstance(etime, six.integer_types):
+        if isinstance(etime, float) or isinstance(etime, int):
             date = EPOCH_START + timedelta(seconds=etime)
             datelist = [date.year, date.month, date.day, date.hour,
                         date.minute, date.second + 1e-06 * date.microsecond]
             return datelist
 
-        if isinstance(etime, six.string_types):
+        if isinstance(etime, str):
             try:
                 date = self.parse_date_automatic(epochtime, etime.strip('"'), evaluation)
             except ValueError:
@@ -228,7 +221,7 @@ class _DateFormat(Builtin):
 
         if 1 <= len(etime) <= 6 and all(    # noqa
             (isinstance(val, float) and i > 1) or
-            isinstance(val, six.integer_types) for i, val in enumerate(etime)):
+            isinstance(val, int) for i, val in enumerate(etime)):
 
             default_date = [1900, 1, 1, 0, 0, 0.]
             datelist = etime + default_date[len(etime):]
@@ -250,9 +243,9 @@ class _DateFormat(Builtin):
             return datelist
 
         if len(etime) == 2:
-            if (isinstance(etime[0], six.string_types) and    # noqa
+            if (isinstance(etime[0], str) and    # noqa
                 isinstance(etime[1], list) and
-                all(isinstance(s, six.string_types) for s in etime[1])):
+                all(isinstance(s, str) for s in etime[1])):
                 is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
                 etime[1] = [str(s).strip('"') for s in etime[1]]
 
@@ -469,7 +462,7 @@ class DateString(_DateFormat):
 
         pyform = [x.strip('"') for x in pyform]
 
-        if not all(isinstance(f, six.string_types) for f in pyform):
+        if not all(isinstance(f, str) for f in pyform):
             evaluation.message('DateString', 'fmt', form)
             return
 
@@ -545,6 +538,24 @@ class AbsoluteTime(_DateFormat):
         return from_python(total_seconds(tdelta))
 
 
+class SystemTimeZone(Predefined):
+    """
+    <dl>
+    <dt>'$SystemTimeZone'
+      <dd> gives the current time zone for the computer system on which Mathics is being run.
+    </dl>
+
+    >> $SystemTimeZone
+     = ...
+    """
+
+    name = '$SystemTimeZone'
+    value = Real(-time.timezone / 3600.)
+
+    def evaluate(self, evaluation):
+        return self.value
+
+
 class TimeZone(Predefined):
     """
     <dl>
@@ -556,10 +567,21 @@ class TimeZone(Predefined):
      = ...
     """
 
-    name = '$TimeZone'
+    name = "$TimeZone"
+    value = SystemTimeZone.value.copy()
 
-    def evaluate(self, evaluation):
-        return Real(-time.timezone / 3600.)
+    rules = {
+        "$TimeZone": str(value),
+    }
+
+    def apply(self, lhs, rhs, evaluation):
+        'lhs_ = rhs_'
+
+        self.assign(lhs, rhs, evaluation)
+        return rhs
+
+    def evaluate(self, evaluation) -> Real:
+        return self.value
 
 
 class TimeUsed(Builtin):
@@ -575,7 +597,9 @@ class TimeUsed(Builtin):
 
     def apply(self, evaluation):
         'TimeUsed[]'
-        return Real(time.clock())  # TODO: Check this for windows
+        # time.process_time() is better than
+        # time.clock(). See https://bugs.python.org/issue31803
+        return Real(time.process_time())
 
 
 class SessionTime(Builtin):
@@ -697,7 +721,7 @@ class DatePlus(Builtin):
         elif isinstance(pydate, float) or isinstance(pydate, int):
             date_prec = 'absolute'
             idate = _Date(absolute=pydate)
-        elif isinstance(pydate, six.string_types):
+        elif isinstance(pydate, str):
             date_prec = 'string'
             idate = _Date(datestr=pydate.strip('"'))
         else:
@@ -709,7 +733,7 @@ class DatePlus(Builtin):
         if isinstance(pyoff, float) or isinstance(pyoff, int):
             pyoff = [[pyoff, '"Day"']]
         elif (isinstance(pyoff, list) and len(pyoff) == 2 and
-              isinstance(pyoff[1], six.text_type)):
+              isinstance(pyoff[1], str)):
             pyoff = [pyoff]
 
         # Strip " marks
@@ -793,7 +817,7 @@ class DateDifference(Builtin):
             idate = _Date(datelist=pydate1)
         elif isinstance(pydate1, (float, int)):     # Absolute Time
             idate = _Date(absolute=pydate1)
-        elif isinstance(pydate1, six.string_types):       # Date string
+        elif isinstance(pydate1, str):       # Date string
             idate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date1)
@@ -803,7 +827,7 @@ class DateDifference(Builtin):
             fdate = _Date(datelist=pydate2)
         elif isinstance(pydate2, (int, float)):  # Absolute Time
             fdate = _Date(absolute=pydate2)
-        elif isinstance(pydate1, six.string_types):   # Date string
+        elif isinstance(pydate1, str):   # Date string
             fdate = _Date(datestr=pydate2.strip('"'))
         else:
             evaluation.message('DateDifference', 'date', date2)
@@ -817,10 +841,10 @@ class DateDifference(Builtin):
 
         # Process Units
         pyunits = units.to_python()
-        if isinstance(pyunits, six.string_types):
-            pyunits = [six.text_type(pyunits.strip('"'))]
+        if isinstance(pyunits, str):
+            pyunits = [str(pyunits.strip('"'))]
         elif (isinstance(pyunits, list) and
-              all(isinstance(p, six.string_types) for p in pyunits)):
+              all(isinstance(p, str) for p in pyunits)):
             pyunits = [p.strip('"') for p in pyunits]
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
@@ -888,3 +912,40 @@ class DateDifference(Builtin):
                 return from_python(result[0][0])
             return from_python(result[0])
         return from_python(result)
+
+
+class EasterSunday(Builtin):  # Calendar`EasterSunday
+    """
+    <dl>
+    <dt>'EasterSunday[$year$]'
+      <dd>returns the date of the Gregorian Easter Sunday as {year, month, day}.
+    </dl>
+
+    >> EasterSunday[2000]
+     = {2000, 4, 23}
+
+    >> EasterSunday[2030]
+     = {2030, 4, 21}
+    """
+
+    def apply(self, year, evaluation):
+        'EasterSunday[year_Integer]'
+        y = year.get_int_value()
+
+        # "Anonymous Gregorian algorithm", see https://en.wikipedia.org/wiki/Computus
+        a = y % 19
+        b = y // 100
+        c = y % 100
+        d = b // 4
+        e = b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i = c // 4
+        k = c % 4
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        month = (h + l - 7 * m + 114) // 31
+        day = ((h + l - 7 * m + 114) % 31) + 1
+
+        return Expression('List', year, Integer(month), Integer(day))

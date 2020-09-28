@@ -1,5 +1,4 @@
 import unittest
-import six
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse, InvalidSyntaxError, IncompleteSyntaxError
@@ -17,9 +16,9 @@ class UtilTests(unittest.TestCase):
         raise NotImplementedError
 
     def check(self, expr1, expr2):
-        if isinstance(expr1, six.string_types):
+        if isinstance(expr1, str):
             expr1 = self.parse(expr1)
-        if isinstance(expr2, six.string_types):
+        if isinstance(expr2, str):
             expr2 = self.parse(expr2)
 
         if expr1 is None:

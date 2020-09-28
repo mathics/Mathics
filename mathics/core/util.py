@@ -1,19 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six import unichr
 
 import re
+import sys
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
 
-def interpolate_string(text, get_param):
+def interpolate_string(text, get_param) -> str:
     index = [1]
 
     def get_item(index):
@@ -162,7 +158,7 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
                    (items[:start], items[start + length:]))
 
 
-def unicode_superscript(value):
+def unicode_superscript(value) -> str:
     def repl_char(c):
         if c == '1':
             value = 185
@@ -180,5 +176,40 @@ def unicode_superscript(value):
             value = 8318
         else:
             value = ord(c)
-        return unichr(value)
+        return chr(value)
     return ''.join(repl_char(c) for c in value)
+
+
+try:
+    from inspect import signature
+
+    def _python_function_arguments(f):
+        return signature(f).parameters.keys()
+except ImportError:  # py2, pypy
+    from inspect import getargspec
+
+    def _python_function_arguments(f):
+        return getargspec(f).args
+
+if sys.version_info >= (3, 4, 0):
+    _cython_function_arguments = _python_function_arguments
+elif sys.version_info[0] >= 3:  # py3.3
+    def _cython_function_arguments(f):
+        return f.__code__.co_varnames
+else:  # py2
+    def _cython_function_arguments(f):
+        return f.func_code.co_varnames
+
+
+def function_arguments(f):
+    try:
+        return _python_function_arguments(f)
+    except (TypeError, ValueError):
+        return _cython_function_arguments(f)
+
+def robust_min(iterable):
+    minimum = None
+    for i in iterable:
+        if minimum is None or i < minimum:
+            minimum = i
+    return minimum

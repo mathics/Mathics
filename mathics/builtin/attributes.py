@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 r"""
@@ -8,8 +8,6 @@ There are several builtin-attributes which have a predefined meaning in \Mathics
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Symbol, Expression
@@ -288,10 +286,10 @@ class Flat(Predefined):
     #> u[a]
      = {a}
     #> u[a, b]
-     : Recursion depth of 200 exceeded.
+     : Iteration limit of 1000 exceeded.
      = $Aborted
     #> u[a, b, c]
-     : Recursion depth of 200 exceeded.
+     : Iteration limit of 1000 exceeded.
      = $Aborted
     #> v[x_] := x
     #> v[]
@@ -301,7 +299,7 @@ class Flat(Predefined):
     #> v[a, b] (* in Mathematica: Iteration limit of 4096 exceeded. *)
      = v[a, b]
     #> v[a, b, c] (* in Mathematica: Iteration limit of 4096 exceeded. *)
-     : Recursion depth of 200 exceeded.
+     : Iteration limit of 1000 exceeded.
      = $Aborted
     """
 

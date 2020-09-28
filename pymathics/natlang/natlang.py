@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -55,10 +55,6 @@ import heapq
 import math
 
 
-def _status_message(text, evaluation):
-    evaluation.print_out(text)
-
-
 def _parse_nltk_lookup_error(e):
     m = re.search("Resource '([^']+)' not found\.", str(e))
     if m:
@@ -103,25 +99,32 @@ def _make_forms():
 
     return forms
 
+
+# the following two may only be accessed after_WordNetBuiltin._load_wordnet has
+# been called.
+
+_wordnet_pos_to_type = {}
+_wordnet_type_to_pos = {}
+
 try:
     import nltk
 
-    _wordnet_pos_to_type = {
-        nltk.corpus.wordnet.VERB: 'Verb',
-        nltk.corpus.wordnet.NOUN: 'Noun',
-        nltk.corpus.wordnet.ADJ: 'Adjective',
-        nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
-        nltk.corpus.wordnet.ADV: 'Adverb',
-    }
-    _wordnet_type_to_pos = {
-        'Verb': [nltk.corpus.wordnet.VERB],
-        'Noun': [nltk.corpus.wordnet.NOUN],
-        'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
-        'Adverb': [nltk.corpus.wordnet.ADV],
-    }
+    def _init_nltk_maps():
+        _wordnet_pos_to_type.update({
+            nltk.corpus.wordnet.VERB: 'Verb',
+            nltk.corpus.wordnet.NOUN: 'Noun',
+            nltk.corpus.wordnet.ADJ: 'Adjective',
+            nltk.corpus.wordnet.ADJ_SAT: 'Adjective',
+            nltk.corpus.wordnet.ADV: 'Adverb',
+        })
+        _wordnet_type_to_pos.update({
+            'Verb': [nltk.corpus.wordnet.VERB],
+            'Noun': [nltk.corpus.wordnet.NOUN],
+            'Adjective': [nltk.corpus.wordnet.ADJ, nltk.corpus.wordnet.ADJ_SAT],
+            'Adverb': [nltk.corpus.wordnet.ADV],
+        })
 except ImportError:
-    _wordnet_pos_to_type = {}
-    _wordnet_type_to_pos = {}
+    pass
 
 try:
     import spacy
@@ -219,6 +222,8 @@ class _SpacyBuiltin(Builtin):
     def _load_spacy(self, evaluation, options):
         language_code = None
         language_name = self.get_option(options, 'Language', evaluation)
+        if language_name is None:
+            language_name = String('Undefined')
         if isinstance(language_name, String):
             language_code = _SpacyBuiltin._language_codes.get(language_name.get_string_value())
         if not language_code:
@@ -229,7 +234,6 @@ class _SpacyBuiltin(Builtin):
         if instance:
             return instance
 
-        _status_message('Loading %s language data. This might take a moment.' % language_name, evaluation)
         try:
             if 'SPACY_DATA' in os.environ:
                 instance = spacy.load(language_code, via=os.environ['SPACY_DATA'])
@@ -252,8 +256,13 @@ class _SpacyBuiltin(Builtin):
         nlp = self._load_spacy(evaluation, options)
         if not nlp:
             return None
-        return nlp.is_stop
 
+        vocab = nlp.vocab
+
+        def is_stop(word):
+            return vocab[word].is_stop
+
+        return is_stop
 
 
 class WordFrequencyData(_SpacyBuiltin):
@@ -376,7 +385,7 @@ class DeleteStopwords(_SpacyBuiltin):
 
     def apply_list(self, l, evaluation, options):
         'DeleteStopwords[l_List, OptionsPattern[%(name)s]]'
-        is_stop = self._is_stop_lambda(options)
+        is_stop = self._is_stop_lambda(evaluation, options)
 
         def filter_words(words):
             for w in words:
@@ -391,7 +400,7 @@ class DeleteStopwords(_SpacyBuiltin):
         'DeleteStopwords[s_String, OptionsPattern[%(name)s]]'
         doc = self._nlp(s.get_string_value(), evaluation, options)
         if doc:
-            is_stop = self._is_stop_lambda(evaluation)
+            is_stop = self._is_stop_lambda(evaluation, options)
             if is_stop:
                 def tokens():
                     for token in doc:
@@ -412,15 +421,16 @@ class WordFrequency(_SpacyBuiltin):
     $word$ may also specify multiple words using $a$ | $b$ | ...
 
     >> WordFrequency[Import["ExampleData/EinsteinSzilLetter.txt"], "a" | "the"]
-     = 0.0667701863354037267
+     = 0.0667702
 
     >> WordFrequency["Apple Tree", "apple", IgnoreCase -> True]
      = 0.5
     """
 
-    options = {
+    options = _SpacyBuiltin.options
+    options.update({
         'IgnoreCase': 'False'
-    }
+    })
 
     def apply(self, text, word, evaluation, options):
         'WordFrequency[text_String, word_, OptionsPattern[%(name)s]]'
@@ -579,7 +589,7 @@ class TextStructure(_SpacyBuiltin):
     </dl>
 
     >> TextStructure["The cat sat on the mat.", "ConstituentString"]
-     = (Sentence, ((Verb Phrase, (Noun Phrase, (Determiner, The), (Noun, cat)), (Verb, sat), (Prepositional Phrase, (Preposition, on), (Noun Phrase, (Determiner, the), (Noun, mat))), (Punctuation, .))))
+     = {(Sentence, ((Verb Phrase, (Noun Phrase, (Determiner, The), (Noun, cat)), (Verb, sat), (Prepositional Phrase, (Preposition, on), (Noun Phrase, (Determiner, the), (Noun, mat))), (Punctuation, .))))}
     """
 
     _root_pos = set(i for i, names in _pos_tags.items() if names[1])
@@ -593,7 +603,7 @@ class TextStructure(_SpacyBuiltin):
             sub = ', '.join(self._to_constituent_string(next_node) for next_node in children)
             return '(%s, %s)' % (phrase_name, sub)
 
-    def _to_tree(self,tokens, path=[]):
+    def _to_tree(self, tokens, path=[]):
         roots = []
         i = 0
         while i < len(tokens):
@@ -630,22 +640,22 @@ class TextStructure(_SpacyBuiltin):
 class WordSimilarity(_SpacyBuiltin):
     """
     <dl>
-    <dt>'Experimental`WordSimilarity[$text1$, $text2]'
+    <dt>'WordSimilarity[$text1$, $text2]'
       <dd>returns a real-valued measure of semantic similarity of two texts or words.
-    <dt>'Experimental`WordSimilarity[{$text1$, $i1}, {$text2, $j1$}]'
+    <dt>'WordSimilarity[{$text1$, $i1}, {$text2, $j1$}]'
       <dd>returns a measure of similarity of two words within two texts.
-    <dt>'Experimental`WordSimilarity[{$text1$, {$i1, $i2, ...}}, {$text2, {$j1$, $j2$, ...}}]'
+    <dt>'WordSimilarity[{$text1$, {$i1, $i2, ...}}, {$text2, {$j1$, $j2$, ...}}]'
       <dd>returns a measure of similarity of multiple words within two texts.
     </dl>
 
-    >> WordSimilarity["car", "train"]
-     = 0.500020857388
+    >> NumberForm[WordSimilarity["car", "train"], 3]
+     = 0.5
 
-    >> WordSimilarity["car", "hedgehog"]
-     = 0.367589115186
+    >> NumberForm[WordSimilarity["car", "hedgehog"], 3]
+     = 0.368
 
-    >> WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}]
-     = {0.252807221426, 0.176639220193}
+    >> NumberForm[WordSimilarity[{"An ocean full of water.", {2, 2}}, { "A desert full of sand.", {2, 5}}], 3]
+     = {0.253, 0.177}
     """
 
     messages = _merge_dictionaries(_SpacyBuiltin.messages, {
@@ -769,6 +779,7 @@ class _WordNetBuiltin(Builtin):
     def _init_wordnet(self, evaluation, language_name, language_code):
         try:
             wordnet_resource = nltk.data.find('corpora/wordnet')
+            _init_nltk_maps()
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'wordnet')
             return None
@@ -779,8 +790,6 @@ class _WordNetBuiltin(Builtin):
         except LookupError:
             evaluation.message(self.get_name(), 'package', 'omw')
             return None
-
-        _status_message('Loading %s word data. Please wait.' % language_name, evaluation)
 
         wordnet = nltk.corpus.reader.wordnet.WordNetCorpusReader(wordnet_resource, omw)
 
@@ -1045,7 +1054,7 @@ class WordData(_WordListBuiltin):
             return word.get_string_value().lower()
         elif word.get_head_name() == 'System`List':
             if len(word.leaves) == 3 and all(isinstance(s, String) for s in word.leaves):
-               return tuple(s.get_string_value() for s in word.leaves)
+                return tuple(s.get_string_value() for s in word.leaves)
 
     def _standard_property(self, py_word, py_form, py_property, wordnet, language_code, evaluation):
         senses = self._senses(py_word, wordnet, language_code)
@@ -1070,7 +1079,7 @@ class WordData(_WordListBuiltin):
         if not parts:
             return Expression('Missing', 'NotAvailable')
         else:
-            return Expression('List', *[String(s) for s in sorted([_wordnet_pos_to_type(p) for p in parts])])
+            return Expression('List', *[String(s) for s in sorted([_wordnet_pos_to_type[p] for p in parts])])
 
     def _property(self, word, py_property, py_form, evaluation, options):
         if py_property == 'PorterStem':
@@ -1167,11 +1176,11 @@ class DictionaryLookup(_WordListBuiltin):
     </dl>
 
     >> DictionaryLookup["bake" ~~ ___, 3]
-     = {baked, bakehouse, bake}
+     = {bake, bakeapple, baked}
     """
 
     def compile(self, pattern, evaluation):
-        re_patt = to_regex(pattern)
+        re_patt = to_regex(pattern, evaluation)
         if re_patt is None:
             evaluation.message('StringExpression', 'invld', pattern, Expression('StringExpression', pattern))
             return
@@ -1182,7 +1191,7 @@ class DictionaryLookup(_WordListBuiltin):
     def search(self, dictionary_words, pattern):
         for dictionary_word in dictionary_words:
             if pattern.match(dictionary_word):
-                yield String(dictionary_word.replace('_', ' '))
+                yield dictionary_word.replace('_', ' ')
 
     def lookup(self, language_name, word, n, evaluation):
         pattern = self.compile(word, evaluation)
@@ -1190,11 +1199,9 @@ class DictionaryLookup(_WordListBuiltin):
             dictionary_words = self._words(language_name, 'All', evaluation)
             if dictionary_words:
                 matches = self.search(dictionary_words, pattern)
-                if n is None:
-                    matches = sorted(list(matches))
-                else:
-                    matches = list(itertools.islice(matches, 0, n))
-                return Expression('List', *matches)
+                if n is not None:
+                    matches = itertools.islice(matches, 0, n)
+                return Expression('List', *(String(match) for match in sorted(matches)))
 
     def apply_english(self, word, evaluation):
         'DictionaryLookup[word_]'
@@ -1297,7 +1304,9 @@ class LanguageIdentify(Builtin):
         # an alternative: https://github.com/Mimino666/langdetect
         import pycountry
         code, _ = langid.classify(text.get_string_value())
-        language = pycountry.languages.get(iso639_1_code=code)
+        language = pycountry.languages.get(alpha_2=code)
+        if language is None:
+            return Symbol("$Failed")
         return String(language.name)
 
 
@@ -1329,8 +1338,10 @@ class SpellingCorrectionList(Builtin):
       <dd>returns a list of suggestions for spelling corrected versions of $word$.
     </dl>
 
-    >> SpellingCorrectionList["lisbin"]
-     = {Lisbon, Lisbeth, listing, listen}
+    Results may differ depending on which dictionaries can be found by enchant.
+
+    >> SpellingCorrectionList["hipopotamus"]
+     = {hippopotamus...}
     '''
 
     requires = (

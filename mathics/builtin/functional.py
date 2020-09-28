@@ -1,14 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Functional programming
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import zip
 
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
@@ -65,6 +62,7 @@ class Function(PostfixOperator):
         'slot': "`1` should contain a positive integer.",
         'slotn': "Slot number `1` cannot be filled.",
         'fpct': "Too many parameters to be filled.",
+        'iassoc': "Invalid association item `1`"
     }
 
     def apply_slots(self, body, args, evaluation):
@@ -88,7 +86,7 @@ class Function(PostfixOperator):
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars, evaluation)
+            return body.replace_vars(vars)
 
 
 class Slot(Builtin):

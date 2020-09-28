@@ -1,5 +1,4 @@
 import unittest
-import six
 import random
 import sys
 
@@ -20,9 +19,9 @@ class ConvertTests(unittest.TestCase):
         return parse(definitions, SingleLineFeeder(code))
 
     def check(self, expr1, expr2):
-        if isinstance(expr1, six.string_types):
+        if isinstance(expr1, str):
             expr1 = self.parse(expr1)
-        if isinstance(expr2, six.string_types):
+        if isinstance(expr2, str):
             expr2 = self.parse(expr2)
 
         if expr1 is None:

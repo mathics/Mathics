@@ -1,19 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#cython: language_level=3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
-
+from mathics.core.util import function_arguments
 
 class StopGenerator_BaseRule(StopGenerator):
     pass
 
 
 class BaseRule(KeyComparable):
-    def __init__(self, pattern, system=False):
+    def __init__(self, pattern, system=False) -> None:
         self.pattern = Pattern.create(pattern)
         self.system = system
 
@@ -36,7 +35,7 @@ class BaseRule(KeyComparable):
                 if name.startswith('_option_'):
                     options[name[len('_option_'):]] = value
                     del vars[name]
-            new_expression = self.do_replace(vars, options, evaluation)
+            new_expression = self.do_replace(expression, vars, options, evaluation)
             if new_expression is None:
                 new_expression = expression
             if rest[0] or rest[1]:
@@ -74,12 +73,12 @@ class BaseRule(KeyComparable):
 
 
 class Rule(BaseRule):
-    def __init__(self, pattern, replace, system=False):
+    def __init__(self, pattern, replace, system=False) -> None:
         super(Rule, self).__init__(pattern, system=system)
         self.replace = replace
 
-    def do_replace(self, vars, options, evaluation):
-        new = self.replace.replace_vars(vars, evaluation)
+    def do_replace(self, expression, vars, options, evaluation):
+        new = self.replace.replace_vars(vars)
         new.options = options
 
         # if options is a non-empty dict, we need to ensure reevaluation of the whole expression, since 'new' will
@@ -100,27 +99,35 @@ class Rule(BaseRule):
 
         return new
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<Rule: %s -> %s>' % (self.pattern, self.replace)
 
 
 class BuiltinRule(BaseRule):
-    def __init__(self, pattern, function, system=False):
+    def __init__(self, name, pattern, function, check_options, system=False) -> None:
         super(BuiltinRule, self).__init__(pattern, system=system)
+        self.name = name
         self.function = function
+        self.check_options = check_options
+        self.pass_expression = 'expression' in function_arguments(function)
 
-    def do_replace(self, vars, options, evaluation):
+    def do_replace(self, expression, vars, options, evaluation):
+        if options and self.check_options:
+            if not self.check_options(options, evaluation):
+                return None
         # The Python function implementing this builtin expects
         # argument names corresponding to the symbol names without
         # context marks.
         vars_noctx = dict(((strip_context(s), vars[s]) for s in vars))
+        if self.pass_expression:
+            vars_noctx['expression'] = expression
         if options:
             return self.function(
                 evaluation=evaluation, options=options, **vars_noctx)
         else:
             return self.function(evaluation=evaluation, **vars_noctx)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<BuiltinRule: %s -> %s>' % (self.pattern, self.function)
 
     def __getstate__(self):

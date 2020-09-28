@@ -1,22 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# cython: language_level=3
 
 """
 Graphics
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import json
 import base64
-from six.moves import map
-from six.moves import range
-from six.moves import zip
 from itertools import chain
-from math import sin, cos, pi
 
 from mathics.builtin.base import (
     Builtin, InstancableBuiltin, BoxConstruct, BoxConstructError)
@@ -179,48 +173,48 @@ def _euclidean_distance(a, b):
 def _component_distance(a, b, i):
     return abs(a[i] - b[i])
 
-	
+
 def _cie2000_distance(lab1, lab2):
     #reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
     kL = kC = kH = 1 #common values
-    
+
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL = L2 - L1
     Lm = (L1 + L2)/2
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2;
-    
+
     a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
     a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-    
+
     C1 = sqrt(a1**2 + b1**2)
     C2 = sqrt(a2**2 + b2**2)
     Cm = (C1 + C2)/2
     dC = C2 - C1
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360
     h2 = (180 * atan2(b2, a2 + e))/pi % 360
     if abs(h2 - h1) <= 180:
-        dh = h2 - h1 
+        dh = h2 - h1
     elif abs(h2 - h1) > 180 and h2 <= h1:
         dh = h2 - h1 + 360
     elif abs(h2 - h1) > 180 and h2 > h1:
         dh = h2 - h1 - 360
-                    
+
     dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
-    
+
     Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
     T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
-    
+
     SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
     SC = 1 + 0.045*Cm
     SH = 1 + 0.015*Cm*T
-    
+
     rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
     return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
 
@@ -230,19 +224,19 @@ def _CMC_distance(lab1, lab2, l, c):
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
-    
+
     dL, da, db = L2-L1, a2-a1, b2-b1
     e = machine_epsilon
-    
+
     C1 = sqrt(a1**2 + b1**2);
     C2 = sqrt(a2**2 + b2**2);
-    
+
     h1 = (180 * atan2(b1, a1 + e))/pi % 360;
     dC = C2 - C1;
     dH2 = da**2 + db**2 - dC**2;
     F = C1**2/sqrt(C1**4 + 1900);
     T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
-    
+
     SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
     SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
     SH = SC*(F*T + 1 - F);
@@ -367,14 +361,11 @@ class Graphics(Builtin):
     >> Graphics[Circle[]] // TeXForm
      = 
      . \begin{asy}
+     . usepackage("amsmath");
      . size(5.8556cm, 5.8333cm);
      . draw(ellipse((175,175),175,175), rgb(0, 0, 0)+linewidth(0.66667));
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
-
-    Invalid graphics directives yield invalid box structures:
-    >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]]] is not a valid box structure.
     """
 
     options = {
@@ -387,6 +378,7 @@ class Graphics(Builtin):
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
         'Background': 'Automatic',
+        '$OptionSyntax': 'Ignore',
     }
 
     box_suffix = 'Box'
@@ -480,9 +472,8 @@ class _Color(_GraphicsElement):
                 # become RGBColor[0, 0, 0, 1]. does not seem the right thing
                 # to do in this general context. poke1024
 
-                # if len(components) < len(self.default_components):
-                #    components.extend(self.default_components[
-                #                      len(components):])
+                if len(components) < 3:
+                   components.extend(self.default_components[len(components):])
 
                 self.components = components
             else:
@@ -747,7 +738,7 @@ class ColorDistance(Builtin):
      = 0.557976
     #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
      = 0.542917
-    
+
     """
 
     options = {
@@ -758,27 +749,34 @@ class ColorDistance(Builtin):
         'invdist': '`1` is not Automatic or a valid distance specification.',
         'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
                   'two lists of colors of the same length.'
-        
+
     }
-    
-    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space 
+
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
-    
+
     _distances = {
         "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
         "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
         "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,	
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
         "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
         "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
         "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
         "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
-
     }
 
 
     def apply(self, c1, c2, evaluation, options):
         'ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]'
+
+        # If numpy is not installed, 100 * c1.to_color_space returns
+        # a list of 100 x 3 elements, instead of doing elementwise multiplication
+        try:
+            import numpy as np
+        except:
+            raise RuntimeError("NumPy needs to be installed for ColorDistance")
+
         distance_function = options.get('System`DistanceFunction')
         compute = None
         if isinstance(distance_function, String):
@@ -793,7 +791,7 @@ class ColorDistance(Builtin):
                                                             100*c2.to_color_space('LAB')[:3], 2, 1)/100
                 elif distance_function.leaves[1].get_string_value() == 'Perceptibility':
                     compute = ColorDistance._distances.get("CMC")
-                    
+
                 elif distance_function.leaves[1].has_form('List', 2):
                     if (isinstance(distance_function.leaves[1].leaves[0], Integer)
                     and isinstance(distance_function.leaves[1].leaves[1], Integer)):
@@ -1546,6 +1544,8 @@ class BezierCurveBox(_Polyline):
         asy = ''
         for line in self.lines:
             for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
+                if path[:2] == "..":
+                    path = "(0.,0.)" + path
                 asy += 'draw(%s, %s);' % (path, pen)
         return asy
 
@@ -1954,12 +1954,151 @@ class Arrowheads(_GraphicsElement):
             yield self._arrow_size(self.spec, extent), 1, default_arrow
 
 
+def _norm(p, q):
+    px, py = p
+    qx, qy = q
+
+    dx = qx - px
+    dy = qy - py
+
+    length = sqrt(dx * dx + dy * dy)
+    return dx, dy, length
+
+
+class _Line:
+    def make_draw_svg(self, style):
+        def draw(points):
+            yield '<polyline points="'
+            yield ' '.join('%f,%f' % xy for xy in points)
+            yield '" style="%s" />' % style
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            yield 'draw('
+            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
+            yield ', % s);' % pen
+
+        return draw
+
+    def arrows(self, points, heads):  # heads has to be sorted by pos
+        def segments(points):
+            for i in range(len(points) - 1):
+                px, py = points[i]
+                dx, dy, dl = _norm((px, py), points[i + 1])
+                yield dl, px, py, dx, dy
+
+        seg = list(segments(points))
+
+        if not seg:
+            return
+
+        i = 0
+        t0 = 0.
+        n = len(seg)
+        dl, px, py, dx, dy = seg[i]
+        total = sum(segment[0] for segment in seg)
+
+        for s, t, draw in ((s, pos * total - t0, draw) for s, pos, draw in heads):
+            if s == 0.:  # ignore zero-sized arrows
+                continue
+
+            if i < n:  # not yet past last segment?
+                while t > dl:  # position past current segment?
+                    t -= dl
+                    t0 += dl
+                    i += 1
+                    if i == n:
+                        px += dx  # move to last segment's end
+                        py += dy
+                        break
+                    else:
+                        dl, px, py, dx, dy = seg[i]
+
+            for shape in draw(px, py, dx / dl, dy / dl, t, s):
+                yield shape
+
+
+def _bezier_derivative(p):
+    # see http://pomax.github.io/bezierinfo/, §12 Derivatives
+    n = len(p[0]) - 1
+    return [[n * (x1 - x0) for x1, x0 in zip(w, w[1:])] for w in p]
+
+
+def _bezier_evaluate(p, t):
+    # see http://pomax.github.io/bezierinfo/, §4 Controlling Bezier Curvatures
+    n = len(p[0]) - 1
+    if n == 3:
+        t2 = t * t
+        t3 = t2 * t
+        mt = 1 - t
+        mt2 = mt * mt
+        mt3 = mt2 * mt
+        return [w[0] * mt3 + 3 * w[1] * mt2 * t + 3 * w[2] * mt * t2 + w[3] * t3 for w in p]
+    elif n == 2:
+        t2 = t * t
+        mt = 1 - t
+        mt2 = mt * mt
+        return [w[0] * mt2 + w[1] * 2 * mt * t + w[2] * t2 for w in p]
+    elif n == 1:
+        mt = 1 - t
+        return [w[0] * mt + w[1] * t for w in p]
+    else:
+        raise ValueError('cannot compute bezier curve of order %d' % n)
+
+
+class _BezierCurve:
+    def __init__(self, spline_degree=3):
+        self.spline_degree = spline_degree
+
+    def make_draw_svg(self, style):
+        def draw(points):
+            s = ' '.join(_svg_bezier((self.spline_degree, points)))
+            yield '<path d="%s" style="%s"/>' % (s, style)
+
+        return draw
+
+    def make_draw_asy(self, pen):
+        def draw(points):
+            for path in _asy_bezier((self.spline_degree, points)):
+                yield 'draw(%s, %s);' % (path, pen)
+
+        return draw
+
+    def arrows(self, points, heads):  # heads has to be sorted by pos
+        if len(points) < 2:
+            return
+
+        # FIXME combined curves
+
+        cp = list(zip(*points))
+        if len(points) >= 3:
+            dcp = _bezier_derivative(cp)
+        else:
+            dcp = cp
+
+        for s, t, draw in heads:
+            if s == 0.:  # ignore zero-sized arrows
+                continue
+
+            px, py = _bezier_evaluate(cp, t)
+
+            tx, ty = _bezier_evaluate(dcp, t)
+            tl = -sqrt(tx * tx + ty * ty)
+            tx /= tl
+            ty /= tl
+
+            for shape in draw(px, py, tx, ty, 0., s):
+                yield shape
+
+
 class ArrowBox(_Polyline):
     def init(self, graphics, style, item=None):
-        super(ArrowBox, self).init(graphics, item, style)
-
         if not item:
             raise BoxConstructError
+
+        super(ArrowBox, self).init(graphics, item, style)
 
         leaves = item.leaves
         if len(leaves) == 2:
@@ -1969,8 +2108,27 @@ class ArrowBox(_Polyline):
         else:
             raise BoxConstructError
 
+        curve = leaves[0]
+
+        curve_head_name = curve.get_head_name()
+        if curve_head_name == 'System`List':
+            curve_points = curve
+            self.curve = _Line()
+        elif curve_head_name == 'System`Line':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _Line()
+        elif curve_head_name == 'System`BezierCurve':
+            if len(curve.leaves) != 1:
+                raise BoxConstructError
+            curve_points = curve.leaves[0]
+            self.curve = _BezierCurve()
+        else:
+            raise BoxConstructError
+
         self.setback = setback
-        self.do_init(graphics, leaves[0])
+        self.do_init(graphics, curve_points)
         self.graphics = graphics
         self.edge_color, _ = style.get_style(_Color, face_element=False)
         self.heads, _ = style.get_style(Arrowheads, face_element=False)
@@ -2043,24 +2201,8 @@ class ArrowBox(_Polyline):
         else:
             heads = ((extent * Arrowheads.default_size, 1, default_arrow),)
 
-        def norm(p, q):
-            px, py = p
-            qx, qy = q
-
-            dx = qx - px
-            dy = qy - py
-
-            length = sqrt(dx * dx + dy * dy)
-            return dx, dy, length
-
-        def segments(points):
-            for i in range(len(points) - 1):
-                px, py = points[i]
-                dx, dy, dl = norm((px, py), points[i + 1])
-                yield dl, px, py, dx, dy
-
         def setback(p, q, d):
-            dx, dy, length = norm(p, q)
+            dx, dy, length = _norm(p, q)
             if d >= length:
                 return None, length
             else:
@@ -2083,37 +2225,6 @@ class ArrowBox(_Polyline):
             return list(reversed(shrink_one_end(
                 list(reversed(shrink_one_end(line[:], s1))), s2)))
 
-        def render(points, heads):  # heads has to be sorted by pos
-            seg = list(segments(points))
-
-            if not seg:
-                return
-
-            i = 0
-            t0 = 0.
-            n = len(seg)
-            dl, px, py, dx, dy = seg[i]
-            total = sum(segment[0] for segment in seg)
-
-            for s, t, draw in ((s, pos * total - t0, draw) for s, pos, draw in heads):
-                if s == 0.:  # ignore zero-sized arrows
-                    continue
-
-                if i < n:  # not yet past last segment?
-                    while t > dl:  # position past current segment?
-                        t -= dl
-                        t0 += dl
-                        i += 1
-                        if i == n:
-                            px += dx  # move to last segment's end
-                            py += dy
-                            break
-                        else:
-                            dl, px, py, dx, dy = seg[i]
-
-                for shape in draw(px, py, dx / dl, dy / dl, t, s):
-                    yield shape
-
         for line in self.lines:
             if len(line) < 2:
                 continue
@@ -2126,7 +2237,7 @@ class ArrowBox(_Polyline):
             for s in polyline(transformed_points):
                 yield s
 
-            for s in render(transformed_points, heads):
+            for s in self.curve.arrows(transformed_points, heads):
                 yield s
 
     def _custom_arrow(self, format, format_transform):
@@ -2155,12 +2266,9 @@ class ArrowBox(_Polyline):
     def to_svg(self):
         width = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=width)
-        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_svg(style)
 
-        def polyline(points):
-            yield '<polyline points="'
-            yield ' '.join('%f,%f' % xy for xy in points)
-            yield '" style="%s" />' % style
+        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield '<polygon points="'
@@ -2175,12 +2283,9 @@ class ArrowBox(_Polyline):
     def to_asy(self):
         width = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=width)
-        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
+        polyline = self.curve.make_draw_asy(pen)
 
-        def polyline(points):
-            yield 'draw('
-            yield '--'.join(['(%.5g,%5g)' % xy for xy in points])
-            yield ', % s);' % pen
+        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
             yield 'filldraw('
@@ -2548,9 +2653,13 @@ class GraphicsElements(_GraphicsElements):
             ext = total_extent([element.extent() for element in self.elements])
         xmin, xmax, ymin, ymax = ext
         if xmin == xmax:
+            if xmin is None:
+                return 0, 0, 0, 0
             xmin = 0
             xmax *= 2
         if ymin == ymax:
+            if ymin is None:
+                return 0, 0, 0, 0
             ymin = 0
             ymax *= 2
         return xmin, xmax, ymin, ymax
@@ -2795,6 +2904,7 @@ class GraphicsBox(BoxConstruct):
 
         tex = r"""
 \begin{asy}
+usepackage("amsmath");
 size(%scm, %scm);
 %s
 %s
@@ -3425,4 +3535,3 @@ GRAPHICS_SYMBOLS = frozenset(
     list(element_heads) +
     [element + 'Box' for element in element_heads] +
     list(style_heads))
-

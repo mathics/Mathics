@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import (Expression, String, Symbol, Integer,
@@ -24,7 +22,8 @@ def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
         if var.has_form('Set', 2):
             var_name = var.leaves[0].get_name()
             new_def = var.leaves[1]
-            new_def = new_def.evaluate(evaluation)
+            if evaluation:
+                new_def = new_def.evaluate(evaluation)
         elif var.has_form('Symbol'):
             var_name = var.get_name()
             new_def = None
@@ -171,6 +170,9 @@ class Module(Builtin):
     #> Module[{n = 3}, Module[{b = n * 5}, b * 7]]
      = 105
 
+    #> Module[{a = 3}, Module[{c = If[ToString[Head[a]] == "Integer", a * 5, Abort[]]}, c]]
+     = 15
+
     """
 
     attributes = ('HoldAll',)
@@ -198,9 +200,155 @@ class Module(Builtin):
             if new_def is not None:
                 evaluation.definitions.set_ownvalue(new_name, new_def)
             replace[name] = Symbol(new_name)
-        new_expr = expr.replace_vars(replace, evaluation, in_scoping=False)
+        new_expr = expr.replace_vars(replace, in_scoping=False)
         result = new_expr.evaluate(evaluation)
         return result
+
+
+class Unique(Predefined):
+    """
+    <dl>
+    <dt>'Unique[]'
+        <dd>generates a new symbol and gives a name of the form '$number'.
+    <dt>'Unique[x]'
+        <dd>generates a new symbol and gives a name of the form 'x$number'.
+    <dt>'Unique[{x, y, ...}]'
+        <dd>generates a list of new symbols.
+    <dt>'Unique["xxx"]'
+        <dd>generates a new symbol and gives a name of the form 'xxxnumber'.
+    </dl>
+
+    Create a unique symbol with no particular name:
+    >> Unique[]
+     = $1
+
+    >> Unique[sym]
+     = sym$1
+
+    Create a unique symbol whose name begins with x:
+    >> Unique["x"]
+     = x2
+
+    #> $3 = 3;
+    #> Unique[]
+     = $4
+
+    #> Unique[{}]
+     = {}
+
+    #> Unique[{x, x}]
+     = {x$2, x$3}
+
+    Each use of Unique[symbol] increments $ModuleNumber:
+    >> {$ModuleNumber, Unique[x], $ModuleNumber}
+     = {4, x$4, 5}
+
+    Unique[symbol] creates symbols in the same way Module does:
+    >> {Module[{x}, x], Unique[x]}
+     = {x$5, x$6}
+
+    Unique with more arguments
+    >> Unique[{x, "s"}, Flat ^ Listable ^ Orderless]
+     : Flat ^ Listable ^ Orderless is not a known attribute.
+     = Unique[{x, s}, Flat ^ Listable ^ Orderless]
+
+    Unique call without symbol argument
+    >> Unique[x + y]
+     : x + y is not a symbol or a valid symbol name.
+     = Unique[x + y]
+
+    #> Unique[1]
+     : 1 is not a symbol or a valid symbol name.
+     = Unique[1]
+
+    #> Unique[{m, "s", n}, {Flat, Listable, Orderless}]
+     = {m$7, s5, n$8}
+
+    #> Attributes[{m$7, s5, n$8}]
+     = {{Flat, Listable, Orderless}, {Flat, Listable, Orderless}, {Flat, Listable, Orderless}}
+
+    #> Unique[{x, "s", 1}, {Flat ^ Listable ^ Orderless}]
+     : 1 is not a symbol or a valid symbol name.
+     = Unique[{x, s, 1}, {Flat ^ Listable ^ Orderless}]
+
+    #> Unique[{"s"}, Flat]
+     = {s6}
+
+    #> Attributes[s6]
+     = {Flat}
+    """
+
+    seq_number = 1
+
+    messages = {
+        'usym': '`1` is not a symbol or a valid symbol name.',
+        'argrx': 'Unique called with `1` arguments; 0 or 1 argument are expected.',
+        'attnf': '`1` is not a known attribute.',
+    }
+
+    attributes = ('Protected',)
+
+    rules = {
+        'Unique[x_Symbol]': 'Module[{x}, x]',
+    }
+
+    def apply(self, evaluation):
+        'Unique[]'
+
+        new_name = '$%d' % (self.seq_number)
+        self.seq_number += 1
+        # Next symbol in case of new name is defined before
+        while evaluation.definitions.get_definition(new_name, True) is not None:
+            new_name = '$%d' % (self.seq_number)
+            self.seq_number += 1
+        return Symbol(new_name)
+
+    def apply_symbol(self, vars, attributes, evaluation):
+        'Unique[vars_, attributes___]'
+
+        from mathics.core.parser import is_symbol_name
+        from mathics.builtin.attributes import get_symbol_list
+
+        attributes = attributes.get_sequence()
+        if len(attributes) > 1:
+            return evaluation.message('Unique', 'argrx', Integer(len(attributes) + 1))
+
+        # Check valid symbol variables
+        symbols = vars.leaves if vars.has_form('List', None) else [vars]
+        for symbol in symbols:
+            if not isinstance(symbol, Symbol):
+                text = symbol.get_string_value()
+                if text is None or not is_symbol_name(text):
+                    return evaluation.message('Unique', 'usym', symbol)
+
+        # Check valid attributes
+        attrs = []
+        if len(attributes) > 0:
+            attrs = get_symbol_list(attributes[0], lambda item: evaluation.message('Unique', 'attnf', item))
+            if attrs is None:
+                return None
+
+        # Generate list new symbols
+        list = []
+        for symbol in symbols:
+            if isinstance(symbol, Symbol):
+                list.append(Module(Expression('List', symbol), symbol).evaluate(evaluation))
+            else:
+                new_name = '%s%d' % (symbol.get_string_value(), self.seq_number)
+                self.seq_number += 1
+                # Next symbol in case of new name is defined before
+                while evaluation.definitions.get_definition(new_name, True) is not None:
+                    new_name = '%s%d' % (symbol.get_string_value(), self.seq_number)
+                    self.seq_number += 1
+                list.append(Symbol(new_name))
+        for symbol in list:
+            for att in attrs:
+                evaluation.definitions.set_attribute(symbol.get_name(), att)
+
+        if vars.has_form('List', None):
+            return Expression('List', *list)
+        else:
+            return list[0]
 
 
 class Context(Builtin):
@@ -266,7 +414,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
+     = {"Combinatorica`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
     """
 
     def apply(self, evaluation):

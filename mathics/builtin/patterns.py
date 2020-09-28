@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -33,10 +33,7 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
@@ -524,6 +521,10 @@ class Alternatives(BinaryOperator, PatternObject):
         return range
 
 
+class _StopGeneratorExcept(StopGenerator):
+    pass
+
+
 class Except(PatternObject):
     """
     <dl>
@@ -558,18 +559,19 @@ class Except(PatternObject):
             self.p = Pattern.create(Expression('Blank'))
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        class StopGenerator_Except(StopGenerator):
-            pass
-
         def except_yield_func(vars, rest):
-            raise StopGenerator_Except(Symbol("True"))
+            raise _StopGeneratorExcept(True)
 
         try:
             self.c.match(except_yield_func, expression, vars, evaluation)
-        except StopGenerator_Except:
+        except _StopGeneratorExcept:
             pass
         else:
             self.p.match(yield_func, expression, vars, evaluation)
+
+
+class _StopGeneratorMatchQ(StopGenerator):
+    pass
 
 
 class Matcher(object):
@@ -577,15 +579,12 @@ class Matcher(object):
         self.form = Pattern.create(form)
 
     def match(self, expr, evaluation):
-        class StopGenerator_MatchQ(StopGenerator):
-            pass
-
         def yield_func(vars, rest):
-            raise StopGenerator_MatchQ(Symbol("True"))
+            raise _StopGeneratorMatchQ(True)
 
         try:
             self.form.match(yield_func, expr, {}, evaluation)
-        except StopGenerator_MatchQ:
+        except _StopGeneratorMatchQ:
             return True
         return False
 
@@ -1178,6 +1177,21 @@ class RepeatedNull(Repeated):
         super(RepeatedNull, self).init(expr, min=0)
 
 
+class Shortest(Builtin):
+    pass
+
+
+class Longest(Builtin):
+    '''
+    >> StringCases["aabaaab", Longest["a" ~~ __ ~~ "b"]]
+     = {aabaaab}
+
+    >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
+     = {aab, aaab}
+    '''
+    pass
+
+
 class Condition(BinaryOperator, PatternObject):
     """
     <dl>
@@ -1219,7 +1233,7 @@ class Condition(BinaryOperator, PatternObject):
         # for new_vars, rest in self.pattern.match(expression, vars,
         # evaluation):
         def yield_match(new_vars, rest):
-            test_expr = self.test.replace_vars(new_vars, evaluation)
+            test_expr = self.test.replace_vars(new_vars)
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
                 yield_func(new_vars, rest)
@@ -1294,7 +1308,13 @@ class OptionsPattern(PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.defaults is None:
-            self.defaults = kwargs['head']
+            self.defaults = kwargs.get('head')
+            if self.defaults is None:
+                # we end up here with OptionsPattern that do not have any
+                # default options defined, e.g. with this code:
+                # f[x:OptionsPattern[]] := x; f["Test" -> 1]
+                # set self.defaults to an empty List, so we don't crash.
+                self.defaults = Expression('List')
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()
@@ -1317,3 +1337,25 @@ class OptionsPattern(PatternObject):
             return (leaf.has_form(('Rule', 'RuleDelayed'), 2) or
                     leaf.has_form('List', None))
         return [leaf for leaf in leaves if _match(leaf)]
+
+
+class _StopGeneratorBaseExpressionIsFree(StopGenerator):
+    pass
+
+
+def item_is_free(item, form, evaluation):
+    # for vars, rest in form.match(self, {}, evaluation, fully=False):
+    def yield_match(vars, rest):
+        raise _StopGeneratorBaseExpressionIsFree(False)
+        # return False
+
+    try:
+        form.match(yield_match, item, {}, evaluation, fully=False)
+    except _StopGeneratorBaseExpressionIsFree as exc:
+        return exc.value
+
+    if item.is_atom():
+        return True
+    else:
+        return item_is_free(item.head, form, evaluation) and all(
+            item_is_free(leaf, form, evaluation) for leaf in item.leaves)
