@@ -298,7 +298,7 @@ class Inner(Builtin):
                         rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
                 return Expression(head, *leaves)
             else:
-                def summand(i):                    
+                def summand(i):
                     part1 = get_part(list1, i_cur + [i])
                     part2 = get_part(list2, [i] + j_cur)
                     return Expression(f, part1, part2)

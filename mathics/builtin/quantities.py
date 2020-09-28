@@ -194,18 +194,17 @@ class Quantity(Builtin):
         
         if(self.validate(unit, evaluation)):
             if(mag.has_form("List", None)):
-                results = []           
+                results = []
                 for i in range(len(mag.leaves)):
                     quantity = Q_(mag.leaves[i], unit.get_string_value().lower())
                     results.append(Expression("Quantity", quantity.magnitude, String(quantity.units)))
-                    
-                return Expression("List", *results) 
+                return Expression("List", *results)
             else:    
                 quantity = Q_(mag, unit.get_string_value().lower())
                 return Expression('Quantity', quantity.magnitude, String(quantity.units))
         else:
             return evaluation.message('Quantity', 'unkunit', unit)
-        
+
     def apply_1(self, unit, evaluation):
         'Quantity[unit_]'
         if not isinstance(unit, String):

@@ -4876,7 +4876,6 @@ class Permutations(Builtin):
         outer = structure('List', inner, evaluation)
 
         return outer([inner(p) for r in rs for p in permutations(l.leaves, r)])
-    
 
 
 class SubsetQ(Builtin):
@@ -4977,7 +4976,7 @@ def delete_one(expr, pos):
 
 def delete_rec(expr, pos):
     if len(pos)==1:
-        return delete_one(expr, pos[0])    
+        return delete_one(expr, pos[0])
     truepos = pos[0]
     if truepos == 0 or expr.is_atom():
         raise PartDepthError(pos[0])
@@ -4988,12 +4987,12 @@ def delete_rec(expr, pos):
         if truepos < 0:
             raise PartRangeError
         newleaf = delete_rec(leaves[truepos], pos[1:])
-        leaves = leaves[:truepos] +  newleaf  + leaves[truepos+1:] 
+        leaves = leaves[:truepos] +  (newleaf,)  + leaves[truepos+1:]
     else:
         if truepos > l:
             raise PartRangeError
         newleaf = delete_rec(leaves[truepos-1 ], pos[1:])
-        leaves = leaves[:truepos-1] +  (newleaf,)  + leaves[truepos:] 
+        leaves = leaves[:truepos-1] + (newleaf,) + leaves[truepos:]
     return Expression(expr.get_head(), *leaves)
 
 
@@ -5100,10 +5099,10 @@ class Delete(Builtin):
 
     def apply(self, expr, positions, evaluation):
         'Delete[expr_, positions___]'
-
         positions = positions.get_sequence()
         if len(positions) > 1:
-            return evaluation.message('Delete', 'argt', Integer(len(positions) + 1))
+            return evaluation.message('Delete', 'argt',
+                                      Integer(len(positions) + 1))
         elif len(positions) == 0:
             return evaluation.message('Delete', 'argr')
 
@@ -5114,13 +5113,8 @@ class Delete(Builtin):
         # Create new python list of the positions and sort it
         positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
         positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
-        
         leaves = expr.leaves
         newexpr = expr
-        #pypositions = [[p.get_int_value() for p in position.get_leaves()]
-        #             for position in positions]
-        # for it in range(len(positions)):
-        #    pos = pypositions[it]
         for position in positions:
             pos = [p.get_int_value() for p in position.get_leaves()]
             if None in pos:
