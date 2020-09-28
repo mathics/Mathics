@@ -50,12 +50,17 @@ To run the command-line interface using docker image:
 ::
    $ docker run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data mathicsorg/mathics --mode cli
 
+If you want to add options add them at then end preceded with `--`: for example:
+
+::
+   $ docker run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data mathicsorg/mathics --mode cli -- --help
+
 To run the Django web interface using docker image:
 ::
    $ docker run --rm -it --name mathics-web -p 8000:8000 -v /tmp:/usr/src/app/data mathicsorg/mathics --mode ui
 
 
-This dockeriztion was modified from `sealemar/mathics-dockerized <https://github.com/sealemar/mathics-dockerized>`_. See that for more details on how this works.
+This dockerization was modified from `sealemar/mathics-dockerized <https://github.com/sealemar/mathics-dockerized>`_. See that for more details on how this works.
 
 Contributing
 ------------
