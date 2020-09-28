@@ -985,11 +985,11 @@ class DiscreteLimit(Builtin):
     attributes = ('Listable',)
 
     options = {
-        'PerformanceGoal': '"Quality"',
+        'Trials': '5',
     }
 
     messages = {
-        'lperf': "Value of PerformanceGoal -> `1` should be \"Quality\" or \"Speed\".",
+        'dltrials': "The value of Trials should be a positive integer",
     }
 
     def apply(self, f, n, n0, evaluation, options={}):
@@ -1005,16 +1005,11 @@ class DiscreteLimit(Builtin):
         if f is None or n is None:
             return
 
-        perf_goal = options['System`PerformanceGoal'].to_python()
-        if perf_goal == '"Quality"':
-            trials = 50
-        elif perf_goal == '"Speed"':
+        trials = options['System`Trials'].get_int_value()
+
+        if trials is None or trials <= 0:
+            evaluation.message('DiscreteLimit', 'dltrials')
             trials = 5
-        else:
-            evaluation.message('DiscreteLimit', 
-                               'lperf', 
-                               options['System`PerformanceGoal'])
-            trials = 50
 
         try:
             return from_sympy(sympy.limit_seq(f, n, trials))
