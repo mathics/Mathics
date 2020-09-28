@@ -1,10 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
-import six
 
 from mathics.core.parser.parser import Parser
 from mathics.core.parser.convert import convert
@@ -13,7 +8,6 @@ from mathics.core.expression import ensure_context
 
 
 parser = Parser()
-
 
 def parse(definitions, feeder):
     '''
@@ -35,7 +29,7 @@ class SystemDefinitions(object):
     System`.
     """
     def lookup_name(self, name):
-        assert isinstance(name, six.string_types)
+        assert isinstance(name, str)
         return ensure_context(name)
 
 

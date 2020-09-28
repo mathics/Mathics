@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -17,6 +17,7 @@ import sys
 # INTERNAL FUNCTIONS
 #
 
+
 def _promote(x, shape):
     if isinstance(x, (int, float)):
         data = numpy.ndarray(shape)
@@ -33,6 +34,7 @@ def _is_scalar(x):
 #
 # ARRAY CREATION AND REORGANIZATION: STACK, UNSTACK, CONCAT, ...
 #
+
 
 def array(a):
     return numpy.array(a)
@@ -83,6 +85,7 @@ def concat(*a):
 def vectorize(a, depth, f):
     return f(a)
 
+
 #
 # MATHEMATICAL OPERATIONS
 #
@@ -132,6 +135,7 @@ def minimum(*a):
 # PUBLIC HELPER FUNCTIONS
 #
 
+
 def is_numpy_available():
     return True
 
@@ -153,7 +157,7 @@ def instantiate_elements(a, new_element, d=1):
         leaves = [new_element(x) for x in a]
     else:
         leaves = [instantiate_elements(e, new_element, d) for e in a]
-    return Expression('List', *leaves)
+    return Expression("List", *leaves)
 
 
 #
@@ -209,6 +213,7 @@ def instantiate_elements(a, new_element, d=1):
 # if a function does not adhere to the rules described above, a MalformedConditional is thrown when
 # constructing the @vectorized function.
 
+
 def choose(i, *options):
     assert options
     dim = len(options[0])
@@ -221,7 +226,7 @@ def choose(i, *options):
         return [numpy.choose(i_int, column) for column in columns]
 
 
-_else_case_id = 'else_case'
+_else_case_id = "else_case"
 
 
 def _numpy_conditional(shape_id, *paths):
@@ -277,7 +282,9 @@ def _numpy_conditional(shape_id, *paths):
 
 class MalformedConditional(Exception):
     def __init__(self, func, node, error):
-        Exception.__init__(self, 'in function %s in line %d: %s' % (func.__name__, node.lineno, error))
+        Exception.__init__(
+            self, "in function %s in line %d: %s" % (func.__name__, node.lineno, error)
+        )
 
 
 class _NameCollector(ast.NodeVisitor):
@@ -291,12 +298,30 @@ class _NameCollector(ast.NodeVisitor):
 
 def _create_ast_lambda(names, body):
     if sys.version_info >= (3, 0):  # change in AST structure for Python 3
-        args = [ast.arg(arg=name, annotation=None) for name in names]
+        inner_args = [ast.arg(arg=name, annotation=None) for name in names]
+        if sys.version_info >= (3, 8):
+            args = ast.arguments(
+                args=inner_args,
+                posonlyargs=[],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                defaults=[],
+            )
+        else:
+            args = ast.arguments(
+                args=inner_args,
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                defaults=[],
+            )
     else:
-        args = [ast.Name(id=name, ctx=ast.Load()) for name in names]
+        args = ast.arguments([ast.Name(id=name, ctx=ast.Load()) for name in names])
 
-    return ast.Lambda(args=ast.arguments(
-        args=args, vararg=None, kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]), body=body)
+    return ast.Lambda(args=args, body=body)
 
 
 def _expression_lambda(node):
@@ -319,18 +344,20 @@ class _ConditionalTransformer(ast.NodeTransformer):
 
     def transform(self):
         tree = ast.parse(inspect.getsource(self._func))
-        self._expect(tree, 'function not a Module', type(tree), ast.Module)
-        self._expect(tree, 'Module body too large', len(tree.body), 1)
-        self._expect(tree, 'FunctionDef not found', type(tree.body[0]), ast.FunctionDef)
+        self._expect(tree, "function not a Module", type(tree), ast.Module)
+        self._expect(tree, "Module body too large", len(tree.body), 1)
+        self._expect(tree, "FunctionDef not found", type(tree.body[0]), ast.FunctionDef)
 
         func_def = tree.body[0]
         func_name = func_def.name
-        self._expect(func_def, 'FunctionDef body too large', len(func_def.body), 1)
-        self._expect(func_def, 'function must start with "if"', type(func_def.body[0]), ast.If)
+        self._expect(func_def, "FunctionDef body too large", len(func_def.body), 1)
+        self._expect(
+            func_def, 'function must start with "if"', type(func_def.body[0]), ast.If
+        )
 
         tree = self.visit(tree)
         tree = ast.fix_missing_locations(tree)
-        code = compile(tree, '<conditional:%s>'% func_name, 'exec')
+        code = compile(tree, "<conditional:%s>" % func_name, "exec")
 
         data = {}
         eval(code, globals(), data)
@@ -338,14 +365,21 @@ class _ConditionalTransformer(ast.NodeTransformer):
 
     def _expect(self, node, error, value, expected):
         if value != expected:
-            raise MalformedConditional(self._func, node, "%s (%s != %s)" % (error, expected, value))
+            raise MalformedConditional(
+                self._func, node, "%s (%s != %s)" % (error, expected, value)
+            )
 
     def visit_FunctionDef(self, node):
         assert len(node.decorator_list) == 1  # we expect that we are the only decorator
         assert isinstance(node.decorator_list[0], ast.Name)
-        assert node.decorator_list[0].id == 'conditional'
-        return ast.FunctionDef(name=node.name, args=node.args,
-                               body=[self.visit(x) for x in node.body], decorator_list=[])
+        assert node.decorator_list[0].id == "conditional"
+        body = [self.visit(x) for x in node.body]
+        funcdef = ast.FunctionDef(
+            name=node.name, args=node.args, body=body, decorator_list=[]
+        )
+        if "posonlyargs" in node.args._fields:
+            funcdef.posonlyargs = []
+        return funcdef
 
     def visit_If(self, node):
         blocks = []
@@ -354,7 +388,9 @@ class _ConditionalTransformer(ast.NodeTransformer):
 
         while True:
             body = node.body
-            self._expect(node, '"if" code body must contain exactly 1 element', len(body), 1)
+            self._expect(
+                node, '"if" code body must contain exactly 1 element', len(body), 1
+            )
             blocks.append(body[0])
 
             test = node.test
@@ -368,15 +404,21 @@ class _ConditionalTransformer(ast.NodeTransformer):
                 elif isinstance(test.right, ast.Name):
                     shapes.append(test.right)
                 else:
-                    MalformedConditional(self._func, test, 'expected variable in comparison')
+                    MalformedConditional(
+                        self._func, test, "expected variable in comparison"
+                    )
             else:
-                self._expect(test, 'expected single comparison or name', type(test), ast.Compare)
+                self._expect(
+                    test, "expected single comparison or name", type(test), ast.Compare
+                )
 
             or_elses = node.orelse
             if not or_elses:
                 break
 
-            self._expect(node, '"else" code body must contain 1 element', len(or_elses), 1)
+            self._expect(
+                node, '"else" code body must contain 1 element', len(or_elses), 1
+            )
             or_else = or_elses[0]
 
             if isinstance(or_else, ast.If):
@@ -387,7 +429,9 @@ class _ConditionalTransformer(ast.NodeTransformer):
                 break
 
         for block in blocks:
-            self._expect(block, '"if" blocks must exit with "return"', type(block), ast.Return)
+            self._expect(
+                block, '"if" blocks must exit with "return"', type(block), ast.Return
+            )
 
         # now build a call to _numpy_conditional() using cond_args as arguments, that will handle
         # the runtime evaluation of the conditional.
@@ -403,8 +447,13 @@ class _ConditionalTransformer(ast.NodeTransformer):
             elements.extend(_expression_lambda(value))
             cond_args.append(ast.Tuple(elts=elements, ctx=ast.Load()))
 
-        return ast.Return(value=ast.Call(
-            func=ast.Name(id='_numpy_conditional', ctx=ast.Load()), keywords=[], args=cond_args))
+        return ast.Return(
+            value=ast.Call(
+                func=ast.Name(id="_numpy_conditional", ctx=ast.Load()),
+                keywords=[],
+                args=cond_args,
+            )
+        )
 
 
 def conditional(*args, **kwargs):
@@ -414,7 +463,7 @@ def conditional(*args, **kwargs):
         return lambda f: conditional(f)  # with arguments
 
     if not inspect.isfunction(f):
-        raise Exception('@conditional can only be applied to functions')
+        raise Exception("@conditional can only be applied to functions")
 
     transformer = _ConditionalTransformer(f)
     f_transformed = transformer.transform()

@@ -1,14 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# cython: language_level=3
 # cython: profile=False
+# -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
+
+
 
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
-from six.moves import range
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)
@@ -405,8 +405,6 @@ class ExpressionPattern(Pattern):
 
         candidates = rest_expression[1]
 
-        leaf_candidates = set(leaf_candidates)  # for fast lookup
-
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
         # TODO: This could be further optimized!
@@ -430,6 +428,12 @@ class ExpressionPattern(Pattern):
         less_first = len(rest_leaves) > 0
 
         if 'System`Orderless' in attributes:
+            # we only want leaf_candidates to be a set if we're orderless.
+            # otherwise, constructing a set() is very slow for large lists.
+            # performance test case:
+            # x = Range[100000]; Timing[Combinatorica`BinarySearch[x, 100]]
+            leaf_candidates = set(leaf_candidates)  # for fast lookup
+
             sets = None
             if leaf.get_head_name() == 'System`Pattern':
                 varname = leaf.leaves[0].get_name()

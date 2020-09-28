@@ -1,18 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 XML
 """
 
-from __future__ import unicode_literals
 
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
 from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.builtin.base import MessageException
 
-from io import StringIO
+from io import BytesIO
 import re
 
 # use lxml, if available, as it has some additional features such as parsing XML
@@ -124,13 +124,11 @@ class ParseError(Exception):
 
 
 def parse_xml_stream(f):
-    def parse(**kwargs):  # inspired by http://effbot.org/zone/element-namespaces.htm
-        events = "start", "start-ns"
-
+    def parse(iter):  # inspired by http://effbot.org/zone/element-namespaces.htm
         root = None
         namespace = None
 
-        for event, elem in ET.iterparse(f, events, **kwargs):
+        for event, elem in iter:
             if event == "start-ns":
                 if not elem[0]:  # setting default namespace?
                     namespace = elem[1]
@@ -144,15 +142,30 @@ def parse_xml_stream(f):
         return root
 
     if lxml_available:
+        iterparse = ET.iterparse(f, ("start", "start-ns"), remove_comments=False, strip_cdata=False, recover=False)
         try:
-            return parse(remove_comments=False, recover=False)
+            return parse(iterparse)
         except ET.XMLSyntaxError as e:
-            raise ParseError(str(e))
+            # note: iterparse.error_log, e.g. iterparse.error_log[-1].type_name contains the exact error code. this
+            # might be useful for further error handling in the future.
+            msg = str(e)
+
+            # Different versions of lxml include different suffixes so trim.
+            m = re.search('line \d+, column \d+', msg)
+            if m is not None:
+                msg = msg[:m.end()]
+
+            raise ParseError(msg)
     else:
         try:
-            return parse()
+            return parse(ET.iterparse(f, ("start", "start-ns")))
         except ET.ParseError as e:
-            raise ParseError(str(e))
+            if e.code == 9:  # XML_ERROR_JUNK_AFTER_DOC_ELEMENT
+                # for this specific error, we produce the error exactly as lxml would. useful for use in test cases.
+                line, column = e.position
+                raise ParseError('Extra content at the end of the document, line %d, column %d' % (line, column + 1))
+            else:
+                raise ParseError(str(e))
 
 
 def parse_xml_file(filename):
@@ -165,7 +178,13 @@ def parse_xml(parse, text, evaluation):
     try:
         return parse(text.get_string_value())
     except ParseError as e:
-        evaluation.message('XML`Parser`Get', 'prserr', str(e))
+        evaluation.message('XML`Parser`XMLGet', 'prserr', str(e))
+        return Symbol('$Failed')
+    except IOError:
+        evaluation.message('General', 'noopen', text.get_string_value())
+        return Symbol('$Failed')
+    except MessageException as e:
+        e.message(evaluation)
         return Symbol('$Failed')
 
 
@@ -198,9 +217,18 @@ class XMLGet(_Get):
 
 
 class XMLGetString(_Get):
+    """
+    >> Head[XML`Parser`XMLGetString["<a></a>"]]
+     = XMLObject[Document]
+
+    #> XML`Parser`XMLGetString["<a></a>xyz"]
+     = $Failed
+     : Extra content at the end of the document, line 1, column 8.
+    """
+
     def _parse(self, text):
-        with StringIO() as f:
-            f.write(text)
+        with BytesIO() as f:
+            f.write(text.encode('utf8'))
             f.seek(0)
             return parse_xml_stream(f)
 

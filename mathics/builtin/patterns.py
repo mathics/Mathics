@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -33,10 +33,7 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject
@@ -1314,7 +1311,13 @@ class OptionsPattern(PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.defaults is None:
-            self.defaults = kwargs['head']
+            self.defaults = kwargs.get('head')
+            if self.defaults is None:
+                # we end up here with OptionsPattern that do not have any
+                # default options defined, e.g. with this code:
+                # f[x:OptionsPattern[]] := x; f["Test" -> 1]
+                # set self.defaults to an empty List, so we don't crash.
+                self.defaults = Expression('List')
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()

@@ -1,18 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Options and default arguments
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-
 from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Symbol, Expression, get_default_value
+from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
+from mathics.core.expression import strip_context
 
 
 class Options(Builtin):
@@ -33,6 +29,11 @@ class Options(Builtin):
      = x ^ 2
     >> f[x, n -> 3]
      = x ^ 3
+
+    #> f[x_, OptionsPattern[f]] := x ^ OptionValue["m"];
+    #> Options[f] = {"m" -> 7};
+    #> f[x]
+     = x ^ 7
 
     Delayed option rules are evaluated just when the corresponding 'OptionValue' is called:
     >> f[a :> Print["value"]] /. f[OptionsPattern[{}]] :> (OptionValue[a]; Print["between"]; OptionValue[a]);
@@ -85,7 +86,7 @@ class Options(Builtin):
         else:
             options = evaluation.definitions.get_options(name)
         result = []
-        for option, value in sorted(six.iteritems(options), key=lambda item: item[0]):
+        for option, value in sorted(options.items(), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be
             # assignable to Options again!
             result.append(Expression('RuleDelayed', Symbol(option), value))
@@ -127,6 +128,10 @@ class OptionValue(Builtin):
         if evaluation.options is None:
             return
         name = symbol.get_name()
+        if not name:
+            name = symbol.get_string_value()
+            if name:
+                name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', symbol, 1)
             return
@@ -248,6 +253,41 @@ class NotOptionQ(Test):
                        for e in expr)
 
 
-def options_to_rules(options):
-    items = sorted(six.iteritems(options))
+class FilterRules(Builtin):
+    """
+    <dl>
+    <dt>'FilterRules[$rules$, $pattern$]'
+        <dd>gives those $rules$ that have a left side that matches $pattern$.
+    <dt>'FilterRules[$rules$, {$pattern1$, $pattern2$, ...}]'
+        <dd>gives those $rules$ that have a left side that match at least one of $pattern1$, $pattern2$, ...
+    </dl>
+
+    >> FilterRules[{x -> 100, y -> 1000}, x]
+     = {x -> 100}
+
+    >> FilterRules[{x -> 100, y -> 1000, z -> 10000}, {a, b, x, z}]
+     = {x -> 100, z -> 10000}
+    """
+
+    rules = {
+        'FilterRules[rules_List, patterns_List]': 'FilterRules[rules, Alternatives @@ patterns]',
+    }
+
+    def apply(self, rules, pattern, evaluation):
+        'FilterRules[rules_List, pattern_]'
+        from mathics.builtin.patterns import Matcher
+        match = Matcher(pattern).match
+
+        def matched():
+            for rule in rules.leaves:
+                if rule.has_form('Rule', 2) and match(rule.leaves[0], evaluation):
+                    yield rule
+
+        return Expression('List', *list(matched()))
+
+
+def options_to_rules(options, filter=None):
+    items = sorted(options.items())
+    if filter:
+        items = [(name, value) for name, value in items if strip_context(name) in filter.keys()]
     return [Expression('Rule', Symbol(name), value) for name, value in items]

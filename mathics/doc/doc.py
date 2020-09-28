@@ -1,8 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import re
 from os import listdir, path
@@ -18,9 +15,6 @@ from mathics import builtin
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
-
-import six
-from six.moves import range
 
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
@@ -148,7 +142,7 @@ def escape_latex(text):
 
     text = _replace_all(text, [
         ('\\', '\\\\'), ('{', '\\{'), ('}', '\\}'),
-        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'),
+        ('~', '\\~{ }'), ('&', '\\&'), ('%', '\\%'), ('#','\\#')
     ])
 
     def repl(match):
@@ -181,7 +175,7 @@ def escape_latex(text):
     def repl_dl(match):
         text = match.group(1)
         text = DL_ITEM_RE.sub(lambda m: '\\%(tag)s{%(content)s}\n' %
-            m.groupdict(), text)
+                              m.groupdict(), text)
         return '\\begin{definitions}%s\\end{definitions}' % text
     text = DL_RE.sub(repl_dl, text)
 
@@ -195,8 +189,10 @@ def escape_latex(text):
     text = LIST_RE.sub(repl_list, text)
 
     text = _replace_all(text, [
-        ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'), ('≠', r'$\ne$'),
-    ])
+        ('$', r'\$'), ('\u03c0', r'$\pi$'), ('≥', r'$\ge$'), ('≤', r'$\le$'),
+        ('≠', r'$\ne$'),
+        ('ç',r'\c{c}'),('é',r'\'e'),('ê',r'\^e'),('ñ',r'\~n'),
+         ('∫',r'\int'),('',r'd'),   ])
 
     def repl_char(match):
         char = match.group(1)
@@ -266,7 +262,7 @@ def escape_latex(text):
     text = SUBSECTION_RE.sub(repl_subsection, text)
     text = SUBSECTION_END_RE.sub('', text)
 
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         # "\" has been escaped already => 2 \
         text = text.replace('\\\\' + key, tex)
 
@@ -512,7 +508,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = '<code>%s</code>' % text
     text = text.replace("'", '&#39;')
     text = text.replace('---', '&mdash;')
-    for key, (xml, tex) in six.iteritems(SPECIAL_COMMANDS):
+    for key, (xml, tex) in SPECIAL_COMMANDS.items():
         text = text.replace('\\' + key, xml)
 
     if not single_line:
@@ -560,75 +556,6 @@ class DocElement(object):
 
 
 class Documentation(DocElement):
-    def __init__(self):
-        self.title = "Overview"
-        self.parts = []
-        self.parts_by_slug = {}
-        dir = settings.DOC_DIR
-        files = listdir(dir)
-        files.sort()
-        appendix = []
-        for file in files:
-            part_title = file[2:]
-            if part_title.endswith('.mdoc'):
-                part_title = part_title[:-len('.mdoc')]
-                part = DocPart(self, part_title)
-                text = open(dir + file, 'rb').read().decode('utf8')
-                text = filter_comments(text)
-                chapters = CHAPTER_RE.findall(text)
-                for title, text in chapters:
-                    chapter = DocChapter(part, title)
-                    text += '<section title=""></section>'
-                    sections = SECTION_RE.findall(text)
-                    for pre_text, title, text in sections:
-                        if not chapter.doc:
-                            chapter.doc = Doc(pre_text)
-                        if title:
-                            section = DocSection(chapter, title, text)
-                            chapter.sections.append(section)
-                    part.chapters.append(chapter)
-                if file[0].isdigit():
-                    self.parts.append(part)
-                else:
-                    part.is_appendix = True
-                    appendix.append(part)
-
-        for title, modules, builtins_by_module, start in [(
-            "Reference of built-in symbols", builtin.modules,
-            builtin.builtins_by_module, True)]:     # nopep8
-            # ("Reference of optional symbols", optional.modules,
-            #  optional.optional_builtins_by_module, False)]:
-
-            builtin_part = DocPart(self, title, is_reference=start)
-            for module in modules:
-                title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, Doc(text))
-                builtins = builtins_by_module[module.__name__]
-                for instance in builtins:
-                    installed = True
-                    for package in getattr(instance, 'requires', []):
-                        try:
-                            importlib.import_module(package)
-                        except ImportError:
-                            installed = False
-                            break
-                    section = DocSection(
-                        chapter, strip_system_prefix(instance.get_name()),
-                        instance.__doc__ or '',
-                        operator=instance.get_operator(),
-                        installed=installed)
-                    chapter.sections.append(section)
-                builtin_part.chapters.append(chapter)
-            self.parts.append(builtin_part)
-
-        for part in appendix:
-            self.parts.append(part)
-
-        # set keys of tests
-        for tests in self.get_tests():
-            for test in tests.tests:
-                test.key = (
-                    tests.part, tests.chapter, tests.section, test.index)
 
     def __str__(self):
         return '\n\n\n'.join(str(part) for part in self.parts)
@@ -704,6 +631,238 @@ class Documentation(DocElement):
                     elif query == section.operator:
                         result.append((True, section))
         return result
+
+
+class MathicsMainDocumentation(Documentation):
+    def __init__(self):
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        self.doc_dir = settings.DOC_DIR
+        self.xml_data_file = settings.DOC_XML_DATA
+        self.tex_data_file = settings.DOC_TEX_DATA
+        self.latex_file = settings.DOC_LATEX_FILE
+        self.pymathics_doc_loaded = False
+        files = listdir(self.doc_dir)
+        files.sort()
+        appendix = []
+
+        for file in files:
+            part_title = file[2:]
+            if part_title.endswith('.mdoc'):
+                part_title = part_title[:-len('.mdoc')]
+                part = DocPart(self, part_title)
+                text = open(self.doc_dir + file, 'rb').read().decode('utf8')
+                text = filter_comments(text)
+                chapters = CHAPTER_RE.findall(text)
+                for title, text in chapters:
+                    chapter = DocChapter(part, title)
+                    text += '<section title=""></section>'
+                    sections = SECTION_RE.findall(text)
+                    for pre_text, title, text in sections:
+                        if not chapter.doc:
+                            chapter.doc = Doc(pre_text)
+                        if title:
+                            section = DocSection(chapter, title, text)
+                            chapter.sections.append(section)
+                    part.chapters.append(chapter)
+                if file[0].isdigit():
+                    self.parts.append(part)
+                else:
+                    part.is_appendix = True
+                    appendix.append(part)
+
+        for title, modules, builtins_by_module, start in [(
+            "Reference of built-in symbols", builtin.modules,
+            builtin.builtins_by_module, True)]:     # nopep8
+            # ("Reference of optional symbols", optional.modules,
+            #  optional.optional_builtins_by_module, False)]:
+
+            builtin_part = DocPart(self, title, is_reference=start)
+            for module in modules:
+                title, text = get_module_doc(module)
+                chapter = DocChapter(builtin_part, title, Doc(text))
+                builtins = builtins_by_module[module.__name__]
+                for instance in builtins:
+                    installed = True
+                    for package in getattr(instance, 'requires', []):
+                        try:
+                            importlib.import_module(package)
+                        except ImportError:
+                            installed = False
+                            break
+                    section = DocSection(
+                        chapter, strip_system_prefix(instance.get_name()),
+                        instance.__doc__ or '',
+                        operator=instance.get_operator(),
+                        installed=installed)
+                    chapter.sections.append(section)
+                builtin_part.chapters.append(chapter)
+            self.parts.append(builtin_part)
+
+        for part in appendix:
+            self.parts.append(part)
+
+        # set keys of tests
+        for tests in self.get_tests():
+            for test in tests.tests:
+                test.key = (
+                    tests.part, tests.chapter, tests.section, test.index)
+
+    def load_pymathics_doc(self):
+        if self.pymathics_doc_loaded:
+            return
+        from mathics.settings import default_pymathics_modules
+        pymathicspart = None
+        # Look the "Pymathics Modules" part, and if it does not exist, create it.
+        for part in self.parts:
+            if part.title == "Pymathics Modules":
+                pymathicspart = part
+        if pymathicspart is None:
+            pymathicspart = DocPart(self, "Pymathics Modules", is_reference=True)
+            self.parts.append(pymathicspart)
+
+        # For each module, create the documentation object and load the chapters in the pymathics part.
+        for pymmodule in default_pymathics_modules:
+            pymathicsdoc = PyMathicsDocumentation(pymmodule)
+            for part in pymathicsdoc.parts:
+                for ch in part.chapters:
+                    ch.title = f"{pymmodule} {part.title} {ch.title}"
+                    ch.part = pymathicspart
+                    pymathicspart.chapters_by_slug[ch.slug] = ch
+                    pymathicspart.chapters.append(ch)
+
+        self.pymathics_doc_loaded = True
+
+
+class PyMathicsDocumentation(Documentation):
+    def __init__(self, module=None):
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        self.doc_dir = None
+        self.xml_data_file = None
+        self.tex_data_file = None
+        self.latex_file = None
+        self.symbols = {}
+        if module is None:
+            return
+
+        import importlib
+
+        # Load the module and verifies it is a pymathics module
+        try:
+            self.pymathicsmodule = importlib.import_module(module)
+        except ImportError:
+            print("Module does not exist")
+            mainfolder = ""
+            self.pymathicsmodule = None
+            self.parts = []
+            return
+
+        try:
+            mainfolder = self.pymathicsmodule.__path__[0]
+            if "name" in self.pymathicsmodule.pymathics_version_data:
+                self.name = self.version = self.pymathicsmodule.pymathics_version_data['name']
+            else:
+                self.name = (self.pymathicsmodule.__package__)[10:]
+            self.version = self.pymathicsmodule.pymathics_version_data['version']
+            self.author = self.pymathicsmodule.pymathics_version_data['author']
+        except (AttributeError, KeyError, IndexError):
+            print(module + " is not a pymathics module.")
+            mainfolder = ""
+            self.pymathicsmodule = None
+            self.parts = []
+            return
+
+        # Paths
+        self.doc_dir = self.pymathicsmodule.__path__[0] + "/doc/"
+        self.xml_data_file = self.doc_dir + "xml/data"
+        self.tex_data_file = self.doc_dir + "tex/data"
+        self.latex_file = self.doc_dir + "tex/documentation.tex"
+
+        # Load the dictionary of mathics symbols defined in the module
+        self.symbols = {}
+        from mathics.builtin import is_builtin, Builtin
+        print("loading symbols")
+        for name in dir(self.pymathicsmodule):
+            var = getattr(self.pymathicsmodule, name)
+            if (hasattr(var, '__module__') and
+                var.__module__ != 'mathics.builtin.base' and 
+                    is_builtin(var) and not name.startswith('_') and
+                var.__module__[:len(self.pymathicsmodule.__name__)] == self.pymathicsmodule.__name__):     # nopep8
+                instance = var(expression=False)
+                if isinstance(instance, Builtin):
+                    self.symbols[instance.get_name()] = instance
+        # Defines de default first part, in case we are building an independent documentation module.
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        try:
+            files = listdir(self.doc_dir)
+            files.sort()
+        except FileNotFoundError:
+            self.doc_dir = ""
+            self.xml_data_file = ""
+            self.tex_data_file = ""
+            self.latex_file = ""
+            files = []
+        appendix = []
+        for file in files:
+            part_title = file[2:]
+            if part_title.endswith('.mdoc'):
+                part_title = part_title[:-len('.mdoc')]
+                part = DocPart(self, part_title)
+                text = open(self.doc_dir + file, 'rb').read().decode('utf8')
+                text = filter_comments(text)
+                chapters = CHAPTER_RE.findall(text)
+                for title, text in chapters:
+                    chapter = DocChapter(part, title)
+                    text += '<section title=""></section>'
+                    sections = SECTION_RE.findall(text)
+                    for pre_text, title, text in sections:
+                        if not chapter.doc:
+                            chapter.doc = Doc(pre_text)
+                        if title:
+                            section = DocSection(chapter, title, text)
+                            chapter.sections.append(section)
+                    part.chapters.append(chapter)
+                if file[0].isdigit():
+                    self.parts.append(part)
+                else:
+                    part.is_appendix = True
+                    appendix.append(part)
+
+        # Builds the automatic documentation
+        builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
+        title, text = get_module_doc(self.pymathicsmodule)
+        chapter = DocChapter(builtin_part, title, Doc(text))
+        for name in self.symbols:
+            instance = self.symbols[name]
+            installed = True
+            for package in getattr(instance, 'requires', []):
+                try:
+                    importlib.import_module(package)
+                except ImportError:
+                    installed = False
+                    break
+            section = DocSection(
+                chapter, strip_system_prefix(name),
+                instance.__doc__ or '',
+                operator=instance.get_operator(),
+                installed=installed)
+            chapter.sections.append(section)
+        builtin_part.chapters.append(chapter)
+        self.parts.append(builtin_part)
+        # Adds possible appendices
+        for part in appendix:
+            self.parts.append(part)
+
+        # set keys of tests
+        for tests in self.get_tests():
+            for test in tests.tests:
+                test.key = (
+                    tests.part, tests.chapter, tests.section, test.index)
 
 
 class DocPart(DocElement):
@@ -799,7 +958,8 @@ class DocSection(DocElement):
             '\\addcontentsline{toc}{section}{%(title)s}') % {
                 'title': title,
                 'index': index,
-                'content': self.doc.latex(output)}
+                'content': self.doc.latex(output)
+            }
 
     def get_url(self):
         return '/%s/%s/%s/' % (
@@ -847,13 +1007,29 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                tests.tests.append(test)
+                if not test.ignore:
+                    tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
 
     def __str__(self):
         return '\n'.join(str(item) for item in self.items)
+
+    def text(self, detail_level):
+        # used for introspection
+        # TODO parse XML and pretty print
+        # HACK
+        item = str(self.items[0])
+        item = '\n'.join(line.strip() for line in item.split('\n'))
+        item = item.replace('<dl>', '')
+        item = item.replace('</dl>', '')
+        item = item.replace('<dt>', '  ')
+        item = item.replace('</dt>', '')
+        item = item.replace('<dd>', '    ')
+        item = item.replace('</dd>', '')
+        item = '\n'.join(line for line in item.split('\n') if not line.isspace())
+        return item
 
     def get_tests(self):
         tests = []
@@ -909,11 +1085,21 @@ class DocTests(object):
         return '\n'.join(str(test) for test in self.tests)
 
     def latex(self, output):
+        if len(self.tests) == 0:
+            return "\n"
+
+        testLatexStrings = [test.latex(output) for test in self.tests
+                       if not test.private]
+        testLatexStrings = [t for t in testLatexStrings if len(t)>1]
+        if len(testLatexStrings) == 0:
+            return "\n"
+        
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
-            '%\n'.join(test.latex(output) for test in self.tests
-                       if not test.private))
+            '%\n'.join(testLatexStrings))
 
     def html(self, counters=None):
+        if len(self.tests) == 0:
+            return "\n"        
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
                       if not test.private))
@@ -923,12 +1109,31 @@ class DocTests(object):
 
 
 class DocTest(object):
+    """
+    DocTest formatting rules:
+
+    #> signifies private test that does not appear as part of the documentation
+    X> outputs the docs as normal, but the test is not run
+    = compares the result text
+    : compares an (error) Message
+    | signifies Print outpt
+    """
     def __init__(self, index, testcase):
         self.index = index
-        self.test = testcase[1].strip()
         self.result = None
         self.outs = []
+        # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
+        # Ignored test cases are NOT executed, but shown as part of the docs
+        if testcase[0] == 'X':
+            self.ignore = True
+            # substitute '>' again so we get the correct formatting
+            testcase[0] = '>'
+        else:
+            self.ignore = False
+
+        self.test = testcase[1].strip()
+
         self.key = None
         outs = testcase[2].splitlines()
         for line in outs:
