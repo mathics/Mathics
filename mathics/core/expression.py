@@ -516,6 +516,7 @@ class Expression(BaseExpression):
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
         self._sequences = None
+        self._format_cache = None
         return self
 
     def sequences(self):
@@ -566,6 +567,19 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
+    def do_format(self, evaluation, form):
+        if self._format_cache is None:
+            self._format_cache = {}
+
+        last_evaluated, expr = self._format_cache.get(form, (None, None))
+        if last_evaluated is not None and evaluation.definitions.last_changed(self) <= last_evaluated:
+            return expr
+
+        expr = super(Expression, self).do_format(evaluation, form)
+        self._format_cache[form] = (evaluation.definitions.now, expr)
+
+        return expr
+
     def copy(self) -> 'Expression':
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
@@ -573,6 +587,7 @@ class Expression(BaseExpression):
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
+        result._format_cache = self._format_cache
         return result
 
     def shallow_copy(self) -> 'Expression':
