@@ -1,12 +1,35 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
+
 
 import importlib
 from contextlib import contextmanager
 from demandimport import _demandmod as lazy_module
+
+# from mathics.builtin import (
+#    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
+#    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+#    graphics, graphics3d,
+#    image, inout, integer, iohooks, linalg, lists, logic,
+#    manipulate, quantities, numbertheory, numeric, options, patterns,
+#    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
+#    strings, structure, system, tensors, xmlformat, optimization)
+
+
+from mathics.builtin.base import (
+    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
+
+from mathics.settings import ENABLE_FILES_MODULE, BENCHMARK_STARTUP
+
+# modules = [
+#    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
+#    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
+#    graphics, graphics3d,
+#    image, inout, integer, iohooks, linalg, lists, logic,
+#    manipulate, quantities, numbertheory, numeric, options, patterns,
+#    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
+#    strings, structure, system, tensors, xmlformat, optimization]
 
 module_names = [
     'algebra', 'arithmetic', 'assignment', 'attributes', 'calculus', 'combinatorial', 'compilation',
@@ -15,10 +38,6 @@ module_names = [
     'numbertheory', 'numeric', 'options', 'patterns', 'plot', 'physchemdata', 'randomnumbers', 'recurrence',
     'specialfunctions', 'scoping', 'strings', 'structure', 'system', 'tensors', 'xmlformat']
 
-from mathics.builtin.base import (
-    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
-
-from mathics.settings import ENABLE_FILES_MODULE, BENCHMARK_STARTUP
 
 if ENABLE_FILES_MODULE:
     module_names += ['files', 'importexport']
@@ -74,9 +93,9 @@ def is_builtin(var):
     return False
 
 
+
 def load_module(name):
     module = importlib.import_module("mathics.builtin.%s" % name)
-
     builtins_by_module[module.__name__] = []
     vars = dir(module)
     for name in vars:
@@ -135,6 +154,7 @@ def add_builtins(new_builtins):
             pattern_objects[name] = builtin.__class__
     builtins.update(dict(new_builtins))
 
+
 new_builtins = builtins
 builtins = {}
 add_builtins(new_builtins)
@@ -166,6 +186,14 @@ def contribute(definitions):
                 with loader(name):
                     item.contribute(definitions)
 
+    # Is there another way to Unprotect these symbols at initialization?
+    definitions.get_attributes('System`$PreRead').clear()
+    definitions.get_attributes('System`$Pre').clear()
+    definitions.get_attributes('System`$Post').clear()
+    definitions.get_attributes('System`$PrePrint').clear()
+    definitions.get_attributes('System`$SyntaxHandler').clear()
+    definitions.get_attributes('System`$TimeZone').clear()
+    definitions.get_attributes('System`$UseSansSerif').clear()
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition

@@ -1,14 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
 
 import sys
 import traceback
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext, loader
 from django.http import (HttpResponse, HttpResponseNotFound,
                          HttpResponseServerError, Http404)
@@ -22,13 +18,14 @@ from django.core.mail import send_mail
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Message, Result, Output
 
-from mathics.web.models import Query, Worksheet
+from mathics.web.models import Query, Worksheet, get_session_evaluation
 from mathics.web.forms import LoginForm, SaveForm
 from mathics.doc import documentation
 from mathics.doc.doc import DocPart, DocChapter, DocSection
-import six
-from six.moves import range
+
 from string import Template
+
+documentation.load_pymathics_doc()
 
 if settings.DEBUG:
     JSON_CONTENT_TYPE = 'text/html'
@@ -36,19 +33,10 @@ else:
     JSON_CONTENT_TYPE = 'application/json'
 
 
-def get_content_type(request):
-    return ('text/html' if 'MSIE' in request.META.get('HTTP_USER_AGENT', '')
-            else 'application/xhtml+xml')
-
-
 class JsonResponse(HttpResponse):
     def __init__(self, result={}):
         response = json.dumps(result)
         super(JsonResponse, self).__init__(response, content_type=JSON_CONTENT_TYPE)
-
-
-class WebOutput(Output):
-    pass
 
 
 def require_ajax_login(func):
@@ -58,20 +46,20 @@ def require_ajax_login(func):
         return func(request, *args, **kwargs)
     return new_func
 
-definitions = Definitions(add_builtin=True)
-
+from mathics.settings import default_pymathics_modules
+definitions = Definitions(add_builtin=True, extension_modules=default_pymathics_modules)
 
 def require_ajax_login(f):
     return f
 
 
 def main_view(request):
-    content_type = get_content_type(request)
-    return render_to_response('main.html', {
+    context = {
         'login_form': LoginForm(),
         'save_form': SaveForm(),
         'require_login': settings.REQUIRE_LOGIN,
-    }, context_instance=RequestContext(request), content_type=content_type)
+    }
+    return render(request, 'main.html', context)
 
 
 def error_404_view(request):
@@ -102,14 +90,12 @@ def query(request):
                           remote_user=request.META.get('REMOTE_USER', ''),
                           remote_addr=request.META.get('REMOTE_ADDR', ''),
                           remote_host=request.META.get('REMOTE_HOST', ''),
-                          meta=six.text_type(request.META),
+                          meta=str(request.META),
                           log='',
                           )
         query_log.save()
 
-    user_definitions = request.session.get('definitions')
-    definitions.set_user_definitions(user_definitions)
-    evaluation = Evaluation(definitions, format='xml', output=WebOutput())
+    evaluation = get_session_evaluation(request.session)
     feeder = MultiLineFeeder(input, '<notebook>')
     results = []
     try:
@@ -133,11 +119,10 @@ def query(request):
     result = {
         'results': [result.get_data() for result in results],
     }
-    request.session['definitions'] = definitions.get_user_definitions()
 
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
-        query_log.result = six.text_type(result)  # evaluation.results
+        query_log.result = str(result)  # evaluation.results
         query_log.error = False
         query_log.save()
 
@@ -234,10 +219,7 @@ Your password is: %s\n\nYours,\nThe Mathics team""" % password)
 
 
 def logout(request):
-    # Remember user definitions
-    user_definitions = request.session.get('definitions', {})
     auth.logout(request)
-    request.session['definitions'] = user_definitions
     return JsonResponse()
 
 
@@ -317,23 +299,21 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         'prev': object.get_prev() if object else None,
         'next': object.get_next() if object else None,
     })
-    if ajax:
-        template = loader.get_template('doc/%s' % template_name)
-        result = template.render(RequestContext(request, context))
-        result = {
-            'content': result,
-        }
-        if data is not None:
-            result['data'] = data
-        return JsonResponse(result)
-    else:
+    if not ajax:
         context.update({
             'data': data,
         })
-        return render_to_response(
-            'doc/%s' % template_name, context,
-            context_instance=RequestContext(request),
-            content_type=get_content_type(request))
+
+    result = render(request, 'doc/%s' % template_name, context)
+    if not ajax:
+        return result
+
+    result = {
+        'content': str(result),
+    }
+    if data is not None:
+        result['data'] = data
+    return JsonResponse(result)
 
 
 def doc(request, ajax=''):

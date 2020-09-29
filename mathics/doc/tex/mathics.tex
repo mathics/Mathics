@@ -1,6 +1,6 @@
 \documentclass[index=totoc,fleqn,10pt,oneside,toc=flat]{scrbook}
 
-\usepackage[utf8]{inputenc}
+%\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage[english]{babel}
@@ -16,7 +16,7 @@
 \usepackage{graphics}
 \usepackage{textcomp}
 \usepackage{amsmath}
-\usepackage{mathpazo} 
+\usepackage{mathpazo}
 \usepackage[mathpazo]{flexisym}
 \usepackage{breqn}
 \usepackage{environ}
@@ -46,7 +46,7 @@
     \includegraphics[height=0.1\linewidth]{logo-heptatom.pdf}
     \includegraphics[height=0.08125\linewidth]{logo-text-nodrop.pdf}
 \\[.5em]
-{\LARGE\color{subtitle}\textit{\textmd{A free, light-weight alternative to Mathematica}}}}
+{\LARGE\color{subtitle}\textit{\textmd{A free, open-source alternative to Mathematica}}}}
 \author{The Mathics Team}
 
 
@@ -61,6 +61,12 @@
     {ä}{{\"a}}1
     {ö}{{\"o}}1
     {~}{{\textasciitilde}}1
+    {⧦}{{===}}1
+    {}{{=>}}1
+    {⊻}{{xor}}1
+    {…}{{...}}1
+    {∫}{{S}}1
+    {}{{d}}1
 }
 
 \setlength{\columnsep}{1cm}
@@ -219,10 +225,12 @@
 \tableofcontents
 
 \lstset{
-breaklines=true,
-breakatwhitespace=false,
-showspaces=false,
-basicstyle=\ttfamily
+%  inputencoding=utf8,
+  extendedchars=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  showspaces=false,
+  basicstyle=\ttfamily
 }
 
 \lstdefinestyle{python}{language=Python,tabsize=2,basicstyle=\scriptsize\ttfamily,showstringspaces=false,stringstyle=\color{pythonstring},commentstyle=\ttfamily\color{pythonstring},frame=lines}

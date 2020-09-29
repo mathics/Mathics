@@ -30,6 +30,8 @@ Additional contributions were made by:
 - Jim Radford @radford
 - Timothy Cyrus @tcyrus
 - Wolf Vollprecht @wolfv
+- Сухарик @suhr
+- Pablo Emilio Escobar Gaviria @GarkGarcia
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django

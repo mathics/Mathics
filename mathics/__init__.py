@@ -1,28 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
 
 import sys
 import platform
 import sympy
 import mpmath
 import django
-import six
 
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression, Symbol, String, Number, Integer, Real, Complex, Rational,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.convert import from_sympy
-
-
-if six.PY2:
-    import codecs
-    writer = codecs.getwriter("utf-8")
-    sys.stdout = writer(sys.stdout)
 
 
 version_info = {
@@ -43,7 +32,7 @@ server_version_string = version_string + ', django {django}'.format(**version_in
 
 
 license_string = '''\
-Copyright (C) 2011-2016 The Mathics Team.
+Copyright (C) 2011-2020 The Mathics Team.
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.

@@ -1,12 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Physical and Chemical data
 """
 
-# from __future__ import unicode_literals
-from __future__ import absolute_import
+import os
 
 from csv import reader as csvreader
 
@@ -14,11 +13,9 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import (Expression, from_python, Symbol, String,
                                      strip_context)
 from mathics.settings import ROOT_DIR
-import six
-
 
 def load_element_data():
-    element_file = open(ROOT_DIR + 'data/element.csv', 'r')
+    element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
     for row in reader:
@@ -72,6 +69,9 @@ class ElementData(Builtin):
 
     >> ListPlot[Table[ElementData[z, "AtomicWeight"], {z, 118}]]
      = -Graphics-
+
+    ## Ensure all data parses #664
+    #> Outer[ElementData, Range[118], ElementData["Properties"]];
     """
 
     rules = {
@@ -127,14 +127,14 @@ class ElementData(Builtin):
             if not 1 <= py_n <= 118:
                 evaluation.message("ElementData", "noent", n)
                 return
-        elif isinstance(py_n, six.string_types):
+        elif isinstance(py_n, str):
             pass
         else:
             evaluation.message("ElementData", "noent", n)
             return
 
         # Check property specifier
-        if isinstance(py_prop, six.string_types):
+        if isinstance(py_prop, str):
             py_prop = str(py_prop)
 
         if py_prop == '"Properties"':
@@ -144,7 +144,7 @@ class ElementData(Builtin):
                     result.append(_ELEMENT_DATA[0][i])
             return from_python(sorted(result))
 
-        if not (isinstance(py_prop, six.string_types) and
+        if not (isinstance(py_prop, str) and
                 py_prop[0] == py_prop[-1] == '"' and
                 py_prop.strip('"') in _ELEMENT_DATA[0]):
             evaluation.message("ElementData", "noprop", prop)

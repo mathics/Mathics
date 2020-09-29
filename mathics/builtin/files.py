@@ -1,16 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 File Operations
 """
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import os
+import sys
 import io
 import shutil
 import zlib
@@ -21,11 +17,10 @@ import struct
 import mpmath
 import math
 import sympy
+import requests
+import tempfile
 
-import six
-from six.moves import range
-from six import unichr
-
+ 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
                                      MachineReal, Number, valid_context_name)
@@ -58,21 +53,35 @@ def path_search(filename):
             if result is not None:
                 filename = None
                 break
-
     if filename is not None:
         result = None
-        for p in PATH_VAR + ['']:
-            path = os.path.join(p, filename)
-            if os.path.exists(path):
-                result = path
-                break
+        # If filename is an internet address, download the file
+        # and store it in a temporal location
+        lenfn = len(filename)
+        if (lenfn>7 and filename[:7]=="http://") or \
+           (lenfn>8 and filename[:8]=="https://") or \
+           (lenfn>6 and filename[:6]=="ftp://"):
+            try:
+                r = requests.get(filename, allow_redirects=True)
+                fp = tempfile.NamedTemporaryFile(delete=False)
+                fp.write(r.content)
+                result = fp.name
+                fp.close()
+            except Exception:
+                result = None
+        else:
+            for p in PATH_VAR + ['']:
+                path = os.path.join(p, filename)
+                if os.path.exists(path):
+                    result = path
+                    break
 
-    # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-    if result is not None and os.path.isdir(result):
-        for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
-            tmp = os.path.join(result, ext)
-            if os.path.isfile(tmp):
-                return tmp
+            # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
+            if result is not None and os.path.isdir(result):
+                for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
+                    tmp = os.path.join(result, ext)
+                    if os.path.isfile(tmp):
+                        return tmp
     return result
 
 
@@ -83,7 +92,10 @@ def count():
         n += 1
 
 NSTREAMS = count()      # use next(NSTREAMS)
-STREAMS = []
+STREAMS = [sys.stdin, sys.stdout, sys.stderr]
+next(NSTREAMS)
+next(NSTREAMS)
+next(NSTREAMS)
 
 
 def _channel_to_stream(channel, mode='r'):
@@ -177,7 +189,7 @@ class InitialDirectory(Predefined):
     """
     <dl>
     <dt>'$InitialDirectory'
-      <dd>returns the directory from which \Mathics was started.
+      <dd>returns the directory from which \\Mathics was started.
     </dl>
 
     >> $InitialDirectory
@@ -195,7 +207,7 @@ class InstallationDirectory(Predefined):
     """
     <dl>
     <dt>'$InstallationDirectory'
-      <dd>returns the directory in which \Mathics was installed.
+      <dd>returns the directory in which \\Mathics was installed.
     </dl>
 
     >> $InstallationDirectory
@@ -590,7 +602,7 @@ class Read(Builtin):
         if 'System`RecordSeparators' in keys:
             record_separators = options['System`RecordSeparators'].to_python()
             assert isinstance(record_separators, list)
-            assert all(isinstance(s, six.string_types) and
+            assert all(isinstance(s, str) and
                        s[0] == s[-1] == '"' for s in record_separators)
             record_separators = [s[1:-1] for s in record_separators]
             result['RecordSeparators'] = record_separators
@@ -599,7 +611,7 @@ class Read(Builtin):
         if 'System`WordSeparators' in keys:
             word_separators = options['System`WordSeparators'].to_python()
             assert isinstance(word_separators, list)
-            assert all(isinstance(s, six.string_types) and
+            assert all(isinstance(s, str) and
                        s[0] == s[-1] == '"' for s in word_separators)
             word_separators = [s[1:-1] for s in word_separators]
             result['WordSeparators'] = word_separators
@@ -815,7 +827,7 @@ class Write(Builtin):
 
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
-        stream.write(six.text_type(text) + '\n')
+        stream.write(str(text) + '\n')
         return Symbol('Null')
 
 
@@ -878,7 +890,7 @@ class _BinaryFormat(object):
     @staticmethod
     def _Character16_reader(s):
         "16-bit character"
-        return String(unichr(*struct.unpack('H', s.read(2))))
+        return String(chr(*struct.unpack('H', s.read(2))))
 
     @staticmethod
     def _Complex64_reader(s):
@@ -1565,7 +1577,7 @@ class BinaryRead(Builtin):
     #> ToCharacterCode[WbR[{50, 154, 182, 236}, {"Character16", "Character16"}]]
      = {{39474}, {60598}}
     ## #> WbR[ {91, 146, 206, 54}, {"Character16", "Character16"}]
-    ##  = {\:925b, \:36ce}
+    ##  = {\\:925b, \\:36ce}
 
     ## Complex64
     #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"] // InputForm
@@ -1997,6 +2009,10 @@ class OpenRead(_OpenAction):
      = InputStream[...]
     #> Close[%];
 
+    >> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
+     = InputStream[...]
+    #> Close[%];
+
     #> OpenRead[]
      : OpenRead called with 0 arguments; 1 argument is expected.
      = OpenRead[]
@@ -2098,7 +2114,7 @@ class Get(PrefixOperator):
     #> Hold[<< ~/some_example/dir/] // FullForm
      = Hold[Get["~/some_example/dir/"]]
     #> Hold[<<`/.\-_:$*~?] // FullForm
-     = Hold[Get["`/.\\-_:$*~?"]]
+     = Hold[Get["`/.\\\\-_:$*~?"]]
     """
 
     operator = '<<'
@@ -2310,7 +2326,7 @@ class PutAppend(BinaryOperator):
                 'OutputSteam', name, n))
             return
 
-        text = [six.text_type(e.do_format(evaluation, 'System`OutputForm').__str__())
+        text = [str(e.do_format(evaluation, 'System`OutputForm').__str__())
                 for e in exprs.get_sequence()]
         text = '\n'.join(text) + '\n'
         text.encode('ascii')
@@ -2357,7 +2373,7 @@ class FindFile(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, six.string_types) and
+        if not (isinstance(py_name, str) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message(
                 'FindFile', 'string', Expression('FindFile', name))
@@ -2472,7 +2488,7 @@ class FileNameJoin(Builtin):
 
     ## TODO
     ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\dir2\dir3
+    ##  = dir1\\dir2\\dir3
     """
 
     attributes = ('Protected')
@@ -2490,7 +2506,7 @@ class FileNameJoin(Builtin):
         'FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]'
 
         py_pathlist = pathlist.to_python()
-        if not all(isinstance(p, six.string_types) and p[0] == p[-1] == '"'
+        if not all(isinstance(p, str) and p[0] == p[-1] == '"'
                    for p in py_pathlist):
             return
         py_pathlist = [p[1:-1] for p in py_pathlist]
@@ -2637,12 +2653,12 @@ class DirectoryName(Builtin):
             expr = Expression('DirectoryName', name, n)
             py_n = n.to_python()
 
-        if not (isinstance(py_n, six.integer_types) and py_n > 0):
+        if not (isinstance(py_n, int) and py_n > 0):
             evaluation.message('DirectoryName', 'intpm', expr)
             return
 
         py_name = name.to_python()
-        if not (isinstance(py_name, six.string_types) and
+        if not (isinstance(py_name, str) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('DirectoryName', 'string', expr)
             return
@@ -2718,7 +2734,7 @@ class AbsoluteFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, six.string_types) and
+        if not (isinstance(py_name, str) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('AbsoluteFileName', 'fstr', name)
             return
@@ -2756,7 +2772,7 @@ class ExpandFileName(Builtin):
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, six.string_types) and
+        if not (isinstance(py_name, str) and
                 py_name[0] == py_name[-1] == '"'):
             evaluation.message('ExpandFileName', 'string',
                                Expression('ExpandFileName', name))
@@ -2957,7 +2973,7 @@ class FilePrint(Builtin):
     def apply(self, path, evaluation, options):
         'FilePrint[path_ OptionsPattern[FilePrint]]'
         pypath = path.to_python()
-        if not (isinstance(pypath, six.string_types) and
+        if not (isinstance(pypath, str) and
                 pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
             evaluation.message('FilePrint', 'fstr', path)
             return
@@ -2966,7 +2982,7 @@ class FilePrint(Builtin):
         # Options
         record_separators = options['System`RecordSeparators'].to_python()
         assert isinstance(record_separators, list)
-        assert all(isinstance(s, six.string_types) and
+        assert all(isinstance(s, str) and
                    s[0] == s[-1] == '"' for s in record_separators)
         record_separators = [s[1:-1] for s in record_separators]
 
@@ -3306,7 +3322,7 @@ class Find(Read):
         if not isinstance(py_text, list):
             py_text = [py_text]
 
-        if not all(isinstance(t, six.string_types) and
+        if not all(isinstance(t, str) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message(
                 'Find', 'unknown', Expression('Find', channel, text))
@@ -3395,12 +3411,12 @@ class FindList(Builtin):
         if not isinstance(py_name, list):
             py_name = [py_name]
 
-        if not all(isinstance(t, six.string_types) and
+        if not all(isinstance(t, str) and
                    t[0] == t[-1] == '"' for t in py_name):
             evaluation.message('FindList', 'strs', '1', expr)
             return Symbol('$Failed')
 
-        if not all(isinstance(t, six.string_types) and
+        if not all(isinstance(t, str) and
                    t[0] == t[-1] == '"' for t in py_text):
             evaluation.message('FindList', 'strs', '2', expr)
             return Symbol('$Failed')
@@ -3507,7 +3523,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(six.text_type(pystring))
+        stream = io.StringIO(str(pystring))
 
         name = Symbol('String')
         n = next(NSTREAMS)
@@ -3600,7 +3616,7 @@ class Compress(Builtin):
 
         # TODO Implement other Methods
         result = zlib.compress(string)
-        result = base64.encodestring(result).decode('utf8')
+        result = base64.encodebytes(result).decode('utf8')
 
         return String(result)
 
@@ -3628,7 +3644,7 @@ class Uncompress(Builtin):
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
         string = string.get_string_value().encode('utf-8')
-        string = base64.decodestring(string)
+        string = base64.decodebytes(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
         return evaluation.parse(tmp)
@@ -3653,7 +3669,7 @@ class FileByteCount(Builtin):
     def apply(self, filename, evaluation):
         'FileByteCount[filename_]'
         py_filename = filename.to_python()
-        if not (isinstance(py_filename, six.string_types) and
+        if not (isinstance(py_filename, str) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('FileByteCount', 'fstr', filename)
             return
@@ -3913,7 +3929,7 @@ class SetFileDate(Builtin):
             expr = Expression('SetFileDate', filename, datelist, attribute)
 
         # Check filename
-        if not (isinstance(py_filename, six.string_types) and
+        if not (isinstance(py_filename, str) and
                 py_filename[0] == py_filename[-1] == '"'):
             evaluation.message('SetFileDate', 'fstr', filename)
             return
@@ -4003,11 +4019,11 @@ class CopyFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, six.string_types) and
+        if not (isinstance(py_source, str) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, six.string_types) and
+        if not (isinstance(py_dest, str) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('CopyFile', 'fstr', dest)
             return
@@ -4065,11 +4081,11 @@ class RenameFile(Builtin):
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, six.string_types) and
+        if not (isinstance(py_source, str) and
                 py_source[0] == py_source[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', source)
             return
-        if not (isinstance(py_dest, six.string_types) and
+        if not (isinstance(py_dest, str) and
                 py_dest[0] == py_dest[-1] == '"'):
             evaluation.message('RenameFile', 'fstr', dest)
             return
@@ -4132,7 +4148,7 @@ class DeleteFile(Builtin):
         py_paths = []
         for path in py_path:
             # Check filenames
-            if not (isinstance(path, six.string_types) and
+            if not (isinstance(path, str) and
                     path[0] == path[-1] == '"'):
                 evaluation.message('DeleteFile', 'strs', filename,
                                    Expression('DeleteFile', filename))
@@ -4347,7 +4363,7 @@ class CreateDirectory(Builtin):
         expr = Expression('CreateDirectory', dirname)
         py_dirname = dirname.to_python()
 
-        if not (isinstance(py_dirname, six.string_types) and
+        if not (isinstance(py_dirname, str) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('CreateDirectory', 'fstr', dirname)
             return
@@ -4415,7 +4431,7 @@ class DeleteDirectory(Builtin):
             evaluation.message('DeleteDirectory', 'idcts')
             return
 
-        if not (isinstance(py_dirname, six.string_types) and
+        if not (isinstance(py_dirname, str) and
                 py_dirname[0] == py_dirname[-1] == '"'):
             evaluation.message('DeleteDirectory', 'strs', expr)
             return
@@ -4464,12 +4480,12 @@ class CopyDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, str) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, str) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('CopyDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4513,12 +4529,12 @@ class RenameDirectory(Builtin):
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
-        if not (isinstance(dir1, six.string_types) and dir1[0] == dir1[-1] == '"'):
+        if not (isinstance(dir1, str) and dir1[0] == dir1[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[0])
             return
         dir1 = dir1[1:-1]
 
-        if not (isinstance(dir2, six.string_types) and dir2[0] == dir2[-1] == '"'):
+        if not (isinstance(dir2, str) and dir2[0] == dir2[-1] == '"'):
             evaluation.message('RenameDirectory', 'fstr', seq[1])
             return
         dir2 = dir2[1:-1]
@@ -4602,7 +4618,7 @@ class FileExistsQ(Builtin):
     def apply(self, filename, evaluation):
         'FileExistsQ[filename_]'
         path = filename.to_python()
-        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('FileExistsQ', 'fstr', filename)
             return
         path = path[1:-1]
@@ -4644,7 +4660,7 @@ class DirectoryQ(Builtin):
         'DirectoryQ[pathname_]'
         path = pathname.to_python()
 
-        if not (isinstance(path, six.string_types) and path[0] == path[-1] == '"'):
+        if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('DirectoryQ', 'fstr', pathname)
             return
         path = path[1:-1]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,8 +9,6 @@ Numerical values and derivatives can be computed; however, most special exact va
 rules are not implemented yet.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -125,7 +123,7 @@ class Degree(SympyConstant):
      = Cos[Degree[x]]
 
     ## Issue 274
-    #> \[Degree] == ° == Degree
+    #> \\[Degree] == ° == Degree
      = True
 
     #> N[Degree]
