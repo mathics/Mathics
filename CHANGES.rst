@@ -12,6 +12,7 @@ Major package dependencies ave been up dated to more recent releases. These incl
 
 New features:
 
+- ``Subsets`` #685
 - ``DiscreteLimit`` #922
 - ``IterationLimit``
 - support for ``MATHICS_MAX_RECURSION_DEPTH``
@@ -41,6 +42,7 @@ New features:
 
 Ehancements and Bug fixes:
 
+- speed up leading-blank patterns
 - fixes for option handling
 - fixes for ``Manipulate[x,{x,{a,b}}]``
 - fixes rule -> rule case for ``Nearest``
