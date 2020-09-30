@@ -759,6 +759,21 @@ class Expression(BaseExpression):
             expr._cache = self._rebuild_cache()
         expr.options = self.options
         expr.original = self
+        expr._sequences = self._sequences
+        expr._format_cache = self._format_cache
+        return expr
+
+    def do_format(self, evaluation, form):
+        if self._format_cache is None:
+            self._format_cache = {}
+
+        last_evaluated, expr = self._format_cache.get(form, (None, None))
+        if last_evaluated is not None and \
+           not evaluation.definitions.has_changed(last_evaluated, (expr.get_name(),)):
+            return expr
+
+        expr = super(Expression, self).do_format(evaluation, form)
+        self._format_cache[form] = (evaluation.definitions.now, expr)
         return expr
 
     def shallow_copy(self) -> 'Expression':
