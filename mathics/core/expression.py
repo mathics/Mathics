@@ -701,7 +701,6 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
-
     def _rebuild_cache(self):
         cache = self._cache
 
