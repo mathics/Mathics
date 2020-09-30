@@ -768,10 +768,11 @@ class Expression(BaseExpression):
             self._format_cache = {}
 
         last_evaluated, expr = self._format_cache.get(form, (None, None))
-        if last_evaluated is not None and \
-           not evaluation.definitions.has_changed(last_evaluated, (expr.get_name(),)):
-            return expr
-
+        if last_evaluated is not None and expr is not None:
+            symbolname = expr.get_name()
+            if  symbolname != "" :
+                if not evaluation.definitions.has_changed(last_evaluated, (symbolname,)):
+                    return expr
         expr = super(Expression, self).do_format(evaluation, form)
         self._format_cache[form] = (evaluation.definitions.now, expr)
         return expr

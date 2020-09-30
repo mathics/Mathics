@@ -36,6 +36,7 @@ def get_symbol_list(list, error_callback):
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
+        lhs._format_cache = None
 
         if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
                                   'UpValues', 'NValues', 'Options',
@@ -290,6 +291,7 @@ class _SetOperator(object):
         return True
 
     def assign(self, lhs, rhs, evaluation):
+        lhs._format_cache = None
         if lhs.get_head_name() == 'System`List':
             if (not (rhs.get_head_name() == 'System`List') or
                 len(lhs.leaves) != len(rhs.leaves)):    # nopep8
