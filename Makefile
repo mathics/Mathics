@@ -9,7 +9,7 @@ PYTHON ?= python3
 PIP ?= pip3
 RM  ?= rm
 
-.PHONY: all build check clean develop dist doc pytest test rmChangeLog
+.PHONY: all build check clean develop dist doc pytest test djangotest rmChangeLog
 
 #: Default target - same as "develop"
 all: develop
@@ -48,6 +48,10 @@ mathics/doc/tex/data:
 #: Run tests that appear in docstring in the code.
 doctest:
 	$(PYTHON) mathics/test.py $(output)
+
+# Run django tests
+djangotest:
+	cd mathics ; $(PYTHON) manage.py test test_django
 
 #: Make Mathics PDF manual
 doc: mathics/doc/tex/data
