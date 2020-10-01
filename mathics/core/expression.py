@@ -1579,7 +1579,7 @@ class Expression(BaseExpression):
             if leaf.get_head().same(head):
                 if dim is None:
                     dim = len(leaf._leaves)
-                    items = [(items + [leaf]) for leaf in leaf._leaves]
+                    items = [(items + [innerleaf]) for innerleaf in leaf._leaves]
                 elif len(leaf._leaves) != dim:
                     evaluation.message('Thread', 'tdlen')
                     return True, self
