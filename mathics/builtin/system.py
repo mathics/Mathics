@@ -63,13 +63,13 @@ class Environment(Builtin):
     """
     <dl>
     <dt>'Environment[$var$]'
-        <dd>returns the value of an operating system environment variable.
+        <dd>gives the value of an operating system environment variable.
     </dl>
 
     Example:
     <pre>
     In[1] = Environment["HOME"]
-    Out[1] = rocky
+    Out[1] = /home/rocky
     </pre>
     """
 
@@ -97,6 +97,37 @@ class Failed(Predefined):
     """
 
     name = "$Failed"
+
+
+class GetEnvironment(Builtin):
+    """
+    <dl>
+    <dt>'GetEnvironment["var$]"'
+        <dd>gives the setting corresponding to the variable "var" in the operating system environment.
+    </dl>
+
+    Example:
+    <pre>
+    In[1] = GetEnvironment["HOME"]
+    Out[1] = HOME -> /home/rocky
+    </pre>
+    """
+
+    def apply(self, var, evaluation):
+        "GetEnvironment[var___]"
+        if isinstance(var, String):
+            env_var = var.get_string_value()
+            tup = (
+                env_var,
+                "System`None" if env_var not in os.environ else String(os.environ[env_var]),
+            )
+
+            return Expression("Rule", *tup)
+
+        env_vars = var.get_sequence()
+        if len(env_vars) == 0:
+            rules = [Expression("Rule", name, value) for name, value in os.environ.items()]
+            return Expression("List", *rules)
 
 
 class Machine(Predefined):
@@ -202,10 +233,7 @@ class Packages(Predefined):
     def evaluate(self, evaluation):
         return Expression(
             "List",
-            *(
-                String(name)
-                for name in evaluation.definitions.get_package_names()
-            ),
+            *(String(name) for name in evaluation.definitions.get_package_names()),
         )
 
 
@@ -225,6 +253,7 @@ class ParentProcessID(Predefined):
     def evaluate(self, evaluation):
         return Integer(os.getppid())
 
+
 class ProcessID(Predefined):
     """
     <dl>
@@ -240,6 +269,7 @@ class ProcessID(Predefined):
 
     def evaluate(self, evaluation):
         return Integer(os.getpid())
+
 
 class ProcessorType(Predefined):
     """
