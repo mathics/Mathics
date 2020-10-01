@@ -123,7 +123,7 @@ class Definitions(object):
             if (hasattr(var, '__module__') and
                 var.__module__ != 'mathics.builtin.base' and
                     is_builtin(var) and not name.startswith('_') and
-                var.__module__[:len(loaded_module.__name__)] == loaded_module.__name__):     # nopep8
+                    var.__module__[:len(loaded_module.__name__)] == loaded_module.__name__):     # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
                     builtins[instance.get_name()] = instance

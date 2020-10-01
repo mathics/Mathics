@@ -17,7 +17,10 @@ import struct
 import mpmath
 import math
 import sympy
+import requests
+import tempfile
 
+ 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
                                      MachineReal, Number, valid_context_name)
@@ -50,21 +53,35 @@ def path_search(filename):
             if result is not None:
                 filename = None
                 break
-
     if filename is not None:
         result = None
-        for p in PATH_VAR + ['']:
-            path = os.path.join(p, filename)
-            if os.path.exists(path):
-                result = path
-                break
+        # If filename is an internet address, download the file
+        # and store it in a temporal location
+        lenfn = len(filename)
+        if (lenfn>7 and filename[:7]=="http://") or \
+           (lenfn>8 and filename[:8]=="https://") or \
+           (lenfn>6 and filename[:6]=="ftp://"):
+            try:
+                r = requests.get(filename, allow_redirects=True)
+                fp = tempfile.NamedTemporaryFile(delete=False)
+                fp.write(r.content)
+                result = fp.name
+                fp.close()
+            except Exception:
+                result = None
+        else:
+            for p in PATH_VAR + ['']:
+                path = os.path.join(p, filename)
+                if os.path.exists(path):
+                    result = path
+                    break
 
-    # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-    if result is not None and os.path.isdir(result):
-        for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
-            tmp = os.path.join(result, ext)
-            if os.path.isfile(tmp):
-                return tmp
+            # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
+            if result is not None and os.path.isdir(result):
+                for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
+                    tmp = os.path.join(result, ext)
+                    if os.path.isfile(tmp):
+                        return tmp
     return result
 
 
@@ -1989,6 +2006,10 @@ class OpenRead(_OpenAction):
     </dl>
 
     >> OpenRead["ExampleData/EinsteinSzilLetter.txt"]
+     = InputStream[...]
+    #> Close[%];
+
+    >> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
      = InputStream[...]
     #> Close[%];
 

@@ -76,6 +76,7 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "colorama",
     "llvmlite",
+    "requests",
 ]
 
 def subdirs(root, file="*.*", depth=10):
@@ -227,7 +228,7 @@ setup(
     author_email="mathics@angusgriffith.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
-    url="https://mathics.github.io/",
+    url="https://mathics.org/",
     download_url="https://github.com/mathics/Mathics/tarball/v1.1dev",
     keywords=["Mathematica", "Wolfram", "Interpreter", "Shell", "Math", "CAS"],
     classifiers=[

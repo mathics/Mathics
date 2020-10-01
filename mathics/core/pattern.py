@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# cython: language_level=3
 # cython: profile=False
+# -*- coding: utf-8 -*-
+
+
 
 
 from mathics.core.expression import (Expression, system_symbols,
@@ -162,13 +165,44 @@ class ExpressionPattern(Pattern):
             def yield_choice(pre_vars):
                 next_leaf = self.leaves[0]
                 next_leaves = self.leaves[1:]
+
+                # "leading_blanks" below handles expressions with leading Blanks H[x_, y_, ...]
+                # much more efficiently by not calling get_match_candidates_count() on leaves
+                # that have already been matched with one of the leading Blanks. this approach
+                # is only valid for Expressions that are not Orderless (as with Orderless, the
+                # concept of leading items does not exist).
+                #
+                # simple performance test case:
+                #
+                # f[x_, {a__, b_}] = 0;
+                # f[x_, y_] := y + Total[x];
+                # First[Timing[f[Range[5000], 1]]]"
+                #
+                # without "leading_blanks", Range[5000] will be tested against {a__, b_} in a
+                # call to get_match_candidates_count(), which is slow.
+
+                unmatched_leaves = expression.leaves
+                leading_blanks = 'System`Orderless' not in attributes
+
                 for leaf in self.leaves:
                     match_count = leaf.get_match_count()
-                    candidates = leaf.get_match_candidates_count(
-                        expression.leaves, expression, attributes, evaluation,
-                        pre_vars)
-                    if candidates < match_count[0]:
-                        raise StopGenerator_ExpressionPattern_match()
+
+                    if leading_blanks:
+                        if tuple(match_count) == (1, 1):  # Blank? (i.e. length exactly 1?)
+                            if not unmatched_leaves:
+                                raise StopGenerator_ExpressionPattern_match()
+                            if not leaf.does_match(unmatched_leaves[0], evaluation, pre_vars):
+                                raise StopGenerator_ExpressionPattern_match()
+                            unmatched_leaves = unmatched_leaves[1:]
+                        else:
+                            leading_blanks = False
+
+                    if not leading_blanks:
+                        candidates = leaf.get_match_candidates_count(
+                            unmatched_leaves, expression, attributes, evaluation, pre_vars)
+                        if candidates < match_count[0]:
+                            raise StopGenerator_ExpressionPattern_match()
+
                 # for new_vars, rest in self.match_leaf(    # nopep8
                 #    self.leaves[0], self.leaves[1:], ([], expression.leaves),
                 #    pre_vars, expression, attributes, evaluation, first=True,

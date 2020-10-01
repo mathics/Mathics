@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+# cython: language_level=3
 # -*- coding: utf-8 -*-
+
 
 import sympy
 import mpmath
 import math
 import re
-from itertools import chain
 
 import typing
 from typing import Any
@@ -515,6 +516,7 @@ class Expression(BaseExpression):
         self.head = head
         self.leaves = [from_python(leaf) for leaf in leaves]
         self._sequences = None
+        self._format_cache = None
         return self
 
     def sequences(self):
@@ -565,6 +567,19 @@ class Expression(BaseExpression):
             expr.options = self.options
         return expr
 
+    def do_format(self, evaluation, form):
+        if self._format_cache is None:
+            self._format_cache = {}
+
+        last_evaluated, expr = self._format_cache.get(form, (None, None))
+        if last_evaluated is not None and evaluation.definitions.last_changed(self) <= last_evaluated:
+            return expr
+
+        expr = super(Expression, self).do_format(evaluation, form)
+        self._format_cache[form] = (evaluation.definitions.now, expr)
+
+        return expr
+
     def copy(self) -> 'Expression':
         result = Expression(
             self.head.copy(), *[leaf.copy() for leaf in self.leaves])
@@ -572,6 +587,7 @@ class Expression(BaseExpression):
         result.options = self.options
         result.original = self
         # result.last_evaluated = self.last_evaluated
+        result._format_cache = self._format_cache
         return result
 
     def shallow_copy(self) -> 'Expression':
@@ -1351,7 +1367,7 @@ class Expression(BaseExpression):
             if leaf.get_head().same(head):
                 if dim is None:
                     dim = len(leaf.leaves)
-                    items = [(items + [leaf]) for leaf in leaf.leaves]
+                    items = [(items + [subleaf]) for subleaf in leaf.leaves]
                 elif len(leaf.leaves) != dim:
                     evaluation.message('Thread', 'tdlen')
                     return True, self
@@ -2144,7 +2160,8 @@ class Complex(Number):
 def encode_mathml(text: str) -> str:
     text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
-    return text.replace('\n', '<mspace linebreak="newline" />')
+    text = text.replace('\n', '<mspace linebreak="newline" />')
+    return text
 
 TEX_REPLACE = {
     '{': r'\{',
@@ -2219,13 +2236,17 @@ class String(Atom):
         text = self.value
 
         def render(format, string):
-            return format % encode_mathml(string)
+            encoded_text = encode_mathml(string)
+            return format % encoded_text
 
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
                 return render('<ms>%s</ms>', text[1:-1])
             else:
-                return render('<mtext>%s</mtext>', text[1:-1])
+                outtext = ""
+                for line in text[1:-1].split("\n"):
+                    outtext +=  render('<mtext>%s</mtext>', line)
+                return outtext
         elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
             return render('<mn>%s</mn>', text)
         else:
@@ -2240,7 +2261,10 @@ class String(Atom):
             elif is_symbol_name(text):
                 return render('<mi>%s</mi>', text)
             else:
-                return render('<mtext>%s</mtext>', text)
+                outtext = ""
+                for line in text.split("\n"):
+                    outtext +=  render('<mtext>%s</mtext>', line)
+                return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
         from mathics.builtin import builtins

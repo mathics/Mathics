@@ -5,7 +5,7 @@ Options[B64Import] = {
     "CharacterEncoding" :> $CharacterEncoding
 };
 
-B64Import[filename_, OptionsPattern[]] := 
+B64Import[filename_, OptionsPattern[]] :=
     Module[{strm,data, grid},
 	strm = OpenRead[filename];
 	If[strm === $Failed, Return[$Failed]];
@@ -22,7 +22,7 @@ ImportExport`RegisterImport[
     AvailableElements -> {"Data"},
     DefaultElement -> "Data",
     Options -> {
-        "CharacterEncoding",
+        "CharacterEncoding"
     }
 ]
 

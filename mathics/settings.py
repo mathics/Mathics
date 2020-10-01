@@ -9,7 +9,6 @@ from os import path
 
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 # set only to True in DEBUG mode
 DEBUG_MAIL = True
@@ -120,6 +119,9 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [ os.path.join(ROOT_DIR, 'web/templates/') ],
+        'OPTIONS': {
+            'debug': DEBUG,
+        }
     }
 ]
 

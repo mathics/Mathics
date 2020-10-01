@@ -714,7 +714,7 @@ class MathicsMainDocumentation(Documentation):
             return
         from mathics.settings import default_pymathics_modules
         pymathicspart = None
-        # Look the "Pymathics Modules" part, and if it does not exist, create it.  
+        # Look the "Pymathics Modules" part, and if it does not exist, create it.
         for part in self.parts:
             if part.title == "Pymathics Modules":
                 pymathicspart = part
@@ -722,31 +722,32 @@ class MathicsMainDocumentation(Documentation):
             pymathicspart = DocPart(self, "Pymathics Modules", is_reference=True)
             self.parts.append(pymathicspart)
 
-        # For each module, create the documentation object and load the chapters in the pymathics part.    
+        # For each module, create the documentation object and load the chapters in the pymathics part.
         for pymmodule in default_pymathics_modules:
             pymathicsdoc = PyMathicsDocumentation(pymmodule)
             for part in pymathicsdoc.parts:
-                if part.title == "Pymathics Modules":
-                    for ch in part.chapters:
-                        ch.part = pymathicspart
-                        pymathicspart.chapters_by_slug[ch.slug] = ch
-                        pymathicspart.chapters.append(ch)
+                for ch in part.chapters:
+                    ch.title = f"{pymmodule} {part.title} {ch.title}"
+                    ch.part = pymathicspart
+                    pymathicspart.chapters_by_slug[ch.slug] = ch
+                    pymathicspart.chapters.append(ch)
 
         self.pymathics_doc_loaded = True
 
 
 class PyMathicsDocumentation(Documentation):
     def __init__(self, module=None):
+        self.title = "Overview"
+        self.parts = []
+        self.parts_by_slug = {}
+        self.doc_dir = None
+        self.xml_data_file = None
+        self.tex_data_file = None
+        self.latex_file = None
+        self.symbols = {}
         if module is None:
-            self.title = "Overview"
-            self.parts = []
-            self.parts_by_slug = {}
-            self.doc_dir = None
-            self.xml_data_file = None
-            self.tex_data_file = None
-            self.latex_file = None
-            self.symbols = {}
             return
+
         import importlib
 
         # Load the module and verifies it is a pymathics module
@@ -756,16 +757,22 @@ class PyMathicsDocumentation(Documentation):
             print("Module does not exist")
             mainfolder = ""
             self.pymathicsmodule = None
+            self.parts = []
             return
 
-        if hasattr(self.pymathicsmodule, "pymathics_version_data"):
+        try:
             mainfolder = self.pymathicsmodule.__path__[0]
+            if "name" in self.pymathicsmodule.pymathics_version_data:
+                self.name = self.version = self.pymathicsmodule.pymathics_version_data['name']
+            else:
+                self.name = (self.pymathicsmodule.__package__)[10:]
             self.version = self.pymathicsmodule.pymathics_version_data['version']
             self.author = self.pymathicsmodule.pymathics_version_data['author']
-        else:
+        except (AttributeError, KeyError, IndexError):
             print(module + " is not a pymathics module.")
             mainfolder = ""
             self.pymathicsmodule = None
+            self.parts = []
             return
 
         # Paths
