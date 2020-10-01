@@ -36,6 +36,7 @@ def get_symbol_list(list, error_callback):
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
+        lhs._format_cache = None
 
         if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
                                   'UpValues', 'NValues', 'Options',
@@ -290,6 +291,7 @@ class _SetOperator(object):
         return True
 
     def assign(self, lhs, rhs, evaluation):
+        lhs._format_cache = None
         if lhs.get_head_name() == 'System`List':
             if (not (rhs.get_head_name() == 'System`List') or
                 len(lhs.leaves) != len(rhs.leaves)):    # nopep8
@@ -916,7 +918,6 @@ class Information(PrefixOperator):
         # Instead, I just copy the code from Definition
 
     def show_definitions(self, symbol, evaluation, lines):
-
         def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
@@ -1243,7 +1244,7 @@ def get_symbol_values(symbol, func_name, position, evaluation):
         definition = evaluation.definitions.get_definition(name)
     else:
         definition = evaluation.definitions.get_user_definition(name)
-    result = Expression('List')
+    leaves = []
     for rule in definition.get_values_list(position):
         if isinstance(rule, Rule):
             pattern = rule.pattern
@@ -1251,9 +1252,9 @@ def get_symbol_values(symbol, func_name, position, evaluation):
                 pattern = pattern.expr
             else:
                 pattern = Expression('HoldPattern', pattern.expr)
-            result.leaves.append(Expression(
+            leaves.append(Expression(
                 'RuleDelayed', pattern, rule.replace))
-    return result
+    return Expression('List', *leaves)
 
 
 class DownValues(Builtin):

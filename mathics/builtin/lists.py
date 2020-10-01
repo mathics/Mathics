@@ -15,6 +15,7 @@ from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
 from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
+from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
@@ -221,32 +222,32 @@ def join_lists(lists):
     return new_list
 
 
-def get_part(list, indices):
+def get_part(varlist, indices):
     " Simple part extraction. indices must be a list of python integers. "
 
     def rec(cur, rest):
         if rest:
-            pos = rest[0]
             if cur.is_atom():
-                raise PartDepthError
+                raise PartDepthError(rest[0])
+            pos = rest[0]
+            leaves = cur.get_leaves()
             try:
                 if pos > 0:
-                    part = cur.leaves[pos - 1]
+                    part = leaves[pos - 1]
                 elif pos == 0:
-                    part = cur.head
+                    part = cur.get_head()
                 else:
-                    part = cur.leaves[pos]
+                    part = leaves[pos]
             except IndexError:
                 raise PartRangeError
             return rec(part, rest[1:])
         else:
             return cur
-    return rec(list, indices).copy()
+    return rec(varlist, indices).copy()
 
 
-def set_part(list, indices, new):
+def set_part(varlist, indices, newval):
     " Simple part replacement. indices must be a list of python integers. "
-
     def rec(cur, rest):
         if len(rest) > 1:
             pos = rest[0]
@@ -254,63 +255,30 @@ def set_part(list, indices, new):
                 raise PartDepthError
             try:
                 if pos > 0:
-                    part = cur.leaves[pos - 1]
+                    part = cur._leaves[pos - 1]
                 elif pos == 0:
-                    part = cur.head
+                    part = cur.get_head()
                 else:
-                    part = cur.leaves[pos]
+                    part = cur._leaves[pos]
             except IndexError:
                 raise PartRangeError
-            rec(part, rest[1:])
+            return rec(part, rest[1:])
         elif len(rest) == 1:
             pos = rest[0]
             if cur.is_atom():
                 raise PartDepthError
             try:
                 if pos > 0:
-                    cur.leaves[pos - 1] = new
+                    cur.set_leaf(pos - 1, newval)
                 elif pos == 0:
-                    cur.head = new
+                    cur.set_head(newval)
                 else:
-                    cur.leaves[pos] = new
+                    cur.set_leaf(pos, newval)
             except IndexError:
                 raise PartRangeError
 
-    rec(list, indices)
+    rec(varlist, indices)
 
-def set_sequence(list, indices):
-    "Replace a part to Sequence. indices must be a list of python integers. "
-
-    def sequence(cur, rest):
-        if len(rest) > 1:
-            pos = rest[0]
-            if cur.is_atom():
-                raise PartDepthError(pos)
-            try:
-                if pos > 0:
-                    part = cur.leaves[pos - 1]
-                elif pos == 0:
-                    part = cur.head
-                else:
-                    part = cur.leaves[pos]
-            except IndexError:
-                raise PartRangeError
-            sequence(part, rest[1:])
-        elif len(rest) == 1:
-            pos = rest[0]
-            if cur.is_atom():
-                raise PartDepthError(pos)
-            try:
-                if pos > 0:
-                    cur.leaves[pos - 1] = Expression('Sequence')
-                elif pos == 0:
-                    cur.head = Symbol('Sequence')
-                else:
-                    cur.leaves[pos] = Expression('Sequence')
-            except IndexError:
-                raise PartRangeError
-
-    sequence(list, indices)
 
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
@@ -349,7 +317,7 @@ def _parts_span_selector(pspec):
 
 
 def _parts_sequence_selector(pspec):
-    if not isinstance(pspec, list):
+    if not isinstance(pspec, (tuple, list)):
         indices = [pspec]
     else:
         indices = pspec
@@ -392,7 +360,7 @@ def _part_selectors(indices):
             raise MessageException('Part', 'pspec', index)
 
 
-def _list_parts(items, selectors, assignment):
+def _list_parts(items, selectors, heads, evaluation, assignment):
     if not selectors:
         for item in items:
             yield item
@@ -408,24 +376,24 @@ def _list_parts(items, selectors, assignment):
             selected = list(select(item))
 
             picked = list(_list_parts(
-                selected, selectors[1:], assignment))
+                selected, selectors[1:], heads, evaluation, assignment))
 
             if unwrap is None:
-                expr = item.shallow_copy()
-                expr.leaves = picked
-                expr.last_evaluated = None
-
                 if assignment:
+                    expr = Expression(item.head, *picked)
                     expr.original = None
                     expr.set_positions()
+                else:
+                    expr = item.restructure(item.head, picked, evaluation)
 
                 yield expr
             else:
                 yield unwrap(picked)
 
 
-def _parts(items, selectors, assignment=False):
-    return list(_list_parts([items], list(selectors), assignment))[0]
+def _parts(items, selectors, evaluation, assignment=False):
+    heads = {}
+    return list(_list_parts([items], list(selectors), heads, evaluation, assignment))[0]
 
 
 def walk_parts(list_of_list, indices, evaluation, assign_list=None):
@@ -448,6 +416,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         result = _parts(
             walk_list,
             _part_selectors(indices),
+            evaluation,
             assign_list is not None)
     except MessageException as e:
         e.message(evaluation)
@@ -478,7 +447,7 @@ def walk_parts(list_of_list, indices, evaluation, assign_list=None):
         process_level(result, assign_list)
 
         result = list_of_list[0]
-        result.last_evaluated = None
+        result.clear_cache()
 
     return result
 
@@ -903,21 +872,36 @@ class Partition(Builtin):
         'Parition[list_, n_, d_, k]': 'Partition[list, n, d, {k, k}]',
     }
 
-    def chunks(self, l, n, d):
+    def _partition(self, expr, n, d, evaluation):
         assert n > 0 and d > 0
-        return [x for x in [l[i:i + n] for i in range(0, len(l), d)] if len(x) == n]
+
+        inner = structure('List', expr, evaluation)
+        outer = structure('List', inner, evaluation)
+
+        make_slice = inner.slice
+
+        def slices():
+            leaves = expr.leaves
+            for lower in range(0, len(leaves), d):
+                upper = lower + n
+
+                chunk = leaves[lower:upper]
+                if len(chunk) != n:
+                    continue
+
+                yield make_slice(expr, slice(lower, upper))
+
+        return outer(slices())
 
     def apply_no_overlap(self, l, n, evaluation):
         'Partition[l_List, n_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), n.get_int_value()))
+        return self._partition(l, n.get_int_value(), n.get_int_value(), evaluation)
 
     def apply(self, l, n, d, evaluation):
         'Partition[l_List, n_Integer, d_Integer]'
         # TODO: Error checking
-        return Expression('List', *self.chunks(
-            l.get_leaves(), n.get_int_value(), d.get_int_value()))
+        return self._partition(l, n.get_int_value(), d.get_int_value(), evaluation)
 
 
 class Extract(Builtin):
@@ -1013,6 +997,11 @@ class Most(Builtin):
     >> Most[x]
      : Nonatomic expression expected.
      = Most[x]
+
+    #> A[x__] := 7 /; Length[{x}] == 3;
+    #> Most[A[1, 2, 3, 4]]
+     = 7
+    #> ClearAll[A];
     """
 
     def apply(self, expr, evaluation):
@@ -1021,7 +1010,7 @@ class Most(Builtin):
         if expr.is_atom():
             evaluation.message('Most', 'normal')
             return
-        return Expression(expr.head, *expr.leaves[:-1])
+        return expr.slice(expr.head, slice(0, -1), evaluation)
 
 
 class Rest(Builtin):
@@ -1048,7 +1037,7 @@ class Rest(Builtin):
         if expr.is_atom():
             evaluation.message('Rest', 'normal')
             return
-        return Expression(expr.head, *expr.leaves[1:])
+        return expr.slice(expr.head, slice(1, len(expr.leaves)), evaluation)
 
 
 class ReplacePart(Builtin):
@@ -1114,7 +1103,7 @@ class ReplacePart(Builtin):
             position = replacement.leaves[0]
             replace = replacement.leaves[1]
             if position.has_form('List', None):
-                position = position.leaves
+                position = position.get_mutable_leaves()
             else:
                 position = [position]
             for index, pos in enumerate(position):
@@ -1300,7 +1289,7 @@ def _take_span_selector(seq):
 
 def _drop_span_selector(seq):
     def sliced(x, s):
-        y = x[:]
+        y = list(x[:])
         del y[s]
         return y
 
@@ -1373,7 +1362,7 @@ class Take(Builtin):
                 'Take', 'normal', 1, Expression('Take', items, *seqs))
 
         try:
-            return _parts(items, [_take_span_selector(seq) for seq in seqs])
+            return _parts(items, [_take_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
@@ -1423,7 +1412,7 @@ class Drop(Builtin):
                 'Drop', 'normal', 1, Expression('Drop', items, *seqs))
 
         try:
-            return _parts(items, [_drop_span_selector(seq) for seq in seqs])
+            return _parts(items, [_drop_span_selector(seq) for seq in seqs], evaluation)
         except MessageException as e:
             e.message(evaluation)
 
@@ -1447,20 +1436,25 @@ class Select(Builtin):
     >> Select[a, True]
      : Nonatomic expression expected.
      = Select[a, True]
+
+    #> A[x__] := 31415 /; Length[{x}] == 3;
+    #> Select[A[5, 2, 7, 1], OddQ]
+     = 31415
+    #> ClearAll[A];
     """
 
-    def apply(self, list, expr, evaluation):
-        'Select[list_, expr_]'
+    def apply(self, items, expr, evaluation):
+        'Select[items_, expr_]'
 
-        if list.is_atom():
+        if items.is_atom():
             evaluation.message('Select', 'normal')
             return
-        new_leaves = []
-        for leaf in list.leaves:
+
+        def cond(leaf):
             test = Expression(expr, leaf)
-            if test.evaluate(evaluation).is_true():
-                new_leaves.append(leaf)
-        return Expression(list.head, *new_leaves)
+            return test.evaluate(evaluation).is_true()
+
+        return items.filter(items.head, cond, evaluation)
 
 
 class Split(Builtin):
@@ -1492,6 +1486,11 @@ class Split(Builtin):
 
     #> Split[{}]
      = {}
+
+    #> A[x__] := 321 /; Length[{x}] == 5;
+    #> Split[A[x, x, x, y, x, y, y, z]]
+     = 321
+    #> ClearAll[A];
     """
 
     rules = {
@@ -1511,19 +1510,20 @@ class Split(Builtin):
             evaluation.message('Select', 'normal', 1, expr)
             return
 
-        if len(mlist.leaves) == 0:
-            result = []
-        else:
-            result = [[mlist.leaves[0]]]
-            for leaf in mlist.leaves[1:]:
-                applytest = Expression(test, result[-1][-1], leaf)
-                if applytest.evaluate(evaluation).is_true():
-                    result[-1].append(leaf)
-                else:
-                    result.append([leaf])
+        if not mlist.leaves:
+            return Expression(mlist.head)
 
-        return Expression(mlist.head, *[Expression('List', *l)
-                                        for l in result])
+        result = [[mlist.leaves[0]]]
+        for leaf in mlist.leaves[1:]:
+            applytest = Expression(test, result[-1][-1], leaf)
+            if applytest.evaluate(evaluation).is_true():
+                result[-1].append(leaf)
+            else:
+                result.append([leaf])
+
+        inner = structure('List', mlist, evaluation)
+        outer = structure(mlist.head, inner, evaluation)
+        return outer([inner(l) for l in result])
 
 
 class SplitBy(Builtin):
@@ -1573,8 +1573,9 @@ class SplitBy(Builtin):
                 result.append([leaf])
             prev = curr
 
-        return Expression(mlist.head, *[Expression('List', *l)
-                                        for l in result])
+        inner = structure('List', mlist, evaluation)
+        outer = structure(mlist.head, inner, evaluation)
+        return outer([inner(l) for l in result])
 
     def apply_multiple(self, mlist, funcs, evaluation):
         'SplitBy[mlist_, funcs_?ListQ]'
@@ -1610,13 +1611,13 @@ class Pick(Builtin):
      = {a, b, d}
     """
 
-    def _do(self, items0, sel0, match):
+    def _do(self, items0, sel0, match, evaluation):
         def pick(items, sel):
             for x, s in zip(items, sel):
                 if match(s):
                     yield x
                 elif not x.is_atom() and not s.is_atom():
-                    yield Expression(x.get_head(), *list(pick(x.leaves, s.leaves)))
+                    yield x.restructure(x.head, pick(x.leaves, s.leaves), evaluation)
 
         r = list(pick([items0], [sel0]))
         if not r:
@@ -1626,13 +1627,13 @@ class Pick(Builtin):
 
     def apply(self, items, sel, evaluation):
         'Pick[items_, sel_]'
-        return self._do(items, sel, lambda s: s.is_true())
+        return self._do(items, sel, lambda s: s.is_true(), evaluation)
 
     def apply_pattern(self, items, sel, pattern, evaluation):
         'Pick[items_, sel_, pattern_]'
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
-        return self._do(items, sel, lambda s: match(s, evaluation))
+        return self._do(items, sel, lambda s: match(s, evaluation), evaluation)
 
 
 class Cases(Builtin):
@@ -1717,96 +1718,6 @@ class Cases(Builtin):
 
 
 
-class Delete(Builtin):
-    """
-    <dl>
-    <dt>'Delete[$expr$, $n$]'
-        <dd>returns $expr$ with part $n$ removed.
-    </dl>
-
-    >> Delete[{a, b, c, d}, 3]
-     = {a, b, d}
-    >> Delete[{a, b, c, d}, -2]
-     = {a, b, d}
-    >> Delete[{{1, 2}, {3, 4}}, {1, 2}]
-     = {{1}, {3, 4}}
-    #> Delete[{1,2,3,4},5]
-     : Cannot delete position 5 in Delete[{1, 2, 3, 4}, 5].
-     = Delete[{1, 2, 3, 4}, 5]
-    """
-
-    messages = {
-        'normal': 'Nonatomic expression expected at position `1` in `2`.',
-        'delete': "Cannot delete position `1` in `2`.",
-    }
-
-
-    def del_one(self,cur,pos):
-        l = len(cur.leaves)
-        if cur.is_atom():
-            raise PartDepthError
-        if pos > l:
-            raise PartRangeError
-        if pos > 0:
-            cur.leaves = cur.leaves[:pos-1] + cur.leaves[pos:]
-            return cur
-        elif pos == 0:
-            cur.head = Symbol('System`Sequence')
-            return cur
-        elif pos >= -l:
-            cur.leaves = cur.leaves[:l+pos] + cur.leaves[l+pos+1:]
-            return cur
-        else:
-            raise PartRangeError
-
-    def del_rec(self, cur, rest):
-        if cur.is_atom():
-            raise PartDepthError
-        if len(rest) > 1:
-            pos = rest[0]
-            try:
-                if pos > 0:
-                    part = get_part(cur,[pos])
-                    part = self.del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:pos-1] + [part] + cur.leaves[pos:]
-                    return cur
-                elif pos == 0:
-                    raise PartRangeError
-                elif pos >= -len(cur.leaves):
-                    l = len(cur.leaves)
-                    part = get_part(cur,[l+pos+1])
-                    part = self.del_rec(part,rest[1:])
-                    cur.leaves = cur.leaves[:l+pos] + [part] + cur.leaves[l+pos+1:]
-                    return cur
-                else:
-                    raise PartRangeError
-            except IndexError:
-                raise PartRangeError
-        else:
-            return self.del_one(cur, rest[0])
-
-    def del_part(self, expr,indices,evaluation):
-        if indices.is_atom():
-            return self.del_one(expr,indices.get_int_value())
-        else:
-            indices = [index.get_int_value() for index in indices.leaves]
-            return self.del_rec(expr.copy(), indices)
-
-    def apply(self, items, n, evaluation):
-        'Delete[items_, n_]'
-
-        if items.is_atom():
-            return evaluation.message(
-                'Delete', 'normal', 1, Expression('Delete', items, n))
-        try:
-            return self.del_part(items,n,evaluation)
-        except MessageException as e:
-            e.message(evaluation)
-        except PartRangeError:
-            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
-        except PartDepthError:
-            evaluation.message('Delete', 'delete', n, Expression('Delete', items, n))
-
 
 class DeleteCases(Builtin):
     """
@@ -1834,7 +1745,11 @@ class DeleteCases(Builtin):
 
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
-        return Expression('List', *[leaf for leaf in items.leaves if not match(leaf, evaluation)])
+
+        def cond(leaf):
+            return not match(leaf, evaluation)
+
+        return items.filter('List', cond, evaluation)
 
 
 class Count(Builtin):
@@ -2259,7 +2174,7 @@ class Array(Builtin):
         'Array[f_, dimsexpr_, origins_:1, head_:List]'
 
         if dimsexpr.has_form('List', None):
-            dims = dimsexpr.leaves[:]
+            dims = dimsexpr.get_mutable_leaves()
         else:
             dims = [dimsexpr]
         for index, dim in enumerate(dims):
@@ -2272,7 +2187,7 @@ class Array(Builtin):
             if len(origins.leaves) != len(dims):
                 evaluation.message('Array', 'plen', dimsexpr, origins)
                 return
-            origins = origins.leaves[:]
+            origins = origins.get_mutable_leaves()
         else:
             origins = [origins] * len(dims)
         for index, origin in enumerate(origins):
@@ -2381,7 +2296,9 @@ class Join(Builtin):
 
         result = []
         head = None
-        for list in lists.get_sequence():
+        sequence = lists.get_sequence()
+
+        for list in sequence:
             if list.is_atom():
                 return
             if head is not None and list.get_head() != head:
@@ -2391,7 +2308,7 @@ class Join(Builtin):
             result.extend(list.leaves)
 
         if result:
-            return Expression(head, *result)
+            return sequence[0].restructure(head, result, evaluation, deps=sequence)
         else:
             return Expression('List')
 
@@ -2422,7 +2339,12 @@ class Catenate(Builtin):
                     raise MessageException('Catenate', 'invrp', l)
 
         try:
-            return Expression('List', *list(chain(*list(parts()))))
+            result = list(chain(*list(parts())))
+            if result:
+                return lists.leaves[0].restructure(
+                    'List', result, evaluation, deps=lists.leaves)
+            else:
+                return Expression('List')
         except MessageException as e:
             e.message(evaluation)
 
@@ -2456,8 +2378,8 @@ class Append(Builtin):
         if expr.is_atom():
             return evaluation.message('Append', 'normal')
 
-        return Expression(expr.get_head(),
-                          *(expr.get_leaves() + [item]))
+        return expr.restructure(
+            expr.head, list(chain(expr.get_leaves(), [item])), evaluation, deps=(expr, item))
 
 
 class AppendTo(Builtin):
@@ -2536,8 +2458,8 @@ class Prepend(Builtin):
         if expr.is_atom():
             return evaluation.message('Prepend', 'normal')
 
-        return Expression(expr.get_head(),
-                          *([item] + expr.get_leaves()))
+        return expr.restructure(
+            expr.head, list(chain([item], expr.get_leaves())), evaluation, deps=(expr, item))
 
 
 class PrependTo(Builtin):
@@ -2745,11 +2667,11 @@ class Reap(Builtin):
             result = expr.evaluate(evaluation)
             items = []
             for pattern, tags in sown:
-                list = Expression('List')
+                leaves = []
                 for tag, elements in tags:
-                    list.leaves.append(Expression(
+                    leaves.append(Expression(
                         f, tag, Expression('List', *elements)))
-                items.append(list)
+                items.append(Expression('List', *leaves))
             return Expression('List', result, Expression('List', *items))
         finally:
             evaluation.remove_listener('sow', listener)
@@ -2880,9 +2802,11 @@ class Riffle(Builtin):
         'Riffle[list_List, sep_]'
 
         if sep.has_form('List', None):
-            return Expression('List', *riffle_lists(list.get_leaves(), sep.leaves))
+            result = riffle_lists(list.get_leaves(), sep.leaves)
         else:
-            return Expression('List', *riffle_lists(list.get_leaves(), [sep]))
+            result = riffle_lists(list.get_leaves(), [sep])
+
+        return list.restructure('List', result, evaluation, deps=(list, sep))
 
 
 def _is_sameq(same_test):
@@ -3458,20 +3382,29 @@ class Reverse(Builtin):
     }
 
     @staticmethod
-    def _reverse(expr, level, levels):  # depth >= 1, levels are expected to be unique and sorted
+    def _reverse(expr, level, levels, evaluation):  # depth >= 1, levels are expected to be unique and sorted
         if not isinstance(expr, Expression):
             return expr
+
         if levels[0] == level:
-            new_leaves = reversed(expr.leaves)
+            expr = expr.restructure(expr.head, reversed(expr.leaves), evaluation)
+
             if len(levels) > 1:
-                new_leaves = (Reverse._reverse(leaf, level + 1, levels[1:]) for leaf in new_leaves)
+                expr = expr.restructure(
+                    expr.head,
+                    [Reverse._reverse(leaf, level + 1, levels[1:], evaluation) for leaf in expr.leaves],
+                    evaluation)
         else:
-            new_leaves = (Reverse._reverse(leaf, level + 1, levels) for leaf in expr.leaves)
-        return Expression(expr.get_head(), *new_leaves)
+            expr = expr.restructure(
+                expr.head,
+                [Reverse._reverse(leaf, level + 1, levels, evaluation) for leaf in expr.leaves],
+                evaluation)
+
+        return expr
 
     def apply_top_level(self, expr, evaluation):
         'Reverse[expr_]'
-        return Reverse._reverse(expr, 1, (1,))
+        return Reverse._reverse(expr, 1, (1,), evaluation)
 
     def apply(self, expr, levels, evaluation):
         'Reverse[expr_, levels_]'
@@ -3492,7 +3425,7 @@ class Reverse(Builtin):
         if py_levels is None:
             evaluation.message('Reverse', 'ilsmp', Expression('Reverse', expr, levels))
         else:
-            return Reverse._reverse(expr, 1, py_levels)
+            return Reverse._reverse(expr, 1, py_levels, evaluation)
 
 
 class CentralMoment(Builtin):  # see https://en.wikipedia.org/wiki/Central_moment
@@ -3749,7 +3682,7 @@ class _Rotate(Builtin):
         'rspec': '`` should be an integer or a list of integers.'
     }
 
-    def _rotate(self, expr, n):
+    def _rotate(self, expr, n, evaluation):
         if not isinstance(expr, Expression):
             return expr
 
@@ -3761,13 +3694,13 @@ class _Rotate(Builtin):
         new_leaves = chain(leaves[index:], leaves[:index])
 
         if len(n) > 1:
-            new_leaves = [self._rotate(item, n[1:]) for item in new_leaves]
+            new_leaves = [self._rotate(item, n[1:], evaluation) for item in new_leaves]
 
-        return Expression(expr.get_head(), *new_leaves)
+        return expr.restructure(expr.head, new_leaves, evaluation)
 
     def apply_one(self, expr, evaluation):
         '%(name)s[expr_]'
-        return self._rotate(expr, [1])
+        return self._rotate(expr, [1], evaluation)
 
     def apply(self, expr, n, evaluation):
         '%(name)s[expr_, n_]'
@@ -3781,7 +3714,7 @@ class _Rotate(Builtin):
             evaluation.message(self.get_name(), 'rspec', n)
             return
 
-        return self._rotate(expr, py_cycles)
+        return self._rotate(expr, py_cycles, evaluation)
 
 
 class RotateLeft(_Rotate):
@@ -3867,7 +3800,7 @@ class Median(_Rectangular):
             except _NotRectangularException:
                 evaluation.message('Median', 'rectn', Expression('Median', l))
         elif all(leaf.is_numeric() for leaf in l.leaves):
-            v = l.leaves[:]  # copy needed for introselect
+            v = l.get_mutable_leaves()  # copy needed for introselect
             n = len(v)
             if n % 2 == 0:  # even number of elements?
                 i = n // 2
@@ -3906,7 +3839,7 @@ class RankedMin(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMin', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], py_n - 1)
+            return introselect(l.get_mutable_leaves(), py_n - 1)
 
 
 class RankedMax(Builtin):
@@ -3934,7 +3867,7 @@ class RankedMax(Builtin):
         elif py_n > len(l.leaves):
             evaluation.message('RankedMax', 'rank', py_n, len(l.leaves))
         else:
-            return introselect(l.leaves[:], len(l.leaves) - py_n)
+            return introselect(l.get_mutable_leaves(), len(l.leaves) - py_n)
 
 
 class Quantile(Builtin):
@@ -3964,7 +3897,7 @@ class Quantile(Builtin):
         '''Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]'''
 
         n = len(l.leaves)
-        partially_sorted = l.leaves[:]
+        partially_sorted = l.get_mutable_leaves()
 
         def ranked(i):
             return introselect(partially_sorted, min(max(0, i - 1), n - 1))
@@ -4105,7 +4038,7 @@ class _RankedTake(Builtin):
             else:
                 result = self._get_n(py_n, heap)
 
-            return Expression('List', *[x[leaf_pos] for x in result])
+            return l.restructure('List', [x[leaf_pos] for x in result], evaluation)
 
 
 class _RankedTakeSmallest(_RankedTake):
@@ -4939,9 +4872,10 @@ class Permutations(Builtin):
         if rs is None:
             rs = range(py_n + 1)
 
-        return Expression('List', *[Expression('List', *p)
-                                    for r in rs
-                                    for p in permutations(l.leaves, r)])
+        inner = structure('List', l, evaluation)
+        outer = structure('List', inner, evaluation)
+
+        return outer([inner(p) for r in rs for p in permutations(l.leaves, r)])
 
 
 class SubsetQ(Builtin):
@@ -5020,6 +4954,47 @@ class SubsetQ(Builtin):
             return Symbol('True')
         else:
             return Symbol('False')
+
+def delete_one(expr, pos):
+    if expr.is_atom():
+        raise PartDepthError(pos)
+    leaves = expr.leaves
+    if pos == 0:
+        return Expression(Symbol("System`Sequence"), *leaves)
+    l = len(leaves)
+    truepos = pos
+    if truepos < 0:
+        truepos = l + truepos
+    else:
+        truepos = truepos - 1
+    if truepos < 0 or truepos>=l:
+        raise PartRangeError
+    leaves = leaves[:truepos] + (Expression("System`Sequence"),) +  leaves[truepos+1:]
+    return Expression(expr.get_head(), *leaves)
+
+
+
+def delete_rec(expr, pos):
+    if len(pos)==1:
+        return delete_one(expr, pos[0])
+    truepos = pos[0]
+    if truepos == 0 or expr.is_atom():
+        raise PartDepthError(pos[0])
+    leaves = expr.leaves
+    l = len(leaves)
+    if truepos < 0:
+        truepos = truepos + l
+        if truepos < 0:
+            raise PartRangeError
+        newleaf = delete_rec(leaves[truepos], pos[1:])
+        leaves = leaves[:truepos] +  (newleaf,)  + leaves[truepos+1:]
+    else:
+        if truepos > l:
+            raise PartRangeError
+        newleaf = delete_rec(leaves[truepos-1 ], pos[1:])
+        leaves = leaves[:truepos-1] + (newleaf,) + leaves[truepos:]
+    return Expression(expr.get_head(), *leaves)
+
 
 class Delete(Builtin):
     """
@@ -5116,22 +5091,18 @@ class Delete(Builtin):
 
     def apply_one(self, expr, position, evaluation):
         'Delete[expr_, position_Integer]'
-
-        new_expr = expr.copy()
-        pos = [position.get_int_value()]
+        pos = position.get_int_value()
         try:
-            set_sequence(new_expr, pos)
-        except PartError:
-            return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
-
-        return new_expr
+            return delete_one(expr, pos)
+        except PartRangeError:
+            evaluation.message('Delete', 'partw', Expression('List', pos), expr)
 
     def apply(self, expr, positions, evaluation):
         'Delete[expr_, positions___]'
-
         positions = positions.get_sequence()
         if len(positions) > 1:
-            return evaluation.message('Delete', 'argt', Integer(len(positions) + 1))
+            return evaluation.message('Delete', 'argt',
+                                      Integer(len(positions) + 1))
         elif len(positions) == 0:
             return evaluation.message('Delete', 'argr')
 
@@ -5142,8 +5113,8 @@ class Delete(Builtin):
         # Create new python list of the positions and sort it
         positions = [l for l in positions.leaves] if positions.leaves[0].has_form('List', None) else [positions]
         positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
-
-        new_expr = expr.copy()
+        leaves = expr.leaves
+        newexpr = expr
         for position in positions:
             pos = [p.get_int_value() for p in position.get_leaves()]
             if None in pos:
@@ -5151,13 +5122,13 @@ class Delete(Builtin):
             if len(pos) == 0:
                 return evaluation.message('Delete', 'psl', Expression('List', *positions), expr)
             try:
-                set_sequence(new_expr, pos)
+                newexpr = delete_rec(newexpr, pos)
             except PartDepthError as exc:
                 return evaluation.message('Delete', 'partw', Integer(exc.index), expr)
             except PartError:
                 return evaluation.message('Delete', 'partw', Expression('List', *pos), expr)
+        return newexpr
 
-        return new_expr
 
 class Association(Builtin):
     """

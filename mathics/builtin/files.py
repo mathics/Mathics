@@ -21,6 +21,9 @@ import requests
 import tempfile
 
  
+from itertools import chain
+
+
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
                                      MachineReal, Number, valid_context_name)
@@ -1501,17 +1504,17 @@ class BinaryWrite(Builtin):
             elif t.startswith('Character'):
                 if isinstance(x, Integer):
                     x = [String(char) for char in str(x.get_int_value())]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 x = x.get_string_value()
             elif t == 'Byte' and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 x = ord(x.get_string_value())
             else:

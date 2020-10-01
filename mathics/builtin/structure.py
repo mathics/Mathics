@@ -82,7 +82,7 @@ class Sort(Builtin):
             evaluation.message("Sort", "normal")
         else:
             new_leaves = sorted(list.leaves)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
     def apply_predicate(self, list, p, evaluation):
         "Sort[list_, p_]"
@@ -103,7 +103,7 @@ class Sort(Builtin):
                     )
 
             new_leaves = sorted(list.leaves, key=Key)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
 
 class SortBy(Builtin):
@@ -173,7 +173,7 @@ class SortBy(Builtin):
             # we sort a list of indices. after sorting, we reorder the leaves.
             new_indices = sorted(list(range(len(raw_keys))), key=Key)
             new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
-            return Expression(l.head, *new_leaves)
+            return l.restructure(l.head, new_leaves, evaluation)
 
 
 class BinarySearch(Builtin):
@@ -1006,10 +1006,9 @@ class Flatten(Builtin):
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
         # build new tree inserting nodes as needed
-        result = Expression(h)
         leaves = sorted(new_indices.items())
 
-        def insert_leaf(expr, leaves):
+        def insert_leaf(leaves):
             # gather leaves into groups with the same leading index
             # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)]
             # -> [[(0, a), (1, b)], [(0, c), (1, d)]]
@@ -1023,16 +1022,16 @@ class Flatten(Builtin):
                     grouped_leaves.append([(index[1:], leaf)])
             # for each group of leaves we either insert them into the current level
             # or make a new level and recurse
+            new_leaves = []
             for group in grouped_leaves:
                 if len(group[0][0]) == 0:  # bottom level leaf
                     assert len(group) == 1
-                    expr.leaves.append(group[0][1])
+                    new_leaves.append(group[0][1])
                 else:
-                    expr.leaves.append(Expression(h))
-                    insert_leaf(expr.leaves[-1], group)
+                    new_leaves.append(Expression(h, *insert_leaf(group)))
 
-        insert_leaf(result, leaves)
-        return result
+            return new_leaves
+        return Expression(h, *insert_leaf(leaves))
 
     def apply(self, expr, n, h, evaluation):
         "Flatten[expr_, n_, h_]"
@@ -1279,7 +1278,7 @@ class Operate(Builtin):
         # Otherwise, if we get here, e.head points to the head we need
         # to apply p to. Python's reference semantics mean that this
         # assignment modifies expr as well.
-        e.head = Expression(p, e.head)
+        e.set_head(Expression(p, e.head))
 
         return expr
 
