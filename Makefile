@@ -26,7 +26,7 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest
+check: pytest doctest  djangotest
 
 #: Remove derived files
 clean:
