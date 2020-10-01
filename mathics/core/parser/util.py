@@ -16,11 +16,22 @@ def parse(definitions, feeder):
 
     Feeder must implement the feed and empty methods, see core/parser/feed.py.
     '''
+    return parse_returning_code(definitions, feeder)[0]
+
+
+def parse_returning_code(definitions, feeder):
+    '''
+    Parse input (from the frontend, -e, input files, ToExpression etc).
+    Look up symbols according to the Definitions instance supplied.
+
+    Feeder must implement the feed and empty methods, see core/parser/feed.py.
+    '''
     ast = parser.parse(feeder)
+    source_code = parser.tokeniser.code if hasattr(parser.tokeniser, "code") else ""
     if ast is not None:
-        return convert(ast, definitions)
+        return convert(ast, definitions), source_code
     else:
-        return None
+        return None, source_code
 
 
 class SystemDefinitions(object):
