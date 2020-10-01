@@ -54,7 +54,7 @@ class Query(models.Model):
 class Worksheet(models.Model):
     user = models.ForeignKey(User, 
                              related_name='worksheets', 
-                             null=True, on_delete=None)
+                             null=True, on_delete=models.CASCADE)
 
     name = models.CharField(max_length=30)
     content = models.TextField()

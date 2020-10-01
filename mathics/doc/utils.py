@@ -5,6 +5,7 @@ import re
 import unicodedata
 
 from django.template.defaultfilters import register, stringfilter
+
 try:
     from django.utils.functional import keep_lazy as allow_lazy
 except:

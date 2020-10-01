@@ -75,7 +75,7 @@ script:
          make doc;
       fi
     else
-      make check;
+      make check &&
       if [[ "$PYMATHICS_MODULES" == "true" ]]; then
         make doctest o="--stop-on-failure";
       fi
