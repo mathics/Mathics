@@ -49,9 +49,9 @@ mathics/doc/tex/data:
 doctest:
 	$(PYTHON) mathics/test.py $(output)
 
-# Run django tests
+#: Run django tests
 djangotest:
-	cd mathics ; $(PYTHON) manage.py test test_django
+	cd mathics && $(PYTHON) manage.py test test_django
 
 #: Make Mathics PDF manual
 doc: mathics/doc/tex/data
