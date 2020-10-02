@@ -5,6 +5,7 @@
 
 import re
 import sys
+from itertools import chain
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
@@ -70,10 +71,10 @@ def subsets(items, min, max, included=None, less_first=False):
         if count < 0 or len(rest) < count:
             return
         if count == 0:
-            yield chosen, not_chosen + rest
+            yield chosen, list(chain(not_chosen, rest))
         elif len(rest) == count:
             if included is None or all(item in included for item in rest):
-                yield chosen + rest, not_chosen
+                yield list(chain(chosen, rest)), not_chosen
         elif rest:
             item = rest[0]
             if included is None or item in included:

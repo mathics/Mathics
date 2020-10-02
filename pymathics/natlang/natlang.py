@@ -45,7 +45,7 @@ from mathics.builtin.base import Builtin, MessageException
 from mathics.builtin.randomnumbers import RandomEnv
 from mathics.builtin.codetables import iso639_3
 from mathics.builtin.strings import to_regex, anchor_pattern
-from mathics.core.expression import Expression, String, Integer, Real, Symbol, strip_context
+from mathics.core.expression import Expression, String, Integer, Real, Symbol, strip_context, string_list
 
 import os
 import re
@@ -323,15 +323,15 @@ class TextWords(_SpacyBuiltin):
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
             punctuation = spacy.parts_of_speech.PUNCT
-            return Expression('List', *[String(word.text) for word in doc if word.pos != punctuation])
+            return string_list('List', [String(word.text) for word in doc if word.pos != punctuation], evaluation)
 
     def apply_n(self, text, n, evaluation, options):
         'TextWords[text_String, n_Integer, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
             punctuation = spacy.parts_of_speech.PUNCT
-            return Expression('List', *itertools.islice(
-                (String(word.text) for word in doc if word.pos != punctuation), n.get_int_value()))
+            return string_list('List', itertools.islice(
+                (String(word.text) for word in doc if word.pos != punctuation), n.get_int_value()), evaluation)
 
 
 class TextSentences(_SpacyBuiltin):
@@ -357,14 +357,14 @@ class TextSentences(_SpacyBuiltin):
         'TextSentences[text_String, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return Expression('List', *[String(sent.text) for sent in doc.sents])
+            return string_list('List', [String(sent.text) for sent in doc.sents], evaluation)
 
     def apply_n(self, text, n, evaluation, options):
         'TextSentences[text_String, n_Integer, OptionsPattern[%(name)s]]'
         doc = self._nlp(text.get_string_value(), evaluation, options)
         if doc:
-            return Expression('List', *itertools.islice(
-                (String(sent.text) for sent in doc.sents), n.get_int_value()))
+            return string_list('List', itertools.islice(
+                (String(sent.text) for sent in doc.sents), n.get_int_value()), evaluation)
 
 
 class DeleteStopwords(_SpacyBuiltin):
@@ -391,10 +391,10 @@ class DeleteStopwords(_SpacyBuiltin):
             for w in words:
                 s = w.get_string_value()
                 if not s:
-                    yield s
+                    yield String(s)
                 elif not is_stop(s):
-                    yield s
-        return Expression('List', *filter_words(l.leaves))
+                    yield String(s)
+        return string_list('List', filter_words(l.leaves), evaluation)
 
     def apply_string(self, s, evaluation, options):
         'DeleteStopwords[s_String, OptionsPattern[%(name)s]]'

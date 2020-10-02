@@ -244,8 +244,8 @@ class N(Builtin):
                     eval_range = ()
             else:
                 eval_range = range(len(expr.leaves))
-            head = Expression("N", expr.head, prec).evaluate(evaluation)
-            leaves = expr.leaves[:]
+            head = Expression('N', expr.head, prec).evaluate(evaluation)
+            leaves = expr.get_mutable_leaves()
             for index in eval_range:
                 leaves[index] = Expression("N", leaves[index], prec).evaluate(
                     evaluation
@@ -1162,12 +1162,12 @@ class RealDigits(Builtin):
                 py_n.as_numer_denom()[0], py_n.as_numer_denom()[1], py_b
             )
 
-            list_str = Expression("List")
+            leaves = []
             for x in head:
                 if not x == "0":
-                    list_str.leaves.append(from_python(int(x)))
-            list_str.leaves.append(from_python(tails))
-
+                    leaves.append(from_python(int(x)))
+            leaves.append(from_python(tails))
+            list_str = Expression("List", *leaves)
         return Expression("List", list_str, exp)
 
     def apply_rational_without_base(self, n, evaluation):
@@ -1268,42 +1268,39 @@ class RealDigits(Builtin):
                 digits = digits[abs(move) :]
                 display_len = display_len - move
 
-        list_str = Expression("List")
-
+        leaves = []
         for x in digits:
             if x == "e" or x == "E":
                 break
             # Convert to Mathics' list format
-            list_str.leaves.append(from_python(int(x)))
+            leaves.append(from_python(int(x)))
 
         if not rational_no:
-            while len(list_str.leaves) < display_len:
-                list_str.leaves.append(from_python(0))
+            while len(leaves) < display_len:
+                leaves.append(from_python(0))
 
         if nr_elements is not None:
             # display_len == nr_elements
-            if len(list_str.leaves) >= nr_elements:
+            if len(leaves) >= nr_elements:
                 # Truncate, preserving the digits on the right
-                list_str = list_str.leaves[:nr_elements]
+                leaves = leaves[:nr_elements]
             else:
                 if isinstance(n, Integer):
-                    while len(list_str.leaves) < nr_elements:
-                        list_str.leaves.append(from_python(0))
+                    while len(leaves) < nr_elements:
+                        leaves.append(from_python(0))
                 else:
                     # Adding Indeterminate if the length is greater than the precision
-                    while len(list_str.leaves) < nr_elements:
-                        list_str.leaves.append(from_python(Symbol("Indeterminate")))
-
+                    while len(leaves) < nr_elements:
+                        leaves.append(from_python(Symbol("Indeterminate")))
+        list_str = Expression("List", *leaves)
         return Expression("List", list_str, exp)
 
     def apply_3(self, n, b, length, evaluation, pos=None):
         "RealDigits[n_?NumericQ, b_Integer, length_]"
-
-        expr = Expression("RealDigits", n, b, length)
-
+        leaves = []
         if pos is not None:
-            expr.leaves.append(from_python(pos))
-
+            leaves.append(from_python(pos))
+        expr = Expression("RealDigits", n, b, length, *leaves)
         if not (isinstance(length, Integer) and length.get_int_value() >= 0):
             return evaluation.message("RealDigits", "intnm", expr)
 
@@ -1313,7 +1310,6 @@ class RealDigits(Builtin):
 
     def apply_4(self, n, b, length, p, evaluation):
         "RealDigits[n_?NumericQ, b_Integer, length_, p_]"
-
         if not isinstance(p, Integer):
             return evaluation.message(
                 "RealDigits", "intm", Expression("RealDigits", n, b, length, p)
