@@ -322,7 +322,7 @@ class ExpressionPattern(Pattern):
 
                         if expr_groups:
                             expr, count = expr_groups.popitem()
-                            max_per_pattern = count / len(patterns)
+                            max_per_pattern = count // len(patterns)
                             for per_pattern in range(max_per_pattern, -1, -1):
                                 for next in per_expr(   # nopep8
                                     expr_groups, sum + per_pattern):
@@ -330,9 +330,14 @@ class ExpressionPattern(Pattern):
                         else:
                             if sum >= match_count[0]:
                                 yield_expr([])
+                            # FIXME: Is this right?
+                            # For now we'll return basically no match.
+                            yield None
 
                     # for sequence in per_expr(expr_groups.items()):
                     def yield_expr(sequence):
+                        # FIXME: this call is wrong and needs a
+                        # wrapper_function as the 1st parameter.
                         wrappings = self.get_wrappings(
                             sequence, match_count[1], expression, attributes)
                         for wrapping in wrappings:
