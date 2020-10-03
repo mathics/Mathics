@@ -330,8 +330,7 @@ class ExpressionPattern(Pattern):
                         else:
                             if sum >= match_count[0]:
                                 yield_expr([])
-                            # FIXME: Is this right?
-                            # For now we'll return basically no match.
+                            # Until we learn that the below is incorrect, we'll return basically no match.
                             yield None
 
                     # for sequence in per_expr(expr_groups.items()):
