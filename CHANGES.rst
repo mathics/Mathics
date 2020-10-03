@@ -37,6 +37,7 @@ New features:
 - ``BarChart[]``, ``PieChart``, ``Histogram``, ``DensityPlot`` #499
 - option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 - ``Environment``
+- ``GetEnvironment`` # 938
 - ``System`Byteordering`` ``System`Environemnt`` #859
 - ``SystemTimeZone`` and correct ``TimeZone`` #924
 
