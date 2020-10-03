@@ -207,6 +207,8 @@ function showGallery() {
 	    "Sin''[x]",
 	    'D[Sin[2x] + Log[x] ^ 2, x]',
 	    'Integrate[Tan[x] ^ 5, x]',
+	    '(* Some graphs *)',
+	    'ListPlot[{Sqrt[Range[40]], Log[Range[40, 80]]}]',
 	    'Graphics3D[Sphere[{0, 0, 0}, 1]]',
 	    'Plot[{Sin[x], Cos[x], Tan[x]}, {x, -3Pi, 3Pi}]',
 	    'BarChart[{{1, 2, 3}, {2, 3, 4}}]',
