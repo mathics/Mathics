@@ -1,0 +1,26 @@
+sympy>=1.6, < 1.7
+django >= 1.8, < 1.12
+mpmath>=1.1.0
+numpy
+palettable
+pint
+pydot
+python-dateutil
+colorama
+llvmlite
+requests
+cython
+scikit-image
+ipywidgets
+ipykernel
+requests
+IPython==5.0.0
+nltk
+langid
+pycountry
+pyenchant
+lxml
+matplotlib
+networkx
+# git+https://github.com/mathics/Mathics@6ec25fafd488d71e6576e2d94ad0071443a096d0
+git+https://github.com/mathics/Mathics
