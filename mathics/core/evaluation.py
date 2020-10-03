@@ -222,16 +222,21 @@ class Evaluation(object):
             return self.evaluate(expr, timeout)
 
     def parse_feeder(self, feeder):
+        return self.parse_feeder_returning_code(feeder)[0]
+
+    def parse_feeder_returning_code(self, feeder):
         'Parse a single expression from feeder and print the messages.'
-        from mathics.core.parser import parse, TranslateError
+        from mathics.core.parser.util import parse_returning_code
+        from mathics.core.parser import TranslateError
         try:
-            result = parse(self.definitions, feeder)
+            result, source_code  = parse_returning_code(self.definitions, feeder)
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
+            source_code = ""
             result = None
         feeder.send_messages(self)
-        return result
+        return result, source_code
 
     def evaluate(self, query, timeout=None):
         'Evaluate an expression.'
