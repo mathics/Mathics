@@ -62,7 +62,7 @@ def main_view(request):
     return render(request, 'main.html', context)
 
 
-def error_404_view(request):
+def error_404_view(request, exception):
     t = loader.get_template('404.html')
     return HttpResponseNotFound(t.render(RequestContext(request, {
         'title': 'Page not found',
