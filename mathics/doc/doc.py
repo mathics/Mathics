@@ -888,7 +888,7 @@ class DocPart(DocElement):
         return result
 
     def get_url(self):
-        return '/%s/' % self.slug
+        return f'/{self.slug}/'
 
     def get_collection(self):
         return self.doc.parts
@@ -905,8 +905,8 @@ class DocChapter(DocElement):
         part.chapters_by_slug[self.slug] = self
 
     def __str__(self):
-        return '= %s =\n\n%s' % (
-            self.title, '\n'.join(str(section) for section in self.sections))
+        sections = '\n'.join(str(section) for section in self.sections)
+        return f'= {self.title} =\n\n{sections}'
 
     def latex(self, output):
         intro = self.doc.latex(output).strip()
@@ -924,7 +924,7 @@ class DocChapter(DocElement):
             '\n\\chapterend\n'])
 
     def get_url(self):
-        return '/%s/%s/' % (self.part.slug, self.slug)
+        return f'/{self.part.slug}/{self.slug}/'
 
     def get_collection(self):
         return self.part.chapters
@@ -944,7 +944,7 @@ class DocSection(DocElement):
         chapter.sections_by_slug[self.slug] = self
 
     def __str__(self):
-        return '== %s ==\n%s' % (self.title, self.doc)
+        return f'== {self.title} ==\n{self.doc}'
 
     def latex(self, output):
         title = escape_latex(self.title)
@@ -962,8 +962,7 @@ class DocSection(DocElement):
             }
 
     def get_url(self):
-        return '/%s/%s/%s/' % (
-            self.chapter.part.slug, self.chapter.slug, self.slug)
+        return f'/{self.chapter.part.slug}/{self.chapter.slug}/{self.slug}/'
 
     def get_collection(self):
         return self.chapter.sections
