@@ -1113,6 +1113,7 @@ class DocTest(object):
 
     #> signifies private test that does not appear as part of the documentation
     X> outputs the docs as normal, but the test is not run
+    S> the test is ignored in a sandboxed environment
     = compares the result text
     : compares an (error) Message
     | signifies Print outpt
@@ -1124,7 +1125,7 @@ class DocTest(object):
         # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
         # Ignored test cases are NOT executed, but shown as part of the docs
-        if testcase[0] == 'X':
+        if testcase[0] == 'X' or testcase[0] == 'S':
             self.ignore = True
             # substitute '>' again so we get the correct formatting
             testcase[0] = '>'

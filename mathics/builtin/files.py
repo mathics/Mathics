@@ -2012,9 +2012,9 @@ class OpenRead(_OpenAction):
      = InputStream[...]
     #> Close[%];
 
-    >> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
+    S> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
      = InputStream[...]
-    #> Close[%];
+    S> Close[%];
 
     #> OpenRead[]
      : OpenRead called with 0 arguments; 1 argument is expected.
@@ -4261,7 +4261,7 @@ class SetDirectory(Builtin):
       <dd>sets the current working directory to $dir$.
     </dl>
 
-    >> SetDirectory[]
+    S> SetDirectory[]
     = ...
 
     #> SetDirectory["MathicsNonExample"]
