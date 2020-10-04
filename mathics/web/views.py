@@ -20,7 +20,7 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 
 from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation, Message, Result, Output
+from mathics.core.evaluation import Message, Result
 
 from mathics.web.models import Query, Worksheet, get_session_evaluation
 from mathics.web.forms import LoginForm, SaveForm
