@@ -119,7 +119,6 @@ def query(request):
     result = {
         'results': [result.get_data() for result in results],
     }
-
     if settings.LOG_QUERIES:
         query_log.timeout = evaluation.timeout
         query_log.result = str(result)  # evaluation.results
@@ -309,7 +308,7 @@ def render_doc(request, template_name, context, data=None, ajax=False):
         return result
 
     result = {
-        'content': str(result),
+        'content': result.getvalue().decode("utf-8"),
     }
     if data is not None:
         result['data'] = data
