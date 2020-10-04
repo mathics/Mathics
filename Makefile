@@ -40,8 +40,7 @@ pytest:
 	py.test test $o
 
 
-#: Run mathics/test.py asking for output to build "mathics/doc/tex/data"
-
+#: Create data that is used to in Django docs and to build TeX PDF
 mathics/doc/tex/data:
 	$(PYTHON) mathics/test.py -o
 
