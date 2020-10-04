@@ -1231,7 +1231,7 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
      = Text
 
-    X> FileFormat["ExampleData/benzene.xyz"]
+    S> FileFormat["ExampleData/benzene.xyz"]
      = XYZ
 
     #> FileFormat["ExampleData/colors.json"]
