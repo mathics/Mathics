@@ -186,9 +186,10 @@ It supports:
 * Supports Pygments-based syntax coloring of output, and Pygments styles
 * Can automatically detect whether a terminal has a dark or light background
 
-Qith changes to the format types mentioned above, using sympy's ASCII
-renderer, ``mathicsscript`` could support opening a matplotlib window to
-show graphics, and using display output in ASCII better.
+With changes to the format types mentioned above and by using
+``sympy``'s ASCII rendering routines, ``mathicsscript`` will support
+opening a matplotlib window to show graphics, and will display output
+in ASCII better.
 
 Jupyter Interface
 .................
