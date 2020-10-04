@@ -8,6 +8,7 @@ Major package dependencies ave been up dated to more recent releases. These incl
 
 - Python: Python 2.7 has dropped and Python 3.6-3.8 is now supported.
 - sympy 1.6.2
+- Django 3.1.x
 
 
 New features:
