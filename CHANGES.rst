@@ -4,45 +4,53 @@ CHANGES
 1.1
 ---
 
-Major package dependencies ave been up dated to more recent releases. These include
+Package Updates
++++++++++++++++
 
-- Python: Python 2.7 has dropped and Python 3.6-3.8 is now supported.
+All major packages that Mathics needs have been updated for more recent
+releases. Specifically These include:
+
+- Python: Python 3.6-3.8 is now supported.
 - sympy 1.6.2
+- cython >= 0.15.1
 - Django 3.1.x
 
 
-New features:
+New features (50+ builtins):
+++++++++++++++++++++++++++++
 
-- ``Subsets`` #685
-- ``DiscreteLimit`` #922
-- ``IterationLimit``
-- support for ``MATHICS_MAX_RECURSION_DEPTH``
-- ``RemoveDiacritics[]``, ``Transliterate[]`` #617
-- ``Speedups by avoiding inner classes``, #616
-- ``CharacterEncoding`` option for ``Import[]``
-- ``BooleanQ``, ``DigitQ`` and ``LetterQ``
-- ``StringRiffle[]``, ``StringFreeQ[]``, ``StringContainsQ[]``, ``StringInsert``
-- ``PolynomialQ[]``, ``MinimalPolynomial[]``
-- ``Coefficient[]``, ``Coefficient[x * y, z, 0]``, ``Coefficient*[]``,
-- ``Sign[]``, ``Exponent``, ``Divisors``, ``QuotientRemainder``, ``FactorTermsList``
-- ``RealDigits`` #891, #691, ``Interrupt``, ``Unique``
 - ``Association``, ``AssociationQ``, ``FirstPostion``, ``LeafCount``
-- ``FirstPostions``, ``Integers``, ``PrePendTo[]``
-- ``Integers``, ``PrependTo`` and ``ContainsOnly``
-- ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
-- ``Quit[]``, ``Exit[]`` #523, #814,
-- ``Root`` #806
 - ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
-- ``SubsetQ`` and ``Delete[]`` #688, #784,
-- ``randchoice`` option for ``NoNumPyRandomEnv`` #820
 - ``BarChart[]``, ``PieChart``, ``Histogram``, ``DensityPlot`` #499
-- option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
+- ``BooleanQ``, ``DigitQ`` and ``LetterQ``
+- ``CharacterEncoding`` option for ``Import[]``
+- ``Coefficient[]``, ``Coefficient[x * y, z, 0]``, ``Coefficient*[]``,
+- ``DiscreteLimit`` #922
 - ``Environment``
+- ``FirstPostions``, ``Integers``, ``PrePendTo[]``
 - ``GetEnvironment`` # 938
-- ``System`Byteordering`` ``System`Environemnt`` #859
+- ``Integers``, ``PrependTo`` and ``ContainsOnly``
+- ``IterationLimit``
+- ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
+- ``PolynomialQ[]``, ``MinimalPolynomial[]``
+- ``Quit[]``, ``Exit[]`` #523, #814,
+- ``RealDigits`` #891, #691, ``Interrupt``, ``Unique``
+- ``RemoveDiacritics[]``, ``Transliterate[]`` #617
+- ``Root`` #806
+- ``Sign[]``, ``Exponent``, ``Divisors``, ``QuotientRemainder``, ``FactorTermsList``
+- ``Speedups by avoiding inner classes``, #616
+- ``StringRiffle[]``, ``StringFreeQ[]``, ``StringContainsQ[]``, ``StringInsert``
+- ``SubsetQ`` and ``Delete[]`` #688, #784,
+- ``Subsets`` #685
 - ``SystemTimeZone`` and correct ``TimeZone`` #924
+- ``System\`Byteordering`` and ``System\`Environemnt`` #859
+- ``randchoice`` option for ``NoNumPyRandomEnv`` #820
+
+- support for ``MATHICS_MAX_RECURSION_DEPTH``
+- option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 
 Ehancements and Bug fixes:
++++++++++++++++++++++++++++
 
 - speed up leading-blank patterns
 - fixes for option handling
@@ -71,17 +79,128 @@ Mathematica tracking changes:
 - renamed ``SymbolLookup`` to ``Lookup``
 
 Performance improvements:
++++++++++++++++++++++++++
 
 - Speed up pattern matching for large lists
+- Quadraditc speed improvement in pattern matching. #619 and see the graph comparisons there
 - In-memory sessions #623
 
 Other Changes:
+++++++++++++++
 
 - bump ``RecursionLimit``
 - blacken (format) a number of Python files and remove blanks at the end of lines
 - Remove various deprecation warnings
 - Change shbang from ``python`` to ``python3``
 - Update docs
+
+Backward incompatablities:
+++++++++++++++++++++++++++
+
+- Support for Python 3.5 and earlier, and in particular Python 2.7,
+  has dropped
+- The `graphs` module (for Graphs) has been pulled until Mathics
+  supports pymathics and graphics using networkx better. It will
+  reappear as a pymathics module.
+- The `natlang` (for Natural Language processing) has also been
+  pulled.  The problem here too is that the pymathics mechanism needs
+  a small amount of work to make it scalable, and in 1.0 these were
+  hard coded. Also, both this module and `graphs` pulled in some
+  potentially hard-to-satisfy non-Python dependencies such as
+  matplotlib, or NLP libraries, and word lists. All of this made
+  installation of mathics harder, and the import of these libraries,
+  `natlang` in particular took some time. All of this points to having
+  these live in their own repositories and get imported on laziliy on
+  demand
+
+
+For the Future
+++++++++++++++
+
+
+Documentation
+.............
+
+After this release, a rethinking of the documentation systems may be
+done to reflect 2020's Python-centric tools, thinking and practionce
+
+This may include integration into RsT/Sphinx/Readthedocs.
+Shinx has a mechanism for embedding testable code into its docs.
+
+Testing
+.......
+
+Related to documentation, testing may be modularized better and
+expanded. Right now most of the tests are hooked into documentation,
+and while this is cool, not all tests are interesting to have in
+documentation. In particular, obscure bugs fall into this category.
+
+Additional Format types
+........................
+
+There are currently 4 kinds of format types:
+
+- xml (which is really MathML)
+- text: ASCII text
+- tex: Knuth's TeX typesetting system
+- boxes: combinations of the above
+
+Proposed is to add two more:
+
+- rst: restructured text
+- graphics: a higher-level graphics-package independent format
+
+The problem with using TeX for formatting is that in of itself it is
+more of a low-level formatter. LaTeX was the corresponding
+higher-level formatter, but this too is a bit more cumbersome than
+current documentation practice. Since the code is Python-based,
+ReStructured text now makes more sense since there are good libraries
+for that and this integrates with the documentation better described
+above.
+
+Right now for non-text front-ends the xml format is used. Within that,
+is an embedded image of some sort like SVG, or PNG. The problem with
+this is that decisions have already been baked in with respect to a
+number of drawing parameters and those are impossible to undo since
+metadata and user-supplied options have been lost. Better graphing and
+drawing packages exist which are in a better position to make layout
+and drawing parameter if given a chance.
+
+Actually, it is often the case it it is not that there are new drawing
+packages so much as there are *newer* graphic packages and the
+Mathics core hasn't been updated to make use of those improvements
+
+In sum, decisions about plotting and drawing need to get moved closer
+to the front end which knows better about which drawing packages are
+available and what it capabilities are.
+
+Command-line interface
+......................
+
+With this release, a new CLI frontend, `mathicsscript` has been started.
+
+It supports:
+
+* Save history over sessions
+* Understands groupings of lines which form one logical Mathics statement
+* Supports Pygments-based syntax coloring of output, and Pygments styles
+* Can automatically detect whether a terminal has a dark or light background
+
+With changes to the format types mentioned above and by using
+``sympy``'s ASCII rendering routines, ``mathicsscript`` will support
+opening a matplotlib window to show graphics, and will display output
+in ASCII better.
+
+Jupyter Interface
+.................
+
+this may happen around January 2021.
+
+In the future, Django may be split off to a separate package, same as
+the CLI and existing Jupyter interfaces.
+
+It is possbile if IPython via Jupyter works well, the CLI interface
+won't be needed. However I (rocky) suspect not.
 
 
 1.0
