@@ -17,6 +17,9 @@ from mathics import version_string
 from mathics import settings
 
 
+MAX_TESTS = 100000  # Number than the total number of tests
+
+
 class TestOutput(Output):
     def max_stored_size(self, settings):
         return None
@@ -27,6 +30,7 @@ sep = "-" * 70 + "\n"
 # Global variables
 definitions = None
 documentation = None
+
 
 def compare(result, wanted):
     if result == wanted:
@@ -105,26 +109,34 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
     return True
 
 
-def test_tests(tests, index, quiet=False, stop_on_failure=False, start_at=0):
+def test_tests(
+    tests, index, quiet=False, stop_on_failure=False, start_at=0, max_tests=MAX_TESTS
+):
     definitions.reset_user_definitions()
-    count = failed = skipped = 0
+    total = failed = skipped = 0
     failed_symbols = set()
     section = tests.section
+    count = 0
     for subindex, test in enumerate(tests.tests):
+        index += 1
         if test.ignore:
             continue
-        count += 1
-        index += 1
         if index < start_at:
             skipped += 1
             continue
+        elif count >= max_tests:
+            break
+
+        total += 1
+        count += 1
         if not test_case(test, tests, index, subindex + 1, quiet, section):
             failed += 1
             failed_symbols.add((tests.part, tests.chapter, tests.section))
             if stop_on_failure:
                 break
+
         section = None
-    return count, failed, skipped, failed_symbols, index
+    return total, failed, skipped, failed_symbols, index
 
 
 def create_output(tests, output_xml, output_tex):
@@ -153,7 +165,7 @@ def test_section(section, quiet=False, stop_on_failure=False):
     index = 0
     print("Testing section %s" % section)
     for tests in documentation.get_tests():
-        if tests.section == section or tests.section == '$' + section:
+        if tests.section == section or tests.section == "$" + section:
             found = True
             for test in tests.tests:
                 if test.ignore:
@@ -181,8 +193,15 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
-def test_all(quiet=False, generate_output=False, stop_on_failure=False,
-             start_at=0, xmldatafolder=None, texdatafolder=None):
+def test_all(
+    quiet=False,
+    generate_output=False,
+    stop_on_failure=False,
+    start_at=0,
+    count=MAX_TESTS,
+    xmldatafolder=None,
+    texdatafolder=None,
+):
     global documentation
     if not quiet:
         print("Testing %s" % version_string)
@@ -194,37 +213,46 @@ def test_all(quiet=False, generate_output=False, stop_on_failure=False,
             texdatafolder = settings.DOC_TEX_DATA
     try:
         index = 0
-        count = failed = skipped = 0
+        total = failed = skipped = 0
         failed_symbols = set()
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            sub_count, sub_failed, sub_skipped, symbols, index = test_tests(
+            sub_total, sub_failed, sub_skipped, symbols, index = test_tests(
                 tests,
                 index,
                 quiet=quiet,
                 stop_on_failure=stop_on_failure,
                 start_at=start_at,
+                max_tests=count,
             )
             if generate_output:
                 create_output(tests, output_xml, output_tex)
-            count += sub_count
+            total += sub_total
             failed += sub_failed
             skipped += sub_skipped
             failed_symbols.update(symbols)
             if sub_failed and stop_on_failure:
                 break
-        builtin_count = len(builtins)
+            if total >= count:
+                break
+        builtin_total = len(builtins)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
 
     if failed > 0:
         print(sep)
-    print(
-        "%d Tests for %d built-in symbols, %d passed, %d failed, %d skipped."
-        % (count, builtin_count, count - failed - skipped, failed, skipped)
-    )
+    if count == MAX_TESTS:
+        print(
+            "%d Tests for %d built-in symbols, %d passed, %d failed, %d skipped."
+            % (total, builtin_total, total - failed - skipped, failed, skipped)
+        )
+    else:
+        print(
+            "%d Tests, %d passed, %d failed, %d skipped."
+            % (total, total - failed, failed, skipped)
+        )
     if failed_symbols:
         if stop_on_failure:
             print("(not all tests are accounted for due to --stop-on-failure)")
@@ -264,6 +292,7 @@ def write_latex():
 
 def main():
     from mathics.doc import documentation as main_mathics_documentation
+
     global definitions
     global documentation
     definitions = Definitions(add_builtin=True)
@@ -279,8 +308,13 @@ def main():
     parser.add_argument(
         "--section", "-s", dest="section", metavar="SECTION", help="only test SECTION"
     )
-    parser.add_argument('--pymathics', '-l', dest="pymathics", action="store_true",
-                        help="also checks pymathics modules.")
+    parser.add_argument(
+        "--pymathics",
+        "-l",
+        dest="pymathics",
+        action="store_true",
+        help="also checks pymathics modules.",
+    )
 
     parser.add_argument(
         "--output",
@@ -310,6 +344,14 @@ def main():
         default=0,
         help="skip the first N tests",
     )
+    parser.add_argument(
+        "--count",
+        metavar="N",
+        dest="count",
+        type=int,
+        default=MAX_TESTS,
+        help="run only  N tests",
+    )
     args = parser.parse_args()
     # If a test for a specific section is called
     # just test it
@@ -325,13 +367,16 @@ def main():
             documentation.load_pymathics_doc()
         else:
             start_at = args.skip + 1
-            test_all(quiet=args.quiet, generate_output=args.output,
-                     stop_on_failure=args.stop_on_failure,
-                     start_at=start_at)
+            test_all(
+                quiet=args.quiet,
+                generate_output=args.output,
+                stop_on_failure=args.stop_on_failure,
+                start_at=start_at,
+                count=args.count,
+            )
     # If it was asked for tex output, try to build it:
     if args.tex:
         write_latex()
-
 
 
 if __name__ == "__main__":

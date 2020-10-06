@@ -788,7 +788,7 @@ class PyMathicsDocumentation(Documentation):
         for name in dir(self.pymathicsmodule):
             var = getattr(self.pymathicsmodule, name)
             if (hasattr(var, '__module__') and
-                var.__module__ != 'mathics.builtin.base' and 
+                var.__module__ != 'mathics.builtin.base' and
                     is_builtin(var) and not name.startswith('_') and
                 var.__module__[:len(self.pymathicsmodule.__name__)] == self.pymathicsmodule.__name__):     # nopep8
                 instance = var(expression=False)
@@ -1092,13 +1092,13 @@ class DocTests(object):
         testLatexStrings = [t for t in testLatexStrings if len(t)>1]
         if len(testLatexStrings) == 0:
             return "\n"
-        
+
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
             '%\n'.join(testLatexStrings))
 
     def html(self, counters=None):
         if len(self.tests) == 0:
-            return "\n"        
+            return "\n"
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
                       if not test.private))
@@ -1111,21 +1111,26 @@ class DocTest(object):
     """
     DocTest formatting rules:
 
-    #> signifies private test that does not appear as part of the documentation
-    X> outputs the docs as normal, but the test is not run
-    S> the test is ignored in a sandboxed environment
-    = compares the result text
-    : compares an (error) Message
-    | signifies Print outpt
+    * `#>` Marks test private or one that does not appear as part of
+           the documentation
+    * `X>` Shows the example in the docs, but disables testing the example
+    * `S>` Shows the example in the docs, but disables testing if environment
+           variable SANDBOX is set
+    * `=`  Compares the result text
+    * `:`  Compares an (error) message
+      `|`  Prints output
     """
     def __init__(self, index, testcase):
         self.index = index
         self.result = None
         self.outs = []
+
         # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
+
         # Ignored test cases are NOT executed, but shown as part of the docs
-        if testcase[0] == 'X' or testcase[0] == 'S':
+        # Sandboxed test cases are NOT executed if environtment SANDBOX is set
+        if testcase[0] == 'X' or (testcase[0] == 'S' and os.getenv("SANDBOX", False)):
             self.ignore = True
             # substitute '>' again so we get the correct formatting
             testcase[0] = '>'
