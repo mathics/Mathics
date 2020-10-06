@@ -1111,14 +1111,14 @@ class DocTest(object):
     """
     DocTest formatting rules:
 
-    #>: marks test private or one that does not appear as part of
-        the documentation
-    X>: shows the example in the docs, but disables testing the example
-    S>: shows the example in the docs, but disables testing if environment
-        variable SANDBOX is set
-    =: compares the result text
-    :: compares an (error) message
-    |: Prints output
+    * `#>` Marks test private or one that does not appear as part of
+           the documentation
+    * `X>` Shows the example in the docs, but disables testing the example
+    * `S>` Shows the example in the docs, but disables testing if environment
+           variable SANDBOX is set
+    * `=`  Compares the result text
+    * `:`  Compares an (error) message
+      `|`  Prints output
     """
     def __init__(self, index, testcase):
         self.index = index
