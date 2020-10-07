@@ -209,8 +209,8 @@ class ParentProcessID(Predefined):
       <dd>gives the ID assigned to the process which invokes the Mathics by the operating system under which it is run.
     </dl>
 
-    X> $ParentProcessID
-     = 1955
+    >> $ParentProcessID
+     = ...
 
     #> Head[$ParentProcessID] == Integer
      = True
@@ -228,8 +228,8 @@ class ProcessID(Predefined):
       <dd>gives the ID assigned to the Mathics process by the operating system under which it is run.
     </dl>
 
-    X> $ProcessID
-     = 1955
+    >> $ProcessID
+     = ...
 
     #> Head[$ProcessID] == Integer
      = True

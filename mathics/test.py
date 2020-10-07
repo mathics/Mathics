@@ -287,15 +287,15 @@ def make_doc(quiet=False):
         pickle.dump(output_xml, output_file, 0)
         print('\nOK')
 
-        if generate_output:
-            print("Save XML")
-            with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
-                pickle.dump(output_xml, output_file, 0)
+    if generate_output and (failed == 0 or doc_even_if_error):
+        print("Save XML")
+        with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
+            pickle.dump(output_xml, output_file, 0)
 
-            print("Save TEX")
-            with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
-                pickle.dump(output_tex, output_file, 0)
-            return True
+        print("Save TEX")
+        with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
+            pickle.dump(output_tex, output_file, 0)
+        return True
         return False
     else:
         print('\nFAILED')
@@ -305,20 +305,18 @@ def make_doc(quiet=False):
     with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
         pickle.dump(output_tex, output_file, 0)
 
-def make_doc(quiet=False, generate_output=False, stop_on_failure=False,
-             start_at=0):
+def make_doc(quiet=False):
+    """
+    Write XML and TeX doc examples.
+    """
     if not quiet:
         print("Extracting doc %s" % version_string)
 
     try:
-        index = 0
-        count = failed = skipped = 0
-        failed_symbols = set()
         output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
-            if generate_output:
-                create_output(tests, output_xml, output_tex)
+            create_output(tests, output_xml, output_tex)
         builtin_count = len(builtins)
     except KeyboardInterrupt:
         print("\nAborted.\n")
@@ -376,6 +374,12 @@ def main():
         dest="output",
         action="store_true",
         help="generate TeX and XML output data",
+    )
+    parser.add_argument(
+        "--doc-only",
+        dest="doc_only",
+        action="store_true",
+        help="generate TeX and XML output data without running tests",
     )
     parser.add_argument(
         "--tex",

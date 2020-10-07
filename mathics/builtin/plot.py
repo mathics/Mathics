@@ -1056,8 +1056,8 @@ class PieChart(_Chart):
 class BarChart(_Chart):
     """
     <dl>
-    <dt>'BarChart[{$p1$, $p2$ ...}]'
-        <dd>draws a bar chart.
+        <dt>'BarChart[{$p1$, $p2$ ...}]'
+        <dd>makes a bar chart with lengths $b1$, $b2$, ....
     </dl>
 
     >> BarChart[{1, 4, 2}]
@@ -1175,8 +1175,8 @@ class BarChart(_Chart):
 class Histogram(Builtin):
     """
     <dl>
-    <dt>'Histogram[{$x1$, $x2$ ...}]'
-        <dd>gives a histogram using the values $x1$, $x2$, ....
+        <dt>'Histogram[{$x1$, $x2$ ...}]'
+        <dd>plots a histogram using the values $x1$, $x2$, ....
     </dl>
 
     >> Histogram[{3, 8, 10, 100, 1000, 500, 300, 200, 10, 20, 200, 100, 200, 300, 500}]
