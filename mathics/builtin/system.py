@@ -98,6 +98,34 @@ class Failed(Predefined):
     name = "$Failed"
 
 
+class GetEnvironment(Builtin):
+    """
+    <dl>
+    <dt>'GetEnvironment["var$]"'
+        <dd>gives the setting corresponding to the variable "var" in the operating system environment.
+    </dl>
+
+    X> = GetEnvironment["HOME"]
+    = ...
+    """
+
+    def apply(self, var, evaluation):
+        "GetEnvironment[var___]"
+        if isinstance(var, String):
+            env_var = var.get_string_value()
+            tup = (
+                env_var,
+                "System`None" if env_var not in os.environ else String(os.environ[env_var]),
+            )
+
+            return Expression("Rule", *tup)
+
+        env_vars = var.get_sequence()
+        if len(env_vars) == 0:
+            rules = [Expression("Rule", name, value) for name, value in os.environ.items()]
+            return Expression("List", *rules)
+
+
 class Machine(Predefined):
     """
     <dl>

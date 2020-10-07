@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import sys
 import re
 import pickle
@@ -264,46 +265,23 @@ def test_all(
         for part, chapter, section in sorted(failed_symbols):
             print("  - %s in %s / %s" % (section, part, chapter))
 
-    if failed == 0:
-def make_doc(quiet=False):
-    """
-    Write XML and TeX doc examples.
-    """
-    if not quiet:
-        print("Extracting doc %s" % version_string)
-
-    try:
-        output_xml = {}
-        output_tex = {}
-        for tests in documentation.get_tests():
-            create_output(tests, output_xml, output_tex)
-        builtin_count = len(builtins)
-    except KeyboardInterrupt:
-        print("\nAborted.\n")
-        return
-
-    print('Save XML')
-    with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
-        pickle.dump(output_xml, output_file, 0)
-        print('\nOK')
-
     if generate_output and (failed == 0 or doc_even_if_error):
         print("Save XML")
         with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
             pickle.dump(output_xml, output_file, 0)
 
-        print("Save TEX")
+        print("Save TeX")
         with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
             pickle.dump(output_tex, output_file, 0)
         return True
         return False
-    else:
-        print('\nFAILED')
-        return sys.exit(1)      # Travis-CI knows the tests have failed
 
-    print('Save TeX')
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
-        pickle.dump(output_tex, output_file, 0)
+    if failed == 0:
+        print("\nOK")
+    else:
+        print("\nFAILED")
+        return sys.exit(1)  # Travis-CI knows the tests have failed
+
 
 def make_doc(quiet=False):
     """
@@ -322,13 +300,14 @@ def make_doc(quiet=False):
         print("\nAborted.\n")
         return
 
-    print('Save XML')
-    with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
+    print("Save XML")
+    with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
         pickle.dump(output_xml, output_file, 0)
 
-    print('Save TEX')
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
+    print("Save TeX")
+    with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
         pickle.dump(output_tex, output_file, 0)
+
 
 def write_latex():
     print("Load data")
@@ -389,44 +368,14 @@ def main():
         help="generate TeX documentation file",
     )
     parser.add_argument(
-        "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
-    )
-    parser.add_argument(
-        "--section", "-s", dest="section", metavar="SECTION", help="only test SECTION"
-    )
-    parser.add_argument(
-        "--pymathics",
-        "-l",
-        dest="pymathics",
-        action="store_true",
-        help="also checks pymathics modules.",
-    )
-
-    parser.add_argument(
-        "--output",
-        "-o",
-        dest="output",
-        action="store_true",
-        help="generate TeX and XML output data",
-    )
-    parser.add_argument(
-        "--doc-only",
-        dest="doc_only",
-        action="store_true",
-        help="generate TeX and XML output data without running tests",
-    )
-    parser.add_argument(
-        "--tex",
-        "-t",
-        dest="tex",
-        action="store_true",
-        help="generate TeX documentation file",
-    )
-    parser.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
     )
     parser.add_argument(
-        "--keep-going", "-k", dest="keep_going", action="store_true", help="create documentation even if there is a test failure"
+        "--keep-going",
+        "-k",
+        dest="keep_going",
+        action="store_true",
+        help="create documentation even if there is a test failure",
     )
     parser.add_argument(
         "--stop-on-failure", action="store_true", help="stop on failure"
@@ -476,10 +425,11 @@ def main():
                 doc_even_if_error=args.keep_going,
             )
             end_time = datetime.now()
-            print("Tests took ", end_time-start_time)
+            print("Tests took ", end_time - start_time)
     # If TeX output requested, try to build it:
     if args.tex:
         write_latex()
+
 
 if __name__ == "__main__":
     main()

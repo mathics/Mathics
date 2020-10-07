@@ -560,7 +560,7 @@ class TimeZone(Predefined):
     """
     <dl>
     <dt>'$TimeZone'
-      <dd> gives the current time zone to asseme for dates and times.
+      <dd> gives the current time zone to assume for dates and times.
     </dl>
 
     >> $TimeZone
