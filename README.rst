@@ -51,7 +51,6 @@ To run the command-line interface using docker image:
    $ docker run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data mathicsorg/mathics --mode cli
 
 If you want to add options add them at then end preceded with `--`: for example:
-
 ::
    $ docker run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data mathicsorg/mathics --mode cli -- --help
 
