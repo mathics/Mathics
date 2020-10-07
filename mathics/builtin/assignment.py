@@ -847,7 +847,7 @@ class Information(PrefixOperator):
      . g[f] ^= 2
 
     >> ? Table
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -860,7 +860,7 @@ class Information(PrefixOperator):
      .
 
     >> Information[Table]
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -1657,9 +1657,9 @@ class Decrement(PostfixOperator):
     </dl>
 
     >> a = 5;
-    >> a--
+    X> a--
      = 5
-    >> a
+    X> a
      = 4
     """
 

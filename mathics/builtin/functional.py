@@ -204,7 +204,7 @@ class Identity(Builtin):
     </dl>
     >> Identity[x]
      = x
-    >> Identity[x, y]
+    X> Identity[x, y]
      = Identity[x, y]
     """
 

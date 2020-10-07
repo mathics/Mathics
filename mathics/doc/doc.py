@@ -1160,6 +1160,10 @@ class DocTest(object):
 
         self.test = testcase[1].strip()
 
+        # This allows a trailing blank at the end of the line for those ofus use use editors that like
+        # to strip trailing blanks at the ends of lines.
+        self.test = self.test.rstrip("#<--#")
+
         self.key = None
         outs = testcase[2].splitlines()
         for line in outs:
