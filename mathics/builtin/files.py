@@ -4001,9 +4001,9 @@ class CopyFile(Builtin):
       <dd>copies $file1$ to $file2$.
     </dl>
 
-    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
+    X> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
      = MathicsSunflowers.jpg
-    >> DeleteFile["MathicsSunflowers.jpg"]
+    X> DeleteFile["MathicsSunflowers.jpg"]
     """
 
     messages = {

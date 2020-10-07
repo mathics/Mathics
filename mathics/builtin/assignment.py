@@ -839,15 +839,11 @@ class Information(PrefixOperator):
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> f::usage = "f[x] returns the square of x";
-    >> Information[f]
+    X> Information[f]
      = f[x] returns the square of x
-     .
-     . f[x_] = x ^ 2
-     .
-     . g[f] ^= 2
 
     >> ? Table
-     =
+     = 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -860,7 +856,7 @@ class Information(PrefixOperator):
      .
 
     >> Information[Table]
-     =
+     = 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
