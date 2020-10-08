@@ -10,6 +10,7 @@ all: mathics.pdf
 
 data:
 	make -C ../../.. doc-data
+
 #: Build mathics PDF
 mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf data
 	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
@@ -30,5 +31,5 @@ clean:
 	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
 	rm -f mathics_*.* || true
-	rm -f mathics-*.* || true
+	rm -f mathics-*.* documentation.tex || true
 	rm -f mathics.pdf mathics.dvi data || true
