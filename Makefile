@@ -42,7 +42,7 @@ pytest:
 
 #: Create data that is used to in Django docs and to build TeX PDF
 doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
-	$(PYTHON) mathics/test.py -o
+	$(PYTHON) mathics/test.py -o -k
 
 #: Run tests that appear in docstring in the code.
 doctest:

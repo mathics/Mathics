@@ -7,11 +7,11 @@ The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Ma
 <section title="Why yet another CAS?">
 \Mathematica is great, but it has one big disadvantage: It is not free. On the one hand, people might not be able or willing to pay hundreds of dollars for it; on the other hand, they would still not be able to see what\'s going on "inside" the program to understand their computations better. That\'s what free software is for!
 
-\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core.
+\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core which includes a rich set of Python tools numeric computation, <url>https://numpy.org/numpy</url>, and symbolic mathematics, <url>https://sympy.org</url>.
 
 Of course, there are drawbacks to the \Mathematica language, despite all its beauty. It does not really provide object orientation and especially encapsulation, which might be crucial for big software projects. Nevertheless, \Wolfram still managed to create their amazing <em>Wolfram|Alpha</em> entirely with \Mathematica, so it can\'t be too bad!
 
-However, it is not even the intention of \Mathics to be used in large-scale projects and calculations---at least not as the main framework---but rather as a tool for quick explorations and in educating people who might later switch to \Mathematica. 
+However, it is not even the intention of \Mathics to be used in large-scale projects and calculations---at least not as the main framework---but rather as a tool for quick explorations and in educating people who might later switch to \Mathematica.
 </section>
 
 <section title="What does it offer?">
@@ -32,13 +32,22 @@ Some of the most important features of \Mathics are
 <section title="What is missing?">
 There are lots of ways in which \Mathics could still be improved.
 
-Most notably, performance is still very slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Speeding up pattern matching, maybe "out-sourcing" parts of it from Python to C, would certainly improve the whole \Mathics experience.
+Most notably, performance is still slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Although Cython can be used to speed up parts of \Mathics, more is needed to speed up pattern matching. Replacing recusion with iteration may help here.
 
 Apart from performance issues, new features such as more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
+
+In the future we intend to make better use the the graphics available in the excellent packages:
+
+<ul>
+<li>sympy plotting,<url>https://docs.sympy.org/latest/modules/plotting.html</url>
+<li>mathplotlib pyplot, <url>https://matplotlib.org/api/pyplot_api.html</url>, and
+<li>networkx, <url>https://networkx.github.io/</url>
+</ul>
+
 </section>
 
 <section title="Who is behind it?">
-\Mathics was created by Jan Pöschko. Since 2013 it has been maintained by Angus Griffith. A list of all people involved in \Mathics can be found in the <con>AUTHORS</con> file.
+\Mathics was created by Jan Pöschk in 2011. From 2013 to about 2017 it had been maintained mostly by Angus Griffith and Ben Jones. Since then, a number of others have been people involved in \Mathics; the list can be found in the <con>AUTHORS.txt</con> file, <url>https://github.com/mathics/Mathics/blob/master/AUTHORS.txt</url>.
 
 If you have any ideas on how to improve \Mathics or even want to help out yourself, please contact us!
 
@@ -49,77 +58,20 @@ Welcome to \Mathics, have fun!
 </chapter>
 
 
+<chapter title="Installation and Running">
 
+\Mathics runs natively on a computer that has Python or PyPy 3.6 or later installed. Since \Mathics relies on <i>sympy</i> which in turn relies on <i>numpy</i>, you will need at least those installed.
 
-<chapter title="Installation">
-
-<section title="Browser requirements">
-To use the online version of \Mathics (anybody could run their own version), you need a decent version of a modern Web browser, such as Firefox, Chrome, or Safari. Opera is not supported "officially" as it obviously has some problems with mathematical text inside SVG graphics, but except from that everything should work pretty fine.  
-</section>
-
-<section title="Installation prerequisites">
-To run \Mathics, you need Python 2.7 or higher on your computer. Since version 0.9 \Mathics also supports Python3. On most Linux distributions and on Mac OS X, Python is already included in the system by default. For Windows, you can get it from <url>http://www.python.org</url>. Anyway, the primary target platforms for \Mathics are Linux (especially Debian and Ubuntu) and Mac OS X. If you are on Windows and want to help by providing an installer to make setup on Windows easier, feel very welcome!
-
-Furthermore, SQLite support is needed. Debian/Ubuntu provides the package <con>libsqlite3-dev</con>. The packages <con>python-dev</con> and <con>python-setuptools</con> are needed as well. You can install all required packages by running
-<console>
-# apt-get install python-dev libsqlite3-dev python-setuptools
-</console>
-(as super-user, i.e. either after having issued <con>su</con> or by preceding the command with <con>sudo</con>).
-
-On Mac OS X
-<console>
-# brew install sqlite3
-</console>
-
-If you are on Windows, please figure out yourself how to install SQLite.
-
-Get the latest version of \Mathics from <url>http://www.mathics.org</url>. You will need internet access for the installation of \Mathics.
-</section>
-
-<section title="Setup">
-Simply run:
-<console>
-# python setup.py install
-</console>
-In addition to installing \Mathics, this will download the required Python packages <con>sympy</con>, <con>mpmath</con>, <con>django</con>, and <con>pysqlite</con> and install them in your Python <con>site-packages</con> directory (usually <con>/usr/lib/python3.x/site-packages</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/3.x/lib/python3.x/site-packages</con> on Mac OS X).
-
-Two executable files will be created in a binary directory on your <con>PATH</con> (usually <con>/usr/bin</con> on Debian or <con>/Library/Frameworks/Python.framework/Versions/3.x/bin</con> on Mac OS X): <con>mathics</con> and <con>mathicsserver</con>.
-</section>
-
-<section title="Running \Mathics">
-Run
-<console>
-$ mathics
-</console>
-to start the console version of \Mathics.
-
-Run
-<console>
-$ mathicsserver
-</console>
-to start the local Web server of \Mathics which serves the web GUI interface. The first time this command is run it will create the database file for saving your sessions. Issue
-<console>
-$ mathicsserver --help
-</console>
-to see a list of options.
-
-You can set the used port by using the option <con>-p</con>, as in:
-<console>
-$ mathicsserver -p 8010
-</console>
-The default port for \Mathics is 8000. Make sure you have the necessary privileges to start an application that listens to this port. Otherwise, you will have to run \Mathics as super-user.
-
-By default, the Web server is only reachable from your local machine. To be able to access it from another computer, use the option <con>-e</con>. However, the server is only intended for local use, as it is a security risk to run it openly on a public Web server! This documentation does not cover how to setup \Mathics for being used on a public server. Maybe you want to hire a \Mathics developer to do that for you?!
-</section>
+Since installation may change, see <url>https://github.com/mathics/Mathics/wiki/Installing-and-Running</url> for the most recent instructions for installing from PyPI, source, or from <i>docker</i>.
 
 </chapter>
-
-
 
 
 <chapter title="Language tutorials">
 
 The following sections are introductions to the basic principles of the language of \Mathics. A few examples and functions are presented. Only their most common usages are listed; for a full description of their possible arguments, options, etc., see their entry in the Reference of built-in symbols.
+
+However if you google for "Mathematica Tutorials" youw will find easily dozens of other tutorials which are applicable. Be warned though that \Mathics does not yet offer the full range and features and capabilities of \Mathematica.
 
 <section title="Basic calculations">
 \Mathics can be used to calculate basic stuff:
@@ -166,13 +118,13 @@ Of course, \Mathics has complex numbers:
  = 43.663 + 8.28556 I
 >> Tan[I + 0.5]
  = 0.195577 + 0.842966 I
- 
+
 'Abs' calculates absolute values:
 >> Abs[-3]
  = 3
 >> Abs[3 + 4 I]
  = 5
- 
+
 \Mathics can operate with pretty huge numbers:
 >> 100!
  = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
@@ -180,11 +132,11 @@ Of course, \Mathics has complex numbers:
 The precision of numerical evaluation can be set:
 >> N[Pi, 100]
  = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
- 
+
 Division by zero is forbidden:
 >> 1 / 0
  : Infinite expression 1 / 0 encountered.
- = ComplexInfinity 
+ = ComplexInfinity
 Other expressions involving 'Infinity' are evaluated:
 >> Infinity + 2 Infinity
  = Infinity
@@ -192,7 +144,7 @@ In contrast to combinatorial belief, '0^0' is undefined:
 >> 0 ^ 0
  : Indeterminate expression 0 ^ 0 encountered.
  = Indeterminate
- 
+
 The result of the previous query to \Mathics can be accessed by '%':
 >> 3 + 4
  = 7
@@ -251,7 +203,7 @@ The special symbols 'True' and 'False' are used to denote truth values. Naturall
 Inequalities can be chained:
 >> 3 < 4 >= 2 != 1
  = True
- 
+
 Truth values can be negated using '!' (logical <em>not</em>) and combined using '&&' (logical <em>and</em>) and '||' (logical <em>or</em>):
 >> !True
  = False
@@ -273,7 +225,7 @@ Strings can be entered with '"' as delimeters:
 As you can see, quotation marks are not printed in the output by default. This can be changed by using 'InputForm':
 >> InputForm["Hello world!"]
  = "Hello world!"
- 
+
 Strings can be joined using '<>':
 >> "Hello" <> " " <> "world!"
  = Hello world!
@@ -299,7 +251,7 @@ There are various functions for constructing lists:
  = {x, x, x, x}
 >> Table[n ^ 2, {n, 2, 5}]
  = {4, 9, 16, 25}
- 
+
 The number of elements of a list can be determined with 'Length':
 >> Length[mylist]
  = 4
@@ -309,7 +261,7 @@ Elements can be extracted using double square braces:
 Negative indices count from the end:
 >> mylist[[-3]]
  = b
- 
+
 Lists can be nested:
 >> mymatrix = {{1, 2}, {3, 4}, {5, 6}};
 There are alternate forms to display lists:
@@ -345,14 +297,14 @@ There are various ways of extracting elements from a list:
  = {a, b, c}
 >> Rest[mylist]
  = {b, c, d}
- 
+
 Lists can be used to assign values to multiple variables at once:
 >> {a, b} = {1, 2};
 >> a
  = 1
 >> b
  = 2
- 
+
 Many operations, like addition and multiplication, "thread" over lists, i.e. lists are combined element-wise:
 >> {1, 2, 3} + {4, 5, 6}
  = {5, 7, 9}
@@ -374,7 +326,7 @@ Nested calculations are nested function calls:
 Even lists are function calls of the function 'List':
 >> FullForm[{1, 2, 3}]
  = List[1, 2, 3]
- 
+
 The head of an expression can be determined with 'Head':
 >> Head[a + b + c]
  = Plus
@@ -431,7 +383,7 @@ The operator '===' tests whether two expressions are the same on a structural le
 But
 >> 3 === 3.0
  = False
-because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different. 
+because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different.
 </section>
 
 <section title="Functions and patterns">
@@ -476,13 +428,13 @@ As before, patterns can be used to define functions:
 >> g[s___] := Plus[s] ^ 2
 >> g[1, 2, 3]
  = 36
- 
+
 'MatchQ[$e$, $p$]' tests whether $e$ matches $p$:
 >> MatchQ[a + b, x_ + y_]
  = True
 >> MatchQ[6, _Integer]
  = True
- 
+
 'ReplaceAll' ('/.') replaces all occurrences of a pattern in an expression using a 'Rule' given by '->':
 >> {2, "a", 3, 2.5, "b", c} /. x_Integer -> x ^ 2
  = {4, a, 9, 2.5, b, c}
@@ -492,7 +444,7 @@ You can also specify a list of rules:
 'ReplaceRepeated' ('//.') applies a set of rules repeatedly, until the expression doesn\'t change anymore:
 >> {2, "a", 3, 2.5, "b", c} //. {x_Integer -> x ^ 2.0, y_String -> 10}
  = {4., 100., 9., 2.5, 100., c}
- 
+
 There is a "delayed" version of 'Rule' which can be specified by ':>' (similar to the relation of ':=' to '='):
 >> a :> 1 + 2
  = a :> 1 + 2
@@ -511,8 +463,8 @@ While 'ReplaceAll' and 'ReplaceRepeated' simply take the first possible match in
 'ReplaceAll' would just return the first expression:
 >> ReplaceAll[{a, b, c}, {___, x__, ___} -> {x}]
  = {a}
- 
-In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the funtion body and '#' can be used as argument placeholder: 
+
+In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the funtion body and '#' can be used as argument placeholder:
 >> h = # ^ 2 &;
 >> h[3]
  = 9
@@ -530,7 +482,7 @@ Pure functions are very handy when functions are used only locally, e.g., when c
 Sort according to the second part of a list:
 >> Sort[{{x, 10}, {y, 2}, {z, 5}}, #1[[2]] < #2[[2]] &]
  = {{y, 2}, {z, 5}, {x, 10}}
- 
+
 Functions can be applied using prefix or postfix notation, in addition to using '[]':
 >> h @ 3
  = 9
@@ -564,7 +516,7 @@ Like most programming languages, \Mathics has common control statements for cond
  = a
 >> x = 3; Which[x < 2, a, x > 4, b, x < 5, c]
  = c
- 
+
 Compound statements can be entered with ';'. The result of a compound expression is its last part or 'Null' if it ends with a ';'.
 >> 1; 2; 3
  = 3
@@ -602,7 +554,7 @@ Both scoping constructs shield inner variables from affecting outer ones:
  = 2
 >> t
  = 3
- 
+
 'Module' creates new variables:
 >> y = x ^ 3;
 >> Module[{x = 2}, x * y]
@@ -616,7 +568,7 @@ Thus, 'Block' can be used to temporarily assign a value to a variable:
  = 12
 >> x
  = x
- 
+
 'Block' can also be used to temporarily change the value of system parameters:
 >> Block[{$RecursionLimit = 30}, x = 2 x]
  : Recursion depth of 30 exceeded.
@@ -641,7 +593,7 @@ The way results are formatted for output in \Mathics is rather sophisticated, as
 <li>The result is stored in 'Out' (which '%' is a shortcut for).
 <li>Any 'Format' rules for the desired output form are applied to the result. In the console version of \Mathics, the result is formatted as 'OutputForm'; 'MathMLForm' for the 'StandardForm' is used in the interactive Web version; and 'TeXForm' for the 'StandardForm' is used to generate the \LaTeX version of this documentation.
 <li>'MakeBoxes' is applied to the formatted result, again given either 'OutputForm', 'MathMLForm', or 'TeXForm' depending on the execution context of \Mathics. This yields a new expression consisting of "box constructs".
-<li>The boxes are turned into an ordinary string and displayed in the console, sent to the browser, or written to the documentation \LaTeX file.   
+<li>The boxes are turned into an ordinary string and displayed in the console, sent to the browser, or written to the documentation \LaTeX file.
 </ol>
 As a consequence, there are various ways to implement your own formatting strategy for custom objects.
 
@@ -666,9 +618,9 @@ You can use several helper functions to format expressions:
 <dt>'Infix[$expr$, $op$]'
   <dd>formats the arguments of $expr$ with infix operator $op$.
 <dt>'Prefix[$expr$, $op$]'
-  <dd>formats the argument of $expr$ with prefix operator $op$. 
+  <dd>formats the argument of $expr$ with prefix operator $op$.
 <dt>'Postfix[$expr$, $op$]'
-  <dd>formats the argument of $expr$ with postfix operator $op$. 
+  <dd>formats the argument of $expr$ with postfix operator $op$.
 <dt>'StringForm[$form$, $arg1$, $arg2$, ...]'
   <dd>formats arguments using a format string.
 </dl>
@@ -677,7 +629,7 @@ You can use several helper functions to format expressions:
  = 1 ~ 2 ~ 3
 >> StringForm["`1` and `2`", n, m]
  = n and m
- 
+
 There are several methods to display expressions in 2-D:
 <dl>
 <dt>'Row[{...}]'
@@ -725,7 +677,7 @@ That\'s because 'MathMLForm' will, when not overridden for a special case, call 
  = <math display="block"><mtext>&lt;not&nbsp;closed</mtext></math>
 >> d + 1 // MathMLForm
  = <math display="block"><mrow><mn>1</mn> <mo>+</mo> <mtext>&lt;not&nbsp;closed</mtext></mrow></math>
- 
+
 For instance, you can override 'MakeBoxes' to format lists in a different way:
 >> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
 >> {1, 2, 3}
@@ -739,7 +691,7 @@ However, this will not be accepted as input to \Mathics anymore:
 By the way, 'MakeBoxes' is the only built-in symbol that is not protected by default:
 >> Attributes[MakeBoxes]
  = {HoldAllComplete}
- 
+
 'MakeBoxes' must return a valid box construct:
 >> MakeBoxes[squared[args___], StandardForm] := squared[args] ^ 2
 >> squared[1, 2]
@@ -747,14 +699,14 @@ By the way, 'MakeBoxes' is the only built-in symbol that is not protected by def
 ## different in LaTeX and MathML
 #> squared[1, 2] // TeXForm
  : Power[squared[1, 2], 2] is not a valid box structure.
- = 
+ =
 The desired effect can be achieved in the following way:
 >> MakeBoxes[squared[args___], StandardForm] := SuperscriptBox[RowBox[{MakeBoxes[squared], "[", RowBox[Riffle[MakeBoxes[#]& /@ {args}, ","]], "]"}], 2]
 >> squared[1, 2]
  = squared[1, 2]
 #> squared[1, 2] // TeXForm
  = \text{squared}\left[1,2\right]^2
- 
+
 You can view the box structure of a formatted expression using 'ToBoxes':
 >> ToBoxes[m + n]
  = RowBox[{m, +, n}]
@@ -784,7 +736,7 @@ Two-dimensional graphics can be created using the function 'Graphics' and a list
  = -Graphics-
 >> Graphics[{Line[{{0, 0}, {0, 1}, {1, 1}, {1, -1}}], Rectangle[{0, 0}, {-1, -1}]}]
  = -Graphics-
- 
+
 Colors can be added in the list of graphics primitives to change the drawing color. The following ways to specify colors are supported:
 <dl>
 <dt>'RGBColor[$r$, $g$, $b$]'
@@ -816,7 +768,7 @@ Colors can be mixed and altered using the following functions:
 
 >> Graphics[{Lighter[Red], Disk[]}]
  = -Graphics-
- 
+
 'Graphics' produces a 'GraphicsBox':
 >> Head[ToBoxes[Graphics[{Circle[]}]]]
  = GraphicsBox
@@ -852,7 +804,7 @@ Colors can also be added to three-dimensional primitives.
 You can also plot multiple functions at once:
 >> Plot[{Sin[x], Cos[x], x ^ 2}, {x, -1, 1}]
  = -Graphics-
- 
+
 Two-dimensional functions can be plotted using 'DensityPlot':
 >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
  = -Graphics-
@@ -938,7 +890,7 @@ This yields the diagonalization of 'A':
  . 0   0    1
 >> % == DiagonalMatrix[Eigenvalues[A]]
  = True
- 
+
 We can solve linear systems:
 >> LinearSolve[A, {1, 2, 3}]
  = {0, 1, 2}
@@ -947,7 +899,7 @@ We can solve linear systems:
 In this case, the solution is unique:
 >> NullSpace[A]
  = {}
- 
+
 Let\'s consider a singular matrix:
 >> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
 >> MatrixRank[B]
@@ -969,24 +921,24 @@ Like in most games, the ordering of the individual throws does not matter. We ca
 >> SetAttributes[Dice, Orderless]
 >> Dice[1, 6, 4, 4]
  = Dice[1, 4, 4, 6]
-A dice object shall be displayed as a rectangle with the given number of points in it, positioned like on a traditional dice: 
+A dice object shall be displayed as a rectangle with the given number of points in it, positioned like on a traditional dice:
 >> Format[Dice[n_Integer?(1 <= # <= 6 &)]] := Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
 >> Dice[1]
  = -Graphics-
- 
+
 #> Definition[Dice]
  = Attributes[Dice] = {Orderless}
- . 
+ .
  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- . 
+ .
  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- . 
+ .
  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- . 
+ .
  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- . 
+ .
  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- 
+
 The empty series of dice shall be displayed as an empty dice:
 >> Format[Dice[]] := Graphics[{EdgeForm[Black], White, Rectangle[]}, ImageSize -> Tiny]
 >> Dice[]
@@ -1033,7 +985,7 @@ It is not very sophisticated from a mathematical point of view, but it\'s beauti
 <section title="Saving and loading worksheets">
 Worksheets exist in the browser window only and are not stored on the server, by default. To save all your queries and results, use the <em>Save</em> button in the menu bar. You have to login using your email address. If you don\'t have an account yet, leave the password field empty and a password will be sent to you. You will remain logged in until you press the <em>Logout</em> button in the upper right corner.
 
-Saved worksheets can be loaded again using the <em>Load</em> button. Note that worksheet names are case-insensitive. 
+Saved worksheets can be loaded again using the <em>Load</em> button. Note that worksheet names are case-insensitive.
 </section>
 
 <section title="How definitions are stored">
@@ -1139,7 +1091,7 @@ The following commands can be used to specify test cases.
 <dt>'...'
   <dd>a part of the test result which is not checked in the test, e.g., for randomized or system-dependent output.
 </dl>
-  
+
 The following commands can be used to markup documentation text.
 <dl>
 ## XXX nasty trick to prevent Mathics XML tags from being passed unescaped: split code into two halfs using '' inside tag
@@ -1211,28 +1163,28 @@ class If(Builtin):
 	 = a
 	>> If[False, a] //FullForm
 	 = Null
-	
+
 	You might use comments (inside '(*' and '*)') to make the branches of 'If' more readable:
 	>> If[a, (*then*) b, (*else*) c];
 	"""
-	
+
 	attributes = ['HoldRest']
-	
+
 	rules = {
 	  'If[condition_, t_]': 'If[condition, t, Null]',
 	}
-	
+
 	def apply_3(self, condition, t, f, evaluation):
 		'If[condition_, t_, f_]'
-		
+
 		if condition == Symbol('True'):
 			return t.evaluate(evaluation)
 		elif condition == Symbol('False'):
 			return f.evaluate(evaluation)
-	
+
 	def apply_4(self, condition, t, f, u, evaluation):
 		'If[condition_, t_, f_, u_]'
-		
+
 		if condition == Symbol('True'):
 			return t.evaluate(evaluation)
 		elif condition == Symbol('False'):
