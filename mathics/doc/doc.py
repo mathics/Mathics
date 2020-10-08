@@ -64,7 +64,7 @@ LATEX_ARRAY_RE = re.compile(
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
-ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul',
+ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul', 'i',
                 'ol', 'li', 'con', 'console', 'img', 'ref', 'subsection')
 ALLOWED_TAGS_RE = dict((allowed, re.compile(
     '&lt;(%s.*?)&gt;' % allowed)) for allowed in ALLOWED_TAGS)
