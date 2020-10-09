@@ -40,6 +40,8 @@ LIST_RE = re.compile(r"(?s)<(?P<tag>ul|ol)>(?P<content>.*?)</(?P=tag)>")
 LIST_ITEM_RE = re.compile(r"(?s)<li>(.*?)(?:</li>|(?=<li>)|$)")
 CONSOLE_RE = re.compile(
     r"(?s)<(?P<tag>con|console)>(?P<content>.*?)</(?P=tag)>")
+ITALIC_RE = re.compile(
+    r"(?s)<(?P<tag>i)>(?P<content>.*?)</(?P=tag)>")
 IMG_RE = re.compile(
     r'<img src="(?P<src>.*?)" title="(?P<title>.*?)" label="(?P<label>.*?)">')
 REF_RE = re.compile(r'<ref label="(?P<label>.*?)">')
@@ -245,6 +247,11 @@ def escape_latex(text):
         else:
             return '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % content
     text = CONSOLE_RE.sub(repl_console, text)
+
+    def repl_italic(match):
+        content = match.group('content')
+        return '\\emph{%s}' % content
+    text = ITALIC_RE.sub(repl_italic, text)
 
     '''def repl_asy(match):
         """
