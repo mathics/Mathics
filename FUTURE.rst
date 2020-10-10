@@ -1,38 +1,20 @@
 For the Future
 ==============
 
-
-Documentation
--------------
-
-After release 1.1.0, a rethinking of the documentation systems may be
-done to reflect 2020's Python-centric tools, thinking and practice.
-
-This may include integration into RsT/Sphinx/Readthedocs.
-Sphinx has a mechanism for embedding testable code into its docs.
-
-Testing
--------
-
-Related to documentation, testing may be modularized better and
-expanded. Right now most of the tests are hooked into documentation,
-and while this is cool, not all tests are interesting to have in
-documentation. In particular, obscure bugs fall into this category.
-
 Additional Format Types
 -----------------------
 
 There are currently 4 kinds of format types:
 
-- xml (which is really MathML)
-- text: ASCII text
-- tex: Knuth's TeX typesetting system
-- boxes: combinations of the above
+- ``xml`` (which is really MathML)
+- ``text``: ASCII text
+- ``tex``: Knuth's TeX typesetting system
+- ``boxes``: combinations of the above
 
 Proposed is to add two more:
 
-- rst: restructured text
-- graphics: a higher-level graphics-package independent format
+- ``rst``: restructured text
+- ``graphics``: a higher-level graphics-package independent format
 
 The problem with using TeX for formatting is that in of itself it is
 more of a low-level formatter. LaTeX was the corresponding
@@ -57,6 +39,57 @@ Mathics core hasn't been updated to make use of those improvements
 In sum, decisions about plotting and drawing need to get moved closer
 to the front end which knows better about which drawing packages are
 available and what it capabilities are.
+
+PyModules
+---------
+
+To reduce core depencencies on python and system libraries, allow for
+a more distributed growth and speed up startup time, Mathics
+introdcued a mechanism which is basically doing a Python ``import``
+which is similar to how its internal built-in and predefined packages
+and symbols work. From Mathics the function is called ``LoadModule[]``.
+
+Unfortunately, this wasn't scalable and more work is needed. As a
+result some modules, notably the module for Natural Language
+Processesing (NLP) was removed.
+
+Graph Module
+++++++++++++
+
+A module for working and plotting with graphs was also started and
+made one of the few custom PyMathics module. It started to use the
+fine `networkx <https://networkx.github.io/>`_ package for showing
+graphs.
+
+However it was using a rather old version _networkx_ and there is the
+problem of handling graphics in Mathics mentioned above.
+
+For these reasons rather than provide a somewhat incomplete package,
+we optioed for delaying introduction of this until a better job can be
+done.
+
+The hope is that with this package in place we will be able to support
+the full `Combinatorica
+<http://homepage.divms.uiowa.edu/~sriram/Combinatorica/>`_ package
+doing computational discrete mathematics.
+
+
+Documentation
+-------------
+
+After release 1.1.0, a rethinking of the documentation systems may be
+done to reflect 2020's Python-centric tools, thinking and practice.
+
+This may include integration into RsT/Sphinx/Readthedocs.
+Sphinx has a mechanism for embedding testable code into its docs.
+
+Testing
+-------
+
+Related to documentation, testing may be modularized better and
+expanded. Right now most of the tests are hooked into documentation,
+and while this is cool, not all tests are interesting to have in
+documentation. In particular, obscure bugs fall into this category.
 
 Command-line interface
 ----------------------
