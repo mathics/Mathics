@@ -61,7 +61,7 @@ made one of the few custom PyMathics module. It started to use the
 fine `networkx <https://networkx.github.io/>`_ package for showing
 graphs.
 
-However it was using a rather old version _networkx_ and there is the
+However it was using a rather old version *networkx* and there is the
 problem of handling graphics in Mathics mentioned above.
 
 For these reasons rather than provide a somewhat incomplete package,
