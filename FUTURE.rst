@@ -5,7 +5,7 @@ For the Future
 Documentation
 -------------
 
-After this 1.1.0, a rethinking of the documentation systems may be
+After release 1.1.0, a rethinking of the documentation systems may be
 done to reflect 2020's Python-centric tools, thinking and practice.
 
 This may include integration into RsT/Sphinx/Readthedocs.
