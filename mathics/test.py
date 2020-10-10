@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import sys
-import re
-import pickle
-import os
-from argparse import ArgumentParser
-
-import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import SingleLineFeeder
@@ -405,9 +395,9 @@ def main():
             make_doc(
                 quiet=args.quiet,
             )
-
         else:
             start_at = args.skip + 1
+            start_time = datetime.now()
             test_all(
                 quiet=args.quiet,
                 generate_output=args.output,
@@ -416,6 +406,8 @@ def main():
                 count=args.count,
                 doc_even_if_error=args.keep_going,
             )
+            end_time = datetime.now()
+            print("Tests took ", end_time-start_time)
     # If it was asked for tex output, try to build it:
     if args.tex:
         write_latex()
