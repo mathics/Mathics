@@ -24,7 +24,7 @@ ReStructured text now makes more sense since there are good libraries
 for that and this integrates with the documentation better described
 above.
 
-Right now for non-text front-ends the xml format is used. Within that,
+Right now for non-text front-ends the XML format is used. Within that,
 is an embedded image of some sort like SVG, or PNG. The problem with
 this is that decisions have already been baked in with respect to a
 number of drawing parameters and those are impossible to undo since
