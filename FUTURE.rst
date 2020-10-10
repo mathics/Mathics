@@ -9,7 +9,7 @@ After release 1.1.0, a rethinking of the documentation systems may be
 done to reflect 2020's Python-centric tools, thinking and practice.
 
 This may include integration into RsT/Sphinx/Readthedocs.
-Shinx has a mechanism for embedding testable code into its docs.
+Sphinx has a mechanism for embedding testable code into its docs.
 
 Testing
 -------
