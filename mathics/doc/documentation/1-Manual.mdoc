@@ -980,33 +980,52 @@ It is not very sophisticated from a mathematical point of view, but it\'s beauti
 
 
 
-<chapter title="Web interface">
+<chapter title="Django-based Web Interface">
+
+In the future we plan on providing an interface to Jupyter as a separate package. However currently as part \Mathics, we distribute a browser-based interface using Django 3.1. Since a Jupyter-based interface seems preferable to the home-grown interface described here, it is doubtful there will be future improvements to the this interface.
+
+When you enter Mathics in the top after the Mathics logo and the word "Mathics" you'll see a <i>menubar</i>.
+
+It looks like this:
+
+<imgpng src="menubar.png" title="Mathic Menu Bar" label="menubar">
+
 
 <section title="Saving and loading worksheets">
-Worksheets exist in the browser window only and are not stored on the server, by default. To save all your queries and results, use the <em>Save</em> button in the menu bar. You have to login using your email address. If you don\'t have an account yet, leave the password field empty and a password will be sent to you. You will remain logged in until you press the <em>Logout</em> button in the upper right corner.
+Worksheets exist in the browser window only and are not stored on the server, by default. To save all your queries and results, use the <em>Save</em> button which is the rightmost graphic of the menu bar. It looks like this:
 
-Saved worksheets can be loaded again using the <em>Load</em> button. Note that worksheet names are case-insensitive.
+<imgpng src="save-button.png" title="Mathic Save Button" label="save-button">
+
+The "Ctrl+S" key combination does the same thing.
+
+Saved worksheets can be loaded again using the <em>File Open</em> button which is the left-most button in the menu bar. It looks like this:
+
+<imgpng src="file-open-button.png" title="Mathic File Open Button" label="file-open-button">
+
+The "Ctrl+O" key combination does the same thing.
+
 </section>
 
-<section title="How definitions are stored">
-When you use the Web interface of \Mathics, a browser session is created. Cookies have to be enabled to allow this. Your session holds a key which is used to access your definitions that are stored in a database on the server. As long as you don\'t clear the cookies in your browser, your definitions will remain even when you close and re-open the browser.
+<section title="Persistance of Mathics Definitions in a Session">
+When you use the Django-based Web interface of \Mathics, a browser session is created. Cookies have to be enabled to allow this. Your session holds a key which is used to access your definitions that are stored in a database on the server. As long as you don\'t clear the cookies in your browser, your definitions will remain even when you close and re-open the browser.
 
 This implies that you should not store sensitive, private information in \Mathics variables when using the online Web interface, of course. In addition to their values being stored in a database on the server, your queries might be saved for debugging purposes. However, the fact that they are transmitted over plain HTTP should make you aware that you should not transmit any sensitive information. When you want to do calculations with that kind of stuff, simply install \Mathics locally!
 
-When you use \Mathics on a public terminal, use the command 'Quit[]' to erase all your definitions and close the browser window.
+If you are using a public terminal, to erase all your definitions and close the browser window.
+When you use \Mathics in a browser, use the command 'Quit[]'
 </section>
 
 <section title="Keyboard commands">
 
-There are some keyboard commands you can use in the web interface of \Mathics.
+There are some keyboard commands you can use in the Django-based Web interface of \Mathics.
 
 <dl>
 <dt>'Shift+Return'</dt>
-	<dd>Evaluate current cell (the most important one, for sure)</dd>
+	<dd>This evaluates the current cell (the most important one, for sure). On the right-hand side you may also see an "=" button which can be clicked to do the same thing.</dd>
 <dt>'Ctrl+D'</dt>
-	<dd>Focus documentation search</dd>
+	<dd>This moves the cursor over to the documentation pane on the right-hand side. From here you can preform a search for a pre-defined \Mathics function, or symbol. Clicking on the "?" symbol on the right-hand side does the same thing.</dd>
 <dt>'Ctrl+C'</dt>
-	<dd>Back to document code</dd>
+	<dd>This moves the curser back to document code pane area where you type \Mathics expressions</dd>
 <dt>'Ctrl+S'</dt>
 	<dd>Save worksheet</dd>
 <dt>'Ctrl+O'</dt>

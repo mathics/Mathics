@@ -1,5 +1,6 @@
 .PHONY: latex doc clean
 
+PYTHON ?= python
 XETEX ?= xelatex
 LATEXMK ?= latexmk
 BASH ?= /bin/bash

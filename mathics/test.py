@@ -268,7 +268,7 @@ def test_all(
     else:
         print("\nFAILED")
         if not doc_even_if_error:
-            return sys.exit(1)  # Travis-CI knows the tests have failed
+            return sys.exit(1)  # So Travis-CI knows that the tests have failed
 
     if generate_output and (failed == 0 or doc_even_if_error):
         print("Save XML")
