@@ -1,0 +1,11 @@
+include README.rst
+include CHANGES.rst
+include ChangeLog
+include COPYING
+include FUTURE.rst
+include Makefile
+include test/Makefile
+recursive-include mathics
+recursive-include xdis *.py
+recursive-exclude __pycache__
+recursive-include test *.py

@@ -1,5 +1,6 @@
 .PHONY: latex doc clean
 
+PYTHON ?= python
 XETEX ?= xelatex
 LATEXMK ?= latexmk
 BASH ?= /bin/bash
@@ -7,6 +8,9 @@ BASH ?= /bin/bash
 
 #: Default target: Make everything
 all: mathics.pdf
+
+data:
+	make -C ../../.. doc-data
 
 #: Build mathics PDF
 mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf data
@@ -27,6 +31,6 @@ latex: mathics.pdf
 clean:
 	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
-	rm -f mathics_*.*
-	rm -f mathics-*.*
-	rm -f mathics.pdf
+	rm -f mathics_*.* || true
+	rm -f mathics-*.* documentation.tex || true
+	rm -f mathics.pdf mathics.dvi data || true

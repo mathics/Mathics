@@ -6,8 +6,10 @@ import re
 import pickle
 import os
 from argparse import ArgumentParser
-
+from datetime import datetime
 import mathics
+
+
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import SingleLineFeeder
@@ -39,6 +41,8 @@ def compare(result, wanted):
         return False
     result = result.splitlines()
     wanted = wanted.splitlines()
+    if result == [] and wanted == ["#<--#"]:
+        return True
     if len(result) != len(wanted):
         return False
     for r, w in zip(result, wanted):
@@ -143,7 +147,7 @@ def create_output(tests, output_xml, output_tex):
     for format, output in [("xml", output_xml), ("tex", output_tex)]:
         definitions.reset_user_definitions()
         for test in tests.tests:
-            if test.ignore:
+            if test.private:
                 continue
             key = test.key
             evaluation = Evaluation(
@@ -201,6 +205,7 @@ def test_all(
     count=MAX_TESTS,
     xmldatafolder=None,
     texdatafolder=None,
+    doc_even_if_error=False,
 ):
     global documentation
     if not quiet:
@@ -262,21 +267,45 @@ def test_all(
 
     if failed == 0:
         print("\nOK")
-
-        if generate_output:
-            print("Save XML")
-            with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
-                pickle.dump(output_xml, output_file, 0)
-
-            print("Save TEX")
-            with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
-                pickle.dump(output_tex, output_file, 0)
-            return True
-        return False
     else:
         print("\nFAILED")
-        return sys.exit(1)  # Travis-CI knows the tests have failed
+        if not doc_even_if_error:
+            return sys.exit(1)  # So Travis-CI knows that the tests have failed
 
+    if generate_output and (failed == 0 or doc_even_if_error):
+        print("Save XML")
+        with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
+            pickle.dump(output_xml, output_file, 0)
+
+        print("Save TeX")
+        with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
+            pickle.dump(output_tex, output_file, 0)
+    return failed == 0
+
+def make_doc(quiet=False):
+    """
+    Write XML and TeX doc examples.
+    """
+    if not quiet:
+        print("Extracting doc %s" % version_string)
+
+    try:
+        output_xml = {}
+        output_tex = {}
+        for tests in documentation.get_tests():
+            create_output(tests, output_xml, output_tex)
+        builtin_count = len(builtins)
+    except KeyboardInterrupt:
+        print("\nAborted.\n")
+        return
+
+    print('Save XML')
+    with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
+        pickle.dump(output_xml, output_file, 0)
+
+    print('Save TeX')
+    with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
+        pickle.dump(output_tex, output_file, 0)
 
 def write_latex():
     print("Load data")
@@ -324,6 +353,12 @@ def main():
         help="generate TeX and XML output data",
     )
     parser.add_argument(
+        "--doc-only",
+        dest="doc_only",
+        action="store_true",
+        help="generate TeX and XML output data without running tests",
+    )
+    parser.add_argument(
         "--tex",
         "-t",
         dest="tex",
@@ -332,6 +367,9 @@ def main():
     )
     parser.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
+    )
+    parser.add_argument(
+        "--keep-going", "-k", dest="keep_going", action="store_true", help="create documentation even if there is a test failure"
     )
     parser.add_argument(
         "--stop-on-failure", action="store_true", help="stop on failure"
@@ -365,15 +403,23 @@ def main():
         if args.pymathics:
             print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
+        elif args.doc_only:
+            make_doc(
+                quiet=args.quiet,
+            )
         else:
             start_at = args.skip + 1
+            start_time = datetime.now()
             test_all(
                 quiet=args.quiet,
                 generate_output=args.output,
                 stop_on_failure=args.stop_on_failure,
                 start_at=start_at,
                 count=args.count,
+                doc_even_if_error=args.keep_going,
             )
+            end_time = datetime.now()
+            print("Tests took ", end_time-start_time)
     # If it was asked for tex output, try to build it:
     if args.tex:
         write_latex()

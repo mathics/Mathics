@@ -1,11 +1,13 @@
-Mathics was originally created by:
+Mathics was originally created in 2011 by:
 
 - Jan Pöschko @poeschko
 
-Mathics is currently maintained by:
+Up until around  2017 was maintained by:
 
 - Angus Griffith @sn6uv
 - Ben Jones @bnjones
+
+Currently it is maintained by the Mathics Team
 
 Additional contributions were made by:
 
@@ -32,6 +34,7 @@ Additional contributions were made by:
 - Wolf Vollprecht @wolfv
 - Сухарик @suhr
 - Pablo Emilio Escobar Gaviria @GarkGarcia
+- Rocky Bernstein @rocky
 
 Thanks to the authors of all projects that are used in Mathics:
 - Django
