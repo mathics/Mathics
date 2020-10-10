@@ -33,7 +33,7 @@ drawing packages exist which are in a better position to make layout
 and drawing parameter if given a chance.
 
 Actually, it is often the case it it is not that there are new drawing
-packages so much as there are *newer* graphic packages and the
+packages so much as there are *newer* *versions* of graphic packages and the
 Mathics core hasn't been updated to make use of those improvements
 
 In sum, decisions about plotting and drawing need to get moved closer
