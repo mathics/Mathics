@@ -51,6 +51,7 @@ server_version_string = version_string + ", django {django}".format(**version_in
 
 if "cython" in version_info:
     server_version_string += f", cython {version_info['cython']}"
+    version_string += f", cython {version_info['cython']}"
 
 license_string = """\
 Copyright (C) 2011-2020 The Mathics Team.

@@ -839,12 +839,8 @@ class Information(PrefixOperator):
     >> f[x_] := x ^ 2
     >> g[f] ^:= 2
     >> f::usage = "f[x] returns the square of x";
-    >> Information[f]
+    X> Information[f]
      = f[x] returns the square of x
-     .
-     . f[x_] = x ^ 2
-     .
-     . g[f] ^= 2
 
     >> ? Table
      = 
@@ -1657,9 +1653,9 @@ class Decrement(PostfixOperator):
     </dl>
 
     >> a = 5;
-    >> a--
+    X> a--
      = 5
-    >> a
+    X> a
      = 4
     """
 

@@ -265,13 +265,6 @@ def test_all(
         for part, chapter, section in sorted(failed_symbols):
             print("  - %s in %s / %s" % (section, part, chapter))
 
-    if failed == 0:
-        print("\nOK")
-    else:
-        print("\nFAILED")
-        if not doc_even_if_error:
-            return sys.exit(1)  # So Travis-CI knows that the tests have failed
-
     if generate_output and (failed == 0 or doc_even_if_error):
         print("Save XML")
         with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
@@ -280,7 +273,15 @@ def test_all(
         print("Save TeX")
         with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
             pickle.dump(output_tex, output_file, 0)
-    return failed == 0
+        return True
+        return False
+
+    if failed == 0:
+        print("\nOK")
+    else:
+        print("\nFAILED")
+        return sys.exit(1)  # Travis-CI knows the tests have failed
+
 
 def make_doc(quiet=False):
     """
@@ -299,13 +300,14 @@ def make_doc(quiet=False):
         print("\nAborted.\n")
         return
 
-    print('Save XML')
-    with open_ensure_dir(settings.DOC_XML_DATA, 'wb') as output_file:
+    print("Save XML")
+    with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
         pickle.dump(output_xml, output_file, 0)
 
-    print('Save TeX')
-    with open_ensure_dir(settings.DOC_TEX_DATA, 'wb') as output_file:
+    print("Save TeX")
+    with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
         pickle.dump(output_tex, output_file, 0)
+
 
 def write_latex():
     print("Load data")
@@ -369,7 +371,11 @@ def main():
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
     )
     parser.add_argument(
-        "--keep-going", "-k", dest="keep_going", action="store_true", help="create documentation even if there is a test failure"
+        "--keep-going",
+        "-k",
+        dest="keep_going",
+        action="store_true",
+        help="create documentation even if there is a test failure",
     )
     parser.add_argument(
         "--stop-on-failure", action="store_true", help="stop on failure"
@@ -419,8 +425,8 @@ def main():
                 doc_even_if_error=args.keep_going,
             )
             end_time = datetime.now()
-            print("Tests took ", end_time-start_time)
-    # If it was asked for tex output, try to build it:
+            print("Tests took ", end_time - start_time)
+    # If TeX output requested, try to build it:
     if args.tex:
         write_latex()
 

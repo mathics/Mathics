@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from os import listdir, path
+from os import getenv, listdir, path
 import pickle
 import importlib
 
@@ -23,7 +23,7 @@ SUBSECTION_END_RE = re.compile('</subsection>')
 
 TESTCASE_RE = re.compile(r'''(?mx)^
     ((?:.|\n)*?)
-    ^\s*(>|\#)>[ ](.*)
+    ^\s*([>#SX])>[ ](.*)
     ((?:\n\s*(?:[:|=.][ ]|\.).*)*)
 ''')
 TESTCASE_OUT_RE = re.compile(r'^\s*([:|=])(.*)$')
@@ -1026,8 +1026,7 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                if not test.ignore:
-                    tests.tests.append(test)
+                tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
@@ -1131,14 +1130,16 @@ class DocTest(object):
     """
     DocTest formatting rules:
 
+    * `>>` Marks test case; it will also appear as part of
+           the documentation.
     * `#>` Marks test private or one that does not appear as part of
-           the documentation
-    * `X>` Shows the example in the docs, but disables testing the example
+           the documentation.
+    * `X>` Shows the example in the docs, but disables testing the example.
     * `S>` Shows the example in the docs, but disables testing if environment
-           variable SANDBOX is set
-    * `=`  Compares the result text
-    * `:`  Compares an (error) message
-      `|`  Prints output
+           variable SANDBOX is set.
+    * `=`  Compares the result text.
+    * `:`  Compares an (error) message.
+      `|`  Prints output.
     """
     def __init__(self, index, testcase):
         self.index = index
@@ -1150,7 +1151,7 @@ class DocTest(object):
 
         # Ignored test cases are NOT executed, but shown as part of the docs
         # Sandboxed test cases are NOT executed if environtment SANDBOX is set
-        if testcase[0] == 'X' or (testcase[0] == 'S' and os.getenv("SANDBOX", False)):
+        if testcase[0] == 'X' or (testcase[0] == 'S' and getenv("SANDBOX", False)):
             self.ignore = True
             # substitute '>' again so we get the correct formatting
             testcase[0] = '>'
@@ -1158,6 +1159,10 @@ class DocTest(object):
             self.ignore = False
 
         self.test = testcase[1].strip()
+
+        # This allows a trailing blank at the end of the line for those ofus use use editors that like
+        # to strip trailing blanks at the ends of lines.
+        self.test = self.test.rstrip("#<--#")
 
         self.key = None
         outs = testcase[2].splitlines()

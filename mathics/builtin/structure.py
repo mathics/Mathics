@@ -179,44 +179,44 @@ class SortBy(Builtin):
 class BinarySearch(Builtin):
     """
     <dl>
-    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
+    <dt>'CombinatoricaOld`BinarySearch[$l$, $k$]'
         <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
         exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
         to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
         need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
 
-    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
+    <dt>'CombinatoricaOld`BinarySearch[$l$, $k$, $f$]'
         <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
         needs to yield a sorted sequence if applied to the elements of $l.
     </dl>
 
-    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
+    >> CombinatoricaOld`BinarySearch[{3, 4, 10, 100, 123}, 100]
      = 4
 
-    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
+    >> CombinatoricaOld`BinarySearch[{2, 3, 9}, 7] // N
      = 2.5
 
-    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
+    >> CombinatoricaOld`BinarySearch[{2, 7, 9, 10}, 3] // N
      = 1.5
 
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
+    >> CombinatoricaOld`BinarySearch[{-10, 5, 8, 10}, -100] // N
      = 0.5
 
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
+    >> CombinatoricaOld`BinarySearch[{-10, 5, 8, 10}, 20] // N
      = 4.5
 
-    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+    >> CombinatoricaOld`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
      = 2
     """
 
-    context = "Combinatorica`"
+    context = "CombinatoricaOld`"
 
     rules = {
-        "Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0": "Combinatorica`BinarySearch[l, k, Identity]"
+        "CombinatoricaOld`BinarySearch[l_List, k_] /; Length[l] > 0": "CombinatoricaOld`BinarySearch[l, k, Identity]"
     }
 
     def apply(self, l, k, f, evaluation):
-        "Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0"
+        "CombinatoricaOld`BinarySearch[l_List, k_, f_] /; Length[l] > 0"
 
         leaves = l.leaves
 
@@ -1061,8 +1061,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
-    (watch the empty line).
+     = #<--#
     """
 
 
