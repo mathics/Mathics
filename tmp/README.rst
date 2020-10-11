@@ -4,4 +4,4 @@ These can be ignored or removed.
 
 You can also use this directory for temporary files.
 
-In contrast to the  POSIX-like ``/tmp/``, file you put here are not removed on a reboot.
+In contrast to the  POSIX-like ``/tmp/``, files you put here are not removed on a reboot.
