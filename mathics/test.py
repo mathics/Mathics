@@ -274,7 +274,6 @@ def test_all(
         with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
             pickle.dump(output_tex, output_file, 0)
         return True
-        return False
 
     if failed == 0:
         print("\nOK")

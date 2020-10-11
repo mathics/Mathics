@@ -50,7 +50,7 @@ doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py $(output)
+	$(PYTHON) mathics/test.py $o
 
 #: Run Django tests
 djangotest:

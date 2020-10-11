@@ -1056,7 +1056,7 @@ class PieChart(_Chart):
 class BarChart(_Chart):
     """
     <dl>
-        <dt>'BarChart[{$p1$, $p2$ ...}]'
+        <dt>'BarChart[{$b1$, $b2$ ...}]'
         <dd>makes a bar chart with lengths $b1$, $b2$, ....
     </dl>
 
