@@ -645,7 +645,11 @@ Object.extend(String.prototype, (function() {
   }
 
   function unescapeHTML() {
-    return this.stripTags().replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+    return this.stripTags()
+      .replace(/&lt;/g,  '<')
+      .replace(/&gt;/g,  '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&nbsp;/g,' ');
   }
 
 
