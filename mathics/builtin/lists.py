@@ -1971,10 +1971,15 @@ class _IterationFunction(Builtin):
 
     def apply_range(self, expr, i, imax, evaluation):
         '%(name)s[expr_, {i_Symbol, imax_}]'
-
+        imax = imax.evaluate(evaluation)
         if imax.has_form('Range', None):
+            # Fixme: this should work as an iterator in python3, not
+            # building the sequence explicitly...
             seq = Expression('Sequence', *(imax.evaluate(evaluation).leaves))
             return self.apply_list(expr, i, seq, evaluation)
+        elif imax.has_form('List', None):
+            seq = Expression('Sequence',*(imax.leaves))
+            return self.apply_list(expr, i,  seq, evaluation)
         else:
             return self.apply_iter(expr, i, Integer(1), imax,
                                    Integer(1), evaluation)
@@ -1983,7 +1988,8 @@ class _IterationFunction(Builtin):
         '%(name)s[expr_, {imax_}]'
 
         index = 0
-        imax = imax.evaluate(evaluation).numerify(evaluation)
+        imax = imax.evaluate(evaluation)
+        imax = imax.numerify(evaluation)
         if isinstance(imax, Number):
             imax = imax.round()
         imax = imax.get_float_value()
@@ -2076,7 +2082,6 @@ class _IterationFunction(Builtin):
 
     def apply_list(self, expr, i, items, evaluation):
         '%(name)s[expr_, {i_Symbol, {items___}}]'
-
         items = items.evaluate(evaluation).get_sequence()
         result = []
         for item in items:
