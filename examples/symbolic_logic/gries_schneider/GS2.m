@@ -517,4 +517,5 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
 (* You do the exercises in Chapter 2. *)
 
 
-Quit[]
+Exit[Min[totalWrong, 255]]
+Quit[] (* just in case *)

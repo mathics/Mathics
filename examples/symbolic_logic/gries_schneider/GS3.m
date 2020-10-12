@@ -2074,4 +2074,5 @@ intermediate state, is the result of the following tautology. *)
 
 expect[ true, true ] // Print
 
-Quit[]
+Exit[Min[totalWrong, 255]]
+Quit[] (* just in case *)

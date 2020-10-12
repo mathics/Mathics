@@ -1863,4 +1863,5 @@ expect[
     ]
 ] // Print
 
-Quit[]
+Exit[Min[totalWrong, 255]]
+Quit[] (* just in case *)
