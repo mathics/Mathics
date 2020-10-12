@@ -1969,6 +1969,28 @@ class _IterationFunction(Builtin):
     def get_result(self, items):
         pass
 
+    def apply_symbol(self, expr, iterator, evaluation):
+        '%(name)s[expr_, iterator_Symbol]'
+        iterator = iterator.evaluate(evaluation)
+        if iterator.has_form(['List','Range','Sequence'],None):
+            leaves = iterator.leaves
+            if len(leaves) == 1:
+                return self.apply_max(expr, *leaves, evaluation)
+            elif len(leaves) == 2:
+                if leaves[1].has_form(['List','Sequence'], None):
+                    seq = Expression('Sequence',*(leaves[1].leaves))
+                    return self.apply_list(expr, leaves[0], seq, evaluation)
+                else:
+                    return self.apply_range(expr, *leaves, evaluation)
+            elif len(leaves) == 3:
+                return self.apply_iter_nostep(expr, *leaves, evaluation)
+            elif len(leaves) == 4:
+                return self.apply_iter(expr, *leaves, evaluation)
+
+        if self.throw_iterb:
+            evaluation.message(self.get_name(), 'iterb')
+        return
+
     def apply_range(self, expr, i, imax, evaluation):
         '%(name)s[expr_, {i_Symbol, imax_}]'
         imax = imax.evaluate(evaluation)
@@ -1986,7 +2008,6 @@ class _IterationFunction(Builtin):
 
     def apply_max(self, expr, imax, evaluation):
         '%(name)s[expr_, {imax_}]'
-
         index = 0
         imax = imax.evaluate(evaluation)
         imax = imax.numerify(evaluation)
