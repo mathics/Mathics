@@ -20,7 +20,7 @@ import sympy
 import requests
 import tempfile
 
- 
+
 from itertools import chain
 
 
@@ -289,7 +289,7 @@ class Input(Predefined):
     </dl>
 
     >> $Input
-     = 
+     = #<--#
     """
 
     attributes = ('Protected', 'ReadProtected')
@@ -309,7 +309,7 @@ class InputFileName(Predefined):
 
     While in interactive mode, '$InputFileName' is "".
     >> $InputFileName
-     = 
+     = #<--#
     """
 
     name = '$InputFileName'
@@ -2085,25 +2085,25 @@ class OpenAppend(_OpenAction):
 class Get(PrefixOperator):
     r"""
     <dl>
-    <dt>'<<name'
+    <dt>'<<$name$'
       <dd>reads a file and evaluates each expression, returning only the last one.
     </dl>
 
-    >> Put[x + y, "example_file"]
-    >> <<"example_file"
+    S> Put[x + y, "tmp/example_file"]
+    S> <<"tmp/example_file"
      = x + y
 
-    >> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
-    >> <<"example_file"
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "tmp/example_file"]
+    S> <<"tmp/example_file"
      = Cos[x] + I Sin[x]
-    #> DeleteFile["example_file"]
+    #> DeleteFile["tmp/example_file"]
 
-    >> 40! >> "fourtyfactorial"
-    >> FilePrint["fourtyfactorial"]
+    S> 40! >> "tmp/fortyfactorial"
+    S> FilePrint["tmp/fortyfactorial"]
      | 815915283247897734345611269596115894272000000000
-    >> <<"fourtyfactorial"
+    S> <<"tmp/fortyfactorial"
      = 815915283247897734345611269596115894272000000000
-    #> DeleteFile["fourtyfactorial"]
+    #> DeleteFile["tmp/fortyfactorial"]
 
     ## TODO: Requires EndPackage implemented
     ## 'Get' can also load packages:
@@ -2163,57 +2163,62 @@ class Put(BinaryOperator):
     <dl>
     <dt>'$expr$ >> $filename$'
       <dd>write $expr$ to a file.
-    <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
+    <dt>'Put[$expr1$, $expr2$, ..., $filename$]'
       <dd>write a sequence of expressions to a file.
     </dl>
 
-    >> 40! >> "fourtyfactorial"
-    >> FilePrint["fourtyfactorial"]
-     | 815915283247897734345611269596115894272000000000
-    #> 40! >> fourtyfactorial
-    #> FilePrint["fourtyfactorial"]
+    ## Note a lot of these tests are:
+    ## * a bit fragile, somewhat
+    ## * somewhat OS dependent,
+    ## * can leave crap in the filesystem
+    ##
+    ## For these reasons this should be done a a pure test
+    ## rather than intermingled with the doc system.
+
+    S> 40! >> tmp/fortyfactorial
+    S> FilePrint["tmp/fortyfactorial"]
      | 815915283247897734345611269596115894272000000000
 
-    #> Put[40!, fourtyfactorial]
-     : fourtyfactorial is not string, InputStream[], or OutputStream[]
-     = 815915283247897734345611269596115894272000000000 >> fourtyfactorial
+    S> Put[40!, fortyfactorial]
+     : fortyfactorial is not string, InputStream[], or OutputStream[]
+     = 815915283247897734345611269596115894272000000000 >> fortyfactorial
     ## FIXME: final line should be
-    ## = Put[815915283247897734345611269596115894272000000000, fourtyfactorial]
-    #> DeleteFile["fourtyfactorial"]
+    ## = Put[815915283247897734345611269596115894272000000000, fortyfactorial]
+    #> DeleteFile["tmp/fortyfactorial"]
 
-    >> Put[50!, "fiftyfactorial"]
-    >> FilePrint["fiftyfactorial"]
+    S> Put[50!, "tmp/fiftyfactorial"]
+    S> FilePrint["tmp/fiftyfactorial"]
      | 30414093201713378043612608166064768844377641568960512000000000000
-    #> DeleteFile["fiftyfactorial"]
+    S> DeleteFile["tmp/fiftyfactorial"]
 
-    >> Put[10!, 20!, 30!, "factorials"]
-    >> FilePrint["factorials"]
+    S> Put[10!, 20!, 30!, "tmp/factorials"]
+    S> FilePrint["tmp/factorials"]
      | 3628800
      | 2432902008176640000
      | 265252859812191058636308480000000
 
-    #> DeleteFile["factorials"]
+    S> DeleteFile["tmp/factorials"]
      =
 
-    #> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
-    #> FilePrint["example_file"]
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "tmp/example_file"]
+    S> FilePrint["tmp/example_file"]
      | x + y
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
-    #> DeleteFile["example_file"]
+    S> DeleteFile["tmp/example_file"]
 
     ## writing to dir
-    #> x >> /var/
+    S> x >> /var/
      : Cannot open /var/.
      = x >> /var/
 
     ## writing to read only file
-    #> x >> /proc/uptime
+    S> x >> /proc/uptime
      : Cannot open /proc/uptime.
      = x >> /proc/uptime
 
     ## writing to full file
-    #> x >> /dev/full
+    S> x >> /dev/full
      : No space left on device.
     """
 
@@ -2550,9 +2555,9 @@ class FileExtension(Builtin):
      = gz
 
     #> FileExtension["file."]
-     = 
+     = #<--#
     #> FileExtension["file"]
-     = 
+     = #<--#
     """
 
     attributes = ('Protected')
@@ -4001,9 +4006,9 @@ class CopyFile(Builtin):
       <dd>copies $file1$ to $file2$.
     </dl>
 
-    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
+    X> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
      = MathicsSunflowers.jpg
-    >> DeleteFile["MathicsSunflowers.jpg"]
+    X> DeleteFile["MathicsSunflowers.jpg"]
     """
 
     messages = {
@@ -4558,7 +4563,7 @@ class FileType(Builtin):
     """
     <dl>
     <dt>'FileType["$file$"]'
-      <dd>returns the type of a file, from 'File', 'Directory' or 'None'.
+      <dd>gives the type of a file, a string. This is typically 'File', 'Directory' or 'None'.
     </dl>
 
     >> FileType["ExampleData/sunflowers.jpg"]

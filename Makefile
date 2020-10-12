@@ -14,7 +14,7 @@ RM  ?= rm
 #: Default target - same as "develop"
 all: develop
 
-#: build everything needed to install; (runs Cython)
+#: build everything needed to install
 build:
 	$(PYTHON) ./setup.py build
 
@@ -26,6 +26,10 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
+#: Run Django-based server in development mode. Use environment variable "o" for manage options
+runserver:
+	$(PYTHON) mathics/manage.py runserver $o
+
 check: pytest doctest djangotest
 
 #: Remove derived files
@@ -35,20 +39,20 @@ clean:
 	   ($(MAKE) -C "$$dir" clean); \
 	done;
 
-#: Run py.test tests. You can set environment variable "o" for pytest options
+#: Run py.test tests. Use environment variable "o" for pytest options
 pytest:
 	py.test test $o
 
 
 #: Create data that is used to in Django docs and to build TeX PDF
 doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
-	$(PYTHON) mathics/test.py -o
+	$(PYTHON) mathics/test.py -o -k
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py $(output)
+	$(PYTHON) mathics/test.py $o
 
-#: Run django tests
+#: Run Django tests
 djangotest:
 	cd mathics && $(PYTHON) manage.py test test_django
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from os import listdir, path
+from os import getenv, listdir, path
 import pickle
 import importlib
 
@@ -23,7 +23,7 @@ SUBSECTION_END_RE = re.compile('</subsection>')
 
 TESTCASE_RE = re.compile(r'''(?mx)^
     ((?:.|\n)*?)
-    ^\s*(>|\#)>[ ](.*)
+    ^\s*([>#SX])>[ ](.*)
     ((?:\n\s*(?:[:|=.][ ]|\.).*)*)
 ''')
 TESTCASE_OUT_RE = re.compile(r'^\s*([:|=])(.*)$')
@@ -40,8 +40,12 @@ LIST_RE = re.compile(r"(?s)<(?P<tag>ul|ol)>(?P<content>.*?)</(?P=tag)>")
 LIST_ITEM_RE = re.compile(r"(?s)<li>(.*?)(?:</li>|(?=<li>)|$)")
 CONSOLE_RE = re.compile(
     r"(?s)<(?P<tag>con|console)>(?P<content>.*?)</(?P=tag)>")
+ITALIC_RE = re.compile(
+    r"(?s)<(?P<tag>i)>(?P<content>.*?)</(?P=tag)>")
 IMG_RE = re.compile(
     r'<img src="(?P<src>.*?)" title="(?P<title>.*?)" label="(?P<label>.*?)">')
+IMG_PNG_RE = re.compile(
+    r'<imgpng src="(?P<src>.*?)" title="(?P<title>.*?)" label="(?P<label>.*?)">')
 REF_RE = re.compile(r'<ref label="(?P<label>.*?)">')
 PYTHON_RE = re.compile(r'(?s)<python>(.*?)</python>')
 LATEX_CHAR_RE = re.compile(r"(?<!\\)(\^)")
@@ -64,8 +68,8 @@ LATEX_ARRAY_RE = re.compile(
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
-ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul',
-                'ol', 'li', 'con', 'console', 'img', 'ref', 'subsection')
+ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul', 'i',
+                'ol', 'li', 'con', 'console', 'img', 'imgpng', 'ref', 'subsection')
 ALLOWED_TAGS_RE = dict((allowed, re.compile(
     '&lt;(%s.*?)&gt;' % allowed)) for allowed in ALLOWED_TAGS)
 
@@ -217,6 +221,11 @@ def escape_latex(text):
         }
     text = IMG_RE.sub(repl_img, text)
 
+    def repl_imgpng(match):
+        src = match.group('src')
+        return r"\includegraphics[scale=1.0]{images/%(src)s}" % {'src': src}
+    text = IMG_PNG_RE.sub(repl_imgpng, text)
+
     def repl_ref(match):
         return r'figure \ref{%s}' % match.group('label')
     text = REF_RE.sub(repl_ref, text)
@@ -245,6 +254,11 @@ def escape_latex(text):
         else:
             return '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % content
     text = CONSOLE_RE.sub(repl_console, text)
+
+    def repl_italic(match):
+        content = match.group('content')
+        return '\\emph{%s}' % content
+    text = ITALIC_RE.sub(repl_italic, text)
 
     '''def repl_asy(match):
         """
@@ -490,6 +504,12 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
                     r'<img src="/media/doc/%(src)s.png" title="%(title)s" />'
                     r'</a>') % {'src': src, 'title': title}
         text = IMG_RE.sub(repl_img, text)
+
+        def repl_imgpng(match):
+            src = match.group('src')
+            title = match.group('title')
+            return (r'<img src="/media/doc/%(src)s" title="%(title)s" />') % {'src': src, 'title': title}
+        text = IMG_PNG_RE.sub(repl_imgpng, text)
 
         def repl_ref(match):
             # TODO: this is not an optimal solution - maybe we need figure
@@ -1006,8 +1026,7 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                if not test.ignore:
-                    tests.tests.append(test)
+                tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
@@ -1111,14 +1130,16 @@ class DocTest(object):
     """
     DocTest formatting rules:
 
+    * `>>` Marks test case; it will also appear as part of
+           the documentation.
     * `#>` Marks test private or one that does not appear as part of
-           the documentation
-    * `X>` Shows the example in the docs, but disables testing the example
+           the documentation.
+    * `X>` Shows the example in the docs, but disables testing the example.
     * `S>` Shows the example in the docs, but disables testing if environment
-           variable SANDBOX is set
-    * `=`  Compares the result text
-    * `:`  Compares an (error) message
-      `|`  Prints output
+           variable SANDBOX is set.
+    * `=`  Compares the result text.
+    * `:`  Compares an (error) message.
+      `|`  Prints output.
     """
     def __init__(self, index, testcase):
         self.index = index
@@ -1130,7 +1151,7 @@ class DocTest(object):
 
         # Ignored test cases are NOT executed, but shown as part of the docs
         # Sandboxed test cases are NOT executed if environtment SANDBOX is set
-        if testcase[0] == 'X' or (testcase[0] == 'S' and os.getenv("SANDBOX", False)):
+        if testcase[0] == 'X' or (testcase[0] == 'S' and getenv("SANDBOX", False)):
             self.ignore = True
             # substitute '>' again so we get the correct formatting
             testcase[0] = '>'
@@ -1138,6 +1159,10 @@ class DocTest(object):
             self.ignore = False
 
         self.test = testcase[1].strip()
+
+        # This allows a trailing blank at the end of the line for those ofus use use editors that like
+        # to strip trailing blanks at the ends of lines.
+        self.test = self.test.rstrip("#<--#")
 
         self.key = None
         outs = testcase[2].splitlines()

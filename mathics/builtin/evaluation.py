@@ -83,20 +83,23 @@ class RecursionLimit(Predefined):
 class IterationLimit(Predefined):
     """
     <dl>
-    <dt>'$IterationLimit'
-        <dd>specifies the maximum number of times a reevaluation may happen.
+        <dt>'$IterationLimit'
+
+        <dd>specifies the maximum number of times a reevaluation of an expression may happen.
+
     </dl>
 
     Calculations terminated by '$IterationLimit' return '$Aborted':
-    >> ClearAll[f]; f[x_] := f[x + 1];
-    >> f[x]
+
+    > $IterationLimit
+     = 1000
+    #> ClearAll[f]; f[x_] := f[x + 1];
+    #> f[x]
      : Iteration limit of 1000 exceeded.
      = $Aborted
-    >> $IterationLimit
-     = 1000
-    >> ClearAll[f];
+    #> ClearAll[f];
 
-    >> $IterationLimit = x;
+    #> $IterationLimit = x;
      : Cannot set $IterationLimit to x; value must be an integer between 20 and Infinity.
 
     #> ClearAll[f];

@@ -541,7 +541,7 @@ class AbsoluteTime(_DateFormat):
 class SystemTimeZone(Predefined):
     """
     <dl>
-    <dt>'$SystemTimeZone'
+      <dt>'$SystemTimeZone'
       <dd> gives the current time zone for the computer system on which Mathics is being run.
     </dl>
 
@@ -560,7 +560,7 @@ class TimeZone(Predefined):
     """
     <dl>
     <dt>'$TimeZone'
-      <dd> gives the current time zone.
+      <dd> gives the current time zone to assume for dates and times.
     </dl>
 
     >> $TimeZone
