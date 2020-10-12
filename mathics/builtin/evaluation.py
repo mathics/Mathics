@@ -462,14 +462,14 @@ class Quit(Builtin):
     """
 
     def apply(self, evaluation, n):
-        'Quit[n___]'
+        '%(name)s[n___]'
         exitcode = 0
         if isinstance(n, Integer):
             exitcode =(n.get_int_value())
         raise SystemExit(exitcode)
 
 
-class Exit(Builtin):
+class Exit(Quit):
     """
     <dl>
     <dt>'Exit'[]
@@ -480,11 +480,5 @@ class Exit(Builtin):
 
     """
 
-    def apply(self, evaluation, n):
-        'Exit[n___]'
-        exitcode = 0
-        if isinstance(n, Integer):
-            exitcode =(n.get_int_value())
-        raise SystemExit(exitcode)
 
 
