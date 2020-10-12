@@ -450,22 +450,41 @@ class Out(Builtin):
         "    f:StandardForm|TraditionalForm|InputForm|OutputForm]": r'"%%" <> ToString[k]',
     }
 
+class Quit(Builtin):
+    """
+    <dl>
+    <dt>'Quit'[]
+      <dd> Terminates the Mathics session.
+    <dt>'Quit[$n$]'
+      <dd> Terminates the mathics session with exit code $n$.
+    </dl>
+
+    """
+
+    def apply(self, evaluation, n):
+        'Quit[n___]'
+        exitcode = 0
+        if isinstance(n, Integer):
+            exitcode =(n.get_int_value())
+        raise SystemExit(exitcode)
+
 
 class Exit(Builtin):
     """
     <dl>
-      <dt>'Exit[]'
-      <dd>terminates the Mathics session.
-
-      <dt>'Exit[n]'
-      <dd>terminates with exit code $n$.
+    <dt>'Exit'[]
+      <dd> Terminates the Mathics session.
+    <dt>'Exit[$n$]'
+      <dd> Terminates the mathics session with exit code $n$.
     </dl>
+
     """
 
-    def apply(self, var, evaluation):
-        "Exit[var___]"
-        evaluation.definitions.set_user_definitions({})
-        evaluation.definitions.clear_pymathics_modules()
-        if isinstance(var, Integer):
-            exit(var.get_int_value())
-        exit(0)
+    def apply(self, evaluation, n):
+        'Exit[n___]'
+        exitcode = 0
+        if isinstance(n, Integer):
+            exitcode =(n.get_int_value())
+        raise SystemExit(exitcode)
+
+
