@@ -426,7 +426,7 @@ class URLFetch(Builtin):
 
         import tempfile
         import os
-        a= 1/0
+
         py_url = url.get_string_value()
 
         temp_handle, temp_path = tempfile.mkstemp(suffix='')
@@ -455,17 +455,17 @@ class URLFetch(Builtin):
             result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
-                'FetchURL', 'httperr', url,
+                'URLFetch', 'httperr', url,
                 'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
             return Symbol('$Failed')
         except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
-                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
             return Symbol('$Failed')
         except ValueError as e:
-            evaluation.message('FetchURL', 'httperr', url, str(e))
+            evaluation.message('URLFetch', 'httperr', url, str(e))
             return Symbol('$Failed')
         finally:
             os.unlink(temp_path)
