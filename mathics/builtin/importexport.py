@@ -426,7 +426,7 @@ class URLFetch(Builtin):
 
         import tempfile
         import os
-
+        a= 1/0
         py_url = url.get_string_value()
 
         temp_handle, temp_path = tempfile.mkstemp(suffix='')
@@ -554,11 +554,6 @@ class Import(Builtin):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
 
-        # Download via URL
-        if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements, *options_to_rules(options))
-
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
 
@@ -567,8 +562,9 @@ class Import(Builtin):
             return findfile
 
         def determine_filetype():
-            return Expression('FileFormat', findfile).evaluate(
+            val = Expression('FileFormat', findfile).evaluate(
                 evaluation=evaluation).get_string_value()
+            return val
 
         return self._import(findfile, determine_filetype, elements, evaluation, options)
 
@@ -1274,7 +1270,6 @@ class FileFormat(Builtin):
             return findfile
 
         path = findfile.get_string_value()
-
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
@@ -1289,7 +1284,6 @@ class FileFormat(Builtin):
                 mime = set([])
             else:
                 mime = set([mime])
-
         result = []
         for key in mimetype_dict.keys():
             if key in mime:

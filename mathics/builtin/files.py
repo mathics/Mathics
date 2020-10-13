@@ -64,9 +64,18 @@ def path_search(filename):
         if (lenfn>7 and filename[:7]=="http://") or \
            (lenfn>8 and filename[:8]=="https://") or \
            (lenfn>6 and filename[:6]=="ftp://"):
+            suffix = ""
+            strip_filename = filename.split("/")
+            if len(strip_filename) > 3:
+                strip_filename = strip_filename[-1]
+                if strip_filename != "":
+                    suffix = strip_filename[len(strip_filename.split(".")[0]):]
             try:
                 r = requests.get(filename, allow_redirects=True)
-                fp = tempfile.NamedTemporaryFile(delete=False)
+                if suffix != "":
+                    fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+                else:
+                    fp = tempfile.NamedTemporaryFile(delete=False)
                 fp.write(r.content)
                 result = fp.name
                 fp.close()
