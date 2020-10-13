@@ -1058,6 +1058,12 @@ class Clear(Builtin):
 
         return Symbol('Null')
 
+    def apply_all(self, evaluation):
+        'Clear[System`All]'
+        evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_modules()
+        return
+
 
 class ClearAll(Clear):
     """
@@ -1090,6 +1096,12 @@ class ClearAll(Clear):
         definition.messages = []
         definition.options = []
         definition.defaultvalues = []
+
+    def apply_all(self, evaluation):
+        'ClearAll[System`All]'
+        evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_modules()
+        return
 
 
 class Unset(PostfixOperator):
@@ -1202,33 +1214,6 @@ class Unset(PostfixOperator):
                 return Symbol('$Failed')
         return Symbol('Null')
 
-
-class Quit(Builtin):
-    """
-    <dl>
-    <dt>'Quit'[]
-        <dd>removes all user-defined definitions.
-    </dl>
-
-    >> a = 3
-     = 3
-    >> Quit[]
-    >> a
-     = a
-
-    'Quit' even removes the definitions of protected and locked symbols:
-    >> x = 5;
-    >> Attributes[x] = {Locked, Protected};
-    >> Quit[]
-    >> x
-     = x
-    """
-
-    def apply(self, evaluation):
-        'Quit[]'
-        evaluation.definitions.set_user_definitions({})
-        evaluation.definitions.clear_pymathics_modules()
-        return Symbol('Null')
 
 
 def get_symbol_values(symbol, func_name, position, evaluation):

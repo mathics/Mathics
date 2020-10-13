@@ -21,6 +21,7 @@ from django.core.mail import send_mail
 
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Message, Result
+from mathics.core.expression import Expression
 
 from mathics.web.models import Query, Worksheet, get_session_evaluation
 from mathics.web.forms import LoginForm, SaveForm
@@ -100,6 +101,7 @@ def error_500_view(request):
 
 
 def query(request):
+    global definitions
     from mathics.core.parser import MultiLineFeeder
 
     input = request.POST.get("query", "")
@@ -132,6 +134,11 @@ def query(request):
             result = evaluation.evaluate(expr, timeout=settings.TIMEOUT)
             if result is not None:
                 results.append(result)
+    except SystemExit as e:
+        results = []
+        result = None
+        definitions = Definitions(add_builtin=True, extension_modules=default_pymathics_modules)
+        evaluation.definitions = definitions
     except Exception as exc:
         if settings.DEBUG and settings.DISPLAY_EXCEPTIONS:
             info = traceback.format_exception(*sys.exc_info())

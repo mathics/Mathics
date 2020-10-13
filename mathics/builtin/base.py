@@ -100,7 +100,7 @@ class Builtin(object):
         # - 'Warn': warn about unsupported options, but continue
         # - 'Ignore': allow unsupported options, do not warn
 
-        if option_syntax in ('Strict', 'Warn'):
+        if option_syntax in ('Strict', 'Warn', 'System`Strict', 'System`Warn'):
             def check_options(options_to_check, evaluation):
                 name = self.get_name()
                 for key, value in options_to_check.items():
@@ -111,10 +111,10 @@ class Builtin(object):
                             'optx',
                             Expression('Rule', short_key, value),
                             strip_context(name))
-                        if option_syntax == 'Strict':
+                        if option_syntax in ('Strict', 'System`Strict'):
                             return False
                 return True
-        elif option_syntax == 'Ignore':
+        elif option_syntax in ("Ignore", "System`Ignore"):
             check_options = None
         else:
             raise ValueError('illegal option mode %s; check $OptionSyntax.' % option_syntax)

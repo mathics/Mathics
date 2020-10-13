@@ -180,6 +180,7 @@ def _importer_exporter_options(available_options, options, builtin_name: str, ev
     if syntax_option and syntax_option !=  Symbol("System`Ignore"):
         # warn about unsupported options.
         for name, value in remaining_options.items():
+            print(" es de acá....")
             evaluation.message(
                 builtin_name,
                 "optx",
@@ -401,12 +402,18 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
-class FetchURL(Builtin):
+class URLFetch(Builtin):
     '''
-    #> Quiet[FetchURL["https:////", {}]]
+    <dl>
+    <dt>'URLFetch[$URL$]'
+      <dd> Returns the content of $URL$ as a string.
+    </dl>
+
+
+    #> Quiet[URLFetch["https:////", {}]]
      = $Failed
 
-    #> Quiet[FetchURL["https://www.example.com", {}]]
+    #> Quiet[URLFetch["https://www.example.com", {}]]
      = $Failed
     '''
 
@@ -415,7 +422,7 @@ class FetchURL(Builtin):
     }
 
     def apply(self, url, elements, evaluation, options={}):
-        'FetchURL[url_String, elements_, OptionsPattern[]]'
+        'URLFetch[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -528,7 +535,7 @@ class Import(Builtin):
     }
 
     options = {
-        '$OptionSyntax': 'Ignore',
+        '$OptionSyntax': 'System`Ignore',
     }
 
     def apply(self, filename, evaluation, options={}):
@@ -947,7 +954,7 @@ class Export(Builtin):
     }
 
     options = {
-        '$OptionSyntax': 'Ignore',
+        '$OptionSyntax': 'System`Ignore',
     }
 
     def apply(self, filename, expr, evaluation, options={}):
