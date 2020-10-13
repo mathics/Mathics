@@ -562,9 +562,8 @@ class Import(Builtin):
             return findfile
 
         def determine_filetype():
-            val = Expression('FileFormat', findfile).evaluate(
+            return Expression('FileFormat', findfile).evaluate(
                 evaluation=evaluation).get_string_value()
-            return val
 
         return self._import(findfile, determine_filetype, elements, evaluation, options)
 
