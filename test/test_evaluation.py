@@ -20,7 +20,7 @@ def _evaluate(str_expression):
     (r's={x,1,3};Table[F[x],s]', '{F[1],F[2],F[3]}'),
     (r's={x,{1,2,3}};Table[F[x],s]', '{F[1],F[2],F[3]}'),
 ])
-def test_orderless(str_expr, str_expected):
+def test_evaluation(str_expr, str_expected):
     result = _evaluate(str_expr)
     expected = _evaluate(str_expected)
 
