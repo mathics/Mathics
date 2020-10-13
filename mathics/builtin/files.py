@@ -2089,21 +2089,16 @@ class Get(PrefixOperator):
       <dd>reads a file and evaluates each expression, returning only the last one.
     </dl>
 
-    S> Put[x + y, "tmp/example_file"]
-    S> <<"tmp/example_file"
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, filename]
+    S> Get[filename]
      = x + y
 
-    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "tmp/example_file"]
-    S> <<"tmp/example_file"
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
+    S> Get["/tmp/example_file"]
      = Cos[x] + I Sin[x]
-    #> DeleteFile["tmp/example_file"]
-
-    S> 40! >> "tmp/fortyfactorial"
-    S> FilePrint["tmp/fortyfactorial"]
-     | 815915283247897734345611269596115894272000000000
-    S> <<"tmp/fortyfactorial"
-     = 815915283247897734345611269596115894272000000000
-    #> DeleteFile["tmp/fortyfactorial"]
+    S> DeleteFile[filename]
 
     ## TODO: Requires EndPackage implemented
     ## 'Get' can also load packages:
@@ -2175,37 +2170,37 @@ class Put(BinaryOperator):
     ## For these reasons this should be done a a pure test
     ## rather than intermingled with the doc system.
 
-    S> 40! >> tmp/fortyfactorial
-    S> FilePrint["tmp/fortyfactorial"]
-     | 815915283247897734345611269596115894272000000000
-
     S> Put[40!, fortyfactorial]
      : fortyfactorial is not string, InputStream[], or OutputStream[]
      = 815915283247897734345611269596115894272000000000 >> fortyfactorial
     ## FIXME: final line should be
     ## = Put[815915283247897734345611269596115894272000000000, fortyfactorial]
-    #> DeleteFile["tmp/fortyfactorial"]
 
-    S> Put[50!, "tmp/fiftyfactorial"]
-    S> FilePrint["tmp/fiftyfactorial"]
-     | 30414093201713378043612608166064768844377641568960512000000000000
-    S> DeleteFile["tmp/fiftyfactorial"]
+    S> filename = $TemporaryDirectory <> "/fortyfactorial";
+    S> Put[40!, filename]  
+    S> FilePrint[filename]
+     | 815915283247897734345611269596115894272000000000
+    S> Get[filename]
+     = 815915283247897734345611269596115894272000000000
+    #> DeleteFile[filename]
 
-    S> Put[10!, 20!, 30!, "tmp/factorials"]
-    S> FilePrint["tmp/factorials"]
+    S> filename = $TemporaryDirectory <> "/fiftyfactorial";
+    S> Put[10!, 20!, 30!, filename]
+    S> FilePrint[filename]
      | 3628800
      | 2432902008176640000
      | 265252859812191058636308480000000
 
-    S> DeleteFile["tmp/factorials"]
+    S> DeleteFile[filename]
      =
 
-    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "tmp/example_file"]
-    S> FilePrint["tmp/example_file"]
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
+    S> FilePrint[filename]
      | x + y
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
-    S> DeleteFile["tmp/example_file"]
+    S> DeleteFile[filename]
 
     ## writing to dir
     S> x >> /var/
