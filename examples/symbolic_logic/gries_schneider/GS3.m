@@ -4,7 +4,7 @@
 
     Oct 2020
 
-    These examples are adapted from Gries & Schnedier, "A Logical Approach
+    These examples are adapted from Gries & Schneider, "A Logical Approach
     to Discrete Math." The bibtex entry for this book follows:
 
     @Book{gries1993a,
@@ -2075,4 +2075,3 @@ intermediate state, is the result of the following tautology. *)
 expect[ true, true ] // Print
 
 Exit[Min[totalWrong, 255]]
-Quit[] (* just in case *)
