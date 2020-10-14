@@ -69,7 +69,7 @@ class Environment(Builtin):
       <dd>gives the value of an operating system environment variable.
     </dl>
     X> Environment["HOME"]
-     = rocky
+     = ...
     """
 
     def apply(self, var, evaluation):
@@ -101,11 +101,11 @@ class Failed(Predefined):
 class GetEnvironment(Builtin):
     """
     <dl>
-    <dt>'GetEnvironment["var$]"'
+    <dt>'GetEnvironment["$var$"]'
         <dd>gives the setting corresponding to the variable "var" in the operating system environment.
     </dl>
 
-    X> = GetEnvironment["HOME"]
+    X> GetEnvironment["HOME"]
     = ...
     """
 
