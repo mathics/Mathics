@@ -35,7 +35,7 @@ def test_exit():
         assert e.code == -37
 
 
-def test_exit():
+def test_quit():
     try:
         _evaluate("Quit[-37]")
     except SystemExit as e:
