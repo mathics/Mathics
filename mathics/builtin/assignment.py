@@ -218,7 +218,9 @@ class _SetOperator(object):
             ignore_protection = True
             return True
         elif lhs_name == 'System`$ContextPath':
-            context_path = [s.get_string_value() for s in rhs.get_leaves()]
+            currContext = evaluation.definitions.get_current_context()
+            context_path = [s.get_string_value()  for s in rhs.get_leaves()]
+            context_path = [s if (s is None or s[0]!="`") else currContext +s for s in context_path]
             if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
                 evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True

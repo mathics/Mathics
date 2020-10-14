@@ -455,17 +455,17 @@ class URLFetch(Builtin):
             result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
-                'FetchURL', 'httperr', url,
+                'URLFetch', 'httperr', url,
                 'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
             return Symbol('$Failed')
         except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
-                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
             return Symbol('$Failed')
         except ValueError as e:
-            evaluation.message('FetchURL', 'httperr', url, str(e))
+            evaluation.message('URLFetch', 'httperr', url, str(e))
             return Symbol('$Failed')
         finally:
             os.unlink(temp_path)
@@ -553,11 +553,6 @@ class Import(Builtin):
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
-
-        # Download via URL
-        if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
@@ -1274,7 +1269,6 @@ class FileFormat(Builtin):
             return findfile
 
         path = findfile.get_string_value()
-
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
@@ -1289,7 +1283,6 @@ class FileFormat(Builtin):
                 mime = set([])
             else:
                 mime = set([mime])
-
         result = []
         for key in mimetype_dict.keys():
             if key in mime:
