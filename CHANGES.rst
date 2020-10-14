@@ -27,10 +27,13 @@ New features (50+ builtins):
 - ``Coefficient[]``, ``Coefficient[x * y, z, 0]``, ``Coefficient*[]``,
 - ``DiscreteLimit`` #922
 - ``Environment``
+-   File read operations from URLs
 - ``FirstPostions``, ``Integers``, ``PrePendTo[]``
 - ``GetEnvironment`` # 938
 - ``Integers``, ``PrependTo`` and ``ContainsOnly``
+- ``Import`` support for WL packages
 - ``IterationLimit``
+- ``LoadModule``
 - ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
 - ``PolynomialQ[]``, ``MinimalPolynomial[]``
 - ``Quit[]``, ``Exit[]`` #523, #814,
@@ -53,12 +56,13 @@ Ehancements and Bug fixes:
 +++++++++++++++++++++++++++
 
 - speed up leading-blank patterns #625, #933
+- support for iteration over Sequence objects in Table, Sum, and Product 
 - fixes for option handling
 - fixes for ``Manipulate[x,{x,{a,b}}]``
 - fixes rule -> rule case for ``Nearest``
 - fixes and enhancements to ``WordCloud``
 - added ``StringTrim[]``
-- fixes ``FetchURL`` options
+- fixes ``URLFetch`` options
 - fixes ``XMLGetString`` and parse error
 - fixes ``LanguageIdentify``
 - fixes 2 <= base <= 36 in number parsing
@@ -76,6 +80,7 @@ Ehancements and Bug fixes:
 
 Mathematica tracking changes:
 
+- renamed ``FetchURL`` to ``URLFetch`` (according to the WL standard)
 - renamed ``SymbolLookup`` to ``Lookup``
 
 Performance improvements:
@@ -90,6 +95,7 @@ Other Changes:
 
 - bump ``RecursionLimit``
 - blacken (format) a number of Python files and remove blanks at the end of lines
+- Adding several CI tests
 - Remove various deprecation warnings
 - Change shbang from ``python`` to ``python3``
 - Update docs
