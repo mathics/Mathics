@@ -47,6 +47,7 @@ New features (50+ builtins):
 - ``Subsets`` #685
 - ``SystemTimeZone`` and correct ``TimeZone`` #924
 - ``System\`Byteordering`` and ``System\`Environemnt`` #859
+- ``$UseSansSerif`` #908
 - ``randchoice`` option for ``NoNumPyRandomEnv`` #820
 
 - support for ``MATHICS_MAX_RECURSION_DEPTH``
