@@ -459,18 +459,6 @@ class Quit(Builtin):
       <dd> Terminates the mathics session with exit code $n$.
     </dl>
 
-    """
-
-    def apply(self, evaluation, n):
-        '%(name)s[n___]'
-        exitcode = 0
-        if isinstance(n, Integer):
-            exitcode =(n.get_int_value())
-        raise SystemExit(exitcode)
-
-
-class Exit(Quit):
-    """
     <dl>
     <dt>'Exit'[]
       <dd> Terminates the Mathics session.
@@ -479,6 +467,16 @@ class Exit(Quit):
     </dl>
 
     """
+
+    rules = {"Exit[n___]":"Quit[n]", }
+    
+    def apply(self, evaluation, n):
+        '%(name)s[n___]'
+        exitcode = 0
+        if isinstance(n, Integer):
+            exitcode =(n.get_int_value())
+        raise SystemExit(exitcode)
+
 
 
 
