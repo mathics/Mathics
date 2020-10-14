@@ -25,3 +25,19 @@ def test_evaluation(str_expr, str_expected):
     expected = _evaluate(str_expected)
 
     assert result == expected
+
+
+
+def test_exit():
+    try:
+        _evaluate("Exit[-37]")
+    except SystemExit as e:
+        assert e.code == -37
+
+
+def test_exit():
+    try:
+        _evaluate("Quit[-37]")
+    except SystemExit as e:
+        assert e.code == -37
+
