@@ -666,7 +666,6 @@ Except some other form is applied first:
  = d
 You can cause a much bigger mess by overriding 'MakeBoxes' than by sticking to 'Format', e.g. generate invalid XML:
 >> MakeBoxes[c, MathMLForm] = "<not closed";
-#>$UseSansSerif=False
 >> c // MathMLForm
  = <not closed
 However, this will not affect formatting of expressions involving 'c':
