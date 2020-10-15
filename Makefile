@@ -63,8 +63,7 @@ djangotest:
 
 #: Make Mathics PDF manual
 doc mathics.pdf: mathics/doc/tex/data
-	(cd mathics && $(PYTHON) test.py -t && \
-	cd doc/tex && make)
+	(cd mathics/doc/tex && make)
 
 #: Remove ChangeLog
 rmChangeLog:
