@@ -62,7 +62,7 @@ djangotest:
 	cd mathics && $(PYTHON) manage.py test test_django
 
 #: Make Mathics PDF manual
-doc: mathics/doc/tex/data
+doc mathics.pdf: mathics/doc/tex/data
 	(cd mathics && $(PYTHON) test.py -t && \
 	cd doc/tex && make)
 
