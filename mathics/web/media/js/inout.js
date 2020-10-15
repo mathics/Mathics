@@ -187,7 +187,6 @@ function loadLink() {
 
 function showGallery() {
 	setQueries([
-	    '$UseSansSerif = True (* Use Sans Serif font *)',
 	    '(* Calculation *)',
 	    'Sin[Pi]',
 	    "E ^ (Pi I) (* Euler's famous equation *)",

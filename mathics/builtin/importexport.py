@@ -1084,7 +1084,7 @@ class ExportString(Builtin):
      . 3,
      . 4,
     >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
-     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
+     = ...
     """
 
     messages = {
