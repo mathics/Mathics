@@ -75,6 +75,7 @@ However if you google for "Mathematica Tutorials" youw will find easily dozens o
 
 <section title="Basic calculations">
 \Mathics can be used to calculate basic stuff:
+
 >> 1 + 2
  = 3
 To submit a command to \Mathics, press 'Shift+Return' in the Web interface or 'Return' in the console interface. The result will be printed in a new line below your query.
@@ -665,18 +666,19 @@ Except some other form is applied first:
  = d
 You can cause a much bigger mess by overriding 'MakeBoxes' than by sticking to 'Format', e.g. generate invalid XML:
 >> MakeBoxes[c, MathMLForm] = "<not closed";
+#>$UseSansSerif=False
 >> c // MathMLForm
  = <not closed
 However, this will not affect formatting of expressions involving 'c':
 >> c + 1 // MathMLForm
- = <math display="block"><mrow><mn>1</mn> <mo>+</mo> <mi>c</mi></mrow></math>
+ = ...
 That\'s because 'MathMLForm' will, when not overridden for a special case, call 'StandardForm' first.
 'Format' will produce escaped output:
 >> Format[d, MathMLForm] = "<not closed";
 >> d // MathMLForm
- = <math display="block"><mtext>&lt;not&nbsp;closed</mtext></math>
+ = ...
 >> d + 1 // MathMLForm
- = <math display="block"><mrow><mn>1</mn> <mo>+</mo> <mtext>&lt;not&nbsp;closed</mtext></mrow></math>
+ = ...
 
 For instance, you can override 'MakeBoxes' to format lists in a different way:
 >> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
