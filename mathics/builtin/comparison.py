@@ -5,7 +5,7 @@
 import sympy
 import itertools
 
-from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
+from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction, SympyConstant
 from mathics.core.expression import (Expression, Number, Integer, Rational,
                                      Real, Symbol, String)
 from mathics.core.numbers import get_type, dps
@@ -314,13 +314,14 @@ class Inequality(Builtin):
 
 def do_cmp(x1, x2):
     inf1 = inf2 = real1 = real2 = None
-    if isinstance(x1, (Real, Integer, Rational)):
+    if isinstance(x1, (Real, Integer, Rational, SympyConstant)):
         real1 = x1.to_sympy()
-    if isinstance(x2, (Real, Integer, Rational)):
-        real2 = x2.to_sympy()
-    if x1.has_form('DirectedInfinity', 1):
+    elif x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
-    if x2.has_form('DirectedInfinity', 1):
+            
+    if isinstance(x2, (Real, Integer, Rational, SympyConstant)):
+        real2 = x2.to_sympy()
+    elif x2.has_form('DirectedInfinity', 1):
         inf2 = x2.leaves[0].get_int_value()
 
     if real1 is not None and real2 is not None:
