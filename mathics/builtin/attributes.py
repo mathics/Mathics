@@ -61,7 +61,7 @@ class SetAttributes(Builtin):
     """
     <dl>
     <dt>'SetAttributes'[$symbol$, $attrib$]
-        <dd>adds $attrib$ to $symbol$'s attributes.
+        <dd>adds $attrib$ to the list of $symbol$'s attributes.
     </dl>
 
     >> SetAttributes[f, Flat]
@@ -140,8 +140,8 @@ class ClearAttributes(Builtin):
 class Protect(Builtin):
     """
     <dl>
-    <dt>'Protect'[$symbol$]
-        <dd>gives $symbol$ the attribute 'Protected'.
+    <dt>'Protect'[$s1$, $s2$, ...]
+        <dd>sets the attribute 'Protected' for the symbols $si$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -162,8 +162,8 @@ class Protect(Builtin):
 class Unprotect(Builtin):
     """
     <dl>
-    <dt>'Unprotect'[$symbol$]
-        <dd>removes the 'Protected' attribute from $symbol$.
+    <dt>'Unprotect'[$s1$, $s2$, ...]
+        <dd>removes the attribute 'Protected' for the symbols $si$.
     </dl>
     """
 
@@ -305,11 +305,13 @@ class Flat(Predefined):
 
 
 class Orderless(Predefined):
-    """
-    <dl>
-    <dt>'Orderless'
-        <dd>is an attribute indicating that the leaves in an
-        expression 'f[a, b, c]' can be placed in any order.
+    """<dl>
+        <dt>'Orderless'
+        <dd>is an attribute that can be assigned to a symbol $f$ to
+        indicate that the elements $ei$ in expressions of the form
+        $f$[$e1$, $e2$, ...] should automatically be sorted into
+        canonical order. This property is accounted for in pattern
+        matching.
     </dl>
 
     The leaves of an 'Orderless' function are automatically sorted:
@@ -326,6 +328,7 @@ class Orderless(Predefined):
     >> SetAttributes[f, Flat]
     >> f[a, b, c] /. f[a, c] -> d
      = f[b, d]
+
     """
 
 
@@ -379,6 +382,9 @@ class HoldFirst(Predefined):
         <dd>is an attribute specifying that the first argument of a
         function should be left unevaluated.
     </dl>
+
+    >> Attributes[Set]
+     = {HoldFirst, Protected, SequenceHold}
     """
 
 
@@ -389,6 +395,9 @@ class HoldRest(Predefined):
         <dd>is an attribute specifying that all but the first argument
         of a function should be left unevaluated.
     </dl>
+
+    >> Attributes[If]
+     = {HoldRest, Protected}
     """
 
 
@@ -399,6 +408,9 @@ class HoldAll(Predefined):
         <dd>is an attribute specifying that all arguments of a
         function should be left unevaluated.
     </dl>
+
+    >> Attributes[Function]
+     = {HoldAll, Protected}
     """
 
 
