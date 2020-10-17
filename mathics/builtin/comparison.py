@@ -737,6 +737,9 @@ class Max(_MinMax):
     >> Max[4, -8, 1]
      = 4
 
+    >> Max[1., Pi, E]
+     = Pi
+
     'Max' flattens lists in its arguments:
     >> Max[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
      = 3.5
