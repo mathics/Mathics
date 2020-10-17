@@ -318,11 +318,21 @@ def do_cmp(x1, x2):
         real1 = x1.to_sympy()
     elif x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
-
+    else:
+        # Fixme: this way implies to evaluate each expression, each time
+        # the do_cmp is called....
+        real1 = x1.to_sympy().evalf()
+        if not real1.is_number:
+            real1 = None
+        
     if isinstance(x2, (Real, Integer, Rational, SympyConstant)):
         real2 = x2.to_sympy()
     elif x2.has_form('DirectedInfinity', 1):
         inf2 = x2.leaves[0].get_int_value()
+    else:
+        real2 = x2.to_sympy().evalf()
+        if not real2.is_number:
+            real2 = None
 
     if real1 is not None and real2 is not None:
         if x1 == x2:
