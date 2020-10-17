@@ -318,7 +318,7 @@ def do_cmp(x1, x2):
         real1 = x1.to_sympy()
     elif x1.has_form('DirectedInfinity', 1):
         inf1 = x1.leaves[0].get_int_value()
-            
+
     if isinstance(x2, (Real, Integer, Rational, SympyConstant)):
         real2 = x2.to_sympy()
     elif x2.has_form('DirectedInfinity', 1):

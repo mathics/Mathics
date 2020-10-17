@@ -6,8 +6,7 @@ from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d,
-    image,
-    inout, integer, iohooks, linalg, lists, logic,
+    image, inout, integer, iohooks, linalg, lists, logic,
     manipulate, quantities, numbertheory, numeric, options, patterns,
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
     strings, structure, system, tensors, xmlformat, optimization)
@@ -21,8 +20,7 @@ modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d,
-    image, 
-    inout, integer, iohooks, linalg, lists, logic,
+    image, inout, integer, iohooks, linalg, lists, logic,
     manipulate, quantities, numbertheory, numeric, options, patterns,
     plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
     strings, structure, system, tensors, xmlformat, optimization]
