@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Control statements
+Control Statements
 """
 
 
@@ -633,7 +633,7 @@ class Interrupt(Builtin):
         'Interrupt[]'
 
         raise AbortInterrupt
-    
+
 class Return(Builtin):
     '''
     <dl>

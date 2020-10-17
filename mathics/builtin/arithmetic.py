@@ -3,7 +3,7 @@
 # cython: language_level=3
 
 """
-Arithmetic functions
+Arithmetic Functions
 
 Basic arithmetic functions, including complex number arithmetic.
 """
