@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Tensor functions
+Tensors
 """
 
 

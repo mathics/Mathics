@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-String functions
+Strings and Characters
 """
 
 import sys
@@ -1934,29 +1934,32 @@ class StringQ(Test):
 class StringTake(Builtin):
     """
     <dl>
-    <dt>'StringTake["$string$", $n$]'
-        <dd>gives the first $n$ characters in $string$.
-    <dt>'StringTake["$string$", -$n$]'
-        <dd>gives the last $n$ characters in $string$.
-    <dt>'StringTake["$string$", {$n$}]'
-        <dd>gives the $n$th character in $string$.
-    <dt>'StringTake["$string$", {$m$, $n$}]'
-        <dd>gives characters $m$ through $n$ in $string$.
-    <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
-        <dd>gives characters $m$ through $n$ in steps of $s$.
+      <dt>'StringTake["$string$", $n$]'
+      <dd>gives the first $n$ characters in $string$.
+
+      <dt>'StringTake["$string$", -$n$]'
+      <dd>gives the last $n$ characters in $string$.
+
+      <dt>'StringTake["$string$", {$n$}]'
+      <dd>gives the $n$th character in $string$.
+
+      <dt>'StringTake["$string$", {$m$, $n$}]'
+      <dd>gives characters $m$ through $n$ in $string$.
+
+      <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
+      <dd>gives characters $m$ through $n$ in steps of $s$.
     </dl>
 
     >> StringTake["abcde", 2]
-    = ab
+     = ab
     >> StringTake["abcde", 0]
-    = 
-    (watch the empty line).
+     = #<--#
     >> StringTake["abcde", -2]
-    = de
+     = de
     >> StringTake["abcde", {2}]
-    = b
+     = b
     >> StringTake["abcd", {2,3}]
-    = bc
+     = bc
     >> StringTake["abcdefgh", {1, 5, 2}]
      = ace
 
@@ -2458,16 +2461,23 @@ class StringTrim(Builtin):
 class StringInsert(Builtin):
     """
     <dl>
-    <dt>'StringInsert["$strsource$", "$strnew$", pos]'
-        <dd>returns a string with $strnew$ inserted starting at position $pos$ in $strsource$.
-    <dt>'StringInsert["$strsource$", "$strnew$", -pos]'
-        <dd>returns a string with $strnew$ inserted at position $pos$ from the end of $strsource$.
-    <dt>'StringInsert["$strsource$", "$strnew$", {pos_1, pos_2, ...}]'
-        <dd>returns a string with $strnew$ inserted at each position $pos_i$ in $strsource$,
-            the $pos_i$ are taken before any insertion is done.
-    <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$strnew$", pos]'
-        <dd>inserts $strnew$ to each of $s_i$ at the position $pos$
+      <dt>'StringInsert["$string$", "$snew$", $n$]'
+      <dd>yields a string with $snew$ inserted starting at position $n$ in $string$.
+
+      <dt>'StringInsert["$string$", "$snew$", -$n$]'
+      <dd>inserts a at position $n$ from the end of "$string$".
+
+      <dt>'StringInsert["$string$", "$snew$", {$n_1$, $n_2$, ...}]'
+      <dd>inserts a copy of $snew$ at each position $n_i$ in $string$;
+        the $n_i$ are taken before any insertion is done.
+
+      <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$snew$", $n$]'
+      <dd>gives the list of resutls for each of the $s_i$.
     </dl>
+
+    ## FIXME: Below are way too many examples to be of interest for
+    ## general use. Strip this down to just essentials
+    ## put the rest in a pytest.
 
     >> StringInsert["abcdefghijklm", "X", 4]
      = abcXdefghijklm
@@ -2488,9 +2498,6 @@ class StringInsert(Builtin):
     #> StringInsert["abcdefghijklm", "", 1]
      = abcdefghijklm
 
-    #> StringInsert["", "", 1]
-     = 
-    (watch the empty line).
     #> StringInsert[abcdefghijklm, "X", 4]
      : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
      = StringInsert[abcdefghijklm, X, 4]
@@ -2520,9 +2527,6 @@ class StringInsert(Builtin):
     #> StringInsert["", "X", -1]
      = X
 
-    #> StringInsert["", "", -1]
-     = 
-    (watch the empty line).
     #> StringInsert["abcdefghijklm", "", -1]
      = abcdefghijklm
 
@@ -2543,9 +2547,8 @@ class StringInsert(Builtin):
      = XX
 
     #> StringInsert["", "", {1}]
-     = 
-    
-    (watch the empty line).
+     = #<--#
+
     #> StringInsert["", "X", {1, 2}]
      : Cannot insert at position 2 in .
      = StringInsert[, X, {1, 2}]

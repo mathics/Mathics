@@ -152,6 +152,9 @@ class CompiledCode(Atom):
 
 
 class CompiledCodeBox(BoxConstruct):
+    """
+    Used internally by <i>CompileCode[]</i>.
+    """
     def boxes_to_text(self, leaves, **options):
         return '-CompiledCode-'
 
@@ -163,6 +166,20 @@ class CompiledCodeBox(BoxConstruct):
 
 
 class CompiledFunction(Builtin):
+    """'
+    <dl>
+      <dt>'CompiledFunction[$args$...]'
+      <dd>represents compiled code for evaluating a compiled function.
+    </dl>
+
+    >> sqr = Compile[{x}, x x]
+     = CompiledFunction[{x}, x ^ 2, -CompiledCode-]
+    >> Head[sqr]
+     = CompiledFunction
+    >> sqr[2]
+     = 4.
+
+    """
     messages = {
         'argerr': 'Invalid argument `1` should be Integer, Real or boolean.',
     }
