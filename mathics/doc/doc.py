@@ -518,7 +518,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = REF_RE.sub(repl_ref, text)
 
         def repl_subsection(match):
-            return '\n<h2>%s</h2>\n' % match.group(1)
+            return '\n<h2 label="%s">%s</h2>\n' % (match.group(1), match.group(1))
         text = SUBSECTION_RE.sub(repl_subsection, text)
         text = SUBSECTION_END_RE.sub('', text)
 

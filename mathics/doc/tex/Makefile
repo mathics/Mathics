@@ -22,7 +22,7 @@ logo-heptatom.pdf logo-text-nodrop.pdf:
 
 #: The build of the documentation which is derived from docstrings in the Python code
 documentation.tex:
-	(cd ../.. && $(PYTHON) test.py -o && $(PYTHON) test.py -t)
+	(cd ../.. && $(PYTHON) test.py -ot)
 
 #: Same as mathics.pdf
 latex: mathics.pdf
