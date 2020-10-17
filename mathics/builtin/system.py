@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-System functions
+Global System Information
 """
 
 
@@ -115,14 +115,18 @@ class GetEnvironment(Builtin):
             env_var = var.get_string_value()
             tup = (
                 env_var,
-                "System`None" if env_var not in os.environ else String(os.environ[env_var]),
+                "System`None"
+                if env_var not in os.environ
+                else String(os.environ[env_var]),
             )
 
             return Expression("Rule", *tup)
 
         env_vars = var.get_sequence()
         if len(env_vars) == 0:
-            rules = [Expression("Rule", name, value) for name, value in os.environ.items()]
+            rules = [
+                Expression("Rule", name, value) for name, value in os.environ.items()
+            ]
             return Expression("List", *rules)
 
 
@@ -223,10 +227,7 @@ class Packages(Predefined):
     def evaluate(self, evaluation):
         return Expression(
             "List",
-            *(
-                String(name)
-                for name in evaluation.definitions.get_package_names()
-            ),
+            *(String(name) for name in evaluation.definitions.get_package_names()),
         )
 
 
@@ -249,6 +250,7 @@ class ParentProcessID(Predefined):
     def evaluate(self, evaluation):
         return Integer(os.getppid())
 
+
 class ProcessID(Predefined):
     """
     <dl>
@@ -267,6 +269,7 @@ class ProcessID(Predefined):
 
     def evaluate(self, evaluation):
         return Integer(os.getpid())
+
 
 class ProcessorType(Predefined):
     """
@@ -345,6 +348,24 @@ class SystemWordLength(Predefined):
         while not sys.maxsize > 2 ** size:
             size >>= 1
         return Integer(size << 1)
+
+
+class UserName(Predefined):
+    """
+    <dl>
+      <dt>$UserName
+      <dd>returns a string describing the type of computer system on which
+      \Mathics is being run.
+    </dl>
+
+    X> $UserName
+     = rocky
+    """
+
+    name = "$UserName"
+
+    def evaluate(self, evaluation) -> String:
+        return String(os.getlogin())
 
 
 class Version(Predefined):

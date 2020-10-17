@@ -225,8 +225,8 @@ function showGallery() {
 	    'Graphics[Table[{EdgeForm[{GrayLevel[0, 0.5]}], Hue[(-11+q+10r)/72, 1, 1, 0.6], Disk[(8-r){Cos[2Pi q/12], Sin [2Pi q/12]}, (8-r)/3]}, {r, 6}, {q, 12}]]',
 	    '(* 3D graphics *)',
 	    'Graphics3D[Sphere[{0, 0, 0}, 1]]',
-	    'Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}, PlotPoints->21]',
             'Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full, PlotPoints->21]',
+	    'Plot3D[ Abs[Zeta[x + I y] ], {x, -2, 2}, {y, 2, 20}, PlotPoints->30]',
 	    'Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]'
 	]);
 }
