@@ -51,7 +51,7 @@ gstest:
 
 #: Create data that is used to in Django docs and to build TeX PDF
 doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
-	$(PYTHON) mathics/test.py -o -k
+	$(PYTHON) mathics/test.py -ot -k
 
 #: Run tests that appear in docstring in the code.
 doctest:
@@ -63,7 +63,7 @@ djangotest:
 
 #: Make Mathics PDF manual
 doc mathics.pdf: mathics/doc/tex/data
-	(cd mathics/doc/tex && make)
+	(cd mathics/doc/tex && $(MAKE) mathics.pdf)
 
 #: Remove ChangeLog
 rmChangeLog:
