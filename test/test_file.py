@@ -18,15 +18,15 @@ def test_get_and_put():
     if len(temp_directory)<3:
         return
     temp_directory = temp_directory[1:-1]
-    temp_filename = temp_directory + "/testfile"
+    temp_filename = f"{temp_directory}/testfile"
     print(temp_filename)
-    result = _evaluate("40! >> " + temp_filename).to_python()
+    result = _evaluate(f"40! >> {temp_filename}").to_python()
     assert result is None
 
-    result = _evaluate("<< " + temp_filename)
+    result = _evaluate(f"<< {temp_filename}")
     assert result == _evaluate("40!")
 
-    result = _evaluate("DeleteFile[\"" + temp_filename + "\"]").to_python()
+    result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
     assert result is None
 
 
