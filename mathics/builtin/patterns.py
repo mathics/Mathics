@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Patterns and rules
+Patterns and Rules
 
 Some examples:
 >> a + b + c /. a + b -> t

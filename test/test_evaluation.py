@@ -39,6 +39,14 @@ def _evaluate(str_expression):
         # This doesn't work if not logged or in some OS's
         # (r"Head[$UserName]", "String"),
         (r"Head[$Version]", "String"),
+        # Strings and Characters
+        (r'StringInsert["abcdefghijklm", "X", 1]', r'"Xabcdefghijklm"'),
+        (r'StringInsert["abcdefghijklm", "X", 14]', r'"abcdefghijklmX"'),
+        (r'StringInsert["abcdefghijklm", "", 1]', r'"abcdefghijklm"'),
+        (r'StringInsert["", "X", 1]', r'"X"'),
+        (r'StringInsert["", "X", -1]', r'"X"'),
+        (r'StringInsert["abcdefghijklm", "", -1]', r'"abcdefghijklm"'),
+        (r'StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]', r'{"abcdefghijklm", "Mathics"}'),
     ],
 )
 def test_evaluation(str_expr: str, str_expected: str, message=""):
