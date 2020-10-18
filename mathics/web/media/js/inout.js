@@ -196,6 +196,11 @@ function showGallery() {
 	    'Sum[2 i + 1, {i, 0, 10}] (* Sum of 1st n odd numbers (n+1)**2 *)',
 	    'n = 8; 2 ^ # & /@ Range[0, n] (* Powers of 2 *)',
 	    'Total[%] (* Sum is 2 ^ n - 1 *)',
+
+	    '(**** Functions ****)',
+            '(* Colatz Conjecture https://oeis.org/A006577 *)',
+	    'f[n_] := Module[{a=n, k=0}, While[a!=1, k++; If[EvenQ[a], a=a/2, a=a*3+1]]; k]',
+            'Table[f[n], {n, 4!}]',
 	    '(**** Symbolic Manipulation ****)',
 	    'Apart[1 / (x^2 + 5x + 6)]',
 	    'Cancel[x / x ^ 2]',
