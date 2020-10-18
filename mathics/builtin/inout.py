@@ -32,29 +32,17 @@ MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 class UseSansSerif(Predefined):
     """
     <dl>
-    <dt>'$UseSansSerif'
-        <dd>specifies the font of the web interface.
+      <dt>'$UseSansSerif'
+      <dd>controls whether the Web interfaces use a Sans-Serif font.
     </dl>
 
-    When True, the output in MathMLForm uses SansSerif fonts instead
-    of the standard ones...
-    #> System`$UseSansSerif  = True; MathMLForm[TableForm[{{a,b},{c,d}}]]
-     = <math display="block"><mstyle mathvariant="..."><mtable columnalign="center">
-     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
-     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
-     . </mtable></mstyle></math>
+    When set True, the output in MathMLForm uses SansSerif fonts instead
+    of the standard fonts.
 
-    #> System`$UseSansSerif
+    X> $UseSansSerif
      = True
-    #> System`$UseSansSerif = False;
-    #> System`$UseSansSerif
-     = False
+    X> $UseSansSerif = False
 
-    #> MathMLForm[TableForm[{{a,b},{c,d}}]]
-     = <math display="block"><mtable columnalign="center">
-     . <mtr><mtd columnalign="center"><mi>a</mi></mtd><mtd columnalign="center"><mi>b</mi></mtd></mtr>
-     . <mtr><mtd columnalign="center"><mi>c</mi></mtd><mtd columnalign="center"><mi>d</mi></mtd></mtr>
-     . </mtable></math>
     """
     context = "System`"
     name = '$UseSansSerif'
@@ -74,8 +62,8 @@ class UseSansSerif(Predefined):
 class Format(Builtin):
     """
     <dl>
-    <dt>'Format[$expr$]'
-        <dd>holds values specifying how $expr$ should be printed.
+      <dt>'Format[$expr$]'
+      <dd>holds values specifying how $expr$ should be printed.
     </dl>
 
     Assign values to 'Format' to control how particular expressions
