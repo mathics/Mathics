@@ -1,4 +1,6 @@
-
+"""
+The Main Loop
+"""
 
 from mathics.builtin.base import Builtin
 
@@ -6,9 +8,9 @@ from mathics.builtin.base import Builtin
 class IOHookPreRead(Builtin):
     '''
     <dl>
-    <dt>$PreRead 
+    <dt>$PreRead
     <dt> is a global variable whose value, if set, is applied to the \
-    text or box form of every input expression before it is fed to the parser. 
+    text or box form of every input expression before it is fed to the parser.
     <dt>(Not implemented yet)
     </dl>
     '''
@@ -17,13 +19,13 @@ class IOHookPreRead(Builtin):
 class IOHookPre(Builtin):
     '''
     <dl>
-    <dt>$Pre 
+    <dt>$Pre
     <dt>is a global variable whose value, if set,
     is applied to every input expression.
     </dl>
 
     Set $Timing$ as the $Pre function, stores the enlapsed time in a variable,
-    stores just the result in Out[$Line] and print a formated version showing the enlapsed time   
+    stores just the result in Out[$Line] and print a formated version showing the enlapsed time
     >> $Pre := (Print["[Processing input...]"];#1)&
     >> $Post := (Print["[Storing result...]"]; #1)&
      | [Processing input...]
@@ -34,7 +36,7 @@ class IOHookPre(Builtin):
     >> 2 + 2
      | [Processing input...]
      | [Storing result...]
-     | The result is: 
+     | The result is:
      = {..., 4}
     >> $Pre = .; $Post = .;  $PrePrint = .;  $EnlapsedTime = .;
      | [Processing input...]
@@ -43,11 +45,11 @@ class IOHookPre(Builtin):
     '''
     name = "$Pre"
 
-    
+
 class IOHookPost(Builtin):
     '''
     <dl>
-    <dt>$Post 
+    <dt>$Post
     <dt>is a global variable whose value, if set,
     is applied to every output expression.
     </dl>
@@ -58,10 +60,10 @@ class IOHookPost(Builtin):
 class IOHookPrePrint(Builtin):
     '''
     <dl>
-    <dt>$PrePrint 
+    <dt>$PrePrint
     <dt>is a global variable whose value, if set,
     is applied to every output expression before it is printed.
-    </dl>      
+    </dl>
     '''
     name = "$PrePrint"
 
@@ -69,13 +71,10 @@ class IOHookPrePrint(Builtin):
 class IOHookSyntaxHandler(Builtin):
     '''
     <dl>
-    <dt>$SyntaxHandler 
+    <dt>$SyntaxHandler
     <dt>is a global variable whose value, if set,
-    is applied to  any input string that is found to contain a syntax error. 
+    is applied to  any input string that is found to contain a syntax error.
     <dt>(Not implemented yet)
     </dl>
     '''
     name = "$SyntaxHandler"
-
-
-

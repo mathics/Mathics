@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Recurrence relation solvers
+Solving Recurrence Equations
 """
 
 

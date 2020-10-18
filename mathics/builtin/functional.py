@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Functional programming
+Functional Programming
 """
 
 from itertools import chain

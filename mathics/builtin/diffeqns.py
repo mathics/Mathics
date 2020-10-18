@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Differential equation solver functions
+Differential Equations
 """
 
 import sympy

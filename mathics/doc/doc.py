@@ -693,7 +693,7 @@ class MathicsMainDocumentation(Documentation):
                     appendix.append(part)
 
         for title, modules, builtins_by_module, start in [(
-            "Reference of built-in symbols", builtin.modules,
+            "Reference of Built-in Symbols", builtin.modules,
             builtin.builtins_by_module, True)]:     # nopep8
             # ("Reference of optional symbols", optional.modules,
             #  optional.optional_builtins_by_module, False)]:
