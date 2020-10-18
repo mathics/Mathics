@@ -35,7 +35,7 @@ Some of the most important features of \Mathics are
 <section title="What is missing?">
 There are lots of ways in which \Mathics could still be improved.
 
-Most notably, performance is still slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Although Cython can be used to speed up parts of \Mathics, more is needed to speed up pattern matching. Replacing recusion with iteration may help here.
+Most notably, performance is still slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Although Cython can be used to speed up parts of \Mathics, more is needed to speed up pattern matching. Replacing recursion with iteration may help here.
 
 Apart from performance issues, new features such as more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
 
@@ -70,11 +70,11 @@ Since installation may change, see <url>https://github.com/mathics/Mathics/wiki/
 </chapter>
 
 
-<chapter title="Language tutorials">
+<chapter title="Language Tutorials">
 
-The following sections are introductions to the basic principles of the language of \Mathics. A few examples and functions are presented. Only their most common usages are listed; for a full description of their possible arguments, options, etc., see their entry in the Reference of built-in symbols.
+The following sections are introductions to the basic principles of the language of \Mathics. A few examples and functions are presented. Only their most common usages are listed; for a full description of a Symbols possible arguments, options, etc., see its entry in the Reference of Built-in Symbols.
 
-However if you google for "Mathematica Tutorials" youw will find easily dozens of other tutorials which are applicable. Be warned though that \Mathics does not yet offer the full range and features and capabilities of \Mathematica.
+However if you google for "Mathematica Tutorials" you will find easily dozens of other tutorials which are applicable. Be warned though that \Mathics does not yet offer the full range and features and capabilities of \Mathematica.
 
 <section title="Basic calculations">
 \Mathics can be used to calculate basic stuff:
@@ -156,7 +156,7 @@ The result of the previous query to \Mathics can be accessed by '%':
  = 49
 </section>
 
-<section title="Symbols and assignments">
+<section title="Symbols and Assignments">
 Symbols need not be declared in \Mathics, they can just be entered and remain variable:
 >> x
  = x
@@ -195,7 +195,7 @@ Such a dependency can be achieved by using "delayed assignment" with the ':=' op
 </section>
 
 
-<section title="Comparisons and Boolean logic">
+<section title="Comparisons and Boolean Logic">
 Values can be compared for equality using the operator '==':
 >> 3 == 3
  = True
@@ -223,7 +223,7 @@ Truth values can be negated using '!' (logical <em>not</em>) and combined using 
 </section>
 
 <section title="Strings">
-Strings can be entered with '"' as delimeters:
+Strings can be entered with '"' as delimiters:
 >> "Hello world!"
  = Hello world!
 As you can see, quotation marks are not printed in the output by default. This can be changed by using 'InputForm':
@@ -320,7 +320,7 @@ It is an error to combine lists with unequal lengths:
  = {1, 2} + {4, 5, 6}
 </section>
 
-<section title="The structure of things">
+<section title="The Structure of Things">
 Every expression in \Mathics is built upon the same principle: it consists of a <em>head</em> and an arbitrary number of <em>children</em>, unless it is an <em>atom</em>, i.e. it can not be subdivided any further. To put it another way: everything is a function call. This can be best seen when displaying expressions in their "full form":
 >> FullForm[a + b + c]
  = Plus[a, b, c]
@@ -390,7 +390,7 @@ But
 because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different.
 </section>
 
-<section title="Functions and patterns">
+<section title="Functions and Patterns">
 Functions can be defined in the following way:
 >> f[x_] := x ^ 2
 This tells \Mathics to replace every occurrence of 'f' with one (arbitrary) parameter 'x' with 'x ^ 2'.
@@ -468,7 +468,7 @@ While 'ReplaceAll' and 'ReplaceRepeated' simply take the first possible match in
 >> ReplaceAll[{a, b, c}, {___, x__, ___} -> {x}]
  = {a}
 
-In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the funtion body and '#' can be used as argument placeholder:
+In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the function body and '#' can be used as argument placeholder:
 >> h = # ^ 2 &;
 >> h[3]
  = 9
@@ -494,7 +494,7 @@ Functions can be applied using prefix or postfix notation, in addition to using 
  = 9
 </section>
 
-<section title="Control statements">
+<section title="Control Statements">
 Like most programming languages, \Mathics has common control statements for conditions, loops, etc.:
 <dl>
 <dt>'If[$cond$, $pos$, $neg$]'
@@ -590,7 +590,7 @@ It is common to use scoping constructs for function definitions with local varia
  = 3628800
 </section>
 
-<section title="Formatting output">
+<section title="Formatting Output">
 The way results are formatted for output in \Mathics is rather sophisticated, as compatibility to the way \Mathematica does things is one of the design goals. It can be summed up in the following procedure:
 <ol>
 <li>The result of the query is calculated.
@@ -714,7 +714,7 @@ The desired effect can be achieved in the following way:
 You can view the box structure of a formatted expression using 'ToBoxes':
 >> ToBoxes[m + n]
  = RowBox[{m, +, n}]
-The list elements in this 'RowBox' are strings, though string delimeters are not shown in the default output form:
+The list elements in this 'RowBox' are strings, though string delimiters are not shown in the default output form:
 >> InputForm[%]
  = RowBox[{"m", "+", "n"}]
 </section>
@@ -842,7 +842,7 @@ And test the second derivative:
 >> f''[x] /. extremes // N
  = {1.65086, -0.064079}
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
-Compute the inflection points numerically, choping imaginary parts close to 0:
+Compute the inflection points numerically, chopping imaginary parts close to 0:
 >> inflections = Solve[f''[x] == 0, x] // N // Chop
  = {{x -> -1.0852}, {x -> -3.21463}, {x -> 4.29983}}
 Insert into the third derivative:
@@ -1045,7 +1045,7 @@ There are some keyboard commands you can use in the Django-based Web interface o
 <dt>'Ctrl+D'</dt>
 	<dd>This moves the cursor over to the documentation pane on the right-hand side. From here you can preform a search for a pre-defined \Mathics function, or symbol. Clicking on the "?" symbol on the right-hand side does the same thing.</dd>
 <dt>'Ctrl+C'</dt>
-	<dd>This moves the curser back to document code pane area where you type \Mathics expressions</dd>
+	<dd>This moves the cursor back to document code pane area where you type \Mathics expressions</dd>
 <dt>'Ctrl+S'</dt>
 	<dd>Save worksheet</dd>
 <dt>'Ctrl+O'</dt>
