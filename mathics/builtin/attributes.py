@@ -121,17 +121,11 @@ class ClearAttributes(Builtin):
     attributes = ("HoldFirst",)
 
     def apply(self, symbols, attributes, evaluation):
-<<<<<<< HEAD
         "ClearAttributes[symbols_, attributes_]"
 
         symbols = get_symbol_list(
             symbols, lambda item: evaluation.message("ClearAttributes", "sym", item, 1)
         )
-=======
-        'ClearAttributes[symbols_, attributes_]'
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
-            'ClearAttributes', 'sym', item, 1))
->>>>>>> WIP: Unprotect["`*"] and Protect["`*"]
         if symbols is None:
             return
         values = get_symbol_list(
@@ -156,12 +150,17 @@ class Protect(Builtin):
       <dd>sets the attribute 'Protected' for the symbols $si$.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       <dt>'Protect'[$str1$, $str2$, ...]
       <dd>protects all symbols whose names textually match $stri$.
 =======
       <dt>'Protect'[$form1$, $form2$, ...]
       <dd>protects all symbols whose names textually match any of the $formi$.
 >>>>>>> WIP: Unprotect["`*"] and Protect["`*"]
+=======
+      <dt>'Protect'[$str$]
+      <dd>protects all symbols whose names textually match $str$.
+>>>>>>> Reduce: "`*" matching & {Unp,P}rotect[]
     </dl>
 
     >> A = {1, 2, 3};
@@ -241,12 +240,17 @@ class Unprotect(Builtin):
       <dd>removes the attribute 'Protected' for the symbols $si$.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       <dt>'Unprotect'[$str$]
       <dd>unprotects symbols whose names textually match $str$.
 =======
       <dt>'Unprotect'[$form1$, $form2$, ...]
       <dd>unprotects all symbols whose names textually match any of the $formi$.
 >>>>>>> WIP: Unprotect["`*"] and Protect["`*"]
+=======
+      <dt>'Unprotect'[$str$]
+      <dd>unprotects symbols whose names textually match $str$.
+>>>>>>> Reduce: "`*" matching & {Unp,P}rotect[]
     </dl>
     """
 
