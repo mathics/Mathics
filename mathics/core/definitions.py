@@ -297,7 +297,7 @@ class Definitions(object):
         if '`' in pattern:
             ctx_pattern, short_pattern = pattern.rsplit('`', 1)
             if ctx_pattern == "":
-                ctx_pattern=".*"
+                ctx_pattern="System`"
             else:
                 ctx_pattern = ((ctx_pattern + '`')
                                .replace('@', '[^A-Z`]+')

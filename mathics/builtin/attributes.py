@@ -142,8 +142,8 @@ class Protect(Builtin):
       <dt>'Protect'[$s1$, $s2$, ...]
       <dd>sets the attribute 'Protected' for the symbols $si$.
 
-      <dt>'Protect'[$form1$, $form2$, ...]
-      <dd>protects all symbols whose names textually match any of the $formi$.
+      <dt>'Protect'[$str$]
+      <dd>protects all symbols whose names textually match $str$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -180,8 +180,8 @@ class Unprotect(Builtin):
       <dt>'Unprotect'[$s1$, $s2$, ...]
       <dd>removes the attribute 'Protected' for the symbols $si$.
 
-      <dt>'Unprotect'[$form1$, $form2$, ...]
-      <dd>unprotects all symbols whose names textually match any of the $formi$.
+      <dt>'Unprotect'[$str$]
+      <dd>unprotects symbols whose names textually match $str$.
     </dl>
     """
 
