@@ -10,7 +10,7 @@ However, you can set any symbol as an attribute, in contrast to \Mathematica.
 
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Symbol, Expression
+from mathics.core.expression import Expression, Symbol
 from mathics.builtin.assignment import get_symbol_list
 
 
@@ -109,7 +109,7 @@ class ClearAttributes(Builtin):
     >> ClearAttributes[f, Flat]
     >> Attributes[f]
      = {}
-    Attributes that are not even set are simply ignored:
+    Attributes that are not set are ignored:
     >> ClearAttributes[{f}, {Flat}]
     >> Attributes[f]
      = {}
@@ -119,7 +119,6 @@ class ClearAttributes(Builtin):
 
     def apply(self, symbols, attributes, evaluation):
         'ClearAttributes[symbols_, attributes_]'
-
         symbols = get_symbol_list(symbols, lambda item: evaluation.message(
             'ClearAttributes', 'sym', item, 1))
         if symbols is None:
@@ -140,8 +139,11 @@ class ClearAttributes(Builtin):
 class Protect(Builtin):
     """
     <dl>
-    <dt>'Protect'[$s1$, $s2$, ...]
-        <dd>sets the attribute 'Protected' for the symbols $si$.
+      <dt>'Protect'[$s1$, $s2$, ...]
+      <dd>sets the attribute 'Protected' for the symbols $si$.
+
+      <dt>'Protect'[$form1$, $form2$, ...]
+      <dd>protects all symbols whose names textually match any of the $formi$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -158,12 +160,28 @@ class Protect(Builtin):
         'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
     }
 
+    def apply(self, pattern, evaluation):
+        "Protect[pattern_]"
+
+        pattern_str = pattern.get_string_value()
+        protected = Symbol("System`Protected")
+        if pattern_str is None:
+            Expression("SetAttributes", pattern, protected).evaluate(evaluation)
+        else:
+            for defn in evaluation.definitions.get_matching_names(pattern_str):
+                symbol = Symbol(defn),
+                if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                    Expression("SetAttributes", symbol, protected).evaluate(evaluation)
+        return Symbol('Null')
 
 class Unprotect(Builtin):
     """
     <dl>
-    <dt>'Unprotect'[$s1$, $s2$, ...]
-        <dd>removes the attribute 'Protected' for the symbols $si$.
+      <dt>'Unprotect'[$s1$, $s2$, ...]
+      <dd>removes the attribute 'Protected' for the symbols $si$.
+
+      <dt>'Unprotect'[$form1$, $form2$, ...]
+      <dd>unprotects all symbols whose names textually match any of the $formi$.
     </dl>
     """
 
@@ -173,6 +191,19 @@ class Unprotect(Builtin):
         'Unprotect[symbols__]': 'ClearAttributes[{symbols}, Protected]',
     }
 
+    def apply(self, pattern, evaluation):
+        "Unprotect[pattern_]"
+
+        pattern_str = pattern.get_string_value()
+        protected = Symbol("System`Protected")
+        if pattern_str is None:
+            Expression("ClearAttributes", pattern, protected).evaluate(evaluation)
+        else:
+            for defn in evaluation.definitions.get_matching_names(pattern_str):
+                symbol = Symbol(defn),
+                if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                    Expression("ClearAttributes", symbol, protected).evaluate(evaluation)
+        return Symbol('Null')
 
 class Protected(Predefined):
     """

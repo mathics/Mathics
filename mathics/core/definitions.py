@@ -296,10 +296,13 @@ class Definitions(object):
 
         if '`' in pattern:
             ctx_pattern, short_pattern = pattern.rsplit('`', 1)
-            ctx_pattern = ((ctx_pattern + '`')
-                           .replace('@', '[^A-Z`]+')
-                           .replace('*', '.*')
-                           .replace('$', r'\$'))
+            if ctx_pattern == "":
+                ctx_pattern=".*"
+            else:
+                ctx_pattern = ((ctx_pattern + '`')
+                               .replace('@', '[^A-Z`]+')
+                            .replace('*', '.*')
+                            .replace('$', r'\$'))
         else:
             short_pattern = pattern
             # start with a group matching the accessible contexts
