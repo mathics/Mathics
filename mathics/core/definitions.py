@@ -313,8 +313,25 @@ class Definitions(object):
         which aren't uppercase letters. In the context pattern, both
         '*' and '@' match context marks.
         """
-        if isinstance(pattern, type_compiled_pattern):
-            regex = pattern
+
+        if re.match(full_names_pattern, pattern) is None:
+            # The pattern contained characters which weren't allowed
+            # in symbols and aren't valid wildcards. Hence, the
+            # pattern can't match any symbols.
+            return []
+
+        # If we get here, there aren't any regexp metacharacters in
+        # the pattern.
+
+        if '`' in pattern:
+            ctx_pattern, short_pattern = pattern.rsplit('`', 1)
+            if ctx_pattern == "":
+                ctx_pattern=".*"
+            else:
+                ctx_pattern = ((ctx_pattern + '`')
+                               .replace('@', '[^A-Z`]+')
+                            .replace('*', '.*')
+                            .replace('$', r'\$'))
         else:
             if re.match(full_names_pattern, pattern) is None:
                 # The pattern contained characters which weren't allowed
