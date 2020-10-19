@@ -1,4 +1,0 @@
-mathics
-colorama
-pygments
-git+https://github.com/Mathics3/tmathics

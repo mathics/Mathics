@@ -47,7 +47,8 @@ echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo
 
 case $mathics_mode in
-    cli) tmathics $@ ;;
+    cli) mathicsscript $@ ;;
     ui)  mathicsserver -e $@ ;;
+    shell)  /bin/bash ;;
     *)   echo "unknown mathics_mode=$mathics_mode. See '$script_cmd --help'" ; exit 2 ;;
 esac

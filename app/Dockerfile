@@ -13,8 +13,8 @@ RUN apt-get update
 RUN apt-get install -qq liblapack-dev llvm-dev gfortran
 RUN pip install --no-cache-dir -r requirements.txt
 # RUN python -m nltk.downloader wordnet omw
-COPY requirements-tmathics.txt ./
-RUN pip install --no-cache-dir -r requirements-tmathics.txt
+COPY requirements-mathicsscript.txt ./
+RUN pip install --no-cache-dir -r requirements-mathicsscript.txt
 
 EXPOSE 8000
 
