@@ -188,6 +188,8 @@ setup(
         "mathics": [
             "data/*.csv",
             "data/ExampleData/*",
+            "doc/xml/data",
+            "doc/tex/data",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",
