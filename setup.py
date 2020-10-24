@@ -26,6 +26,7 @@ mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
+import os.path as osp
 import platform
 from setuptools import setup, Command, Extension
 
@@ -34,8 +35,21 @@ if sys.version_info < (3, 6):
     print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
 
+def get_srcdir():
+    filename = osp.normcase(osp.dirname(osp.abspath(__file__)))
+    return osp.realpath(filename)
+
+
+def read(*rnames):
+    return open(osp.join(get_srcdir(), *rnames)).read()
+
+
 # stores __version__ in the current namespace
 exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
+
+# Get/set VERSION and long_description from files
+long_description = read("README.rst") + "\n"
+
 
 is_PyPy = platform.python_implementation() == "PyPy"
 
@@ -70,12 +84,13 @@ INSTALL_REQUIRES += [
     "django >= 3.0, < 3.2",
     "mpmath>=1.1.0",
     "numpy",
-    "palettable", # For bar charts, and portable, no-proprietary color palletes
+    "palettable",  # For bar charts, and portable, no-proprietary color palletes
     "pint",
     "python-dateutil",
     "llvmlite",
     "requests",
 ]
+
 
 def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
@@ -112,7 +127,7 @@ class initialize(Command):
 
         database_file = settings["DATABASES"]["default"]["NAME"]
         print("Creating data directory %s" % settings["DATA_DIR"])
-        if not os.path.exists(settings["DATA_DIR"]):
+        if not osp.exists(settings["DATA_DIR"]):
             os.makedirs(settings["DATA_DIR"])
         print("Creating database %s" % database_file)
         try:
@@ -180,7 +195,7 @@ setup(
         "mathics.web",
         "mathics.web.templatetags",
         "mathics.web.migrations",
-        "pymathics.testpymathicsmodule"
+        "pymathics.testpymathicsmodule",
     ],
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
@@ -188,6 +203,8 @@ setup(
         "mathics": [
             "data/*.csv",
             "data/ExampleData/*",
+            "doc/xml/data",
+            "doc/tex/data",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",
@@ -219,11 +236,12 @@ setup(
             "mathicsscript = mathics.script:main",
         ],
     },
+    long_description=long_description,
+    long_description_content_type="text/x-rst",
     # don't pack Mathics in egg because of media files, etc.
     zip_safe=False,
     # metadata for upload to PyPI
-    author="Angus Griffith",
-    author_email="mathics@angusgriffith.com",
+    maintainer="Mathics Group",
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.org/",
@@ -234,7 +252,6 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python",
-
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",

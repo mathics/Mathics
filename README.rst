@@ -7,6 +7,21 @@ Mathics is a general-purpose computer algebra system (CAS). It is an open-source
 
 The home page of Mathics is https://mathics.org.
 
+
+ScreenShots
+-----------
+
+mathicsscript: a text interface
++++++++++++++++++++++++++++++++
+
+|mathicsscript|
+
+mathicsserver: a Django-based Web interface
++++++++++++++++++++++++++++++++++++++++++++
+
+|mathicssserver|
+
+
 Installing and Running
 ----------------------
 
@@ -23,6 +38,10 @@ Please feel encouraged to contribute to Mathics! Create your own fork, make the 
 .. _Travis: https://travis-ci.org/mathics/Mathics
 .. |PyPI| image:: https://img.shields.io/pypi/v/Mathics
 .. _PyPI: https://pypi.org/project/Mathics/
+.. |mathicsscript| image:: https://mathics.org/screenshots/mathicsscript.png
+.. |mathicssserver| image:: https://mathics.org/screenshots/mathicsserver.png
+
+
 
 License
 -------
