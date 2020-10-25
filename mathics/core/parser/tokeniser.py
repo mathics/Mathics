@@ -122,7 +122,7 @@ tokens = [
     ('RuleDelayed', r' (\:\>)|\uF51F '),
     ('UndirectedEdge', r' (\<\-\>)|\u29DF '),
     ('ReplaceRepeated', r' \/\/\. '),
-    ('ReplaceAll', r' \/\.![0-9] '),
+    ('ReplaceAll', r' \/\.[^0-9] '),
 
     ('Postfix', r' \/\/ '),
 
