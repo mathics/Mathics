@@ -678,6 +678,8 @@ class Divide(BinaryOperator):
 
     #> 1 / 4.0
      = 0.25
+    #> 1/.5
+     = 2.
     #> 10 / 3 // FullForm
      = Rational[10, 3]
     #> a / b // FullForm
