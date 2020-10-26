@@ -661,8 +661,6 @@ class Divide(BinaryOperator):
     
 
     Use 'N' or a decimal point to force numeric evaluation:
-    >> a /.5
-     = 2. a
     >> Pi / 4.0
      = 0.785398
     >> 1 / 8
