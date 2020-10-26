@@ -658,8 +658,6 @@ class Divide(BinaryOperator):
     >> Pi / 4
      = Pi / 4
 
-    
-
     Use 'N' or a decimal point to force numeric evaluation:
     >> Pi / 4.0
      = 0.785398
