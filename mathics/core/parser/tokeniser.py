@@ -373,6 +373,8 @@ class Tokeniser(object):
         else:
             text = match.group(0)
             self.pos = match.end(0)
+            if tag == "ReplaceAll":
+                self.pos = self.pos - 1
             return Token(tag, text, match.start(0))
 
     def skip_blank(self):
