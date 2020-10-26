@@ -379,7 +379,7 @@ class BaseExpression(KeyComparable):
                 if head in formats:
                     expr = expr.do_format(evaluation, form)
                 elif (head != 'System`NumberForm' and not expr.is_atom() and
-                       head != 'System`Graphics'):
+                      head != 'System`Graphics'):
                     new_leaves = [leaf.do_format(evaluation, form)
                                   for leaf in expr.leaves]
                     expr = Expression(
