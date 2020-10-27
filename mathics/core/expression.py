@@ -348,7 +348,7 @@ class BaseExpression(KeyComparable):
             leaves = self.get_leaves()
             include_form = False
             if head in formats and len(leaves) == 1:
-                expr = leaves
+                expr = leaves[0]
                 if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
 
