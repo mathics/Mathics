@@ -1114,7 +1114,8 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            if (leaf_1.has_form('List', 1, 2) and all(leaf.get_int_value() for leaf in leaf_1.leaves)):
+            allnumbers = all(not (leaf.get_int_value() is None) for leaf in leaf_1.get_leaves())
+            if (leaf_1.has_form('List', 1, 2) and allnumbers ):
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():
