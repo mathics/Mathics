@@ -208,7 +208,6 @@ class Replace(Builtin):
             evaluation.message('General', 'level', ls)
         except PatternError as e:
             evaluation.message('Replace','reps', rules)
-            
 
 
 class ReplaceAll(BinaryOperator):
@@ -280,9 +279,6 @@ class ReplaceAll(BinaryOperator):
             return result
         except PatternError as e:
             evaluation.message('Replace','reps', rules)
-        
-
-
 
 
 class ReplaceRepeated(BinaryOperator):
@@ -323,7 +319,7 @@ class ReplaceRepeated(BinaryOperator):
         except PatternError as e:
             evaluation.message('Replace','reps', rules)
             return None
-            
+
         if ret:
             return rules
 

@@ -390,12 +390,10 @@ class BaseExpression(KeyComparable):
                                       ),"...",170))
                     else:
                         return Expression("System`HoldForm",expr)
-                
+
                 formatted = format_expr(expr)
                 if formatted is not None:
-                    print("   formated: ",formatted)
                     result = formatted.do_format(evaluation, form)
-                    print("   result: ", result)                    
                     if include_form:
                         result = Expression(form, result)
                     result.unformatted = unformatted
@@ -405,8 +403,7 @@ class BaseExpression(KeyComparable):
                 if head in formats:
                     expr = expr.do_format(evaluation, form)
                 elif (head != 'System`NumberForm' and not expr.is_atom() and
-                      head != 'System`Graphics' and
-                      not head in ("Repeat", "RepeatNull") ):
+                      head != 'System`Graphics'):
                     new_leaves = [leaf.do_format(evaluation, form)
                                   for leaf in expr.leaves]
                     expr = Expression(
