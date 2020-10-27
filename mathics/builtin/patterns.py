@@ -36,7 +36,7 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
-from mathics.builtin.base import PatternObject
+from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
@@ -206,6 +206,9 @@ class Replace(Builtin):
             return result
         except InvalidLevelspecError:
             evaluation.message('General', 'level', ls)
+        except PatternError as e:
+            evaluation.message('Replace','reps', rules)
+            
 
 
 class ReplaceAll(BinaryOperator):
@@ -267,13 +270,19 @@ class ReplaceAll(BinaryOperator):
 
     def apply(self, expr, rules, evaluation):
         'ReplaceAll[expr_, rules_]'
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
 
-        rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
-        if ret:
-            return rules
+            if ret:
+                return rules
 
-        result, applied = expr.apply_rules(rules, evaluation)
-        return result
+            result, applied = expr.apply_rules(rules, evaluation)
+            return result
+        except PatternError as e:
+            evaluation.message('Replace','reps', rules)
+        
+
+
 
 
 class ReplaceRepeated(BinaryOperator):
@@ -309,8 +318,12 @@ class ReplaceRepeated(BinaryOperator):
 
     def apply_list(self, expr, rules, evaluation):
         'ReplaceRepeated[expr_, rules_]'
-
-        rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
+        except PatternError as e:
+            evaluation.message('Replace','reps', rules)
+            return None
+            
         if ret:
             return rules
 
@@ -374,9 +387,13 @@ class ReplaceList(Builtin):
             if max_count is None or max_count < 0:
                 evaluation.message('ReplaceList', 'innf', 3)
                 return
+        try:
+            rules, ret = create_rules(
+                rules, expr, 'ReplaceList', evaluation, extra_args=[max])
+        except PatternError as e:
+            evaluation.message('Replace','reps', rules)
+            return None
 
-        rules, ret = create_rules(
-            rules, expr, 'ReplaceList', evaluation, extra_args=[max])
         if ret:
             return rules
 
