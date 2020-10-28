@@ -1,5 +1,5 @@
 #!/bin/bash
-PACKAGE=mathics
+PACKAGE=mathicsscript
 
 # FIXME put some of the below in a common routine
 function finish {
