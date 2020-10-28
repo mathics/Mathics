@@ -345,9 +345,10 @@ class BaseExpression(KeyComparable):
         try:
             expr = self
             head = self.get_head_name()
+            leaves = self.get_leaves()
             include_form = False
-            if head in formats and len(self.get_leaves()) == 1:
-                expr = self.leaves[0]
+            if head in formats and len(leaves) == 1:
+                expr = leaves[0]
                 if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
 
@@ -367,6 +368,29 @@ class BaseExpression(KeyComparable):
                 return None
 
             if form != 'System`FullForm':
+                # Repeated and RepeatedNull confuse the formatter,
+                # so we need to hardlink their format rules:
+                if head == "System`Repeated":
+                    if len(leaves)==1:
+                        return Expression("System`HoldForm",
+                                      Expression("System`Postfix",
+                                      Expression(
+                                          "System`List",
+                                          leaves[0]
+                                      ),"..",170))
+                    else:
+                        return Expression("System`HoldForm",expr)
+                elif head == "System`RepeatedNull":
+                    if len(leaves)==1:
+                        return Expression("System`HoldForm",
+                                      Expression("System`Postfix",
+                                      Expression(
+                                          "System`List",
+                                          leaves[0]
+                                      ),"...",170))
+                    else:
+                        return Expression("System`HoldForm",expr)
+
                 formatted = format_expr(expr)
                 if formatted is not None:
                     result = formatted.do_format(evaluation, form)
