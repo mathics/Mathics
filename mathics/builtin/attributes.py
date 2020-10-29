@@ -157,21 +157,21 @@ class Protect(Builtin):
     attributes = ('HoldAll',)
 
     rules = {
-        'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
+        'Protect[symbols__Symbol]': 'SetAttributes[{symbols}, Protected]',
     }
 
-    def apply(self, pattern, evaluation):
-        "Protect[pattern_]"
-
-        pattern_str = pattern.get_string_value()
-        protected = Symbol("System`Protected")
-        if pattern_str is None:
-            Expression("SetAttributes", pattern, protected).evaluate(evaluation)
-        else:
-            for defn in evaluation.definitions.get_matching_names(pattern_str):
-                symbol = Symbol(defn),
-                if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
-                    Expression("SetAttributes", symbol, protected).evaluate(evaluation)
+    def apply(self, patterns, evaluation):
+        "Protect[patterns__String]"
+        for item in patterns.get_leaves():
+            pattern_str = item.get_string_value()
+            protected = Symbol("System`Protected")
+            if pattern_str is None:
+                Expression("SetAttributes", pattern, protected).evaluate(evaluation)
+            else:
+                for defn in evaluation.definitions.get_matching_names(pattern_str):
+                    symbol = Symbol(defn),
+                    if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                        Expression("SetAttributes", symbol, protected).evaluate(evaluation)
         return Symbol('Null')
 
 class Unprotect(Builtin):
@@ -188,21 +188,21 @@ class Unprotect(Builtin):
     attributes = ('HoldAll',)
 
     rules = {
-        'Unprotect[symbols__]': 'ClearAttributes[{symbols}, Protected]',
+        'Unprotect[symbols__Symbol]': 'ClearAttributes[{symbols}, Protected]',
     }
 
-    def apply(self, pattern, evaluation):
-        "Unprotect[pattern_]"
-
-        pattern_str = pattern.get_string_value()
-        protected = Symbol("System`Protected")
-        if pattern_str is None:
-            Expression("ClearAttributes", pattern, protected).evaluate(evaluation)
-        else:
-            for defn in evaluation.definitions.get_matching_names(pattern_str):
-                symbol = Symbol(defn),
-                if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
-                    Expression("ClearAttributes", symbol, protected).evaluate(evaluation)
+    def apply(self, patterns, evaluation):
+        "Unprotect[patterns__String]"
+        for item in patterns.get_leaves():
+            pattern_str = item.get_string_value()
+            protected = Symbol("System`Protected")
+            if pattern_str is None:
+                Expression("ClearAttributes", pattern, protected).evaluate(evaluation)
+            else:
+                for defn in evaluation.definitions.get_matching_names(pattern_str):
+                    symbol = Symbol(defn),
+                    if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                        Expression("ClearAttributes", symbol, protected).evaluate(evaluation)
         return Symbol('Null')
 
 class Protected(Predefined):

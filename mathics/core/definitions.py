@@ -301,8 +301,8 @@ class Definitions(object):
             else:
                 ctx_pattern = ((ctx_pattern + '`')
                                .replace('@', '[^A-Z`]+')
-                            .replace('*', '.*')
-                            .replace('$', r'\$'))
+                               .replace('*', '.*')
+                               .replace('$', r'\$'))
         else:
             short_pattern = pattern
             # start with a group matching the accessible contexts
