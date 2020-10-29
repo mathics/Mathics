@@ -330,8 +330,8 @@ class Definitions(object):
             else:
                 ctx_pattern = ((ctx_pattern + '`')
                                .replace('@', '[^A-Z`]+')
-                            .replace('*', '.*')
-                            .replace('$', r'\$'))
+                               .replace('*', '.*')
+                               .replace('$', r'\$'))
         else:
             if re.match(full_names_pattern, pattern) is None:
                 # The pattern contained characters which weren't allowed
