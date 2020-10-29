@@ -31,6 +31,7 @@ mathics/doc/tex/mathics-*.asy
 mathics/doc/tex/mathics-*.eps
 mathics/doc/tex/mathics-*.pdf
 mathics/doc/tex/mathics-*.dvi
+mathics/doc/tex/mathics-*.tex
 mathics/doc/tex/mathics.aux
 mathics/doc/tex/mathics.dvi
 mathics/doc/tex/mathics.fdb_latexmk

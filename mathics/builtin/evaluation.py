@@ -469,14 +469,10 @@ class Quit(Builtin):
     """
 
     rules = {"Exit[n___]":"Quit[n]", }
-    
+
     def apply(self, evaluation, n):
         '%(name)s[n___]'
         exitcode = 0
         if isinstance(n, Integer):
             exitcode =(n.get_int_value())
         raise SystemExit(exitcode)
-
-
-
-

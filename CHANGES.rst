@@ -1,8 +1,8 @@
 CHANGES
 =======
 
-1.1
----
+1.1.0 rc1
+---------
 
 Package Updates
 +++++++++++++++
@@ -10,11 +10,11 @@ Package Updates
 All major packages that Mathics needs have been updated for more recent
 releases. Specifically These include:
 
-- Python: Python 3.6-3.8 is now supported.
-- sympy 1.6.2
+- Python: Python 3.6-3.9 are now supported.
 - cython >= 0.15.1
 - Django 3.1.x
-
+- mpmath => 1.1.0
+- sympy 1.6.2
 
 New features (50+ builtins):
 ++++++++++++++++++++++++++++
@@ -57,7 +57,7 @@ Ehancements and Bug fixes:
 +++++++++++++++++++++++++++
 
 - speed up leading-blank patterns #625, #933
-- support for iteration over Sequence objects in Table, Sum, and Product 
+- support for iteration over Sequence objects in Table, Sum, and Product
 - fixes for option handling
 - fixes for ``Manipulate[x,{x,{a,b}}]``
 - fixes rule -> rule case for ``Nearest``
@@ -106,17 +106,17 @@ Backward incompatablities:
 
 - Support for Python 3.5 and earlier, and in particular Python 2.7,
   has dropped
-- The `graphs` module (for Graphs) has been pulled until Mathics
+- The ``graphs`` module (for Graphs) has been pulled until Mathics
   supports pymathics and graphics using networkx better. It will
   reappear as a pymathics module.
-- The `natlang` (for Natural Language processing) has also been
+- The ``natlang`` (for Natural Language processing) has also been
   pulled.  The problem here too is that the pymathics mechanism needs
   a small amount of work to make it scalable, and in 1.0 these were
-  hard coded. Also, both this module and `graphs` pulled in some
+  hard coded. Also, both this module and ``graphs`` pulled in some
   potentially hard-to-satisfy non-Python dependencies such as
   matplotlib, or NLP libraries, and word lists. All of this made
   installation of mathics harder, and the import of these libraries,
-  `natlang` in particular took some time. All of this points to having
+  ``natlang`` in particular took some time. All of this points to having
   these live in their own repositories and get imported on laziliy on
   demand
 
@@ -125,7 +125,8 @@ Backward incompatablities:
 1.0
 ---
 
-New features:
+New features
+++++++++++++
 
 - ``LinearModelFit`` #592
 - ``EasterSunday`` #590
@@ -212,7 +213,8 @@ New features:
 - ``StringExpression`` #339
 - Legacy file functions #338
 
-Bug fixes:
+Bug fixes
+++++++++++
 
 - Nested ``Module`` #591, #584
 - Python2 Import bug #565
@@ -242,12 +244,13 @@ Bug fixes:
 - Fix ``Begin``/``BeginPackage`` leaking user-visible symbols #352
 - Fix ``TableForm`` and ``Dimensions`` with an empty list #343
 - Trailing slash bug #337
-- Global system bug #336
+- ``Global`` system bug #336
 - ``Null`` comparison bug #371
-- ``CompoundExpression`` ``Out[n]`` assignment bug #335 fixes #331
+- ``CompoundExpression`` and ``Out[n]`` assignment bug #335 fixes #331
 - load unevaluated cells #332
 
-Performance improvements:
+Performance improvements
+++++++++++++++++++++++++
 
 - Large expression formatting with ``$OutputSizeLimit`` #581
 - Faster terminal output #579
@@ -275,7 +278,8 @@ Performance improvements:
 0.9
 ---
 
-New features:
+New features
+++++++++++++
 
 - Improved syntax error messages #329
 - SVD, LeastSquares, PseudoInverse #258, #321
@@ -314,28 +318,32 @@ Bug fixes:
 0.8
 ---
 
-New features:
+New features
++++++++++++++
 
 - Improvements to 3D Plotting, see #238
 - Enable MathJax menu, see #236
 - Improvements to documentation
 
-Dependency Updates:
+Dependency Updates
+++++++++++++++++++
 
 - upgrade to sympy 0.7.6
 - upgrade to ply3.6 (new parsetab format, see #246)
 - upgrade to mpmath 0.19
 
-Bug Fixes:
+Bug Fixes
++++++++++
 
 - IntegerDigits[0]
 
 
 
 0.7
----
++++
 
-New features:
+New features
+++++++++++++
 
 - Readline tab completion
 - automatic database initialisation
@@ -344,7 +352,8 @@ New features:
 - More tests and documentation for ``Sequence``
 - Context support
 
-Bugs fixed:
+Bugs fixed
+++++++++++
 
 - Fix unevaluated index handling (issue #217)
 - Fix ``Solve`` treating one solution equal to 1 as a tautology (issue
@@ -363,7 +372,8 @@ Bugs fixed:
 0.6
 ---
 
-New features:
+New features
+++++++++++++
 
 - ElementData using data from Wikipedia
 - added Switch
@@ -387,7 +397,8 @@ New features:
 - Use interruptingcow to limit evaluation time
 - Character Code functions
 
-Bugs fixed:
+Bugs fixed
+++++++++++
 
 - Fix divide-by-zero with zero-length plot range
 - Fix mathicsserver exception on startup with Django 1.6 (issues #194,
