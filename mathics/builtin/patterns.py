@@ -206,6 +206,7 @@ class Replace(Builtin):
             return result
         except InvalidLevelspecError:
             evaluation.message('General', 'level', ls)
+
         except PatternError:
             evaluation.message('Replace','reps', rules)
 
