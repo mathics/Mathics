@@ -213,10 +213,16 @@ class Protect(Builtin):
     def apply(self, patterns, evaluation):
         "Protect[patterns__String]"
         for item in patterns.get_leaves():
+            if len(pattern_str)==0:
+                continue
             pattern_str = item.get_string_value()
+            if pattern_str[0] == "`":
+                curcontext = evaluation.definitions.get_current_context()
+                pattern_str = curcontext + pattern_str[1:]
+
             protected = Symbol("System`Protected")
-            if pattern_str is None:
-                Expression("SetAttributes", pattern, protected).evaluate(evaluation)
+            if pattern_str is None:  # This should never happen
+                Expression("SetAttributes", item, protected).evaluate(evaluation)
             else:
                 for defn in evaluation.definitions.get_matching_names(pattern_str):
                     symbol = Symbol(defn),
@@ -288,13 +294,25 @@ class Unprotect(Builtin):
 
     def apply(self, patterns, evaluation):
         "Unprotect[patterns__String]"
-        for item in patterns.get_leaves():
+        if type(patterns) is Sequence:
+            patterns = patterns.get_leaves()
+        else:
+            patterns = (patterns,)
+        for item in patterns:
             pattern_str = item.get_string_value()
+            if len(pattern_str)==0:
+                continue
+
+            if pattern_str[0] == "`":
+                curcontext = evaluation.definitions.get_current_context()
+                pattern_str = curcontext + pattern_str[1:]
+
             protected = Symbol("System`Protected")
-            if pattern_str is None:
-                Expression("ClearAttributes", pattern, protected).evaluate(evaluation)
+            if pattern_str is None: # This should never happend
+                Expression("ClearAttributes", item, protected).evaluate(evaluation)
             else:
-                for defn in evaluation.definitions.get_matching_names(pattern_str):
+                matchingsymbols = evaluation.definitions.get_matching_names(pattern_str)
+                for defn in matchingsymbols:
                     symbol = Symbol(defn),
                     if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
                         Expression("ClearAttributes", symbol, protected).evaluate(evaluation)
