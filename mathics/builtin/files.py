@@ -2137,7 +2137,6 @@ class Get(PrefixOperator):
         try:
             with mathics_open(pypath, 'r') as f:
                 feeder = FileLineFeeder(f)
-                feeder.show_input_line = True
                 while not feeder.empty():
                     try:
                         query = parse(evaluation.definitions, feeder)
