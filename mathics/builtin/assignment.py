@@ -220,7 +220,7 @@ class _SetOperator(object):
         elif lhs_name == 'System`$ContextPath':
             currContext = evaluation.definitions.get_current_context()
             context_path = [s.get_string_value()  for s in rhs.get_leaves()]
-            context_path = [s if (s is None or s[0]!="`") else currContext +s for s in context_path]
+            context_path = [s if (s is None or s[0]!="`") else currContext[:-1] +s for s in context_path]
             if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
                 evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True
@@ -1035,6 +1035,7 @@ class Clear(Builtin):
         definition.formatvalues = {}
         definition.nvalues = []
 
+
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
 
@@ -1046,6 +1047,9 @@ class Clear(Builtin):
                 if not pattern:
                     evaluation.message('Clear', 'ssym', symbol)
                     continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
                 names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
