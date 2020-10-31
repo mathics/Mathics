@@ -143,8 +143,8 @@ class Protect(Builtin):
       <dt>'Protect'[$s1$, $s2$, ...]
       <dd>sets the attribute 'Protected' for the symbols $si$.
 
-      <dt>'Protect'[$str$]
-      <dd>protects all symbols whose names textually match $str$.
+      <dt>'Protect'[$str1$, $str2$, ...]
+      <dd>protects all symbols whose names textually match $stri$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -157,29 +157,30 @@ class Protect(Builtin):
 
     attributes = ('HoldAll',)
 
-    rules = {
-        'Protect[symbols__Symbol]': 'SetAttributes[{symbols}, Protected]',
-    }
-
-    def apply(self, patterns, evaluation):
-        "Protect[patterns__String]"
-        for item in patterns.get_leaves():
-            if len(pattern_str)==0:
-                continue
-            pattern_str = item.get_string_value()
-            if pattern_str[0] == "`":
-                curcontext = evaluation.definitions.get_current_context()
-                pattern_str = curcontext + pattern_str[1:]
-
-            protected = Symbol("System`Protected")
-            if pattern_str is None:  # This should never happen
-                Expression("SetAttributes", item, protected).evaluate(evaluation)
+    def apply(self, symbols, evaluation):
+        "Protect[symbols___]"
+        protected = Symbol("System`Protected")
+        items = []
+        for symbol in symbols.get_sequence():
+            if isinstance(symbol, Symbol):
+                items.append(symbol)
             else:
-                for defn in evaluation.definitions.get_matching_names(pattern_str):
-                    symbol = Symbol(defn),
+                pattern = symbol.get_string_value()
+                if not pattern or pattern=="":
+                    evaluation.message('Clear', 'ssym', symbol)
+                    continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                names = evaluation.definitions.get_matching_names(pattern)
+                for defn in names:
+                    symbol = Symbol(defn)
                     if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
-                        Expression("SetAttributes", symbol, protected).evaluate(evaluation)
+                        items.append(symbol)
+        
+        Expression("SetAttributes", Expression("List", *items), protected).evaluate(evaluation)
         return Symbol('Null')
+
 
 class Unprotect(Builtin):
     """
@@ -191,38 +192,34 @@ class Unprotect(Builtin):
       <dd>unprotects symbols whose names textually match $str$.
     </dl>
     """
-
+    
     attributes = ('HoldAll',)
 
-    rules = {
-        'Unprotect[symbols__Symbol]': 'ClearAttributes[{symbols}, Protected]',
-    }
-
-    def apply(self, patterns, evaluation):
-        "Unprotect[patterns__String]"
-        if type(patterns) is Sequence:
-            patterns = patterns.get_leaves()
-        else:
-            patterns = (patterns,)
-        for item in patterns:
-            pattern_str = item.get_string_value()
-            if len(pattern_str)==0:
-                continue
-
-            if pattern_str[0] == "`":
-                curcontext = evaluation.definitions.get_current_context()
-                pattern_str = curcontext + pattern_str[1:]
-
-            protected = Symbol("System`Protected")
-            if pattern_str is None: # This should never happend
-                Expression("ClearAttributes", item, protected).evaluate(evaluation)
+    def apply(self, symbols, evaluation):
+        "Unprotect[symbols___]"
+        protected = Symbol("System`Protected")
+        items = []
+        for symbol in symbols.get_sequence():
+            if isinstance(symbol, Symbol):
+                items.append(symbol)
             else:
-                matchingsymbols = evaluation.definitions.get_matching_names(pattern_str)
-                for defn in matchingsymbols:
-                    symbol = Symbol(defn),
+                pattern = symbol.get_string_value()
+                if not pattern or pattern=="":
+                    evaluation.message('Clear', 'ssym', symbol)
+                    continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                names = evaluation.definitions.get_matching_names(pattern)
+                for defn in names:
+                    symbol = Symbol(defn)
                     if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
-                        Expression("ClearAttributes", symbol, protected).evaluate(evaluation)
+                        items.append(symbol)
+        
+        Expression("ClearAttributes", Expression("List", *items), protected).evaluate(evaluation)
         return Symbol('Null')
+
+
 
 class Protected(Predefined):
     """
