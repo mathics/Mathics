@@ -206,7 +206,8 @@ class Replace(Builtin):
             return result
         except InvalidLevelspecError:
             evaluation.message('General', 'level', ls)
-        except PatternError as e:
+
+        except PatternError:
             evaluation.message('Replace','reps', rules)
 
 
@@ -277,7 +278,7 @@ class ReplaceAll(BinaryOperator):
 
             result, applied = expr.apply_rules(rules, evaluation)
             return result
-        except PatternError as e:
+        except PatternError:
             evaluation.message('Replace','reps', rules)
 
 
@@ -316,7 +317,7 @@ class ReplaceRepeated(BinaryOperator):
         'ReplaceRepeated[expr_, rules_]'
         try:
             rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
-        except PatternError as e:
+        except PatternError:
             evaluation.message('Replace','reps', rules)
             return None
 
@@ -386,7 +387,7 @@ class ReplaceList(Builtin):
         try:
             rules, ret = create_rules(
                 rules, expr, 'ReplaceList', evaluation, extra_args=[max])
-        except PatternError as e:
+        except PatternError:
             evaluation.message('Replace','reps', rules)
             return None
 
@@ -1127,8 +1128,8 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            allnumbers = all(not (leaf.get_int_value() is None) for leaf in leaf_1.get_leaves())
-            if (leaf_1.has_form('List', 1, 2) and allnumbers ):
+            allnumbers = not any(leaf.get_int_value() is None for leaf in leaf_1.get_leaves())
+            if leaf_1.has_form('List', 1, 2) and allnumbers:
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():
