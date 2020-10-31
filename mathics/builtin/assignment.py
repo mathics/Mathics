@@ -1035,7 +1035,7 @@ class Clear(Builtin):
      : Symbol Sin is Protected.
     The values and rules associated with built-in symbols will not get lost when applying 'Clear'
     (after unprotecting them):
-    >> Unprotect[Sin]
+    >> Unprotect[Sin];
     >> Clear[Sin]
     >> Sin[Pi]
      = 0
