@@ -1692,23 +1692,6 @@ class LoadModule(Builtin):
     >> LoadModule["sys"]
      : Python module sys is not a pymathics module.
      = $Failed
-    # >>  LoadModule["pymathics.testpymathicsmodule"]
-    # =  pymathics.testpymathicsmodule
-    # >>  MyPyTestContext`MyPyTestFunction[a]
-    # = This is a PyMathics output
-    # >> MyPyTestContext`MyPyTestSymbol
-    # = 1234
-    # >> ?? MyPyTestContext`MyPyTestFunction
-    # =
-    # . 'MyPyTestFunction'[m]
-    # . Just an example function in pymathics module.
-    # .
-    # . Attributes[MyPyTestContext`MyPyTestFunction] = {HoldFirst, OneIdentity, Protected}
-    # >> Quit[]
-    #n>> MyPyTestContext`MyPyTestSymbol
-    #  = MyPyTestContext`MyPyTestSymbol
-    # >> ?? MyPyTestContext`MyPyTestFunction
-    # =  Null
     """
     name = "LoadModule"
     messages = {'notfound': 'Python module `1` does not exist.',
