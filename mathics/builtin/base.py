@@ -150,6 +150,7 @@ class Builtin(object):
                 pattern = pattern % {"name": name}
                 pattern = parse_builtin_rule(pattern, definition_class)
             replace = replace % {"name": name}
+            # FIXME: Should system=True be system=not is_pymodule ?
             rules.append(Rule(pattern, parse_builtin_rule(replace), system=True))
 
         box_rules = []
