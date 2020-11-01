@@ -44,9 +44,19 @@ class SystemDefinitions(object):
         return ensure_context(name)
 
 
-def parse_builtin_rule(string):
+class PyMathicsDefinitions(object):
+    """
+    Dummy Definitions object that puts every unqualified symbol in
+    PyMathics`.
+    """
+    def lookup_name(self, name):
+        assert isinstance(name, str)
+        return ensure_context(name, "PyMathics`")
+
+
+def parse_builtin_rule(string, definitions=SystemDefinitions()):
     '''
     Parse rules specified in builtin docstrings/attributes. Every symbol
     in the input is created in the System` context.
     '''
-    return parse(SystemDefinitions(), SingleLineFeeder(string, '<builtin_rules>'))
+    return parse(definitions, SingleLineFeeder(string, '<builtin_rules>'))
