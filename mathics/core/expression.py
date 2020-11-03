@@ -33,7 +33,7 @@ def valid_context_name(ctx, allow_initial_backquote=False) -> bool:
             (allow_initial_backquote or not ctx.startswith('`')))
 
 
-def ensure_context(name) -> str:
+def ensure_context(name, context="System`") -> str:
     assert isinstance(name, str)
     assert name != ''
     if '`' in name:
@@ -41,8 +41,9 @@ def ensure_context(name) -> str:
         assert fully_qualified_symbol_name(name)
         return name
     # Symbol came from Python code doing something like
-    # Expression('Plus', ...) -> use System`
-    return 'System`' + name
+    # Expression('Plus', ...) -> use System` or more generally
+    # context + name
+    return context + name
 
 
 def strip_context(name) -> str:
