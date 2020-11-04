@@ -2186,7 +2186,7 @@ class Put(BinaryOperator):
     ## = Put[815915283247897734345611269596115894272000000000, fortyfactorial]
 
     S> filename = $TemporaryDirectory <> "/fortyfactorial";
-    S> Put[40!, filename]  
+    S> Put[40!, filename]
     S> FilePrint[filename]
      | 815915283247897734345611269596115894272000000000
     S> Get[filename]
@@ -4298,13 +4298,16 @@ class SetDirectory(Builtin):
             return
 
         py_path = path.__str__()[1:-1]
-        py_path = path_search(py_path)
 
-        if py_path is None:
+        if py_path is None or not os.path.isdir(py_path):
             evaluation.message('SetDirectory', 'cdir', path)
             return Symbol('$Failed')
 
-        os.chdir(py_path)
+        try:
+            os.chdir(py_path)
+        except:
+            return Symbol('$Failed')
+
         DIRECTORY_STACK.append(os.getcwd())
         return String(os.getcwd())
 

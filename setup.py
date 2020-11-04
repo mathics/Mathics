@@ -195,7 +195,6 @@ setup(
         "mathics.web",
         "mathics.web.templatetags",
         "mathics.web.migrations",
-        "pymathics.testpymathicsmodule",
     ],
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,

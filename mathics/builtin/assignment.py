@@ -1696,23 +1696,6 @@ class LoadModule(Builtin):
     >> LoadModule["sys"]
      : Python module sys is not a pymathics module.
      = $Failed
-    # >>  LoadModule["pymathics.testpymathicsmodule"]
-    # =  pymathics.testpymathicsmodule
-    # >>  MyPyTestContext`MyPyTestFunction[a]
-    # = This is a PyMathics output
-    # >> MyPyTestContext`MyPyTestSymbol
-    # = 1234
-    # >> ?? MyPyTestContext`MyPyTestFunction
-    # =
-    # . 'MyPyTestFunction'[m]
-    # . Just an example function in pymathics module.
-    # .
-    # . Attributes[MyPyTestContext`MyPyTestFunction] = {HoldFirst, OneIdentity, Protected}
-    # >> Quit[]
-    #n>> MyPyTestContext`MyPyTestSymbol
-    #  = MyPyTestContext`MyPyTestSymbol
-    # >> ?? MyPyTestContext`MyPyTestFunction
-    # =  Null
     """
     name = "LoadModule"
     messages = {'notfound': 'Python module `1` does not exist.',
@@ -1731,4 +1714,17 @@ class LoadModule(Builtin):
         except PyMathicsLoadException as e:
             evaluation.message(self.get_name(), 'notmathicslib', module)
             return Symbol('$Failed')
+        else:
+            # Add PyMathics` to $ContextPath so that when user don't
+            # have to qualify PyMathics variables and functions, 
+            # as the those in teh module just loaded.
+
+            # Following the example of $ContextPath in the WL
+            # reference manual where PackletManager appears first in
+            # the list, it seems to be preferable to add this PyMathics
+            # at the beginning.
+            context_path = evaluation.definitions.get_context_path()
+            if "PyMathics`" not in context_path:
+                context_path.insert(0, "PyMathics`")
+            evaluation.definitions.set_context_path(context_path)
         return module
