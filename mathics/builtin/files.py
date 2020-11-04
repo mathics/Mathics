@@ -4794,16 +4794,22 @@ class Needs(Builtin):
 
     def apply(self, context, evaluation):
         'Needs[context_String]'
-
-        if not valid_context_name(context.get_string_value()):
+        contextstr = context.get_string_value()
+        if contextstr == "":
+            return Symbol("Null")
+        if contextstr[0]=="`":
+            contextstr = contextstr[1:]
+            context = String(contextstr)
+            
+        if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
 
         # TODO
-        # if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-        #    # Already loaded
-        #    return Symbol('Null')
+        if Expression('MemberQ', context, Symbol('$Packages')).is_true():
+           # Already loaded
+           return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 
