@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -25,7 +26,6 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 from mathics.builtin.strings import to_regex
 from mathics.version import __version__
-
 
 class Aborted(Predefined):
     """
