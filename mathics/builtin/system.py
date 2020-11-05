@@ -224,8 +224,8 @@ class Packages(Predefined):
     </dl>
 
     X> $Packages
-    = {CombinatoricaOld,ImportExport,Internal,System,XML}
-    #> MemberQ[$Packages, "System"]
+    = {CombinatoricaOld`,ImportExport`,Internal`,System`,XML`}
+    #> MemberQ[$Packages, "System`"]
     = True
     """
 
