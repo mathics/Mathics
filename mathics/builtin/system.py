@@ -230,7 +230,7 @@ class Packages(Predefined):
     """
 
     name = "$Packages"
-    rules = {'$Packages': '{CombinatoricaOld,ImportExport,Internal,System,XML}',}
+    rules = {'$Packages': '{"CombinatoricaOld`","ImportExport`","Internal`","System`","XML`"}',}
     # def evaluate(self, evaluation):
     #    return Expression(
     #        "List",
