@@ -20,7 +20,7 @@ import pytest
         (r"Head[$Machine]", "String"),
         (r"Head[$MachineName]", "String"),
         (r"""Length[Names["System`*"]] > 1024""", "True"),
-        (r"Length[$Packages] >= 5", "False"),
+        (r"Length[$Packages] >= 5", "True"),
         (r"Head[$ParentProcessID]", "Integer"),
         (r"Head[$ProcessID]", "Integer"),
         (r"Head[$ProcessorType]", "String"),
