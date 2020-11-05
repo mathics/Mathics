@@ -22,6 +22,8 @@ from mathics.core.expression import (
 from mathics.core.characters import letters, letterlikes
 
 
+type_compiled_pattern = type(re.compile("a.a"))
+
 names_wildcards = "@*"
 base_names_pattern = r"((?![0-9])([0-9${0}{1}{2}])+)".format(
     letters, letterlikes, names_wildcards
@@ -313,7 +315,7 @@ class Definitions(object):
         which aren't uppercase letters. In the context pattern, both
         '*' and '@' match context marks.
         """
-        if type(pattern) is re.Pattern:
+        if isinstance(pattern, type_compiled_pattern):
             regex = pattern
         else:
             if re.match(full_names_pattern, pattern) is None:
