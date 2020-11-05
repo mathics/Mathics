@@ -4938,7 +4938,7 @@ class Needs(Builtin):
                                     Symbol('System`$Packages'), context)
         already_loaded = already_loaded.evaluate(evaluation).is_true()
         if already_loaded:
-           return SymbolNull
+           return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 

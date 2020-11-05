@@ -209,7 +209,6 @@ class Protect(Builtin):
         'ssym': "`1` is not a symbol or a string.",
     }
 
-
     def apply(self, symbols, evaluation):
         "Protect[symbols___]"
         protected = Symbol("System`Protected")
@@ -335,7 +334,6 @@ class Unprotect(Builtin):
 
         Expression("ClearAttributes", Expression("List", *items), protected).evaluate(evaluation)
         return Symbol('Null')
-
 
 
 class Protected(Predefined):
