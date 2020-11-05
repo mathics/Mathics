@@ -8,7 +8,7 @@ import sympy
 
 from mathics.builtin.base import BinaryOperator, Builtin, SympyFunction
 from mathics.core.expression import (Complex, Expression, Integer, Number,
-                                     String, Symbol)
+                                     Real, String, Symbol)
 from mathics.core.numbers import dps
 
 
@@ -324,25 +324,28 @@ def do_cmp(x1, x2):
         ):
             return None
 
-    # rely on sympy for better comparisons
     s1 = x1.to_sympy()
     s2 = x2.to_sympy()
 
-    # this might seem like poorly written code at first glance, but
-    # the equality comparison is required for it to function properly.
-    # Sympy comparisons might not return sometimes, and will raise
-    # an error in that case if not compared to True/False.
+    # use internal comparisons only for Reals
+    # and use sympy for everything else
+    if s1.is_Float and s2.is_Float:
+        if x1 == x2:
+            return 0
+        if x1 < x2:
+            return -1
+        return 1
 
-    eq = sympy.Equality(s1, s2)
+    # we don't want to compare anything that
+    # cannot be represented as a numeric value
+    if s1.is_number and s2.is_number:
+        if s1 == s2:
+            return 0
+        if s1 < s2:
+            return -1
+        return 1
 
-    if eq == True:
-        return 0
-    elif eq != False:
-        return None
-
-    if sympy.StrictLessThan(s1, s2) == True:
-        return -1
-    return 1
+    return None
 
 
 class SympyComparison(SympyFunction):
@@ -766,7 +769,7 @@ class Min(_MinMax):
         <dd>returns the expression with the lowest value among the $e_i$.
     </dl>
 
-    Minimum of a series of numbers:
+    Minimum of a series of values:
     >> Min[4, -8, 1]
      = -8
     >> Min[E - Pi, Pi, E + Pi, 2 E]
