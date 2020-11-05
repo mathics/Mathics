@@ -590,12 +590,13 @@ class BeginPackage(Builtin):
 
     rules = {
         'BeginPackage[context_String]': '''
-             Unprotect[System`Private`$ContextPathStack];
+             Unprotect[System`Private`$ContextPathStack, $Packages];
              Begin[context];
              System`Private`$ContextPathStack =
                  Append[System`Private`$ContextPathStack, $ContextPath];
              $ContextPath = {context, "System`"};
-             Protect[System`Private`$ContextPathStack];
+             $Packages = If[MemberQ[$Packages,$Context],None,$Packages=Join[{$Context}, $Packages]];
+             Protect[System`Private`$ContextPathStack,$Packages];
              context
         ''',
     }

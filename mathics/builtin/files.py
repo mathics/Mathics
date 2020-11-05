@@ -4801,7 +4801,8 @@ class Needs(Builtin):
         if contextstr == "":
             return Symbol("Null")
         if contextstr[0]=="`":
-            contextstr = contextstr[1:]
+            curr_ctxt = evaluation.definitions.get_current_context()
+            contextstr = curr_ctxt + contextstr[1:]
             context = String(contextstr)
             
         if not valid_context_name(contextstr):

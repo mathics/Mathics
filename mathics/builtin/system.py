@@ -230,12 +230,12 @@ class Packages(Predefined):
     """
 
     name = "$Packages"
-
-    def evaluate(self, evaluation):
-        return Expression(
-            "List",
-            *(String(name) for name in evaluation.definitions.get_package_names()),
-        )
+    rules = {'$Packages': '{}',}
+    # def evaluate(self, evaluation):
+    #    return Expression(
+    #        "List",
+    #        *(String(name) for name in evaluation.definitions.get_package_names()),
+    #    )
 
 
 class ParentProcessID(Predefined):

@@ -64,6 +64,7 @@ class Definitions(object):
         self.lookup_cache = {}
         self.proxy = defaultdict(set)
         self.now = 0  # increments whenever something is updated
+        self._packages = []
 
         if add_builtin:
             from mathics.builtin import modules, contribute
@@ -389,7 +390,9 @@ class Definitions(object):
         return with_context
 
     def get_package_names(self) -> typing.List[str]:
-        return sorted({name.split("`")[0] for name in self.get_names()})
+        a = 1/0
+        # return sorted({name.split("`")[0] for name in self.get_names()})
+        return self.get_definition("System`$Packages")
 
     def shorten_name(self, name_with_ctx) -> str:
         if "`" not in name_with_ctx:
