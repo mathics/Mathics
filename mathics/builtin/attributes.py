@@ -159,7 +159,6 @@ class Protect(Builtin):
     messages = {
         'ssym': "`1` is not a symbol or a string.",
     }
-        
 
     def apply(self, symbols, evaluation):
         "Protect[symbols___]"
@@ -171,7 +170,7 @@ class Protect(Builtin):
             symbols = symbols.get_leaves()
         elif isinstance(symbols ,String):
             symbols = [symbols]
-            
+
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)
@@ -188,7 +187,7 @@ class Protect(Builtin):
                     symbol = Symbol(defn)
                     if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
                         items.append(symbol)
-        
+
         Expression("SetAttributes", Expression("List", *items), protected).evaluate(evaluation)
         return Symbol('Null')
 
@@ -203,7 +202,7 @@ class Unprotect(Builtin):
       <dd>unprotects symbols whose names textually match $str$.
     </dl>
     """
-    
+
     attributes = ('HoldAll',)
     messages = {
         'ssym': "`1` is not a symbol or a string.",
@@ -221,7 +220,7 @@ class Unprotect(Builtin):
             symbols = [symbols]
         else:
             symbols = symbols.get_sequence()
-        
+
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)
@@ -238,10 +237,9 @@ class Unprotect(Builtin):
                     symbol = Symbol(defn)
                     if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
                         items.append(symbol)
-        
+
         Expression("ClearAttributes", Expression("List", *items), protected).evaluate(evaluation)
         return Symbol('Null')
-
 
 
 class Protected(Predefined):

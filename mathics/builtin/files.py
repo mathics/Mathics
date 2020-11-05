@@ -4804,15 +4804,18 @@ class Needs(Builtin):
             curr_ctxt = evaluation.definitions.get_current_context()
             contextstr = curr_ctxt + contextstr[1:]
             context = String(contextstr)
-            
+
         if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
 
-        # TODO
-        if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-           # Already loaded
+        # TODO: Look why this rises the message
+        # "Select::normal: Nonatomic expression expected."
+        already_loaded = Expression('MemberQ',
+                                    Symbol('System`$Packages'), context)
+        already_loaded = already_loaded.evaluate(evaluation).is_true()
+        if already_loaded:
            return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)

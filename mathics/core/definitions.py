@@ -344,7 +344,7 @@ class Definitions(object):
                              .replace('@', '[^A-Z]+')
                              .replace('*', '[^`]*')
                              .replace('$', r'\$'))
-            
+
             regex = re.compile('^' + ctx_pattern + short_pattern + '$')
 
         return [name for name in self.get_names() if regex.match(name)]
@@ -389,10 +389,9 @@ class Definitions(object):
                     return n
         return with_context
 
-    def get_package_names(self) -> typing.List[str]:
-        a = 1/0
-        # return sorted({name.split("`")[0] for name in self.get_names()})
-        return self.get_definition("System`$Packages")
+#    def get_package_names(self) -> typing.List[str]:
+#        # return sorted({name.split("`")[0] for name in self.get_names()})
+#        return self.get_definition("System`$Packages")
 
     def shorten_name(self, name_with_ctx) -> str:
         if "`" not in name_with_ctx:
