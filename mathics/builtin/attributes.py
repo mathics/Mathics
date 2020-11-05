@@ -205,18 +205,29 @@ class Protect(Builtin):
         return SymbolNull
 
     attributes = ('HoldAll',)
+    messages = {
+        'ssym': "`1` is not a symbol or a string.",
+    }
+
 
     def apply(self, symbols, evaluation):
         "Protect[symbols___]"
         protected = Symbol("System`Protected")
         items = []
-        for symbol in symbols.get_sequence():
+        if isinstance(symbols ,Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            symbols = symbols.get_leaves()
+        elif isinstance(symbols ,String):
+            symbols = [symbols]
+
+        for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)
             else:
                 pattern = symbol.get_string_value()
                 if not pattern or pattern=="":
-                    evaluation.message('Clear', 'ssym', symbol)
+                    evaluation.message('Protect', 'ssym', symbol)
                     continue
 
                 if pattern[0] == "`":
@@ -288,18 +299,30 @@ class Unprotect(Builtin):
         return SymbolNull
 
     attributes = ('HoldAll',)
+    messages = {
+        'ssym': "`1` is not a symbol or a string.",
+    }
 
     def apply(self, symbols, evaluation):
         "Unprotect[symbols___]"
         protected = Symbol("System`Protected")
         items = []
-        for symbol in symbols.get_sequence():
+        if isinstance(symbols ,Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            symbols = symbols.get_leaves()
+        elif isinstance(symbols ,String):
+            symbols = [symbols]
+        else:
+            symbols = symbols.get_sequence()
+
+        for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)
             else:
                 pattern = symbol.get_string_value()
                 if not pattern or pattern=="":
-                    evaluation.message('Clear', 'ssym', symbol)
+                    evaluation.message('Unprotect', 'ssym', symbol)
                     continue
 
                 if pattern[0] == "`":

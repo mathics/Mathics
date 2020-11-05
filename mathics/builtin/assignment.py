@@ -1077,6 +1077,7 @@ class Clear(Builtin):
             symbols = symbols.get_sequence()
 
         for symbol in symbols:
+            print(f"Clear {symbol}")
             if isinstance(symbol, Symbol):
                 names = [symbol.get_name()]
             else:
@@ -1089,6 +1090,7 @@ class Clear(Builtin):
                                + pattern[1:])
 
                 names = evaluation.definitions.get_matching_names(pattern)
+            print(f"  cleaning {names}")
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
                 if 'System`Protected' in attributes:
@@ -1099,7 +1101,6 @@ class Clear(Builtin):
                     continue
                 definition = evaluation.definitions.get_user_definition(name)
                 self.do_clear(definition)
-
         return Symbol('Null')
 
     def apply_all(self, evaluation):
