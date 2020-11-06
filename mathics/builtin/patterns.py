@@ -759,7 +759,8 @@ class Pattern_(PatternObject):
         'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
             'Infix[{symbol, pattern}, ":", 150, Left]'),
     }
-
+    precedence = 1000
+    
     def init(self, expr):
         super(Pattern_, self).init(expr)
         self.varname = expr.leaves[0].get_name()

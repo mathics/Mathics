@@ -450,10 +450,10 @@ class SetDelayed(Set):
 
     operator = ':='
     attributes = ('HoldAll', 'SequenceHold')
+    
 
     def apply(self, lhs, rhs, evaluation):
         'lhs_ := rhs_'
-
         if self.assign(lhs, rhs, evaluation):
             return Symbol('Null')
         else:
