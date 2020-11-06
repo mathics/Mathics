@@ -16,8 +16,7 @@ from .graphics import (Graphics, GraphicsBox, PolygonBox, create_pens, _Color,
                        asy_number, CoordinatesError, _GraphicsElements)
 
 import json
-
-from django.utils.html import escape as escape_html
+import html
 
 
 def coords3D(value):
@@ -571,7 +570,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         # xml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
         #        'zmin="%f" zmax="%f" data="%s" />') % (
         #           xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
-        xml = '<graphics3d data="{0}" />'.format(escape_html(json_repr))
+        xml = '<graphics3d data="{0}" />'.format(html.escape(json_repr))
         xml = '<mtable><mtr><mtd>{0}</mtd></mtr></mtable>'.format(xml)
         return xml
 
