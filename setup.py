@@ -83,6 +83,7 @@ INSTALL_REQUIRES += [
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.1.0",
     "numpy",
+    "palettable",
     "pint",
     "python-dateutil",
     "llvmlite",
