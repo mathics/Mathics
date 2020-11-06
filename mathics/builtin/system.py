@@ -355,7 +355,7 @@ class UserName(Predefined):
     <dl>
       <dt>$UserName
       <dd>returns a string describing the type of computer system on which
-      \Mathics is being run.
+      Mathics is being run.
     </dl>
 
     X> $UserName
