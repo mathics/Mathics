@@ -47,11 +47,7 @@ docker-image:
 install:
 	$(PYTHON) setup.py install
 
-#: Run Django-based server in development mode. Use environment variable "o" for manage options
-runserver:
-	$(PYTHON) mathics/manage.py runserver $o
-
-check: pytest doctest djangotest gstest
+check: pytest doctest gstest
 
 #: Remove derived files
 clean:
@@ -77,10 +73,6 @@ doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.
 #: Run tests that appear in docstring in the code.
 doctest:
 	SANDBOX=$(SANDBOX) $(PYTHON) mathics/test.py $o
-
-#: Run Django tests
-djangotest:
-	cd mathics && $(PYTHON) manage.py test test_django
 
 #: Make Mathics PDF manual
 doc mathics.pdf: mathics/doc/tex/data
