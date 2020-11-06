@@ -385,8 +385,8 @@ class AtomBuiltin(Builtin):
     # which are by default not in the definitions' contribution pipeline.
     # see Image[] for an example of this.
 
-    def get_name(self) -> str:
-        name = super(AtomBuiltin, self).get_name()
+    def get_name(self, short=False) -> str:
+        name = super(AtomBuiltin, self).get_name(short=short)
         return re.sub(r"Atom$", "", name)
 
 
