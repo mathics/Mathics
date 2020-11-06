@@ -169,7 +169,6 @@ setup(
     entry_points={
         "console_scripts": [
             "mathics = mathics.main:main",
-            "mathicsserver = mathics.server:main",
         ],
     },
     scripts = [
