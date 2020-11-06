@@ -81,10 +81,8 @@ else:
 # General Requirements
 INSTALL_REQUIRES += [
     "sympy>=1.7, <= 1.8dev",
-    "django >= 3.0, < 3.2",
     "mpmath>=1.1.0",
     "numpy",
-    "palettable",  # For bar charts, and portable, no-proprietary color palletes
     "pint",
     "python-dateutil",
     "llvmlite",
@@ -97,50 +95,6 @@ INSTALL_REQUIRES += [
 def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
         yield root + "*/" * k + file
-
-
-class initialize(Command):
-    """
-    Manually create the Django database used by the web notebook
-    """
-
-    description = "manually create the Django database used by the web notebook"
-    user_options = []  # distutils complains if this is not here.
-
-    def __init__(self, *args):
-        self.args = args[0]  # so we can pass it to other classes
-        Command.__init__(self, *args)
-
-    def initialize_options(self):  # distutils wants this
-        pass
-
-    def finalize_options(self):  # this too
-        pass
-
-    def run(self):
-        import os
-        import subprocess
-
-        settings = {}
-        exec(
-            compile(open("mathics/settings.py").read(), "mathics/settings.py", "exec"),
-            settings,
-        )
-
-        database_file = settings["DATABASES"]["default"]["NAME"]
-        print("Creating data directory %s" % settings["DATA_DIR"])
-        if not osp.exists(settings["DATA_DIR"]):
-            os.makedirs(settings["DATA_DIR"])
-        print("Creating database %s" % database_file)
-        try:
-            subprocess.check_call(
-                [sys.executable, "mathics/manage.py", "migrate", "--noinput"]
-            )
-            print("")
-            print("Database created successfully.")
-        except subprocess.CalledProcessError:
-            print("Error: failed to create database")
-            sys.exit(1)
 
 
 class test(Command):
@@ -173,7 +127,6 @@ class test(Command):
             sys.exit(1)
 
 
-CMDCLASS["initialize"] = initialize
 CMDCLASS["test"] = test
 
 mathjax_files = list(subdirs("media/js/mathjax/"))
