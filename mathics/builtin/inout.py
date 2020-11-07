@@ -46,6 +46,7 @@ class UseSansSerif(Predefined):
     """
     context = "System`"
     name = '$UseSansSerif'
+    attributes = ("Unprotected",)
     value = True
 
     rules = {
@@ -462,7 +463,7 @@ class MakeBoxes(Builtin):
      = RowBox[{a, ,, b}]
     """
 
-    attributes = ('HoldAllComplete',)
+    attributes = ('HoldAllComplete', "Unprotected")
 
     rules = {
         'MakeBoxes[Infix[head_[leaves___]], '

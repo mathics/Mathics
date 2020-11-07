@@ -225,10 +225,13 @@ class Builtin(object):
             )
         )
 
-        if name == "System`MakeBoxes":
+        if "Unprotected" in self.attributes:
             attributes = []
+            self.attributes = list(self.attributes)
+            self.attributes.remove("Unprotected")
         else:
             attributes = ["System`Protected"]
+
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.items():
