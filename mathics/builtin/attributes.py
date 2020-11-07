@@ -173,7 +173,7 @@ class Protect(Builtin):
             if symbols.get_head_name() in ("System`Sequence", "System`List"):
                 symbols = symbols.get_leaves()
             else:
-                print(symbols," is something weid. Probably failed to be evaluated."  )
+                evaluation.message('Protect', 'ssym', symbol)
                 return Symbol("Null")
 
         for symbol in symbols:
