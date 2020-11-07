@@ -17,6 +17,30 @@ from mathics import settings
 from mathics.core.definitions import PyMathicsLoadException
 
 
+
+def repl_pattern_by_symbol(expr):
+    leaves = expr.get_leaves()
+    if len(leaves) == 0:
+        return expr
+
+    headname = expr.get_head_name()
+    if headname == "System`Pattern":
+        return leaves[0]
+
+    changed = False
+    newleaves = []
+    for leave in leaves:
+        l = repl_pattern_by_symbol(leave)
+        if not(l is leave):
+            changed = True
+        newleaves.append(l)
+    if changed:
+        return Expression(headname,*newleaves)
+    else:
+        return expr
+
+
+
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
         list = list.leaves
@@ -37,6 +61,13 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
         lhs._format_cache = None
+
+        if name == "System`Pattern":
+            lhsleaves= lhs.get_leaves()
+            lhs = lhsleaves[1]
+            rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
+            rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
 
         if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
                                   'UpValues', 'NValues', 'Options',
@@ -128,7 +159,6 @@ class _SetOperator(object):
             allow_custom_tag = True
 
         focus = focus.evaluate_leaves(evaluation)
-
         if tags is None and not upset:
             name = focus.get_lookup_name()
             if not name:
@@ -450,7 +480,6 @@ class SetDelayed(Set):
 
     operator = ':='
     attributes = ('HoldAll', 'SequenceHold')
-    
 
     def apply(self, lhs, rhs, evaluation):
         'lhs_ := rhs_'

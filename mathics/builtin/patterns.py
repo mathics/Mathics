@@ -760,7 +760,7 @@ class Pattern_(PatternObject):
             'Infix[{symbol, pattern}, ":", 150, Left]'),
     }
     precedence = 1000
-    
+
     def init(self, expr):
         super(Pattern_, self).init(expr)
         self.varname = expr.leaves[0].get_name()
