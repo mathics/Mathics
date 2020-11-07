@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-import sympy
 import itertools
 
-from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction
-from mathics.core.expression import (Expression, Number, Integer, Rational,
-                                     Real, Symbol, String)
-from mathics.core.numbers import get_type, dps
+import sympy
+
+from mathics.builtin.base import BinaryOperator, Builtin, SympyFunction
+from mathics.core.expression import (Complex, Expression, Integer, Number,
+                                     Real, String, Symbol)
+from mathics.core.numbers import dps
 
 
 class SameQ(BinaryOperator):
@@ -87,6 +88,7 @@ class TrueQ(Builtin):
     rules = {
         'TrueQ[expr_]': 'If[expr, True, False, False]',
     }
+
 
 class BooleanQ(Builtin):
     """
@@ -313,36 +315,37 @@ class Inequality(Builtin):
 
 
 def do_cmp(x1, x2):
-    inf1 = inf2 = real1 = real2 = None
-    if isinstance(x1, (Real, Integer, Rational)):
-        real1 = x1.to_sympy()
-    if isinstance(x2, (Real, Integer, Rational)):
-        real2 = x2.to_sympy()
-    if x1.has_form('DirectedInfinity', 1):
-        inf1 = x1.leaves[0].get_int_value()
-    if x2.has_form('DirectedInfinity', 1):
-        inf2 = x2.leaves[0].get_int_value()
 
-    if real1 is not None and real2 is not None:
+    # don't attempt to compare complex numbers
+    for x in (x1, x2):
+        # TODO: Send message General::nord
+        if isinstance(x, Complex) or (
+                x.has_form("DirectedInfinity", 1) and isinstance(x.leaves[0], Complex)
+        ):
+            return None
+
+    s1 = x1.to_sympy()
+    s2 = x2.to_sympy()
+
+    # use internal comparisons only for Reals
+    # and use sympy for everything else
+    if s1.is_Float and s2.is_Float:
         if x1 == x2:
             return 0
-        elif x1 < x2:
+        if x1 < x2:
             return -1
-        else:
-            return 1
-    elif inf1 is not None and inf2 is not None:
-        if inf1 == inf2:
+        return 1
+
+    # we don't want to compare anything that
+    # cannot be represented as a numeric value
+    if s1.is_number and s2.is_number:
+        if s1 == s2:
             return 0
-        elif inf1 < inf2:
+        if s1 < s2:
             return -1
-        else:
-            return 1
-    elif inf1 is not None and real2 is not None:
-        return inf1
-    elif real1 is not None and inf2 is not None:
-        return -inf2
-    else:
-        return None
+        return 1
+
+    return None
 
 
 class SympyComparison(SympyFunction):
@@ -732,9 +735,11 @@ class Max(_MinMax):
         <dd>returns the expression with the greatest value among the $e_i$.
     </dl>
 
-    Maximum of a series of numbers:
+    Maximum of a series of values:
     >> Max[4, -8, 1]
      = 4
+    >> Max[E - Pi, Pi, E + Pi, 2 E]
+     = E + Pi
 
     'Max' flattens lists in its arguments:
     >> Max[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
@@ -764,9 +769,11 @@ class Min(_MinMax):
         <dd>returns the expression with the lowest value among the $e_i$.
     </dl>
 
-    Minimum of a series of numbers:
+    Minimum of a series of values:
     >> Min[4, -8, 1]
      = -8
+    >> Min[E - Pi, Pi, E + Pi, 2 E]
+     = E - Pi
 
     'Min' flattens lists in its arguments:
     >> Min[{1,2},3,{-3,3.5,-Infinity},{{1/2}}]
