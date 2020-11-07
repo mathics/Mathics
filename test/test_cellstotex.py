@@ -16,7 +16,7 @@ def _evaluate(str_expression):
 
 def test_load():
     str_expr1 = 'Import@"https://raw.githubusercontent.com/jkuczm/MathematicaCellsToTeX/master/NoInstall.m"'
-    str_expected1 = "None"
+    str_expected1 = "{}"
     message1 = ""
     result1 = _evaluate(str_expr1)
     expected1 = _evaluate(str_expected1)
