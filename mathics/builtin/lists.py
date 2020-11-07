@@ -1724,6 +1724,13 @@ class DeleteCases(Builtin):
     <dl>
     <dt>'DeleteCases[$list$, $pattern$]'
         <dd>returns the elements of $list$ that do not match $pattern$.
+
+    <dt>'DeleteCases[$list$, $pattern$, $levelspec$]'
+        <dd> removes all parts of $list on levels specified by $levelspec$ 
+             that match pattern (not fully implemented).
+
+    <dt>'DeleteCases[$list$, $pattern$, $levelspec$, $n$]'
+        <dd> removes the first $n$ parts of $list$ that match $pattern$. 
     </dl>
 
     >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
@@ -1739,17 +1746,42 @@ class DeleteCases(Builtin):
 
     def apply(self, items, pattern, evaluation):
         'DeleteCases[items_, pattern_]'
+        return self.apply_ls_n(items, pattern, Integer(1), Symbol("None"), evaluation)
+
+
+    def apply_ls(self, items, pattern, levelspec, evaluation):
+        'DeleteCases[items_, pattern_, levelspec_]'
+        return self.apply_ls_n(items, pattern, levelspec, Symbol("None"), evaluation)
+    
+    def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
+        'DeleteCases[items_, pattern_, levelspec_, n_Integer]'
+
         if items.is_atom():
             evaluation.message('Select', 'normal')
             return
 
+        if levelspec != Integer(1):
+            print("TODO: implement levelspec >1")
+
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
 
-        def cond(leaf):
-            return not match(leaf, evaluation)
+        if n.get_head_name() == "System`None":
+            def cond(leaf):
+                return not match(leaf, evaluation)
 
-        return items.filter('List', cond, evaluation)
+            return items.filter('List', cond, evaluation)
+        else:
+            n = n.get_int_value()
+            
+            def condn(leaf):
+                nonlocal n
+                if n == 0:
+                    return True
+                n = n - 1
+                return not match(leaf, evaluation)
+
+            return items.filter('List', condn, evaluation)
 
 
 class Count(Builtin):
