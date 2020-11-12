@@ -1712,7 +1712,7 @@ class LoadModule(Builtin):
             return Symbol('$Failed')
         else:
             # Add PyMathics` to $ContextPath so that when user don't
-            # have to qualify PyMathics variables and functions, 
+            # have to qualify PyMathics variables and functions,
             # as the those in teh module just loaded.
 
             # Following the example of $ContextPath in the WL
