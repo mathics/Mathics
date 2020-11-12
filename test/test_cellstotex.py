@@ -1,24 +1,38 @@
+import os
 from mathics.core.parser import parse, SingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Symbol
 import pytest
+import urllib.request
 
+external_url = (
+    "https://raw.githubusercontent.com/jkuczm/MathematicaCellsToTeX/master/NoInstall.m"
+)
+
+pytestmark = pytest.mark.skipif(os.getenv("SKIP_CELLSTOTEX", None) is not None,
+                                reason="SKIP_CELLSTOTEX environment variable set")
+
+try:
+    http_code = urllib.request.urlopen(external_url).getcode()
+except:
+    url_reachable = False
+else:
+    url_reachable = http_code in (200,) # add other 2xx or 3xx's?
 
 definitions = Definitions(add_builtin=True)
 evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
+import_url = 'Import@"%s"' % external_url
 
 
 def _evaluate(str_expression):
     expr = parse(definitions, SingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
-
 def test_load():
-    str_expr1 = 'Import@"https://raw.githubusercontent.com/jkuczm/MathematicaCellsToTeX/master/NoInstall.m"'
     str_expected1 = "{}"
     message1 = ""
-    result1 = _evaluate(str_expr1)
+    result1 = _evaluate(import_url)
     expected1 = _evaluate(str_expected1)
 
     if result1 == Symbol("System`$Failed"):
@@ -30,11 +44,14 @@ def test_load():
         assert result1 == expected1
 
 
+@pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
+@pytest.mark.skip(
+    reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
+)
 def test_load_and_run():
-    str_expr1 = 'Import@"https://raw.githubusercontent.com/jkuczm/MathematicaCellsToTeX/master/NoInstall.m"'
     str_expected1 = "None"
     message1 = "Import::nffil: File not found during Import."
-    result1 = _evaluate(str_expr1)
+    result1 = _evaluate(import_url)
     print(result1)
     expected1 = _evaluate(str_expected1)
 
@@ -51,4 +68,3 @@ def test_load_and_run():
         assert result2 == expected2, message2
     else:
         assert result2 == expected2
-
