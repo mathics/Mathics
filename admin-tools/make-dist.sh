@@ -1,5 +1,5 @@
 #!/bin/bash
-PACKAGE=mathicsscript
+PACKAGE=mathics3
 
 # FIXME put some of the below in a common routine
 function finish {
@@ -16,7 +16,7 @@ fi
 
 
 cd ..
-source $PACKAGE/version.py
+source mathics/version.py
 echo $__version__
 
 for pyversion in $PYVERSIONS; do
