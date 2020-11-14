@@ -17,6 +17,28 @@ from mathics import settings
 from mathics.core.definitions import PyMathicsLoadException
 
 
+def repl_pattern_by_symbol(expr):
+    leaves = expr.get_leaves()
+    if len(leaves) == 0:
+        return expr
+
+    headname = expr.get_head_name()
+    if headname == "System`Pattern":
+        return leaves[0]
+
+    changed = False
+    newleaves = []
+    for leave in leaves:
+        l = repl_pattern_by_symbol(leave)
+        if not(l is leave):
+            changed = True
+        newleaves.append(l)
+    if changed:
+        return Expression(headname,*newleaves)
+    else:
+        return expr
+
+
 def get_symbol_list(list, error_callback):
     if list.has_form('List', None):
         list = list.leaves
@@ -37,6 +59,13 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
         lhs._format_cache = None
+
+        if name == "System`Pattern":
+            lhsleaves= lhs.get_leaves()
+            lhs = lhsleaves[1]
+            rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
+            rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
 
         if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
                                   'UpValues', 'NValues', 'Options',
@@ -220,7 +249,7 @@ class _SetOperator(object):
         elif lhs_name == 'System`$ContextPath':
             currContext = evaluation.definitions.get_current_context()
             context_path = [s.get_string_value()  for s in rhs.get_leaves()]
-            context_path = [s if (s is None or s[0]!="`") else currContext +s for s in context_path]
+            context_path = [s if (s is None or s[0]!="`") else currContext[:-1] +s for s in context_path]
             if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
                 evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True
