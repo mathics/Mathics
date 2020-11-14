@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+
+
 1.1.0
 -----
 
