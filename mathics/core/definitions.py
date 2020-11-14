@@ -476,11 +476,7 @@ class Definitions(object):
         return self.get_definition(name).attributes
 
     def get_ownvalues(self, name):
-        try:
-            return self.get_definition(name).ownvalues
-        except:
-            from trepan.api import debug; debug()
-            pass
+        return self.get_definition(name).ownvalues
 
     def get_downvalues(self, name):
         return self.get_definition(name).downvalues

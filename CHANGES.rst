@@ -1,6 +1,19 @@
 CHANGES
 =======
 
+1.1.0
+-----
+
+Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Add Symbolic Comparisons - PR #1000
+- Support for externally PyPI-packagable builtin modules - PyMathics
+- ``SetDirectory`` fixes PR #994
+- Catch ```PatternError`` Exceptions
+- Fix formatting of ``..`` and ``...`` (``RepeatAll``)
+- tokenization of ``\.`` without a following space (``ReplaceAll``) Issue #992
+
 1.1.0 rc1
 ---------
 
@@ -53,7 +66,7 @@ New features (50+ builtins):
 - support for ``MATHICS_MAX_RECURSION_DEPTH``
 - option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 
-Ehancements and Bug fixes:
+Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
 
 - speed up leading-blank patterns #625, #933

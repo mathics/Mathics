@@ -571,6 +571,7 @@ class TimeZone(Predefined):
 
     name = "$TimeZone"
     value = SystemTimeZone.value.copy()
+    attributes = ("Unprotected",)
 
     rules = {
         "$TimeZone": str(value),

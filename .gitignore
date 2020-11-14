@@ -53,3 +53,5 @@ mathics/web/media/pdf/
 mathics/web/media/doc/classes.pdf
 mathics/web/media/doc/classes.png
 tmp
+
+.idea/

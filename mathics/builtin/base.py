@@ -225,10 +225,13 @@ class Builtin(object):
             )
         )
 
-        if name == "System`MakeBoxes":
+        if "Unprotected" in self.attributes:
             attributes = []
+            self.attributes = list(self.attributes)
+            self.attributes.remove("Unprotected")
         else:
             attributes = ["System`Protected"]
+
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.items():
@@ -385,8 +388,8 @@ class AtomBuiltin(Builtin):
     # which are by default not in the definitions' contribution pipeline.
     # see Image[] for an example of this.
 
-    def get_name(self) -> str:
-        name = super(AtomBuiltin, self).get_name()
+    def get_name(self, short=False) -> str:
+        name = super(AtomBuiltin, self).get_name(short=short)
         return re.sub(r"Atom$", "", name)
 
 
