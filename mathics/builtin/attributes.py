@@ -10,7 +10,8 @@ However, you can set any symbol as an attribute, in contrast to \Mathematica.
 
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Symbol, Expression
+from mathics.builtin.evaluation import Sequence
+from mathics.core.expression import Expression, Symbol, String
 from mathics.builtin.assignment import get_symbol_list
 
 
@@ -140,8 +141,11 @@ class ClearAttributes(Builtin):
 class Protect(Builtin):
     """
     <dl>
-    <dt>'Protect'[$s1$, $s2$, ...]
-        <dd>sets the attribute 'Protected' for the symbols $si$.
+      <dt>'Protect'[$s1$, $s2$, ...]
+      <dd>sets the attribute 'Protected' for the symbols $si$.
+
+      <dt>'Protect'[$str1$, $str2$, ...]
+      <dd>protects all symbols whose names textually match $stri$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -153,10 +157,45 @@ class Protect(Builtin):
     """
 
     attributes = ('HoldAll',)
-
-    rules = {
-        'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
+    messages = {
+        'ssym': "`1` is not a symbol or a string.",
     }
+
+    def apply(self, symbols, evaluation):
+        "Protect[symbols___]"
+        protected = Symbol("System`Protected")
+        items = []
+
+        if isinstance(symbols ,Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, String):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            if symbols.get_head_name() in ("System`Sequence", "System`List"):
+                symbols = symbols.get_leaves()
+            else:
+                evaluation.message('Protect', 'ssym', symbol)
+                return Symbol("Null")
+ 
+        for symbol in symbols:
+            if isinstance(symbol, Symbol):
+                items.append(symbol)
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern or pattern=="":
+                    evaluation.message('Protect', 'ssym', symbol)
+                    continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                names = evaluation.definitions.get_matching_names(pattern)
+                for defn in names:
+                    symbol = Symbol(defn)
+                    if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                        items.append(symbol)
+
+        Expression("SetAttributes", Expression("List", *items), protected).evaluate(evaluation)
+        return Symbol('Null')
 
 
 class Unprotect(Builtin):
