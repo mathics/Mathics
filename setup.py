@@ -177,7 +177,7 @@ CMDCLASS["test"] = test
 mathjax_files = list(subdirs("media/js/mathjax/"))
 
 setup(
-    name="Mathics",
+    name="Mathics3",
     cmdclass=CMDCLASS,
     ext_modules=EXTENSIONS,
     version=__version__,
