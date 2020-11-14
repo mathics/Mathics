@@ -13,6 +13,11 @@ Enhancements and Bug fixes:
 - Catch ```PatternError`` Exceptions
 - Fix formatting of ``..`` and ``...`` (``RepeatAll``)
 - tokenization of ``\.`` without a following space (``ReplaceAll``) Issue #992
+- Support for assignments to named ```Pattern```
+- Improving support for ```Names```
+- Adding a ```MathicsSession``` class to simplify interoperativity
+- Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions.
+
 
 1.1.0 rc1
 ---------
