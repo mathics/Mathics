@@ -1066,8 +1066,16 @@ class Clear(Builtin):
 
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
-
-        for symbol in symbols.get_sequence():
+        if isinstance(symbols ,Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            symbols = symbols.get_leaves()
+        elif isinstance(symbols ,String):
+            symbols = [symbols]
+        else:
+            symbols = symbols.get_sequence()
+ 
+        for symbol in symbols:
             if isinstance(symbol, Symbol):
                 names = [symbol.get_name()]
             else:
@@ -1075,6 +1083,10 @@ class Clear(Builtin):
                 if not pattern:
                     evaluation.message('Clear', 'ssym', symbol)
                     continue
+                if pattern[0] == "`":
+                    pattern = (evaluation.definitions.get_current_context()
+                               + pattern[1:])
+
                 names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
