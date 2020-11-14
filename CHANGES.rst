@@ -14,9 +14,9 @@ Enhancements and Bug fixes:
 - Fix formatting of ``..`` and ``...`` (``RepeatAll``)
 - tokenization of ``\.`` without a following space (``ReplaceAll``) Issue #992
 - Support for assignments to named ```Pattern```
-- Improving support for ```Names```
-- Adding a ```MathicsSession``` class to simplify interoperativity
-- Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions.
+- Improving support for ```Names``` PR #1003
+- Adding a ```MathicsSession``` class to simplify interoperativity PR #1001
+- Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions. PR #1003
 
 
 1.1.0 rc1
