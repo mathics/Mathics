@@ -7,6 +7,9 @@ So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathi
 1.1.0
 -----
 
+So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+
+
 Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
 

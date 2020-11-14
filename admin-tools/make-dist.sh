@@ -16,7 +16,7 @@ fi
 
 
 cd ..
-source $PACKAGE/version.py
+source mathics/version.py
 echo $__version__
 
 for pyversion in $PYVERSIONS; do
