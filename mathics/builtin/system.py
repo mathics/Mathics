@@ -9,10 +9,12 @@ Global System Information
 import os
 import platform
 import sys
+import re
 
 from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
+from mathics.builtin.strings import StringExpression, to_regex
 
 
 class Aborted(Predefined):
@@ -194,8 +196,12 @@ class Names(Builtin):
 
     def apply(self, pattern, evaluation):
         "Names[pattern_]"
+        headname = pattern.get_head_name()
+        if headname == "System`StringExpression":
+            pattern = re.compile(to_regex(pattern, evaluation))
+        else:
+            pattern = pattern.get_string_value()
 
-        pattern = pattern.get_string_value()
         if pattern is None:
             return
 
