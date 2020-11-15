@@ -18,7 +18,6 @@ import mpmath
 import math
 import sympy
 import requests
-import tempfile
 
 
 from itertools import chain
@@ -1395,33 +1394,6 @@ class BinaryWrite(Builtin):
      = {213, 143, 98, 112, 141, 183, 203, 247}
     #> WRb[{384206740, 1676316040}, Table["UnsignedInteger32", {2}]]
      = {148, 135, 230, 22, 136, 141, 234, 99}
-
-    ######
-    ## The below do not work on MacOSX
-
-    ## UnsignedInteger64
-    S> WRb[7079445437368829279, "UnsignedInteger64"]
-     = {95, 5, 33, 229, 29, 62, 63, 98}
-
-    S> WRb[5381171935514265990, "UnsignedInteger64"]
-     = {134, 9, 161, 91, 93, 195, 173, 74}
-
-    ## UnsignedInteger128
-    S> WRb[293382001665435747348222619884289871468, "UnsignedInteger128"]
-     = {108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}
-    S> WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]
-     = {53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}
-
-    ## Full File
-    ## MacOSX doesn't have /dev/full
-    S> strm = OpenWrite["/dev/full", BinaryFormat -> True]
-     = OutputStream[...]
-    S> BinaryWrite[strm, {39, 4, 122}]
-     : No space left on device.
-     = OutputStream[...]
-    S> Close[strm]
-     : No space left on device.
-     = ...
     """
 
     messages = {
@@ -1889,13 +1861,6 @@ class WriteString(Builtin):
      | abc
 
     #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
-
-    S> str = OpenWrite["/dev/full"];
-    S> WriteString[str, "123"]
-     : No space left on device.
-    S> Close[str]
-     : No space left on device.
-     = /dev/full
     """
 
     messages = {
@@ -2180,6 +2145,7 @@ class Put(BinaryOperator):
     ## * a bit fragile, somewhat
     ## * somewhat OS dependent,
     ## * can leave crap in the filesystem
+    ## * put in a pytest
     ##
     ## For these reasons this should be done a a pure test
     ## rather than intermingled with the doc system.
