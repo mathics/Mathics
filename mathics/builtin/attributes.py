@@ -175,7 +175,6 @@ class Protect(Builtin):
             else:
                 evaluation.message('Protect', 'ssym', symbol)
                 return Symbol("Null")
-
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)

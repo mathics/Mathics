@@ -17,7 +17,6 @@ from mathics import settings
 from mathics.core.definitions import PyMathicsLoadException
 
 
-
 def repl_pattern_by_symbol(expr):
     leaves = expr.get_leaves()
     if len(leaves) == 0:
@@ -38,7 +37,6 @@ def repl_pattern_by_symbol(expr):
         return Expression(headname,*newleaves)
     else:
         return expr
-
 
 
 def get_symbol_list(list, error_callback):
@@ -1075,7 +1073,6 @@ class Clear(Builtin):
             symbols = [symbols]
         else:
             symbols = symbols.get_sequence()
-
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 names = [symbol.get_name()]
@@ -1085,7 +1082,8 @@ class Clear(Builtin):
                     evaluation.message('Clear', 'ssym', symbol)
                     continue
                 if pattern[0] == "`":
-                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                    pattern = (evaluation.definitions.get_current_context()
+                               + pattern[1:])
                 names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)

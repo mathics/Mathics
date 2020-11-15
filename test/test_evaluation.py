@@ -1,16 +1,15 @@
+
+from mathics.session import MathicsSession
+
 from mathics.core.parser import parse, SingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import pytest
 
 
-definitions = Definitions(add_builtin=True)
-evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
+session = MathicsSession(add_builtin=True, catch_interrupt=False)
 
 
-def _evaluate(str_expression):
-    expr = parse(definitions, SingleLineFeeder(str_expression))
-    return expr.evaluate(evaluation)
 
 
 @pytest.mark.parametrize(
@@ -49,9 +48,11 @@ def _evaluate(str_expression):
         (r'StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]', r'{"abcdefghijklm", "Mathics"}'),
     ],
 )
+
 def test_evaluation(str_expr: str, str_expected: str, message=""):
-    result = _evaluate(str_expr)
-    expected = _evaluate(str_expected)
+    global session
+    result = session.evaluate(str_expr)
+    expected = session.evaluate(str_expected)
 
     if message:
         assert result == expected, message
@@ -60,14 +61,15 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
 
 
 def test_exit():
+    global session
     try:
-        _evaluate("Exit[-37]")
+        session.evaluate("Exit[-37]")
     except SystemExit as e:
         assert e.code == -37
 
 
 def test_quit():
     try:
-        _evaluate("Quit[-37]")
+        session.evaluate("Quit[-37]")
     except SystemExit as e:
         assert e.code == -37

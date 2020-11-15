@@ -1,7 +1,7 @@
 Welcome to Mathics!
 ===================
 
-|Travis|_ |SlackStatus|_ |PyPI|_
+|Pypi Installs| |Latest Version| |Supported Python Versions| |Travis|_ |SlackStatus|_
 
 Mathics is a general-purpose computer algebra system (CAS). It is an open-source alternative to Mathematica. It is free both as in "free beer" and as in "freedom".
 
@@ -32,18 +32,20 @@ Contributing
 
 Please feel encouraged to contribute to Mathics! Create your own fork, make the desired changes, commit, and make a pull request.
 
-.. |SlackStatus| image:: https://mathics-slackin.herokuapp.com/badge.svg
-.. _SlackStatus: https://mathics-slackin.herokuapp.com/
-.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
-.. _Travis: https://travis-ci.org/mathics/Mathics
-.. |PyPI| image:: https://img.shields.io/pypi/v/Mathics
-.. _PyPI: https://pypi.org/project/Mathics/
-.. |mathicsscript| image:: https://mathics.org/screenshots/mathicsscript.png
-.. |mathicssserver| image:: https://mathics.org/screenshots/mathicsserver.png
-
-
 
 License
 -------
 
 Mathics is released under the GNU General Public License Version 3 (GPL3).
+
+.. |SlackStatus| image:: https://mathics-slackin.herokuapp.com/badge.svg
+.. _SlackStatus: https://mathics-slackin.herokuapp.com/
+.. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
+.. _Travis: https://travis-ci.org/mathics/Mathics
+.. _PyPI: https://pypi.org/project/Mathics/
+.. |mathicsscript| image:: https://mathics.org/screenshots/mathicsscript.png
+.. |mathicssserver| image:: https://mathics.org/screenshots/mathicsserver.png
+.. |Latest Version| image:: https://badge.fury.io/py/Mathics3.svg
+		 :target: https://badge.fury.io/py/Mathics3
+.. |Pypi Installs| image:: https://pepy.tech/badge/Mathics3
+.. |Supported Python Versions| image:: https://img.shields.io/pypi/pyversions/Mathics3.svg
