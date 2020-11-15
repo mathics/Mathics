@@ -1,7 +1,7 @@
 Welcome to Mathics!
 ===================
 
-|Latest Version| |Supported Python Versions| |Travis|_ |SlackStatus|_
+|Pypi Installs| |Latest Version| |Supported Python Versions| |Travis|_ |SlackStatus|_
 
 Mathics is a general-purpose computer algebra system (CAS). It is an open-source alternative to Mathematica. It is free both as in "free beer" and as in "freedom".
 
@@ -47,4 +47,5 @@ Mathics is released under the GNU General Public License Version 3 (GPL3).
 .. |mathicssserver| image:: https://mathics.org/screenshots/mathicsserver.png
 .. |Latest Version| image:: https://badge.fury.io/py/Mathics3.svg
 		 :target: https://badge.fury.io/py/Mathics3
+.. |Pypi Installs| image:: https://pepy.tech/badge/Mathics3
 .. |Supported Python Versions| image:: https://img.shields.io/pypi/pyversions/Mathics3.svg
