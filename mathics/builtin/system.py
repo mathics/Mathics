@@ -230,13 +230,13 @@ class Packages(Predefined):
     </dl>
 
     X> $Packages
-    = {CombinatoricaOld`,ImportExport`,Internal`,System`,XML`}
+    = {CombinatoricaOld`,ImportExport`,XML`,Internal`,System`,Global`}
     #> MemberQ[$Packages, "System`"]
     = True
     """
 
     name = "$Packages"
-    rules = {'$Packages': '{"CombinatoricaOld`","ImportExport`","Internal`","System`","XML`"}',}
+    rules = {'$Packages': '{"CombinatoricaOld`", "ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
     # def evaluate(self, evaluation):
     #    return Expression(
     #        "List",
