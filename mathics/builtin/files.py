@@ -4686,7 +4686,6 @@ class DirectoryQ(Builtin):
             return Symbol('True')
         return Symbol('False')
 
-
 class Needs(Builtin):
     """
     <dl>
@@ -4797,16 +4796,26 @@ class Needs(Builtin):
 
     def apply(self, context, evaluation):
         'Needs[context_String]'
+        contextstr = context.get_string_value()
+        if contextstr == "":
+            return Symbol("Null")
+        if contextstr[0]=="`":
+            curr_ctxt = evaluation.definitions.get_current_context()
+            contextstr = curr_ctxt + contextstr[1:]
+            context = String(contextstr)
 
-        if not valid_context_name(context.get_string_value()):
+        if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
 
-        # TODO
-        # if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-        #    # Already loaded
-        #    return Symbol('Null')
+        # TODO: Look why this rises the message
+        # "Select::normal: Nonatomic expression expected."
+        already_loaded = Expression('MemberQ',
+                                    Symbol('System`$Packages'), context)
+        already_loaded = already_loaded.evaluate(evaluation).is_true()
+        if already_loaded:
+           return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 
