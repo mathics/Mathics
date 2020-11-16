@@ -1062,7 +1062,6 @@ class Clear(Builtin):
         definition.formatvalues = {}
         definition.nvalues = []
 
-
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
         if isinstance(symbols ,Symbol):

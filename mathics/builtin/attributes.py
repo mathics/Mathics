@@ -110,7 +110,7 @@ class ClearAttributes(Builtin):
     >> ClearAttributes[f, Flat]
     >> Attributes[f]
      = {}
-    Attributes that are not set are ignored:
+    Attributes that are not even set are simply ignored:
     >> ClearAttributes[{f}, {Flat}]
     >> Attributes[f]
      = {}

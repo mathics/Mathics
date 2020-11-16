@@ -4,7 +4,7 @@
 """
 Exponential, Trigonometric and Hyperbolic Functions
 
-Mathics basically supports all important trigonometric and hyperbolic functions.
+\Mathics basically supports all important trigonometric and hyperbolic functions.
 
 Numerical values and derivatives can be computed; however, most special exact values and simplification rules are not implemented yet.
 """

@@ -35,13 +35,19 @@ def test_load():
     result1 = _evaluate(import_url)
     expected1 = _evaluate(str_expected1)
 
-    if result1 == Symbol("System`$Failed"):
-        return 0
+    #if result1 == Symbol("System`$Failed"):
+    #    return 0
 
     if message1:
         assert result1 == expected1, message1
     else:
         assert result1 == expected1
+
+    result2 = _evaluate('Names["CellsToTeX`*"]')
+    expected2 = _evaluate("{}")
+    print(result2)
+    assert result2 == expected2
+    
 
 
 @pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
@@ -49,6 +55,7 @@ def test_load():
     reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
 )
 def test_load_and_run():
+    print("load and run")
     str_expected1 = "None"
     message1 = "Import::nffil: File not found during Import."
     result1 = _evaluate(import_url)
@@ -58,12 +65,12 @@ def test_load_and_run():
     if result1 == Symbol("System`$Failed"):
         return 0
 
-    str_expr2 = 'CellToTeX[Cell[BoxData[MakeBoxes[Subscript[x, 1] == (-b \\[PlusMinus] Sqrt[b^2 - 4 a c])/(2 a)]], "Input"]]'
+    str_expr2 = 'Options[CellToTeX]={"CatchExceptions"->False};CellToTeX[Cell[BoxData[MakeBoxes[Subscript[x, 1] == (-b \\[PlusMinus] Sqrt[b^2 - 4 a c])/(2 a)]], "Input"], CatchExceptions->False]'
     str_expected2 = '"\\begin{mmaCell}{Input}\\n  \\mmaSub{x}{1}==\\mmaFrac{-b\\(\\pmb{\\pm}\\)\\mmaSqrt{\\mmaSup{b}{2}-4 a c}}{2 a}\\n\\end{mmaCell}"'
     message2 = ""
     result2 = _evaluate(str_expr2)
     expected2 = _evaluate(str_expected2)
-
+    print("result:", result2)
     if message2:
         assert result2 == expected2, message2
     else:
