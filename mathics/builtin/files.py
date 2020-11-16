@@ -4686,7 +4686,6 @@ class DirectoryQ(Builtin):
             return Symbol('True')
         return Symbol('False')
 
-
 class Needs(Builtin):
     """
     <dl>

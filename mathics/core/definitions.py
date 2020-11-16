@@ -388,9 +388,9 @@ class Definitions(object):
                     return n
         return with_context
 
-#    def get_package_names(self) -> typing.List[str]:
-#        # return sorted({name.split("`")[0] for name in self.get_names()})
-#        return self.get_definition("System`$Packages")
+    def get_package_names(self) -> typing.List[str]:
+        # TODO: load from $Packages...
+        pass
 
     def shorten_name(self, name_with_ctx) -> str:
         if "`" not in name_with_ctx:
