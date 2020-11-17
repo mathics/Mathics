@@ -78,6 +78,9 @@ else:
     CMDCLASS = {"build_ext": build_ext}
     INSTALL_REQUIRES += ["cython>=0.15.1"]
 
+if sys.platform == "darwin":
+    INSTALL_REQUIRES += ["scikit-image"]
+
 # General Requirements
 INSTALL_REQUIRES += [
     "sympy>=1.6, < 1.7",
