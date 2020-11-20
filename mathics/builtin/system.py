@@ -224,13 +224,13 @@ class Packages(Predefined):
     </dl>
 
     X> $Packages
-    = {CombinatoricaOld`,ImportExport`,XML`,Internal`,System`,Global`}
+    = {ImportExport`,XML`,Internal`,System`,Global`}
     #> MemberQ[$Packages, "System`"]
     = True
     """
 
     name = "$Packages"
-    rules = {'$Packages': '{"CombinatoricaOld`", "ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
+    rules = {'$Packages': '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
 
 
 class ParentProcessID(Predefined):

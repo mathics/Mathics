@@ -31,6 +31,53 @@ import heapq
 from collections import defaultdict
 import functools
 
+
+
+def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n = -1 ):
+    """
+    This function walks the expression `expr` looking for a pattern `pattern`
+    and returns the positions of each occurence.
+    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level. 
+   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+   n indicates the number of occurrences to return. By default, it returns all the occurences.
+    """
+    from mathics.builtin.patterns import Matcher
+    match = Matcher(pattern)
+    match = match.match
+    if type(levelspec) is int:
+        lsmin = 0
+        lsmax = levelspec
+    else:
+        lsmin = levelspec[0]
+        lsmax = levelspec[1]
+    tree = [expr.get_leaves()]
+    curr_index = [0]
+    found = []
+    while len(tree)>0:
+        if n == 0:
+            break
+        if curr_index[-1] == len(tree[-1]):
+            curr_index.pop()
+            tree.pop()
+            if len(curr_index)!=0:
+                curr_index[-1] = curr_index[-1] + 1
+            continue
+        curr_leave = tree[-1][curr_index[-1]]
+        if (match(curr_leave, evaluation) and  
+            (len(curr_index) >= lsmin)  ):
+            found.append([from_python(i) for i in curr_index])
+            curr_index[-1] = curr_index[-1] + 1
+            n = n - 1 
+            continue
+        if curr_leave.is_atom() or lsmax == len(curr_index):
+            curr_index[-1] = curr_index[-1] + 1
+            continue
+        else:
+            tree.append(curr_leave.get_leaves())
+            curr_index.append(0)
+    return found
+
+
 class List(Builtin):
     """
     <dl>
@@ -1743,7 +1790,8 @@ class DeleteCases(Builtin):
     #> z = {x, y}; x = 1; DeleteCases[z, _Symbol]
      = {1}
     """
-
+    messages = {'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.'}
+    
     def apply(self, items, pattern, evaluation):
         'DeleteCases[items_, pattern_]'
         return self.apply_ls_n(items, pattern, Integer(1), Symbol("None"), evaluation)
@@ -1759,10 +1807,43 @@ class DeleteCases(Builtin):
         if items.is_atom():
             evaluation.message('Select', 'normal')
             return
-
+        # If levelspec is specified to a non-trivial value,
+        # we need to proceed with this complicate procedure
+        # involving 1) decode what is the levelspec means
+        # 2) find all the occurences
+        # 3) Set all the occurences to ```System`Nothing```
         if levelspec != Integer(1):
-            print("TODO: implement levelspec >1")
+            lsmin = lsmax = 1
+            if levelspec.get_head_name() == "System`List":
+                levelslim = levelspec.leaves
+                if len(levelslim) == 1:
+                    if levelslim[0].get_head_name() != "System`Integer" :
+                        evaluation.message('DeleteCases','level', levelspec)
+                    lsmax = levelslim[0].get_int_value()
+                    lsmin = 0
+                elif len(levelslim) == 2:
+                    if (levelslim[0].get_head_name() != "System`Integer" or
+                        levelslim[1].get_head_name() != "System`Integer"):
+                        evaluation.message('DeleteCases','level', levelspec)
+                    
+                    lsmax = levelslim[1].get_int_value()
+                    lsmin = levelslim[0].get_int_value()    
+                else :
+                    evaluation.message('DeleteCases','level', levelspec)
+                
+            if n.get_head_name() == "System`None":
+                itemscoords = find_matching_indices_with_levelspec(items, pattern, evaluation, (lsmin,lsmax))
+            else:
+                n = n.get_int_value()
+                itemscoords = find_matching_indices_with_levelspec(items, pattern, evaluation, (lsmin,lsmax), n)
 
+            result = items.copy()
+            rhs = Symbol('System`Nothing')
+            for coords in itemscoords:
+                result = walk_parts([result], coords, evaluation, rhs)
+            return result
+        
+        # A more efficient way to proceed if levelspec == 1
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
 
@@ -1778,6 +1859,7 @@ class DeleteCases(Builtin):
                 nonlocal n
                 if n == 0:
                     return True
+                print(n)
                 n = n - 1
                 return not match(leaf, evaluation)
 
