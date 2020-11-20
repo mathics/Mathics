@@ -166,7 +166,7 @@ class Protect(Builtin):
         protected = Symbol("System`Protected")
         items = []
 
-        if isinstance(symbols ,Symbol):
+        if isinstance(symbols, Symbol):
             symbols = [symbols]
         elif isinstance(symbols, String):
             symbols = [symbols]
@@ -174,7 +174,7 @@ class Protect(Builtin):
             if symbols.get_head_name() in ("System`Sequence", "System`List"):
                 symbols = symbols.get_leaves()
             else:
-                evaluation.message('Protect', 'ssym', symbol)
+                evaluation.message('Protect', 'ssym', symbols)
                 return Symbol("Null")
  
         for symbol in symbols:
