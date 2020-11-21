@@ -166,3 +166,25 @@ KSubsets[l_List,k_Integer?Positive] := {}  /; (k > Length[l])
 
 KSubsets[s_List, k_Integer] := Prepend[Map[s[[#]] &, KS[Length[s], k]], s[[Range[k] ]] ]
  *)
+
+(*
+BinarySearch::usage = "BinarySearch[l, k] searches sorted list l for key k and gives the position of l containing k, if k is present in l. Otherwise, if k is absent in l, the function returns (p + 1/2) where k falls between the elements of l in positions p and p+1. BinarySearch[l, k, f] gives the position of k in the list obtained from l by applying f to each element in l."
+
+BinarySearch::error = "The input list is non-numeric."
+BinarySearch[l_?(Length[#] > 0&), k_?NumericQ, f_:Identity]:=
+        With[{res = binarysearchchore[l, k, f]},
+             res/; res =!= $Failed
+        ]
+binarysearchchore[l_, k_, f_]:=
+        Module[{lo = 1, mid, hi = Length[l], el},
+                    While[lo <= hi,
+                        If[(el=f[l[[mid =
+                                    Floor[ (lo + hi)/2 ]]]])===k,
+                           Return[mid]
+                        ];
+            If[!NumericQ[el], (Message[BinarySearch::error]; Return[$Failed])];
+                        If[el > k, hi = mid-1, lo = mid+1]
+                    ];
+                    Return[lo-1/2]
+        ];
+*)
