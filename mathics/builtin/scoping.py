@@ -75,7 +75,7 @@ class With(Builtin):
     Use 'With' to insert values into held expressions
     >> With[{x=y}, Hold[x]]
      = Hold[y]
-    
+
     >> Table[With[{i=j}, Hold[i]],{j,1,4}]
      = {Hold[1], Hold[2], Hold[3], Hold[4]}
     >> x=5; With[{x=x}, Hold[x]]
@@ -465,7 +465,6 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     X> Contexts[] // InputForm
-
     """
 
     def apply(self, evaluation):
