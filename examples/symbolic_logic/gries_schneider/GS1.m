@@ -116,7 +116,7 @@ Print[ z+y /. {z->5, y->6} ]
 
 (* ~~~> Include the tooling <~~~ *)
 
-<<"GS0.m"
+<<"../../test_driver.m"
 
 (* ~~~> Here's an example <~~~ *)
 
@@ -1863,4 +1863,5 @@ expect[
     ]
 ] // Print
 
-Exit[Min[totalWrong, 255]]
+Print[{"total right", totalRight, "total wrong", totalWrong}];
+Quit[Min[totalWrong, 255]]

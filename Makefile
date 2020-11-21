@@ -51,7 +51,7 @@ install:
 runserver:
 	$(PYTHON) mathics/manage.py runserver $o
 
-check: pytest doctest djangotest gstest
+check: pytest doctest djangotest gstest ctest
 
 #: Remove derived files
 clean:
@@ -69,6 +69,9 @@ pytest:
 gstest:
 	(cd examples/symbolic_logic/gries_schneider && ./test-gs.sh)
 
+#: Run combinatorica tests
+ctest:
+	(cd examples/combinatorica && ./test-c.sh)
 
 #: Create data that is used to in Django docs and to build TeX PDF
 doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
