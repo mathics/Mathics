@@ -70,7 +70,7 @@
 
  *************************************************************************** *)
 
-<<"GS0.m"
+<<"../../test_driver.m"
 
 (* Section 3.1, Preliminaries ********************************************** *)
 (* ___          ___       _               _
@@ -2074,4 +2074,4 @@ intermediate state, is the result of the following tautology. *)
 
 expect[ true, true ] // Print
 
-Exit[Min[totalWrong, 255]]
+Quit[Min[totalWrong, 255]]
