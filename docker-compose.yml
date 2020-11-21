@@ -2,7 +2,7 @@ version: '2'
 
 services:
     mathics:
-        build: ./app
+        build: ./docker
         image: mathicsorg/mathics:latest
 
         volumes:
