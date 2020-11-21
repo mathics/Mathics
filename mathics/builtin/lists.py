@@ -1830,24 +1830,29 @@ class DeleteCases(Builtin):
                     lsmin = levelslim[0].get_int_value()    
                 else :
                     evaluation.message('DeleteCases','level', levelspec)
-                
-            if n.get_head_name() == "System`None":
+            print("n=",n)
+            if n.name == "System`None":
+                print("  is none")
                 itemscoords = find_matching_indices_with_levelspec(items, pattern, evaluation, (lsmin,lsmax))
             else:
+                print(" is a number")
                 n = n.get_int_value()
                 itemscoords = find_matching_indices_with_levelspec(items, pattern, evaluation, (lsmin,lsmax), n)
 
             result = items.copy()
             rhs = Symbol('System`Nothing')
             for coords in itemscoords:
+                print(f"   result {result}")
+                print(f"   coords {coords}")
+                print(f"   rhs {rhs}")
                 result = walk_parts([result], coords, evaluation, rhs)
+                result = result.evaluate(evaluation)
             return result
         
         # A more efficient way to proceed if levelspec == 1
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
-
-        if n.get_head_name() == "System`None":
+        if n.name == "System`None":
             def cond(leaf):
                 return not match(leaf, evaluation)
 
@@ -1859,7 +1864,6 @@ class DeleteCases(Builtin):
                 nonlocal n
                 if n == 0:
                     return True
-                print(n)
                 n = n - 1
                 return not match(leaf, evaluation)
 
