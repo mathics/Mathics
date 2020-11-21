@@ -187,4 +187,20 @@ binarysearchchore[l_, k_, f_]:=
                     ];
                     Return[lo-1/2]
         ];
-*)
+
+Partitions::usage = "Partitions[n] constructs all partitions of integer n in reverse lexicographic order. Partitions[n, k] constructs all partitions of the integer n with maximum part at most k, in reverse lexicographic order."
+
+Partitions[n_Integer] := Partitions[n,n]
+
+Partitions[n_Integer,_] := {} /; (n<0)
+Partitions[0,_] := { {} }
+Partitions[n_Integer,1] := { Table[1,{n}] }
+Partitions[_,0] := {}
+
+Partitions[n_Integer, maxpart_Integer] :=
+        Block[{$RecursionLimit = Infinity},
+	      Join[Map[(Prepend[#,maxpart])&, Partitions[n-maxpart,maxpart]],
+                   Partitions[n,maxpart-1]
+              ]
+	]
+ *)
