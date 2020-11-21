@@ -17,3 +17,12 @@ expect[{{a, b, c}, {b, a, c}, {c, a, b}, {a, c, b}, {b, c, a}, {c, b, a}},
 expect[321953,
        RankPermutation[{8, 9, 7, 1, 6, 4, 5, 3, 2}]]
  *)
+
+(*
+expect[4, BinarySearch[{3, 4, 10, 100, 123}, 100]]
+expect[2.5, BinarySearch[{2, 3, 9}, 7] // N]
+expect[1.5, BinarySearch[{2, 7, 9, 10}, 3] // N]
+expect[0.5, BinarySearch[{-10, 5, 8, 10}, -100] // N]
+expect[4.5, BinarySearch[{-10, 5, 8, 10}, 20] // N]
+expect[2,  BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]]
+ *)
