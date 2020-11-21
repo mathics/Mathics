@@ -303,12 +303,20 @@ class Evaluation(object):
                 self.definitions.add_rule(
                     "Out", Rule(Expression("Out", line_no), stored_result)
                 )
+<<<<<<< HEAD
             if result != self.SymbolNull:
+=======
+            if result != Symbol("Null"):
+>>>>>>> Set Evaluation#exc_result ...
                 if check_io_hook("System`$PrePrint"):
                     result = Expression("System`$PrePrint", result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
+<<<<<<< HEAD
                 self.exec_result = self.SymbolNull
+=======
+                self.exec_result = Symbol("Null")
+>>>>>>> Set Evaluation#exc_result ...
                 return None
 
         try:
