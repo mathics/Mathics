@@ -4914,7 +4914,7 @@ class Needs(Builtin):
         'Needs[context_String]'
         contextstr = context.get_string_value()
         if contextstr == "":
-            return Symbol("Null")
+            return SymbolNull
         if contextstr[0]=="`":
             curr_ctxt = evaluation.definitions.get_current_context()
             contextstr = curr_ctxt + contextstr[1:]
@@ -4936,7 +4936,7 @@ class Needs(Builtin):
                                     Symbol('System`$Packages'), context)
         already_loaded = already_loaded.evaluate(evaluation).is_true()
         if already_loaded:
-           return Symbol('Null')
+           return SymbolNull
 
         result = Expression('Get', context).evaluate(evaluation)
 

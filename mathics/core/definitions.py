@@ -395,8 +395,6 @@ class Definitions(object):
         packages = [c.get_string_value() for c in packages.leaves]
         return packages
 
-
-    
         #return sorted({name.split("`")[0] for name in self.get_names()})
 
     def shorten_name(self, name_with_ctx) -> str:
