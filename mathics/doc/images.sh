@@ -7,6 +7,6 @@ for filename in $(find documentation/images/ -name "*.eps"); do
 	mv "$pdf" "tex/images/"
 done
 
-for filename in tex/images/logo-{heptatom,text-nodrop}.svg; do
+for filename in images/logo-{heptatom,text-nodrop}.svg; do
     inkscape $filename --export-pdf="tex/$(basename "$filename" .svg).pdf"
 done
