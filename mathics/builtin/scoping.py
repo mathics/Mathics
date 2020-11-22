@@ -55,6 +55,59 @@ def dynamic_scoping(func, vars, evaluation):
     return result
 
 
+class With(Builtin):
+    """
+    <dl>
+
+    <dt>'With[{$x$=$x0$, $y$=$y0$, ...}, $expr$]'
+        <dd>specifies that all occurrences of the symbols $x$, $y$, ... in $expr$ should be replaced by $x0$, $y0$, ... 
+    </dl>
+
+    >> n = 10
+     = 10
+    >> With[{n = 5}, n ^ 2]
+     = 25
+    >> n
+     = 10
+    >> With[{x=y}, Hold[x]]
+     = Hold[y]
+    >> Table[With[{i=j}, Hold[i]],{j,1,4}]
+     = {Hold[1], Hold[2], Hold[3], Hold[4]}
+    >> x=5; With[{x=x}, Hold[x]]
+     = Hold[5]
+    >> {Block[{x = 3}, Hold[x]], With[{x = 3}, Hold[x]]}
+     = {Hold[x], Hold[3]}
+    >> ReleaseHold[%]
+     = {x,3}
+    >> With[{e = x}, Function[{x,y}, e*x*y]]
+     = Function[x$*y$, x*x$*y$]
+
+    """
+
+    attributes = ('HoldAll',)
+
+    messages = {
+        'lvsym': ("Local variable specification contains `1`, "
+                  "which is not a symbol or an assignment to a symbol."),
+        'dup': ("Duplicate local variable `1` found in local variable "
+                "specification."),
+        'lvlist': "Local variable specification `1` is not a List.",
+    }
+
+    def apply(self, vars, expr, evaluation):
+        'With[vars_, expr_]'
+        # Idea of how this should work
+        # 1) Determine the variables and the replace rules
+        vars = dict(get_scoping_vars(vars, 'With', evaluation))
+        print(vars)
+        # 2) On each anonymous function, add a `$` to each variable
+        # (To be implenented)
+        # 3) Apply the replace rule     
+        result = dynamic_scoping(lambda x: expr, vars, evaluation).evaluate(evaluation)
+        return result
+
+
+
 class Block(Builtin):
     """
     <dl>
