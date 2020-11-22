@@ -1889,9 +1889,6 @@ class DeleteCases(Builtin):
                 
         if levelspec[0] !=1 or levelspec[1] !=1:
             return deletecases_with_levelspec(items, pattern, evaluation, levelspec, n)
-        else:
-            print("using a simpler algorithm")
-            print(f"levelspec {levelspec}   n={n}")
         # A more efficient way to proceed if levelspec == 1
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match

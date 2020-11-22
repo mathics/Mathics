@@ -44,7 +44,7 @@ def test_load():
         assert result1 == expected1
 
     result2 = _evaluate('Names["CellsToTeX`*"]')
-    expected2 = _evaluate("{}")
+    expected2 = _evaluate('{"CellToTeX", "CellsToTeXException", "CellsToTeXPreamble"}')
     print(result2)
     assert result2 == expected2
     
