@@ -145,3 +145,35 @@ def test_quit():
         session.evaluate("Quit[-37]")
     except SystemExit as e:
         assert e.code == -37
+
+def test_combinatorica():
+    # Permutation[3] doesn't work
+    session.evaluate("""
+     Needs["DiscreteMath`CombinatoricaLite`"]
+     """)
+
+    permutations3 = r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
+    for str_expr, str_expected, message in (
+        (
+            "Permute[{A, B, C, D}, %s]" % permutations3,
+            "{{A, B, C}, {A, C, B}, {B, A, C}, {B, C, A}, {C, A, B}, {C, B, A}}",
+            "Permute"
+        ),
+        (
+            "Permute[{5,2,4,3,1}, InversePermutation[{5,2,4,3,1}]]",
+            "{1, 2, 3, 4, 5}",
+            "InversePermute"
+        ),
+        (
+            "MinimumChangePermutations[{a,b,c}]",
+            "{{a, b, c}, {b, a, c}, {c, a, b}, {a, c, b}, {b, c, a}, {c, b, a}}",
+            "MinimumChangePermuations"
+        ),
+        (
+            "Subsets[{1,2,3}]",
+            "{{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 3}, {1, 2, 3}}",
+            "Subsets"
+        ),
+
+    ):
+        test_evaluation(str_expr, str_expected, message)
