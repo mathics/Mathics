@@ -31,6 +31,120 @@ import heapq
 from collections import defaultdict
 import functools
 
+
+
+
+def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
+    """
+    This function walks the expression `expr` and deleting occurrencies of `pattern`
+    
+    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level. 
+   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+   n indicates the number of occurrences to return. By default, it returns all the occurences.
+    """
+    nothing = Symbol("System`Nothing")
+    from mathics.builtin.patterns import Matcher
+    match = Matcher(pattern)
+    match = match.match
+    if type(levelspec) is int:
+        lsmin = 1
+        lsmax = levelspec + 1
+    else:
+        lsmin = levelspec[0]
+        if levelspec[1]:
+            lsmax = levelspec[1] + 1
+        else:
+            lsmax = -1
+    tree = [[expr]]
+    changed_marks = [[False],]
+    curr_index = [0]
+
+    while curr_index[0]!=1:
+        # If the end of the branch is reached, or no more elements to delete out
+        if curr_index[-1] == len(tree[-1]) or n==0:
+            leaves = tree[-1]
+            tree.pop()
+            # check if some of the leaves was changed
+            changed = any(changed_marks[-1])
+            changed_marks.pop()
+            if changed:
+                leaves = [leaf for leaf in leaves if leaf is not nothing]
+            curr_index.pop()
+            if len(curr_index) == 0:
+                break
+            idx = curr_index[-1]
+            changed = changed or changed_marks[-1][idx]
+            changed_marks[-1][idx] = changed    
+            if changed:
+                head = tree[-1][curr_index[-1]].get_head()
+                tree[-1][idx] = Expression(head, *leaves)
+            if len(curr_index) == 0:
+                break
+            curr_index[-1] = curr_index[-1] + 1
+            continue
+        curr_leave = tree[-1][curr_index[-1]]
+        if (match(curr_leave, evaluation) and 
+            (len(curr_index) > lsmin)  ):            
+            tree[-1][curr_index[-1]] = nothing
+            changed_marks[-1][curr_index[-1]] = True
+            curr_index[-1] = curr_index[-1] + 1
+            n = n - 1 
+            continue
+        if curr_leave.is_atom() or lsmax == len(curr_index):
+            curr_index[-1] = curr_index[-1] + 1
+            continue
+        else:
+            tree.append(list(curr_leave.get_leaves()))
+            changed_marks.append([False for l in tree[-1]])
+            curr_index.append(0)
+    return tree[0][0]
+
+
+def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n = -1 ):
+    """
+    This function walks the expression `expr` looking for a pattern `pattern`
+    and returns the positions of each occurence.
+    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level. 
+   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+   n indicates the number of occurrences to return. By default, it returns all the occurences.
+    """
+    from mathics.builtin.patterns import Matcher
+    match = Matcher(pattern)
+    match = match.match
+    if type(levelspec) is int:
+        lsmin = 0
+        lsmax = levelspec
+    else:
+        lsmin = levelspec[0]
+        lsmax = levelspec[1]
+    tree = [expr.get_leaves()]
+    curr_index = [0]
+    found = []
+    while len(tree)>0:
+        if n == 0:
+            break
+        if curr_index[-1] == len(tree[-1]):
+            curr_index.pop()
+            tree.pop()
+            if len(curr_index)!=0:
+                curr_index[-1] = curr_index[-1] + 1
+            continue
+        curr_leave = tree[-1][curr_index[-1]]
+        if (match(curr_leave, evaluation) and  
+            (len(curr_index) >= lsmin)  ):
+            found.append([from_python(i) for i in curr_index])
+            curr_index[-1] = curr_index[-1] + 1
+            n = n - 1 
+            continue
+        if curr_leave.is_atom() or lsmax == len(curr_index):
+            curr_index[-1] = curr_index[-1] + 1
+            continue
+        else:
+            tree.append(curr_leave.get_leaves())
+            curr_index.append(0)
+    return found
+
+
 class List(Builtin):
     """
     <dl>
@@ -1724,6 +1838,13 @@ class DeleteCases(Builtin):
     <dl>
     <dt>'DeleteCases[$list$, $pattern$]'
         <dd>returns the elements of $list$ that do not match $pattern$.
+
+    <dt>'DeleteCases[$list$, $pattern$, $levelspec$]'
+        <dd> removes all parts of $list on levels specified by $levelspec$ 
+             that match pattern (not fully implemented).
+
+    <dt>'DeleteCases[$list$, $pattern$, $levelspec$, $n$]'
+        <dd> removes the first $n$ parts of $list$ that match $pattern$. 
     </dl>
 
     >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
@@ -1737,19 +1858,68 @@ class DeleteCases(Builtin):
      = {1}
     """
 
-    def apply(self, items, pattern, evaluation):
-        'DeleteCases[items_, pattern_]'
+    messages = {'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.',
+                'innf':  'Non-negative integer or Infinity expected at position 4 in `1`',
+                }
+    
+    # def apply(self, items, pattern, evaluation):
+    #    'DeleteCases[items_, pattern_]'
+    #    return self.apply_ls_n(items, pattern, Integer(1), Symbol("System`Null"), evaluation)
+
+
+    # def apply_ls(self, items, pattern, levelspec, evaluation):
+    #    'DeleteCases[items_, pattern_, levelspec_]'
+    #    return self.apply_ls_n(items, pattern, levelspec, Symbol("System`Null"), evaluation)
+    
+    def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
+        'DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]'
+
         if items.is_atom():
             evaluation.message('Select', 'normal')
             return
+        # If levelspec is specified to a non-trivial value,
+        # we need to proceed with this complicate procedure
+        # involving 1) decode what is the levelspec means
+        # 2) find all the occurences
+        # 3) Set all the occurences to ```System`Nothing```
 
+        levelspec = python_levelspec(levelspec)
+
+        if n == Symbol('Infinity'):
+            n = -1
+        elif n.get_head_name() == "System`Integer":
+            n = n.get_int_value()
+            if n< 0:
+                evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
+        else:
+            evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
+            return Symbol('System`Null')
+                
+        if levelspec[0] !=1 or levelspec[1] !=1:
+            return deletecases_with_levelspec(items, pattern, evaluation, levelspec, n)
+        else:
+            print("using a simpler algorithm")
+            print(f"levelspec {levelspec}   n={n}")
+        # A more efficient way to proceed if levelspec == 1
         from mathics.builtin.patterns import Matcher
         match = Matcher(pattern).match
+        if n == -1:
+            def cond(leaf):
+                return not match(leaf, evaluation)
 
-        def cond(leaf):
-            return not match(leaf, evaluation)
+            return items.filter('List', cond, evaluation)
+        else:
+            def condn(leaf):
+                nonlocal n
+                if n == 0:
+                    return True
+                elif  match(leaf, evaluation):
+                    n = n - 1
+                    return False
+                else:
+                    return True
 
-        return items.filter('List', cond, evaluation)
+            return items.filter('List', condn, evaluation)
 
 
 class Count(Builtin):
