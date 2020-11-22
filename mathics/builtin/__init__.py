@@ -114,14 +114,6 @@ def contribute(definitions):
         if name != 'System`MakeBoxes':
             item.contribute(definitions)
 
-    # Is there another way to Unprotect these symbols at initialization?
-    definitions.get_attributes('System`$PreRead').clear()
-    definitions.get_attributes('System`$Pre').clear()
-    definitions.get_attributes('System`$Post').clear()
-    definitions.get_attributes('System`$PrePrint').clear()
-    definitions.get_attributes('System`$SyntaxHandler').clear()
-    definitions.get_attributes('System`$TimeZone').clear()
-    definitions.get_attributes('System`$UseSansSerif').clear()
     from mathics.core.expression import ensure_context
     from mathics.core.parser import all_operator_names
     from mathics.core.definitions import Definition

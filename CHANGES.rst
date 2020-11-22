@@ -1,6 +1,30 @@
 CHANGES
 =======
 
+So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+
+
+1.1.0
+-----
+
+So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+
+
+Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Add Symbolic Comparisons. PR #1000
+- Support for externally PyPI-packagable builtin modules - PyMathics.
+- ``SetDirectory`` fixes. PR #994
+- Catch ```PatternError`` Exceptions.
+- Fix formatting of ``..`` and ``...`` (``RepeatAll``)
+- tokenization of ``\.`` without a following space (``ReplaceAll``). Issue #992
+- Support for assignments to named ```Pattern```
+- Improving support for ```Names``. PR #1003
+- Adding a ``MathicsSession`` class to simplify running Mathics from Python. PR #1001
+- Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions. PR #1003
+
+
 1.1.0 rc1
 ---------
 
@@ -53,7 +77,7 @@ New features (50+ builtins):
 - support for ``MATHICS_MAX_RECURSION_DEPTH``
 - option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 
-Ehancements and Bug fixes:
+Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
 
 - speed up leading-blank patterns #625, #933
