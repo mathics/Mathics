@@ -1,16 +1,11 @@
+# -*- coding: utf-8 -*-
+from .helper import session, check_evaluation
 
-from mathics.session import MathicsSession
-
+import sys
 from mathics.core.parser import parse, SingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import pytest
-
-
-session = MathicsSession(add_builtin=True, catch_interrupt=False)
-
-
-
 
 @pytest.mark.parametrize(
     "str_expr,str_expected",
@@ -45,12 +40,13 @@ session = MathicsSession(add_builtin=True, catch_interrupt=False)
         (r'StringInsert["", "X", 1]', r'"X"'),
         (r'StringInsert["", "X", -1]', r'"X"'),
         (r'StringInsert["abcdefghijklm", "", -1]', r'"abcdefghijklm"'),
-        (r'StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]', r'{"abcdefghijklm", "Mathics"}'),
+        (
+            r'StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]',
+            r'{"abcdefghijklm", "Mathics"}',
+        ),
     ],
 )
-
-def test_evaluation(str_expr: str, str_expected: str, message=""):
-    global session
+def check_evaluation(str_expr: str, str_expected: str, message=""):
     result = session.evaluate(str_expr)
     expected = session.evaluate(str_expected)
 
@@ -58,6 +54,79 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
         assert result == expected, message
     else:
         assert result == expected
+
+
+if sys.platform in ("linux",):
+
+    def test_system_specific_long_integer():
+        session.evaluate("""
+        WRb[bytes_, form_] := Module[{str, res={}, byte}, str = OpenWrite[BinaryFormat -> True];
+        BinaryWrite[str, bytes, form];
+        str = OpenRead[Close[str], BinaryFormat -> True];
+        While[Not[SameQ[byte = BinaryRead[str], EndOfFile]], res = Join[res, {byte}];];
+        Close[str]; res]
+        """)
+        for str_expr, str_expected, message in (
+            (
+                r'WRb[{1885507541, 4157323149}, Table["UnsignedInteger32", {2}]]',
+                r"{213, 143, 98, 112, 141, 183, 203, 247}",
+                "UnsignedInteger32",
+            ),
+            (
+                r'WRb[{384206740, 1676316040}, Table["UnsignedInteger32", {2}]]',
+                r"{148, 135, 230, 22, 136, 141, 234, 99}",
+                "UnsignedInteger32 - 2nd test",
+            ),
+            (
+                r'WRb[7079445437368829279, "UnsignedInteger64"]',
+                r"{95, 5, 33, 229, 29, 62, 63, 98}",
+                "UnsignedInteger64",
+            ),
+            (
+                r'WRb[5381171935514265990, "UnsignedInteger64"]',
+                r"{134, 9, 161, 91, 93, 195, 173, 74}",
+                "UnsignedInteger64 - 2nd test",
+            ),
+            (
+                r'WRb[293382001665435747348222619884289871468, "UnsignedInteger128"]',
+                r"{108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}",
+                "UnsignedInteger128",
+            ),
+            (
+                r'WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]',
+                r"{53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}",
+                "UnsignedInteger128 - 2nd test",
+            ),
+        ):
+
+            check_evaluation(str_expr, str_expected, message)
+
+# import os.path as osp
+# def check_evaluation_with_err(str_expr: str, expected: str, message=""):
+#     import pdb; pdb.set_trace()
+#     result = session.evaluate(str_expr)
+
+#     if message:
+#         assert result == expected, message
+#     else:
+#         assert result == expected
+
+# if osp.exists("/dev/zero"):
+#     def test_system_specific_write_string():
+#         for str_expr, str_expected, message in (
+#             (
+#                 r'WriteString[OpenWrite["/dev/full"], "123"]',
+#                 r": No space left on device.",
+#                 "WriteString to full device",
+#             ),
+#             # (
+#             #     r'Close[str]',
+#             #     r"No space left on device.",
+#             #     "Close on full device",
+#             # ),
+#         ):
+
+#             check_evaluation_with_err(str_expr, str_expected, message)
 
 
 def test_exit():

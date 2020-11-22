@@ -12,9 +12,12 @@ COPY requirements.txt ./
 RUN apt-get update
 RUN apt-get install -qq liblapack-dev llvm-dev gfortran
 RUN pip install --no-cache-dir -r requirements.txt
-# RUN python -m nltk.downloader wordnet omw
 COPY requirements-mathicsscript.txt ./
 RUN pip install --no-cache-dir -r requirements-mathicsscript.txt
+
+RUN pip install pymathics-natlang
+RUN python -m nltk.downloader wordnet omw
+RUN python -m spacy download en
 
 EXPOSE 8000
 
