@@ -4773,11 +4773,11 @@ class Needs(Builtin):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
-
-        # TODO
-        # if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-        #    # Already loaded
-        #    return Symbol('Null')
+        test_loaded = Expression('MemberQ', Symbol('$Packages'), context)
+        test_loaded = test_loaded.evaluate(evaluation)
+        if test_loaded.is_true():
+            # Already loaded
+            return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 
