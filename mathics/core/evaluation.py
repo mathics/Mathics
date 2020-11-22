@@ -337,7 +337,6 @@ class Evaluation(object):
                 else:
                     raise
             except WLThrowInterrupt as ti:
-                print("query: ", query)
                 if ti.tag:
                     self.exc_result = Expression("Hold",
                                                  Expression("Throw",

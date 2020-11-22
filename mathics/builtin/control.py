@@ -769,7 +769,11 @@ class Catch(Builtin):
         except WLThrowInterrupt as e:
             # TODO: check that form match tag.
             # otherwise, re-raise the exception
-            return Expression(f, e.value)
+            match = Expression("MatchQ", e.tag, form).evaluate(evaluation)
+            if match.is_true():
+                return Expression(f, e.value)
+            else:
+                raise e
         return ret
 
 

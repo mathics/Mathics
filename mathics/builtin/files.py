@@ -4779,14 +4779,11 @@ class Needs(Builtin):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
-
-        # TODO: Look why this rises the message
-        # "Select::normal: Nonatomic expression expected."
-        already_loaded = Expression('MemberQ',
-                                    Symbol('System`$Packages'), context)
-        already_loaded = already_loaded.evaluate(evaluation).is_true()
-        if already_loaded:
-           return Symbol('Null')
+        test_loaded = Expression('MemberQ', Symbol('$Packages'), context)
+        test_loaded = test_loaded.evaluate(evaluation)
+        if test_loaded.is_true():
+            # Already loaded
+            return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 
