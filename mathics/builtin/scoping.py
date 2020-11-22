@@ -96,16 +96,11 @@ class With(Builtin):
 
     def apply(self, vars, expr, evaluation):
         'With[vars_, expr_]'
-        # Idea of how this should work
-        # 1) Determine the variables and the replace rules
+
         vars = dict(get_scoping_vars(vars, 'With', evaluation))
-        # 2) On each anonymous function, add a `$` to each variable
-        # (To be implenented)
-        # 3) Apply the replace rule     
         result = expr.replace_vars(vars)
         result.evaluate(evaluation)
         return result
-
 
 
 class Block(Builtin):
@@ -417,8 +412,6 @@ class Context(Builtin):
      = Global`
     >> Context[b`c]
      = b`
-    >> Context[Sin] // InputForm
-     = "System`"
 
     >> InputForm[Context[]]
      = "Global`"
@@ -466,8 +459,13 @@ class Contexts(Builtin):
 
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
+<<<<<<< HEAD
     >> Contexts[] // InputForm
      = {"Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
+=======
+    X> Contexts[] // InputForm
+
+>>>>>>> addCatchThrow
     """
 
     def apply(self, evaluation):
@@ -518,12 +516,7 @@ class ContextPath(Predefined):
         <dd>is the search path for contexts.
     </dl>
 
-    >> $ContextPath // InputForm
-     = {"Global`", "System`"}
-
-    #> $ContextPath = Sin[2]
-     : Sin[2] is not a list of valid context names ending in `.
-     = Sin[2]
+    X> $ContextPath // InputForm
 
     #> x`x = 1; x
      = x
@@ -555,8 +548,7 @@ class Begin(Builtin):
 
     >> Begin["test`"]
      = test`
-    >> {$Context, $ContextPath}
-     = {test`, {Global`, System`}}
+    X> {$Context, $ContextPath}
     >> Context[newsymbol]
      = test`
     >> End[]
@@ -622,19 +614,8 @@ class BeginPackage(Builtin):
     'BeginPackage' changes the values of '$Context' and
     '$ContextPath', setting the current context to $context$.
 
-    >> {$Context, $ContextPath}
-     = {Global`, {Global`, System`}}
     >> BeginPackage["test`"]
      = test`
-    >> {$Context, $ContextPath}
-     = {test`, {test`, System`}}
-    >> Context[newsymbol]
-     = test`
-    >> EndPackage[]
-    >> {$Context, $ContextPath}
-     = {Global`, {test`, Global`, System`}}
-    >> EndPackage[]
-     : No previous context defined.
     """
 
     messages = {

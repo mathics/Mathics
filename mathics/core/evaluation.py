@@ -336,6 +336,19 @@ class Evaluation(object):
                     self.exc_result = Expression("Overflow")
                 else:
                     raise
+            except WLThrowInterrupt as ti:
+                print("query: ", query)
+                if ti.tag:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value,
+                                                            ti.tag))
+                else:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value
+                                                            ))
+                self.message("Throw", "nocatch", self.exc_result)
             except OverflowError:
                 self.message("General", "ovfl")
                 self.exc_result = Expression("Overflow")

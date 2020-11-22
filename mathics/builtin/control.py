@@ -790,7 +790,8 @@ class Throw(Builtin):
       = ...
      << Catch[NestList[If[# > 1000, Throw[#], #^2 + 1] &, 1, 7]]
       = 458330
-
+     << Throw[1]
+      = Null
     """
     messages = {'nocatch': 'Uncaught `1` returned to top level.', }
 
