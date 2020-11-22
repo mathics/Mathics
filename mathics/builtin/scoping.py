@@ -5,7 +5,7 @@
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      fully_qualified_symbol_name)
-
+from mathics.core.rules import Rule
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
     def message(tag, *args):
@@ -53,6 +53,54 @@ def dynamic_scoping(func, vars, evaluation):
         for name, definition in original_definitions.items():
             evaluation.definitions.add_user_definition(name, definition)
     return result
+
+
+class With(Builtin):
+    """
+    <dl>
+
+    <dt>'With[{$x$=$x0$, $y$=$y0$, ...}, $expr$]'
+        <dd>specifies that all occurrences of the symbols $x$, $y$, ... in $expr$ should be replaced by $x0$, $y0$, ... 
+    </dl>
+
+    >> n = 10
+     = 10
+    >> With[{n = 5}, n ^ 2]
+     = 25
+    >> n
+     = 10
+    >> With[{x=y}, Hold[x]]
+     = Hold[y]
+    >> Table[With[{i=j}, Hold[i]],{j,1,4}]
+     = {Hold[1], Hold[2], Hold[3], Hold[4]}
+    >> x=5; With[{x=x}, Hold[x]]
+     = Hold[5]
+    >> {Block[{x = 3}, Hold[x]], With[{x = 3}, Hold[x]]}
+     = {Hold[x], Hold[3]}
+    >> x=.; ReleaseHold /@ %
+     = {x, 3}
+    >> With[{e = y}, Function[{x,y}, e*x*y]]
+     = Function[{x$, y$}, y x$ y$]
+
+    """
+
+    attributes = ('HoldAll',)
+
+    messages = {
+        'lvsym': ("Local variable specification contains `1`, "
+                  "which is not a symbol or an assignment to a symbol."),
+        'dup': ("Duplicate local variable `1` found in local variable "
+                "specification."),
+        'lvlist': "Local variable specification `1` is not a List.",
+    }
+
+    def apply(self, vars, expr, evaluation):
+        'With[vars_, expr_]'
+
+        vars = dict(get_scoping_vars(vars, 'With', evaluation))
+        result = expr.replace_vars(vars)
+        result.evaluate(evaluation)
+        return result
 
 
 class Block(Builtin):
@@ -414,7 +462,7 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     >> Contexts[] // InputForm
-     = {"CombinatoricaOld`", "Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
+     = {"Global`", "ImportExport`", "Internal`", "System`", "System`Convert`B64Dump`", "System`Convert`Image`", "System`Convert`JSONDump`", "System`Convert`TableDump`", "System`Convert`TextDump`", "System`Private`", "XML`", "XML`Parser`"}
     """
 
     def apply(self, evaluation):
@@ -590,12 +638,15 @@ class BeginPackage(Builtin):
 
     rules = {
         'BeginPackage[context_String]': '''
-             Unprotect[System`Private`$ContextPathStack];
+             Unprotect[System`Private`$ContextPathStack, System`$Packages];
              Begin[context];
              System`Private`$ContextPathStack =
                  Append[System`Private`$ContextPathStack, $ContextPath];
              $ContextPath = {context, "System`"};
-             Protect[System`Private`$ContextPathStack];
+             $Packages = If[MemberQ[System`$Packages,$Context], 
+                            None,
+                            System`$Packages=Join[{$Context}, System`$Packages]];
+             Protect[System`Private`$ContextPathStack, System`$Packages];
              context
         ''',
     }
