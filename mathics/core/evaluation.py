@@ -50,6 +50,13 @@ class BreakInterrupt(EvaluationInterrupt):
 class ContinueInterrupt(EvaluationInterrupt):
     pass
 
+class WLThrowInterrupt(EvaluationInterrupt):
+    def __init__(self, value, tag=None):
+        self.tag = tag
+        self.value = value
+    
+
+
 
 def _thread_target(request, queue) -> None:
     try:

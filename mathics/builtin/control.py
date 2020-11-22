@@ -10,7 +10,8 @@ Control Statements
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt)
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt,
+    WLThrowInterrupt)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -732,7 +733,7 @@ class Catch(Builtin):
     <dt>'Catch[`expr`, `form`]'
         <dd> returns value from the first Throw[`value`,`tag`] for which form matches `tag`.
 
-    <dt>'Catch[`expr`,`form`,`f`]'
+    <dt>'Catch[`expr`,`form`, `f`]'
         <dd> returns the argument of the first `Throw` generated in the evaluation of `expr`.
     </dl>
 
@@ -751,9 +752,25 @@ class Catch(Builtin):
 
     """
 
-    def apply(self, expr, form, f, evaluation):
-    	'Catch[expr_, form_:___, f__:Identity]'
-        print("setting a Catch point")
+    def apply1(self, expr, evaluation):
+    	'Catch[expr_]'
+        try:
+            ret = expr.evaluate(evaluation)
+        except WLThrowInterrupt as e:
+            return e.value
+        return ret
+        
+
+    def apply3(self, expr, form, f, evaluation):
+    	'Catch[expr_, form_, f__:Identity]'
+        try:
+            ret = expr.evaluate(evaluation)
+        except WLThrowInterrupt as e:
+            # TODO: check that form match tag.
+            # otherwise, re-raise the exception
+            return Expression(f, e.value)
+        return ret
+
 
 
 class Throw(Builtin):
@@ -777,8 +794,13 @@ class Throw(Builtin):
     """
     messages = {'nocatch': 'Uncaught `1` returned to top level.', }
 
-    def apply(self, value, tag, evaluation):
-   	'Throw[value_, tag__:Null]'
-   	print ("Throw")
+    def apply1(self, value, evaluation):
+   	'Throw[value_]'
+        raise WLThrowInterrupt(value)
+
+    def apply2(self, value, tag, evaluation):
+   	'Throw[value_, tag_]'
+        raise WLThrowInterrupt(value, tag)
+        
 
 
