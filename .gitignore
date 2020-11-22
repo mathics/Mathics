@@ -1,5 +1,3 @@
-
-
 *.c
 *.cpp
 *.egg
@@ -14,6 +12,7 @@
 .pydevproject
 .settings
 .vscode
+/.cache
 /.python-version
 /Mathics3.egg-info
 ChangeLog
