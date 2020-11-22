@@ -1,5 +1,9 @@
-(*
-This is a stripped-down version of Combinatorica
+(* ::Package:: *)
+
+(* :Title: Combinatorica Light *)
+
+(* :Summary:
+This is a stripped-down version of Combinatorica.
 
 Perhaps one day we'll be support the full thing, as an import.
 
@@ -22,7 +26,8 @@ authors, Wolfram Research, or Cambridge University Press, their licensees,
 distributors and dealers shall in no event be liable for any indirect,
 incidental, or consequential damages.
 *)
-Begin["CombinatoricaSmall`"]
+
+BeginPackage["CombinatoricaSmall`"]
 
 PermutationQ::usage = "PermutationQ[p] yields True if p is a list representing a permutation and False otherwise."
 PermutationQ[e_List] := (Sort[e] === Range[Length[e]])
@@ -212,6 +217,5 @@ Partitions[n_Integer, maxpart_Integer] :=
               ]
 	]
  *)
-End[]
 
-If[! MemberQ[$ContextPath, "CombinatoricaSmall`"] AppendTo[$ContextPath, "CombinatoricaSmall`"]]
+EndPackage[]

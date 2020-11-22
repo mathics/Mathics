@@ -148,6 +148,10 @@ def test_quit():
 
 def test_combinatorica():
     # Permutation[3] doesn't work
+    session.evaluate("""
+     Needs["CombinatoricaSmall`"]
+     """)
+
     permutations3 = r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
     for str_expr, str_expected, message in (
         (
