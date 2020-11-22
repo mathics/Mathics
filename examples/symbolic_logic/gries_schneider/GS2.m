@@ -29,7 +29,7 @@
 
  *************************************************************************** *)
 
-<< "GS0.m"
+<< "../../test_driver.m"
 
 (* Chaper 2, Boolean Expressions, page 25
 
@@ -517,4 +517,4 @@ expect[ dualTheorem[eqv[not[or[p, q]], and[not[p], not[q]]]]
 (* You do the exercises in Chapter 2. *)
 
 
-Exit[Min[totalWrong, 255]]
+Quit[Min[totalWrong, 255]]
