@@ -308,7 +308,7 @@ class Evaluation(object):
                     result = Expression("System`$PrePrint", result).evaluate(self)
                 return self.format_output(result, self.format)
             else:
-                self.exec_result = Symbol("Null")
+                self.exec_result = self.SymbolNull
                 return None
 
         try:
