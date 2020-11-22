@@ -466,8 +466,8 @@ class ContextPath(Predefined):
 
     #> x`x = 1; x
      = x
-    >> $ContextPath = {"x`"};
-    >> x
+    #> $ContextPath = {"x`"};
+    #> x
      = 1
     #> System`$ContextPath
      = {x`}
@@ -494,6 +494,7 @@ class Begin(Builtin):
 
     >> Begin["test`"]
      = test`
+    X> {$Context, $ContextPath}
     >> Context[newsymbol]
      = test`
     >> End[]

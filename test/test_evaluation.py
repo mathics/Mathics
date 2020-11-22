@@ -149,7 +149,7 @@ def test_quit():
 def test_combinatorica():
     # Permutation[3] doesn't work
     session.evaluate("""
-     Needs["CombinatoricaSmall`"]
+     Needs["DiscreteMath`CombinatoricaLite`"]
      """)
 
     permutations3 = r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
@@ -164,5 +164,16 @@ def test_combinatorica():
             "{1, 2, 3, 4, 5}",
             "InversePermute"
         ),
+        (
+            "MinimumChangePermutations[{a,b,c}]",
+            "{{a, b, c}, {b, a, c}, {c, a, b}, {a, c, b}, {b, c, a}, {c, b, a}}",
+            "MinimumChangePermuations"
+        ),
+        (
+            "Subsets[{1,2,3}]",
+            "{{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 3}, {1, 2, 3}}",
+            "Subsets"
+        ),
+
     ):
         test_evaluation(str_expr, str_expected, message)

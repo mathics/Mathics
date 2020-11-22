@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* :Title: Combinatorica Light *)
+(* :Title: Combinatorica Lite *)
 
 (* :Summary:
 This is a stripped-down version of Combinatorica.
@@ -27,7 +27,7 @@ distributors and dealers shall in no event be liable for any indirect,
 incidental, or consequential damages.
 *)
 
-BeginPackage["CombinatoricaSmall`"]
+BeginPackage["DiscreteMath`CombinatoricaLite`"]
 
 PermutationQ::usage = "PermutationQ[p] yields True if p is a list representing a permutation and False otherwise."
 PermutationQ[e_List] := (Sort[e] === Range[Length[e]])
