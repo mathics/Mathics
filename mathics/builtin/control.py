@@ -721,3 +721,64 @@ class Continue(Builtin):
         'Continue[]'
 
         raise ContinueInterrupt
+
+
+class Catch(Builtin):
+    """
+    <dl>
+    <dt>'Catch[`expr`]'
+        <dd> returns the argument of the first Throw generated in the evaluation of expr.
+
+    <dt>'Catch[`expr`, `form`]'
+        <dd> returns value from the first Throw[`value`,`tag`] for which form matches `tag`.
+
+    <dt>'Catch[`expr`,`form`,`f`]'
+        <dd> returns the argument of the first `Throw` generated in the evaluation of `expr`.
+    </dl>
+
+    Exit to the enclosing Catch as soon as Throw is evaluated:
+    << Catch[r; s; Throw[t]; u; v]
+     = t
+
+    Define a function that can "throw an exception":
+    << f[x_] := If[x > 12, Throw[overflow], x!]
+     = ...
+    The result of Catch is just what is thrown by Throw:
+    << Catch[f[1] + f[15]]
+     = overflow
+    << Catch[f[1]+f[4]]
+     = 24
+
+    """
+
+    def apply(self, expr, form, f, evaluation):
+    	'Catch[expr_, form_:___, f__:Identity]'
+        print("setting a Catch point")
+
+
+class Throw(Builtin):
+    """
+    <dl>
+    <dt>'Throw[`value`]'
+        <dd> stops evaluation and returns `value` as the value of the nearest enclosing Catch.
+
+    <dt>'Catch[`value`, `tag`]'
+        <dd> is caught only by `Catch[expr,form]`, where tag matches form.
+
+    </dl>
+
+     Using Throw can affect the structure of what is returned by a function:
+
+     << NestList[#^2 + 1 &, 1, 7]
+      = ...
+     << Catch[NestList[If[# > 1000, Throw[#], #^2 + 1] &, 1, 7]]
+      = 458330
+
+    """
+    messages = {'nocatch': 'Uncaught `1` returned to top level.', }
+
+    def apply(self, value, tag, evaluation):
+   	'Throw[value_, tag__:Null]'
+   	print ("Throw")
+
+
