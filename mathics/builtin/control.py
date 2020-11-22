@@ -753,16 +753,15 @@ class Catch(Builtin):
     """
 
     def apply1(self, expr, evaluation):
-    	'Catch[expr_]'
+        'Catch[expr_]'
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
             return e.value
         return ret
-        
-
+ 
     def apply3(self, expr, form, f, evaluation):
-    	'Catch[expr_, form_, f__:Identity]'
+        'Catch[expr_, form_, f__:Identity]'
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
@@ -770,7 +769,6 @@ class Catch(Builtin):
             # otherwise, re-raise the exception
             return Expression(f, e.value)
         return ret
-
 
 
 class Throw(Builtin):
@@ -795,11 +793,11 @@ class Throw(Builtin):
     messages = {'nocatch': 'Uncaught `1` returned to top level.', }
 
     def apply1(self, value, evaluation):
-   	'Throw[value_]'
+        'Throw[value_]'
         raise WLThrowInterrupt(value)
 
     def apply2(self, value, tag, evaluation):
-   	'Throw[value_, tag_]'
+        'Throw[value_, tag_]'
         raise WLThrowInterrupt(value, tag)
         
 
