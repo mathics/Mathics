@@ -5,7 +5,7 @@
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.expression import (Expression, String, Symbol, Integer,
                                      fully_qualified_symbol_name)
-
+from mathics.core.rules import Rule
 
 def get_scoping_vars(var_list, msg_symbol='', evaluation=None):
     def message(tag, *args):
@@ -77,10 +77,10 @@ class With(Builtin):
      = Hold[5]
     >> {Block[{x = 3}, Hold[x]], With[{x = 3}, Hold[x]]}
      = {Hold[x], Hold[3]}
-    >> ReleaseHold[%]
-     = {x,3}
-    >> With[{e = x}, Function[{x,y}, e*x*y]]
-     = Function[x$*y$, x*x$*y$]
+    >> x=.; ReleaseHold /@ %
+     = {x, 3}
+    >> With[{e = y}, Function[{x,y}, e*x*y]]
+     = Function[{x$, y$}, y x$ y$]
 
     """
 
@@ -99,11 +99,11 @@ class With(Builtin):
         # Idea of how this should work
         # 1) Determine the variables and the replace rules
         vars = dict(get_scoping_vars(vars, 'With', evaluation))
-        print(vars)
         # 2) On each anonymous function, add a `$` to each variable
         # (To be implenented)
         # 3) Apply the replace rule     
-        result = dynamic_scoping(lambda x: expr, vars, evaluation).evaluate(evaluation)
+        result = expr.replace_vars(vars)
+        result.evaluate(evaluation)
         return result
 
 

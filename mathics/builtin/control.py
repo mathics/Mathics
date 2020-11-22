@@ -755,6 +755,7 @@ class Catch(Builtin):
     def apply1(self, expr, evaluation):
         'Catch[expr_]'
         try:
+            print("catch1")
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
             return e.value
@@ -763,6 +764,7 @@ class Catch(Builtin):
     def apply3(self, expr, form, f, evaluation):
         'Catch[expr_, form_, f__:Identity]'
         try:
+            print("catch3")
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
             # TODO: check that form match tag.
