@@ -1,4 +1,9 @@
-(* Stripped down from Combinatorica for testing purposes.
+(*
+This is a stripped-down version of Combinatorica
+
+Perhaps one day we'll be support the full thing, as an import.
+
+Until then this is useful for getting us there.
 
 The original contains:
 
@@ -17,13 +22,16 @@ authors, Wolfram Research, or Cambridge University Press, their licensees,
 distributors and dealers shall in no event be liable for any indirect,
 incidental, or consequential damages.
 *)
+Begin["CombinatoricaSmall`"]
 
 PermutationQ::usage = "PermutationQ[p] yields True if p is a list representing a permutation and False otherwise."
 PermutationQ[e_List] := (Sort[e] === Range[Length[e]])
 
+(*
 Unprotect[Permutations]
 Permutations[n_Integer] := Permutations[Range[n]]
 Protect[Permutations]
+ *)
 
 Permute::usage = "Permute[l, p] permutes list l according to permutation p."
 Permute[l_List,p_?PermutationQ] := l [[ p ]]
@@ -204,3 +212,6 @@ Partitions[n_Integer, maxpart_Integer] :=
               ]
 	]
  *)
+End[]
+
+If[! MemberQ[$ContextPath, "CombinatoricaSmall`"] AppendTo[$ContextPath, "CombinatoricaSmall`"]]

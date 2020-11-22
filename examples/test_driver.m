@@ -7,6 +7,7 @@
     Oct 2020
 
     This originally called GS0.m in symbolic_logic/gries_schneider
+    but it is not application specific.
 
  *************************************************************************** *)
 
