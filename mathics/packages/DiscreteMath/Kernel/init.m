@@ -1,3 +1,4 @@
+Get[ "DiscreteMath`CombinatoricaV0.6"]
 Get[ "DiscreteMath`CombinatoricaLite`"]
 
 (* The below is from https://library.wolfram.com/infocenter/MathSource/6825/
