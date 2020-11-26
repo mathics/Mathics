@@ -751,6 +751,7 @@ class Catch(Builtin):
      = 24
 
     """
+    attributes = ("HoldAll",)
 
     def apply1(self, expr, evaluation):
         'Catch[expr_]'
@@ -759,9 +760,9 @@ class Catch(Builtin):
         except WLThrowInterrupt as e:
             return e.value
         return ret
- 
+
     def apply3(self, expr, form, f, evaluation):
-        'Catch[expr_, form_, f__:Identity]'
+        "Catch[expr_, form_, f__:Identity]"
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
@@ -771,7 +772,9 @@ class Catch(Builtin):
             if match.is_true():
                 return Expression(f, e.value)
             else:
-                raise e
+                # A plain raise hide, this path and preserves the traceback
+                # of the call that was originally given.
+                raise
         return ret
 
 
@@ -804,6 +807,3 @@ class Throw(Builtin):
     def apply2(self, value, tag, evaluation):
         'Throw[value_, tag_]'
         raise WLThrowInterrupt(value, tag)
-        
-
-
