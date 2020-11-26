@@ -60,17 +60,26 @@ class With(Builtin):
     <dl>
 
     <dt>'With[{$x$=$x0$, $y$=$y0$, ...}, $expr$]'
-        <dd>specifies that all occurrences of the symbols $x$, $y$, ... in $expr$ should be replaced by $x0$, $y0$, ... 
+        <dd>specifies that all occurrences of the symbols $x$, $y$, ... in $expr$ should be replaced by $x0$, $y0$, ...
     </dl>
 
     >> n = 10
      = 10
+
+    Evaluate an expression with x locally set to 5:
     >> With[{n = 5}, n ^ 2]
      = 25
     >> n
      = 10
+
+    'With' works even without evaluation:
+    >> With[{x = a}, (1 + x^2) &]
+     = 1 + a ^ 2&
+
+    Use 'With' to insert values into held expressions
     >> With[{x=y}, Hold[x]]
      = Hold[y]
+
     >> Table[With[{i=j}, Hold[i]],{j,1,4}]
      = {Hold[1], Hold[2], Hold[3], Hold[4]}
     >> x=5; With[{x=x}, Hold[x]]
@@ -624,7 +633,7 @@ class BeginPackage(Builtin):
              System`Private`$ContextPathStack =
                  Append[System`Private`$ContextPathStack, $ContextPath];
              $ContextPath = {context, "System`"};
-             $Packages = If[MemberQ[System`$Packages,$Context], 
+             $Packages = If[MemberQ[System`$Packages,$Context],
                             None,
                             System`$Packages=Join[{$Context}, System`$Packages]];
              Protect[System`Private`$ContextPathStack, System`$Packages];
