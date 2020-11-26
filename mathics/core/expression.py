@@ -89,6 +89,11 @@ def from_python(arg):
     number_type = get_type(arg)
     if arg is None:
         return Symbol('Null')
+    if isinstance(arg, bool):
+        if arg:
+            return Symbol("System`True")
+        else:
+            return Symbol("System`False")
     if isinstance(arg, int) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
