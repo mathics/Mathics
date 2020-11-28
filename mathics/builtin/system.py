@@ -402,7 +402,7 @@ class VersionNumber(Predefined):
     r"""
     <dl>
       <dt>'$VersionNumber'
-      <dd>is a real number which gives the current Wolfram Language kernel vesion number \Mathics tries to be compatible with.
+      <dd>is a real number which gives the current Wolfram Language version that \Mathics tries to be compatible with.
     </dl>
 
     >> $VersionNumber
