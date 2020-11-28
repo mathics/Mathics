@@ -255,7 +255,7 @@ class Evaluation(object):
         feeder.send_messages(self)
         return result, source_code
 
-    def evaluate(self, query: str, timeout=None):
+    def evaluate(self, query: str, timeout=None, format=None):
         """Evaluate a Mathics expression and return the
         result of evaluation.
 
@@ -270,6 +270,8 @@ class Evaluation(object):
         self.timeout = False
         self.stopped = False
         self.exc_result = self.SymbolNull
+        if format is None:
+            format = self.format
 
         line_no = self.definitions.get_line_no()
         line_no += 1
@@ -306,7 +308,7 @@ class Evaluation(object):
             if result != self.SymbolNull:
                 if check_io_hook("System`$PrePrint"):
                     result = Expression("System`$PrePrint", result).evaluate(self)
-                return self.format_output(result, self.format)
+                return self.format_output(result, format)
             else:
                 self.exec_result = self.SymbolNull
                 return None
@@ -350,7 +352,7 @@ class Evaluation(object):
             if self.exc_result is not None:
                 self.recursion_depth = 0
                 if self.exc_result != self.SymbolNull:
-                    result = self.format_output(self.exc_result, self.format)
+                    result = self.format_output(self.exc_result, format)
 
             result = Result(self.out, result, line_no)
             self.out = []
@@ -393,6 +395,8 @@ class Evaluation(object):
             result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
         elif format == "tex":
             result = Expression("StandardForm", expr).format(self, "System`TeXForm")
+        elif format == "unformatted":
+            return result
         else:
             raise ValueError
 
