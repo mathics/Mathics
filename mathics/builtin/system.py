@@ -21,7 +21,7 @@ from mathics.core.expression import (
 )
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
-from mathics.builtin.strings import StringExpression, to_regex
+from mathics.builtin.strings import to_regex
 
 
 class Aborted(Predefined):
@@ -410,8 +410,9 @@ class VersionNumber(Predefined):
     """
 
     name = "$VersionNumber"
+    value = 12.1
 
-    def evaluate(self, evaluation) -> String:
+    def evaluate(self, evaluation) -> Real:
         # Make this be whatever the latest Mathematica release is,
         # assuming we are trying to be compatible with this.
         return Real(12.1)
