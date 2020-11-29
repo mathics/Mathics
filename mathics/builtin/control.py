@@ -10,7 +10,8 @@ Control Statements
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, from_python
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt)
+    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt,
+    WLThrowInterrupt)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -721,3 +722,88 @@ class Continue(Builtin):
         'Continue[]'
 
         raise ContinueInterrupt
+
+
+class Catch(Builtin):
+    """
+    <dl>
+    <dt>'Catch[`expr`]'
+        <dd> returns the argument of the first Throw generated in the evaluation of expr.
+
+    <dt>'Catch[`expr`, `form`]'
+        <dd> returns value from the first Throw[`value`,`tag`] for which form matches `tag`.
+
+    <dt>'Catch[`expr`,`form`, `f`]'
+        <dd> returns the argument of the first `Throw` generated in the evaluation of `expr`.
+    </dl>
+
+    Exit to the enclosing Catch as soon as Throw is evaluated:
+    << Catch[r; s; Throw[t]; u; v]
+     = t
+
+    Define a function that can "throw an exception":
+    << f[x_] := If[x > 12, Throw[overflow], x!]
+     = ...
+    The result of Catch is just what is thrown by Throw:
+    << Catch[f[1] + f[15]]
+     = overflow
+    << Catch[f[1]+f[4]]
+     = 24
+
+    """
+    attributes = ("HoldAll",)
+
+    def apply1(self, expr, evaluation):
+        'Catch[expr_]'
+        try:
+            ret = expr.evaluate(evaluation)
+        except WLThrowInterrupt as e:
+            return e.value
+        return ret
+
+    def apply3(self, expr, form, f, evaluation):
+        "Catch[expr_, form_, f__:Identity]"
+        try:
+            ret = expr.evaluate(evaluation)
+        except WLThrowInterrupt as e:
+            # TODO: check that form match tag.
+            # otherwise, re-raise the exception
+            match = Expression("MatchQ", e.tag, form).evaluate(evaluation)
+            if match.is_true():
+                return Expression(f, e.value)
+            else:
+                # A plain raise hide, this path and preserves the traceback
+                # of the call that was originally given.
+                raise
+        return ret
+
+
+class Throw(Builtin):
+    """
+    <dl>
+    <dt>'Throw[`value`]'
+        <dd> stops evaluation and returns `value` as the value of the nearest enclosing Catch.
+
+    <dt>'Catch[`value`, `tag`]'
+        <dd> is caught only by `Catch[expr,form]`, where tag matches form.
+
+    </dl>
+
+     Using Throw can affect the structure of what is returned by a function:
+
+     << NestList[#^2 + 1 &, 1, 7]
+      = ...
+     << Catch[NestList[If[# > 1000, Throw[#], #^2 + 1] &, 1, 7]]
+      = 458330
+     << Throw[1]
+      = Null
+    """
+    messages = {'nocatch': 'Uncaught `1` returned to top level.', }
+
+    def apply1(self, value, evaluation):
+        'Throw[value_]'
+        raise WLThrowInterrupt(value)
+
+    def apply2(self, value, tag, evaluation):
+        'Throw[value_, tag_]'
+        raise WLThrowInterrupt(value, tag)

@@ -50,6 +50,13 @@ class BreakInterrupt(EvaluationInterrupt):
 class ContinueInterrupt(EvaluationInterrupt):
     pass
 
+class WLThrowInterrupt(EvaluationInterrupt):
+    def __init__(self, value, tag=None):
+        self.tag = tag
+        self.value = value
+    
+
+
 
 def _thread_target(request, queue) -> None:
     try:
@@ -331,6 +338,18 @@ class Evaluation(object):
                     self.exc_result = Expression("Overflow")
                 else:
                     raise
+            except WLThrowInterrupt as ti:
+                if ti.tag:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value,
+                                                            ti.tag))
+                else:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value
+                                                            ))
+                self.message("Throw", "nocatch", self.exc_result)
             except OverflowError:
                 self.message("General", "ovfl")
                 self.exc_result = Expression("Overflow")
