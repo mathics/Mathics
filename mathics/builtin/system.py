@@ -410,9 +410,9 @@ class VersionNumber(Predefined):
     """
 
     name = "$VersionNumber"
-    value = 12.1
+    value = 6.0
 
     def evaluate(self, evaluation) -> Real:
         # Make this be whatever the latest Mathematica release is,
         # assuming we are trying to be compatible with this.
-        return Real(12.1)
+        return Real(self.value)
