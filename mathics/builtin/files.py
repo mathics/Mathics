@@ -2098,15 +2098,35 @@ class Get(PrefixOperator):
     precedence = 720
     attributes = ('Protected')
 
-    def apply(self, path, evaluation):
-        'Get[path_String]'
+    options = {
+        "Trace": "False",
+    }
+
+    def check_options(self, options):
+        # Options
+        # TODO Proper error messages
+
+        result = {}
+        if options["System`Trace"].to_python():
+            result["TraceFn"] = print
+        else:
+            result["TraceFn"] = None
+
+        return result
+
+    def apply(self, path, evaluation, options):
+        "Get[path_String, OptionsPattern[Get]]"
         from mathics.core.parser import parse, TranslateError, FileLineFeeder
 
+        py_options = self.check_options(options)
+        trace_fn = py_options["TraceFn"]
         result = None
         pypath = path.get_string_value()
         try:
+            if trace_fn:
+                trace_fn(pypath)
             with mathics_open(pypath, 'r') as f:
-                feeder = FileLineFeeder(f)
+                feeder = FileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
                         query = parse(evaluation.definitions, feeder)
@@ -4773,11 +4793,11 @@ class Needs(Builtin):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
-
-        # TODO
-        # if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-        #    # Already loaded
-        #    return Symbol('Null')
+        test_loaded = Expression('MemberQ', Symbol('$Packages'), context)
+        test_loaded = test_loaded.evaluate(evaluation)
+        if test_loaded.is_true():
+            # Already loaded
+            return Symbol('Null')
 
         result = Expression('Get', context).evaluate(evaluation)
 

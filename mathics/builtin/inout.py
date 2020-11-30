@@ -1746,11 +1746,13 @@ class General(Builtin):
                   "{n}, or {m, n}."),
         'locked': "Symbol `1` is locked.",
         'matsq': "Argument `1` is not a non-empty square matrix.",
+        'newpkg': "In WL, there is a new package for this.",
         'noopen': "Cannot open `1`.",
         'nord': "Invalid comparison with `1` attempted.",
         'normal': "Nonatomic expression expected.",
         'noval': (
             "Symbol `1` in part assignment does not have an immediate value."),
+        'obspkg': "In WL, this package is obsolete.",
         'openx': "`1` is not open.",
         'optb': "Optional object `1` in `2` is not a single blank.",
         'ovfl': "Overflow occurred in computation.",

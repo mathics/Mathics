@@ -9,7 +9,6 @@ import pytest
 
 
 def test_combinatorica():
-    # Permutation[3] doesn't work
     session.evaluate(
         """
      Needs["DiscreteMath`CombinatoricaLite`"]
@@ -18,6 +17,8 @@ def test_combinatorica():
 
     # A number of examples from Computation Discrete Mathematics by
     # Sriram Pemmaraju and Steven Skiena
+
+    # Permutation[3] doesn't work
     permutations3 = (
         r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
     )
