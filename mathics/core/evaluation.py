@@ -54,7 +54,7 @@ class WLThrowInterrupt(EvaluationInterrupt):
     def __init__(self, value, tag=None):
         self.tag = tag
         self.value = value
-    
+
 
 
 
@@ -415,7 +415,8 @@ class Evaluation(object):
         elif format == "tex":
             result = Expression("StandardForm", expr).format(self, "System`TeXForm")
         elif format == "unformatted":
-            return result
+            self.exc_result = None
+            return expr
         else:
             raise ValueError
 
@@ -429,7 +430,7 @@ class Evaluation(object):
         return boxes
 
     def set_quiet_messages(self, messages) -> None:
-        from mathics.core.expression import Expression, String
+        from mathics.core.expression import Expression
 
         value = Expression("List", *messages)
         self.definitions.set_ownvalue("Internal`$QuietMessages", value)
