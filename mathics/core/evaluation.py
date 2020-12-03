@@ -262,7 +262,7 @@ class Evaluation(object):
         feeder.send_messages(self)
         return result, source_code
 
-    def evaluate(self, query: str, timeout=None, format=None):
+    def evaluate(self, query, timeout=None, format=None):
         """Evaluate a Mathics expression and return the
         result of evaluation.
 
@@ -368,6 +368,7 @@ class Evaluation(object):
                 self.exc_result = Symbol("$Aborted")
             except ReturnInterrupt as ret:
                 self.exc_result = ret.expr
+
             if self.exc_result is not None:
                 self.recursion_depth = 0
                 if self.exc_result != self.SymbolNull:
