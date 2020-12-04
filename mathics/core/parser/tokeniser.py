@@ -50,8 +50,8 @@ tokens = [
     ('RawLeftParenthesis', r' \( '),
     ('RawRightParenthesis', r' \) '),
     ('RawLeftAssociation', r' \<\| '),
-    ('RawRightAssociation', r' \|\> '),     
-    
+    ('RawRightAssociation', r' \|\> '),
+
     ('RawComma', r' \, '),
 
     ('Span', r' \;\; '),
@@ -111,6 +111,8 @@ tokens = [
     ('Greater', r' \> '),
     ('Less', r' \< '),
 
+    ('DirectedEdge', r' -> | \uf3d5'),
+
     ('Or', r' (\|\|) | \u2228 '),
     ('And', r' (\&\&) | \u2227 '),
 
@@ -142,7 +144,7 @@ tokens = [
     ('Minus', r' \-|\u2212 '),
     ('Plus', r' \+ '),
     ('RawBackslash', r' \\ '),
-    
+
     ('Factorial2', r' \!\! '),
     ('Factorial', r' \! '),
     ('Function', r' \& | \uF4A1 '),
