@@ -50,12 +50,11 @@ class BreakInterrupt(EvaluationInterrupt):
 class ContinueInterrupt(EvaluationInterrupt):
     pass
 
+
 class WLThrowInterrupt(EvaluationInterrupt):
     def __init__(self, value, tag=None):
         self.tag = tag
         self.value = value
-
-
 
 
 def _thread_target(request, queue) -> None:
@@ -179,7 +178,7 @@ class Print(Out):
 
 
 class Result(object):
-    def __init__(self, out, result, line_no, last_eval = None) -> None:
+    def __init__(self, out, result, line_no, last_eval=None) -> None:
         self.out = out
         self.result = result
         self.line_no = line_no
@@ -304,7 +303,9 @@ class Evaluation(object):
                 self.last_eval = query.evaluate(self)
 
             if check_io_hook("System`$Post"):
-                self.last_eval = Expression("System`$Post", self.last_eval).evaluate(self)
+                self.last_eval = Expression("System`$Post", self.last_eval).evaluate(
+                    self
+                )
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
@@ -318,7 +319,9 @@ class Evaluation(object):
                 )
             if self.last_eval != self.SymbolNull:
                 if check_io_hook("System`$PrePrint"):
-                    self.last_eval = Expression("System`$PrePrint", self.last_eval).evaluate(self)
+                    self.last_eval = Expression(
+                        "System`$PrePrint", self.last_eval
+                    ).evaluate(self)
                 return self.format_output(self.last_eval, format)
             else:
                 self.exec_result = self.SymbolNull
@@ -344,15 +347,11 @@ class Evaluation(object):
                     raise
             except WLThrowInterrupt as ti:
                 if ti.tag:
-                    self.exc_result = Expression("Hold",
-                                                 Expression("Throw",
-                                                            ti.value,
-                                                            ti.tag))
+                    self.exc_result = Expression(
+                        "Hold", Expression("Throw", ti.value, ti.tag)
+                    )
                 else:
-                    self.exc_result = Expression("Hold",
-                                                 Expression("Throw",
-                                                            ti.value
-                                                            ))
+                    self.exc_result = Expression("Hold", Expression("Throw", ti.value))
                 self.message("Throw", "nocatch", self.exc_result)
             except OverflowError:
                 self.message("General", "ovfl")
@@ -394,12 +393,14 @@ class Evaluation(object):
             line -= 1
         return result
 
-    def get_stored_result(self, result):
-        # Remove outer format
-        if result.has_form(FORMATS, 1):
-            result = result.leaves[0]
+    def get_stored_result(self, eval_result):
+        """Return `eval_result` stripped of any format, e.g. FullForm, MathML, TeX
+        that it might have been wrapped in.
+        """
+        if eval_result.has_form(FORMATS, 1):
+            return eval_result.leaves[0]
 
-        return result
+        return eval_result
 
     def stop(self) -> None:
         self.stopped = True
