@@ -92,6 +92,7 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "llvmlite",
     "requests",
+    "wordcloud", # Used in builtin/image.py by WordCloud()
 ]
 
 
