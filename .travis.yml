@@ -20,7 +20,7 @@ before_install:
   - LLVM_CONFIG=/usr/bin/llvm-config-10  CXXFLAGS=-fPIC python -m pip install llvmlite
   - pip install ipywidgets ipykernel requests IPython==5.0.0 langid pycountry pyenchant lxml matplotlib
   - python travis.py
-  - pip install cython unittest2 pexpect scikit-image
+  - pip install cython unittest2 pexpect
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - make develop
