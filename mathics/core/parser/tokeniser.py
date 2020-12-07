@@ -96,9 +96,13 @@ tokens = [
     ("Greater", r" \> "),
     ("Less", r" \< "),
     # https://reference.wolfram.com/language/ref/character/UndirectedEdge.html
+    # The official Unicode value is below that.
     ("UndirectedEdge", r" -> | \uf3d4"),
+    ("UndirectedEdge", r" -> | \u2194"),
     # https://reference.wolfram.com/language/ref/character/DirectedEdge.html
+    # The official Unicode value is below that.
     ("DirectedEdge", r" -> | \uf3d5"),
+    ("DirectedEdge", r" -> | \u2192"),
     ("Or", r" (\|\|) | \u2228 "),
     ("And", r" (\&\&) | \u2227 "),
     ("RepeatedNull", r" \.\.\. "),
