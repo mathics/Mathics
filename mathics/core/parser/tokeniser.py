@@ -95,14 +95,9 @@ tokens = [
     ("GreaterSlantEqual", r" \u2a7e "),
     ("Greater", r" \> "),
     ("Less", r" \< "),
-    # https://reference.wolfram.com/language/ref/character/UndirectedEdge.html
-    # The official Unicode value is below that.
-    ("UndirectedEdge", r" -> | \uf3d4"),
-    ("UndirectedEdge", r" -> | \u2194"),
     # https://reference.wolfram.com/language/ref/character/DirectedEdge.html
-    # The official Unicode value is below that.
-    ("DirectedEdge", r" -> | \uf3d5"),
-    ("DirectedEdge", r" -> | \u2192"),
+    # The official Unicode value is \u2192.
+    ("DirectedEdge", r" -> | \uf3d5|\u2192"),
     ("Or", r" (\|\|) | \u2228 "),
     ("And", r" (\&\&) | \u2227 "),
     ("RepeatedNull", r" \.\.\. "),
@@ -110,7 +105,9 @@ tokens = [
     ("Alternatives", r" \| "),
     ("Rule", r" (\-\>)|\uF522 "),
     ("RuleDelayed", r" (\:\>)|\uF51F "),
-    ("UndirectedEdge", r" (\<\-\>)|\u29DF "),
+    # https://reference.wolfram.com/language/ref/character/UndirectedEdge.html
+    # The official Unicode value is \u2194
+    ("UndirectedEdge", r" (\<\-\>)|\u29DF|\u2194 "),
     ("ReplaceRepeated", r" \/\/\. "),
     ("ReplaceAll", r" \/\. "),
     ("Postfix", r" \/\/ "),
