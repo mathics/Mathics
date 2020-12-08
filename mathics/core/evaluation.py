@@ -54,7 +54,7 @@ class WLThrowInterrupt(EvaluationInterrupt):
     def __init__(self, value, tag=None):
         self.tag = tag
         self.value = value
-    
+
 
 
 
