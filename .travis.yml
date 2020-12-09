@@ -1,8 +1,8 @@
 dist: bionic
 language: python
 python:
+  - pypy3
   - 3.8
-  - pypy3.6-7.3.1
 matrix:
   fast_finish: true
   include:
