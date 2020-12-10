@@ -1846,6 +1846,8 @@ class Symbol(Atom):
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
 
+SymbolTrue = Symbol("True")
+SymbolFalse = Symbol("False")
 
 class Number(Atom):
     def __str__(self) -> str:
