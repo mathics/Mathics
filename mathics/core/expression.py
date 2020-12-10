@@ -91,9 +91,9 @@ def from_python(arg):
         return Symbol('Null')
     if isinstance(arg, bool):
         if arg:
-            return Symbol("System`True")
+            return SymbolTrue
         else:
-            return Symbol("System`False")
+            return SymbolFalse
     if isinstance(arg, int) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
@@ -1774,9 +1774,9 @@ class Symbol(Atom):
             return builtin.to_sympy(self)
 
     def to_python(self, *args, **kwargs):
-        if self.name == 'System`True':
+        if self == SymbolTrue:
             return True
-        if self.name == 'System`False':
+        if self == SymbolFalse:
             return False
         if self.name == 'System`Null':
             return None
@@ -1830,7 +1830,7 @@ class Symbol(Atom):
         return self
 
     def is_true(self) -> bool:
-        return self.name == 'System`True'
+        return self == SymbolTrue
 
     def is_numeric(self) -> bool:
         return self.name in system_symbols(

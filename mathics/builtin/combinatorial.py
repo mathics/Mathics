@@ -8,7 +8,7 @@ Combinatorial Functions
 import sympy
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer, Symbol
+from mathics.core.expression import Expression, Integer, Symbol, SymbolTrue, SymbolFalse
 from mathics.builtin.arithmetic import _MPMathFunction
 from itertools import combinations
 
@@ -120,10 +120,9 @@ class _BooleanDissimilarity(Builtin):
                     else:
                         raise _NoBoolVector
                 elif isinstance(leaf, Symbol):
-                    name = leaf.name
-                    if name == 'System`True':
+                    if leaf == SymbolTrue:
                         yield 1
-                    elif name == 'System`False':
+                    elif leaf == SymbolFalse:
                         yield 0
                     else:
                         raise _NoBoolVector
