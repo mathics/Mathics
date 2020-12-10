@@ -56,6 +56,11 @@ mailing list should be forwarded to:
 
 *)
 
+(* :Mathematica Version: 0.6.0 for Mathics
+ This is Mathematica Version 0.6 adapted for Mathics.
+*)
+
+
 BeginPackage["DiscreteMath`CombinatoricaV0.6`"]
 
 Graph::usage = "Graph[g,v] is the header for a graph object where g is an adjacency matrix and v is a list of vertices."
@@ -378,7 +383,9 @@ NumberOfPermutationsByCycles::usage = "NumberOfPermutationsByCycles[n,m] returns
 
 NumberOfSpanningTrees::usage = "NumberOfSpanningTrees[g] computes the number of distinct labeled spanning trees of graph g."
 
+(* Not yet
 NumberOfTableaux::usage = "NumberOfTableaux[p] uses the hook length formula to count the number of Young tableaux with shape defined by partition p."
+ *)
 
 OrientGraph::usage = "OrientGraph[g] assigns a direction to each edge of a bridgeless, undirected graph g, so that the graph is strongly connected."
 
@@ -420,13 +427,16 @@ RandomHeap::usage = "RandomHeap[n] constructs a random heap on n elements."
 
 RandomKSubset::usage = "RandomKSubset[l,k] returns a random subset of set l with exactly k elements."
 
+(* Not yet...
 RandomPartition::usage = "RandomPartition[n] constructs a random partition of integer n."
 
 RandomPermutation1::usage = "RandomPermutation1[n] sorts random numbers to generate a random permutation."
 
 RandomPermutation2::usage = "RandomPermutation2[n] uses random transpositions to generate random permutations."
 
+
 RandomPermutation::usage = "RandomPermutation[n] returns a random permutation of length n."
+ *)
 
 RandomSubset::usage = "RandomSubset[l] creates a random subset of set l."
 
@@ -500,7 +510,9 @@ StronglyConnectedComponents::usage = "StronglyConnectedComponents[g] returns the
 
 TableauClasses::usage = "TableauClasses[p] partitions the elements of permutation p into classes according to their initial columns during Young tableaux construction."
 
+(*
 TableauQ::usage = "TableauQ[t] returns True if and only if t represents a Young tableau."
+ *)
 
 TableauxToPermutation::usage = "TableauxToPermutation[t1,t2] constructs the unique permutation associated with Young tableaux t1 and t2, where both tableaux have the same shape. "
 
@@ -1156,6 +1168,7 @@ NextComposition[l_List] :=
 NextComposition[l_List] :=
 	Join[{Apply[Plus,l]},Table[0,{Length[l]-1}]] /; Last[l]==Apply[Plus,l]
 
+(* Not yet
 TableauQ[{}] = True
 TableauQ[t_List] :=
 	And [
@@ -1164,6 +1177,7 @@ TableauQ[t_List] :=
 		Apply[ GreaterEqual, Map[Length,t] ],
 		Apply[ GreaterEqual, Map[Length,TransposeTableau[t]] ]
 	]
+ *)
 
 TransposeTableau[tb_List] :=
 	Block[{t=Select[tb,(Length[#]>=1)&],row},
@@ -1280,6 +1294,7 @@ TableauToYVector[t_?TableauQ] :=
 		y
 	]
 
+(* Not yet
 NumberOfTableaux[{}] := 1
 NumberOfTableaux[s_List] :=
 	Block[{row,col,transpose=TransposePartition[s]},
@@ -1291,6 +1306,7 @@ NumberOfTableaux[s_List] :=
 	]
 
 NumberOfTableaux[n_Integer] := Apply[Plus, Map[NumberOfTableaux, Partitions[n]]]
+ *)
 
 CatalanNumber[n_] := Binomial[2n,n]/(n+1)	/; (n>=0)
 
@@ -3315,9 +3331,11 @@ Strings,
 StronglyConnectedComponents,
 Subsets,
 TableauClasses,
+(*
 TableauQ,
 TableauxToPermutation,
 Tableaux,
+ *)
 ToAdjacencyLists,
 ToCycles,
 ToInversionVector,

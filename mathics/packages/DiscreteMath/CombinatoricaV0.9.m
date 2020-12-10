@@ -77,10 +77,11 @@ incidental, or consequential damages.
 			and Graph Theory with Mathematica",
 			Addison-Wesley Publishing Co.
 *)
-(* :Mathematica Version: 2.0
+(* :Mathematica Version: 0.9.0 for Mathics
+ This is Mathematica Version 0.9 adapted for Mathics.
 *)
 
-BeginPackage["DiscreteMath`Combinatorica`"]
+BeginPackage["DiscreteMath`CombinatoricaV0.9`"]
 Unprotect[All]
 Unprotect[Subsets]
 
