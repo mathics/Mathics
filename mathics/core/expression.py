@@ -1778,7 +1778,7 @@ class Symbol(Atom):
             return True
         if self == SymbolFalse:
             return False
-        if self.name == 'System`Null':
+        if self == SymbolNull:
             return None
         n_evaluation = kwargs.get('n_evaluation')
         if n_evaluation is not None:
@@ -1846,8 +1846,10 @@ class Symbol(Atom):
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
 
+# Some common Symbols
 SymbolTrue = Symbol("True")
 SymbolFalse = Symbol("False")
+SymbolNull = Symbol("Null")
 
 class Number(Atom):
     def __str__(self) -> str:
