@@ -2,7 +2,7 @@ dist: bionic
 language: python
 python:
   - 3.8
-  - pypy3.6-7.3.1
+#  - pypy3.6-7.3.1
 matrix:
   fast_finish: true
   include:
@@ -14,18 +14,16 @@ services:
   - xvfb
 before_install:
   - sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10 llvm-10-dev
-  - sudo apt-get install -qq gfortran
-  - sudo apt-get install -qq texlive-font-utils latexmk texlive-xetex lmodern inkscape
-  - sudo apt-get install -qq texlive-latex-extra texlive-fonts-recommended asymptote
+  - sudo apt-get install -qq gfortran texlive-font-utils latexmk texlive-xetex lmodern inkscape texlive-latex-extra texlive-fonts-recommended asymptote
   - LLVM_CONFIG=/usr/bin/llvm-config-10  CXXFLAGS=-fPIC python -m pip install llvmlite
-  - pip install ipywidgets ipykernel requests IPython==5.0.0 langid pycountry pyenchant lxml matplotlib
+  - pip install ipywidgets ipykernel requests IPython==5.0.0 langid pycountry pyenchant lxml matplotlib unittest2 pexpect
   - python travis.py
-  - pip install cython unittest2 pexpect
+  - pip install cython
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - make develop
 script:
-  - make doc
+  - make -j3 doc
 notifications:
     email: false
     slack: mathics:VIjdkcZPlA79sOtVOtyjdOcT
