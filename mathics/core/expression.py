@@ -2635,6 +2635,8 @@ class StringFromPython(String):
         self = super(StringFromPython, cls).__new__(cls, value)
         if isinstance(value, sympy.NumberSymbol):
             self.value = "sympy." + str(value)
+        elif value == math.inf:
+            self.value = "math.inf"
         return self
 
 
