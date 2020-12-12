@@ -1340,6 +1340,8 @@ class I(Predefined):
      = 10
     """
 
+    python_equivalent = 1j
+
     def evaluate(self, evaluation):
         return Complex(Integer(0), Integer(1))
 

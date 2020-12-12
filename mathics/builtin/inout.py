@@ -1947,7 +1947,7 @@ class PythonForm(Builtin):
     </dl>
 
     >> PythonForm[Infinity]
-    = inf
+    = math.inf
     >> PythonForm[Pi]
     = sympy.pi
     >> E // PythonForm
