@@ -137,10 +137,10 @@ class KeyComparable(object):
         return self.get_sort_key() >= other.get_sort_key()
 
     def __eq__(self, other) -> bool:
-        return self.get_sort_key() == other.get_sort_key()
+        return hasattr(other, "get_sort_key") and self.get_sort_key() == other.get_sort_key()
 
     def __ne__(self, other) -> bool:
-        return self.get_sort_key() != other.get_sort_key()
+        return (not hasattr(other, "get_sort_key")) or self.get_sort_key() != other.get_sort_key()
 
 
 # ExpressionCache keeps track of the following attributes for one Expression instance:
@@ -2635,7 +2635,10 @@ class StringFromPython(String):
         self = super(StringFromPython, cls).__new__(cls, value)
         if isinstance(value, sympy.NumberSymbol):
             self.value = "sympy." + str(value)
-        elif value == math.inf:
+
+        # Note that the test is done with math.inf first.
+        # This is to use float's ==, which may not strictly be necessary.
+        if math.inf == value:
             self.value = "math.inf"
         return self
 
