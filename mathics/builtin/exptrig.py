@@ -53,7 +53,6 @@ class Pi(SympyConstant):
         else:
             return PrecisionReal(sympy.pi.n(d))
 
-
 class E(SympyConstant):
     """
     <dl>
