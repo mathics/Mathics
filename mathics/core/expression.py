@@ -3,9 +3,11 @@
 # -*- coding: utf-8 -*-
 
 
+import ast
 import sympy
 import mpmath
 import math
+import inspect
 import re
 
 import typing
@@ -937,20 +939,32 @@ class Expression(BaseExpression):
         numbers    -> Python number
         If kwarg n_evaluation is given, apply N first to the expression.
         """
+        from mathics.builtin.base import mathics_to_python
 
         n_evaluation = kwargs.get('n_evaluation')
         if n_evaluation is not None:
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
         head_name = self._head.get_name()
-        if head_name == 'System`List':
-            return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
         if head_name == 'System`DirectedInfinity' and len(self._leaves) == 1:
             direction = self._leaves[0].get_int_value()
             if direction == 1:
-                return float('inf')
+                return math.inf
             if direction == -1:
-                return -float('inf')
+                return -math.inf
+        elif head_name == 'System`List':
+            return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+        if head_name in mathics_to_python:
+            py_obj = mathics_to_python[head_name]
+            # Start here
+            # if inspect.isfunction(py_obj) or inspect.isbuiltin(py_obj):
+            #     args = [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+            #     return ast.Call(
+            #         func=py_obj.__name__,
+            #         args=args,
+            #         keywords=[],
+            #         )
+            return py_obj
         return self
 
     def get_sort_key(self, pattern_sort=False):
@@ -1785,8 +1799,10 @@ class Symbol(Atom):
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
 
-        # return name as string (Strings are returned with quotes)
-        return self.name
+        if kwargs.get("python_form", False):
+            return self.to_sympy(**kwargs)
+        else:
+            return self.name
 
     def default_format(self, evaluation, form) -> str:
         return self.name
@@ -2612,6 +2628,14 @@ class String(Atom):
 
     def __getnewargs__(self):
         return (self.value,)
+
+
+class StringFromPython(String):
+    def __new__(cls, value):
+        self = super(StringFromPython, cls).__new__(cls, value)
+        if isinstance(value, sympy.NumberSymbol):
+            self.value = "sympy." + str(value)
+        return self
 
 
 def get_default_value(name, evaluation, k=None, n=None):
