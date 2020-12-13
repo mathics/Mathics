@@ -1,0 +1,35 @@
+name: Mathics (basic)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-10 llvm-10-dev
+        sudo apt-get install -qq gfortran texlive-font-utils latexmk texlive-xetex lmodern inkscape texlive-latex-extra texlive-fonts-recommended asymptote
+        python -m pip install --upgrade pip
+        pip install ipywidgets ipykernel requests IPython==5.0.0 langid pycountry pyenchant lxml matplotlib unittest2 pexpect
+        python travis.py
+        pip install cython
+    - name: Install Mathics
+      run: |
+        sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
+        make develop
+    - name: Test Mathics
+      run: |
+        make -j3 doc
