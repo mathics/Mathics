@@ -621,12 +621,12 @@ NextPermutation[p_?PermutationQ] :=
 	NthPermutation[ RankPermutation[p]+1, Sort[p] ]
 
 RandomPermutation1[n_Integer?Positive] :=
-	Map[ Last, Sort[ Map[({Random[],#})&,Range[n]] ] ]
+	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
 
 RandomPermutation2[n_Integer?Positive] :=
 	Block[{p = Range[n],i,x},
 		Do [
-			x = Random[Integer,{1,i}];
+			x = RandomInteger[Integer,{1,i}];
 			{p[[i]],p[[x]]} = {p[[x]],p[[i]]},
 			{i,n,2,-1}
 		];
@@ -968,7 +968,7 @@ RankSubset[set_List,subset_List] :=
 		Sum[ 2^(i-1) * If[ MemberQ[subset,set[[i]]], 1, 0], {i,n}]
 	]
 
-RandomSubset[set_List] := NthSubset[Random[Integer,2^(Length[set])-1],set]
+RandomSubset[set_List] := NthSubset[RandomInteger[Integer,2^(Length[set])-1],set]
 
 GrayCode[l_List] := GrayCode[l,{{}}]
 
@@ -1027,7 +1027,7 @@ RandomKSubset[set_List,k_Integer] :=
 		set [[
 			Sort[
 				Table[
-					x=Random[Integer,{1,i}];
+					x=RandomInteger[Integer,{1,i}];
 					{s[[i]],s[[x]]} = {s[[x]],s[[i]]};
 					s[[i]],
 					{i,n,n-k+1,-1}
@@ -1126,7 +1126,7 @@ RandomPartition[n_Integer?Positive] :=
 	]
 
 NextPartitionElement[n_Integer] :=
-	Block[{d=0,j,m,z=Random[] n PartitionsP[n],done=False,flag},
+	Block[{d=0,j,m,z=RandomInteger[] n PartitionsP[n],done=False,flag},
 		While[!done,
 			d++; m = n; j = 0; flag = False;
 			While[ !flag,
@@ -1318,9 +1318,9 @@ RandomTableau[shape_List] :=
 			While [!done,
 				h = y[[j]] + p[[i]] - i - j;
 				If[ h != 0,
-					If[ Random[] < 0.5,
-						j = Random[Integer,{j,p[[i]]}],
-						i = Random[Integer,{i,y[[j]]}]
+					If[ RandomInteger[] < 0.5,
+						j = RandomInteger[Integer,{j,p[[i]]}],
+						i = RandomInteger[Integer,{i,y[[j]]}]
 					],
 					done = True
 				];
@@ -1333,10 +1333,10 @@ RandomTableau[shape_List] :=
 	]
 
 RandomSquare[y_List,p_List] :=
-	Block[{i=Random[Integer,{1,First[y]}], j=Random[Integer,{1,First[p]}]},
+	Block[{i=RandomInteger[Integer,{1,First[y]}], j=RandomInteger[Integer,{1,First[p]}]},
 		While[(i > y[[j]]) || (j > p[[i]]),
-			i = Random[Integer,{1,First[y]}];
-			j = Random[Integer,{1,First[p]}]
+			i = RandomInteger[Integer,{1,First[y]}];
+			j = RandomInteger[Integer,{1,First[p]}]
 		];
 		{i,j}
 	]
@@ -1758,8 +1758,8 @@ ShakeGraph[Graph[e_List,v_List], fract_:0.1] :=
 		Graph[
 			e,
 			Table[
-				d = Random[Real,{0,fract}];
-				a = Random[Real,{0, 2 N[Pi]}];
+				d = RandomReal[Real,{0,fract}];
+				a = RandomReal[Real,{0, 2 N[Pi]}];
 				{N[v[[i,1]] + d Cos[a]], N[v[[i,2]] + d Sin[a]]},
 				{i,Length[e]}
 			]
@@ -2050,7 +2050,7 @@ CodeToLabeledTree[l_List] :=
 	]
 
 RandomTree[n_Integer?Positive] :=
-	RadialEmbedding[CodeToLabeledTree[ Table[Random[Integer,{1,n}],{n-2}] ], 1]
+	RadialEmbedding[CodeToLabeledTree[ Table[RandomInteger[Integer,{1,n}],{n-2}] ], 1]
 
 RandomGraph[n_Integer,p_] := RandomGraph[n,p,{1,1}]
 
@@ -2060,7 +2060,7 @@ RandomGraph[n_Integer,p_,range_List] :=
 			Join[
 				Table[0,{i}],
 				Table[
-					If[Random[Real]<p, Random[Integer,range], 0],
+					If[RandomReal[Real]<p, RandomInteger[Integer,range], 0],
 					{n-i}
 				]
 			],
@@ -2082,13 +2082,13 @@ NthPair[n_Integer] :=
 		{n - Binomial[i-1,2], i}
 	]
 
-RandomVertices[n_Integer] := Table[{Random[], Random[]}, {n}]
+RandomVertices[n_Integer] := Table[{RandomInteger[], RandomInteger[]}, {n}]
 RandomVertices[g_Graph] := Graph[ Edges[g], RandomVertices[V[g]] ]
 
 RandomGraph[n_Integer,p_,range_List,Directed] :=
 	RemoveSelfLoops[
 		Graph[
-			Table[If[Random[Real]<p,Random[Integer,range],0],{n},{n}],
+			Table[If[RandomReal[Real]<p,RandomInteger[Integer,range],0],{n},{n}],
 			CircularVertices[n]
 		]
 	]

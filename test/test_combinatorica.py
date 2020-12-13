@@ -56,6 +56,14 @@ def test_combinatorica():
          "Permutations uses lexographic order"
          ),
 
+        ("RandomPermutation1[20] === RandomPermutation2[20]",
+         "False",
+         "Not likey two of 20! permutations will be the same (different routines)"
+         ),
+        ("RandomPermutation1[20] === RandomPermutation1[20]",
+         "False",
+         "Not likey two of 20! permutations will be the same (same routine)"
+         ),
         ("RankPermutation[{8, 9, 7, 1, 6, 4, 5, 3, 2}]", "321953", "RankPermutation"),
         (
             "Permute[{5,2,4,3,1}, InversePermutation[{5,2,4,3,1}]]",

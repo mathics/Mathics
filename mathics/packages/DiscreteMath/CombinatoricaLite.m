@@ -164,7 +164,7 @@ OrbitInventory[ci_?PolynomialQ, x_Symbol, r_] :=
 (***
 RP = Compile[{{n, _Integer}},
              Module[{p = Range[n],i,x,t},
-	            Do [x = Random[Integer,{1,i}];
+	            Do [x = RandomInteger[Integer,{1,i}];
 		        t = p[[i]]; p[[i]] = p[[x]]; p[[x]] = t,
 		        {i,n,2,-1}
 		    ];
@@ -382,25 +382,20 @@ LexicographicPermutations[l_List] :=
 	]
 
 
-(* Not working: always returns the same sorted value.
-Probably Sort[] below is buggy.
- *)
-(*
 RandomPermutation::usage = "RandomPermutation[n] returns a random permutation of length n."
 RandomPermutation1[n_Integer?Positive] :=
-	Map[ Last, Sort[ Map[({Random[],#})&,Range[n]] ] ]
+	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
 
 RandomPermutation2[n_Integer?Positive] :=
 	Block[{p = Range[n],i,x},
 		Do [
-			x = Random[Integer,{1,i}];
+			x = RandomInteger[Integer,{1,i}];
 			{p[[i]],p[[x]]} = {p[[x]],p[[i]]},
 			{i,n,2,-1}
 		];
 		p
 	]
 RandomPermutation[n_Integer?Positive] := RandomPermutation1[n]
-  *)
 
 (* Tableaux stuff not working. Hitting recursion limit....
 TransposeTableau::usage = "TransposeTableau[t] reflects a Young tableau t along the main diagonal, creating a different tableau."
