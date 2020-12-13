@@ -58,6 +58,7 @@ LexicographicPermutations::usage = "LexicographicPermutations[l] constructs all 
 LexicographicPermutations[0] := {{}}
 LexicographicPermutations[1] := {{1}}
 
+(*
 LexicographicPermutations[n_Integer?Positive] := LP[n]
 LexicographicPermutations[l_List] := Permute[l, LexicographicPermutations[Length[l]] ]
 LP[{{n, _Integer}}] :=
@@ -69,6 +70,7 @@ LP[{{n, _Integer}}] :=
 							       l, n!-1
                ]
 	]
+ *)
 
 MinimumChangePermutations::usage = "MinimumChangePermutations[l] constructs all permutations of list l such that adjacent permutations differ by only one transposition."
 MinimumChangePermutations[l_List] := LexicographicPermutations[l] /; (Length[l] < 2)
@@ -359,6 +361,24 @@ KSubsets[l_List,k_Integer?Positive] :=
 	Join[
 		Map[(Prepend[#,First[l]])&, KSubsets[Rest[l],k-1]],
 		KSubsets[Rest[l],k]
+	]
+
+LexicographicPermutations[{a_,b_}] := {{a,b},{b,a}}
+
+LexicographicPermutations[l_List] :=
+	Block[{i,n=Length[l]},
+		Apply[
+			Join,
+			Table[
+				Map[
+					(Prepend[#,l[[i]]])&,
+					LexicographicPermutations[
+						Complement[l,{l[[i]]}]
+					]
+				],
+				{i,n}
+			]
+		]
 	]
 
 

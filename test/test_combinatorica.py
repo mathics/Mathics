@@ -24,10 +24,38 @@ def test_combinatorica():
     )
     for str_expr, str_expected, message in (
         (
+            "Permute[{a, b, c, d}, Range[4]]",
+            "{a, b, c, d}",
+            "Permute list with simple list",
+        ),
+        (
+            "Permute[{a, b, c, d}, {1,2,2,4}]",
+            "Permute[{a, b, c, d}, {1,2,2,4}]",
+            "Incorrect permute: index 2 duplicated",
+        ),
+        (
             "Permute[{A, B, C, D}, %s]" % permutations3,
             "{{A, B, C}, {A, C, B}, {B, A, C}, {B, C, A}, {C, A, B}, {C, B, A}}",
             "Permute",
         ),
+        (
+            "LexicographicPermutations[{a,b,c,d}]",
+            "{{a, b, c, d}, {a, b, d, c}, {a, c, b, d}, "
+            "{a, c, d, b}, {a, d, b, c}, {a, d, c, b}, "
+            "{b, a, c, d}, {b, a, d, c}, {b, c, a, d}, "
+            "{b, c, d, a}, {b, d, a, c}, {b, d, c, a}, "
+            "{c, a, b, d}, {c, a, d, b}, {c, b, a, d}, "
+            "{c, b, d, a}, {c, d, a, b}, {c, d, b, a}, "
+            "{d, a, b, c}, {d, a, c, b}, {d, b, a, c}, "
+            "{d, b, c, a}, {d, c, a, b}, {d, c, b, a}}",
+            "LexicographicPermuations"
+        ),
+
+        ("Map[RankPermutation, Permutations[Range[4]]]",
+         "Range[0, 23]",
+         "Permutations uses lexographic order"
+         ),
+
         ("RankPermutation[{8, 9, 7, 1, 6, 4, 5, 3, 2}]", "321953", "RankPermutation"),
         (
             "Permute[{5,2,4,3,1}, InversePermutation[{5,2,4,3,1}]]",
@@ -40,7 +68,7 @@ def test_combinatorica():
             "MinimumChangePermuations",
         ),
         (
-            "Subsets[{1,2,3}]",
+            "Subsets[Range[3]]",
             "{{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 3}, {1, 2, 3}}",
             "Subsets",
         ),
@@ -71,7 +99,7 @@ def test_combinatorica():
             "BinarySearch - find where key is a list",
         ),
         (
-            "KSubsets[{1,2,3,4,5},3]",
+            "KSubsets[Range[5], 3]",
             "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, {1, 3, 5}, {1, 4, 5}, "
             "{2, 3, 4}, {2, 3, 5}, {2, 4, 5}, {3, 4, 5}}",
             "Ksubsets",
