@@ -94,13 +94,38 @@ def test_combinatorica():
         (
             "Multinomial[3,3]",
             "20",
-
             "The built-in function Multinomial, Page 14"
+        ),
+        (
+            "DistinctPermutations[{A,B,C}]",
+            "{{A, B, C}, {A, C, B}, {B, A, C}, {B, C, A}, {C, A, B}, {C, B, A}}",
+            "DisctinctPermutations all n! permutations, Page 14"
+        ),
+        (
+            "Sort[ Subsets [Range[4]],(Apply[Plus, #1]<=Apply[Plus,#2])& ]",
+            "{{}, {1}, {2}, {3}, {1, 2}, {4}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, "
+            "{1, 2, 3}, {3, 4}, {1, 2, 4}, {1, 3, 4}, {2, 3, 4}, {1, 2, 3, 4}}",
+            "Sort to total order subsets, Page 15"
         ),
         (
             "Subsets[Range[3]]",
             "{{}, {1}, {2}, {3}, {1, 2}, {1, 3}, {2, 3}, {1, 2, 3}}",
             "Subsets",
+        ),
+        (
+            "BinarySearch[Table[2i,{i, 30}],40]",
+            "20",
+            "BinarySearch: 40 is one of the first 30 even numbers, Page 16"
+        ),
+        (
+            "BinarySearch[Table[2i,{i, 30}],41]",
+            "41/2",
+            "BinarySearch: BinarySearch: 41 is not even"
+        ),
+        (
+            "BinarySearch[{2, 3, 9}, 7] // N",
+            "2.5",
+            "BinarySearch - mid-way insertion point",
         ),
         ("BinarySearch[{3, 4, 10, 100, 123}, 100]", "4", "BinarySearch find item"),
         (
