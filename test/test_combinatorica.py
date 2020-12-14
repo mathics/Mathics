@@ -15,8 +15,13 @@ def test_combinatorica():
      """
     )
 
+    # A number of examples from Implementing Discrete Mathematics by
+    # Steven Skiena and
     # A number of examples from Computation Discrete Mathematics by
-    # Sriram Pemmaraju and Steven Skiena
+    # Sriram Pemmaraju and Steven Skiena.
+
+    # Page numbers below come from the first book
+
 
     # Permutation[3] doesn't work
     permutations3 = (
@@ -48,7 +53,7 @@ def test_combinatorica():
             "{c, b, d, a}, {c, d, a, b}, {c, d, b, a}, "
             "{d, a, b, c}, {d, a, c, b}, {d, b, a, c}, "
             "{d, b, c, a}, {d, c, a, b}, {d, c, b, a}}",
-            "LexicographicPermuations"
+            "LexicographicPermuations, Page 4"
         ),
 
         ("Map[RankPermutation, Permutations[Range[4]]]",
@@ -58,11 +63,11 @@ def test_combinatorica():
 
         ("RandomPermutation1[20] === RandomPermutation2[20]",
          "False",
-         "Not likey two of 20! permutations will be the same (different routines)"
+         "Not likey two of 20! permutations will be the same (different routines), Page 7"
          ),
         ("RandomPermutation1[20] === RandomPermutation1[20]",
          "False",
-         "Not likey two of 20! permutations will be the same (same routine)"
+         "Not likley two of 20! permutations will be the same (same routine)"
          ),
         ("RankPermutation[{8, 9, 7, 1, 6, 4, 5, 3, 2}]", "321953", "RankPermutation"),
         (
@@ -73,7 +78,24 @@ def test_combinatorica():
         (
             "MinimumChangePermutations[{a,b,c}]",
             "{{a, b, c}, {b, a, c}, {c, a, b}, {a, c, b}, {b, c, a}, {c, b, a}}",
-            "MinimumChangePermuations",
+            "MinimumChangePermuations, Page 11",
+        ),
+        (
+            "Union[Permutations[{a,a,a,a,a}]]",
+            "{{a, a, a, a, a}}",
+            "simple but wasteful Permutation duplication elimination, Page 12"
+        ),
+        (
+            "DistinctPermutations[{1,1,2,2}]",
+            "{{1, 1, 2, 2}, {1, 2, 1, 2}, {1, 2, 2, 1}, "
+            "{2, 1, 1, 2}, {2, 1, 2, 1}, {2, 2, 1, 1}}",
+            "DisctinctPermutations of multiset Binomial[6,3] permutations, Page 14"
+        ),
+        (
+            "Multinomial[3,3]",
+            "20",
+
+            "The built-in function Multinomial, Page 14"
         ),
         (
             "Subsets[Range[3]]",

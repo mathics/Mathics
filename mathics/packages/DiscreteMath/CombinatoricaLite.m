@@ -333,8 +333,34 @@ Tableaux[n_Integer?Positive] := Apply[ Join, Map[ Tableaux, Partitions[n] ] ]
 
 
 (****************************************************************************
-*** Combinatorica 0.6 versions until we support more modern WL features *****
+*** Combinatorica 0.9 versions until we support more modern WL features *****
 *****************************************************************************)
+
+Backtrack::usage = "Backtrack[s,partialQ,solutionQ] performs a backtrack search of the state space s, expanding a partial solution so long as partialQ is True and returning the first complete solution, as identified by solutionQ."
+
+Backtrack[space_List,partialQ_,solutionQ_,flag_:One] :=
+	Module[{n=Length[space],all={},done,index,v=2,solution},
+		index=Prepend[ Table[0,{n-1}],1];
+		While[v > 0,
+			done = False;
+			While[!done && (index[[v]] < Length[space[[v]]]),
+				index[[v]]++;
+				done = Apply[partialQ,{Solution[space,index,v]}];
+			];
+			If [done, v++, index[[v--]]=0 ];
+			If [v > n,
+				solution = Solution[space,index,n];
+				If [Apply[solutionQ,{solution}],
+					If [SameQ[flag,All],
+						AppendTo[all,solution],
+						all = solution; v=0
+					]
+				];
+				v--
+			]
+		];
+		all
+	]
 
 (* Note: Until we support With[], this is the Combinatorica 0.6  version of BinarySearch *)
 BinarySearch::usage = "BinarySearch[l,k,f] searches sorted list l for key k and returns the the position of l containing k, with f a function which extracts the key from an element of l."
@@ -350,6 +376,24 @@ BinarySearch[l_List,k_Integer,low_Integer,high_Integer,f_] :=
 			BinarySearch[l,k,mid+1,high,f]
 		]
 	]
+
+DistinctPermutations::usage = "DistinctPermutations[l] returns all permutations of the multiset described by list l."
+
+DistinctPermutations[s_List] :=
+	Module[{freq,alph=Union[s],n=Length[s]},
+		freq = Map[ (Count[s,#])&, alph];
+		Map[
+			(alph[[#]])&,
+			Backtrack[
+				Table[Range[Length[alph]],{n}],
+				(Count[#,Last[#]] <= freq[[Last[#]]])&,
+				(Count[#,Last[#]] <= freq[[Last[#]]])&,
+				All
+			]
+		]
+	]
+
+
 
 KSubsets::usage = "KSubsets[l, k] gives all subsets of set l containing exactly k elements, ordered lexicographically."
 KSubsets[l_List,0] := { {} }
@@ -396,6 +440,10 @@ RandomPermutation2[n_Integer?Positive] :=
 		p
 	]
 RandomPermutation[n_Integer?Positive] := RandomPermutation1[n]
+
+Solution[space_List,index_List,count_Integer] :=
+	Module[{i}, Table[space[[ i,index[[i]] ]], {i,count}] ]
+
 
 (* Tableaux stuff not working. Hitting recursion limit....
 TransposeTableau::usage = "TransposeTableau[t] reflects a Young tableau t along the main diagonal, creating a different tableau."
