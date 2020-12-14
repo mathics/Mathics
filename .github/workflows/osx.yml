@@ -1,4 +1,4 @@
-name: Mathics (ubuntu)
+name: Mathics (OSX)
 
 on:
   push:
@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: [macOS]
         python-version: [3.6, 3.7, 3.8]
     steps:
     - uses: actions/checkout@v2
@@ -20,7 +21,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
+        # brew install liblapack-dev llvm-dev
         python -m pip install --upgrade pip
     - name: Install Mathics
       run: |
