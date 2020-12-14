@@ -153,6 +153,16 @@ def test_combinatorica():
             "2",
             "BinarySearch - find where key is a list",
         ),
+        # (
+        #     "TableForm[ MultiplicationTable[Permutations[Range[3]], Permute ] ]",
+        #     "1   2   3   4   5   6\n"
+        #     "2   1   5   6   3   4\n"
+        #     "3   4   1   2   6   5\n"
+        #     "4   3   6   5   1   2\n"
+        #     "5   6   2   1   4   3\n"
+        #     "6   5   4   3   2   1\n",
+        #     "Symmetric group S_n. S_n is not commutative. Page 17"
+        # ),
         (
             "KSubsets[Range[5], 3]",
             "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, {1, 3, 5}, {1, 4, 5}, "

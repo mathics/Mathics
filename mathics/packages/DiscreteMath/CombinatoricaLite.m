@@ -426,6 +426,18 @@ LexicographicPermutations[l_List] :=
 	]
 
 
+MultiplicationTable::usage = "MultiplicationTable[l,f] constructs the complete transition table defined by the binary relation function f on the elements of list l."
+
+MultiplicationTable[elems_List,op_] :=
+	Module[{i,j,n=Length[elems],p},
+		Table[
+			p = Position[elems, Apply[op,{elems[[i]],elems[[j]]}]];
+			If [p === {}, 0, p[[1,1]]],
+			{i,n},{j,n}
+		]
+	]
+
+
 RandomPermutation::usage = "RandomPermutation[n] returns a random permutation of length n."
 RandomPermutation1[n_Integer?Positive] :=
 	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
