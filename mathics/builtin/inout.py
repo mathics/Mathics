@@ -20,7 +20,7 @@ from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, Symbol, Integer, Real, BoxError,
+    Expression, String, StringFromPython, Symbol, Integer, Real, BoxError,
     from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
     dps, convert_base, machine_precision, reconstruct_digits)
@@ -1936,6 +1936,42 @@ class MathMLForm(Builtin):
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression('RowBox', Expression('List', String(mathml)))
+
+
+class PythonForm(Builtin):
+    """
+    <dl>
+      <dt>'PythonForm[$expr$]'
+      <dd>returns an approximate equivalent of $expr$ in Python, when that is possible. We assume
+      that Python has sympy imported. No explicit import will be include in the result.
+    </dl>
+
+    >> PythonForm[Infinity]
+    = math.inf
+    >> PythonForm[Pi]
+    = sympy.pi
+    >> E // PythonForm
+    = sympy.E
+    >> {1, 2, 3} // PythonForm
+    = [1, 2, 3]
+    """
+    # >> PythonForm[HoldForm[Sqrt[a^3]]]
+    #  = sympy.sqrt{a**3} # or something like this
+
+
+    def apply_python(self, expr, evaluation) -> Expression:
+        'MakeBoxes[expr_, PythonForm]'
+
+        try:
+            # from trepan.api import debug; debug()
+            python_equivalent = expr.to_python(python_form = True)
+        except:
+            return
+        return StringFromPython(python_equivalent)
+
+    def apply(self, expr, evaluation) -> Expression:
+        "PythonForm[expr_]"
+        return self.apply_python(expr, evaluation)
 
 
 class TeXForm(Builtin):

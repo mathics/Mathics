@@ -11,6 +11,7 @@ Basic arithmetic functions, including complex number arithmetic.
 
 import sympy
 import mpmath
+import math
 
 from mathics.builtin.base import (
     Builtin,
@@ -1034,6 +1035,7 @@ class Infinity(SympyConstant):
     """
 
     sympy_name = "oo"
+    python_equivalent = math.inf
 
     rules = {
         "Infinity": "DirectedInfinity[1]",
@@ -1337,6 +1339,8 @@ class I(Predefined):
     >> (3+I)*(3-I)
      = 10
     """
+
+    python_equivalent = 1j
 
     def evaluate(self, evaluation):
         return Complex(Integer(0), Integer(1))
