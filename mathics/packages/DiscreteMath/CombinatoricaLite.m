@@ -284,6 +284,8 @@ Partitions[n_Integer, maxpart_Integer] :=
 	]
  *)
 
+SetPartitions::usage = "SetPartitions[set] returns the list of set partitions of set. SetPartitions[n] returns the list of set partitions of {1, 2, ..., n}. If all set partitions with a fixed number of subsets are needed use KSetPartitions."
+
 SetPartitions[{}] := {{}}
 SetPartitions[s_List] := Flatten[Table[KSetPartitions[s, i], {i, Length[s]}], 1]
 

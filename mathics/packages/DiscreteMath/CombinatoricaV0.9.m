@@ -595,6 +595,7 @@ Begin["`private`"]
 PermutationQ[p_List] := (Sort[p] == Range[Length[p]])
 
 Permute[l_List,p_?PermutationQ] := l [[ p ]]
+Permute[l_List,p_List] := Map[ (Permute[l,#])&, p] /; (Apply[And, Map[PermutationQ, p]])
 
 LexicographicPermutations[{l_}] := {{l}}
 
@@ -1000,8 +1001,11 @@ GrayCode[l_List,prev_List] :=
 		Join[ prev, Map[(Append[#,First[l]])&,Reverse[prev]] ]
 	]
 
+(* We have a builtin that does this.
+GrayCode doesn't work?
 Subsets[l_List] := GrayCode[l]
 Subsets[n_Integer] := GrayCode[Range[n]]
+*)
 
 LexicographicSubsets[l_List] := LexicographicSubsets[l,{{}}]
 
@@ -3130,6 +3134,38 @@ Lock1Q[a_List,b_List] :=
 		aj = Min[ Select[a, (# > bk)&] ];
 		(aj < Max[b])
 	]
+
+KSetPartitions::usage = "KSetPartitions[set, k] returns the list of set partitions of set with k blocks. KSetPartitions[n, k] returns the list of set partitions of {1, 2, ..., n} with k blocks. If all set partitions of a set are needed, use the function SetPartitions."
+KSetPartitions[{}, 0] := {{}}
+KSetPartitions[s_List, 0] := {}
+KSetPartitions[s_List, k_Integer] := {} /; (k > Length[s])
+KSetPartitions[s_List, k_Integer] := {Map[{#} &, s]} /; (k === Length[s])
+KSetPartitions[s_List, k_Integer] :=
+       Block[{$RecursionLimit = Infinity},
+             Join[Map[Prepend[#, {First[s]}] &, KSetPartitions[Rest[s], k - 1]],
+                  Flatten[
+                     Map[Table[Prepend[Delete[#, j], Prepend[#[[j]], s[[1]]]],
+                              {j, Length[#]}
+                         ]&,
+                         KSetPartitions[Rest[s], k]
+                     ], 1
+                  ]
+             ]
+       ] /; (k > 0) && (k < Length[s])
+
+KSetPartitions[0, 0] := {{}}
+KSetPartitions[0, k_Integer?Positive] := {}
+KSetPartitions[n_Integer?Positive, 0] := {}
+KSetPartitions[n_Integer?Positive, k_Integer?Positive] := KSetPartitions[Range[n], k]
+
+SetPartitions::usage = "SetPartitions[set] returns the list of set partitions of set. SetPartitions[n] returns the list of set partitions of {1, 2, ..., n}. If all set partitions with a fixed number of subsets are needed use KSetPartitions."
+
+SetPartitions[{}] := {{}}
+SetPartitions[s_List] := Flatten[Table[KSetPartitions[s, i], {i, Length[s]}], 1]
+
+SetPartitions[0] := {{}}
+SetPartitions[n_Integer?Positive] := SetPartitions[Range[n]]
+
 
 End[]
 
