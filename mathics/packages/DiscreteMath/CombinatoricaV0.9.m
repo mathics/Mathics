@@ -597,6 +597,8 @@ PermutationQ[p_List] := (Sort[p] == Range[Length[p]])
 Permute[l_List,p_?PermutationQ] := l [[ p ]]
 Permute[l_List,p_List] := Map[ (Permute[l,#])&, p] /; (Apply[And, Map[PermutationQ, p]])
 
+(* Section 1.1.1 Lexicographically Ordered Permutions, Pages 3-4 *)
+
 LexicographicPermutations[{l_}] := {{l}}
 
 LexicographicPermutations[{a_,b_}] := {{a,b},{b,a}}
@@ -617,6 +619,8 @@ LexicographicPermutations[l_List] :=
 		]
 	]
 
+(* Section 1.1.2 Ranking and Unranking Permutations, Pages 5-6 *)
+
 RankPermutation[{1}] = 0
 
 RankPermutation[p_?PermutationQ] := (p[[1]]-1) (Length[Rest[p]]!) +
@@ -636,6 +640,8 @@ NthPermutation[n1_Integer,l_List] :=
 NextPermutation[p_?PermutationQ] :=
 	NthPermutation[ RankPermutation[p]+1, Sort[p] ]
 
+(* Section 1.1.3 RandomPermutations, Pages 6-7 *)
+
 RandomPermutation1[n_Integer?Positive] :=
 	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
 
@@ -651,6 +657,7 @@ RandomPermutation2[n_Integer?Positive] :=
 
 RandomPermutation[n_Integer?Positive] := RandomPermutation1[n]
 
+(* Section 1.1.4 Permutation from Transpostions, Page 11 *)
 MinimumChangePermutations[l_List] :=
 	Module[{i=1,c,p=l,n=Length[l],k},
 		c = Table[1,{n}];
@@ -668,6 +675,7 @@ MinimumChangePermutations[l_List] :=
 		]
 	]
 
+(* Section 1.1.5 Backtracking and Distict Permutations, Page 12-13 *)
 Backtrack[space_List,partialQ_,solutionQ_,flag_:One] :=
 	Module[{n=Length[space],all={},done,index,v=2,solution},
 		index=Prepend[ Table[0,{n-1}],1];
@@ -709,6 +717,8 @@ DistinctPermutations[s_List] :=
 		]
 	]
 
+(* Section 1.1.6 Sorting and Searching, Page 14-16 *)
+
 MinOp[l_List,f_] :=
 	Module[{min=First[l]},
 		Scan[ (If[ Apply[f,{#,min}], min = #])&, l];
@@ -739,6 +749,7 @@ BinarySearch[l_List,k_Integer,low_Integer,high_Integer,f_] :=
 		]
 	]
 
+(* Section 1.2.1 Multiplying Permutations, Page 17 *)
 MultiplicationTable[elems_List,op_] :=
 	Module[{i,j,n=Length[elems],p},
 		Table[
@@ -748,6 +759,7 @@ MultiplicationTable[elems_List,op_] :=
 		]
 	]
 
+(* Section 1.2.2 The Inverse of a Permutation, Page 18 *)
 InversePermutation[p_?PermutationQ] :=
 	Module[{inverse=p, i},
 		Do[ inverse[[ p[[i]] ]] = i, {i,Length[p]} ];
