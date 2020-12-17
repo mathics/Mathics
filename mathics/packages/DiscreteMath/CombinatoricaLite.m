@@ -25,7 +25,30 @@ for a particular purpose, all of which are expressly disclaimed.  The
 authors, Wolfram Research, or Cambridge University Press, their licensees,
 distributors and dealers shall in no event be liable for any indirect,
 incidental, or consequential damages.
+ *)
 
+(* :History:
+    Version 2.1 updated to Mathematica 6 by John M. Novak, 2006.
+    Version 2.0 most code rewritten Sriram V. Pemmaraju, 2000-2002
+            Too many changes to describe here. Read the book!
+	Version 1.1 modification by ECM, March 1996.
+		Replaced K with CompleteGraph because K is now the
+			default generic name for the summation index in
+			symbolic sum.
+		Added CombinatorialFunctions.m and Permutations.m to
+			BeginPackage, and commented out CatalanNumber,
+			PermutationQ, ToCycles, FromCycles, and
+			RandomPermutation so there would be no shadowing of
+			symbols among the DiscreteMath packages.
+		Replaced old BinarySearch with new code by Paul Abbott
+			correctly implementing binary search.
+        Version 1.0 by Steven S. Skiena, April 1995.
+        Version .9 by Steven S. Skiena, February 1992.
+	Version .8 by Steven S. Skiena, July 1991.
+	Version .7 by Steven S. Skiena, January 1991.
+	Version .6 by Steven S. Skiena, June 1990.
+ *)
+(*
 And for the 0.6 version:
 		Version 0.6   6/11/90   Beta Release
 		Copyright (c) 1990 by Steven S. Skiena
@@ -283,6 +306,8 @@ Partitions[n_Integer, maxpart_Integer] :=
               ]
 	]
  *)
+
+SetPartitions::usage = "SetPartitions[set] returns the list of set partitions of set. SetPartitions[n] returns the list of set partitions of {1, 2, ..., n}. If all set partitions with a fixed number of subsets are needed use KSetPartitions."
 
 SetPartitions[{}] := {{}}
 SetPartitions[s_List] := Flatten[Table[KSetPartitions[s, i], {i, Length[s]}], 1]
