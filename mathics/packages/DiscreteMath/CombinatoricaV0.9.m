@@ -766,6 +766,7 @@ InversePermutation[p_?PermutationQ] :=
 		inverse
 	]
 
+(* Section 1.2.3 The Equivalence Relation and Classesn, Page 18-19 *)
 EquivalenceRelationQ[r_?SquareMatrixQ] :=
 	ReflexiveQ[r] && SymmetricQ[r] && TransitiveQ[r]
 EquivalenceRelationQ[g_Graph] := EquivalenceRelationQ[ Edges[g] ]
@@ -797,6 +798,7 @@ SamenessRelation[perms_List] :=
 		]
 	] /; perms != {}
 
+(* 1.2.4 The Cycle Structure of Permutations; Pages 20-21  *)
 ToCycles[p1_?PermutationQ] :=
 	Module[{p=p1,m,n,cycle,i},
 		Select[
@@ -825,6 +827,7 @@ FromCycles[cyc_List] :=
 		p
 	]
 
+(* 1.2.4 The Cycle Structure of Permutations, Hiding Cycles; Page 22  *)
 HideCycles[c_List] :=
 	Flatten[
 		Sort[
@@ -845,6 +848,7 @@ RevealCycles[p_?PermutationQ] :=
 		Append[cycles,Take[p,{start,end-1}]]
 	]
 
+(* 1.2.4 The Cycle Structure of Permutations, Counting Cycles; Page 23  *)
 NumberOfPermutationsByCycles[n_Integer,m_Integer] := (-1)^(n-m) StirlingS1[n,m]
 
 StirlingFirst[n_Integer,m_Integer] := StirlingFirst1[n,m]

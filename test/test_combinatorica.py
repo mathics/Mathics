@@ -37,13 +37,13 @@ def test_combinatorica_permutations_1_1():
         (
             "LexicographicPermutations[{a,b,c,d}]",
             "{{a, b, c, d}, {a, b, d, c}, {a, c, b, d}, "
-            "{a, c, d, b}, {a, d, b, c}, {a, d, c, b}, "
-            "{b, a, c, d}, {b, a, d, c}, {b, c, a, d}, "
-            "{b, c, d, a}, {b, d, a, c}, {b, d, c, a}, "
-            "{c, a, b, d}, {c, a, d, b}, {c, b, a, d}, "
-            "{c, b, d, a}, {c, d, a, b}, {c, d, b, a}, "
-            "{d, a, b, c}, {d, a, c, b}, {d, b, a, c}, "
-            "{d, b, c, a}, {d, c, a, b}, {d, c, b, a}}",
+            " {a, c, d, b}, {a, d, b, c}, {a, d, c, b}, "
+            " {b, a, c, d}, {b, a, d, c}, {b, c, a, d}, "
+            " {b, c, d, a}, {b, d, a, c}, {b, d, c, a}, "
+            " {c, a, b, d}, {c, a, d, b}, {c, b, a, d}, "
+            " {c, b, d, a}, {c, d, a, b}, {c, d, b, a}, "
+            " {d, a, b, c}, {d, a, c, b}, {d, b, a, c}, "
+            " {d, b, c, a}, {d, c, a, b}, {d, c, b, a}}",
             "LexicographicPermuations, 1.1.1 Page 4",
         ),
         # NthPermutation does not work
@@ -75,7 +75,7 @@ def test_combinatorica_permutations_1_1():
         (
             "DistinctPermutations[{1,1,2,2}]",
             "{{1, 1, 2, 2}, {1, 2, 1, 2}, {1, 2, 2, 1}, "
-            "{2, 1, 1, 2}, {2, 1, 2, 1}, {2, 2, 1, 1}}",
+            " {2, 1, 1, 2}, {2, 1, 2, 1}, {2, 2, 1, 1}}",
             "DisctinctPermutations of multiset Binomial[6,3] permutations, 1.1.5, Page 14",
         ),
         ("Multinomial[3,3]", "20", "The built-in function Multinomial, Page 14"),
@@ -96,8 +96,10 @@ def test_combinatorica_permutations_1_1():
         ),
         (
             "Sort[ Subsets [Range[4]],(Apply[Plus, #1]<=Apply[Plus,#2])& ]",
-            "{{}, {1}, {2}, {3}, {1, 2}, {4}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, "
-            "{1, 2, 3}, {3, 4}, {1, 2, 4}, {1, 3, 4}, {2, 3, 4}, {1, 2, 3, 4}}",
+            "{{}, {1}, {2}, {3}, {1, 2}, {4}, "
+            " {1, 3}, {1, 4}, {2, 3}, {2, 4}, "
+            " {1, 2, 3}, {3, 4}, {1, 2, 4}, {1, 3, 4}, {2, 3, 4}, "
+            " {1, 2, 3, 4}}",
             "Sort to total order subsets, Page 15",
         ),
     ):
@@ -110,11 +112,11 @@ def test_combinatorica_permutations_1_2():
         (
             "MultiplicationTable[Permutations[Range[3]], Permute ]",
             "{{1, 2, 3, 4, 5, 6}, "
-            "{2, 1, 5, 6, 3, 4}, "
-            "{3, 4, 1, 2, 6, 5}, "
-            "{4, 3, 6, 5, 1, 2}, "
-            "{5, 6, 2, 1, 4, 3}, "
-            "{6, 5, 4, 3, 2, 1}}",
+            " {2, 1, 5, 6, 3, 4}, "
+            " {3, 4, 1, 2, 6, 5}, "
+            " {4, 3, 6, 5, 1, 2}, "
+            " {5, 6, 2, 1, 4, 3}, "
+            " {6, 5, 4, 3, 2, 1}}",
             "Symmetric group S_n. S_n is not commutative. 1.2 Page 17"
         ),
         (
@@ -135,17 +137,63 @@ def test_combinatorica_permutations_1_2():
         (
             "relation = SamenessRelation[star]",
             "{{1, 1, 1, 1, 0}, "
-            "{1, 1, 1, 1, 0}, "
-            "{1, 1, 1, 1, 0}, "
-            "{1, 1, 1, 1, 0}, "
-            "{0, 0, 0, 0, 1}}",
+            " {1, 1, 1, 1, 0}, "
+            " {1, 1, 1, 1, 0}, "
+            " {1, 1, 1, 1, 0}, "
+            " {0, 0, 0, 0, 1}}",
             "Sameness, 1.2.3 Page 19",
+        ),
+        (
+            "EquivalenceClasses[relation]",
+            "{{1, 2, 3, 4}, {5}}",
+            "EquivalenceClasses, 1.2.3, Page 19"
         ),
         # (
         #     "PermutationGroupQ[Range[4], {4, 2, 3, 1}]",
         #     "True",
         #     "PermutationGroupQ, 1.2.3 Page 20",
         # ),
+        (
+            "ToCycles[Range[10]]",
+            "{{1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}}",
+            "ToCycles, 1.2.4, Page 21"
+        ),
+        (
+            "Select[ Permutations[Range[4]], (Length[ToCycles[#]] == 1)&]",
+            "{{2, 3, 4, 1}, {2, 4, 1, 3}, {3, 1, 4, 2}, "
+            " {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 3, 1, 2}}",
+            "ToCycles, 1.2.4, Page 21"
+        ),
+        (
+            "ToCycles[ Reverse[Range[10]] ]",
+            "{{10, 1}, {9, 2}, {8, 3}, {7, 4}, {6, 5}}",
+            "Reverse ToCycles, 1.2.4, Page 21"
+        ),
+        (
+            "Permute[ Reverse[Range[10]], Reverse[Range[10]] ]",
+            "Range[10]",
+            "Pemute as involution, 1.2.4, Page 21"
+        ),
+        (
+            "Apply[ And, List[p=RandomPermutation[8]; p===FromCycles[ToCycles[p]]] ]",
+            "True",
+            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22"
+        ),
+        (
+            "Apply[ And, List[p=RandomPermutation[8]; p===FromCycles[ToCycles[p]]] ]",
+            "True",
+            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22"
+        ),
+        (
+            "ToCycles[{6,2,1,5,4,3} ]",
+            "{{6, 3, 1}, {2}, {5, 4}}",
+            "Three permutations, one of each size, 1.2.4, Page 22"
+        ),
+        (
+            "HideCycles[ToCycles[{6,2,1,5,4,3}]]",
+            "{4, 5, 2, 1, 6, 3}",
+            "Permutations is not what we started with, 1.2.4, Page 23"
+        ),
     ):
         check_evaluation(str_expr, str_expected, message)
 
@@ -197,11 +245,6 @@ def test_combinatorica_rest():
             "BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]",
             "2",
             "BinarySearch - find where key is a list",
-        ),
-        (
-            "InversePermutation[{4,8,5,2,1,3,7,6}]",
-            "{5, 4, 6, 1, 3, 8, 7, 2}",
-            "InversePermutation: 7 is fixed point. Page 18",
         ),
         # (
         #     "SetPartitions[3]",
