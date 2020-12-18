@@ -626,16 +626,30 @@ RankPermutation[{1}] = 0
 RankPermutation[p_?PermutationQ] := (p[[1]]-1) (Length[Rest[p]]!) +
 	RankPermutation[ Map[(If[#>p[[1]], #-1, #])&, Rest[p]] ]
 
-NthPermutation[n1_Integer,l_List] :=
-	Module[{k, n=n1, s=l, i},
-		Table[
-			n = Mod[n,(i+1)!];
-			k = s [[Quotient[n,i!]+1]];
-			s = Complement[s,{k}];
-			k,
-			{i,Length[l]-1,0,-1}
-		]
-	]
+(* UP, and UnrankPermutation come from the V2.1 code.
+   There is some problem in the v0.9 code and rather than try to fix that
+   we use the newer version
+ *)
+UP[r_Integer, n_Integer] :=
+        Module[{r1 = r, q = n!, i},
+               Table[r1 = Mod[r1, q];
+                     q = q/(n - i + 1);
+                     Quotient[r1, q] + 1,
+                     {i, n}
+               ]
+        ]
+UnrankPermutation[r_Integer, {}] := {}
+UnrankPermutation[r_Integer, l_List] :=
+        Module[{s = l, k, t, p = UP[Mod[r, Length[l]!], Length[l]], i},
+               Table[k = s[[t = p[[i]] ]];
+                     s = Delete[s, t];
+                     k,
+                     {i, Length[ p ]}
+               ]
+        ]
+UnrankPermutation[r_Integer, n_Integer?Positive] :=
+        UnrankPermutation[r, Range[n]]
+NthPermutation[r_Integer, l_List] := UnrankPermutation[r, l]
 
 NextPermutation[p_?PermutationQ] :=
 	NthPermutation[ RankPermutation[p]+1, Sort[p] ]
@@ -867,8 +881,11 @@ StirlingSecond1[0,m_Integer] := If [m == 0, 1, 0]
 StirlingSecond1[n_Integer,m_Integer] := StirlingSecond1[n,m] =
 	m StirlingSecond1[n-1,m] + StirlingSecond1[n-1,m-1]
 
+(* 1.2.5 Signatures; Page 24 *)
+
 SignaturePermutation[p_?PermutationQ] := (-1) ^ (Length[p]-Length[ToCycles[p]])
 
+(* 1.2.6 Polya's Theory of Counting; Page 25 *)
 Polya[g_List,m_] := Apply[ Plus, Map[(m^Length[ToCycles[#]])&,g] ] / Length[g]
 
 ToInversionVector[p_?PermutationQ] :=
@@ -1036,6 +1053,7 @@ LexicographicSubsets[l_List,subsets_List] :=
 		]
 	]
 
+(* 1.5.5 Generating k-Subsets *)
 KSubsets[l_List,0] := { {} }
 KSubsets[l_List,1] := Partition[l,1]
 KSubsets[l_List,k_Integer?Positive] := {l} /; (k == Length[l])
