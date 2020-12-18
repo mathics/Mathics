@@ -46,7 +46,16 @@ def test_combinatorica_permutations_1_1():
             " {d, b, c, a}, {d, c, a, b}, {d, c, b, a}}",
             "LexicographicPermuations, 1.1.1 Page 4",
         ),
-        # NthPermutation does not work
+        (
+            "Table[ NthPermutation[n, Range[4]], {n, 0, 23}]",
+            "{{1, 2, 3, 4}, {1, 2, 4, 3}, {1, 3, 2, 4}, {1, 3, 4, 2}, "
+            " {1, 4, 2, 3}, {1, 4, 3, 2}, {2, 1, 3, 4}, {2, 1, 4, 3}, "
+            " {2, 3, 1, 4}, {2, 3, 4, 1}, {2, 4, 1, 3}, {2, 4, 3, 1}, "
+            " {3, 1, 2, 4}, {3, 1, 4, 2}, {3, 2, 1, 4}, {3, 2, 4, 1}, "
+            " {3, 4, 1, 2}, {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 1, 3, 2}, "
+            " {4, 2, 1, 3}, {4, 2, 3, 1}, {4, 3, 1, 2}, {4, 3, 2, 1}} ",
+            "slower method for computing permutations in lex order, 1.1.2, Page 6"
+        ),
         (
             "Map[RankPermutation, Permutations[Range[4]]]",
             "Range[0, 23]",
@@ -146,13 +155,13 @@ def test_combinatorica_permutations_1_2():
         (
             "EquivalenceClasses[relation]",
             "{{1, 2, 3, 4}, {5}}",
-            "EquivalenceClasses, 1.2.3, Page 19"
+            "EquivalenceClasses, 1.2.3, Page 19",
         ),
-        # (
-        #     "PermutationGroupQ[Range[4], {4, 2, 3, 1}]",
-        #     "True",
-        #     "PermutationGroupQ, 1.2.3 Page 20",
-        # ),
+        (
+            "PermutationGroupQ[{{1, 2, 3, 4}, {4, 2, 3, 1}}]",
+            "True",
+            "PermutationGroupQ, 1.2.3 Page 20",
+        ),
         (
             "ToCycles[Range[10]]",
             "{{1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}}",
@@ -197,6 +206,34 @@ def test_combinatorica_permutations_1_2():
     ):
         check_evaluation(str_expr, str_expected, message)
 
+
+def test_combinatorica_permutations_1_5():
+
+    # We include this earlier since the above in fact rely on KSubsets
+    for str_expr, str_expected, message in (
+        (
+            "KSubsets[Range[5], 3]",
+            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, {1, 3, 5}, "
+            "{1, 4, 5},  {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, {3, 4, 5}}",
+            "KSubsets 1.5.5, Page 45",
+        ),
+        (
+            "KSubsets[Range[3], 0]",
+            "{ {} } ",
+            "KSubsets[0] == { {} }",
+        ),
+        (
+            "KSubsets[Range[5], 1]",
+            "{{1}, {2}, {3}, {4}, {5}}",
+            "KSubsets[Range[n, 1] == Partition[n]",
+        ),
+        (
+            "KSubsets[Range[5], 5]",
+            "{Range[5]} ",
+            "KSubsets[l, k] == Length(l)",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
 
 def test_combinatorica_rest():
 
