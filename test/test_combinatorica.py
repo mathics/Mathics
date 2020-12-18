@@ -54,7 +54,7 @@ def test_combinatorica_permutations_1_1():
             " {3, 1, 2, 4}, {3, 1, 4, 2}, {3, 2, 1, 4}, {3, 2, 4, 1}, "
             " {3, 4, 1, 2}, {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 1, 3, 2}, "
             " {4, 2, 1, 3}, {4, 2, 3, 1}, {4, 3, 1, 2}, {4, 3, 2, 1}} ",
-            "slower method for computing permutations in lex order, 1.1.2, Page 6"
+            "slower method for computing permutations in lex order, 1.1.2, Page 6",
         ),
         (
             "Map[RankPermutation, Permutations[Range[4]]]",
@@ -126,7 +126,7 @@ def test_combinatorica_permutations_1_2():
             " {4, 3, 6, 5, 1, 2}, "
             " {5, 6, 2, 1, 4, 3}, "
             " {6, 5, 4, 3, 2, 1}}",
-            "Symmetric group S_n. S_n is not commutative. 1.2 Page 17"
+            "Symmetric group S_n. S_n is not commutative. 1.2 Page 17",
         ),
         (
             "InversePermutation[{4,8,5,2,1,3,7,6}]",
@@ -165,43 +165,53 @@ def test_combinatorica_permutations_1_2():
         (
             "ToCycles[Range[10]]",
             "{{1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}}",
-            "ToCycles, 1.2.4, Page 21"
+            "ToCycles, 1.2.4, Page 21",
         ),
         (
             "Select[ Permutations[Range[4]], (Length[ToCycles[#]] == 1)&]",
             "{{2, 3, 4, 1}, {2, 4, 1, 3}, {3, 1, 4, 2}, "
             " {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 3, 1, 2}}",
-            "ToCycles, 1.2.4, Page 21"
+            "ToCycles, 1.2.4, Page 21",
         ),
         (
             "ToCycles[ Reverse[Range[10]] ]",
             "{{10, 1}, {9, 2}, {8, 3}, {7, 4}, {6, 5}}",
-            "Reverse ToCycles, 1.2.4, Page 21"
+            "Reverse ToCycles, 1.2.4, Page 21",
         ),
         (
             "Permute[ Reverse[Range[10]], Reverse[Range[10]] ]",
             "Range[10]",
-            "Pemute as involution, 1.2.4, Page 21"
+            "Pemute as involution, 1.2.4, Page 21",
         ),
         (
             "Apply[ And, List[p=RandomPermutation[8]; p===FromCycles[ToCycles[p]]] ]",
             "True",
-            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22"
+            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22",
         ),
         (
             "Apply[ And, List[p=RandomPermutation[8]; p===FromCycles[ToCycles[p]]] ]",
             "True",
-            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22"
+            "Convert to-and-from cycle structure is identity, 1.2.4, Page 22",
         ),
         (
             "ToCycles[{6,2,1,5,4,3} ]",
             "{{6, 3, 1}, {2}, {5, 4}}",
-            "Three permutations, one of each size, 1.2.4, Page 22"
+            "Three permutations, one of each size, 1.2.4, Page 22",
         ),
         (
             "HideCycles[ToCycles[{6,2,1,5,4,3}]]",
             "{4, 5, 2, 1, 6, 3}",
-            "Permutations is not what we started with, 1.2.4, Page 23"
+            "Permutations is not what we started with, 1.2.4, Page 23",
+        ),
+        (
+            "RevealCycles[ HideCycles[ToCycles[{6,2,1,5,4,3}]] ]",
+            "{{4, 5}, {2}, {1, 6, 3}}",
+            "RevealCycles 1.2.4, Page 23",
+        ),
+        (
+            "Apply[Or, Map[(# === HideCycles[ToCycles[#]])&, Permutations[Range[5]] ]]",
+            "False",
+            "None of the permutatoins on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
@@ -234,6 +244,7 @@ def test_combinatorica_permutations_1_5():
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
+
 
 def test_combinatorica_rest():
 
