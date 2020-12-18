@@ -881,8 +881,11 @@ StirlingSecond1[0,m_Integer] := If [m == 0, 1, 0]
 StirlingSecond1[n_Integer,m_Integer] := StirlingSecond1[n,m] =
 	m StirlingSecond1[n-1,m] + StirlingSecond1[n-1,m-1]
 
+(* 1.2.5 Signatures; Page 24 *)
+
 SignaturePermutation[p_?PermutationQ] := (-1) ^ (Length[p]-Length[ToCycles[p]])
 
+(* 1.2.6 Polya's Theory of Counting; Page 25 *)
 Polya[g_List,m_] := Apply[ Plus, Map[(m^Length[ToCycles[#]])&,g] ] / Length[g]
 
 ToInversionVector[p_?PermutationQ] :=
