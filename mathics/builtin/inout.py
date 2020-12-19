@@ -1974,6 +1974,35 @@ class PythonForm(Builtin):
         return self.apply_python(expr, evaluation)
 
 
+class SympyForm(Builtin):
+    """
+    <dl>
+      <dt>'SympyForm[$expr$]'
+      <dd>returns an Sympy $expr$ in Python. Sympy is used internally
+      to implement a number of Mathics functions, like Simplify.
+    </dl>
+
+    >> SympyForm[Pi^2]
+    = pi**2
+    >> E^2 + 3E // SympyForm
+    = exp(2) + 3*E
+    """
+
+    def apply_sympy(self, expr, evaluation) -> Expression:
+        'MakeBoxes[expr_, SympyForm]'
+
+        try:
+            # from trepan.api import debug; debug()
+            sympy_equivalent = expr.to_sympy()
+        except:
+            return
+        return StringFromPython(sympy_equivalent)
+
+    def apply(self, expr, evaluation) -> Expression:
+        "SympyForm[expr_]"
+        return self.apply_sympy(expr, evaluation)
+
+
 class TeXForm(Builtin):
     r"""
     <dl>
