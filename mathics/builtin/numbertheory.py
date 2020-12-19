@@ -294,7 +294,7 @@ class Divisors(Builtin):
 
     # TODO: support GaussianIntegers
     # e.g. Divisors[2, GaussianIntegers -> True]
-    
+
     attributes = ('Listable',)
 
     def apply(self, n, evaluation):
@@ -369,102 +369,102 @@ class MantissaExponent(Builtin):
 
     >> MantissaExponent[125., 2]
      = {0.976563, 7}
-      
+
     >> MantissaExponent[10, b]
      = MantissaExponent[10, b]
-     
+
     #> MantissaExponent[E, Pi]
      = {E / Pi, 1}
-     
+
     #> MantissaExponent[Pi, Pi]
      = {1 / Pi, 2}
-     
+
     #> MantissaExponent[5/2 + 3, Pi]
      = {11 / (2 Pi ^ 2), 2}
-     
+
     #> MantissaExponent[b]
      = MantissaExponent[b]
-     
+
     #> MantissaExponent[17, E]
      = {17 / E ^ 3, 3}
-     
+
     #> MantissaExponent[17., E]
      = {0.84638, 3}
-     
+
     #> MantissaExponent[Exp[Pi], 2]
      = {E ^ Pi / 32, 5}
-     
+
     #> MantissaExponent[3 + 2 I, 2]
      : The value 3 + 2 I is not a real number
      = MantissaExponent[3 + 2 I, 2]
-     
+
     #> MantissaExponent[25, 0.4]
      : Base 0.4 is not a real number greater than 1.
      = MantissaExponent[25, 0.4]
-     
+
     #> MantissaExponent[0.0000124]
      = {0.124, -4}
-    
+
     #> MantissaExponent[0.0000124, 2]
      = {0.812646, -16}
-    
+
     #> MantissaExponent[0]
      = {0, 0}
-     
+
     #> MantissaExponent[0, 2]
      = {0, 0}
     """
-    
+
     attributes = ('Listable',)
-    
+
     rules = {
         'MantissaExponent[0]': '{0, 0}',
         'MantissaExponent[0, n_]': '{0, 0}',
         }
-    
+
     messages = {
         'realx': 'The value `1` is not a real number',
         'rbase': 'Base `1` is not a real number greater than 1.',
     }
-    
+
     def apply(self, n, b, evaluation):
         'MantissaExponent[n_, b_]'
         # Handle Input with special cases such as PI and E
         n_sympy, b_sympy = n.to_sympy(), b.to_sympy()
-        
+
         expr = Expression('MantissaExponent', n, b)
-        
+
         if isinstance(n.to_python(), complex):
             evaluation.message('MantissaExponent', 'realx', n)
             return expr
-         
+
         if n_sympy.is_constant():
             temp_n = Expression('N', n).evaluate(evaluation)
             py_n = temp_n.to_python()
         else:
             return expr
-              
+
         if b_sympy.is_constant():
             temp_b = Expression('N', b).evaluate(evaluation)
             py_b = temp_b.to_python()
         else:
             return expr
-        
+
         if not py_b > 1:
             evaluation.message('MantissaExponent', 'rbase', b)
             return expr
-            
+
         base_exp = int(mpmath.log(py_n, py_b))
-        
+
         exp = (base_exp + 1) if base_exp >= 0 else base_exp
 
         return Expression('List', Expression('Divide', n , b ** exp), exp)
-                                 
+
     def apply_2(self, n, evaluation):
         'MantissaExponent[n_]'
         n_sympy = n.to_sympy()
         expr = Expression('MantissaExponent', n)
-        
+
         if isinstance(n.to_python(), complex):
             evaluation.message('MantissaExponent', 'realx', n)
             return expr
@@ -474,12 +474,12 @@ class MantissaExponent(Builtin):
             py_n = temp_n.to_python()
         else:
             return expr
-        
-        base_exp = int(mpmath.log10(py_n))    
+
+        base_exp = int(mpmath.log10(py_n))
         exp = (base_exp + 1) if base_exp >= 0 else base_exp
-         
+
         return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
-    
+
 def _fractional_part(self, n, expr, evaluation):
     n_sympy = n.to_sympy()
     if n_sympy.is_constant():
@@ -491,9 +491,9 @@ def _fractional_part(self, n, expr, evaluation):
             result = n - negative_integer_part
     else:
         return expr
-        
+
     return from_python(result)
-    
+
 class FractionalPart(Builtin):
     """
     <dl>
@@ -509,34 +509,34 @@ class FractionalPart(Builtin):
 
     #> FractionalPart[b]
      = FractionalPart[b]
-    
+
     #> FractionalPart[{-2.4, -2.5, -3.0}]
      = {-0.4, -0.5, 0.}
-    
+
     #> FractionalPart[14/32]
      = 7 / 16
-      
+
     #> FractionalPart[4/(1 + 3 I)]
      = 2 / 5 - I / 5
-     
+
     #> FractionalPart[Pi^20]
      = -8769956796 + Pi ^ 20
     """
-    
+
     attributes = ('Listable', 'NumericFunction', 'ReadProtected')
-  
+
     def apply(self, n, evaluation):
         'FractionalPart[n_]'
         expr = Expression('FractionalPart', n)
         return _fractional_part(self.__class__.__name__, n, expr, evaluation)
-        
+
     def apply_2(self, n, evaluation):
         'FractionalPart[n_Complex]'
         expr = Expression('FractionalPart', n)
         n_real  = Expression("Re", n).evaluate(evaluation)
         n_image  = Expression("Im", n).evaluate(evaluation)
-        
-        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation) 
+
+        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation)
         image_fractional_part = _fractional_part(self.__class__.__name__, n_image, expr, evaluation)
         return Expression('Complex', real_fractional_part, image_fractional_part)
 
@@ -634,7 +634,7 @@ class CoprimeQ(Builtin):
      = True
 
     >> CoprimeQ[4+2I, 6+3I]
-     = False
+     = True
 
     >> CoprimeQ[2, 3, 5]
      = True
@@ -964,4 +964,3 @@ class QuotientRemainder(Builtin):
             return Expression('List', Integer(py_m // py_n), (py_m % py_n))
         else:
             return Expression('QuotientRemainder', m, n)
-

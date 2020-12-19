@@ -13,13 +13,11 @@ Needs["DiscreteMath`CombinatoricaV0.9`"]
      """
 )
 
-# A number of examples from Implementing Discrete Mathematics by
-# Steven Skiena and
-# A number of examples from Computation Discrete Mathematics by
-# Sriram Pemmaraju and Steven Skiena.
+# A number of examples from:
+#  * Implementing Discrete Mathematics by Steven Skiena and
+#  * Computation Discrete Mathematics by Sriram Pemmaraju and Steven Skiena.
 
 # Page numbers below come from the first book
-
 
 def test_combinatorica_permutations_1_1():
 
@@ -216,8 +214,63 @@ def test_combinatorica_permutations_1_2():
         (
             "Apply[Or, Map[(# === HideCycles[ToCycles[#]])&, Permutations[Range[5]] ]]",
             "False",
-            "None of the permutatoins on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
+            "None of the permutations on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
         ),
+        (
+            "{StirlingFirst[6,3], StirlingS1[6,3]}",
+            "{225, -225}",
+            "StirlingFirst 1.2.4, Page 24",
+        ),
+        (
+            "Select[ Map[ToCycles, Permutations[Range[4]]], (Length[#]==2)&]",
+            "{{{1}, {3, 4, 2}}, {{1}, {4, 3, 2}}, {{2, 1}, {4, 3}}, "
+            " {{2, 3, 1}, {4}}, {{2, 4, 1}, {3}}, {{3, 2, 1}, {4}}, "
+            " {{3, 4, 1}, {2}}, {{3, 1}, {4, 2}}, {{4, 2, 1}, {3}}, "
+            " {{4, 3, 1}, {2}}, {{4, 1}, {3, 2}}}",
+            "11 permutations of 4 elements and 2 cycles, Page 24",
+        ),
+        (
+            "NumberOfPermutationsByCycles[4,2]",
+            "11",
+            "NumberOfPermutationsByCycles 1.2.4, Page 24",
+        ),
+        (
+            "{StirlingSecond[6,3], StirlingS2[6,3]}",
+            "{90, 90}",
+            "StirlingSecond 1.2.4, Page 24",
+        ),
+        (
+            "SignaturePermutation[{1,3,2,4,5,6,7,8}]",
+            "-1",
+            "SignaturePermutation 1.2.5, Page 25",
+        ),
+        (
+            "SignaturePermutation[p] == SignaturePermutation[InversePermutation[p]]",
+            "True",
+            "A particular permutation has the same sign as its inverse 1.2.5, Page 25",
+        ),
+        (
+            "PermutationGroupQ[ Select [ Permutations[Range[4]], (SignaturePermutation[#]==1)&] ]",
+            "True",
+            "All permutations have the same sign as their inverse 1.2.5, Page 25",
+        ),
+        (
+            "Polya[Table[RotateRight[Range[8],i], {i, 8}], m]",
+            "(4 m + 2 m ^ 2 + m ^ 4 + m ^ 8) / 8",
+            "Polya counting resulting in polynomial 1.2.6, Page 25",
+        ),
+        # MapAt not finished which is probably causing Poly to fail here...
+        # (
+        #     "Polya[Automorphisms[Cycle[8]], m]",
+        #     "(4 m + 2 m ^ 2 + m ^ 4 + m ^ 8) / 8",
+        #     "Polya counting resulting in polynomial 1.2.6, Page 26",
+        # ),
+        (
+            "Factor[(4 m + 2 m^2 + 5m^4 + 4m^5 + m^8)/16]",
+            "m (1 + m) (4 - 2 m + 2 m ^ 2 + 3 m ^ 3 + m ^ 4 - m ^ 5 + m ^ 6) / 16",
+            "Factor example in Polya polynomial 1.2.6, Page 26",
+        ),
+
     ):
         check_evaluation(str_expr, str_expected, message)
 

@@ -80,7 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "sympy>=1.6, < 1.7",
+    "sympy>=1.7, <= 1.8dev",
     "django >= 3.0, < 3.2",
     "mpmath>=1.1.0",
     "numpy",
