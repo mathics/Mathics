@@ -7,18 +7,26 @@ from mathics.builtin.base import (
     BinaryOperator,
     Test,
     MessageException,
+    PartRangeError,
 )
 from mathics.core.expression import (
     Expression,
     String,
     Symbol,
+    SymbolTrue,
+    SymbolFalse,
     Integer,
     Rational,
     strip_context,
 )
-from mathics.core.rules import Pattern
+from mathics.core.rules import Pattern, Rule
 
-from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError, List
+from mathics.builtin.lists import (
+    python_levelspec,
+    walk_levels,
+    InvalidLevelspecError,
+    List,
+)
 from mathics.builtin.functional import Identity
 
 import platform
@@ -524,10 +532,21 @@ class MapAt(Builtin):
       <dd>applies $f$ to the element at position $n$ in $expr$. If $n$ is negative, the position is counted from the end.
     </dl>
 
+    Map $f$ onto the part at position 2:
     >> MapAt[f, {a, b, c, d}, 2]
      = {a, f[b], c, d}
+
+    Map $f$ onto the at the end:
     >> MapAt[f, {a, b, c, d}, -1]
      = {a, b, c, f[d]}
+
+     Map $f$ onto an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5|>, 3]
+     = {a -> 1, b -> 2, c -> f[3], d -> 4, e -> 5}
+
+    Use negative position in an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4|>, -3]
+     = {a -> 1, b -> f[2], c -> 3, d -> 4}
     """
 
     def apply(self, f, expr, n, evaluation, options={}):
@@ -535,14 +554,22 @@ class MapAt(Builtin):
         i = n.get_int_value()
         m = len(expr.leaves)
         if 1 <= i <= m:
-            j = i -1
+            j = i - 1
         elif -m <= i <= -1:
             j = m + i
         else:
-            evaluation.message('MapAt', 'normal')
+            raise PartRangeError
 
         new_leaves = list(expr.leaves)
-        new_leaves[j] = Expression(f, new_leaves[j])
+        replace_leaf = new_leaves[j]
+        if hasattr(replace_leaf, "head") and replace_leaf.head == Symbol("System`Rule"):
+            new_leaves[j] = Expression(
+                "System`Rule",
+                replace_leaf.leaves[0],
+                Expression(f, replace_leaf.leaves[1]),
+            )
+        else:
+            new_leaves[j] = Expression(f, replace_leaf)
         return List(*new_leaves)
 
 
@@ -854,9 +881,9 @@ class FreeQ(Builtin):
 
         form = Pattern.create(form)
         if expr.is_free(form, evaluation):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Flatten(Builtin):
@@ -1060,6 +1087,7 @@ class Flatten(Builtin):
                     new_leaves.append(Expression(h, *insert_leaf(group)))
 
             return new_leaves
+
         return Expression(h, *insert_leaf(leaves))
 
     def apply(self, expr, n, h, evaluation):
