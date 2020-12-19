@@ -18,7 +18,7 @@ from mathics.core.expression import (
 )
 from mathics.core.rules import Pattern
 
-from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError
+from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError, List
 from mathics.builtin.functional import Identity
 
 import platform
@@ -515,6 +515,34 @@ class Map(BinaryOperator):
         result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
         return result
+
+
+class MapAt(Builtin):
+    """
+    <dl>
+      <dt>'MapAt[$f$, $expr$, $n$]'
+      <dd>applies $f$ to the element at position $n$ in $expr$. If $n$ is negative, the position is counted from the end.
+    </dl>
+
+    >> MapAt[f, {a, b, c, d}, 2]
+     = {a, f[b], c, d}
+    """
+
+    def apply(self, f, expr, n, evaluation, options={}):
+        "MapAt[f_, expr_, n_Integer]"
+        i = n.get_int_value()
+        m = len(expr.leaves)
+        if 1 <= i <= m:
+            j = i -1
+        elif -m <= i <= -1:
+            j = n - i + 1
+            selected = expr.leaves[n - i + 1]
+        else:
+            evaluation.message('MapAt', 'normal')
+
+        new_leaves = list(expr.leaves)
+        new_leaves[j] = Expression(f, new_leaves[j])
+        return List(*new_leaves)
 
 
 class Scan(Builtin):
