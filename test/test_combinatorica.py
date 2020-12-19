@@ -168,6 +168,11 @@ def test_combinatorica_permutations_1_2():
             "ToCycles, 1.2.4, Page 21",
         ),
         (
+            "ToCycles[r = RotateLeft[Range[10],1]]",
+            "{r}",
+            "ToCycles with rotation by 1",
+        ),
+        (
             "Select[ Permutations[Range[4]], (Length[ToCycles[#]] == 1)&]",
             "{{2, 3, 4, 1}, {2, 4, 1, 3}, {3, 1, 4, 2}, "
             " {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 3, 1, 2}}",
