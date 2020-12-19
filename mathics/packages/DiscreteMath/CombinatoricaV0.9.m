@@ -595,6 +595,9 @@ Begin["`private`"]
 PermutationQ[p_List] := (Sort[p] == Range[Length[p]])
 
 Permute[l_List,p_?PermutationQ] := l [[ p ]]
+Permute[l_List,p_List] := Map[ (Permute[l,#])&, p] /; (Apply[And, Map[PermutationQ, p]])
+
+(* Section 1.1.1 Lexicographically Ordered Permutions, Pages 3-4 *)
 
 LexicographicPermutations[{l_}] := {{l}}
 
@@ -616,24 +619,42 @@ LexicographicPermutations[l_List] :=
 		]
 	]
 
+(* Section 1.1.2 Ranking and Unranking Permutations, Pages 5-6 *)
+
 RankPermutation[{1}] = 0
 
 RankPermutation[p_?PermutationQ] := (p[[1]]-1) (Length[Rest[p]]!) +
 	RankPermutation[ Map[(If[#>p[[1]], #-1, #])&, Rest[p]] ]
 
-NthPermutation[n1_Integer,l_List] :=
-	Module[{k, n=n1, s=l, i},
-		Table[
-			n = Mod[n,(i+1)!];
-			k = s [[Quotient[n,i!]+1]];
-			s = Complement[s,{k}];
-			k,
-			{i,Length[l]-1,0,-1}
-		]
-	]
+(* UP, and UnrankPermutation come from the V2.1 code.
+   There is some problem in the v0.9 code and rather than try to fix that
+   we use the newer version
+ *)
+UP[r_Integer, n_Integer] :=
+        Module[{r1 = r, q = n!, i},
+               Table[r1 = Mod[r1, q];
+                     q = q/(n - i + 1);
+                     Quotient[r1, q] + 1,
+                     {i, n}
+               ]
+        ]
+UnrankPermutation[r_Integer, {}] := {}
+UnrankPermutation[r_Integer, l_List] :=
+        Module[{s = l, k, t, p = UP[Mod[r, Length[l]!], Length[l]], i},
+               Table[k = s[[t = p[[i]] ]];
+                     s = Delete[s, t];
+                     k,
+                     {i, Length[ p ]}
+               ]
+        ]
+UnrankPermutation[r_Integer, n_Integer?Positive] :=
+        UnrankPermutation[r, Range[n]]
+NthPermutation[r_Integer, l_List] := UnrankPermutation[r, l]
 
 NextPermutation[p_?PermutationQ] :=
 	NthPermutation[ RankPermutation[p]+1, Sort[p] ]
+
+(* Section 1.1.3 RandomPermutations, Pages 6-7 *)
 
 RandomPermutation1[n_Integer?Positive] :=
 	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
@@ -650,6 +671,7 @@ RandomPermutation2[n_Integer?Positive] :=
 
 RandomPermutation[n_Integer?Positive] := RandomPermutation1[n]
 
+(* Section 1.1.4 Permutation from Transpostions, Page 11 *)
 MinimumChangePermutations[l_List] :=
 	Module[{i=1,c,p=l,n=Length[l],k},
 		c = Table[1,{n}];
@@ -667,6 +689,7 @@ MinimumChangePermutations[l_List] :=
 		]
 	]
 
+(* Section 1.1.5 Backtracking and Distict Permutations, Page 12-13 *)
 Backtrack[space_List,partialQ_,solutionQ_,flag_:One] :=
 	Module[{n=Length[space],all={},done,index,v=2,solution},
 		index=Prepend[ Table[0,{n-1}],1];
@@ -708,6 +731,8 @@ DistinctPermutations[s_List] :=
 		]
 	]
 
+(* Section 1.1.6 Sorting and Searching, Page 14-16 *)
+
 MinOp[l_List,f_] :=
 	Module[{min=First[l]},
 		Scan[ (If[ Apply[f,{#,min}], min = #])&, l];
@@ -738,6 +763,7 @@ BinarySearch[l_List,k_Integer,low_Integer,high_Integer,f_] :=
 		]
 	]
 
+(* Section 1.2.1 Multiplying Permutations, Page 17 *)
 MultiplicationTable[elems_List,op_] :=
 	Module[{i,j,n=Length[elems],p},
 		Table[
@@ -747,12 +773,14 @@ MultiplicationTable[elems_List,op_] :=
 		]
 	]
 
+(* Section 1.2.2 The Inverse of a Permutation, Page 18 *)
 InversePermutation[p_?PermutationQ] :=
 	Module[{inverse=p, i},
 		Do[ inverse[[ p[[i]] ]] = i, {i,Length[p]} ];
 		inverse
 	]
 
+(* Section 1.2.3 The Equivalence Relation and Classesn, Page 18-19 *)
 EquivalenceRelationQ[r_?SquareMatrixQ] :=
 	ReflexiveQ[r] && SymmetricQ[r] && TransitiveQ[r]
 EquivalenceRelationQ[g_Graph] := EquivalenceRelationQ[ Edges[g] ]
@@ -784,6 +812,7 @@ SamenessRelation[perms_List] :=
 		]
 	] /; perms != {}
 
+(* 1.2.4 The Cycle Structure of Permutations; Pages 20-21  *)
 ToCycles[p1_?PermutationQ] :=
 	Module[{p=p1,m,n,cycle,i},
 		Select[
@@ -812,6 +841,7 @@ FromCycles[cyc_List] :=
 		p
 	]
 
+(* 1.2.4 The Cycle Structure of Permutations, Hiding Cycles; Page 22  *)
 HideCycles[c_List] :=
 	Flatten[
 		Sort[
@@ -832,6 +862,7 @@ RevealCycles[p_?PermutationQ] :=
 		Append[cycles,Take[p,{start,end-1}]]
 	]
 
+(* 1.2.4 The Cycle Structure of Permutations, Counting Cycles; Page 23  *)
 NumberOfPermutationsByCycles[n_Integer,m_Integer] := (-1)^(n-m) StirlingS1[n,m]
 
 StirlingFirst[n_Integer,m_Integer] := StirlingFirst1[n,m]
@@ -850,8 +881,11 @@ StirlingSecond1[0,m_Integer] := If [m == 0, 1, 0]
 StirlingSecond1[n_Integer,m_Integer] := StirlingSecond1[n,m] =
 	m StirlingSecond1[n-1,m] + StirlingSecond1[n-1,m-1]
 
+(* 1.2.5 Signatures; Page 24 *)
+
 SignaturePermutation[p_?PermutationQ] := (-1) ^ (Length[p]-Length[ToCycles[p]])
 
+(* 1.2.6 Polya's Theory of Counting; Page 25 *)
 Polya[g_List,m_] := Apply[ Plus, Map[(m^Length[ToCycles[#]])&,g] ] / Length[g]
 
 ToInversionVector[p_?PermutationQ] :=
@@ -1000,8 +1034,11 @@ GrayCode[l_List,prev_List] :=
 		Join[ prev, Map[(Append[#,First[l]])&,Reverse[prev]] ]
 	]
 
+(* We have a builtin that does this.
+GrayCode doesn't work?
 Subsets[l_List] := GrayCode[l]
 Subsets[n_Integer] := GrayCode[Range[n]]
+*)
 
 LexicographicSubsets[l_List] := LexicographicSubsets[l,{{}}]
 
@@ -1016,6 +1053,7 @@ LexicographicSubsets[l_List,subsets_List] :=
 		]
 	]
 
+(* 1.5.5 Generating k-Subsets *)
 KSubsets[l_List,0] := { {} }
 KSubsets[l_List,1] := Partition[l,1]
 KSubsets[l_List,k_Integer?Positive] := {l} /; (k == Length[l])
@@ -3130,6 +3168,38 @@ Lock1Q[a_List,b_List] :=
 		aj = Min[ Select[a, (# > bk)&] ];
 		(aj < Max[b])
 	]
+
+KSetPartitions::usage = "KSetPartitions[set, k] returns the list of set partitions of set with k blocks. KSetPartitions[n, k] returns the list of set partitions of {1, 2, ..., n} with k blocks. If all set partitions of a set are needed, use the function SetPartitions."
+KSetPartitions[{}, 0] := {{}}
+KSetPartitions[s_List, 0] := {}
+KSetPartitions[s_List, k_Integer] := {} /; (k > Length[s])
+KSetPartitions[s_List, k_Integer] := {Map[{#} &, s]} /; (k === Length[s])
+KSetPartitions[s_List, k_Integer] :=
+       Block[{$RecursionLimit = Infinity},
+             Join[Map[Prepend[#, {First[s]}] &, KSetPartitions[Rest[s], k - 1]],
+                  Flatten[
+                     Map[Table[Prepend[Delete[#, j], Prepend[#[[j]], s[[1]]]],
+                              {j, Length[#]}
+                         ]&,
+                         KSetPartitions[Rest[s], k]
+                     ], 1
+                  ]
+             ]
+       ] /; (k > 0) && (k < Length[s])
+
+KSetPartitions[0, 0] := {{}}
+KSetPartitions[0, k_Integer?Positive] := {}
+KSetPartitions[n_Integer?Positive, 0] := {}
+KSetPartitions[n_Integer?Positive, k_Integer?Positive] := KSetPartitions[Range[n], k]
+
+SetPartitions::usage = "SetPartitions[set] returns the list of set partitions of set. SetPartitions[n] returns the list of set partitions of {1, 2, ..., n}. If all set partitions with a fixed number of subsets are needed use KSetPartitions."
+
+SetPartitions[{}] := {{}}
+SetPartitions[s_List] := Flatten[Table[KSetPartitions[s, i], {i, Length[s]}], 1]
+
+SetPartitions[0] := {{}}
+SetPartitions[n_Integer?Positive] := SetPartitions[Range[n]]
+
 
 End[]
 
