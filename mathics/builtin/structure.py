@@ -526,6 +526,8 @@ class MapAt(Builtin):
 
     >> MapAt[f, {a, b, c, d}, 2]
      = {a, f[b], c, d}
+    >> MapAt[f, {a, b, c, d}, -1]
+     = {a, b, c, f[d]}
     """
 
     def apply(self, f, expr, n, evaluation, options={}):
@@ -535,8 +537,7 @@ class MapAt(Builtin):
         if 1 <= i <= m:
             j = i -1
         elif -m <= i <= -1:
-            j = n - i + 1
-            selected = expr.leaves[n - i + 1]
+            j = m + i
         else:
             evaluation.message('MapAt', 'normal')
 
