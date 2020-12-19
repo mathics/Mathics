@@ -216,7 +216,30 @@ def test_combinatorica_permutations_1_2():
         (
             "Apply[Or, Map[(# === HideCycles[ToCycles[#]])&, Permutations[Range[5]] ]]",
             "False",
-            "None of the permutatoins on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
+            "None of the permutations on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
+        ),
+        (
+            "{StirlingFirst[6,3], StirlingS1[6,3]}",
+            "{225, -225}",
+            "StirlingFirst 1.2.4, Page 24",
+        ),
+        (
+            "Select[ Map[ToCycles, Permutations[Range[4]]], (Length[#]==2)&]",
+            "{{{1}, {3, 4, 2}}, {{1}, {4, 3, 2}}, {{2, 1}, {4, 3}}, "
+            " {{2, 3, 1}, {4}}, {{2, 4, 1}, {3}}, {{3, 2, 1}, {4}}, "
+            " {{3, 4, 1}, {2}}, {{3, 1}, {4, 2}}, {{4, 2, 1}, {3}}, "
+            " {{4, 3, 1}, {2}}, {{4, 1}, {3, 2}}}",
+            "11 permutations of 4 elements and 2 cycles, Page 24",
+        ),
+        (
+            "NumberOfPermutationsByCycles[4,2]",
+            "11",
+            "NumberOfPermutationsByCycles 1.2.4, Page 24",
+        ),
+        (
+            "{StirlingSecond[6,3], StirlingS2[6,3]}",
+            "{90, 90}",
+            "StirlingSecond 1.2.4, Page 24",
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
