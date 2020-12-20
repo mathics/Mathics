@@ -536,6 +536,10 @@ class MapAt(Builtin):
     >> MapAt[f, {a, b, c, d}, 2]
      = {a, f[b], c, d}
 
+    Map $f$ onto multiple parts:
+    >> MapAt[f, {a, b, c, d}, {{1}, {4}}]
+     = {f[a], b, c, f[d]}
+
     Map $f$ onto the at the end:
     >> MapAt[f, {a, b, c, d}, -1]
      = {a, b, c, f[d]}
@@ -557,28 +561,40 @@ class MapAt(Builtin):
         "MapAt[f_, pos_][expr_]": "MapAt[f, expr, pos]",
     }
 
-    def apply(self, f, expr, n, evaluation, options={}):
-        "MapAt[f_, expr_, n_Integer]"
-        i = n.get_int_value()
-        m = len(expr.leaves)
-        if 1 <= i <= m:
-            j = i - 1
-        elif -m <= i <= -1:
-            j = m + i
-        else:
-            raise PartRangeError
+    def apply(self, f, expr, args, evaluation, options={}):
+        "MapAt[f_, expr_, args_]"
 
-        new_leaves = list(expr.leaves)
-        replace_leaf = new_leaves[j]
-        if hasattr(replace_leaf, "head") and replace_leaf.head == Symbol("System`Rule"):
-            new_leaves[j] = Expression(
-                "System`Rule",
-                replace_leaf.leaves[0],
-                Expression(f, replace_leaf.leaves[1]),
-            )
-        else:
-            new_leaves[j] = Expression(f, replace_leaf)
-        return List(*new_leaves)
+        m = len(expr.leaves)
+
+        def map_at_one(i, leaves):
+            if 1 <= i <= m:
+                j = i - 1
+            elif -m <= i <= -1:
+                j = m + i
+            else:
+                raise PartRangeError
+            replace_leaf = new_leaves[j]
+            if hasattr(replace_leaf, "head") and replace_leaf.head == Symbol("System`Rule"):
+                new_leaves[j] = Expression(
+                    "System`Rule",
+                    replace_leaf.leaves[0],
+                    Expression(f, replace_leaf.leaves[1]),
+                )
+            else:
+                new_leaves[j] = Expression(f, replace_leaf)
+            return new_leaves
+
+        a = args.to_python()
+        if isinstance(a, int):
+            new_leaves = list(expr.leaves)
+            new_leaves = map_at_one(a, new_leaves)
+            return List(*new_leaves)
+        elif isinstance(a, list):
+            new_leaves = list(expr.leaves)
+            for l in a:
+                if len(l) == 1 and isinstance(l[0], int):
+                    new_leaves = map_at_one(l[0], new_leaves)
+            return List(*new_leaves)
 
 
 class Scan(Builtin):
