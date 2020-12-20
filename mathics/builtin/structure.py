@@ -547,7 +547,15 @@ class MapAt(Builtin):
     Use negative position in an association:
     >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4|>, -3]
      = {a -> 1, b -> f[2], c -> 3, d -> 4}
+
+    Use the operator form of MapAt:
+    >> MapAt[f, 1][{a, b, c, d}]
+     = {f[a], b, c, d}
     """
+
+    rules = {
+        "MapAt[f_, pos_][expr_]": "MapAt[f, expr, pos]",
+    }
 
     def apply(self, f, expr, n, evaluation, options={}):
         "MapAt[f_, expr_, n_Integer]"
