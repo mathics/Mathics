@@ -276,7 +276,7 @@ class StirlingS1(Builtin):
     """
     <dl>
       <dt>'StirlingS1[$n$, $m$]'
-      <dd>gives the Stirling number of the first kind S_n^m.
+      <dd>gives the Stirling number of the first kind $𝒮_n^m$.
     </dl>
 
     Integer mathematical function, suitable for both symbolic and numerical manipulation.
@@ -300,8 +300,8 @@ class StirlingS1(Builtin):
 class StirlingS2(Builtin):
     """
     <dl>
-      <dt>'StirlingS2[$n, $m$]'
-      <dd>gives the Stirling number of the second kind S_n^m.
+      <dt>'StirlingS2[$n$, $m$]'
+      <dd>gives the Stirling number of the second kind 𝒮_n^m.
     </dl>
 
     returns the number of ways of partitioning a set of $n$ elements into $m$ non‐empty subsets.

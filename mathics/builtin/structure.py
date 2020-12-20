@@ -530,6 +530,10 @@ class MapAt(Builtin):
     <dl>
       <dt>'MapAt[$f$, $expr$, $n$]'
       <dd>applies $f$ to the element at position $n$ in $expr$. If $n$ is negative, the position is counted from the end.
+      <dt>'MapAt[f, $exp$r, {$i$, $j$ ...}]'
+      <dd>applies $f$ to the part of $expr$ at position {$i$, $j$, ...}.
+      <dt>'MapAt[$f$,$pos$]'
+      <dd>represents an operator form of MapAt that can be applied to an expression.
     </dl>
 
     Map $f$ onto the part at position 2:
