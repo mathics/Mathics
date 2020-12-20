@@ -259,12 +259,18 @@ def test_combinatorica_permutations_1_2():
             "(4 m + 2 m ^ 2 + m ^ 4 + m ^ 8) / 8",
             "Polya counting resulting in polynomial 1.2.6, Page 25",
         ),
-        # MapAt not finished which is probably causing Poly to fail here...
-        # (
-        #     "Polya[Automorphisms[Cycle[8]], m]",
-        #     "(4 m + 2 m ^ 2 + m ^ 4 + m ^ 8) / 8",
-        #     "Polya counting resulting in polynomial 1.2.6, Page 26",
-        # ),
+        # Automorphism is slow. So we reduce Cycle[8] given as the example in the
+        # book to Cycle[3].
+        (
+            "Polya[Automorphisms[Cycle[3]], m]",
+            "(2 m + 3 m ^ 2 + m ^ 3) / 6",
+            "Polya counting resulting in polynomial 1.2.6, Page 26",
+        ),
+        (
+            "Factor[(2 m + 3 m ^ 2 + m ^ 3) / 6]",
+            "m (1 + m) (2 + m) / 6",
+            "Factor Polya polynomial 1.2.6, Page 26",
+        ),
         (
             "Factor[(4 m + 2 m^2 + 5m^4 + 4m^5 + m^8)/16]",
             "m (1 + m) (4 - 2 m + 2 m ^ 2 + 3 m ^ 3 + m ^ 4 - m ^ 5 + m ^ 6) / 16",
