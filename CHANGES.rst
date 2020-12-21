@@ -34,18 +34,20 @@ New builtins:
 - ``PythonForm``, ``SympyForm`` these is not in WL. It simply will show a crude translation to ``sympy`` or ``python``. Expect more and better translation later
 - ``Throw`` and ``Catch``
 - ``With``
+- Start ``FileNameTake``
 
   Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
 
 - Workaround for ``Compile`` so it accepts functions ##1026
-- Add ``Trace`` option to ``Get[]``. ``Get["fn", Trace->True]`` will show lines as they are read.
+- Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
 - Add bool for ``from_python``
-- fix ``DeleteCases`` when there is a level spec.
+- Extend ``DeleteCases`` to accept a levelspec parameter.
 - Set Evaluation#exc_result to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
 - ``ImageData`` changed to get bits {0,1} not bools.
 - add tokenizer symbols for <-> and -> and the unicode versions of those.
 - fix ``Needs``
+- ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
 
 1.1.0
 -----

@@ -18,8 +18,9 @@ import mpmath
 import math
 import sympy
 import requests
+import pathlib
 
-
+import os.path as osp
 from itertools import chain
 
 
@@ -36,20 +37,20 @@ from mathics.settings import ROOT_DIR
 
 
 INITIAL_DIR = os.getcwd()
-HOME_DIR = os.path.expanduser('~')
+HOME_DIR = osp.expanduser('~')
 SYS_ROOT_DIR = '/' if os.name == 'posix' else '\\'
 TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = ['.', HOME_DIR, os.path.join(ROOT_DIR, 'data'),
-            os.path.join(ROOT_DIR, 'packages')]
+PATH_VAR = ['.', HOME_DIR, osp.join(ROOT_DIR, 'data'),
+            osp.join(ROOT_DIR, 'packages')]
 
 
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
     if filename[-1] == '`':
-        filename = filename[:-1].replace('`', os.path.sep)
+        filename = filename[:-1].replace('`', osp.sep)
         for ext in ['.mx', '.m']:
             result = path_search(filename + ext)
             if result is not None:
@@ -82,16 +83,16 @@ def path_search(filename):
                 result = None
         else:
             for p in PATH_VAR + ['']:
-                path = os.path.join(p, filename)
-                if os.path.exists(path):
+                path = osp.join(p, filename)
+                if osp.exists(path):
                     result = path
                     break
 
             # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-            if result is not None and os.path.isdir(result):
-                for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
-                    tmp = os.path.join(result, ext)
-                    if os.path.isfile(tmp):
+            if result is not None and osp.isdir(result):
+                for ext in [osp.join('Kernel', 'init.m'), 'init.m']:
+                    tmp = osp.join(result, ext)
+                    if osp.isfile(tmp):
                         return tmp
     return result
 
@@ -145,6 +146,7 @@ class mathics_open:
         self.name = name
         self.mode = mode
         self.encoding = encoding
+        self.old_inputfile_var = None # Set in __enter__ and __exit__
 
         if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
             raise ValueError("Can't handle mode {0}".format(mode))
@@ -171,6 +173,9 @@ class mathics_open:
 
         # open the stream
         stream = io.open(path, self.mode, encoding=python_encoding)
+        global INPUTFILE_VAR
+        self.old_inputfile_var = INPUTFILE_VAR
+        INPUTFILE_VAR = osp.abspath(path)
 
         # build the Expression
         n = next(NSTREAMS)
@@ -191,6 +196,9 @@ class mathics_open:
 
     def __exit__(self, type, value, traceback):
         strm = STREAMS[self.n]
+        global INPUTFILE_VAR
+        INPUTFILE_VAR = self.old_inputfile_var or ""
+        self.oldinputfile_var = None
         if strm is not None:
             strm.close()
             STREAMS[self.n] = None
@@ -316,8 +324,7 @@ class InputFileName(Predefined):
     </dl>
 
     While in interactive mode, '$InputFileName' is "".
-    >> $InputFileName
-     = #<--#
+    X> $InputFileName
     """
 
     name = '$InputFileName'
@@ -831,7 +838,7 @@ class Write(Builtin):
 
         if stream is None or stream.closed:
             evaluation.message('General', 'openx', channel)
-            return Symbol('Null')
+            return SymbolNull
 
         expr = expr.get_sequence()
         expr = Expression('Row', Expression('List', *expr))
@@ -839,7 +846,7 @@ class Write(Builtin):
         evaluation.format = 'text'
         text = evaluation.format_output(from_python(expr))
         stream.write(str(text) + '\n')
-        return Symbol('Null')
+        return SymbolNull
 
 
 class _BinaryFormat(object):
@@ -1899,7 +1906,7 @@ class WriteString(Builtin):
             stream.flush()
         except IOError as err:
             evaluation.message('WriteString', 'writex', err.strerror)
-        return Symbol('Null')
+        return SymbolNull
 
 
 class _OpenAction(Builtin):
@@ -2123,18 +2130,16 @@ class Get(PrefixOperator):
         result = None
         pypath = path.get_string_value()
         definitions = evaluation.definitions
-        old_path = definitions.get_ownvalue("System`$InputFilename") or String("")
         try:
             if trace_fn:
                 trace_fn(pypath)
             with mathics_open(pypath, 'r') as f:
-                definitions.set_ownvalue("System`$InputFileName", String(pypath))
                 feeder = FileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
                         query = parse(definitions, feeder)
                     except TranslateError:
-                        return Symbol('Null')
+                        return SymbolNull
                     finally:
                         feeder.send_messages(evaluation)
                     if query is None:   # blank line / comment
@@ -2146,8 +2151,6 @@ class Get(PrefixOperator):
         except MessageException as e:
             e.message(evaluation)
             return Symbol('$Failed')
-        finally:
-            definitions.set_ownvalue("System`$InputFileName", old_path)
         return result
 
     def apply_default(self, filename, evaluation):
@@ -2252,7 +2255,7 @@ class Put(BinaryOperator):
 
         stream.write(text)
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_default(self, exprs, filename, evaluation):
         'Put[exprs___, filename_]'
@@ -2341,7 +2344,7 @@ class PutAppend(BinaryOperator):
 
         stream.write(text)
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_default(self, exprs, filename, evaluation):
         'PutAppend[exprs___, filename_]'
@@ -2393,7 +2396,7 @@ class FindFile(Builtin):
         if result is None:
             return Symbol('$Failed')
 
-        return String(os.path.abspath(result))
+        return String(osp.abspath(result))
 
 
 class FileNameSplit(Builtin):
@@ -2446,7 +2449,7 @@ class FileNameSplit(Builtin):
 
         result = []
         while path not in ['', SYS_ROOT_DIR]:
-            path, ext = os.path.split(path)
+            path, ext = osp.split(path)
             if ext != '':
                 result.insert(0, ext)
 
@@ -2536,7 +2539,7 @@ class FileNameJoin(Builtin):
 
         # TODO Implement OperatingSystem Option
 
-        result = os.path.join(*py_pathlist)
+        result = osp.join(*py_pathlist)
 
         return from_python(result)
 
@@ -2569,7 +2572,7 @@ class FileExtension(Builtin):
     def apply(self, filename, evaluation, options):
         'FileExtension[filename_String, OptionsPattern[FileExtension]]'
         path = filename.to_python()[1:-1]
-        filename_base, filename_ext = os.path.splitext(path)
+        filename_base, filename_ext = osp.splitext(path)
         filename_ext = filename_ext.lstrip('.')
         return from_python(filename_ext)
 
@@ -2604,8 +2607,31 @@ class FileBaseName(Builtin):
         'FileBaseName[filename_String, OptionsPattern[FileBaseName]]'
         path = filename.to_python()[1:-1]
 
-        filename_base, filename_ext = os.path.splitext(path)
+        filename_base, filename_ext = osp.splitext(path)
         return from_python(filename_base)
+
+
+class FileNameTake(Builtin):
+    """
+    <dl>
+    <dt>'FileNameTake["$file$"]'
+      <dd>returns the last path element in the file anme $name$.
+    </dl>
+
+    >> FileNameTake["/tmp/file.txt"]
+     = file.txt
+    """
+
+    attributes = ('Protected')
+
+    options = {
+        'OperatingSystem': '$OperatingSystem',
+    }
+
+    def apply(self, filename, evaluation, options):
+        'FileNameTake[filename_String, OptionsPattern[FileBaseName]]'
+        path = pathlib.Path(filename.to_python()[1:-1])
+        return from_python(path.name)
 
 
 class DirectoryName(Builtin):
@@ -2674,7 +2700,7 @@ class DirectoryName(Builtin):
 
         result = py_name
         for i in range(py_n):
-            (result, tmp) = os.path.split(result)
+            (result, tmp) = osp.split(result)
 
         return String(result)
 
@@ -2755,7 +2781,7 @@ class AbsoluteFileName(Builtin):
                                Expression('AbsoluteFileName', name))
             return Symbol('$Failed')
 
-        return String(os.path.abspath(result))
+        return String(osp.abspath(result))
 
 
 class ExpandFileName(Builtin):
@@ -2787,7 +2813,7 @@ class ExpandFileName(Builtin):
             return
         py_name = py_name[1:-1]
 
-        return String(os.path.abspath(py_name))
+        return String(osp.abspath(py_name))
 
 
 class FileInformation(Builtin):
@@ -2998,7 +3024,7 @@ class FilePrint(Builtin):
             evaluation.message('General', 'noopen', path)
             return
 
-        if not os.path.isfile(pypath):
+        if not osp.isfile(pypath):
             return Symbol("$Failed")
 
         try:
@@ -3021,7 +3047,7 @@ class FilePrint(Builtin):
         for res in result:
             evaluation.print_out(from_python(res))
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Close(Builtin):
@@ -3274,7 +3300,7 @@ class Skip(Read):
                 channel, types, evaluation, options)
             if result == Symbol('EndOfFile'):
                 return result
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Find(Read):
@@ -3838,17 +3864,17 @@ class FileDate(Builtin):
             time_type = timetype.to_python()[1:-1]
 
         if time_type == 'Access':
-            result = os.path.getatime(py_path)
+            result = osp.getatime(py_path)
         elif time_type == 'Creation':
             if os.name == 'posix':
                 return Expression('Missing', 'NotApplicable')
-            result = os.path.getctime(py_path)
+            result = osp.getctime(py_path)
         elif time_type == 'Change':
             if os.name != 'posix':
                 return Expression('Missing', 'NotApplicable')
-            result = os.path.getctime(py_path)
+            result = osp.getctime(py_path)
         elif time_type == 'Modification':
-            result = os.path.getmtime(py_path)
+            result = osp.getmtime(py_path)
         else:
             evaluation.message('FileDate', 'datetype')
             return
@@ -3970,7 +3996,7 @@ class SetFileDate(Builtin):
             os.stat(py_filename)
             if py_attr == '"Access"':
                 os.utime(py_filename, (
-                    stattime, os.path.getatime(py_filename)))
+                    stattime, osp.getatime(py_filename)))
             if py_attr == '"Creation"':
                 if os.name == 'posix':
                     evaluation.message('SetFileDate', 'nocreationunix')
@@ -3979,7 +4005,7 @@ class SetFileDate(Builtin):
                     # TODO: Note: This is windows only
                     return Symbol('$Failed')
             if py_attr == '"Modification"':
-                os.utime(py_filename, (os.path.getatime(
+                os.utime(py_filename, (osp.getatime(
                     py_filename), stattime))
             if py_attr == 'All':
                 os.utime(py_filename, (stattime, stattime))
@@ -3988,7 +4014,7 @@ class SetFileDate(Builtin):
             # evaluation.message(...)
             return Symbol('$Failed')
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_1arg(self, filename, evaluation):
         'SetFileDate[filename_]'
@@ -4045,7 +4071,7 @@ class CopyFile(Builtin):
             evaluation.message('CopyFile', 'filex', source)
             return Symbol('$Failed')
 
-        if os.path.exists(py_dest):
+        if osp.exists(py_dest):
             evaluation.message('CopyFile', 'filex', dest)
             return Symbol('$Failed')
 
@@ -4107,7 +4133,7 @@ class RenameFile(Builtin):
             evaluation.message('RenameFile', 'filex', source)
             return Symbol('$Failed')
 
-        if os.path.exists(py_dest):
+        if osp.exists(py_dest):
             evaluation.message('RenameFile', 'filex', dest)
             return Symbol('$Failed')
 
@@ -4177,7 +4203,7 @@ class DeleteFile(Builtin):
             except OSError:
                 return Symbol('$Failed')
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class DirectoryStack(Builtin):
@@ -4251,7 +4277,7 @@ class ParentDirectory(Builtin):
 
         pypath = path.to_python()[1:-1]
 
-        result = os.path.abspath(os.path.join(pypath, os.path.pardir))
+        result = osp.abspath(osp.join(pypath, osp.pardir))
         return String(result)
 
 
@@ -4295,7 +4321,7 @@ class SetDirectory(Builtin):
 
         py_path = path.__str__()[1:-1]
 
-        if py_path is None or not os.path.isdir(py_path):
+        if py_path is None or not osp.isdir(py_path):
             evaluation.message('SetDirectory', 'cdir', path)
             return Symbol('$Failed')
 
@@ -4381,18 +4407,18 @@ class CreateDirectory(Builtin):
 
         py_dirname = py_dirname[1:-1]
 
-        if os.path.isdir(py_dirname):
+        if osp.isdir(py_dirname):
             evaluation.message(
-                'CreateDirectory', 'filex', os.path.abspath(py_dirname))
+                'CreateDirectory', 'filex', osp.abspath(py_dirname))
             return
 
         os.mkdir(py_dirname)
 
-        if not os.path.isdir(py_dirname):
+        if not osp.isdir(py_dirname):
             evaluation.message('CreateDirectory', 'nffil', expr)
             return
 
-        return String(os.path.abspath(py_dirname))
+        return String(osp.abspath(py_dirname))
 
     def apply_empty(self, evaluation, options):
         'CreateDirectory[OptionsPattern[CreateDirectory]]'
@@ -4449,7 +4475,7 @@ class DeleteDirectory(Builtin):
 
         py_dirname = py_dirname[1:-1]
 
-        if not os.path.isdir(py_dirname):
+        if not osp.isdir(py_dirname):
             evaluation.message('DeleteDirectory', 'nodir', dirname)
             return Symbol('$Failed')
 
@@ -4461,7 +4487,7 @@ class DeleteDirectory(Builtin):
                 return Symbol('$Failed')
             os.rmdir(py_dirname)
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class CopyDirectory(Builtin):
@@ -4501,16 +4527,16 @@ class CopyDirectory(Builtin):
             return
         dir2 = dir2[1:-1]
 
-        if not os.path.isdir(dir1):
+        if not osp.isdir(dir1):
             evaluation.message('CopyDirectory', 'nodir', seq[0])
             return Symbol('$Failed')
-        if os.path.isdir(dir2):
+        if osp.isdir(dir2):
             evaluation.message('CopyDirectory', 'filex', seq[1])
             return Symbol('$Failed')
 
         shutil.copytree(dir1, dir2)
 
-        return String(os.path.abspath(dir2))
+        return String(osp.abspath(dir2))
 
 
 class RenameDirectory(Builtin):
@@ -4550,16 +4576,16 @@ class RenameDirectory(Builtin):
             return
         dir2 = dir2[1:-1]
 
-        if not os.path.isdir(dir1):
+        if not osp.isdir(dir1):
             evaluation.message('RenameDirectory', 'nodir', seq[0])
             return Symbol('$Failed')
-        if os.path.isdir(dir2):
+        if osp.isdir(dir2):
             evaluation.message('RenameDirectory', 'filex', seq[1])
             return Symbol('$Failed')
 
         shutil.move(dir1, dir2)
 
-        return String(os.path.abspath(dir2))
+        return String(osp.abspath(dir2))
 
 
 class FileType(Builtin):
@@ -4600,7 +4626,7 @@ class FileType(Builtin):
         if path is None:
             return Symbol('None')
 
-        if os.path.isfile(path):
+        if osp.isfile(path):
             return Symbol('File')
         else:
             return Symbol('Directory')
@@ -4678,7 +4704,7 @@ class DirectoryQ(Builtin):
 
         path = path_search(path)
 
-        if path is not None and os.path.isdir(path):
+        if path is not None and osp.isdir(path):
             return Symbol('True')
         return Symbol('False')
 
@@ -4802,7 +4828,7 @@ class Needs(Builtin):
         test_loaded = test_loaded.evaluate(evaluation)
         if test_loaded.is_true():
             # Already loaded
-            return Symbol('Null')
+            return SymbolNull
 
         result = Expression('Get', context).evaluate(evaluation)
 
@@ -4810,4 +4836,4 @@ class Needs(Builtin):
             evaluation.message('Needs', 'nocont', context)
             return Symbol('$Failed')
 
-        return Symbol('Null')
+        return SymbolNull
