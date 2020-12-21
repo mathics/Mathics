@@ -23,7 +23,7 @@ import requests
 from itertools import chain
 
 
-from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
+from mathics.core.expression import (Expression, Real, Complex, String, Symbol, SymbolNull,
                                      from_python, Integer, BoxError,
                                      MachineReal, Number, valid_context_name)
 from mathics.core.numbers import dps
@@ -2122,14 +2122,17 @@ class Get(PrefixOperator):
         trace_fn = py_options["TraceFn"]
         result = None
         pypath = path.get_string_value()
+        definitions = evaluation.definitions
+        old_path = definitions.get_ownvalue("System`$InputFilename") or String("")
         try:
             if trace_fn:
                 trace_fn(pypath)
             with mathics_open(pypath, 'r') as f:
+                definitions.set_ownvalue("System`$InputFileName", String(pypath))
                 feeder = FileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
-                        query = parse(evaluation.definitions, feeder)
+                        query = parse(definitions, feeder)
                     except TranslateError:
                         return Symbol('Null')
                     finally:
@@ -2143,6 +2146,8 @@ class Get(PrefixOperator):
         except MessageException as e:
             e.message(evaluation)
             return Symbol('$Failed')
+        finally:
+            definitions.set_ownvalue("System`$InputFileName", old_path)
         return result
 
     def apply_default(self, filename, evaluation):
