@@ -9,9 +9,8 @@ by Steven S. Skiena, Addison-Wesley Publishing Co., Advanced Book Program,
 350 Bridge Parkway, Redwood City CA 94065.  ISBN 0-201-50943-1.
 For ordering information, call 1-800-447-2226.
  *)
+Get[ "DiscreteMath`CombinatoricaV0.6"]
 Get[ "DiscreteMath`CombinatoricaV0.9"]
-
-Get[ "DiscreteMath`CombinatoricaLite`"]
 
 (* The below is from https://library.wolfram.com/infocenter/MathSource/6825/
  An alpha test version is at:
