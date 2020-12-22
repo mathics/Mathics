@@ -19,7 +19,7 @@ BuildIntegrationRules::usage = "BuildIntegrationRules[] creates the .m package f
 DeployRubi::usage = "DeployRubi[] creates a paclet and zip of the current release and puts it in the parent folder of the Rubi sources.";
 
 Begin["`Private`"];
-$dir = DirectoryName@System`Private`$InputFileName;
+$dir = DirectoryName@System`$InputFileName;
 $ruleDir = FileNameJoin[{$dir, "..", "IntegrationRuleNotebooks"}];
 
 BuildIntegrationRules[] := BuildIntegrationRules[#, FileNameJoin[{$dir, "IntegrationRules"}]]& /@ FileNames["*.nb", {$ruleDir}, Infinity];

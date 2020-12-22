@@ -12,7 +12,7 @@
 * If you intend to develop Rubi's rules and *always* want to load the code from the .m files, please load the Rubi.m
 * file from the parent directory with Get. This will prevent the caching mechanism here.
 * *)
-Rubi`Private`$kernelDir = DirectoryName[System`Private`$InputFileName];
+Rubi`Private`$kernelDir = DirectoryName[System`$InputFileName];
 Rubi`Private`$RubiVersionNumber = Version /. List @@ Get[FileNameJoin[{Rubi`Private`$kernelDir, "..", "PacletInfo.m"}]];
 Rubi`Private`$MXFile = FileNameJoin[{
   Rubi`Private`$kernelDir,
