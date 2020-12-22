@@ -17,7 +17,7 @@ Arg:
                                  mathics src = /usr/src/app/mathics
                                  --pythonpaht /usr/src/app
 
-    -m | --mode {cli|ui}      Start mathics in web-ui mode (ui), or in cli mode (cli). Default is cli.
+    -m | --mode {cli|ui|gui|minimal}  Start mathics in web-ui mode (ui or gui), cli mode (cli) or minimal. Default is cli.
                               See: https://github.com/mathics/Mathics/wiki/Installing#running-mathics
 
 Params:
@@ -48,7 +48,8 @@ echo
 
 case $mathics_mode in
     cli) mathicsscript $@ ;;
-    ui)  mathicsserver -e $@ ;;
+    minimal)  mathics $@ ;;
+    ui | gui)  mathicsserver -e $@ ;;
     shell)  /bin/bash ;;
     *)   echo "unknown mathics_mode=$mathics_mode. See '$script_cmd --help'" ; exit 2 ;;
 esac
