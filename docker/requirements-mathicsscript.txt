@@ -1,4 +1,6 @@
-mathics
+click
 colorama
+columnize
+networkx
 pygments
-mathicsscript
+term-background >= 1.0.1

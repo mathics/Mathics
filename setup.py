@@ -236,6 +236,10 @@ setup(
             "mathicsserver = mathics.server:main",
         ],
     },
+    scripts = [
+        "script/dmathicsserver",
+        "script/dmathicsscript",
+    ],
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # don't pack Mathics in egg because of media files, etc.
