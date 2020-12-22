@@ -63,17 +63,19 @@ csc::usage = "Inert cosecant function";
 
 Begin["`Private`"];
 
-$rubiDir = DirectoryName[System`Private`$InputFileName];
+$rubiDir = DirectoryName[System`$InputFileName];
 $RubiVersion = StringJoin[
   "Rubi ",
   Version /. List@@Get[FileNameJoin[{$rubiDir, "PacletInfo.m"}]]
-];
-PrintTemporary["Loading " <> $RubiVersion <> " will take a minute or two. In the future this will take less than a second."];
+	       ];
+Print["Loading Rubi..."];
+(*PrintTemporary["Loading " <> $RubiVersion <> " will take a minute or two. In the future this will take less than a second."];*)
 
-If[Not@ValueQ[Global`$LoadShowSteps],
-  $LoadShowSteps = True,
-  $LoadShowSteps = TrueQ[Global`$LoadShowSteps]
-];
+(* If[Not@ValueQ[Global`$LoadShowSteps], *)
+(*   $LoadShowSteps = True, *)
+(*   $LoadShowSteps = TrueQ[Global`$LoadShowSteps] *)
+(* ]; *)
+$LoadShowSteps=True;
 
 If[Not@ValueQ[Global`$LoadElementaryFunctionRules],
   $LoadElementaryFunctionRules = True,
@@ -92,9 +94,13 @@ RubiClearMemoryImages[] := Module[{files = FileNames["*.mx", {FileNameJoin[{$rub
 LoadRules::inv = "Could not load file or section: ``";
 LoadRules[fileName_String /; FileExtension[fileName] =!= "m"] := LoadRules[FileNameJoin[{$ruleDir, fileName <> ".m"}]];
 LoadRules[fileName_String /; FileExistsQ[fileName]] := (
-  StatusBarPrint["Loading " <> FileBaseName@fileName <> ".m..."];
-  Get[fileName];
-  StatusBarPrint[""] );
+	(*
+	  StatusBarPrint["Loading " <> FileBaseName@fileName <> ".m..."];
+	  Get[fileName];
+	  StatusBarPrint[""]
+	 *)
+	 Print["Loading " <> FileNameTake@fileName "..."];
+	);
 LoadRules[arg___] := Message[LoadRules::inv, {arg}];
 
 StatusBarPrint[message_String] := If[$Notebooks, CurrentValue[EvaluationNotebook[], WindowStatusArea] = message];
@@ -105,6 +111,7 @@ ClearStatusBar[] := If[$Notebooks, CurrentValue[EvaluationNotebook[], WindowStat
 (* Load Integration Rules *)
 
 
+Unprotect[RealNumberQ]; Uprotect[HoldPattern]; Unprotect[Condition];
 Unprotect[Int];  Clear[Int];  Clear[Unintegrable];  Clear[CannotIntegrate];
 
 (* The order of loading the rule-files below is crucial to ensure a functional Rubi integrator! *)
@@ -322,12 +329,11 @@ If[$LoadElementaryFunctionRules===True,
   LoadRules[FileNameJoin[{"8 Special functions", "8.7 Zeta function"}]];
   LoadRules[FileNameJoin[{"8 Special functions", "8.8 Polylogarithm function"}]];
   LoadRules[FileNameJoin[{"8 Special functions", "8.9 Product logarithm function"}]];
-(*LoadRules[FileNameJoin[{"8 Special functions", "8.10 Bessel functions"}]]; *)
+  (*LoadRules[FileNameJoin[{"8 Special functions", "8.10 Bessel functions"}]]; *)
 
   LoadRules[FileNameJoin[{"9 Miscellaneous", "9.2 Derivative integration rules"}]]
 ];
-  LoadRules[FileNameJoin[{"9 Miscellaneous", "9.4 Miscellaneous integration rules"}]];
-
+LoadRules[FileNameJoin[{"9 Miscellaneous", "9.4 Miscellaneous integration rules"}]];
 
 (* ::Section::Closed:: *)
 (* Modify rules to display steps*)
@@ -341,13 +347,18 @@ If[$LoadShowSteps === True,
   LoadRules[$stepRoutines];
 ];
 
-StatusBarPrint["Modifying " <> ToString[$RuleCount] <> " integration rules to distribute coefficients over sums..."];
+(*StatusBarPrint["Modifying " <> ToString[$RuleCount] <> " integration rules to distribute coefficients over sums..."];*)
+Print["integration rules to distribute coefficients over sums..."]
 FixIntRules[];
 
-If[$LoadShowSteps === True,
+
+(*If[$LoadShowSteps === True,
   StatusBarPrint["Modifying " <> ToString[$RuleCount] <> " integration rules to display steps..."];
   StepFunction[Int];
 ];
+ *)
+Print["integration rules to display steps..."]
+StepFunction[Int];
 
 
 (* ::Section::Closed:: *)
@@ -445,7 +456,7 @@ Int[u_, {x_Symbol, a_, b_}] := With[{result = Int[u, x]}, Limit[result, x -> b] 
 Int[{u__}, x_Symbol] := Map[Function[Int[#, x]], {u}];
 
 Protect[Int];
-
+Protect[RealNumberQ]; Protect[HoldPattern]; Protect[Condition];
 
 $Unintegrable = False;
 Unintegrable[u_, x_] :=
@@ -461,4 +472,4 @@ ClearStatusBar[];
 
 
 End[];
-EndPackage[];
+EndPackage[ ];
