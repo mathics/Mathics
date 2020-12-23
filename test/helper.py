@@ -12,6 +12,6 @@ def check_evaluation(str_expr: str, str_expected: str, message=""):
     expected = session.evaluate(str_expected)
 
     if message:
-        assert result == expected, message
+        assert result == expected, "%s: got: %s" % (message, result)
     else:
         assert result == expected

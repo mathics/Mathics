@@ -67,10 +67,6 @@ class With(Builtin):
      = 10
 
     Evaluate an expression with x locally set to 5:
-    >> With[{n = 5}, n ^ 2]
-     = 25
-    >> n
-     = 10
 
     'With' works even without evaluation:
     >> With[{x = a}, (1 + x^2) &]
@@ -79,7 +75,7 @@ class With(Builtin):
     Use 'With' to insert values into held expressions
     >> With[{x=y}, Hold[x]]
      = Hold[y]
-
+    
     >> Table[With[{i=j}, Hold[i]],{j,1,4}]
      = {Hold[1], Hold[2], Hold[3], Hold[4]}
     >> x=5; With[{x=x}, Hold[x]]

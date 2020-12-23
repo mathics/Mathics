@@ -61,7 +61,8 @@ for module in modules:
 
 # builtins = dict(builtins)
 
-mathics_to_sympy = {}
+mathics_to_sympy = {} # here we have: name -> sympy object
+mathics_to_python = {} # here we have: name -> string
 sympy_to_mathics = {}
 
 box_constructs = {}
@@ -72,6 +73,10 @@ builtins_precedence = {}
 def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
         name = builtin.get_name()
+        if hasattr(builtin, "python_equivalent"):
+            # print("XXX", builtin.python_equivalent)
+            mathics_to_python[name] = builtin.python_equivalent
+
         if isinstance(builtin, SympyObject):
             mathics_to_sympy[name] = builtin
             for sympy_name in builtin.get_sympy_names():

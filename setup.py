@@ -78,12 +78,9 @@ else:
     CMDCLASS = {"build_ext": build_ext}
     INSTALL_REQUIRES += ["cython>=0.15.1"]
 
-if sys.platform == "darwin":
-    INSTALL_REQUIRES += ["scikit-image"]
-
 # General Requirements
 INSTALL_REQUIRES += [
-    "sympy>=1.6, < 1.7",
+    "sympy>=1.7, <= 1.8dev",
     "django >= 3.0, < 3.2",
     "mpmath>=1.1.0",
     "numpy",
@@ -92,6 +89,8 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "llvmlite",
     "requests",
+    "scikit-image",
+    "wordcloud", # Used in builtin/image.py by WordCloud()
 ]
 
 
@@ -237,6 +236,10 @@ setup(
             "mathicsserver = mathics.server:main",
         ],
     },
+    scripts = [
+        "script/dmathicsserver",
+        "script/dmathicsscript",
+    ],
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # don't pack Mathics in egg because of media files, etc.

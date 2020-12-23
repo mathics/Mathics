@@ -60,6 +60,38 @@ def test_catch():
             "a",
             "Catch picks up the first Throw that is evaluated (2)",
         ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
 
+
+def test_condition():
+    session.evaluate(
+        """
+        (* Define a function that can "throw an exception": *)
+
+         f[x_] := ppp[x]/; x>0
+        """
+    )
+    for str_expr, str_expected, message in (
+        (
+            "f[5]",
+            "ppp[5]",
+            "/; with True condition",
+        ),
+        (
+            "f[-6]",
+            "f[-6]",
+            "/; with False condition",
+        ),
+        (
+            "{6, -7, 3, 2, -1, -2} /. x_ /; x < 0 -> w",
+            "{6, w, 3, 2, w, w}",
+            "Replace all exlements which satisfy the condition of being negative",
+        ),
+        (
+            "{6, -7, 3, 2, -1, -2} /. x_ /; x < 0 -> w",
+            "{6, w, 3, 2, w, w}",
+            "Replace all elements which satisfy the condition of being negative",
+        ),
     ):
         check_evaluation(str_expr, str_expected, message)

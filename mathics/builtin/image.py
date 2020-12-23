@@ -1823,7 +1823,7 @@ class ImageData(_ImageBuiltin):
         elif stype == "Bit16":
             pixels = pixels_as_uint(pixels)
         elif stype == "Bit":
-            pixels = pixels.astype(numpy.bool)
+            pixels = pixels.astype(numpy.int)
         else:
             return evaluation.message("ImageData", "pixelfmt", stype)
         return from_python(numpy_to_matrix(pixels))

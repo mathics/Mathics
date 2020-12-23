@@ -1,8 +1,53 @@
 CHANGES
 =======
 
-So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+1.1.1
+-----
 
+This is the last update before some major refactoring and interface changing occurs.
+
+After this relase, Django will no longer be bundled here. See `mathics-django <https://github.com/Mathics3/mathics-django>` for the unbundled replacement.
+
+Some changes were made to support `Pymathics Graph <https://github.com/Mathics3/pymathics-graph>`_, a new graph package bundled separately,
+and to support the ability for front-ends to handle rendering on their own.
+
+
+Package Updates
+++++++++++++++++
+
+- sympy 1.7.1
+
+Mathics Packages added:
+
+- ``DiscreteMath`CombinatoricaV0.9`` and
+  ``DiscreteMath`CombinatoricaV0.6``. V0.9 covers Steven Skiena's older "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
+
+If you have a package that you would like included in the distribution, and it works with Mathics, please contact us.
+
+
+
+New builtins:
+++++++++++++++++++++++++++++
+
+- ``StirlingS1``, ``StirlingS2`` (not all WL variations handled)
+- ``MapAt`` (not all WL variations handled)
+- ``PythonForm``, ``SympyForm`` these is not in WL. It simply will show a crude translation to ``sympy`` or ``python``. Expect more and better translation later
+- ``Throw`` and ``Catch``
+- ``With``
+- Start ``FileNameTake``
+
+  Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Workaround for ``Compile`` so it accepts functions ##1026
+- Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
+- Add bool for ``from_python``
+- Extend ``DeleteCases`` to accept a levelspec parameter.
+- Set Evaluation#exc_result to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
+- ``ImageData`` changed to get bits {0,1} not bools.
+- add tokenizer symbols for <-> and -> and the unicode versions of those.
+- fix ``Needs``
+- ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
 
 1.1.0
 -----

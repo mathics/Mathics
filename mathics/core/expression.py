@@ -3,9 +3,11 @@
 # -*- coding: utf-8 -*-
 
 
+import ast
 import sympy
 import mpmath
 import math
+import inspect
 import re
 
 import typing
@@ -89,6 +91,11 @@ def from_python(arg):
     number_type = get_type(arg)
     if arg is None:
         return Symbol('Null')
+    if isinstance(arg, bool):
+        if arg:
+            return SymbolTrue
+        else:
+            return SymbolFalse
     if isinstance(arg, int) or number_type == 'z':
         return Integer(arg)
     elif isinstance(arg, float) or number_type == 'f':
@@ -130,10 +137,10 @@ class KeyComparable(object):
         return self.get_sort_key() >= other.get_sort_key()
 
     def __eq__(self, other) -> bool:
-        return self.get_sort_key() == other.get_sort_key()
+        return hasattr(other, "get_sort_key") and self.get_sort_key() == other.get_sort_key()
 
     def __ne__(self, other) -> bool:
-        return self.get_sort_key() != other.get_sort_key()
+        return (not hasattr(other, "get_sort_key")) or self.get_sort_key() != other.get_sort_key()
 
 
 # ExpressionCache keeps track of the following attributes for one Expression instance:
@@ -932,20 +939,32 @@ class Expression(BaseExpression):
         numbers    -> Python number
         If kwarg n_evaluation is given, apply N first to the expression.
         """
+        from mathics.builtin.base import mathics_to_python
 
         n_evaluation = kwargs.get('n_evaluation')
         if n_evaluation is not None:
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
         head_name = self._head.get_name()
-        if head_name == 'System`List':
-            return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
         if head_name == 'System`DirectedInfinity' and len(self._leaves) == 1:
             direction = self._leaves[0].get_int_value()
             if direction == 1:
-                return float('inf')
+                return math.inf
             if direction == -1:
-                return -float('inf')
+                return -math.inf
+        elif head_name == 'System`List':
+            return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+        if head_name in mathics_to_python:
+            py_obj = mathics_to_python[head_name]
+            # Start here
+            # if inspect.isfunction(py_obj) or inspect.isbuiltin(py_obj):
+            #     args = [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+            #     return ast.Call(
+            #         func=py_obj.__name__,
+            #         args=args,
+            #         keywords=[],
+            #         )
+            return py_obj
         return self
 
     def get_sort_key(self, pattern_sort=False):
@@ -1769,19 +1788,21 @@ class Symbol(Atom):
             return builtin.to_sympy(self)
 
     def to_python(self, *args, **kwargs):
-        if self.name == 'System`True':
+        if self == SymbolTrue:
             return True
-        if self.name == 'System`False':
+        if self == SymbolFalse:
             return False
-        if self.name == 'System`Null':
+        if self == SymbolNull:
             return None
         n_evaluation = kwargs.get('n_evaluation')
         if n_evaluation is not None:
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
 
-        # return name as string (Strings are returned with quotes)
-        return self.name
+        if kwargs.get("python_form", False):
+            return self.to_sympy(**kwargs)
+        else:
+            return self.name
 
     def default_format(self, evaluation, form) -> str:
         return self.name
@@ -1825,7 +1846,7 @@ class Symbol(Atom):
         return self
 
     def is_true(self) -> bool:
-        return self.name == 'System`True'
+        return self == SymbolTrue
 
     def is_numeric(self) -> bool:
         return self.name in system_symbols(
@@ -1841,6 +1862,10 @@ class Symbol(Atom):
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
 
+# Some common Symbols
+SymbolTrue = Symbol("True")
+SymbolFalse = Symbol("False")
+SymbolNull = Symbol("Null")
 
 class Number(Atom):
     def __str__(self) -> str:
@@ -2603,6 +2628,19 @@ class String(Atom):
 
     def __getnewargs__(self):
         return (self.value,)
+
+
+class StringFromPython(String):
+    def __new__(cls, value):
+        self = super(StringFromPython, cls).__new__(cls, value)
+        if isinstance(value, sympy.NumberSymbol):
+            self.value = "sympy." + str(value)
+
+        # Note that the test is done with math.inf first.
+        # This is to use float's ==, which may not strictly be necessary.
+        if math.inf == value:
+            self.value = "math.inf"
+        return self
 
 
 def get_default_value(name, evaluation, k=None, n=None):
