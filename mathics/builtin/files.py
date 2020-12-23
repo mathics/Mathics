@@ -4930,7 +4930,7 @@ class Needs(Builtin):
             # Already loaded
             return SymbolNull
 
-        # TODO: Look why this rises the message
+        # TODO: Figure out why this raises the message:
         # "Select::normal: Nonatomic expression expected."
         already_loaded = Expression('MemberQ',
                                     Symbol('System`$Packages'), context)

@@ -4,25 +4,30 @@ CHANGES
 1.1.1
 -----
 
-This is the last update before some major refactoring and interface changing occurs.
+This may be the last update before some major refactoring and interface changing occurs.
 
-After this relase, Django will no longer be bundled here. See `mathics-django <https://github.com/Mathics3/mathics-django>` for the unbundled replacement.
+In a future 2.0.0 release, Django will no longer be bundled here. See `mathics-django <https://github.com/Mathics3/mathics-django>` for the unbundled replacement.
 
 Some changes were made to support `Pymathics Graph <https://github.com/Mathics3/pymathics-graph>`_, a new graph package bundled separately,
-and to support the ability for front-ends to handle rendering on their own.
+and to support the ability for front-ends to handle rendering on their own. Note that currently this doesn't integrate well into the Django interface, although it works
+well in ``mathicsscript``.
 
 
 Package Updates
-++++++++++++++++
++++++++++++++++
 
 - sympy 1.7.1
 
 Mathics Packages added:
 
-- ``DiscreteMath`CombinatoricaV0.9`` and
-  ``DiscreteMath`CombinatoricaV0.6``. V0.9 covers Steven Skiena's older "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
+- ``DiscreteMath`CombinatoricaV0.9`` (preferred) aand
+  ``DiscreteMath`CombinatoricaV0.6``.
 
-If you have a package that you would like included in the distribution, and it works with Mathics, please contact us. Rubi may appear in a future release.
+Both of these correspond to Steven Skiena's *older* book: "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
+
+If you have a package that you would like included in the distribution, and it works with Mathics, please contact us
+
+Rubi may appear in a future release, possibly in a year or so. However this might be speeded up if we can get people to help out with this.
 
 
 New builtins:
@@ -30,10 +35,10 @@ New builtins:
 
 - ``StirlingS1``, ``StirlingS2`` (not all WL variations handled)
 - ``MapAt`` (not all WL variations handled)
-- ``PythonForm``, ``SympyForm`` these is not in WL. It simply will show a crude translation to ``sympy`` or ``python``. Expect more and better translation later
+- ``PythonForm``, ``SympyForm``: these is not in WL. It simply will show a crude translation to ``sympy`` or ``python``. Expect more and better translation later
 - ``Throw`` and ``Catch``
 - ``With``
-- Start ``FileNameTake``
+- ``FileNameTake``
 
   Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
@@ -42,13 +47,13 @@ New builtins:
 - Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
 - Convert to/from Boolean types properly in ``from_python``, ``to_python``. Previously they were 0, and 1.
 - Extend ``DeleteCases`` to accept a levelspec parameter.
-- Set Evaluation#exc_result to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
-- ``ImageData`` changed to get bits {0,1} not bools.
-- add tokenizer symbols for <-> and -> and the unicode versions of those.
-- fix ``Needs``
+- Set ``Evaluation#exc_result`` to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
+- ``ImageData`` changed to get bits {0,1}, not booleans as previously.
+- Add tokenizer symbols for <-> and -> and the unicode versions of those.
+- Small corrections to ``Needs``, e.g check if already loaded, correct a typo, etc.
 - ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
 - Install shell scripts ``dmathicserver``, ``dmathicsscript``, and ``dmathics`` to simplify running docker
-- adjust $InputFileName inside ``Get`` and ``Needs``.
+- Adjust $InputFileName inside ``Get`` and ``Needs``.
 
 1.1.0
 -----
