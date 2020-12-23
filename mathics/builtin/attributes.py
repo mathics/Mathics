@@ -11,7 +11,7 @@ However, you can set any symbol as an attribute, in contrast to \Mathematica.
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.builtin.evaluation import Sequence
-from mathics.core.expression import Expression, Symbol, String
+from mathics.core.expression import Expression, Symbol, SymbolNull, String
 from mathics.builtin.assignment import get_symbol_list
 
 
@@ -46,16 +46,16 @@ class Attributes(Builtin):
      = {Listable}
     """
 
-    attributes = ('HoldAll', 'Listable')
+    attributes = ("HoldAll", "Listable")
 
     def apply(self, expr, evaluation):
-        'Attributes[expr_]'
+        "Attributes[expr_]"
 
         name = expr.get_lookup_name()
         attributes = list(evaluation.definitions.get_attributes(name))
         attributes.sort()
         attr = [Symbol(attribute) for attribute in attributes]
-        return Expression('List', *attr)
+        return Expression("List", *attr)
 
 
 class SetAttributes(Builtin):
@@ -75,26 +75,28 @@ class SetAttributes(Builtin):
      = {Flat, Orderless}
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     def apply(self, symbols, attributes, evaluation):
-        'SetAttributes[symbols_, attributes_]'
+        "SetAttributes[symbols_, attributes_]"
 
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
-            'SetAttributes', 'sym', item, 1))
+        symbols = get_symbol_list(
+            symbols, lambda item: evaluation.message("SetAttributes", "sym", item, 1)
+        )
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message(
-            'SetAttributes', 'sym', item, 2))
+        values = get_symbol_list(
+            attributes, lambda item: evaluation.message("SetAttributes", "sym", item, 2)
+        )
         if values is None:
             return
         for symbol in symbols:
-            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('SetAttributes', 'locked', Symbol(symbol))
+            if "System`Locked" in evaluation.definitions.get_attributes(symbol):
+                evaluation.message("SetAttributes", "locked", Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.set_attribute(symbol, value)
-        return Symbol('Null')
+        return SymbolNull
 
 
 class ClearAttributes(Builtin):
@@ -116,26 +118,29 @@ class ClearAttributes(Builtin):
      = {}
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     def apply(self, symbols, attributes, evaluation):
-        'ClearAttributes[symbols_, attributes_]'
+        "ClearAttributes[symbols_, attributes_]"
 
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
-            'ClearAttributes', 'sym', item, 1))
+        symbols = get_symbol_list(
+            symbols, lambda item: evaluation.message("ClearAttributes", "sym", item, 1)
+        )
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message(
-            'ClearAttributes', 'sym', item, 2))
+        values = get_symbol_list(
+            attributes,
+            lambda item: evaluation.message("ClearAttributes", "sym", item, 2),
+        )
         if values is None:
             return
         for symbol in symbols:
-            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('ClearAttributes', 'locked', Symbol(symbol))
+            if "System`Locked" in evaluation.definitions.get_attributes(symbol):
+                evaluation.message("ClearAttributes", "locked", Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.clear_attribute(symbol, value)
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Protect(Builtin):
@@ -156,9 +161,9 @@ class Protect(Builtin):
      = {1, 2, 3}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
     messages = {
-        'ssym': "`1` is not a symbol or a string.",
+        "ssym": "`1` is not a symbol or a string.",
     }
 
     def apply(self, symbols, evaluation):
@@ -174,16 +179,16 @@ class Protect(Builtin):
             if symbols.get_head_name() in ("System`Sequence", "System`List"):
                 symbols = symbols.get_leaves()
             else:
-                evaluation.message('Protect', 'ssym', symbols)
-                return Symbol("Null")
- 
+                evaluation.message("Protect", "ssym", symbols)
+                return SymbolNull
+
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 items.append(symbol)
             else:
                 pattern = symbol.get_string_value()
-                if not pattern or pattern=="":
-                    evaluation.message('Protect', 'ssym', symbol)
+                if not pattern or pattern == "":
+                    evaluation.message("Protect", "ssym", symbol)
                     continue
 
                 if pattern[0] == "`":
@@ -191,11 +196,15 @@ class Protect(Builtin):
                 names = evaluation.definitions.get_matching_names(pattern)
                 for defn in names:
                     symbol = Symbol(defn)
-                    if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                    if not "System`Locked" in evaluation.definitions.get_attributes(
+                        defn
+                    ):
                         items.append(symbol)
 
-        Expression("SetAttributes", Expression("List", *items), protected).evaluate(evaluation)
-        return Symbol('Null')
+        Expression("SetAttributes", Expression("List", *items), protected).evaluate(
+            evaluation
+        )
+        return SymbolNull
 
 
 class Unprotect(Builtin):
@@ -209,20 +218,20 @@ class Unprotect(Builtin):
     </dl>
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
     messages = {
-        'ssym': "`1` is not a symbol or a string.",
+        "ssym": "`1` is not a symbol or a string.",
     }
 
     def apply(self, symbols, evaluation):
         "Unprotect[symbols___]"
         protected = Symbol("System`Protected")
         items = []
-        if isinstance(symbols ,Symbol):
+        if isinstance(symbols, Symbol):
             symbols = [symbols]
         elif isinstance(symbols, Expression):
             symbols = symbols.get_leaves()
-        elif isinstance(symbols ,String):
+        elif isinstance(symbols, String):
             symbols = [symbols]
         else:
             symbols = symbols.get_sequence()
@@ -232,8 +241,8 @@ class Unprotect(Builtin):
                 items.append(symbol)
             else:
                 pattern = symbol.get_string_value()
-                if not pattern or pattern=="":
-                    evaluation.message('Unprotect', 'ssym', symbol)
+                if not pattern or pattern == "":
+                    evaluation.message("Unprotect", "ssym", symbol)
                     continue
 
                 if pattern[0] == "`":
@@ -241,11 +250,15 @@ class Unprotect(Builtin):
                 names = evaluation.definitions.get_matching_names(pattern)
                 for defn in names:
                     symbol = Symbol(defn)
-                    if not 'System`Locked' in evaluation.definitions.get_attributes(defn):
+                    if not "System`Locked" in evaluation.definitions.get_attributes(
+                        defn
+                    ):
                         items.append(symbol)
 
-        Expression("ClearAttributes", Expression("List", *items), protected).evaluate(evaluation)
-        return Symbol('Null')
+        Expression("ClearAttributes", Expression("List", *items), protected).evaluate(
+            evaluation
+        )
+        return SymbolNull
 
 
 class Protected(Predefined):

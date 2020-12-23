@@ -22,8 +22,7 @@ Mathics Packages added:
 - ``DiscreteMath`CombinatoricaV0.9`` and
   ``DiscreteMath`CombinatoricaV0.6``. V0.9 covers Steven Skiena's older "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
 
-If you have a package that you would like included in the distribution, and it works with Mathics, please contact us.
-
+If you have a package that you would like included in the distribution, and it works with Mathics, please contact us. Rubi may appear in a future release.
 
 
 New builtins:
@@ -41,13 +40,15 @@ New builtins:
 
 - Workaround for ``Compile`` so it accepts functions ##1026
 - Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
-- Add bool for ``from_python``
+- Convert to/from Boolean types properly in ``from_python``, ``to_python``. Previously they were 0, and 1.
 - Extend ``DeleteCases`` to accept a levelspec parameter.
 - Set Evaluation#exc_result to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
 - ``ImageData`` changed to get bits {0,1} not bools.
 - add tokenizer symbols for <-> and -> and the unicode versions of those.
 - fix ``Needs``
 - ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
+- Install shell scripts ``dmathicserver``, ``dmathicsscript``, and ``dmathics`` to simplify running docker
+- adjust $InputFileName inside ``Get`` and ``Needs``.
 
 1.1.0
 -----
