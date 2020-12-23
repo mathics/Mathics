@@ -5,7 +5,7 @@
 
 
 (* ::Subsection:: *)
-(*To load Rubi's rational and algebraic function integrator with a command line interface, open this file in Mathematica or Mathics and then issue a Evaluate Initialization Cells command.*)
+(*To load Rubi's rational and algebraic function integrator with a command line interface, open this file in Mathematica or Mathics and then issue an Evaluate Initialization Cells command.*)
 
 
 (* ::Section::Closed:: *)
@@ -59,7 +59,11 @@ ElementaryFunctionTest=True;
 InverseFunctionTest=True;
 
 
-$LoadShowSteps=True; ShowSteps=$LoadShowSteps; LoadElementary=$LoadElementaryFunctionRules;
+(* ::Section:: *)
+(*Load Rubi's integration rules and test routines*)
+
+
+$LoadShowSteps=False;
 
 
 (* ::Section:: *)

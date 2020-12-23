@@ -149,18 +149,18 @@ Print[$RubiVersion<>" running on Mathematica "<>ToString[$VersionNumber]<>" on "
 
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1 Generic Binomial Integration Rules"}]];
 
+
+(*
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.1 (a+b x^2)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.2 (c x)^m (a+b x^2)^p"}]];
 
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.3 (a+b x^2)^p (c+d x^2)^q"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.4 (e x)^m (a+b x^2)^p (c+d x^2)^q"}]];
-(*
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.5 (a+b x^2)^p (c+d x^2)^q (e+f x^2)^r"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.2 Quadratic", "1.1.2.6 (g x)^m (a+b x^2)^p (c+d x^2)^q (e+f x^2)^r"}]];
 
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.3 Quartic", "1.1.3.1 (a+b x^4)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.3 Quartic", "1.1.3.2 (c x)^m (a+b x^4)^p"}]];
- *)
 
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.1 (a+b x^n)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.2 (c x)^m (a+b x^n)^p"}]];
@@ -169,7 +169,6 @@ Print[$RubiVersion<>" running on Mathematica "<>ToString[$VersionNumber]<>" on "
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.5 (a+b x^n)^p (c+d x^n)^q (e+f x^n)^r"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.6 (g x)^m (a+b x^n)^p (c+d x^n)^q (e+f x^n)^r"}]];
 
-  (*
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.1 (a x^j+b x^n)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.2 (c x)^m (a x^j+b x^n)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.3 (e x)^m (a x^j+b x^k)^p (c+d x^n)^q"}]];
@@ -179,10 +178,8 @@ Print[$RubiVersion<>" running on Mathematica "<>ToString[$VersionNumber]<>" on "
 (*Load Trinomial Integration Rules*)
 
 
-  LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.3 Quartic", "1.2.2.0 P[x] (a+c x^4)^p"}]];
-
-
   (*
+  LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.3 Quartic", "1.2.2.0 P[x] (a+c x^4)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.2 Trinomial products", "1.2.3 General", "1.2.3.1 (a+b x^n+c x^(2 n))^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.2 Trinomial products", "1.2.3 General", "1.2.3.2 (d x)^m (a+b x^n+c x^(2 n))^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.2 Trinomial products", "1.2.3 General", "1.2.3.3 (d+e x^n)^q (a+b x^n+c x^(2 n))^p"}]];
