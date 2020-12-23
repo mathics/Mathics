@@ -166,7 +166,6 @@ Print[$RubiVersion<>" running on Mathematica "<>ToString[$VersionNumber]<>" on "
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.5 (a+b x^n)^p (c+d x^n)^q (e+f x^n)^r"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.4 General", "1.1.4.6 (g x)^m (a+b x^n)^p (c+d x^n)^q (e+f x^n)^r"}]];
 
-  (*
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.1 (a x^j+b x^n)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.2 (c x)^m (a x^j+b x^n)^p"}]];
   LoadRules[FileNameJoin[{"1 Algebraic functions", "1.1 Binomial products", "1.1.5 Improper", "1.1.5.3 (e x)^m (a x^j+b x^k)^p (c+d x^n)^q"}]];
