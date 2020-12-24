@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 from .helper import session, check_evaluation
 
-import sys
-from mathics.core.parser import parse, SingleLineFeeder
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-import pytest
-
-
 def test_catch():
     session.evaluate(
         """

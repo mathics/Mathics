@@ -46,7 +46,7 @@ import pytest
         ),
     ],
 )
-def check_evaluation(str_expr: str, str_expected: str, message=""):
+def test_evaluation(str_expr: str, str_expected: str, message=""):
     result = session.evaluate(str_expr)
     expected = session.evaluate(str_expected)
 

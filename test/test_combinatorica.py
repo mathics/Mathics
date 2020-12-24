@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 from .helper import session, check_evaluation
 
-import sys
-from mathics.core.parser import parse, SingleLineFeeder
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-import pytest
-
 session.evaluate(
     """
-Needs["DiscreteMath`CombinatoricaV0.9`"]
-     """
+    Needs["DiscreteMath`CombinatoricaV0.9`"]
+    """
 )
 
 # A number of examples from:

@@ -30,7 +30,9 @@ from mathics.core.expression import (
     Complex,
     String,
     Symbol,
+    SymbolFalse,
     SymbolNull,
+    SymbolTrue,
     from_python,
     Integer,
     BoxError,
@@ -4752,8 +4754,8 @@ class FileExistsQ(Builtin):
         path = path_search(path)
 
         if path is None:
-            return Symbol("False")
-        return Symbol("True")
+            return SymbolFalse
+        return SymbolTrue
 
 
 class DirectoryQ(Builtin):
@@ -4795,8 +4797,8 @@ class DirectoryQ(Builtin):
         path = path_search(path)
 
         if path is not None and osp.isdir(path):
-            return Symbol("True")
-        return Symbol("False")
+            return SymbolTrue
+        return SymbolFalse
 
 
 class Needs(Builtin):
