@@ -4,7 +4,7 @@
 
 
 """
-Numeric evaluation
+Numeric Evaluation
 
 Support for numeric evaluation with arbitrary precision is just a proof-of-concept.
 Precision is not "guarded" through the evaluation process. Only integer precision is supported.

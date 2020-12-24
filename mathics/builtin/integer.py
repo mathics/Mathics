@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Integer functions
+Integer Functions
 """
 
 

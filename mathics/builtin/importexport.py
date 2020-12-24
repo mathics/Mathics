@@ -180,6 +180,7 @@ def _importer_exporter_options(available_options, options, builtin_name: str, ev
     if syntax_option and syntax_option !=  Symbol("System`Ignore"):
         # warn about unsupported options.
         for name, value in remaining_options.items():
+            print(" es de acá....")
             evaluation.message(
                 builtin_name,
                 "optx",
@@ -401,12 +402,18 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
-class FetchURL(Builtin):
+class URLFetch(Builtin):
     '''
-    #> Quiet[FetchURL["https:////", {}]]
+    <dl>
+    <dt>'URLFetch[$URL$]'
+      <dd> Returns the content of $URL$ as a string.
+    </dl>
+
+
+    #> Quiet[URLFetch["https:////", {}]]
      = $Failed
 
-    #> Quiet[FetchURL["https://www.example.com", {}]]
+    #> Quiet[URLFetch["https://www.example.com", {}]]
      = $Failed
     '''
 
@@ -415,7 +422,7 @@ class FetchURL(Builtin):
     }
 
     def apply(self, url, elements, evaluation, options={}):
-        'FetchURL[url_String, elements_, OptionsPattern[]]'
+        'URLFetch[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -448,17 +455,17 @@ class FetchURL(Builtin):
             result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
-                'FetchURL', 'httperr', url,
+                'URLFetch', 'httperr', url,
                 'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
             return Symbol('$Failed')
         except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
-                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
             return Symbol('$Failed')
         except ValueError as e:
-            evaluation.message('FetchURL', 'httperr', url, str(e))
+            evaluation.message('URLFetch', 'httperr', url, str(e))
             return Symbol('$Failed')
         finally:
             os.unlink(temp_path)
@@ -528,7 +535,7 @@ class Import(Builtin):
     }
 
     options = {
-        '$OptionSyntax': 'Ignore',
+        '$OptionSyntax': 'System`Ignore',
     }
 
     def apply(self, filename, evaluation, options={}):
@@ -546,11 +553,6 @@ class Import(Builtin):
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
-
-        # Download via URL
-        if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
@@ -947,7 +949,7 @@ class Export(Builtin):
     }
 
     options = {
-        '$OptionSyntax': 'Ignore',
+        '$OptionSyntax': 'System`Ignore',
     }
 
     def apply(self, filename, expr, evaluation, options={}):
@@ -1082,7 +1084,7 @@ class ExportString(Builtin):
      . 3,
      . 4,
     >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
-     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
+     = ...
     """
 
     messages = {
@@ -1231,7 +1233,7 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
      = Text
 
-    #> FileFormat["ExampleData/benzene.xyz"]
+    S> FileFormat["ExampleData/benzene.xyz"]
      = XYZ
 
     #> FileFormat["ExampleData/colors.json"]
@@ -1267,7 +1269,6 @@ class FileFormat(Builtin):
             return findfile
 
         path = findfile.get_string_value()
-
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
@@ -1282,7 +1283,6 @@ class FileFormat(Builtin):
                 mime = set([])
             else:
                 mime = set([mime])
-
         result = []
         for key in mimetype_dict.keys():
             if key in mime:

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Exponential, trigonometric and hyperbolic functions
+r"""
+Exponential, Trigonometric and Hyperbolic Functions
 
-Mathics basically supports all important trigonometric and hyperbolic functions.
-Numerical values and derivatives can be computed; however, most special exact values and simplification
-rules are not implemented yet.
+\Mathics basically supports all important trigonometric and hyperbolic functions.
+
+Numerical values and derivatives can be computed; however, most special exact values and simplification rules are not implemented yet.
 """
 
 
@@ -52,7 +52,6 @@ class Pi(SympyConstant):
             return MachineReal(math.pi)
         else:
             return PrecisionReal(sympy.pi.n(d))
-
 
 class E(SympyConstant):
     """
@@ -1123,7 +1122,7 @@ class LogisticSigmoid(Builtin):
     <dt>'LogisticSigmoid[$z$]'
         <dd>returns the logistic sigmoid of $z$.
     </dl>
-    
+
     >> LogisticSigmoid[0.5]
      = 0.622459
 
@@ -1138,7 +1137,5 @@ class LogisticSigmoid(Builtin):
     """
 
     attributes = ('Listable', 'NumericFunction',)
-    
-    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
 
-    
+    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}

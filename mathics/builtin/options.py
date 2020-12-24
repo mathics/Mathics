@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Options and default arguments
+Options and Default Arguments
 """
 
 from mathics.builtin.base import Builtin, Test

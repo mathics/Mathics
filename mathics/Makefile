@@ -15,3 +15,6 @@ release:
 clearso:
 	rm -f builtin/*.so
 	rm -f core/*.so
+
+check:
+	$(MAKE) -C .. $@

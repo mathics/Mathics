@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 
 <html>
@@ -10,42 +11,42 @@
 <meta name="viewport" content="width=480" />
 <!-- make page fit nicer in iOS -->
 
-<link rel="stylesheet" type="text/css" href="/media/css/styles.css" />
-<link rel="stylesheet" type="text/css" href="/media/css/documentation.css" />
-<link rel="stylesheet" type="text/css" href="/media/css/message.css" />
-<link rel="stylesheet" type="text/css" media="print" href="/media/css/styles_print.css" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/documentation.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/message.css' %}" />
+<link rel="stylesheet" type="text/css" media="print" href="{% static 'css/styles_print.css' %}" />
 
-<link rel="stylesheet" type="text/css" href="/media/css/font-awesome.min.css" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/font-awesome.min.css' %}" />
 
 <!-- Favicons -->
-<link rel="apple-touch-icon" sizes="180x180" href="/media/img/favicons/apple-touch-icon.png" />
-<link rel="icon" type="image/png" href="/media/img/favicons/favicon-32x32.png" sizes="32x32" />
-<link rel="icon" type="image/png" href="/media/img/favicons/favicon-16x16.png" sizes="16x16" />
-<link rel="manifest" href="/media/img/favicons/manifest.json" />
-<link rel="mask-icon" href="/media/img/favicons/safari-pinned-tab.svg" color="#333333" />
-<link rel="shortcut icon" href="/media/img/favicons/favicon.ico" />
-<meta name="msapplication-config" content="/media/img/favicons/browserconfig.xml" />
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicons/apple-touch-icon.png' %}" />
+<link rel="icon" type="image/png" href="{% static 'img/favicons/favicon-32x32.png' %}" sizes="32x32" />
+<link rel="icon" type="image/png" href="{% static 'img/favicons/favicon-16x16.png' %}" sizes="16x16" />
+<link rel="manifest" href="{% static 'img/favicons/manifest.json' %}" />
+<link rel="mask-icon" href="{% static 'img/favicons/safari-pinned-tab.svg' %}" color="#333333" />
+<link rel="shortcut icon" href="{% static 'img/favicons/favicon.ico' %}" />
+<meta name="msapplication-config" content="{% static 'img/favicons/browserconfig.xml' %}" />
 <meta name="theme-color" content="#ffffff" />
 
 <!--[if lte IE 9]>
-<link rel="stylesheet" type="text/css" href="/media/css/styles_ie.css" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles_ie.css' %}" />
 <![endif]-->
 
 <!--<link rel="shortcut icon" href="/favicon.ico" />-->
 
-<script type="text/javascript" src="/media/js/prototype/prototype.js"></script>
-<script type="text/javascript" src="/media/js/three/Three.js"></script>
-<script type="text/javascript" src="/media/js/three/Detector.js"></script>
+<script type="text/javascript" src="{% static 'js/prototype/prototype.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/three/Three.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/three/Detector.js' %}"></script>
 
-<script type="text/javascript" src="/media/js/mathjax/MathJax.js?config=MML_HTMLorMML&amp;delayStartupUntil=configured"></script>
+<script type="text/javascript" src="{% static 'js/mathjax/MathJax.js' %}?config=MML_HTMLorMML&amp;delayStartupUntil=configured"></script>
 
-<script type="text/javascript" src="/media/js/message.js"></script>
-<script type="text/javascript" src="/media/js/authentication.js"></script>
-<script type="text/javascript" src="/media/js/inout.js"></script>
-<script type="text/javascript" src="/media/js/utils.js"></script>
-<script type="text/javascript" src="/media/js/mathics.js"></script>
-<script type="text/javascript" src="/media/js/graphics3d.js"></script>
-<script type="text/javascript" src="/media/js/doc.js"></script>
+<script type="text/javascript" src="{% static 'js/message.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/authentication.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/inout.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/utils.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/mathics.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/graphics3d.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/doc.js' %}"></script>
 
 {% block html_head %}
 {% endblock %}

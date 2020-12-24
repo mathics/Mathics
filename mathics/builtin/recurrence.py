@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Recurrence relation solvers
+Solving Recurrence Equations
 """
 
 
@@ -19,6 +19,7 @@ class RSolve(Builtin):
         <dd>solves a recurrence equation for the function '$a$[$n$]'.
     </dl>
 
+    Solve a difference equation:
     >> RSolve[a[n] == a[n+1], a[n], n]
      = {{a[n] -> C[0]}}
 
@@ -26,14 +27,14 @@ class RSolve(Builtin):
     >> RSolve[{a[n + 2] == a[n]}, a, n]
      = {{a -> (Function[{n}, C[0] + C[1] -1 ^ n])}}
 
-    One boundary condition:
+    Include one boundary condition:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1}, a, n]
      = ...
     ## Order of terms depends on intepreter:
     ## PyPy:    {{a -> (Function[{n}, 1 - C[1] + C[1] -1 ^ n])}}
     ## CPython: {{a -> (Function[{n}, 1 + C[1] -1 ^ n - C[1]])}
 
-    Two boundary conditions:
+    Geta "pure function" solution for a with two boundary conditions:
     >> RSolve[{a[n + 2] == a[n], a[0] == 1, a[1] == 4}, a, n]
      = {{a -> (Function[{n}, 5 / 2 - 3 -1 ^ n / 2])}}
     """

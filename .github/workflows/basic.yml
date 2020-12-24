@@ -1,4 +1,4 @@
-name: Mathics (basic)
+name: Mathics (ubuntu)
 
 on:
   push:
@@ -29,4 +29,4 @@ jobs:
     - name: Test Mathics
       run: |
         pip install pytest pexpect
-        make check
+        make -j3 check

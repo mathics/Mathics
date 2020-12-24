@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Calculus functions
+Calculus
 """
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number
+from mathics.core.expression import (Expression, Integer, Number, SymbolTrue, SymbolFalse)
 from mathics.core.convert import (
     sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
@@ -585,7 +585,7 @@ class Root(SympyFunction):
             poly = body.to_sympy(**kwargs)
 
             i = expr.leaves[1].get_int_value(**kwargs)
-            
+
             if i is None:
                 return None
 
@@ -668,7 +668,7 @@ class Solve(Builtin):
      = {{x -> -I}, {x -> I}}
     >> Solve[4 - 4 * x^2 - x^4 + x^6 == 0, x, Integers]
      = {{x -> -1}, {x -> 1}}
-     
+
     #> Solve[x^2 +1 == 0, x] // FullForm
      = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
 
@@ -739,10 +739,9 @@ class Solve(Builtin):
         sympy_eqs = []
         sympy_denoms = []
         for eq in eqs:
-            symbol_name = eq.get_name()
-            if symbol_name == 'System`True':
+            if eq == SymbolTrue:
                 pass
-            elif symbol_name == 'System`False':
+            elif eq == SymbolFalse:
                 return Expression('List')
             elif not eq.has_form('Equal', 2):
                 return evaluation.message('Solve', 'eqf', eqs_original)
@@ -862,7 +861,7 @@ class Integers(Builtin):
     >> Solve[x^4 == 4, x, Integers]
      = {}
     """
-    
+
 class Reals(Builtin):
     """
     <dl>
@@ -1015,7 +1014,7 @@ class DiscreteLimit(Builtin):
             return from_sympy(sympy.limit_seq(f, n, trials))
         except:
             pass
-            
+
 
 
 class FindRoot(Builtin):
@@ -1125,4 +1124,3 @@ class FindRoot(Builtin):
             evaluation.message('FindRoot', 'maxiter')
 
         return Expression('List', Expression('Rule', x, x0))
-

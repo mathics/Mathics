@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from os import listdir, path
+from os import getenv, listdir, path
 import pickle
 import importlib
 
@@ -23,7 +23,7 @@ SUBSECTION_END_RE = re.compile('</subsection>')
 
 TESTCASE_RE = re.compile(r'''(?mx)^
     ((?:.|\n)*?)
-    ^\s*(>|\#)>[ ](.*)
+    ^\s*([>#SX])>[ ](.*)
     ((?:\n\s*(?:[:|=.][ ]|\.).*)*)
 ''')
 TESTCASE_OUT_RE = re.compile(r'^\s*([:|=])(.*)$')
@@ -40,8 +40,12 @@ LIST_RE = re.compile(r"(?s)<(?P<tag>ul|ol)>(?P<content>.*?)</(?P=tag)>")
 LIST_ITEM_RE = re.compile(r"(?s)<li>(.*?)(?:</li>|(?=<li>)|$)")
 CONSOLE_RE = re.compile(
     r"(?s)<(?P<tag>con|console)>(?P<content>.*?)</(?P=tag)>")
+ITALIC_RE = re.compile(
+    r"(?s)<(?P<tag>i)>(?P<content>.*?)</(?P=tag)>")
 IMG_RE = re.compile(
     r'<img src="(?P<src>.*?)" title="(?P<title>.*?)" label="(?P<label>.*?)">')
+IMG_PNG_RE = re.compile(
+    r'<imgpng src="(?P<src>.*?)" title="(?P<title>.*?)" label="(?P<label>.*?)">')
 REF_RE = re.compile(r'<ref label="(?P<label>.*?)">')
 PYTHON_RE = re.compile(r'(?s)<python>(.*?)</python>')
 LATEX_CHAR_RE = re.compile(r"(?<!\\)(\^)")
@@ -64,8 +68,8 @@ LATEX_ARRAY_RE = re.compile(
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
-ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul',
-                'ol', 'li', 'con', 'console', 'img', 'ref', 'subsection')
+ALLOWED_TAGS = ('dl', 'dd', 'dt', 'em', 'url', 'ul', 'i',
+                'ol', 'li', 'con', 'console', 'img', 'imgpng', 'ref', 'subsection')
 ALLOWED_TAGS_RE = dict((allowed, re.compile(
     '&lt;(%s.*?)&gt;' % allowed)) for allowed in ALLOWED_TAGS)
 
@@ -217,6 +221,11 @@ def escape_latex(text):
         }
     text = IMG_RE.sub(repl_img, text)
 
+    def repl_imgpng(match):
+        src = match.group('src')
+        return r"\includegraphics[scale=1.0]{images/%(src)s}" % {'src': src}
+    text = IMG_PNG_RE.sub(repl_imgpng, text)
+
     def repl_ref(match):
         return r'figure \ref{%s}' % match.group('label')
     text = REF_RE.sub(repl_ref, text)
@@ -245,6 +254,11 @@ def escape_latex(text):
         else:
             return '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % content
     text = CONSOLE_RE.sub(repl_console, text)
+
+    def repl_italic(match):
+        content = match.group('content')
+        return '\\emph{%s}' % content
+    text = ITALIC_RE.sub(repl_italic, text)
 
     '''def repl_asy(match):
         """
@@ -491,6 +505,12 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
                     r'</a>') % {'src': src, 'title': title}
         text = IMG_RE.sub(repl_img, text)
 
+        def repl_imgpng(match):
+            src = match.group('src')
+            title = match.group('title')
+            return (r'<img src="/media/doc/%(src)s" title="%(title)s" />') % {'src': src, 'title': title}
+        text = IMG_PNG_RE.sub(repl_imgpng, text)
+
         def repl_ref(match):
             # TODO: this is not an optimal solution - maybe we need figure
             # numbers in the XML doc as well?
@@ -498,7 +518,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = REF_RE.sub(repl_ref, text)
 
         def repl_subsection(match):
-            return '\n<h2>%s</h2>\n' % match.group(1)
+            return '\n<h2 label="%s">%s</h2>\n' % (match.group(1), match.group(1))
         text = SUBSECTION_RE.sub(repl_subsection, text)
         text = SUBSECTION_END_RE.sub('', text)
 
@@ -673,7 +693,7 @@ class MathicsMainDocumentation(Documentation):
                     appendix.append(part)
 
         for title, modules, builtins_by_module, start in [(
-            "Reference of built-in symbols", builtin.modules,
+            "Reference of Built-in Symbols", builtin.modules,
             builtin.builtins_by_module, True)]:     # nopep8
             # ("Reference of optional symbols", optional.modules,
             #  optional.optional_builtins_by_module, False)]:
@@ -788,7 +808,7 @@ class PyMathicsDocumentation(Documentation):
         for name in dir(self.pymathicsmodule):
             var = getattr(self.pymathicsmodule, name)
             if (hasattr(var, '__module__') and
-                var.__module__ != 'mathics.builtin.base' and 
+                var.__module__ != 'mathics.builtin.base' and
                     is_builtin(var) and not name.startswith('_') and
                 var.__module__[:len(self.pymathicsmodule.__name__)] == self.pymathicsmodule.__name__):     # nopep8
                 instance = var(expression=False)
@@ -888,7 +908,7 @@ class DocPart(DocElement):
         return result
 
     def get_url(self):
-        return '/%s/' % self.slug
+        return f'/{self.slug}/'
 
     def get_collection(self):
         return self.doc.parts
@@ -905,8 +925,8 @@ class DocChapter(DocElement):
         part.chapters_by_slug[self.slug] = self
 
     def __str__(self):
-        return '= %s =\n\n%s' % (
-            self.title, '\n'.join(str(section) for section in self.sections))
+        sections = '\n'.join(str(section) for section in self.sections)
+        return f'= {self.title} =\n\n{sections}'
 
     def latex(self, output):
         intro = self.doc.latex(output).strip()
@@ -924,7 +944,7 @@ class DocChapter(DocElement):
             '\n\\chapterend\n'])
 
     def get_url(self):
-        return '/%s/%s/' % (self.part.slug, self.slug)
+        return f'/{self.part.slug}/{self.slug}/'
 
     def get_collection(self):
         return self.part.chapters
@@ -944,7 +964,7 @@ class DocSection(DocElement):
         chapter.sections_by_slug[self.slug] = self
 
     def __str__(self):
-        return '== %s ==\n%s' % (self.title, self.doc)
+        return f'== {self.title} ==\n{self.doc}'
 
     def latex(self, output):
         title = escape_latex(self.title)
@@ -962,8 +982,7 @@ class DocSection(DocElement):
             }
 
     def get_url(self):
-        return '/%s/%s/%s/' % (
-            self.chapter.part.slug, self.chapter.slug, self.slug)
+        return f'/{self.chapter.part.slug}/{self.chapter.slug}/{self.slug}/'
 
     def get_collection(self):
         return self.chapter.sections
@@ -1007,8 +1026,7 @@ class Doc(object):
                 test = DocTest(index, testcase)
                 if tests is None:
                     tests = DocTests()
-                if not test.ignore:
-                    tests.tests.append(test)
+                tests.tests.append(test)
             if tests is not None:
                 self.items.append(tests)
                 tests = None
@@ -1093,13 +1111,13 @@ class DocTests(object):
         testLatexStrings = [t for t in testLatexStrings if len(t)>1]
         if len(testLatexStrings) == 0:
             return "\n"
-        
+
         return '\\begin{tests}%%\n%s%%\n\\end{tests}' % (
             '%\n'.join(testLatexStrings))
 
     def html(self, counters=None):
         if len(self.tests) == 0:
-            return "\n"        
+            return "\n"
         return '<ul class="tests">%s</ul>' % (
             '\n'.join('<li>%s</li>' % test.html() for test in self.tests
                       if not test.private))
@@ -1112,20 +1130,28 @@ class DocTest(object):
     """
     DocTest formatting rules:
 
-    #> signifies private test that does not appear as part of the documentation
-    X> outputs the docs as normal, but the test is not run
-    = compares the result text
-    : compares an (error) Message
-    | signifies Print outpt
+    * `>>` Marks test case; it will also appear as part of
+           the documentation.
+    * `#>` Marks test private or one that does not appear as part of
+           the documentation.
+    * `X>` Shows the example in the docs, but disables testing the example.
+    * `S>` Shows the example in the docs, but disables testing if environment
+           variable SANDBOX is set.
+    * `=`  Compares the result text.
+    * `:`  Compares an (error) message.
+      `|`  Prints output.
     """
     def __init__(self, index, testcase):
         self.index = index
         self.result = None
         self.outs = []
+
         # Private test cases are executed, but NOT shown as part of the docs
         self.private = testcase[0] == '#'
+
         # Ignored test cases are NOT executed, but shown as part of the docs
-        if testcase[0] == 'X':
+        # Sandboxed test cases are NOT executed if environtment SANDBOX is set
+        if testcase[0] == 'X' or (testcase[0] == 'S' and getenv("SANDBOX", False)):
             self.ignore = True
             # substitute '>' again so we get the correct formatting
             testcase[0] = '>'
@@ -1133,6 +1159,10 @@ class DocTest(object):
             self.ignore = False
 
         self.test = testcase[1].strip()
+
+        # This allows a trailing blank at the end of the line for those ofus use use editors that like
+        # to strip trailing blanks at the ends of lines.
+        self.test = self.test.rstrip("#<--#")
 
         self.key = None
         outs = testcase[2].splitlines()

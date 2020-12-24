@@ -1,54 +1,144 @@
 CHANGES
 =======
 
-1.1
----
+1.1.1
+-----
 
-Major package dependencies ave been up dated to more recent releases. These include
+This may be the last update before some major refactoring and interface changing occurs.
 
-- Python: Python 2.7 has dropped and Python 3.6-3.8 is now supported.
+In a future 2.0.0 release, Django will no longer be bundled here. See `mathics-django <https://github.com/Mathics3/mathics-django>` for the unbundled replacement.
+
+Some changes were made to support `Pymathics Graph <https://github.com/Mathics3/pymathics-graph>`_, a new graph package bundled separately,
+and to support the ability for front-ends to handle rendering on their own. Note that currently this doesn't integrate well into the Django interface, although it works
+well in ``mathicsscript``.
+
+
+Package Updates
++++++++++++++++
+
+- sympy 1.7.1
+
+Mathics Packages added:
+
+- ``DiscreteMath`CombinatoricaV0.9`` (preferred) aand
+  ``DiscreteMath`CombinatoricaV0.6``.
+
+Both of these correspond to Steven Skiena's *older* book: "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
+
+If you have a package that you would like included in the distribution, and it works with Mathics, please contact us
+
+Rubi may appear in a future release, possibly in a year or so. However this might be speeded up if we can get people to help out with this.
+
+
+New builtins:
+++++++++++++++++++++++++++++
+
+- ``StirlingS1``, ``StirlingS2`` (not all WL variations handled)
+- ``MapAt`` (not all WL variations handled)
+- ``PythonForm``, ``SympyForm``: these is not in WL. It simply will show a crude translation to ``sympy`` or ``python``. Expect more and better translation later
+- ``Throw`` and ``Catch``
+- ``With``
+- ``FileNameTake``
+
+  Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Workaround for ``Compile`` so it accepts functions ##1026
+- Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
+- Convert to/from Boolean types properly in ``from_python``, ``to_python``. Previously they were 0, and 1.
+- Extend ``DeleteCases`` to accept a levelspec parameter.
+- Set ``Evaluation#exc_result`` to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
+- ``ImageData`` changed to get bits {0,1}, not booleans as previously.
+- Add tokenizer symbols for <-> and -> and the unicode versions of those.
+- Small corrections to ``Needs``, e.g check if already loaded, correct a typo, etc.
+- ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
+- Install shell scripts ``dmathicserver``, ``dmathicsscript``, and ``dmathics`` to simplify running docker
+- Adjust $InputFileName inside ``Get`` and ``Needs``.
+
+1.1.0
+-----
+
+So we can get onto PyPI, the PyPI install name has changed from Mathics to Mathics3.
+
+
+Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Add Symbolic Comparisons. PR #1000
+- Support for externally PyPI-packagable builtin modules - PyMathics.
+- ``SetDirectory`` fixes. PR #994
+- Catch ```PatternError`` Exceptions.
+- Fix formatting of ``..`` and ``...`` (``RepeatAll``)
+- tokenization of ``\.`` without a following space (``ReplaceAll``). Issue #992
+- Support for assignments to named ```Pattern```
+- Improving support for ```Names``. PR #1003
+- Adding a ``MathicsSession`` class to simplify running Mathics from Python. PR #1001
+- Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions. PR #1003
+
+
+1.1.0 rc1
+---------
+
+Package Updates
++++++++++++++++
+
+All major packages that Mathics needs have been updated for more recent
+releases. Specifically These include:
+
+- Python: Python 3.6-3.9 are now supported.
+- cython >= 0.15.1
+- Django 3.1.x
+- mpmath => 1.1.0
 - sympy 1.6.2
 
+New features (50+ builtins):
+++++++++++++++++++++++++++++
 
-New features:
-
-- ``Subsets`` #685
-- ``DiscreteLimit`` #922
-- ``IterationLimit``
-- support for ``MATHICS_MAX_RECURSION_DEPTH``
-- ``RemoveDiacritics[]``, ``Transliterate[]`` #617
-- ``Speedups by avoiding inner classes``, #616
-- ``CharacterEncoding`` option for ``Import[]``
-- ``BooleanQ``, ``DigitQ`` and ``LetterQ``
-- ``StringRiffle[]``, ``StringFreeQ[]``, ``StringContainsQ[]``, ``StringInsert``
-- ``PolynomialQ[]``, ``MinimalPolynomial[]``
-- ``Coefficient[]``, ``Coefficient[x * y, z, 0]``, ``Coefficient*[]``,
-- ``Sign[]``, ``Exponent``, ``Divisors``, ``QuotientRemainder``, ``FactorTermsList``
-- ``RealDigits`` #891, #691, ``Interrupt``, ``Unique``
 - ``Association``, ``AssociationQ``, ``FirstPostion``, ``LeafCount``
-- ``FirstPostions``, ``Integers``, ``PrePendTo[]``
-- ``Integers``, ``PrependTo`` and ``ContainsOnly``
-- ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
-- ``Quit[]``, ``Exit[]`` #523, #814,
-- ``Root`` #806
 - ``Association``, ``AssociationQ``, ``Keys``, ``Values`` #705
-- ``SubsetQ`` and ``Delete[]`` #688, #784,
-- ``randchoice`` option for ``NoNumPyRandomEnv`` #820
 - ``BarChart[]``, ``PieChart``, ``Histogram``, ``DensityPlot`` #499
-- option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
+- ``BooleanQ``, ``DigitQ`` and ``LetterQ``
+- ``CharacterEncoding`` option for ``Import[]``
+- ``Coefficient[]``, ``Coefficient[x * y, z, 0]``, ``Coefficient*[]``,
+- ``DiscreteLimit`` #922
 - ``Environment``
-- ``System`Byteordering`` ``System`Environemnt`` #859
+-   File read operations from URLs
+- ``FirstPostions``, ``Integers``, ``PrePendTo[]``
+- ``GetEnvironment`` # 938
+- ``Integers``, ``PrependTo`` and ``ContainsOnly``
+- ``Import`` support for WL packages
+- ``IterationLimit``
+- ``LoadModule``
+- ``MantissaExponent[]``, ``FractionalPart[]``, ``CubeRoot[]``
+- ``PolynomialQ[]``, ``MinimalPolynomial[]``
+- ``Quit[]``, ``Exit[]`` #523, #814,
+- ``RealDigits`` #891, #691, ``Interrupt``, ``Unique``
+- ``RemoveDiacritics[]``, ``Transliterate[]`` #617
+- ``Root`` #806
+- ``Sign[]``, ``Exponent``, ``Divisors``, ``QuotientRemainder``, ``FactorTermsList``
+- ``Speedups by avoiding inner classes``, #616
+- ``StringRiffle[]``, ``StringFreeQ[]``, ``StringContainsQ[]``, ``StringInsert``
+- ``SubsetQ`` and ``Delete[]`` #688, #784,
+- ``Subsets`` #685
 - ``SystemTimeZone`` and correct ``TimeZone`` #924
+- ``System\`Byteordering`` and ``System\`Environemnt`` #859
+- ``$UseSansSerif`` #908
+- ``randchoice`` option for ``NoNumPyRandomEnv`` #820
 
-Ehancements and Bug fixes:
+- support for ``MATHICS_MAX_RECURSION_DEPTH``
+- option ``--full-form`` (``-F``) on ``mathics`` to parsed ``FullForm`` of input expressions
 
-- speed up leading-blank patterns
+Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- speed up leading-blank patterns #625, #933
+- support for iteration over Sequence objects in Table, Sum, and Product
 - fixes for option handling
 - fixes for ``Manipulate[x,{x,{a,b}}]``
 - fixes rule -> rule case for ``Nearest``
 - fixes and enhancements to ``WordCloud``
 - added ``StringTrim[]``
-- fixes ``FetchURL`` options
+- fixes ``URLFetch`` options
 - fixes ``XMLGetString`` and parse error
 - fixes ``LanguageIdentify``
 - fixes 2 <= base <= 36 in number parsing
@@ -66,26 +156,52 @@ Ehancements and Bug fixes:
 
 Mathematica tracking changes:
 
+- renamed ``FetchURL`` to ``URLFetch`` (according to the WL standard)
 - renamed ``SymbolLookup`` to ``Lookup``
 
 Performance improvements:
++++++++++++++++++++++++++
 
 - Speed up pattern matching for large lists
+- Quadraditc speed improvement in pattern matching. #619 and see the graph comparisons there
 - In-memory sessions #623
 
 Other Changes:
+++++++++++++++
 
 - bump ``RecursionLimit``
 - blacken (format) a number of Python files and remove blanks at the end of lines
+- Adding several CI tests
 - Remove various deprecation warnings
 - Change shbang from ``python`` to ``python3``
 - Update docs
+
+Backward incompatablities:
+++++++++++++++++++++++++++
+
+- Support for Python 3.5 and earlier, and in particular Python 2.7,
+  has dropped
+- The ``graphs`` module (for Graphs) has been pulled until Mathics
+  supports pymathics and graphics using networkx better. It will
+  reappear as a pymathics module.
+- The ``natlang`` (for Natural Language processing) has also been
+  pulled.  The problem here too is that the pymathics mechanism needs
+  a small amount of work to make it scalable, and in 1.0 these were
+  hard coded. Also, both this module and ``graphs`` pulled in some
+  potentially hard-to-satisfy non-Python dependencies such as
+  matplotlib, or NLP libraries, and word lists. All of this made
+  installation of mathics harder, and the import of these libraries,
+  ``natlang`` in particular took some time. All of this points to having
+  these live in their own repositories and get imported on laziliy on
+  demand
+
 
 
 1.0
 ---
 
-New features:
+New features
+++++++++++++
 
 - ``LinearModelFit`` #592
 - ``EasterSunday`` #590
@@ -172,7 +288,8 @@ New features:
 - ``StringExpression`` #339
 - Legacy file functions #338
 
-Bug fixes:
+Bug fixes
+++++++++++
 
 - Nested ``Module`` #591, #584
 - Python2 Import bug #565
@@ -202,12 +319,13 @@ Bug fixes:
 - Fix ``Begin``/``BeginPackage`` leaking user-visible symbols #352
 - Fix ``TableForm`` and ``Dimensions`` with an empty list #343
 - Trailing slash bug #337
-- Global system bug #336
+- ``Global`` system bug #336
 - ``Null`` comparison bug #371
-- ``CompoundExpression`` ``Out[n]`` assignment bug #335 fixes #331
+- ``CompoundExpression`` and ``Out[n]`` assignment bug #335 fixes #331
 - load unevaluated cells #332
 
-Performance improvements:
+Performance improvements
+++++++++++++++++++++++++
 
 - Large expression formatting with ``$OutputSizeLimit`` #581
 - Faster terminal output #579
@@ -235,7 +353,8 @@ Performance improvements:
 0.9
 ---
 
-New features:
+New features
+++++++++++++
 
 - Improved syntax error messages #329
 - SVD, LeastSquares, PseudoInverse #258, #321
@@ -274,28 +393,32 @@ Bug fixes:
 0.8
 ---
 
-New features:
+New features
++++++++++++++
 
 - Improvements to 3D Plotting, see #238
 - Enable MathJax menu, see #236
 - Improvements to documentation
 
-Dependency Updates:
+Dependency Updates
+++++++++++++++++++
 
 - upgrade to sympy 0.7.6
 - upgrade to ply3.6 (new parsetab format, see #246)
 - upgrade to mpmath 0.19
 
-Bug Fixes:
+Bug Fixes
++++++++++
 
 - IntegerDigits[0]
 
 
 
 0.7
----
++++
 
-New features:
+New features
+++++++++++++
 
 - Readline tab completion
 - automatic database initialisation
@@ -304,7 +427,8 @@ New features:
 - More tests and documentation for ``Sequence``
 - Context support
 
-Bugs fixed:
+Bugs fixed
+++++++++++
 
 - Fix unevaluated index handling (issue #217)
 - Fix ``Solve`` treating one solution equal to 1 as a tautology (issue
@@ -323,7 +447,8 @@ Bugs fixed:
 0.6
 ---
 
-New features:
+New features
+++++++++++++
 
 - ElementData using data from Wikipedia
 - added Switch
@@ -347,7 +472,8 @@ New features:
 - Use interruptingcow to limit evaluation time
 - Character Code functions
 
-Bugs fixed:
+Bugs fixed
+++++++++++
 
 - Fix divide-by-zero with zero-length plot range
 - Fix mathicsserver exception on startup with Django 1.6 (issues #194,

@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Tensor functions
+Tensors
 """
 
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Symbol, Integer, String
+from mathics.core.expression import Expression, Integer, String, SymbolTrue, SymbolFalse
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import get_part
@@ -50,7 +50,7 @@ class ArrayQ(Builtin):
         def check(level, expr):
             if not expr.has_form('List', None):
                 test_expr = Expression(test, expr)
-                if test_expr.evaluate(evaluation) != Symbol('True'):
+                if test_expr.evaluate(evaluation) != SymbolTrue:
                     return False
                 level_dim = None
             else:
@@ -68,12 +68,12 @@ class ArrayQ(Builtin):
             return True
 
         if not check(0, expr):
-            return Symbol('False')
+            return SymbolFalse
 
         depth = len(dims) - 1  # None doesn't count
         if not pattern.does_match(Integer(depth), evaluation):
-            return Symbol('False')
-        return Symbol('True')
+            return SymbolFalse
+        return SymbolTrue
 
 
 class VectorQ(Builtin):
@@ -470,7 +470,7 @@ def get_default_distance(p):
             return None
         if len(dimensions[0]) == 1:  # vectors?
             def is_boolean(x):
-                return x.get_head_name() == 'System`Symbol' and x.get_name() in ('System`True', 'System`False')
+                return x.get_head_name() == 'System`Symbol' and x in (SymbolTrue, SymbolFalse)
             if all(all(is_boolean(e) for e in q.leaves) for q in p):
                 return 'JaccardDissimilarity'
         return 'SquaredEuclideanDistance'

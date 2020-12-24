@@ -3,9 +3,6 @@ from django.http import HttpRequest
 from django.test import SimpleTestCase
 from django.urls import reverse
 
-# from mathics.web.views.forms import LoginForm, SaveForm
-
-
 
 class HomePageTests(SimpleTestCase):
 

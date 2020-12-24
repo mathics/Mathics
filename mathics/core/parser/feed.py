@@ -4,7 +4,7 @@ for returning one line code at a time.
 '''
 
 from abc import abstractmethod, ABCMeta
-
+from chardet import detect
 
 class LineFeeder(object):
     __metaclass__ = ABCMeta
@@ -98,17 +98,20 @@ class MultiLineFeeder(LineFeeder):
 
 class FileLineFeeder(LineFeeder):
     'Feeds lines from an open file object'
-    def __init__(self, fileobject):
+    def __init__(self, fileobject, trace_fn=None):
         super(FileLineFeeder, self).__init__(fileobject.name)
         self.fileobject = fileobject
         self.lineno = 0
         self.eof = False
+        self.trace_fn = trace_fn
 
     def feed(self):
         result = self.fileobject.readline()
         while result == '\n':
             result = self.fileobject.readline()
             self.lineno += 1
+            if self.trace_fn:
+                self.trace_fn("%5d: %s" % (self.lineno, result), end="")
         if result:
             self.lineno += 1
         else:

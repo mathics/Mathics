@@ -13,10 +13,17 @@ from typing import Tuple
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable
 
-FORMATS = ['StandardForm', 'FullForm', 'TraditionalForm',
-           'OutputForm', 'InputForm',
-           'TeXForm', 'MathMLForm',
-           'MatrixForm', 'TableForm']
+FORMATS = [
+    "StandardForm",
+    "FullForm",
+    "TraditionalForm",
+    "OutputForm",
+    "InputForm",
+    "TeXForm",
+    "MathMLForm",
+    "MatrixForm",
+    "TableForm",
+]
 
 
 class EvaluationInterrupt(Exception):
@@ -43,6 +50,13 @@ class BreakInterrupt(EvaluationInterrupt):
 class ContinueInterrupt(EvaluationInterrupt):
     pass
 
+class WLThrowInterrupt(EvaluationInterrupt):
+    def __init__(self, value, tag=None):
+        self.tag = tag
+        self.value = value
+    
+
+
 
 def _thread_target(request, queue) -> None:
     try:
@@ -56,8 +70,10 @@ def _thread_target(request, queue) -> None:
 # MAX_RECURSION_DEPTH gives the maximum value allowed for $RecursionLimit. it's usually set to its
 # default settings.DEFAULT_MAX_RECURSION_DEPTH.
 
-MAX_RECURSION_DEPTH = max(settings.DEFAULT_MAX_RECURSION_DEPTH, int(os.getenv(
-    'MATHICS_MAX_RECURSION_DEPTH', settings.DEFAULT_MAX_RECURSION_DEPTH)))
+MAX_RECURSION_DEPTH = max(
+    settings.DEFAULT_MAX_RECURSION_DEPTH,
+    int(os.getenv("MATHICS_MAX_RECURSION_DEPTH", settings.DEFAULT_MAX_RECURSION_DEPTH)),
+)
 
 
 def python_recursion_depth(n) -> int:
@@ -81,9 +97,9 @@ def set_python_recursion_limit(n) -> None:
 
 
 def run_with_timeout_and_stack(request, timeout):
-    '''
+    """
     interrupts evaluation after a given time period. provides a suitable stack environment.
-    '''
+    """
 
     # only use set_thread_stack_size if max recursion depth was changed via the environment variable
     # MATHICS_MAX_RECURSION_DEPTH. if it is set, we always use a thread, even if timeout is None, in
@@ -94,7 +110,7 @@ def run_with_timeout_and_stack(request, timeout):
     elif timeout is None:
         return request()
 
-    queue = Queue(maxsize=1)   # stores the result or exception
+    queue = Queue(maxsize=1)  # stores the result or exception
     thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
 
@@ -113,7 +129,7 @@ class Out(KeyComparable):
     def __init__(self) -> None:
         self.is_message = False
         self.is_print = False
-        self.text = ''
+        self.text = ""
 
     def get_sort_key(self) -> Tuple[bool, bool, str]:
         return (self.is_message, self.is_print, self.text)
@@ -128,18 +144,18 @@ class Message(Out):
         self.text = text
 
     def __str__(self) -> str:
-        return '{}::{}: {}'.format(self.symbol, self.tag, self.text)
+        return "{}::{}: {}".format(self.symbol, self.tag, self.text)
 
     def __eq__(self, other) -> bool:
         return self.is_message == other.is_message and self.text == other.text
 
     def get_data(self):
         return {
-            'message': True,
-            'symbol': self.symbol,
-            'tag': self.tag,
-            'prefix': '%s::%s' % (self.symbol, self.tag),
-            'text': self.text,
+            "message": True,
+            "symbol": self.symbol,
+            "tag": self.tag,
+            "prefix": "%s::%s" % (self.symbol, self.tag),
+            "text": self.text,
         }
 
 
@@ -157,8 +173,8 @@ class Print(Out):
 
     def get_data(self):
         return {
-            'message': False,
-            'text': self.text,
+            "message": False,
+            "text": self.text,
         }
 
 
@@ -170,9 +186,9 @@ class Result(object):
 
     def get_data(self):
         return {
-            'out': [out.get_data() for out in self.out],
-            'result': self.result,
-            'line': self.line_no,
+            "out": [out.get_data() for out in self.out],
+            "result": self.result,
+            "line": self.line_no,
         }
 
 
@@ -191,9 +207,11 @@ class Output(object):
 
 
 class Evaluation(object):
-    def __init__(self, definitions=None,
-                 output=None, format='text', catch_interrupt=True) -> None:
+    def __init__(
+        self, definitions=None, output=None, format="text", catch_interrupt=True
+    ) -> None:
         from mathics.core.definitions import Definitions
+        from mathics.core.expression import Symbol
 
         if definitions is None:
             definitions = Definitions()
@@ -211,9 +229,14 @@ class Evaluation(object):
         self.format = format
         self.catch_interrupt = catch_interrupt
 
+        # status of last evaluate
+        self.SymbolNull = Symbol("Null")
+        self.exc_result = self.SymbolNull
+
     def parse(self, query):
-        'Parse a single expression and print the messages.'
+        "Parse a single expression and print the messages."
         from mathics.core.parser import SingleLineFeeder
+
         return self.parse_feeder(SingleLineFeeder(query))
 
     def parse_evaluate(self, query, timeout=None):
@@ -222,25 +245,40 @@ class Evaluation(object):
             return self.evaluate(expr, timeout)
 
     def parse_feeder(self, feeder):
-        'Parse a single expression from feeder and print the messages.'
-        from mathics.core.parser import parse, TranslateError
+        return self.parse_feeder_returning_code(feeder)[0]
+
+    def parse_feeder_returning_code(self, feeder):
+        "Parse a single expression from feeder and print the messages."
+        from mathics.core.parser.util import parse_returning_code
+        from mathics.core.parser import TranslateError
+
         try:
-            result = parse(self.definitions, feeder)
+            result, source_code = parse_returning_code(self.definitions, feeder)
         except TranslateError as exc:
             self.recursion_depth = 0
             self.stopped = False
+            source_code = ""
             result = None
         feeder.send_messages(self)
-        return result
+        return result, source_code
 
-    def evaluate(self, query, timeout=None):
-        'Evaluate an expression.'
+    def evaluate(self, query: str, timeout=None, format=None):
+        """Evaluate a Mathics expression and return the
+        result of evaluation.
+
+        On return self.exc_result will contain status of various
+        exception type of result like $Aborted, Overflow, Break, or Continue.
+        If none of the above applies self.exc_result is Null
+        """
         from mathics.core.expression import Symbol, Expression
         from mathics.core.rules import Rule
 
         self.recursion_depth = 0
         self.timeout = False
         self.stopped = False
+        self.exc_result = self.SymbolNull
+        if format is None:
+            format = self.format
 
         line_no = self.definitions.get_line_no()
         line_no += 1
@@ -249,22 +287,20 @@ class Evaluation(object):
         history_length = self.definitions.get_history_length()
 
         result = None
-        exc_result = None
 
         def check_io_hook(hook):
             return len(self.definitions.get_ownvalues(hook)) > 0
 
         def evaluate():
             if history_length > 0:
-                self.definitions.add_rule('In', Rule(
-                   Expression('In', line_no), query))
-            if check_io_hook('System`$Pre'):
-                result = Expression('System`$Pre', query).evaluate(self)
+                self.definitions.add_rule("In", Rule(Expression("In", line_no), query))
+            if check_io_hook("System`$Pre"):
+                result = Expression("System`$Pre", query).evaluate(self)
             else:
                 result = query.evaluate(self)
 
-            if check_io_hook('System`$Post'):
-                result = Expression('System`$Post', result).evaluate(self)
+            if check_io_hook("System`$Post"):
+                result = Expression("System`$Post", result).evaluate(self)
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
@@ -273,52 +309,69 @@ class Evaluation(object):
                     out_result = result
 
                 stored_result = self.get_stored_result(out_result)
-                self.definitions.add_rule('Out', Rule(
-                    Expression('Out', line_no), stored_result))
-            if result != Symbol('Null'):
-                if check_io_hook('System`$PrePrint'):
-                    result = Expression('System`$PrePrint', result).evaluate(self)
-                return self.format_output(result, self.format)
+                self.definitions.add_rule(
+                    "Out", Rule(Expression("Out", line_no), stored_result)
+                )
+            if result != self.SymbolNull:
+                if check_io_hook("System`$PrePrint"):
+                    result = Expression("System`$PrePrint", result).evaluate(self)
+                return self.format_output(result, format)
             else:
+                self.exec_result = self.SymbolNull
                 return None
+
         try:
             try:
                 result = run_with_timeout_and_stack(evaluate, timeout)
             except KeyboardInterrupt:
                 if self.catch_interrupt:
-                    exc_result = Symbol('$Aborted')
+                    self.exc_result = Symbol("$Aborted")
                 else:
                     raise
             except ValueError as exc:
                 text = str(exc)
-                if (text == 'mpz.pow outrageous exponent' or    # noqa
-                    text == 'mpq.pow outrageous exp num'):
-                    self.message('General', 'ovfl')
-                    exc_result = Expression('Overflow')
+                if (
+                    text == "mpz.pow outrageous exponent"
+                    or text == "mpq.pow outrageous exp num"  # noqa
+                ):
+                    self.message("General", "ovfl")
+                    self.exc_result = Expression("Overflow")
                 else:
                     raise
+            except WLThrowInterrupt as ti:
+                if ti.tag:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value,
+                                                            ti.tag))
+                else:
+                    self.exc_result = Expression("Hold",
+                                                 Expression("Throw",
+                                                            ti.value
+                                                            ))
+                self.message("Throw", "nocatch", self.exc_result)
             except OverflowError:
-                self.message('General', 'ovfl')
-                exc_result = Expression('Overflow')
+                self.message("General", "ovfl")
+                self.exc_result = Expression("Overflow")
             except BreakInterrupt:
-                self.message('Break', 'nofdw')
-                exc_result = Expression('Hold', Expression('Break'))
+                self.message("Break", "nofdw")
+                self.exc_result = Expression("Hold", Expression("Break"))
             except ContinueInterrupt:
-                self.message('Continue', 'nofdw')
-                exc_result = Expression('Hold', Expression('Continue'))
+                self.message("Continue", "nofdw")
+                self.exc_result = Expression("Hold", Expression("Continue"))
             except TimeoutInterrupt:
                 self.stopped = False
                 self.timeout = True
-                self.message('General', 'timeout')
-                exc_result = Symbol('$Aborted')
+                self.message("General", "timeout")
+                self.exc_result = Symbol("$Aborted")
             except AbortInterrupt:  # , error:
-                exc_result = Symbol('$Aborted')
+                self.exc_result = Symbol("$Aborted")
             except ReturnInterrupt as ret:
-                exc_result = ret.expr
-            if exc_result is not None:
+                self.exc_result = ret.expr
+            if self.exc_result is not None:
                 self.recursion_depth = 0
-                if exc_result != Symbol('Null'):
-                    result = self.format_output(exc_result, self.format)
+                if self.exc_result != self.SymbolNull:
+                    result = self.format_output(self.exc_result, format)
 
             result = Result(self.out, result, line_no)
             self.out = []
@@ -329,8 +382,8 @@ class Evaluation(object):
 
         line = line_no - history_length
         while line > 0:
-            unset_in = self.definitions.unset('In', Expression('In', line))
-            unset_out = self.definitions.unset('Out', Expression('Out', line))
+            unset_in = self.definitions.unset("In", Expression("In", line))
+            unset_out = self.definitions.unset("Out", Expression("Out", line))
             if not (unset_in or unset_out):
                 break
             line -= 1
@@ -355,33 +408,36 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        if format == 'text':
-            result = expr.format(self, 'System`OutputForm')
-        elif format == 'xml':
-            result = Expression(
-                'StandardForm', expr).format(self, 'System`MathMLForm')
-        elif format == 'tex':
-            result = Expression('StandardForm', expr).format(
-                self, 'System`TeXForm')
+        if format == "text":
+            result = expr.format(self, "System`OutputForm")
+        elif format == "xml":
+            result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
+        elif format == "tex":
+            result = Expression("StandardForm", expr).format(self, "System`TeXForm")
+        elif format == "unformatted":
+            return result
         else:
             raise ValueError
 
         try:
             boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
-            self.message('General', 'notboxes',
-                         Expression('FullForm', result).evaluate(self))
+            self.message(
+                "General", "notboxes", Expression("FullForm", result).evaluate(self)
+            )
             boxes = None
         return boxes
 
     def set_quiet_messages(self, messages) -> None:
         from mathics.core.expression import Expression, String
-        value = Expression('List', *messages)
-        self.definitions.set_ownvalue('Internal`$QuietMessages', value)
+
+        value = Expression("List", *messages)
+        self.definitions.set_ownvalue("Internal`$QuietMessages", value)
 
     def get_quiet_messages(self):
         from mathics.core.expression import Expression
-        value = self.definitions.get_definition('Internal`$QuietMessages').ownvalues
+
+        value = self.definitions.get_definition("Internal`$QuietMessages").ownvalues
         if value:
             try:
                 value = value[0].replace
@@ -392,15 +448,14 @@ class Evaluation(object):
         return value.leaves
 
     def message(self, symbol, tag, *args) -> None:
-        from mathics.core.expression import (String, Symbol, Expression,
-                                             from_python)
+        from mathics.core.expression import String, Symbol, Expression, from_python
 
         # Allow evaluation.message('MyBuiltin', ...) (assume
         # System`MyBuiltin)
         symbol = ensure_context(symbol)
         quiet_messages = set(self.get_quiet_messages())
 
-        pattern = Expression('MessageName', Symbol(symbol), String(tag))
+        pattern = Expression("MessageName", Symbol(symbol), String(tag))
 
         if pattern in quiet_messages or self.quiet_all:
             return
@@ -412,20 +467,21 @@ class Evaluation(object):
         symbol_shortname = self.definitions.shorten_name(symbol)
 
         if settings.DEBUG_PRINT:
-            print('MESSAGE: %s::%s (%s)' % (symbol_shortname, tag, args))
+            print("MESSAGE: %s::%s (%s)" % (symbol_shortname, tag, args))
 
-        text = self.definitions.get_value(
-            symbol, 'System`Messages', pattern, self)
+        text = self.definitions.get_value(symbol, "System`Messages", pattern, self)
         if text is None:
-            pattern = Expression('MessageName', Symbol('General'), String(tag))
+            pattern = Expression("MessageName", Symbol("General"), String(tag))
             text = self.definitions.get_value(
-                'System`General', 'System`Messages', pattern, self)
+                "System`General", "System`Messages", pattern, self
+            )
 
         if text is None:
             text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
-        text = self.format_output(Expression(
-            'StringForm', text, *(from_python(arg) for arg in args)), 'text')
+        text = self.format_output(
+            Expression("StringForm", text, *(from_python(arg) for arg in args)), "text"
+        )
 
         self.out.append(Message(symbol_shortname, tag, text))
         self.output.out(self.out[-1])
@@ -433,12 +489,12 @@ class Evaluation(object):
     def print_out(self, text) -> None:
         from mathics.core.expression import from_python
 
-        text = self.format_output(from_python(text), 'text')
+        text = self.format_output(from_python(text), "text")
 
         self.out.append(Print(text))
         self.output.out(self.out[-1])
         if settings.DEBUG_PRINT:
-            print('OUT: ' + text)
+            print("OUT: " + text)
 
     def error(self, symbol, tag, *args) -> None:
         # Temporarily reset the recursion limit, to allow the message being
@@ -460,16 +516,16 @@ class Evaluation(object):
         if len(needed) == 1:
             needed = needed[0]
             if given > 1 and needed > 1:
-                self.message(symbol, 'argrx', Symbol(symbol), given, needed)
+                self.message(symbol, "argrx", Symbol(symbol), given, needed)
             elif given == 1:
-                self.message(symbol, 'argr', Symbol(symbol), needed)
+                self.message(symbol, "argr", Symbol(symbol), needed)
             elif needed == 1:
-                self.message(symbol, 'argx', Symbol(symbol), given)
+                self.message(symbol, "argx", Symbol(symbol), given)
         elif len(needed) == 2:
             if given == 1:
-                self.message(symbol, 'argtu', Symbol(symbol), *needed)
+                self.message(symbol, "argtu", Symbol(symbol), *needed)
             else:
-                self.message(symbol, 'argt', Symbol(symbol), *needed)
+                self.message(symbol, "argt", Symbol(symbol), *needed)
         else:
             raise NotImplementedError
 
@@ -480,13 +536,14 @@ class Evaluation(object):
     def inc_recursion_depth(self) -> None:
         self.check_stopped()
         limit = self.definitions.get_config_value(
-            '$RecursionLimit', MAX_RECURSION_DEPTH)
+            "$RecursionLimit", MAX_RECURSION_DEPTH
+        )
         if limit is not None:
             if limit < 20:
                 limit = 20
             self.recursion_depth += 1
             if self.recursion_depth > limit:
-                self.error('$RecursionLimit', 'reclim', limit)
+                self.error("$RecursionLimit", "reclim", limit)
 
     def dec_recursion_depth(self) -> None:
         self.recursion_depth -= 1

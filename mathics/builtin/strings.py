@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-String functions
+Strings and Characters
 """
 
 import sys
@@ -1934,29 +1934,32 @@ class StringQ(Test):
 class StringTake(Builtin):
     """
     <dl>
-    <dt>'StringTake["$string$", $n$]'
-        <dd>gives the first $n$ characters in $string$.
-    <dt>'StringTake["$string$", -$n$]'
-        <dd>gives the last $n$ characters in $string$.
-    <dt>'StringTake["$string$", {$n$}]'
-        <dd>gives the $n$th character in $string$.
-    <dt>'StringTake["$string$", {$m$, $n$}]'
-        <dd>gives characters $m$ through $n$ in $string$.
-    <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
-        <dd>gives characters $m$ through $n$ in steps of $s$.
+      <dt>'StringTake["$string$", $n$]'
+      <dd>gives the first $n$ characters in $string$.
+
+      <dt>'StringTake["$string$", -$n$]'
+      <dd>gives the last $n$ characters in $string$.
+
+      <dt>'StringTake["$string$", {$n$}]'
+      <dd>gives the $n$th character in $string$.
+
+      <dt>'StringTake["$string$", {$m$, $n$}]'
+      <dd>gives characters $m$ through $n$ in $string$.
+
+      <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
+      <dd>gives characters $m$ through $n$ in steps of $s$.
     </dl>
 
     >> StringTake["abcde", 2]
-    = ab
+     = ab
     >> StringTake["abcde", 0]
-    = 
-    (watch the empty line).
+     = #<--#
     >> StringTake["abcde", -2]
-    = de
+     = de
     >> StringTake["abcde", {2}]
-    = b
+     = b
     >> StringTake["abcd", {2,3}]
-    = bc
+     = bc
     >> StringTake["abcdefgh", {1, 5, 2}]
      = ace
 
@@ -2458,39 +2461,27 @@ class StringTrim(Builtin):
 class StringInsert(Builtin):
     """
     <dl>
-    <dt>'StringInsert["$strsource$", "$strnew$", pos]'
-        <dd>returns a string with $strnew$ inserted starting at position $pos$ in $strsource$.
-    <dt>'StringInsert["$strsource$", "$strnew$", -pos]'
-        <dd>returns a string with $strnew$ inserted at position $pos$ from the end of $strsource$.
-    <dt>'StringInsert["$strsource$", "$strnew$", {pos_1, pos_2, ...}]'
-        <dd>returns a string with $strnew$ inserted at each position $pos_i$ in $strsource$,
-            the $pos_i$ are taken before any insertion is done.
-    <dt>'StringInsert[{$str_1$, $str_2$, ...}, "$strnew$", pos]'
-        <dd>inserts $strnew$ to each of $s_i$ at the position $pos$
+      <dt>'StringInsert["$string$", "$snew$", $n$]'
+      <dd>yields a string with $snew$ inserted starting at position $n$ in $string$.
+
+      <dt>'StringInsert["$string$", "$snew$", -$n$]'
+      <dd>inserts a at position $n$ from the end of "$string$".
+
+      <dt>'StringInsert["$string$", "$snew$", {$n_1$, $n_2$, ...}]'
+      <dd>inserts a copy of $snew$ at each position $n_i$ in $string$;
+        the $n_i$ are taken before any insertion is done.
+
+      <dt>'StringInsert[{$s_1$, $s_2$, ...}, "$snew$", $n$]'
+      <dd>gives the list of resutls for each of the $s_i$.
     </dl>
 
-    >> StringInsert["abcdefghijklm", "X", 4]
-     = abcXdefghijklm
-
-    >> StringInsert["abcdefghijklm", "X", 1]
-     = Xabcdefghijklm
-
-    >> StringInsert["abcdefghijklm", "X", 14]
-     = abcdefghijklmX
+    >> StringInsert["noting", "h", 4]
+     = nothing
 
     #> StringInsert["abcdefghijklm", "X", 15]
      : Cannot insert at position 15 in abcdefghijklm.
      = StringInsert[abcdefghijklm, X, 15]
 
-    #> StringInsert["", "X", 1]
-     = X
-
-    #> StringInsert["abcdefghijklm", "", 1]
-     = abcdefghijklm
-
-    #> StringInsert["", "", 1]
-     = 
-    (watch the empty line).
     #> StringInsert[abcdefghijklm, "X", 4]
      : String or list of strings expected at position 1 in StringInsert[abcdefghijklm, X, 4].
      = StringInsert[abcdefghijklm, X, 4]
@@ -2507,27 +2498,18 @@ class StringInsert(Builtin):
      : Cannot insert at position 0 in abcdefghijklm.
      =  StringInsert[abcdefghijklm, X, 0]
 
-    >> StringInsert["abcdefghijklm", "X", -1]
-     = abcdefghijklmX
+    >> StringInsert["note", "d", -1]
+     = noted
 
-    >> StringInsert["abcdefghijklm", "X", -14]
-     = Xabcdefghijklm
+    >> StringInsert["here", "t", -5]
+     = there
 
     #> StringInsert["abcdefghijklm", "X", -15]
      : Cannot insert at position -15 in abcdefghijklm.
      = StringInsert[abcdefghijklm, X, -15]
 
-    #> StringInsert["", "X", -1]
-     = X
-
-    #> StringInsert["", "", -1]
-     = 
-    (watch the empty line).
-    #> StringInsert["abcdefghijklm", "", -1]
-     = abcdefghijklm
-
-    >> StringInsert["abcdefghijklm", "X", {1, 4, 9}]
-     = XabcXdefghXijklm
+    >> StringInsert["adac", "he", {1, 5}]
+     = headache
 
     #> StringInsert["abcdefghijklm", "X", {1, -1, 14, -14}]
      = XXabcdefghijklmXX
@@ -2543,9 +2525,8 @@ class StringInsert(Builtin):
      = XX
 
     #> StringInsert["", "", {1}]
-     = 
-    
-    (watch the empty line).
+     = #<--#
+
     #> StringInsert["", "X", {1, 2}]
      : Cannot insert at position 2 in .
      = StringInsert[, X, {1, 2}]
@@ -2556,8 +2537,8 @@ class StringInsert(Builtin):
     #> StringInsert["abcdefghijklm", "X", {}]
      = abcdefghijklm
 
-    >> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 4]
-     = {abcXdefghijklm, MatXhics}
+    >> StringInsert[{"something", "sometimes"}, " ", 5]
+     = {some thing, some times}
 
     #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", 13]
      : Cannot insert at position 13 in Mathics.
@@ -2577,9 +2558,6 @@ class StringInsert(Builtin):
 
     #> StringInsert[{"", "Mathics"}, "X", {1, 1, -1}]
      = {XXX, XXMathicsX}
-
-    #> StringInsert[{"abcdefghijklm", "Mathics"}, "X", {}]
-     = {abcdefghijklm, Mathics}
 
     >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
      = 1.234.567.890.123.456    """

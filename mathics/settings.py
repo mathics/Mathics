@@ -105,15 +105,17 @@ SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 #    'django.template.loaders.app_directories.load_template_source',
 # )
 
-MIDDLEWARE = (
+MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-)
+]
 
 ROOT_URLCONF = 'mathics.urls'
 
-default_pymathics_modules = ["pymathics.natlang",]
+# Rocky: this is probably a hack. LoadModule[] needs to handle
+# whatever it is that setting this thing did.
+default_pymathics_modules = []
 
 TEMPLATES = [
     {
