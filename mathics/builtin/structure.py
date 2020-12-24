@@ -13,8 +13,9 @@ from mathics.core.expression import (
     Expression,
     String,
     Symbol,
-    SymbolTrue,
+    SymbolNull,
     SymbolFalse,
+    SymbolTrue,
     Integer,
     Rational,
     strip_context,
@@ -291,9 +292,9 @@ class PatternsOrderedQ(Builtin):
         "PatternsOrderedQ[p1_, p2_]"
 
         if p1.get_sort_key(True) <= p2.get_sort_key(True):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class OrderedQ(Builtin):
@@ -314,9 +315,9 @@ class OrderedQ(Builtin):
         "OrderedQ[e1_, e2_]"
 
         if e1 <= e2:
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Order(Builtin):
@@ -657,7 +658,7 @@ class Scan(Builtin):
         heads = self.get_option(options, "Heads", evaluation).is_true()
         result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
-        return Symbol("Null")
+        return SymbolNull
 
 
 class MapIndexed(Builtin):

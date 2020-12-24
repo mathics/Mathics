@@ -31,6 +31,7 @@ from mathics.core.expression import (
     Rational,
     Real,
     Symbol,
+    SymbolNull,
     Complex,
     String,
     SymbolTrue,
@@ -916,7 +917,7 @@ class Power(BinaryOperator, _MPMathFunction):
                     return Symbol("ComplexInfinity")
 
         result = self.apply(Expression("Sequence", x, y), evaluation)
-        if result is None or result != Symbol("Null"):
+        if result is None or result != SymbolNull:
             return result
 
 
