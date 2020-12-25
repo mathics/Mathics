@@ -47,7 +47,7 @@ docker-image:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest doctest gstest
+check: pytest gstest
 
 #: Remove derived files
 clean:
