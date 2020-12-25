@@ -662,7 +662,7 @@ RandomPermutation1[n_Integer?Positive] :=
 RandomPermutation2[n_Integer?Positive] :=
 	Module[{p = Range[n],i,x},
 		Do [
-			x = RandomInteger[Integer,{1,i}];
+			x = RandomInteger[{1,i}];
 			{p[[i]],p[[x]]} = {p[[x]],p[[i]]},
 			{i,n,2,-1}
 		];
@@ -1022,7 +1022,7 @@ RankSubset[set_List,subset_List] :=
 		Sum[ 2^(i-1) * If[ MemberQ[subset,set[[i]]], 1, 0], {i,n}]
 	]
 
-RandomSubset[set_List] := NthSubset[RandomInteger[Integer,2^(Length[set])-1],set]
+RandomSubset[set_List] := NthSubset[RandomInteger[2^(Length[set])-1],set]
 
 GrayCode[l_List] := GrayCode[l,{{}}]
 
@@ -1082,7 +1082,7 @@ RandomKSubset[set_List,k_Integer] :=
 		set [[
 			Sort[
 				Table[
-					x=RandomInteger[Integer,{1,i}];
+					x=RandomInteger[{1,i}];
 					{s[[i]],s[[x]]} = {s[[x]],s[[i]]};
 					s[[i]],
 					{i,n,n-k+1,-1}
@@ -1370,8 +1370,8 @@ RandomTableau[shape_List] :=
 				h = y[[j]] + p[[i]] - i - j;
 				If[ h != 0,
 					If[ RandomInteger[] < 0.5,
-						j = RandomInteger[Integer,{j,p[[i]]}],
-						i = RandomInteger[Integer,{i,y[[j]]}]
+						j = RandomInteger[{j,p[[i]]}],
+						i = RandomInteger[{i,y[[j]]}]
 					],
 					done = True
 				];
@@ -1384,10 +1384,10 @@ RandomTableau[shape_List] :=
 	]
 
 RandomSquare[y_List,p_List] :=
-	Module[{i=RandomInteger[Integer,{1,First[y]}], j=RandomInteger[Integer,{1,First[p]}]},
+	Module[{i=RandomInteger[{1,First[y]}], j=RandomInteger[{1,First[p]}]},
 		While[(i > y[[j]]) || (j > p[[i]]),
-			i = RandomInteger[Integer,{1,First[y]}];
-			j = RandomInteger[Integer,{1,First[p]}]
+			i = RandomInteger[{1,First[y]}];
+			j = RandomInteger[{1,First[p]}]
 		];
 		{i,j}
 	]
