@@ -1,0 +1,101 @@
+Documentation markup
+====================
+
+There is a lot of special markup syntax you can use in the
+documentation. It is kind of a mixture of XML, LaTeX, Python doctest,
+and custom markup.
+
+The following commands can be used to specify test cases.
+
++-----------+----------------------------------------------------------------+
+| Syntax    | Explanation                                                    |
++===========+================================================================+
+| ``>> $que | a test query.                                                  |
+| ry$``     |                                                                |
++-----------+----------------------------------------------------------------+
+| ``: $mess | a message in the result of the test query.                     |
+| age$``    |                                                                |
++-----------+----------------------------------------------------------------+
+| ``\| $pri | a printed line in the result of the test query.                |
+| nt$``     |                                                                |
++-----------+----------------------------------------------------------------+
+| ``= $resu | the actual result of the test query.                           |
+| lt$``     |                                                                |
++-----------+----------------------------------------------------------------+
+| ``. $newl | a newline in the test result.                                  |
+| ine$``    |                                                                |
++-----------+----------------------------------------------------------------+
+| ``$$ident | a variable identifier in Mathics code or in text.              |
+| ifier$$`` |                                                                |
++-----------+----------------------------------------------------------------+
+| ``#> $que | a test query that is not shown in the documentation.           |
+| ry$``     |                                                                |
++-----------+----------------------------------------------------------------+
+| ``X>``    | a test query that is shown in the documentation but is not     |
+|           | ran.                                                           |
++-----------+----------------------------------------------------------------+
+| ``S>``    | a test query that is shown in the documentation but is only    |
+|           | ran if the ``SANDBOX`` environment variable is not set.        |
++-----------+----------------------------------------------------------------+
+| ``-Graphi | graphics in the test result.                                   |
+| cs-``     |                                                                |
++-----------+----------------------------------------------------------------+
+| ``...``   | a part of the test result which is not checked in the test,    |
+|           | e.g., for randomized or system-dependent output.               |
++-----------+----------------------------------------------------------------+
+
+The following commands can be used to markup documentation text.
+
++----------------------------------+-----------------------------------------+
+| Syntax                           | Explanation                             |
++==================================+=========================================+
+| ``## $comment$``                 | a comment line that is not shown in the |
+|                                  | documentation.                          |
++----------------------------------+-----------------------------------------+
+| ``<dl>$list$</dl>``              | a definition list with ``<dt>`` and     |
+|                                  | ``<dd>`` entries.                       |
++----------------------------------+-----------------------------------------+
+| ``<dt>$title$``                  | the title of a description item.        |
++----------------------------------+-----------------------------------------+
+| ``<dd>$description$``            | the description of a description item.  |
++----------------------------------+-----------------------------------------+
+| ``<ul>$list$</ul>``              | an unordered list with ``<li>``         |
+|                                  | entries.                                |
++----------------------------------+-----------------------------------------+
+| ``<ol>$list$</ol>``              | an ordered list with ``<li>`` entries.  |
++----------------------------------+-----------------------------------------+
+| ``<li>$item$``                   | an item of an unordered or ordered      |
+|                                  | list.                                   |
++----------------------------------+-----------------------------------------+
+| ``'$code$'``                     | inline Mathics code or other code.      |
++----------------------------------+-----------------------------------------+
+| ``<console>$text$</console>``    | a console (shell/bash/Terminal)         |
+|                                  | transcript in its own paragraph.        |
++----------------------------------+-----------------------------------------+
+| ``<con>$text$</con>``            | an inline console transcript.           |
++----------------------------------+-----------------------------------------+
+| ``<em>$text$</em>``              | emphasized (italic) text.               |
++----------------------------------+-----------------------------------------+
+| ``<i>$text$</i>``                | the same as ``<em>``.                   |
++----------------------------------+-----------------------------------------+
+| ``<url>$url$</url>``             | a URL.                                  |
++----------------------------------+-----------------------------------------+
+| ``<img src="$src$" title="$title | an image.                               |
+| $" label="$label$">``            |                                         |
++----------------------------------+-----------------------------------------+
+| ``<imgpng src="$src$" title="$ti | the same as ``img``.                    |
+| tle$" label="$label$">``         |                                         |
++----------------------------------+-----------------------------------------+
+| ``<ref label="$label$">``        | a reference to an image.                |
++----------------------------------+-----------------------------------------+
+| ``\skip``                        | a vertical skip.                        |
++----------------------------------+-----------------------------------------+
+| ``\LaTeX``, ``\Mathematica``,    | special product and company names.      |
+| ``\Mathics``                     |                                         |
++----------------------------------+-----------------------------------------+
+| ``\'``                           | a single ``'``.                         |
++----------------------------------+-----------------------------------------+
+
+To include images in the documentation, use the ``img`` tag, place an
+EPS file ``$sc$.eps`` in ``documentation/images`` and run ``images.sh``
+in the ``doc`` directory.
