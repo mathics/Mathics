@@ -4,8 +4,6 @@
 # These comments before the targets start with #:
 # remake --tasks to shows the targets and the comments
 
-DOCKER_COMPOSE ?= docker-compose
-DOCKER_COMPOSE_FILE =
 GIT2CL ?= admin-tools/git2cl
 PYTHON ?= python3
 PIP ?= pip3
@@ -13,7 +11,7 @@ RM  ?= rm
 
 .PHONY: all build \
    check clean \
-   develop dist doc doc-data djangotest docker \
+   develop dist doc doc-data djangotest \
    gstest pytest \
    rmChangeLog \
    test
@@ -38,10 +36,6 @@ build:
 #: Set up to run from the source tree
 develop:
 	$(PIP) install -e .
-
-#: Build docker image
-docker-image:
-	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_FILE) build
 
 #: Install mathics
 install:
