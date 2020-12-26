@@ -13,6 +13,7 @@ session.evaluate(
 
 # Page numbers below come from the first book
 
+
 def test_combinatorica_permutations_1_1():
 
     for str_expr, str_expected, message in (
@@ -270,7 +271,6 @@ def test_combinatorica_permutations_1_2():
             "m (1 + m) (4 - 2 m + 2 m ^ 2 + 3 m ^ 3 + m ^ 4 - m ^ 5 + m ^ 6) / 16",
             "Factor example in Polya polynomial 1.2.6, Page 26",
         ),
-
     ):
         check_evaluation(str_expr, str_expected, message)
 
