@@ -17,6 +17,7 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolFailed,
     strip_context,
 )
 from mathics.builtin.base import Builtin, Predefined
@@ -82,12 +83,10 @@ class Environment(Builtin):
     """
 
     def apply(self, var, evaluation):
-        "Environment[var_]"
-        if not isinstance(var, String):
-            return
+        "Environment[var_?StringQ]"
         env_var = var.get_string_value()
         if env_var not in os.environ:
-            return Symbol("$Failed")
+            return SymbolFailed
         else:
             return String(os.environ[env_var])
 
