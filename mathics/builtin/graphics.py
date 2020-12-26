@@ -391,7 +391,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     =
+     = 
      . \begin{asy}
      . usepackage("amsmath");
      . size(5.8556cm, 5.8333cm);
