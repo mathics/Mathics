@@ -28,7 +28,7 @@ mathicsserver: a Django-based Web interface
 Installing and Running
 ----------------------
 
-See the `wiki page <https://github.com/mathics/Mathics/wiki/Installing-and-Running>`_ for how to install and run.
+See the `readthe docs guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_ for instructions on `installing <https://mathics-development-guide.readthedocs.io/en/latest/installing.html>`_ and `running <https://mathics-development-guide.readthedocs.io/en/latest/running.html>`_.
 
 Contributing
 ------------
