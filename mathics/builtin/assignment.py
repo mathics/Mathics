@@ -5,7 +5,7 @@
 import mathics.builtin
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import (Expression, Symbol, valid_context_name,
+from mathics.core.expression import (Expression, Symbol, SymbolFailed, valid_context_name,
                                      system_symbols, String)
 from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
@@ -486,7 +486,7 @@ class SetDelayed(Set):
         if self.assign(lhs, rhs, evaluation):
             return Symbol('Null')
         else:
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
 class UpSet(BinaryOperator, _SetOperator):
@@ -567,7 +567,7 @@ class UpSetDelayed(UpSet):
         if self.assign_elementary(lhs, rhs, evaluation, upset=True):
             return Symbol('Null')
         else:
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
 class TagSet(Builtin, _SetOperator):
@@ -639,7 +639,7 @@ class TagSetDelayed(TagSet):
         if self.assign_elementary(lhs, rhs, evaluation, tags=[name]):
             return Symbol('Null')
         else:
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
 class Definition(Builtin):
@@ -1074,7 +1074,7 @@ class Clear(Builtin):
             symbols = [symbols]
         else:
             symbols = symbols.get_sequence()
- 
+
         for symbol in symbols:
             if isinstance(symbol, Symbol):
                 names = [symbol.get_name()]
@@ -1236,11 +1236,11 @@ class Unset(PostfixOperator):
                                   'UpValues', 'NValues', 'Options', 'Messages'):
             if len(expr.leaves) != 1:
                 evaluation.message_args(name, len(expr.leaves), 1)
-                return Symbol('$Failed')
+                return SymbolFailed
             symbol = expr.leaves[0].get_name()
             if not symbol:
                 evaluation.message(name, 'fnsym', expr)
-                return Symbol('$Failed')
+                return SymbolFailed
             if name == 'System`Options':
                 empty = {}
             else:
@@ -1250,11 +1250,11 @@ class Unset(PostfixOperator):
         name = expr.get_lookup_name()
         if not name:
             evaluation.message('Unset', 'usraw', expr)
-            return Symbol('$Failed')
+            return SymbolFailed
         if not evaluation.definitions.unset(name, expr):
             if not expr.is_atom():
                 evaluation.message('Unset', 'norep', expr, Symbol(name))
-                return Symbol('$Failed')
+                return SymbolFailed
         return Symbol('Null')
 
 
@@ -1744,17 +1744,17 @@ class LoadModule(Builtin):
             module_loaded = evaluation.definitions.load_pymathics_module(module.value)
         except PyMathicsLoadException as e:
             evaluation.message(self.name, 'notmathicslib', module)
-            return Symbol("$Failed")
+            return SymbolFailed
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
-            return Symbol('$Failed')
+            return SymbolFailed
         except PyMathicsLoadException as e:
             evaluation.message(self.get_name(), 'notmathicslib', module)
-            return Symbol('$Failed')
+            return SymbolFailed
         else:
             # Add PyMathics` to $ContextPath so that when user don't
             # have to qualify PyMathics variables and functions,
-            # as the those in teh module just loaded.
+            # as the those in the module just loaded.
 
             # Following the example of $ContextPath in the WL
             # reference manual where PackletManager appears first in
