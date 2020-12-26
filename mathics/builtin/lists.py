@@ -13,7 +13,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, SymbolNull, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import Expression, String, Symbol, SymbolFailed, SymbolNull, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
@@ -5002,9 +5002,9 @@ class Nearest(Builtin):
             else:
                 return Expression('List', *[nearest(t) for t in pivot.leaves])
         except _IllegalDistance:
-            return Symbol('$Failed')
+            return SymbolFailed
         except ValueError:
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
 class Permutations(Builtin):
