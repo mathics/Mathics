@@ -13,7 +13,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import Expression, String, Symbol, SymbolNull, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
@@ -37,8 +37,8 @@ import functools
 def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
     """
     This function walks the expression `expr` and deleting occurrencies of `pattern`
-    
-    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level. 
+
+    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
@@ -74,7 +74,7 @@ def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
                 break
             idx = curr_index[-1]
             changed = changed or changed_marks[-1][idx]
-            changed_marks[-1][idx] = changed    
+            changed_marks[-1][idx] = changed
             if changed:
                 head = tree[-1][curr_index[-1]].get_head()
                 tree[-1][idx] = Expression(head, *leaves)
@@ -83,12 +83,12 @@ def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
             curr_index[-1] = curr_index[-1] + 1
             continue
         curr_leave = tree[-1][curr_index[-1]]
-        if (match(curr_leave, evaluation) and 
-            (len(curr_index) > lsmin)  ):            
+        if (match(curr_leave, evaluation) and
+            (len(curr_index) > lsmin)  ):
             tree[-1][curr_index[-1]] = nothing
             changed_marks[-1][curr_index[-1]] = True
             curr_index[-1] = curr_index[-1] + 1
-            n = n - 1 
+            n = n - 1
             continue
         if curr_leave.is_atom() or lsmax == len(curr_index):
             curr_index[-1] = curr_index[-1] + 1
@@ -104,7 +104,7 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n
     """
     This function walks the expression `expr` looking for a pattern `pattern`
     and returns the positions of each occurence.
-    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level. 
+    If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
@@ -130,11 +130,11 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n
                 curr_index[-1] = curr_index[-1] + 1
             continue
         curr_leave = tree[-1][curr_index[-1]]
-        if (match(curr_leave, evaluation) and  
+        if (match(curr_leave, evaluation) and
             (len(curr_index) >= lsmin)  ):
             found.append([from_python(i) for i in curr_index])
             curr_index[-1] = curr_index[-1] + 1
-            n = n - 1 
+            n = n - 1
             continue
         if curr_leave.is_atom() or lsmax == len(curr_index):
             curr_index[-1] = curr_index[-1] + 1
@@ -1840,11 +1840,11 @@ class DeleteCases(Builtin):
         <dd>returns the elements of $list$ that do not match $pattern$.
 
     <dt>'DeleteCases[$list$, $pattern$, $levelspec$]'
-        <dd> removes all parts of $list on levels specified by $levelspec$ 
+        <dd> removes all parts of $list on levels specified by $levelspec$
              that match pattern (not fully implemented).
 
     <dt>'DeleteCases[$list$, $pattern$, $levelspec$, $n$]'
-        <dd> removes the first $n$ parts of $list$ that match $pattern$. 
+        <dd> removes the first $n$ parts of $list$ that match $pattern$.
     </dl>
 
     >> DeleteCases[{a, 1, 2.5, "string"}, _Integer|_Real]
@@ -1861,16 +1861,16 @@ class DeleteCases(Builtin):
     messages = {'level': 'Level specification `1` is not of the form n, {n}, or {m, n}.',
                 'innf':  'Non-negative integer or Infinity expected at position 4 in `1`',
                 }
-    
+
     # def apply(self, items, pattern, evaluation):
     #    'DeleteCases[items_, pattern_]'
-    #    return self.apply_ls_n(items, pattern, Integer(1), Symbol("System`Null"), evaluation)
+    #    return self.apply_ls_n(items, pattern, Integer(1), SymbolNull, evaluation)
 
 
     # def apply_ls(self, items, pattern, levelspec, evaluation):
     #    'DeleteCases[items_, pattern_, levelspec_]'
-    #    return self.apply_ls_n(items, pattern, levelspec, Symbol("System`Null"), evaluation)
-    
+    #    return self.apply_ls_n(items, pattern, levelspec, SymbolNull, evaluation)
+
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         'DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]'
 
@@ -1893,8 +1893,8 @@ class DeleteCases(Builtin):
                 evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
         else:
             evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
-            return Symbol('System`Null')
-                
+            return SymbolNull
+
         if levelspec[0] !=1 or levelspec[1] !=1:
             return deletecases_with_levelspec(items, pattern, evaluation, levelspec, n)
         else:

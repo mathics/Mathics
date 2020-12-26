@@ -5,7 +5,6 @@ import sys
 import platform
 import sympy
 import mpmath
-import django
 
 from mathics.version import __version__
 from mathics.core.expression import (
@@ -29,7 +28,6 @@ version_info = {
     "sympy": sympy.__version__,
     "mpmath": mpmath.__version__,
     "python": platform.python_implementation() + " " + sys.version.split("\n")[0],
-    "django": django.__version__,
 }
 
 try:
@@ -47,10 +45,7 @@ using SymPy {sympy}, mpmath {mpmath}""".format(
 )
 
 
-server_version_string = version_string + ", django {django}".format(**version_info)
-
 if "cython" in version_info:
-    server_version_string += f", cython {version_info['cython']}"
     version_string += f", cython {version_info['cython']}"
 
 license_string = """\

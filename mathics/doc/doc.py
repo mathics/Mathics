@@ -6,9 +6,6 @@ from os import getenv, listdir, path
 import pickle
 import importlib
 
-from django.utils.html import escape, linebreaks
-from django.utils.safestring import mark_safe
-
 from mathics import settings
 
 from mathics import builtin
