@@ -1,0 +1,12 @@
+#!/bin/bash
+set -x
+DOCKER=${DOCKER:-docker}
+$DOCKER run -it \
+  --name mathics-web \
+  --rm \
+  --env="DISPLAY" \
+  --workdir=/app \
+  --volume="$PWD":/app \
+  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+  -p 8000:8000 -v /tmp:/usr/src/app/data mathicsorg/mathics \
+  --mode ui

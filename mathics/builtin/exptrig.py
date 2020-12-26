@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
+r"""
 Exponential, Trigonometric and Hyperbolic Functions
 
 \Mathics basically supports all important trigonometric and hyperbolic functions.
@@ -52,7 +52,6 @@ class Pi(SympyConstant):
             return MachineReal(math.pi)
         else:
             return PrecisionReal(sympy.pi.n(d))
-
 
 class E(SympyConstant):
     """

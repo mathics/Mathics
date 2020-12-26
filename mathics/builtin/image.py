@@ -13,6 +13,7 @@ from mathics.core.expression import (
     Real,
     MachineReal,
     Symbol,
+    SymbolNull,
     from_python,
 )
 from mathics.builtin.colors import (
@@ -242,7 +243,7 @@ class ImageExport(_ImageBuiltin):
         """ImageExport[path_?StringQ, expr_, opts___]"""
         if isinstance(expr, Image):
             expr.pil().save(path.get_string_value())
-            return Symbol("Null")
+            return SymbolNull
         else:
             return evaluation.message("ImageExport", "noimage")
 
@@ -1823,7 +1824,7 @@ class ImageData(_ImageBuiltin):
         elif stype == "Bit16":
             pixels = pixels_as_uint(pixels)
         elif stype == "Bit":
-            pixels = pixels.astype(numpy.bool)
+            pixels = pixels.astype(numpy.int)
         else:
             return evaluation.message("ImageData", "pixelfmt", stype)
         return from_python(numpy_to_matrix(pixels))

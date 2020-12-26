@@ -6,7 +6,7 @@ Calculus
 """
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number
+from mathics.core.expression import (Expression, Integer, Number, SymbolTrue, SymbolFalse)
 from mathics.core.convert import (
     sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
@@ -739,10 +739,9 @@ class Solve(Builtin):
         sympy_eqs = []
         sympy_denoms = []
         for eq in eqs:
-            symbol_name = eq.get_name()
-            if symbol_name == 'System`True':
+            if eq == SymbolTrue:
                 pass
-            elif symbol_name == 'System`False':
+            elif eq == SymbolFalse:
                 return Expression('List')
             elif not eq.has_form('Equal', 2):
                 return evaluation.message('Solve', 'eqf', eqs_original)
