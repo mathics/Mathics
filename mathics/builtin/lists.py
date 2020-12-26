@@ -13,7 +13,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import Expression, String, Symbol, SymbolNull, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
@@ -1867,12 +1867,12 @@ class DeleteCases(Builtin):
 
     # def apply(self, items, pattern, evaluation):
     #    'DeleteCases[items_, pattern_]'
-    #    return self.apply_ls_n(items, pattern, Integer(1), Symbol("System`Null"), evaluation)
+    #    return self.apply_ls_n(items, pattern, Integer(1), SymbolNull, evaluation)
 
 
     # def apply_ls(self, items, pattern, levelspec, evaluation):
     #    'DeleteCases[items_, pattern_, levelspec_]'
-    #    return self.apply_ls_n(items, pattern, levelspec, Symbol("System`Null"), evaluation)
+    #    return self.apply_ls_n(items, pattern, levelspec, SymbolNull, evaluation)
 
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         'DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]'
@@ -1896,7 +1896,7 @@ class DeleteCases(Builtin):
                 evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
         else:
             evaluation.message('DeleteCases','innf',Expression("DeleteCases", items, pattern, levelspec, n))
-            return Symbol('System`Null')
+            return SymbolNull
 
         if levelspec[0] !=1 or levelspec[1] !=1:
             return deletecases_with_levelspec(items, pattern, evaluation, levelspec, n)

@@ -8,7 +8,7 @@ Control Statements
 
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Symbol, from_python
+from mathics.core.expression import (Expression, Symbol, from_python, SymbolTrue, SymbolFalse)
 from mathics.core.evaluation import (
     AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt,
     WLThrowInterrupt)
@@ -122,29 +122,25 @@ class If(Builtin):
     def apply_2(self, condition, t, evaluation):
         'If[condition_, t_]'
 
-        name = condition.get_name()
-        # FIXME: can this use .is_true()?
-        if name == 'System`True':
+        if condition == SymbolTrue:
             return t.evaluate(evaluation)
-        elif name == 'System`False':
+        elif condition == SymbolFalse:
             return Symbol('Null')
 
     def apply_3(self, condition, t, f, evaluation):
         'If[condition_, t_, f_]'
 
-        name = condition.get_name()
-        if name == 'System`True':
+        if condition == SymbolTrue:
             return t.evaluate(evaluation)
-        elif name == 'System`False':
+        elif condition == SymbolFalse:
             return f.evaluate(evaluation)
 
     def apply_4(self, condition, t, f, u, evaluation):
         'If[condition_, t_, f_, u_]'
 
-        name = condition.get_name()
-        if name == 'System`True':
+        if condition == SymbolTrue:
             return t.evaluate(evaluation)
-        elif name == 'System`False':
+        elif condition == SymbolFalse:
             return f.evaluate(evaluation)
         else:
             return u.evaluate(evaluation)
@@ -245,7 +241,7 @@ class Which(Builtin):
             test_result = test.evaluate(evaluation)
             if test_result.is_true():
                 return item.evaluate(evaluation)
-            elif test_result.get_name() != 'System`False':
+            elif test_result != SymbolFalse:
                 if len(items) == nr_items:
                     return None
                 return Expression('Which', *items)

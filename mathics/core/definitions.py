@@ -389,7 +389,13 @@ class Definitions(object):
         return with_context
 
     def get_package_names(self) -> typing.List[str]:
-        return sorted({name.split("`")[0] for name in self.get_names()})
+        packages = self.get_ownvalue("System`$Packages")
+        packages = packages.replace
+        assert packages.has_form("System`List", None)
+        packages = [c.get_string_value() for c in packages.leaves]
+        return packages
+
+        #return sorted({name.split("`")[0] for name in self.get_names()})
 
     def shorten_name(self, name_with_ctx) -> str:
         if "`" not in name_with_ctx:

@@ -1,4 +1,0 @@
-mathics
-colorama
-pygments
-mathicsscript

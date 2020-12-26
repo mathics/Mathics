@@ -230,18 +230,13 @@ class Packages(Predefined):
     </dl>
 
     X> $Packages
-    = {CombinatoricaOld,ImportExport,Internal,System,XML}
-    #> MemberQ[$Packages, "System"]
+    = {ImportExport`,XML`,Internal`,System`,Global`}
+    #> MemberQ[$Packages, "System`"]
     = True
     """
 
     name = "$Packages"
-
-    def evaluate(self, evaluation):
-        return Expression(
-            "List",
-            *(String(name) for name in evaluation.definitions.get_package_names()),
-        )
+    rules = {'$Packages': '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
 
 
 class ParentProcessID(Predefined):
