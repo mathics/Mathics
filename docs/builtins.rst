@@ -19,7 +19,7 @@ To get an idea of how a built-in class can look like, consider the following
 implementation of ``Hello``:
 
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin
 
   class Hello(Builtin):
@@ -54,9 +54,9 @@ Working with multiple patterns
 
 It's important to note that a builtin can be defined over *more than one
 pattern*, such as in the following case:
-    
+
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin, String
 
   class Hello(Builtin):
@@ -83,14 +83,14 @@ pattern*, such as in the following case:
 
 In this case, ``Hello["Peter", French]`` will resolve to ``"Bonjour,
 Peter!"``, while ``Pymathics`Hello["Peter", English]`` and
-``Pymathics`Hello["Peter"]`` will both resolve to ``"Hello, Peter!"``. 
+``Pymathics`Hello["Peter"]`` will both resolve to ``"Hello, Peter!"``.
 
 We may also want to use different definitions according to the types of the
 arguments passed to a builtin. We can do so by specifying type-constraints in
 the definitions's pattern, such as in the following example:
 
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin
 
   class Hello(Builtin):
@@ -125,7 +125,7 @@ can tell Mathics that an expression should resolve the value of a different
 expression, such as in the following example:
 
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin, String
 
   class Hello(Builtin):
@@ -163,7 +163,7 @@ Hello["Roger"]}``. We can to that by overwriting ``Hello``'s
 ``attributes`` class-field.
 
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin, String
 
   class Hello(Builtin):
@@ -189,7 +189,7 @@ Emitting warnings
 +++++++++++++++++
 
 Sometimes things go wrong. When things go wrong, we should report an error to
-our users. But how can one emit a warning from inside an evaluator? 
+our users. But how can one emit a warning from inside an evaluator?
 
 Warnings in Mathics can be specified via the ``messages`` class field. The
 ``messages`` class field is a dictionary whose keys are the names of possible
@@ -198,7 +198,7 @@ we may want to display a warning when our users pass something other than a
 string to ``Hello``:
 
 .. code-block:: python
-  
+
   from mathics.builtin.base import Builtin, String
 
   class Hello(Builtin):
@@ -388,18 +388,18 @@ This will not re-create the corresponding documentation results,
 however. You have to run a complete test to do that.
 
 Requirements
-------------
+++++++++++++
 
-The following packages are required to build the PDF documentation: 
+The following packages are required to build the PDF documentation:
 
-- ``texlive-font-utils`` 
-- ``latexmk`` 
-- ``texlive-xetex`` 
+- ``texlive-font-utils``
+- ``latexmk``
+- ``texlive-xetex``
 - ``lmodern``
-- ``inkscape`` 
-- ``texlive-latex-extra`` 
+- ``inkscape``
+- ``texlive-latex-extra``
 - ``texlive-latex``
-- ``texlive-fonts-recommended`` 
+- ``texlive-fonts-recommended``
 - ``asymptote``
 
 Those can be installed in Debian-based system with

@@ -39,6 +39,10 @@ build:
 develop:
 	$(PIP) install -e .
 
+#: Build developer guide
+developer-docs:
+	$(MAKE) -C docs html
+
 #: Build docker image
 docker-image:
 	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_FILE) build
