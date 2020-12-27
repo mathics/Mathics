@@ -72,7 +72,7 @@ class Graphics3D(Graphics):
 
     In 'TeXForm', 'Graphics3D' creates Asymptote figures:
     >> Graphics3D[Sphere[]] // TeXForm
-     = 
+     = #<--#
      . \begin{asy}
      . import three;
      . import solids;
@@ -95,7 +95,7 @@ class Graphics3D(Graphics):
      . \end{asy}
 
     #> Graphics3D[Point[Table[{Sin[t], Cos[t], 0}, {t, 0, 2. Pi, Pi / 15.}]]] // TeXForm
-     = 
+     = #<--#
      . \begin{asy}
      . import three;
      . import solids;

@@ -1122,6 +1122,10 @@ class DocTests(object):
     def test_indices(self):
         return [test.index for test in self.tests]
 
+# This string is used so we can indicate a trailing blank at the end of a line by
+# adding this string to the end of the line which gets stripped off.
+# Some editors and formatters like to strip off trailing blanks at the ends of lines.
+END_LINE_SENTINAL = "#<--#"
 
 class DocTest(object):
     """
@@ -1139,6 +1143,24 @@ class DocTest(object):
       `|`  Prints output.
     """
     def __init__(self, index, testcase):
+
+        def strip_sentinal(line):
+            """Remove END_LINE_SENTINAL from the end of a line if it appears.
+
+            Some editors like to strip blanks at the end of a line.
+            Since the line ends in END_LINE_SENTINAL which isn't blank,
+            any blanks that appear before will be preserved.
+
+            Some tests require some lines to be blank or entry because
+            Mathics output can be that way
+            """
+            if line.endswith(END_LINE_SENTINAL):
+                line = line[:-len(END_LINE_SENTINAL)]
+
+            # Also remove any remaining trailing blanks since that
+            # seems *also* what we want to do.
+            return line.strip()
+
         self.index = index
         self.result = None
         self.outs = []
@@ -1155,16 +1177,12 @@ class DocTest(object):
         else:
             self.ignore = False
 
-        self.test = testcase[1].strip()
-
-        # This allows a trailing blank at the end of the line for those ofus use use editors that like
-        # to strip trailing blanks at the ends of lines.
-        self.test = self.test.rstrip("#<--#")
+        self.test = strip_sentinal(testcase[1])
 
         self.key = None
         outs = testcase[2].splitlines()
         for line in outs:
-            line = line.strip()
+            line = strip_sentinal(line)
             if line:
                 if line.startswith('.'):
                     text = line[1:]
