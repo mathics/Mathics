@@ -3,7 +3,7 @@
 # cython: language_level=3
 
 """
-Graphics
+Drawing Graphics
 """
 
 
@@ -371,9 +371,24 @@ class Show(Builtin):
 class Graphics(Builtin):
     r"""
     <dl>
-    <dt>'Graphics[$primitives$, $options$]'
-        <dd>represents a graphic.
+      <dt>'Graphics[$primitives$, $options$]'
+      <dd>represents a graphic.
     </dl>
+
+    Options include:
+
+    <ul>
+      <li>Axes</li>
+      <li>TicksStyle</li>
+      <li>AxesStyle</li>
+      <li>LabelStyle</li>
+      <li>AspectRatio</li>
+      <li>PlotRange</li>
+      <li>PlotRangePadding</li>
+      <li>ImageSize</li>
+      <li>Background</li>
+    <li>
+    </ul>
 
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]
      = -Graphics-

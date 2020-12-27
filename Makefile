@@ -41,7 +41,7 @@ develop:
 install:
 	$(PYTHON) setup.py install
 
-check: pytest gstest
+check: pytest gstest doctest
 
 #: Remove derived files
 clean:

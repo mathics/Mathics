@@ -207,11 +207,68 @@ class ColorData(Builtin):
         return palette.colors()
 
 
+# Note In defining these class, documentation is given for them
+
+class Axis(Builtin):
+    """
+    <dl>
+      <dt>'Axis'
+      <dd>is a possible value for the 'Filling' option.
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
+     = -Graphics-
+    """
+
+class Bottom(Builtin):
+    """
+    <dl>
+      <dt>'Bottom'
+      <dd>is a possible value for the 'Filling' option.
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
+     = -Graphics-
+    """
+
+class Filling(Builtin):
+    """
+    <dl>
+      <dt>'Filling Top |Bottom|Axis'
+      <dd>is a an option to Plot to specify what filling to add under point, curves, and surfaces
+    </dl>
+
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
+     = -Graphics-
+    """
+
+
+class Full(Builtin):
+    """
+    <dl>
+      <dt>'Full'
+      <dd>is a possible value for the 'Mesh' and 'PlotRange' options.
+    </dl>
+    """
+
+
+class Joined(Builtin):
+    """
+    <dl>
+      <dt>'Joined $boolean$'
+      <dd>is an option for 'Plot' that gives whether to join points to make lines.
+    </dl>
+  
+    >> ListPlot[Table[n ^ 2, {n, 10}], Joined->True]
+     = -Graphics-
+    """
+
+
 class Mesh(Builtin):
     """
     <dl>
-    <dt>'Mesh'
-        <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
+       <dt>'Mesh'
+      <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
      </dl>
 
     >> Plot[Sin[Cos[x^2]],{x,-4,4},Mesh->All]
@@ -232,12 +289,27 @@ class Mesh(Builtin):
     }
 
 
-class Full(Builtin):
+class PlotPoints(Builtin):
     """
     <dl>
-    <dt>'Full'
-        <dd>is a possible value for the 'Mesh' and 'PlotRange' options.
+      <dt>'PlotPoints $n$'
+      <dd>A number specifies how many initial sample points to use.
+     </dl>
+
+    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotPoints->22]
+     = -Graphics-
+    """
+
+
+class PlotRange(Builtin):
+    """
+    <dl>
+      <dt>'PlotRange $n$ | All | Automatic'
+      <dd>is an option for 'Plot' that gives the range of coordinates to include in a plot.
     </dl>
+
+    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotRange -> All]
+     = -Graphics-
     """
 
 
@@ -248,33 +320,10 @@ class Top(Builtin):
         <dd>is a possible value for the 'Filling' option.
     </dl>
 
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Top]
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis|Top|Bottom]
      = -Graphics-
     """
 
-
-class Bottom(Builtin):
-    """
-    <dl>
-    <dt>'Bottom'
-        <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
-     = -Graphics-
-    """
-
-
-class Axis(Builtin):
-    """
-    <dl>
-    <dt>'Axis'
-        <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
-     = -Graphics-
-    """
 
 
 def extract_pyreal(value):
