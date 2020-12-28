@@ -9,6 +9,19 @@ from itertools import chain
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
+WL_TO_UNICODE_TABLE = {
+    "": "Ạ",
+    "": "ạ",
+    "": "Ḅ",
+    "": "ḅ",
+    # ...
+    "": "→",
+    "": "↔",
+} 
+WL_REPLACE_DICT = dict((re.escape(k), v) for k, v in WL_TO_UNICODE_TABLE)
+WL_REPLACE_RE = re.compile("|".join(WL_REPLACE_DICT.keys()))
+UNICODE_REPLACE_DICT = dict((re.escape(v), k) for k, v in WL_TO_UNICODE_TABLE)
+UNICODE_REPLACE_RE = re.compile("|".join(UNICODE_REPLACE_DICT.keys()))
 
 def interpolate_string(text, get_param) -> str:
     index = [1]
@@ -214,3 +227,21 @@ def robust_min(iterable):
         if minimum is None or i < minimum:
             minimum = i
     return minimum
+
+def replace_wl_with_unicode(wl_input: str) -> str:
+    """WL uses some non-unicode character for various things.
+    Replace them with the unicode equivalent.
+    """
+    return WL_REPLACE_RE.sub(
+        lambda m: WL_REPLACE_DICT[re.escape(m.group(0))], wl_input
+    )
+
+def replace_unicode_with_wl(unicode_input: str) -> str:
+    """WL uses some non-unicode character for various things.
+    Replace their unicode equivalent with them.
+    """
+    return UNICODE_REPLACE_RE.sub(
+        lambda m: UNICODE_REPLACE_DICT[re.escape(m.group(0))], unicode_input
+    )
+
+
