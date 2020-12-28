@@ -18,9 +18,9 @@ WL_TO_UNICODE_TABLE = {
     "": "→",
     "": "↔",
 } 
-WL_REPLACE_DICT = dict((re.escape(k), v) for k, v in WL_TO_UNICODE_TABLE)
+WL_REPLACE_DICT = dict((re.escape(k), v) for k, v in WL_TO_UNICODE_TABLE.items())
 WL_REPLACE_RE = re.compile("|".join(WL_REPLACE_DICT.keys()))
-UNICODE_REPLACE_DICT = dict((re.escape(v), k) for k, v in WL_TO_UNICODE_TABLE)
+UNICODE_REPLACE_DICT = dict((re.escape(v), k) for k, v in WL_TO_UNICODE_TABLE.items())
 UNICODE_REPLACE_RE = re.compile("|".join(UNICODE_REPLACE_DICT.keys()))
 
 def interpolate_string(text, get_param) -> str:
