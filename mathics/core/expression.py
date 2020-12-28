@@ -1866,9 +1866,10 @@ class Symbol(Atom):
         return (self.name, self.sympy_dummy)
 
 # Some common Symbols
-SymbolTrue = Symbol("True")
 SymbolFalse = Symbol("False")
+SymbolFailed = Symbol("$Failed")
 SymbolNull = Symbol("Null")
+SymbolTrue = Symbol("True")
 
 class Number(Atom):
     def __str__(self) -> str:

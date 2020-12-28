@@ -30,6 +30,7 @@ from mathics.core.expression import (
     Complex,
     String,
     Symbol,
+    SymbolFailed,
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
@@ -713,7 +714,7 @@ class Read(Builtin):
         for typ in types.leaves:
             if typ not in READ_TYPES:
                 evaluation.message("Read", "readf", typ)
-                return Symbol("$Failed")
+                return SymbolFailed
 
         # Options
         # TODO Implement extra options
@@ -787,7 +788,7 @@ class Read(Builtin):
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
-                        return Symbol("$Failed")
+                        return SymbolFailed
                     result.append(tmp)
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
@@ -800,7 +801,7 @@ class Read(Builtin):
                             evaluation.message(
                                 "Read", "readn", Expression("InputSteam", name, n)
                             )
-                            return Symbol("$Failed")
+                            return SymbolFailed
                     result.append(tmp)
 
                 elif typ == Symbol("Real"):
@@ -812,7 +813,7 @@ class Read(Builtin):
                         evaluation.message(
                             "Read", "readn", Expression("InputSteam", name, n)
                         )
-                        return Symbol("$Failed")
+                        return SymbolFailed
                     result.append(tmp)
                 elif typ == Symbol("Record"):
                     result.append(next(read_record))
@@ -2193,10 +2194,10 @@ class Get(PrefixOperator):
                     result = query.evaluate(evaluation)
         except IOError:
             evaluation.message("General", "noopen", path)
-            return Symbol("$Failed")
+            return SymbolFailed
         except MessageException as e:
             e.message(evaluation)
-            return Symbol("$Failed")
+            return SymbolFailed
         return result
 
     def apply_default(self, filename, evaluation):
@@ -2440,7 +2441,7 @@ class FindFile(Builtin):
         result = path_search(py_name)
 
         if result is None:
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return String(osp.abspath(result))
 
@@ -2849,7 +2850,7 @@ class AbsoluteFileName(Builtin):
             evaluation.message(
                 "AbsoluteFileName", "nffil", Expression("AbsoluteFileName", name)
             )
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return String(osp.abspath(result))
 
@@ -2991,7 +2992,7 @@ class ReadList(Read):
             if tmp is None:
                 return
 
-            if tmp == Symbol("$Failed"):
+            if tmp == SymbolFailed:
                 return
 
             if tmp == Symbol("EndOfFile"):
@@ -3022,7 +3023,7 @@ class ReadList(Read):
         for i in range(py_m):
             tmp = super(ReadList, self).apply(channel, types, evaluation, options)
 
-            if tmp == Symbol("$Failed"):
+            if tmp == SymbolFailed:
                 return
 
             if tmp.to_python() == "EndOfFile":
@@ -3099,7 +3100,7 @@ class FilePrint(Builtin):
             return
 
         if not osp.isfile(pypath):
-            return Symbol("$Failed")
+            return SymbolFailed
 
         try:
             with mathics_open(pypath, "r") as f:
@@ -3449,7 +3450,7 @@ class Find(Read):
                 evaluation.message(
                     "Find", "notfound", Expression("Find", channel, text)
                 )
-                return Symbol("$Failed")
+                return SymbolFailed
 
             for t in py_text:
                 if py_tmp.find(t) != -1:
@@ -3522,18 +3523,18 @@ class FindList(Builtin):
 
         if not all(isinstance(t, str) and t[0] == t[-1] == '"' for t in py_name):
             evaluation.message("FindList", "strs", "1", expr)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if not all(isinstance(t, str) and t[0] == t[-1] == '"' for t in py_text):
             evaluation.message("FindList", "strs", "2", expr)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if not ((isinstance(py_n, int) and py_n >= 0) or py_n is None):
             evaluation.message("FindList", "intnm", "3", expr)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if py_n == 0:
-            return Symbol("$Failed")
+            return SymbolFailed
 
         py_text = [t[1:-1] for t in py_text]
         py_name = [t[1:-1] for t in py_name]
@@ -4052,7 +4053,7 @@ class SetFileDate(Builtin):
 
         if py_filename is None:
             evaluation.message("SetFileDate", "nffil", expr)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         # Check datelist
         if not (
@@ -4086,10 +4087,10 @@ class SetFileDate(Builtin):
             if py_attr == '"Creation"':
                 if os.name == "posix":
                     evaluation.message("SetFileDate", "nocreationunix")
-                    return Symbol("$Failed")
+                    return SymbolFailed
                 else:
                     # TODO: Note: This is windows only
-                    return Symbol("$Failed")
+                    return SymbolFailed
             if py_attr == '"Modification"':
                 os.utime(py_filename, (osp.getatime(py_filename), stattime))
             if py_attr == "All":
@@ -4097,7 +4098,7 @@ class SetFileDate(Builtin):
         except OSError as e:
             print(e)
             # evaluation.message(...)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return SymbolNull
 
@@ -4153,11 +4154,11 @@ class CopyFile(Builtin):
 
         if py_source is None:
             evaluation.message("CopyFile", "filex", source)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if osp.exists(py_dest):
             evaluation.message("CopyFile", "filex", dest)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         try:
             shutil.copy(py_source, py_dest)
@@ -4165,7 +4166,7 @@ class CopyFile(Builtin):
             evaluation.message(
                 "CopyFile", "nffil", Expression("CopyFile", source, dest)
             )
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return dest
 
@@ -4215,17 +4216,17 @@ class RenameFile(Builtin):
 
         if py_source is None:
             evaluation.message("RenameFile", "filex", source)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if osp.exists(py_dest):
             evaluation.message("RenameFile", "filex", dest)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         try:
             shutil.move(py_source, py_dest)
         except IOError:
             evaluation.message("RenameFile", "nffil", dest)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return dest
 
@@ -4280,14 +4281,14 @@ class DeleteFile(Builtin):
                 evaluation.message(
                     "DeleteFile", "nffil", Expression("DeleteFile", filename)
                 )
-                return Symbol("$Failed")
+                return SymbolFailed
             py_paths.append(path)
 
         for path in py_paths:
             try:
                 os.remove(path)
             except OSError:
-                return Symbol("$Failed")
+                return SymbolFailed
 
         return SymbolNull
 
@@ -4411,12 +4412,12 @@ class SetDirectory(Builtin):
 
         if py_path is None or not osp.isdir(py_path):
             evaluation.message("SetDirectory", "cdir", path)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         try:
             os.chdir(py_path)
         except:
-            return Symbol("$Failed")
+            return SymbolFailed
 
         DIRECTORY_STACK.append(os.getcwd())
         return String(os.getcwd())
@@ -4564,14 +4565,14 @@ class DeleteDirectory(Builtin):
 
         if not osp.isdir(py_dirname):
             evaluation.message("DeleteDirectory", "nodir", dirname)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         if delete_contents:
             shutil.rmtree(py_dirname)
         else:
             if os.listdir(py_dirname) != []:
                 evaluation.message("DeleteDirectory", "dirne", dirname)
-                return Symbol("$Failed")
+                return SymbolFailed
             os.rmdir(py_dirname)
 
         return SymbolNull
@@ -4617,10 +4618,10 @@ class CopyDirectory(Builtin):
 
         if not osp.isdir(dir1):
             evaluation.message("CopyDirectory", "nodir", seq[0])
-            return Symbol("$Failed")
+            return SymbolFailed
         if osp.isdir(dir2):
             evaluation.message("CopyDirectory", "filex", seq[1])
-            return Symbol("$Failed")
+            return SymbolFailed
 
         shutil.copytree(dir1, dir2)
 
@@ -4667,10 +4668,10 @@ class RenameDirectory(Builtin):
 
         if not osp.isdir(dir1):
             evaluation.message("RenameDirectory", "nodir", seq[0])
-            return Symbol("$Failed")
+            return SymbolFailed
         if osp.isdir(dir2):
             evaluation.message("RenameDirectory", "filex", seq[1])
-            return Symbol("$Failed")
+            return SymbolFailed
 
         shutil.move(dir1, dir2)
 
@@ -4940,8 +4941,8 @@ class Needs(Builtin):
 
         result = Expression('Get', context).evaluate(evaluation)
 
-        if result == Symbol("$Failed"):
+        if result == SymbolFailed:
             evaluation.message("Needs", "nocont", context)
-            return Symbol("$Failed")
+            return SymbolFailed
 
         return SymbolNull
