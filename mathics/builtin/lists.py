@@ -2128,7 +2128,6 @@ class Range(Builtin):
             index += di
         return Expression('List', *result)
 
-
 class _IterationFunction(Builtin):
     """
     >> Sum[k, {k, Range[5]}]
@@ -2242,8 +2241,9 @@ class _IterationFunction(Builtin):
         di = di.evaluate(evaluation)
 
         result = []
+        compare_type = "GreaterEqual" if Expression('Less', di, Integer(0)).evaluate(evaluation).to_python() else "LessEqual"
         while True:
-            cont = Expression('LessEqual', index, imax).evaluate(evaluation)
+            cont = Expression(compare_type, index, imax).evaluate(evaluation)
             if cont == Symbol('False'):
                 break
             if not cont.is_true():
@@ -2548,11 +2548,35 @@ class Catenate(Builtin):
             e.message(evaluation)
 
 
+class Insert(Builtin):
+    """
+    <dl>
+      <dt>'Insert[$list$, $elem$, $n$]'
+      <dd>inserts $elem$ at position $n$ in $list$. When $n$ is negative, the position is counted from the end.
+    </dl>
+
+    >> Insert[{a,b,c,d,e}, x, 3]
+     = {a, b, x, c, d, e}
+
+    >> Insert[{a,b,c,d,e}, x, -2]
+     = {a, b, c, d, x, e}
+    """
+    def apply(self, expr, elem, n, evaluation):
+        'Insert[expr_List, elem_, n_Integer]'
+
+        py_n = n.to_python()
+        new_list = list(expr.get_leaves())
+
+        position = py_n - 1 if py_n > 0 else py_n + 1
+        new_list.insert(position, elem)
+        return expr.restructure(
+            expr.head, new_list, evaluation, deps=(expr, elem))
+
 class Append(Builtin):
     """
     <dl>
-    <dt>'Append[$expr$, $item$]'
-        <dd>returns $expr$ with $item$ appended to its leaves.
+      <dt>'Append[$expr$, $elem$]'
+      <dd>returns $expr$ with $elem$ appended.
     </dl>
 
     >> Append[{1, 2, 3}, 4]
