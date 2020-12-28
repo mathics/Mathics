@@ -39,8 +39,9 @@ def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
     This function walks the expression `expr` and deleting occurrencies of `pattern`
 
     If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
-   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
-   n indicates the number of occurrences to return. By default, it returns all the occurences.
+
+    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
     nothing = Symbol("System`Nothing")
     from mathics.builtin.patterns import Matcher
@@ -104,9 +105,11 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n
     """
     This function walks the expression `expr` looking for a pattern `pattern`
     and returns the positions of each occurence.
+
     If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
-   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
-   n indicates the number of occurrences to return. By default, it returns all the occurences.
+
+    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
     from mathics.builtin.patterns import Matcher
     match = Matcher(pattern)
@@ -2754,7 +2757,7 @@ class Tuples(Builtin):
     """
 
     def apply_n(self, expr, n, evaluation):
-        'Tuples[expr_, n_]'
+        'Tuples[expr_, n_Integer]'
 
         if expr.is_atom():
             evaluation.message('Tuples', 'normal')

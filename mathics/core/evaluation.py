@@ -57,6 +57,7 @@ class WLThrowInterrupt(EvaluationInterrupt):
         self.value = value
 
 
+
 def _thread_target(request, queue) -> None:
     try:
         result = request()
