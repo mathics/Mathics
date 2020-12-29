@@ -1125,7 +1125,8 @@ class Expression(BaseExpression):
 
         old_options = evaluation.options
         evaluation.inc_recursion_depth()
-
+        if evaluation.timeout:
+            return
         try:
             while reevaluate:
                 # changed before last evaluated?
@@ -1870,6 +1871,8 @@ SymbolFalse = Symbol("False")
 SymbolFailed = Symbol("$Failed")
 SymbolNull = Symbol("Null")
 SymbolTrue = Symbol("True")
+SymbolAborted = Symbol("$Aborted")
+SymbolInfinity = Symbol("Infinity")
 
 class Number(Atom):
     def __str__(self) -> str:
