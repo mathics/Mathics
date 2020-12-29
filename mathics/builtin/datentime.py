@@ -13,8 +13,11 @@ import re
 from mathics.core.expression import (Expression, Real, Symbol, String, Integer,
                                      from_python)
 
+from mathics.core.evaluation import (TimeoutInterrupt, _thread_target, run_with_timeout_and_stack)
+
 from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import TIME_12HOUR
+
 
 START_TIME = time.time()
 
@@ -77,6 +80,95 @@ if not hasattr(timedelta, 'total_seconds'):
                      (td.seconds + td.days * 24 * 3600) * 10 ** 6) / 10 ** 6
 else:
     total_seconds = timedelta.total_seconds
+
+
+class TimeRemaining(Builtin):
+    '''
+    <dl>
+    <dt>'TimeRemaining[]'
+        <dd>'Gives the number of seconds remaining until the earliest enclosing TimeConstrained will request the current computation to stop.'
+    <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
+        <dd>'returns $failexpr$ if the time constraint is not met.'
+    </dl>
+    '''
+
+    def apply(self, evaluation):
+        'TimeRemaining[]'
+        if len(evaluation.timeout_queue) >0:
+            t, start_time = evaluation.timeout_queue[-1]
+            curr_time = datetime.now().timestamp()
+            deltat = t + start_time - curr_time
+            return Real(deltat)
+        else:
+            return Symbol("System`Infinity")
+
+
+class TimeConstrained(Builtin):
+    """
+    <dl>
+    <dt>'TimeConstrained[$expr$, $t$]'
+        <dd>'evaluates $expr$, stopping after $t$ seconds.'
+    <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
+        <dd>'returns $failexpr$ if the time constraint is not met.'
+    </dl>
+    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}],1]
+    = $Aborted
+
+    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}],1, Integrate[Cos[x],x]
+    = Sin[x]
+
+    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}], a]
+    = TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}], a]
+
+    """
+
+    attributes = ('HoldAll',)
+    messages = {
+        'timc': 'Number of seconds `1` is not a positive machine-sized number or Infinity.',
+    }
+
+    def apply_2(self, expr, t, evaluation):
+        'TimeConstrained[expr_, t_]'
+        t = t.evaluate(evaluation)
+        if not t.is_numeric():
+            evaluation.message('TimeConstrained','timc', t)
+            return
+        try:
+            t = float(t.to_python())
+            evaluation.timeout_queue.append((t, datetime.now().timestamp()))
+            request = lambda : expr.evaluate(evaluation)
+            res = run_with_timeout_and_stack(request, t)
+        except TimeoutInterrupt:
+            evaluation.timeout_queue.pop()
+            print("timout: returning symbol $Aborted")
+            return Symbol("System`$Aborted")
+        else:
+            evaluation.timeout_queue.pop()
+            raise
+
+        evaluation.timeout_queue.pop()
+        return res
+
+    def apply_3(self, expr, t, failexpr, evaluation):
+        'TimeConstrained[expr_, t_, failexpr_]'
+        print("TimeConstrained3")
+        t = t.evaluate(evaluation)
+        if not t.is_numeric():
+            evaluation.message('TimeConstrained', 'timc', t)
+            return
+        try:
+            t = float(t.to_python())
+            evaluation.timeout_queue.append((t, datetime.now().timestamp()))
+            request = lambda : expr.evaluate(evaluation)
+            res = run_with_timeout_and_stack(request, t)
+        except TimeoutInterrupt:
+            evaluation.timeout_queue.pop()
+            return failexpr.evaluate(evaluation)
+        else:
+            evaluation.timeout_queue.pop()
+            raise
+        evaluation.timeout_queue.pop()
+        return res
 
 
 class Timing(Builtin):

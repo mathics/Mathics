@@ -98,7 +98,7 @@ def set_python_recursion_limit(n) -> None:
 
 def run_with_timeout_and_stack(request, timeout):
     """
-    interrupts evaluation after a given time period. provides a suitable stack environment.
+    interrupts evaluation after a given time period. Provides a suitable stack environment.
     """
 
     # only use set_thread_stack_size if max recursion depth was changed via the environment variable
@@ -209,7 +209,11 @@ class Output(object):
 
 class Evaluation(object):
     def __init__(
-        self, definitions=None, output=None, format="text", catch_interrupt=True
+            self,
+            definitions=None,
+            output=None,
+            format="text",
+            catch_interrupt=True
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
@@ -219,6 +223,7 @@ class Evaluation(object):
         self.definitions = definitions
         self.recursion_depth = 0
         self.timeout = False
+        self.timeout_queue = []
         self.stopped = False
         self.out = []
         self.output = output if output else Output()
