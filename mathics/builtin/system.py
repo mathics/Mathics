@@ -12,10 +12,18 @@ import platform
 import sys
 import re
 
-from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Real,
+    String,
+    Symbol,
+    SymbolFailed,
+    strip_context,
+)
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
-from mathics.builtin.strings import StringExpression, to_regex
+from mathics.builtin.strings import to_regex
 
 
 class Aborted(Predefined):
@@ -76,12 +84,10 @@ class Environment(Builtin):
     """
 
     def apply(self, var, evaluation):
-        "Environment[var_]"
-        if not isinstance(var, String):
-            return
+        "Environment[var_?StringQ]"
         env_var = var.get_string_value()
         if env_var not in os.environ:
-            return Symbol("$Failed")
+            return SymbolFailed
         else:
             return String(os.environ[env_var])
 
@@ -168,8 +174,8 @@ class MachineName(Predefined):
 class Names(Builtin):
     """
     <dl>
-    <dt>'Names["$pattern$"]'
-        <dd>returns the list of names matching $pattern$.
+      <dt>'Names["$pattern$"]'
+      <dd>returns the list of names matching $pattern$.
     </dl>
 
     >> Names["List"]
@@ -385,3 +391,23 @@ class Version(Predefined):
 
     def evaluate(self, evaluation) -> String:
         return String(version_string.replace("\n", " "))
+
+
+class VersionNumber(Predefined):
+    r"""
+    <dl>
+      <dt>'$VersionNumber'
+      <dd>is a real number which gives the current Wolfram Language version that \Mathics tries to be compatible with.
+    </dl>
+
+    >> $VersionNumber
+    = ...
+    """
+
+    name = "$VersionNumber"
+    value = 6.0
+
+    def evaluate(self, evaluation) -> Real:
+        # Make this be whatever the latest Mathematica release is,
+        # assuming we are trying to be compatible with this.
+        return Real(self.value)

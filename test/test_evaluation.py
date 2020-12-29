@@ -2,9 +2,6 @@
 from .helper import session, check_evaluation
 
 import sys
-from mathics.core.parser import parse, SingleLineFeeder
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
 import pytest
 
 @pytest.mark.parametrize(
@@ -46,7 +43,7 @@ import pytest
         ),
     ],
 )
-def check_evaluation(str_expr: str, str_expected: str, message=""):
+def test_evaluation(str_expr: str, str_expected: str, message=""):
     result = session.evaluate(str_expr)
     expected = session.evaluate(str_expected)
 

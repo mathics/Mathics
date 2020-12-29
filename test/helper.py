@@ -1,3 +1,7 @@
+import time
+from mathics.core.parser import parse, SingleLineFeeder
+from mathics.core.definitions import Definitions
+from mathics.core.evaluation import Evaluation
 from mathics.session import MathicsSession
 
 session = MathicsSession(add_builtin=True, catch_interrupt=False)
@@ -8,6 +12,8 @@ def check_evaluation(str_expr: str, str_expected: str, message=""):
     result = session.evaluate(str_expr)
     expected = session.evaluate(str_expected)
 
+    print(time.asctime())
+    print(message)
     if message:
         assert result == expected, message
     else:

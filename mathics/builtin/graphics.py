@@ -3,7 +3,7 @@
 # cython: language_level=3
 
 """
-Graphics
+Drawing Graphics
 """
 
 
@@ -21,6 +21,18 @@ from mathics.core.expression import (
 from mathics.builtin.colors import convert as convert_color
 from mathics.core.numbers import machine_epsilon
 
+GRAPHICS_OPTIONS = {
+    'Axes': 'False',
+    'TicksStyle': '{}',
+    'AxesStyle': '{}',
+    'LabelStyle': '{}',
+    'AspectRatio': 'Automatic',
+    'PlotRange': 'Automatic',
+    'PlotRangePadding': 'Automatic',
+    'ImageSize': 'Automatic',
+    'Background': 'Automatic',
+    '$OptionSyntax': 'Ignore',
+    }
 
 class CoordinatesError(BoxConstructError):
     pass
@@ -28,6 +40,7 @@ class CoordinatesError(BoxConstructError):
 
 class ColorError(BoxConstructError):
     pass
+
 
 
 def get_class(name):
@@ -336,12 +349,59 @@ class _ASYTransform():
         return self._template % (' * '.join(self.transforms), asy)
 
 
+class Show(Builtin):
+    """
+    <dl>
+      <dt>'Show[$graphpics$, $options$]'
+      <dd>shows graphics with the specified options added.
+    </dl>
+    """
+    options = GRAPHICS_OPTIONS
+    def apply(self, graphics, evaluation, options):
+        '''Show[graphics_, OptionsPattern[%(name)s]]'''
+
+        for option in options:
+            if option not in ('System`ImageSize',):
+                options[option] = Expression(
+                    'N', options[option]).evaluate(evaluation)
+
+        # The below could probably be done with graphics.filter..
+        new_leaves = []
+        options_set = set(options.keys())
+        for leaf in graphics.leaves:
+            new_leaf = leaf
+            leaf_name = leaf.get_head_name()
+            if leaf_name == "System`Rule" and str(leaf.leaves[0]) in options_set:
+                continue
+            new_leaves.append(leaf)
+
+        new_leaves += options_to_rules(options)
+        graphics = graphics.restructure(graphics.head, new_leaves, evaluation)
+
+        return graphics
+
+
 class Graphics(Builtin):
     r"""
     <dl>
-    <dt>'Graphics[$primitives$, $options$]'
-        <dd>represents a graphic.
+      <dt>'Graphics[$primitives$, $options$]'
+      <dd>represents a graphic.
     </dl>
+
+    Options include:
+
+    <ul>
+      <li>Axes</li>
+      <li>TicksStyle</li>
+      <li>AxesStyle</li>
+      <li>LabelStyle</li>
+      <li>AspectRatio</li>
+      <li>PlotRange</li>
+      <li>PlotRangePadding</li>
+      <li>ImageSize</li>
+      <li>Background</li>
+    <li>
+    </ul>
 
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]
      = -Graphics-
@@ -359,7 +419,7 @@ class Graphics(Builtin):
 
     In 'TeXForm', 'Graphics' produces Asymptote figures:
     >> Graphics[Circle[]] // TeXForm
-     = 
+     = #<--#
      . \begin{asy}
      . usepackage("amsmath");
      . size(5.8556cm, 5.8333cm);
@@ -368,18 +428,7 @@ class Graphics(Builtin):
      . \end{asy}
     """
 
-    options = {
-        'Axes': 'False',
-        'TicksStyle': '{}',
-        'AxesStyle': '{}',
-        'LabelStyle': '{}',
-        'AspectRatio': 'Automatic',
-        'PlotRange': 'Automatic',
-        'PlotRangePadding': 'Automatic',
-        'ImageSize': 'Automatic',
-        'Background': 'Automatic',
-        '$OptionSyntax': 'Ignore',
-    }
+    options = GRAPHICS_OPTIONS
 
     box_suffix = 'Box'
 
