@@ -90,6 +90,10 @@ class TimeRemaining(Builtin):
     <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
         <dd>'returns $failexpr$ if the time constraint is not met.'
     </dl>
+
+    >> TimeConstrained[Pause[1];Print[Round[TimeRemaining[]]],3]
+     | 2
+     
     '''
 
     def apply(self, evaluation):
@@ -111,14 +115,18 @@ class TimeConstrained(Builtin):
     <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
         <dd>'returns $failexpr$ if the time constraint is not met.'
     </dl>
-    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}],1]
+    >> TimeConstrained[Integrate[Sin[x]^1000000,x],1]
     = $Aborted
 
-    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}],1, Integrate[Cos[x],x]
+    >> TimeConstrained[Integrate[Sin[x]^1000000,x], 1, Integrate[Cos[x],x]]
     = Sin[x]
 
-    >> TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}], a]
-    = TimeConstrained[Do[Integrate[Sin[x]^i,x],{i,1000000000}], a]
+    >> s=TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+     : Number of seconds a is not a positive machine-sized number or Infinity.
+     = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+
+    >> a=1; s
+    = -Cos[x] + Cos[x] ^ 3 / 3
 
     """
 
@@ -140,9 +148,8 @@ class TimeConstrained(Builtin):
             res = run_with_timeout_and_stack(request, t)
         except TimeoutInterrupt:
             evaluation.timeout_queue.pop()
-            print("timout: returning symbol $Aborted")
             return Symbol("System`$Aborted")
-        else:
+        except:
             evaluation.timeout_queue.pop()
             raise
 
@@ -151,7 +158,6 @@ class TimeConstrained(Builtin):
 
     def apply_3(self, expr, t, failexpr, evaluation):
         'TimeConstrained[expr_, t_, failexpr_]'
-        print("TimeConstrained3")
         t = t.evaluate(evaluation)
         if not t.is_numeric():
             evaluation.message('TimeConstrained', 'timc', t)
@@ -164,7 +170,7 @@ class TimeConstrained(Builtin):
         except TimeoutInterrupt:
             evaluation.timeout_queue.pop()
             return failexpr.evaluate(evaluation)
-        else:
+        except:
             evaluation.timeout_queue.pop()
             raise
         evaluation.timeout_queue.pop()
