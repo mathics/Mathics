@@ -350,7 +350,11 @@ def main() -> int:
     while True:
         try:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
-            query = evaluation.parse_feeder(shell)
+            query, source_code = evaluation.parse_feeder_returning_code(shell)
+            if len(source_code) and source_code[0] == "!":
+                os.system(source_code[1:])
+                shell.definitions.increment_line_no(1)
+                continue
             if query is None:
                 continue
             if args.full_form:
