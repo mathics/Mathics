@@ -25,6 +25,8 @@ from mathics.core.expression import (
 from mathics.core.numbers import (
     dps, convert_base, machine_precision, reconstruct_digits)
 
+from mathics.core.evaluation import Print as EvaluationPrint
+
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
 
@@ -1336,8 +1338,13 @@ class Check(Builtin):
             except Exception as inst :
                 evaluation.message('Check', 'name', inst.args[0])
                 return
+            curr_msg = len(evaluation.out)
             result = expr.evaluate(evaluation)
-            for out_msg in evaluation.out:
+            newmessages = evaluation.out[curr_msg:]
+            for out_msg in newmessages:
+                print("out_msg=", out_msg, " of class", type(out_msg))
+                if type(out_msg) is EvaluationPrint:
+                    continue
                 pattern = Expression('MessageName', Symbol(out_msg.symbol), String(out_msg.tag))
                 if pattern in check_messages:
                     display_fail_expr = True
