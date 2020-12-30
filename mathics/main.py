@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-import os
 import argparse
-import re
 import locale
+import os
+import re
+import subprocess
+import sys
 
 from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
@@ -352,7 +353,7 @@ def main() -> int:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             query, source_code = evaluation.parse_feeder_returning_code(shell)
             if len(source_code) and source_code[0] == "!":
-                os.system(source_code[1:])
+                subprocess.run(source_code[1:], shell=True)
                 shell.definitions.increment_line_no(1)
                 continue
             if query is None:
