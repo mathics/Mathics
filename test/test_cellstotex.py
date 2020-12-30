@@ -65,7 +65,7 @@ def test_load_and_run():
     if result1 == Symbol("System`$Failed"):
         return 0
 
-    str_expr2 = 'Options[CellToTeX]={"CatchExceptions"->False};CellToTeX[Cell[BoxData[MakeBoxes[Subscript[x, 1] == (-b \\[PlusMinus] Sqrt[b^2 - 4 a c])/(2 a)]], "Input"], CatchExceptions->False]'
+    str_expr2 = 'Catch[CellToTeX[Cell[BoxData[MakeBoxes[Subscript[x, 1] == (-b \\[PlusMinus] Sqrt[b^2 - 4 a c])/(2 a)]], "Input"]]]'
     str_expected2 = '"\\begin{mmaCell}{Input}\\n  \\mmaSub{x}{1}==\\mmaFrac{-b\\(\\pmb{\\pm}\\)\\mmaSqrt{\\mmaSup{b}{2}-4 a c}}{2 a}\\n\\end{mmaCell}"'
     message2 = ""
     result2 = _evaluate(str_expr2)

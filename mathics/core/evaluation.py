@@ -372,9 +372,9 @@ class Evaluation(object):
                 self.exc_result = Symbol("$Aborted")
             except ReturnInterrupt as ret:
                 self.exc_result = ret.expr
-            except WLThrowInterrupt as ret:
-                self.message("Throw", "nocatch", Expression("System`HoldForm", ret.expr))
-                return Symbol("System`Null")
+#            except WLThrowInterrupt as ret:
+#                self.message("Throw", "nocatch", Expression("System`HoldForm", ret.expr))
+#                return Symbol("System`Null")
             if self.exc_result is not None:
                 self.recursion_depth = 0
                 if self.exc_result != self.SymbolNull:

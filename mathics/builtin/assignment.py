@@ -157,6 +157,7 @@ class _SetOperator(object):
             allow_custom_tag = True
 
         focus = focus.evaluate_leaves(evaluation)
+
         if tags is None and not upset:
             name = focus.get_lookup_name()
             if not name:
@@ -481,6 +482,7 @@ class SetDelayed(Set):
 
     def apply(self, lhs, rhs, evaluation):
         'lhs_ := rhs_'
+
         if self.assign(lhs, rhs, evaluation):
             return Symbol('Null')
         else:
@@ -1033,7 +1035,7 @@ class Clear(Builtin):
      : Symbol Sin is Protected.
     The values and rules associated with built-in symbols will not get lost when applying 'Clear'
     (after unprotecting them):
-    >> Unprotect[Sin];
+    >> Unprotect[Sin]
     >> Clear[Sin]
     >> Sin[Pi]
      = 0
@@ -1084,6 +1086,7 @@ class Clear(Builtin):
                 if pattern[0] == "`":
                     pattern = (evaluation.definitions.get_current_context()
                                + pattern[1:])
+
                 names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
@@ -1095,6 +1098,7 @@ class Clear(Builtin):
                     continue
                 definition = evaluation.definitions.get_user_definition(name)
                 self.do_clear(definition)
+
         return Symbol('Null')
 
     def apply_all(self, evaluation):
