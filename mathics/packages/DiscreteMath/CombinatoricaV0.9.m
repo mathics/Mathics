@@ -896,9 +896,9 @@ ToInversionVector[p_?PermutationQ] :=
 		]
 	]
 
+  (* 1.3.1 Inversion Vectors, Page 27 *)
 FromInversionVector[vec_List] :=
-	Module[{n=Length[vec]+1,i,p},
-		p={n};
+  Block[{n=Length[vec]+1,i,p={n}},
 		Do [
 			p = Insert[p, i, vec[[i]]+1],
 			{i,n-1,1,-1}

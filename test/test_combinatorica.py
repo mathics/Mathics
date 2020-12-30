@@ -12,6 +12,8 @@ session.evaluate(
 #  * Computation Discrete Mathematics by Sriram Pemmaraju and Steven Skiena.
 
 # Page numbers below come from the first book
+# Some tests have been altered to speed them up, or to make the intent
+# more clear in a test.
 
 
 def test_combinatorica_permutations_1_1():
@@ -122,9 +124,9 @@ def test_combinatorica_permutations_1_2():
             "Symmetric group S_n. S_n is not commutative. 1.2 Page 17",
         ),
         (
-            "InversePermutation[{4,8,5,2,1,3,7,6}]",
-            "{5, 4, 6, 1, 3, 8, 7, 2}",
-            "InversePermutation: 7 is fixed point. 1.2 Page 18",
+            "p = {3, 1, 2, 4}; InversePermutation[p][[4]]",
+            "p[[4]]",
+            "InversePermutation: fixed points. 1.2 Page 18",
         ),
         (
             "star = Automorphisms[Star[5]]",
@@ -202,8 +204,8 @@ def test_combinatorica_permutations_1_2():
             "Permutations is not what we started with, 1.2.4, Page 23",
         ),
         (
-            "RevealCycles[ HideCycles[ToCycles[{6,2,1,5,4,3}]] ]",
-            "{{4, 5}, {2}, {1, 6, 3}}",
+            "RevealCycles[ HideCycles[ToCycles[{2,1,5,4,3}]] ]",
+            "{{4}, {3, 5}, {1, 2}}",
             "RevealCycles 1.2.4, Page 23",
         ),
         (
@@ -212,8 +214,8 @@ def test_combinatorica_permutations_1_2():
             "None of the permutations on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
         ),
         (
-            "{StirlingFirst[6,3], StirlingS1[6,3]}",
-            "{225, -225}",
+            "StirlingFirst[6,3]",
+            "-StirlingS1[6,3]",
             "StirlingFirst 1.2.4, Page 24",
         ),
         (
@@ -230,8 +232,8 @@ def test_combinatorica_permutations_1_2():
             "NumberOfPermutationsByCycles 1.2.4, Page 24",
         ),
         (
-            "{StirlingSecond[6,3], StirlingS2[6,3]}",
-            "{90, 90}",
+            "StirlingSecond[6,3]",
+            "StirlingS2[6,3]",
             "StirlingSecond 1.2.4, Page 24",
         ),
         (
@@ -240,8 +242,13 @@ def test_combinatorica_permutations_1_2():
             "SignaturePermutation 1.2.5, Page 25",
         ),
         (
-            "SignaturePermutation[p] == SignaturePermutation[InversePermutation[p]]",
-            "True",
+            "SignaturePermutation[Range[5]]",
+            "1",
+            "SignaturePermutation (added) 1.2.5, Page 25",
+        ),
+        (
+            "SignaturePermutation[p]",
+            "SignaturePermutation[InversePermutation[p]]",
             "A particular permutation has the same sign as its inverse 1.2.5, Page 25",
         ),
         (
@@ -275,6 +282,67 @@ def test_combinatorica_permutations_1_2():
         check_evaluation(str_expr, str_expected, message)
 
 
+def test_combinatorica_permutations_1_3():
+
+    for str_expr, str_expected, message in (
+        (
+            "p = {5,9,1,8,2,6,4,7,3}; ToInversionVector[p]",
+            "{2, 3, 6, 4, 0, 2, 2, 1}",
+            "ToInversionVector 1.3.1, Page 27",
+        ),
+        (
+            "FromInversionVector[ToInversionVector[p]]",
+            "p",
+            "FromInversionVector 1.3.1, Page 28",
+        ),
+        (
+            "h = InversePermutation[p]; "
+            "g = MakeGraph[Range[Length[p]], ((#1<#2 && h[[#1]]>h[[#2]]) || (#1>#2 && h[[#1]]<h[[#2]]))&]; "
+            "Inversions[p]",
+            "M[g]",
+            "Edges equals # of inversions 1.3.1, Page 28"
+        ),
+        (
+            "Inversions[p]",
+            "Inversions[InversePermutation[p]]",
+            "[Knu73b] 1.3.2, Page 29",
+        ),
+        (
+            "Inversions[Reverse[Range[8]]]",
+            "Binomial[8, 2]",
+            "# permutions is [0 .. Binomial(n 2)]; largest is reverse 1.3.2, Page 29",
+        ),
+        (
+            "Union [ Map[Inversions, Permutations[Range[4]]] ]",
+            "Range[0, 6]",
+            "Every one is realizable as ... 1.3.2, Page 29",
+        ),
+        (
+            "p = RandomPermutation[6]; Inversions[p] + Inversions[Reverse[p]]",
+            "Binomial[Length[p], 2]",
+            "A neat proof that ... 1.3.2, Page 29",
+        ),
+        (
+            "Select[Permutations[Range[4]], (Inversions[#]==3)&]",
+            "{{1, 4, 3, 2}, {2, 3, 4, 1}, {2, 4, 1, 3},"
+            " {3, 1, 4, 2}, {3, 2, 1, 4}, {4, 1, 2, 3}}",
+            "MacMahon theorem, 1.3.3 Page 30",
+        ),
+        (
+            "Select[Permutations[Range[4]], (Length[Runs[#]]==2)&]",
+            "{{1, 2, 4, 3}, {1, 3, 2, 4}, {1, 3, 4, 2}, {1, 4, 2, 3},"
+            " {2, 1, 3, 4}, {2, 3, 1, 4}, {2, 3, 4, 1}, {2, 4, 1, 3},"
+            " {3, 1, 2, 4}, {3, 4, 1, 2}, {4, 1, 2, 3}}",
+            "11 permutations of length 4 with 2 runs, 1.3.4, Page 31",
+        ),
+        (
+            "Eulerian[4,2]",
+            "11",
+            "Eulerian from [Knu73b], 1.3.4 Page 31",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
+
 def test_combinatorica_permutations_1_5():
 
     # We include this earlier since the above in fact rely on KSubsets
@@ -306,13 +374,9 @@ def test_combinatorica_permutations_1_5():
 
 def test_combinatorica_rest():
 
-    # Permutation[3] doesn't work
-    permutations3 = (
-        r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
-    )
     for str_expr, str_expected, message in (
         (
-            "Permute[{A, B, C, D}, %s]" % permutations3,
+            "Permute[{A, B, C, D}, Permutations[Range[3]]]",
             "{{A, B, C}, {A, C, B}, {B, A, C}, {B, C, A}, {C, A, B}, {C, B, A}}",
             "Permute",
         ),
