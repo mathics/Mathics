@@ -741,6 +741,7 @@ class Parser(object):
         else:
             return Node('SqrtBox', box1)
 
+        
     def b_SuperscriptBox(self, box1, token, p):
         q = misc_ops['SuperscriptBox']
         if q < p:
