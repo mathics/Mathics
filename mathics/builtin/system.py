@@ -11,6 +11,7 @@ import os
 import platform
 import sys
 import re
+import subprocess
 
 from mathics.core.expression import (
     Expression,
@@ -315,6 +316,22 @@ class ScriptCommandLine(Predefined):
             return Expression("List")
 
         return Expression("List", *(String(arg) for arg in sys.argv[dash_index + 1 :]))
+
+
+class Run(Builtin):
+    """
+    <dl>
+      <dt>'Run[$command$]'
+      <dd>runs command as an external operating system command, returning the exit code obtained.
+    </dl>
+    X> Run["date"]
+     = ...
+    """
+
+    def apply(self, command, evaluation):
+        "Run[command_?StringQ]"
+        command_str = command.to_python()
+        return Integer(subprocess.call(command_str, shell=True))
 
 
 class SystemID(Predefined):

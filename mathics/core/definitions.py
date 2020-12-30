@@ -684,6 +684,9 @@ class Definitions(object):
     def get_line_no(self):
         return self.get_config_value("$Line", 0)
 
+    def increment_line_no(self, increment:int=1) -> None:
+        self.set_config_value("$Line", self.get_line_no() + increment)
+
     def get_history_length(self):
         history_length = self.get_config_value("$HistoryLength", 100)
         if history_length is None or history_length > 100:
