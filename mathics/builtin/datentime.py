@@ -91,9 +91,9 @@ class TimeRemaining(Builtin):
         <dd>'returns $failexpr$ if the time constraint is not met.'
     </dl>
 
-    >> TimeConstrained[Pause[1];Print[Round[TimeRemaining[]]],3]
-     | 2
-     
+    >> TimeConstrained[1+2];Print[TimeRemaining[]]
+     | 2.9
+
     '''
 
     def apply(self, evaluation):
