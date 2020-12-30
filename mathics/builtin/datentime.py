@@ -102,14 +102,14 @@ class TimeRemaining(Builtin):
     """
     <dl>
       <dt>'TimeRemaining[]'
-      <dd>'Gives the number of seconds remaining until the earliest enclosing TimeConstrained will request the current computation to stop.
-        Without an enclosing TimeConstrained, TimeRemaining[] returns Infinity.
+      <dd>Gives the number of seconds remaining until the earliest enclosing 'TimeConstrained' will request the current computation to stop.
+          Without an enclosing TimeConstrained, 'TimeRemaining[]' returns 'Infinity'.
 
       <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
       <dd>'returns $failexpr$ if the time constraint is not met.'
     </dl>
 
-    >> TimeConstrained[1+2; Print[TimeRemaining[]], 0.9]
+    X> TimeConstrained[1+2; Print[TimeRemaining[]], 0.9]
      | 0.899318
 
     """
