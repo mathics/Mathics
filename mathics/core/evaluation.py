@@ -98,7 +98,7 @@ def set_python_recursion_limit(n) -> None:
 
 def run_with_timeout_and_stack(request, timeout):
     """
-    interrupts evaluation after a given time period. Provides a suitable stack environment.
+    Interrupts evaluation after a given time period. Provides a suitable stack environment.
     """
 
     # only use set_thread_stack_size if max recursion depth was changed via the environment variable
@@ -113,6 +113,19 @@ def run_with_timeout_and_stack(request, timeout):
     queue = Queue(maxsize=1)  # stores the result or exception
     thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
+
+    # FIXME: this isn't quite correct, since it
+    # From https://eli.thegreenplace.net/2011/08/22/how-not-to-set-a-timeout-on-a-computation-in-python:
+    #  Suppose the function didn't finish within the given timeout,
+    #  what happens to the thread after the exception is raised?
+    #  Nothing - it just keeps on happily running. If the function
+    #  call never returns for some reason, we've just made ourselves
+    #  a "zombie" thread that will continue executing, consuming CPU
+    #  resources.
+    #
+    #  What we really need to do is to somehow kill the thread if the
+    #  timeout expires. Whoops, we're in trouble. Threads can't be
+    #  killed in Python, and for a good reason.
 
     thread.join(timeout)
     if thread.is_alive():
