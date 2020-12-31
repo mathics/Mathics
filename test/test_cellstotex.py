@@ -22,7 +22,7 @@ else:
 
 definitions = Definitions(add_builtin=True)
 evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
-import_url = 'Import@"%s"' % external_url
+import_url = 'Unprotect[VersionNumber];VersionNumber=10;Protect[VersionNumber];Import@"%s"' % external_url
 
 
 def _evaluate(str_expression):
