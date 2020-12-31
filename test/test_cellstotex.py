@@ -22,7 +22,8 @@ else:
 
 definitions = Definitions(add_builtin=True)
 evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
-import_url = 'Unprotect[VersionNumber];VersionNumber=10;Protect[VersionNumber];Import@"%s"' % external_url
+set_versionnumber = 'Unprotect[VersionNumber];VersionNumber=11;Protect[VersionNumber];'
+import_url = 'Import@"%s"' % external_url
 
 
 def _evaluate(str_expression):
@@ -32,11 +33,10 @@ def _evaluate(str_expression):
 def test_load():
     str_expected1 = "{}"
     message1 = ""
+    _evaluate(set_versionnumber)
     result1 = _evaluate(import_url)
     expected1 = _evaluate(str_expected1)
 
-    #if result1 == Symbol("System`$Failed"):
-    #    return 0
 
     if message1:
         assert result1 == expected1, message1
@@ -58,6 +58,7 @@ def test_load_and_run():
     print("load and run")
     str_expected1 = "None"
     message1 = "Import::nffil: File not found during Import."
+    _evaluate(set_versionnumber)
     result1 = _evaluate(import_url)
     print(result1)
     expected1 = _evaluate(str_expected1)
@@ -65,13 +66,27 @@ def test_load_and_run():
     if result1 == Symbol("System`$Failed"):
         return 0
 
-    str_expr2 = 'Catch[CellToTeX[Cell[BoxData[MakeBoxes[Subscript[x, 1] == (-b \\[PlusMinus] Sqrt[b^2 - 4 a c])/(2 a)]], "Input"]]]'
-    str_expected2 = '"\\begin{mmaCell}{Input}\\n  \\mmaSub{x}{1}==\\mmaFrac{-b\\(\\pmb{\\pm}\\)\\mmaSqrt{\\mmaSup{b}{2}-4 a c}}{2 a}\\n\\end{mmaCell}"'
+    str_expr2 = 'boxes=MakeBoxes[(-b \[PlusMinus] Sqrt[b^2-4*a*c])/(2 a)];\
+                 cell = Cell[BoxData[boxes],"Input"];res=Catch[CellToTeX[cell]]'
+    str_expected2 = '"\\begin{mmaCell}{Input}\n  \\mmaFrac{-b\\(\\pmb{\\pm}\\)\\mmaSqrt{\\mmaSup{b}{2}-4 a c}}{2 a}\n\\end{mmaCell}"'
+    print(str_expr2)
     message2 = ""
     result2 = _evaluate(str_expr2)
     expected2 = _evaluate(str_expected2)
-    print("result:", result2)
     if message2:
         assert result2 == expected2, message2
     else:
         assert result2 == expected2
+
+    str_expr3 = 'boxes=MakeBoxes[Sqrt[Integrate[f[x],{x,a,b}]]];\
+                 cell = Cell[BoxData[boxes],"Input"];res=Catch[CellToTeX[cell]]'
+    print(str_expr3)
+
+    str_expected3 = '"\\begin{mmaCell}[morefunctionlocal={x}]{Input}\n  \\mmaSqrt{\\mmaSubSupM{\\int}{a}{b}f[x]dx}\n\\end{mmaCell}"'
+    message3 = ""
+    result3 = _evaluate(str_expr3)
+    expected3 = _evaluate(str_expected3)
+    if message3:
+        assert result3 == expected3, message3
+    else:
+        assert result3 == expected3
