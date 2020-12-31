@@ -15,11 +15,15 @@ from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
+class ShellEscapeException(Exception):
+    def __init__(self, line):
+        self.line = line
 
 class TerminalShell(LineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
         super(TerminalShell, self).__init__("<stdin>")
         self.input_encoding = locale.getpreferredencoding()
+
         self.lineno = 0
 
         # Try importing readline to enable arrow keys support etc.
@@ -105,7 +109,11 @@ class TerminalShell(LineFeeder):
 
     def read_line(self, prompt):
         if self.using_readline:
-            return self.rl_read_line(prompt)
+            line = self.rl_read_line(prompt)
+        else:
+            line = input(prompt)
+        if line.startswith("!") and self.lineno == 0:
+            raise ShellEscapeException(line)
         return input(prompt)
 
     def print_result(self, result):
@@ -352,10 +360,6 @@ def main() -> int:
         try:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             query, source_code = evaluation.parse_feeder_returning_code(shell)
-            if len(source_code) and source_code[0] == "!":
-                subprocess.run(source_code[1:], shell=True)
-                shell.definitions.increment_line_no(1)
-                continue
             if query is None:
                 continue
             if args.full_form:
@@ -363,6 +367,17 @@ def main() -> int:
             result = evaluation.evaluate(query, timeout=settings.TIMEOUT)
             if result is not None:
                 shell.print_result(result)
+        except ShellEscapeException as e:
+            source_code = e.line
+            if len(source_code) and source_code[0] == "!":
+                if len(source_code) > 1 and source_code[1] == "!":
+                    try:
+                        print(open(source_code[2:], "r").read())
+                    except:
+                        print(str(sys.exc_info()[1]))
+                else:
+                    subprocess.run(source_code[1:], shell=True)
+                shell.definitions.increment_line_no(1)
         except (KeyboardInterrupt):
             print("\nKeyboardInterrupt")
         except EOFError:
