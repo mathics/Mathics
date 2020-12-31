@@ -25,7 +25,7 @@ from mathics.core.expression import (
 from mathics.core.numbers import (
     dps, convert_base, machine_precision, reconstruct_digits)
 
-from mathics.core.evaluation import (Message)
+from mathics.core.evaluation import Message as EvaluationMessage
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
 
@@ -1341,7 +1341,7 @@ class Check(Builtin):
             result = expr.evaluate(evaluation)
             own_messages = evaluation.out[curr_msg:]
             for out_msg in own_messages:
-                if type(out_msg) is not Message:
+                if type(out_msg) is not EvaluationMessage:
                     continue
                 pattern = Expression('MessageName', Symbol(out_msg.symbol), String(out_msg.tag))
                 if pattern in check_messages:
