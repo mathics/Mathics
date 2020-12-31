@@ -964,3 +964,62 @@ class QuotientRemainder(Builtin):
             return Expression('List', Integer(py_m // py_n), (py_m % py_n))
         else:
             return Expression('QuotientRemainder', m, n)
+
+class ContinuedFraction(SympyFunction):
+    """
+    <dl>
+      <dt>'ContinuedFraction[$x$, $n$]'
+      <dd>generate the first $n$ terms in the continued fraction reprentation of $x$.
+      <dt>'ContinuedFraction[$x$]'
+      <dd>the complete continued fraction representation for a rational or quadradic irrational number.
+    </dl>
+
+    >> ContinuedFraction[Pi, 10]
+     = {3, 7, 15, 1, 292, 1, 1, 1, 2, 1}
+
+    >> ContinuedFraction[(1 + 2 Sqrt[3])/5]
+     = {0, 1, {8, 3, 34, 3}}
+
+    >> ContinuedFraction[Sqrt[70]]
+     = {8, {2, 1, 2, 1, 2, 16}}
+    """
+
+    sympy_name = "continued_fraction"
+
+    attributes = ("Listable", "NumericFunction")
+
+    def apply_1(self, x, evaluation):
+        "%(name)s[x_]"
+        return from_python(sympy.continued_fraction(x.to_sympy()))
+
+    def apply_2(self, x, n, evaluation):
+        "%(name)s[x_, n_Integer]"
+        py_n = n.to_python()
+        sympy_x = x.to_sympy()
+        it = sympy.continued_fraction_iterator(sympy_x)
+        return from_sympy([next(it) for _ in range(py_n)])
+
+
+class FromContinuedFraction(SympyFunction):
+    """
+    <dl>
+      <dt>'FromContinuedFraction[$list$]'
+      <dd>reconstructs a number from the list of its continued fraction terms.
+    </dl>
+
+    >> FromContinuedFraction[{3, 7, 15, 1, 292, 1, 1, 1, 2, 1}]
+     = 1146408 / 364913
+
+    >> FromContinuedFraction[Range[5]]
+     = 225 / 157
+    """
+
+    sympy_name = "continued_fraction_reduce"
+
+    attributes = ("NumericFunction",)
+
+    def apply_1(self, expr, evaluation):
+        "%(name)s[expr_?ListQ]"
+        nums = expr.to_python()
+        if all(isinstance(i, int) for i in nums):
+            return from_sympy(sympy.continued_fraction_reduce(nums))
