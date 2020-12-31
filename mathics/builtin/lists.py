@@ -1793,6 +1793,7 @@ class Cases(Builtin):
     rules = {
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
+    options = {,}
 
     def apply(self, items, pattern, ls, evaluation):
         'Cases[items_, pattern_, ls_:{1}]'
@@ -5599,6 +5600,7 @@ class Keys(Builtin):
         except:
             return None
 
+
 class Values(Builtin):
     """
     <dl>
@@ -5773,3 +5775,94 @@ class ContainsOnly(Builtin):
             return self.check_options(expr, evaluation, options)
 
         return self.check_options(expr, evaluation, options)
+
+
+
+## From backports in CellsToTeX. This functions provides compatibility to WMA 10.
+##  TODO:
+##  * Add doctests
+##  * Translate to python the more complex rules
+##  * Complete the support.
+
+
+
+
+
+class Key(Builtin):
+    """
+    <dl>
+    <dt>Key[$key$]
+        <dd> represents a key used to access a value in an association. 
+    <dt>Key[$key$][$assoc$]
+        <dd> 
+    </dl>
+    """
+    rules = {'Key[key_][assoc_Association]': 'assoc[key]', }
+
+class Lookup(Builtin):
+    """
+    <dl>
+    <dt>Lookup[$assoc$, $key$]
+        <dd> looks up the value associated with $key$ in the association $assoc$, or Missing[$KeyAbsent$].
+    </dl>
+    """
+    attributes = ('HoldAllComplete')
+    rules = { 'Lookup[assoc_?AssociationQ, key_, default_]' :
+              'FirstCase[assoc, _[Verbatim[key], val_] :> val, default]',
+	      'Lookup[assoc_?AssociationQ, key_]':
+	      'Lookup[assoc, key, Missing["KeyAbsent", key]]',
+    }
+
+class Failure(Builtin):
+    """
+    <dl>
+    <dt>Failure[$tag$, $assoc$]
+        <dd> represents a failure of a type indicated by $tag$, with details given by the association $assoc$.
+    </dl>
+    """
+    rules = {
+	'Failure /: MakeBoxes[Failure[tag_, assoc_Association], StandardForm]' :
+		'With[{msg = assoc["MessageTemplate"], 
+                       msgParam = assoc["MessageParameters"], 
+                       type = assoc["Type"]}, 
+			ToBoxes @ Interpretation[
+				"Failure" @ Panel @ Grid[
+					{{Style["\[WarningSign]", 
+                                                "Message", FontSize -> 35],
+					  Style["Message:", FontColor->GrayLevel[0.5]], ToString[StringForm[msg, Sequence @@ msgParam], StandardForm]},
+						{SpanFromAbove, Style["Tag:", FontColor->GrayLevel[0.5]], ToString[tag, StandardForm]},
+						{SpanFromAbove,Style["Type:", FontColor->GrayLevel[0.5]],ToString[type, StandardForm]}}, 
+					Alignment -> {Left, Top}
+				],
+				Failure[tag, assoc]
+			] /; msg =!= Missing["KeyAbsent", "MessageTemplate"] && 
+				msgParam =!= Missing["KeyAbsent", "MessageParameters"] && msgParam =!= Missing["KeyAbsent", "Type"]]'
+    }
+
+class FirstCase(Builtin):
+    """
+    <dl>
+    <dt> FirstCase[{$e1$, $e2$, $\ldots$}, $pattern$] 
+        <dd>gives the first $ei$ to match $pattern$, or $Missing[\"NotFound\"]$ if none matching pattern is found.
+
+    <dt> FirstCase[{$e1$,$e2$, $\ldots$}, $pattern$ -> $rhs$] 
+        <dd> gives the value of $rhs$ corresponding to the first $ei$ to match pattern.
+    <dt> FirstCase[$expr$, $pattern$, $default$] 
+        <dd> gives $default$ if no element matching $pattern$ is found.
+
+    <dt>FirstCase[$expr$, $pattern$, $default$, $levelspec$] \
+        <dd>finds only objects that appear on levels specified by $levelspec$.
+
+    <dt>FirstCase[$pattern$] 
+        <dd>represents an operator form of FirstCase that can be applied to an expression.
+    </dl>
+
+
+    """
+    attributes = ('HoldRest')
+    options = Cases.options
+    rules = {'FirstCase[
+		expr_, pattOrRule_, Shortest[default_:Missing["NotFound"], 1],
+		Shortest[levelspec_:{1}, 2], opts:OptionsPattern[]]' : 'Replace[Cases[expr, pattOrRule, levelspec, 1, opts],{{} :> default, {match_} :> match}]',
+	     'FirstCase[pattOrRule_][expr_]' : 'FirstCase[expr, pattOrRule]',
+    }
