@@ -1127,7 +1127,7 @@ FerrersDiagram[p1_List] :=
 		Show[
 			Graphics[
 				Join[
-					{PointSize[ Min[0.05,1/(2 Max[p])] ]},
+					{PointSize[ Min[0.04,1/(2 Max[p])] ]},
 					Table[Point[{i,j}], {j,n}, {i,p[[j]]}]
 				],
 				{AspectRatio -> 1, PlotRange -> All}
