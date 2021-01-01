@@ -26,6 +26,7 @@ from mathics.core.numbers import (
     dps, convert_base, machine_precision, reconstruct_digits)
 
 from mathics.core.evaluation import Message as EvaluationMessage
+
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
 
 
@@ -635,6 +636,91 @@ class RowBox(Builtin):
     </dl>
     """
 
+
+class BoxData(Builtin):
+    """
+    <dl>
+    <dt>'BoxData[...]'
+        <dd>is a low-level representation of the contents of a typesetting
+    cell.
+    </dl>
+    """
+
+class TextData(Builtin):
+    """
+    <dl>
+    <dt>'TextData[...]'
+        <dd>is a low-level representation of the contents of a textual
+    cell.
+    </dl>
+    """
+
+
+
+class TooltipBox(Builtin):
+    """
+    <dl>
+    <dt>'TooltipBox[{...}]'
+        <dd>undocumented...
+    </dl>
+    """
+
+
+class InterpretationBox(Builtin):
+    """
+    <dl>
+    <dt>'InterpretationBox[{...}]'
+        <dd> is a low-level box construct that displays as 
+    boxes but is interpreted on input as expr.
+    </dl>
+    """
+    attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
+
+
+
+class StyleBox(Builtin):
+    """
+    <dl>
+    <dt>'StyleBox[boxes, options]'
+        <dd> is a low-level representation of boxes
+     to be shown with the specified option settings.
+    <dt>'StyleBox[boxes, style]'
+        <dd> uses the option setting for the specified style in
+    the current notebook.
+    </dl>
+    """
+    attributes =  ('Protected', 'ReadProtected')
+
+
+class ButtonBox(Builtin):
+    """
+    <dl>
+    <dt>'ButtonBox[$boxes$]'
+        <dd> is a low-level box construct that represents a button in a
+    notebook expression.
+    </dl>
+    """
+    attributes =  ('Protected', 'ReadProtected')
+
+class TagBox(Builtin):
+    """
+    <dl>
+    <dt>'TagBox[boxes, tag]'
+        <dd> is a low-level box construct that displays as 
+    boxes but is interpreted on input as expr
+    </dl>
+    """
+    attributes = ('HoldAllComplete', 'Protected', 'ReadProtected')
+
+class TemplateBox(Builtin):
+    """
+    <dl>
+    <dt>'TemplateBox[{$box_1$, $box_2$,...}, tag]'
+        <dd>is a low-level box structure that parameterizes the display and evaluation     of the boxes $box_i$ .
+    </dl>
+    """
+    attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
+    
 
 class Row(Builtin):
     """
