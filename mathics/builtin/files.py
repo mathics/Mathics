@@ -3984,14 +3984,14 @@ class SetFileDate(Builtin):
     >> tmpfilename = $TemporaryDirectory <> "/tmp0";
     >> Close[OpenWrite[tmpfilename]];
 
-    >> SetFileDate[tmpfilename, {2000, 1, 1, 0, 0, 0.}, "Access"];
+    >> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}, "Access"];
 
     >> FileDate[tmpfilename, "Access"]
-     = {2000, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
-    #> SetFileDate[tmpfilename, {2001, 1, 1, 0, 0, 0.}];
+    #> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}];
     #> FileDate[tmpfilename, "Access"]
-     = {2001, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
     #> SetFileDate[tmpfilename]
     #> FileDate[tmpfilename, "Access"]
