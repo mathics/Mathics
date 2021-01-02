@@ -3041,7 +3041,7 @@ class GraphicsBox(BoxConstruct):
                 and any(x for x in axes)
                 and plot_range != ["System`Automatic", "System`Automatic"]
             ):
-                # Take into account the dimensiosn of axes and axes labels
+                # Take into account the dimensions of axes and axes labels
                 # (they should be displayed completely even when a specific
                 # PlotRange is given).
                 exmin, exmax, eymin, eymax = elements.extent(
