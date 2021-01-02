@@ -12,6 +12,7 @@ from collections import defaultdict
 
 import typing
 
+from mathics.version import __version__
 from mathics.core.expression import (
     Expression,
     Symbol,
@@ -70,6 +71,8 @@ class Definitions(object):
             from mathics.builtin import modules, contribute
             from mathics.core.evaluation import Evaluation
             from mathics.settings import ROOT_DIR
+
+            self.set_ownvalue("System`MathicsVersion", String(__version__))
 
             loaded = False
             if builtin_filename is not None:
