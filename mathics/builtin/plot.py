@@ -255,6 +255,23 @@ class Full(Builtin):
     """
 
 
+class ImageSize(Builtin):
+    """
+    <dl>
+      <dt>'ImageSize'
+      <dd>is an option that specifies the overall size of an image to display.
+    </dl>
+
+    Specifications for both width and height can be any of the following:
+    <dl>
+      <dt>Automatic
+      <dd>determined by location or other dimension (default)
+      <dt>Tiny, Small, Medium, Large
+      <dd>pre defined absolute sizes
+    </dl>
+    """
+
+
 class Joined(Builtin):
     """
     <dl>

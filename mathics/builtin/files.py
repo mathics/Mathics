@@ -2156,23 +2156,24 @@ class Get(PrefixOperator):
         "Trace": "False",
     }
 
-    def check_options(self, options):
-        # Options
-        # TODO Proper error messages
-
-        result = {}
-        if options["System`Trace"].to_python():
-            result["TraceFn"] = print
-        else:
-            result["TraceFn"] = None
-
-        return result
-
     def apply(self, path, evaluation, options):
         "Get[path_String, OptionsPattern[Get]]"
         from mathics.core.parser import parse, TranslateError, FileLineFeeder
 
-        py_options = self.check_options(options)
+        def check_options(options):
+            # Options
+            # TODO Proper error messages
+
+            result = {}
+            trace_get = evaluation.parse('Settings`$TraceGet')
+            if options["System`Trace"].to_python() or trace_get.evaluate(evaluation) == SymbolTrue:
+                result["TraceFn"] = print
+            else:
+                result["TraceFn"] = None
+
+            return result
+
+        py_options = check_options(options)
         trace_fn = py_options["TraceFn"]
         result = None
         pypath = path.get_string_value()
@@ -3984,14 +3985,14 @@ class SetFileDate(Builtin):
     >> tmpfilename = $TemporaryDirectory <> "/tmp0";
     >> Close[OpenWrite[tmpfilename]];
 
-    >> SetFileDate[tmpfilename, {2000, 1, 1, 0, 0, 0.}, "Access"];
+    >> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}, "Access"];
 
     >> FileDate[tmpfilename, "Access"]
-     = {2000, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
-    #> SetFileDate[tmpfilename, {2001, 1, 1, 0, 0, 0.}];
+    #> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}];
     #> FileDate[tmpfilename, "Access"]
-     = {2001, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
     #> SetFileDate[tmpfilename]
     #> FileDate[tmpfilename, "Access"]
