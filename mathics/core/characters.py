@@ -853,6 +853,7 @@ named_characters = {
     "RightArrow": "\u2192",
     "RightArrowBar": "\u21E5",
     "RightArrowLeftArrow": "\u21C4",
+    "RightAssociation": "\uF114",
     "RightBracketingBar": "\uF604",
     "RightCeiling": "\u2309",
     "RightDoubleBracket": "\u301B",

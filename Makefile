@@ -4,19 +4,14 @@
 # These comments before the targets start with #:
 # remake --tasks to shows the targets and the comments
 
-DOCKER_COMPOSE ?= docker-compose
-DOCKER_COMPOSE_FILE =
 GIT2CL ?= admin-tools/git2cl
 PYTHON ?= python3
 PIP ?= pip3
 RM  ?= rm
 
-<<<<<<< HEAD
-.PHONY: all build check clean develop dist doc pytest test djangotest rmChangeLog
-=======
 .PHONY: all build \
    check clean \
-   develop dist doc doc-data djangotest docker \
+   develop dist doc doc-data djangotest \
    gstest pytest \
    rmChangeLog \
    test
@@ -30,7 +25,6 @@ else
 		SANDBOX = t
 	endif
 endif
->>>>>>> cffa8b1ae455a9b2a1590aa24bb4664e8c92badf
 
 #: Default target - same as "develop"
 all: develop
@@ -43,23 +37,12 @@ build:
 develop:
 	$(PIP) install -e .
 
-#: Build docker image
-docker-image:
-	$(DOCKER_COMPOSE) $(DOCKER_COMPOSE_FILE) build
-
 #: Install mathics
 install:
 	$(PYTHON) setup.py install
 
-<<<<<<< HEAD
-check: pytest doctest  djangotest
-=======
-#: Run Django-based server in development mode. Use environment variable "o" for manage options
-runserver:
-	$(PYTHON) mathics/manage.py runserver $o
+check: pytest gstest doctest
 
-check: pytest doctest djangotest gstest
->>>>>>> cffa8b1ae455a9b2a1590aa24bb4664e8c92badf
 
 #: Remove derived files
 clean:
@@ -75,7 +58,7 @@ pytest:
 
 #: Run a more extensive pattern-matching test
 gstest:
-	(cd examples/symbolic_logic/gries_schneider && ./test-gs.sh)
+	(cd examples/symbolic_logic/gries_schneider && $(PYTHON) test_gs.py)
 
 
 #: Create data that is used to in Django docs and to build TeX PDF
@@ -85,14 +68,6 @@ doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.
 #: Run tests that appear in docstring in the code.
 doctest:
 	SANDBOX=$(SANDBOX) $(PYTHON) mathics/test.py $o
-
-#: Run Django tests
-djangotest:
-	cd mathics && $(PYTHON) manage.py test test_django
-
-#: Run django tests
-djangotest:
-	cd mathics && $(PYTHON) manage.py test test_django
 
 #: Make Mathics PDF manual
 doc mathics.pdf: mathics/doc/tex/data

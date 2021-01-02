@@ -13,7 +13,7 @@ from mathics.builtin.base import (
     PartError, PartDepthError, PartRangeError, Predefined, SympyFunction)
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.base import MessageException, NegativeIntegerException, CountableInteger
-from mathics.core.expression import Expression, String, Symbol, SymbolNull, Integer, Number, Real, strip_context, from_python
+from mathics.core.expression import Expression, String, Symbol, SymbolFailed, SymbolNull, Integer, Number, Real, strip_context, from_python
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
@@ -39,8 +39,9 @@ def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1 ):
     This function walks the expression `expr` and deleting occurrencies of `pattern`
 
     If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
-   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
-   n indicates the number of occurrences to return. By default, it returns all the occurences.
+
+    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
     nothing = Symbol("System`Nothing")
     from mathics.builtin.patterns import Matcher
@@ -104,9 +105,11 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation,levelspec=1,n
     """
     This function walks the expression `expr` looking for a pattern `pattern`
     and returns the positions of each occurence.
+
     If levelspec specifies a number, only those positions with  `levelspec` "coordinates" are return. By default, it just return occurences in the first level.
-   If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
-   n indicates the number of occurrences to return. By default, it returns all the occurences.
+
+    If a tuple (nmin, nmax) is provided, it just return those occurences with a number of "coordinates" between nmin and nmax.
+    n indicates the number of occurrences to return. By default, it returns all the occurences.
     """
     from mathics.builtin.patterns import Matcher
     match = Matcher(pattern)
@@ -1790,6 +1793,8 @@ class Cases(Builtin):
     rules = {
         'Cases[pattern_][list_]': 'Cases[list, pattern]',
     }
+    
+    options = {}
 
     def apply(self, items, pattern, ls, evaluation):
         'Cases[items_, pattern_, ls_:{1}]'
@@ -2125,7 +2130,6 @@ class Range(Builtin):
             index += di
         return Expression('List', *result)
 
-
 class _IterationFunction(Builtin):
     """
     >> Sum[k, {k, Range[5]}]
@@ -2239,8 +2243,9 @@ class _IterationFunction(Builtin):
         di = di.evaluate(evaluation)
 
         result = []
+        compare_type = "GreaterEqual" if Expression('Less', di, Integer(0)).evaluate(evaluation).to_python() else "LessEqual"
         while True:
-            cont = Expression('LessEqual', index, imax).evaluate(evaluation)
+            cont = Expression(compare_type, index, imax).evaluate(evaluation)
             if cont == Symbol('False'):
                 break
             if not cont.is_true():
@@ -2545,11 +2550,35 @@ class Catenate(Builtin):
             e.message(evaluation)
 
 
+class Insert(Builtin):
+    """
+    <dl>
+      <dt>'Insert[$list$, $elem$, $n$]'
+      <dd>inserts $elem$ at position $n$ in $list$. When $n$ is negative, the position is counted from the end.
+    </dl>
+
+    >> Insert[{a,b,c,d,e}, x, 3]
+     = {a, b, x, c, d, e}
+
+    >> Insert[{a,b,c,d,e}, x, -2]
+     = {a, b, c, d, x, e}
+    """
+    def apply(self, expr, elem, n, evaluation):
+        'Insert[expr_List, elem_, n_Integer]'
+
+        py_n = n.to_python()
+        new_list = list(expr.get_leaves())
+
+        position = py_n - 1 if py_n > 0 else py_n + 1
+        new_list.insert(position, elem)
+        return expr.restructure(
+            expr.head, new_list, evaluation, deps=(expr, elem))
+
 class Append(Builtin):
     """
     <dl>
-    <dt>'Append[$expr$, $item$]'
-        <dd>returns $expr$ with $item$ appended to its leaves.
+      <dt>'Append[$expr$, $elem$]'
+      <dd>returns $expr$ with $elem$ appended.
     </dl>
 
     >> Append[{1, 2, 3}, 4]
@@ -2754,7 +2783,7 @@ class Tuples(Builtin):
     """
 
     def apply_n(self, expr, n, evaluation):
-        'Tuples[expr_, n_]'
+        'Tuples[expr_, n_Integer]'
 
         if expr.is_atom():
             evaluation.message('Tuples', 'normal')
@@ -5002,9 +5031,9 @@ class Nearest(Builtin):
             else:
                 return Expression('List', *[nearest(t) for t in pivot.leaves])
         except _IllegalDistance:
-            return Symbol('$Failed')
+            return SymbolFailed
         except ValueError:
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
 class Permutations(Builtin):
@@ -5572,6 +5601,7 @@ class Keys(Builtin):
         except:
             return None
 
+
 class Values(Builtin):
     """
     <dl>
@@ -5746,3 +5776,79 @@ class ContainsOnly(Builtin):
             return self.check_options(expr, evaluation, options)
 
         return self.check_options(expr, evaluation, options)
+
+
+
+## From backports in CellsToTeX. This functions provides compatibility to WMA 10.
+##  TODO:
+##  * Add doctests
+##  * Translate to python the more complex rules
+##  * Complete the support.
+
+
+
+
+
+class Key(Builtin):
+    """
+    <dl>
+    <dt>Key[$key$]
+        <dd> represents a key used to access a value in an association. 
+    <dt>Key[$key$][$assoc$]
+        <dd> 
+    </dl>
+    """
+    rules = {'Key[key_][assoc_Association]': 'assoc[key]', }
+
+class Lookup(Builtin):
+    """
+    <dl>
+    <dt>Lookup[$assoc$, $key$]
+        <dd> looks up the value associated with $key$ in the association $assoc$, or Missing[$KeyAbsent$].
+    </dl>
+    """
+    attributes = ('HoldAllComplete')
+    rules = { 'Lookup[assoc_?AssociationQ, key_, default_]' :
+              'FirstCase[assoc, _[Verbatim[key], val_] :> val, default]',
+	      'Lookup[assoc_?AssociationQ, key_]':
+	      'Lookup[assoc, key, Missing["KeyAbsent", key]]',
+    }
+
+class Failure(Builtin):
+    """
+    <dl>
+    <dt>Failure[$tag$, $assoc$]
+        <dd> represents a failure of a type indicated by $tag$, with details given by the association $assoc$.
+    </dl>
+    """
+    pass
+#    rules = {'Failure /: MakeBoxes[Failure[tag_, assoc_Association], StandardForm]' :
+# 		'With[{msg = assoc["MessageTemplate"], msgParam = assoc["MessageParameters"], type = assoc["Type"]}, ToBoxes @ Interpretation["Failure" @ Panel @ Grid[{{Style["\[WarningSign]", "Message", FontSize -> 35], Style["Message:", FontColor->GrayLevel[0.5]], ToString[StringForm[msg, Sequence @@ msgParam], StandardForm]}, {SpanFromAbove, Style["Tag:", FontColor->GrayLevel[0.5]], ToString[tag, StandardForm]},{SpanFromAbove,Style["Type:", FontColor->GrayLevel[0.5]],ToString[type, StandardForm]}},Alignment -> {Left, Top}], Failure[tag, assoc]] /; msg =!= Missing["KeyAbsent", "MessageTemplate"] && msgParam =!= Missing["KeyAbsent", "MessageParameters"] && msgParam =!= Missing["KeyAbsent", "Type"]]',
+#     }
+
+
+class FirstCase(Builtin):
+    """
+    <dl>
+    <dt> FirstCase[{$e1$, $e2$, $\ldots$}, $pattern$] 
+        <dd>gives the first $ei$ to match $pattern$, or $Missing[\"NotFound\"]$ if none matching pattern is found.
+
+    <dt> FirstCase[{$e1$,$e2$, $\ldots$}, $pattern$ -> $rhs$] 
+        <dd> gives the value of $rhs$ corresponding to the first $ei$ to match pattern.
+    <dt> FirstCase[$expr$, $pattern$, $default$] 
+         <dd> gives $default$ if no element matching $pattern$ is found.
+
+    <dt>FirstCase[$expr$, $pattern$, $default$, $levelspec$] \
+         <dd>finds only objects that appear on levels specified by $levelspec$.
+
+    <dt>FirstCase[$pattern$] 
+        <dd>represents an operator form of FirstCase that can be applied to an expression.
+    </dl>
+
+
+    """
+    attributes = ('HoldRest')
+    options = Cases.options
+    rules = {'FirstCase[expr_, pattOrRule_, Shortest[default_:Missing["NotFound"], 1],Shortest[levelspec_:{1}, 2], opts:OptionsPattern[]]' : 'Replace[Cases[expr, pattOrRule, levelspec, 1, opts],{{} :> default, {match_} :> match}]',
+      'FirstCase[pattOrRule_][expr_]' : 'FirstCase[expr, pattOrRule]',
+    }

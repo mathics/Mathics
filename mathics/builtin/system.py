@@ -10,6 +10,7 @@ import os
 import platform
 import sys
 import re
+import subprocess
 
 from mathics.core.expression import (
     Expression,
@@ -17,11 +18,13 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolFailed,
     strip_context,
 )
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 from mathics.builtin.strings import to_regex
+from mathics.version import __version__
 
 
 class Aborted(Predefined):
@@ -82,12 +85,10 @@ class Environment(Builtin):
     """
 
     def apply(self, var, evaluation):
-        "Environment[var_]"
-        if not isinstance(var, String):
-            return
+        "Environment[var_?StringQ]"
         env_var = var.get_string_value()
         if env_var not in os.environ:
-            return Symbol("$Failed")
+            return SymbolFailed
         else:
             return String(os.environ[env_var])
 
@@ -167,8 +168,23 @@ class MachineName(Predefined):
 
     name = "$MachineName"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> String:
         return String(os.uname().nodename)
+
+
+class MathicsVersion(Predefined):
+    r"""
+    <dl>
+      <dt>'MathicsVersion'
+      <dd>this string is the version of Mathics we are running.
+    </dl>
+
+    >> MathicsVersion
+    = ...
+    """
+
+    def evaluate(self, evaluation) -> String:
+        return String(__version__)
 
 
 class Names(Builtin):
@@ -236,14 +252,16 @@ class Packages(Predefined):
     """
 
     name = "$Packages"
-    rules = {'$Packages': '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
+    rules = {
+        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',
+    }
 
 
 class ParentProcessID(Predefined):
-    """
+    r"""
     <dl>
       <dt>'$ParentProcesID'
-      <dd>gives the ID assigned to the process which invokes the Mathics by the operating system under which it is run.
+      <dd>gives the ID assigned to the process which invokes the \Mathics by the operating system under which it is run.
     </dl>
 
     >> $ParentProcessID
@@ -255,15 +273,15 @@ class ParentProcessID(Predefined):
 
     name = "$ParentProcessID"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         return Integer(os.getppid())
 
 
 class ProcessID(Predefined):
-    """
+    r"""
     <dl>
       <dt>'$ProcessID'
-      <dd>gives the ID assigned to the Mathics process by the operating system under which it is run.
+      <dd>gives the ID assigned to the \Mathics process by the operating system under which it is run.
     </dl>
 
     >> $ProcessID
@@ -275,15 +293,15 @@ class ProcessID(Predefined):
 
     name = "$ProcessID"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         return Integer(os.getpid())
 
 
 class ProcessorType(Predefined):
-    """
+    r"""
     <dl>
     <dt>'$ProcessorType'
-        <dd>gives a string giving the architecture of the processor on which the Mathics is being run.
+        <dd>gives a string giving the architecture of the processor on which the \Mathics is being run.
     </dl>
     X> $ProcessorType
     = x86_64
@@ -317,11 +335,27 @@ class ScriptCommandLine(Predefined):
         return Expression("List", *(String(arg) for arg in sys.argv[dash_index + 1 :]))
 
 
-class SystemID(Predefined):
+class Run(Builtin):
     """
     <dl>
+      <dt>'Run[$command$]'
+      <dd>runs command as an external operating system command, returning the exit code obtained.
+    </dl>
+    X> Run["date"]
+     = ...
+    """
+
+    def apply(self, command, evaluation):
+        "Run[command_?StringQ]"
+        command_str = command.to_python()
+        return Integer(subprocess.call(command_str, shell=True))
+
+
+class SystemID(Predefined):
+    r"""
+    <dl>
        <dt>'$SystemID'
-       <dd>is a short string that identifies the type of computer system on which the Mathics is being run.
+       <dd>is a short string that identifies the type of computer system on which the \Mathics is being run.
     </dl>
     X> $SystemID
      = linux
@@ -334,10 +368,10 @@ class SystemID(Predefined):
 
 
 class SystemWordLength(Predefined):
-    """
+    r"""
     <dl>
       <dt>'$SystemWordLength'
-      <dd>gives the effective number of bits in raw machine words on the computer system where Mathics is running.
+      <dd>gives the effective number of bits in raw machine words on the computer system where \Mathics is running.
     </dl>
     X> $SystemWordLength
     = 64
@@ -348,7 +382,7 @@ class SystemWordLength(Predefined):
 
     name = "$SystemWordLength"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         # https://docs.python.org/3/library/platform.html#module-platform
         # says it is more reliable to get bits using sys.maxsize
         # than platform.architecture()[0]
@@ -359,11 +393,11 @@ class SystemWordLength(Predefined):
 
 
 class UserName(Predefined):
-    """
+    r"""
     <dl>
       <dt>$UserName
       <dd>returns a string describing the type of computer system on which
-      Mathics is being run.
+      \Mathics is being run.
     </dl>
 
     X> $UserName

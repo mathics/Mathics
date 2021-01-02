@@ -50,11 +50,11 @@ class BreakInterrupt(EvaluationInterrupt):
 class ContinueInterrupt(EvaluationInterrupt):
     pass
 
+
 class WLThrowInterrupt(EvaluationInterrupt):
     def __init__(self, value, tag=None):
         self.tag = tag
         self.value = value
-    
 
 
 
@@ -179,10 +179,11 @@ class Print(Out):
 
 
 class Result(object):
-    def __init__(self, out, result, line_no) -> None:
+    def __init__(self, out, result, line_no, last_eval=None) -> None:
         self.out = out
         self.result = result
         self.line_no = line_no
+        self.last_eval = last_eval
 
     def get_data(self):
         return {
@@ -229,9 +230,11 @@ class Evaluation(object):
         self.format = format
         self.catch_interrupt = catch_interrupt
 
-        # status of last evaluate
         self.SymbolNull = Symbol("Null")
+
+        # status of last evaluate
         self.exc_result = self.SymbolNull
+        self.last_eval = None
 
     def parse(self, query):
         "Parse a single expression and print the messages."
@@ -254,7 +257,7 @@ class Evaluation(object):
 
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)
-        except TranslateError as exc:
+        except TranslateError:
             self.recursion_depth = 0
             self.stopped = False
             source_code = ""
@@ -262,7 +265,7 @@ class Evaluation(object):
         feeder.send_messages(self)
         return result, source_code
 
-    def evaluate(self, query: str, timeout=None, format=None):
+    def evaluate(self, query, timeout=None, format=None):
         """Evaluate a Mathics expression and return the
         result of evaluation.
 
@@ -277,6 +280,7 @@ class Evaluation(object):
         self.timeout = False
         self.stopped = False
         self.exc_result = self.SymbolNull
+        self.last_eval = None
         if format is None:
             format = self.format
 
@@ -295,27 +299,31 @@ class Evaluation(object):
             if history_length > 0:
                 self.definitions.add_rule("In", Rule(Expression("In", line_no), query))
             if check_io_hook("System`$Pre"):
-                result = Expression("System`$Pre", query).evaluate(self)
+                self.last_eval = Expression("System`$Pre", query).evaluate(self)
             else:
-                result = query.evaluate(self)
+                self.last_eval = query.evaluate(self)
 
             if check_io_hook("System`$Post"):
-                result = Expression("System`$Post", result).evaluate(self)
+                self.last_eval = Expression("System`$Post", self.last_eval).evaluate(
+                    self
+                )
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
                     self.predetermined_out = None
                 else:
-                    out_result = result
+                    out_result = self.last_eval
 
                 stored_result = self.get_stored_result(out_result)
                 self.definitions.add_rule(
                     "Out", Rule(Expression("Out", line_no), stored_result)
                 )
-            if result != self.SymbolNull:
+            if self.last_eval != self.SymbolNull:
                 if check_io_hook("System`$PrePrint"):
-                    result = Expression("System`$PrePrint", result).evaluate(self)
-                return self.format_output(result, format)
+                    self.last_eval = Expression(
+                        "System`$PrePrint", self.last_eval
+                    ).evaluate(self)
+                return self.format_output(self.last_eval, format)
             else:
                 self.exec_result = self.SymbolNull
                 return None
@@ -340,15 +348,11 @@ class Evaluation(object):
                     raise
             except WLThrowInterrupt as ti:
                 if ti.tag:
-                    self.exc_result = Expression("Hold",
-                                                 Expression("Throw",
-                                                            ti.value,
-                                                            ti.tag))
+                    self.exc_result = Expression(
+                        "Hold", Expression("Throw", ti.value, ti.tag)
+                    )
                 else:
-                    self.exc_result = Expression("Hold",
-                                                 Expression("Throw",
-                                                            ti.value
-                                                            ))
+                    self.exc_result = Expression("Hold", Expression("Throw", ti.value))
                 self.message("Throw", "nocatch", self.exc_result)
             except OverflowError:
                 self.message("General", "ovfl")
@@ -368,12 +372,13 @@ class Evaluation(object):
                 self.exc_result = Symbol("$Aborted")
             except ReturnInterrupt as ret:
                 self.exc_result = ret.expr
+
             if self.exc_result is not None:
                 self.recursion_depth = 0
                 if self.exc_result != self.SymbolNull:
                     result = self.format_output(self.exc_result, format)
 
-            result = Result(self.out, result, line_no)
+            result = Result(self.out, result, line_no, self.last_eval)
             self.out = []
         finally:
             self.stop()
@@ -389,12 +394,14 @@ class Evaluation(object):
             line -= 1
         return result
 
-    def get_stored_result(self, result):
-        # Remove outer format
-        if result.has_form(FORMATS, 1):
-            result = result.leaves[0]
+    def get_stored_result(self, eval_result):
+        """Return `eval_result` stripped of any format, e.g. FullForm, MathML, TeX
+        that it might have been wrapped in.
+        """
+        if eval_result.has_form(FORMATS, 1):
+            return eval_result.leaves[0]
 
-        return result
+        return eval_result
 
     def stop(self) -> None:
         self.stopped = True
@@ -415,7 +422,8 @@ class Evaluation(object):
         elif format == "tex":
             result = Expression("StandardForm", expr).format(self, "System`TeXForm")
         elif format == "unformatted":
-            return result
+            self.exc_result = None
+            return expr
         else:
             raise ValueError
 
@@ -429,7 +437,7 @@ class Evaluation(object):
         return boxes
 
     def set_quiet_messages(self, messages) -> None:
-        from mathics.core.expression import Expression, String
+        from mathics.core.expression import Expression
 
         value = Expression("List", *messages)
         self.definitions.set_ownvalue("Internal`$QuietMessages", value)

@@ -132,7 +132,7 @@ class Definitions(object):
             loaded_module.__all__
             if hasattr(loaded_module, "__all__")
             else dir(loaded_module)
-            )
+        )
         context = "PyMathics`"
         newsymbols = {}
         if not ("pymathics_version_data" in vars):
@@ -325,26 +325,30 @@ class Definitions(object):
             # If we get here, there aren't any regexp metacharacters in
             # the pattern.
 
-            if '`' in pattern:
-                ctx_pattern, short_pattern = pattern.rsplit('`', 1)
+            if "`" in pattern:
+                ctx_pattern, short_pattern = pattern.rsplit("`", 1)
                 if ctx_pattern == "":
-                    ctx_pattern="System`"
+                    ctx_pattern = "System`"
                 else:
-                    ctx_pattern = ((ctx_pattern + '`')
-                                   .replace('@', '[^A-Z`]+')
-                                   .replace('*', '.*')
-                                   .replace('$', r'\$'))
+                    ctx_pattern = (
+                        (ctx_pattern + "`")
+                        .replace("@", "[^A-Z`]+")
+                        .replace("*", ".*")
+                        .replace("$", r"\$")
+                    )
             else:
                 short_pattern = pattern
                 # start with a group matching the accessible contexts
                 ctx_pattern = "(?:%s)" % "|".join(
-                    re.escape(c) for c in self.get_accessible_contexts())
+                    re.escape(c) for c in self.get_accessible_contexts()
+                )
 
-            short_pattern = (short_pattern
-                             .replace('@', '[^A-Z]+')
-                             .replace('*', '[^`]*')
-                             .replace('$', r'\$'))
-            regex = re.compile('^' + ctx_pattern + short_pattern + '$')
+            short_pattern = (
+                short_pattern.replace("@", "[^A-Z]+")
+                .replace("*", "[^`]*")
+                .replace("$", r"\$")
+            )
+            regex = re.compile("^" + ctx_pattern + short_pattern + "$")
 
         return [name for name in self.get_names() if regex.match(name)]
 
@@ -395,7 +399,7 @@ class Definitions(object):
         packages = [c.get_string_value() for c in packages.leaves]
         return packages
 
-        #return sorted({name.split("`")[0] for name in self.get_names()})
+        # return sorted({name.split("`")[0] for name in self.get_names()})
 
     def shorten_name(self, name_with_ctx) -> str:
         if "`" not in name_with_ctx:
@@ -685,6 +689,9 @@ class Definitions(object):
 
     def get_line_no(self):
         return self.get_config_value("$Line", 0)
+
+    def increment_line_no(self, increment: int = 1) -> None:
+        self.set_config_value("$Line", self.get_line_no() + increment)
 
     def get_history_length(self):
         history_length = self.get_config_value("$HistoryLength", 100)

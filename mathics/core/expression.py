@@ -1423,6 +1423,9 @@ class Expression(BaseExpression):
             elif name == 'System`SqrtBox' and len(self._leaves) == 1:
                 return '<msqrt>%s</msqrt>' % (
                     self._leaves[0].boxes_to_xml(**options))
+            elif name == 'System`GraphBox':
+                return '<mi>%s</mi>' % (
+                    self._leaves[0].boxes_to_xml(**options))
             else:
                 raise BoxError(self, 'xml')
 
@@ -1863,9 +1866,10 @@ class Symbol(Atom):
         return (self.name, self.sympy_dummy)
 
 # Some common Symbols
-SymbolTrue = Symbol("True")
 SymbolFalse = Symbol("False")
+SymbolFailed = Symbol("$Failed")
 SymbolNull = Symbol("Null")
+SymbolTrue = Symbol("True")
 
 class Number(Atom):
     def __str__(self) -> str:
