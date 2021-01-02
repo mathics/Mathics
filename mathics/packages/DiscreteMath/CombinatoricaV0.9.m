@@ -896,9 +896,9 @@ ToInversionVector[p_?PermutationQ] :=
 		]
 	]
 
+  (* 1.3.1 Inversion Vectors, Page 27 *)
 FromInversionVector[vec_List] :=
-	Module[{n=Length[vec]+1,i,p},
-		p={n};
+  Block[{n=Length[vec]+1,i,p={n}},
 		Do [
 			p = Insert[p, i, vec[[i]]+1],
 			{i,n-1,1,-1}
@@ -1127,7 +1127,7 @@ FerrersDiagram[p1_List] :=
 		Show[
 			Graphics[
 				Join[
-					{PointSize[ Min[0.05,1/(2 Max[p])] ]},
+					{PointSize[ Min[0.04,1/(2 Max[p])] ]},
 					Table[Point[{i,j}], {j,n}, {i,p[[j]]}]
 				],
 				{AspectRatio -> 1, PlotRange -> All}

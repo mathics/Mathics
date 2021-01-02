@@ -209,6 +209,7 @@ class ColorData(Builtin):
 
 # Note In defining these class, documentation is given for them
 
+
 class Axis(Builtin):
     """
     <dl>
@@ -220,6 +221,7 @@ class Axis(Builtin):
      = -Graphics-
     """
 
+
 class Bottom(Builtin):
     """
     <dl>
@@ -230,6 +232,7 @@ class Bottom(Builtin):
     >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
      = -Graphics-
     """
+
 
 class Filling(Builtin):
     """
@@ -252,13 +255,30 @@ class Full(Builtin):
     """
 
 
+class ImageSize(Builtin):
+    """
+    <dl>
+      <dt>'ImageSize'
+      <dd>is an option that specifies the overall size of an image to display.
+    </dl>
+
+    Specifications for both width and height can be any of the following:
+    <dl>
+      <dt>Automatic
+      <dd>determined by location or other dimension (default)
+      <dt>Tiny, Small, Medium, Large
+      <dd>pre defined absolute sizes
+    </dl>
+    """
+
+
 class Joined(Builtin):
     """
     <dl>
       <dt>'Joined $boolean$'
       <dd>is an option for 'Plot' that gives whether to join points to make lines.
     </dl>
-  
+
     >> ListPlot[Table[n ^ 2, {n, 10}], Joined->True]
      = -Graphics-
     """
@@ -323,7 +343,6 @@ class Top(Builtin):
     >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis|Top|Bottom]
      = -Graphics-
     """
-
 
 
 def extract_pyreal(value):
@@ -391,10 +410,10 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
 
 
 def automatic_plot_range(values):
-    """ Calculates mean and standard deviation, throwing away all points
+    """Calculates mean and standard deviation, throwing away all points
     which are more than 'thresh' number of standard deviations away from
     the mean. These are then used to find good vmin and vmax values. These
-    values can then be used to find Automatic Plotrange. """
+    values can then be used to find Automatic Plotrange."""
 
     if not values:
         return 0, 1
@@ -482,7 +501,7 @@ class _Plot(Builtin):
 
     def apply(self, functions, x, start, stop, evaluation, options):
         """%(name)s[functions_, {x_Symbol, start_, stop_},
-            OptionsPattern[%(name)s]]"""
+        OptionsPattern[%(name)s]]"""
         if functions.is_symbol() and functions.name is not x.get_name():
             rules = evaluation.definitions.get_ownvalues(functions.name)
             for rule in rules:
@@ -1127,7 +1146,10 @@ class BarChart(_Chart):
 
     options = _Chart.options.copy()
     options.update(
-        {"Axes": "{False, True}", "AspectRatio": "1 / GoldenRatio",}
+        {
+            "Axes": "{False, True}",
+            "AspectRatio": "1 / GoldenRatio",
+        }
     )
 
     def _draw(self, data, color, evaluation, options):
@@ -1464,8 +1486,11 @@ class Histogram(Builtin):
             if len(spec) < 2:
                 spec.append(None)
             return manual_bins(*spec)
-        return Expression('Graphics', Expression('List', *graphics),
-                          *options_to_rules(options, Graphics.options))
+        return Expression(
+            "Graphics",
+            Expression("List", *graphics),
+            *options_to_rules(options, Graphics.options)
+        )
 
 
 class _ListPlot(Builtin):
@@ -1652,7 +1677,9 @@ class _ListPlot(Builtin):
         options["System`PlotRange"] = from_python([x_range, y_range])
 
         return Expression(
-            "Graphics", Expression("List", *graphics), *options_to_rules(options, Graphics.options)
+            "Graphics",
+            Expression("List", *graphics),
+            *options_to_rules(options, Graphics.options)
         )
 
 
@@ -1675,7 +1702,7 @@ class _Plot3D(Builtin):
 
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         """%(name)s[functions_, {x_Symbol, xstart_, xstop_},
-                {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]"""
+        {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]"""
         xexpr_limits = Expression("List", x, xstart, xstop)
         yexpr_limits = Expression("List", y, ystart, ystop)
         expr = Expression(
@@ -2110,10 +2137,12 @@ class _Plot3D(Builtin):
 class Plot(_Plot):
     """
     <dl>
-    <dt>'Plot[$f$, {$x$, $xmin$, $xmax$}]'
-        <dd>plots $f$ with $x$ ranging from $xmin$ to $xmax$.
-    <dt>'Plot[{$f1$, $f2$, ...}, {$x$, $xmin$, $xmax$}]'
-        <dd>plots several functions $f1$, $f2$, ...
+      <dt>'Plot[$f$, {$x$, $xmin$, $xmax$}]'
+      <dd>plots $f$ with $x$ ranging from $xmin$ to $xmax$.
+
+      <dt>'Plot[{$f1$, $f2$, ...}, {$x$, $xmin$, $xmax$}]'
+      <dd>plots several functions $f1$, $f2$, ...
+
     </dl>
 
     >> Plot[{Sin[x], Cos[x], x / 3}, {x, -Pi, Pi}]
@@ -2264,7 +2293,9 @@ class PolarPlot(_Plot):
 
     options = _Plot.options.copy()
     options.update(
-        {"AspectRatio": "1",}
+        {
+            "AspectRatio": "1",
+        }
     )
 
     def get_functions_param(self, functions):
@@ -2309,6 +2340,8 @@ class ListPlot(_ListPlot):
         <dd>plots several lists of points.
     </dl>
 
+    ListPlot accepts a superset of the Graphics options.
+
     >> ListPlot[Table[n ^ 2, {n, 10}]]
      = -Graphics-
     """
@@ -2334,13 +2367,17 @@ class ListPlot(_ListPlot):
 class ListLinePlot(_ListPlot):
     """
     <dl>
-    <dt>'ListLinePlot[{$y_1$, $y_2$, ...}]'
-        <dd>plots a line through a list of $y$-values, assuming integer $x$-values 1, 2, 3, ...
-    <dt>'ListLinePlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
-        <dd>plots a line through a list of $x$, $y$ pairs.
-    <dt>'ListLinePlot[{$list_1$, $list_2$, ...}]'
-        <dd>plots several lines.
+      <dt>'ListLinePlot[{$y_1$, $y_2$, ...}]'
+      <dd>plots a line through a list of $y$-values, assuming integer $x$-values 1, 2, 3, ...
+
+      <dt>'ListLinePlot[{{$x_1$, $y_1$}, {$x_2$, $y_2$}, ...}]'
+      <dd>plots a line through a list of $x$, $y$ pairs.
+
+      <dt>'ListLinePlot[{$list_1$, $list_2$, ...}]'
+      <dd>plots several lines.
     </dl>
+
+    ListPlot accepts a superset of the Graphics options.
 
     >> ListLinePlot[Table[{n, n ^ 0.5}, {n, 10}]]
      = -Graphics-
@@ -2475,7 +2512,9 @@ class Plot3D(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression(
-            "Graphics3D", Expression("List", *graphics), *options_to_rules(options, Graphics3D.options)
+            "Graphics3D",
+            Expression("List", *graphics),
+            *options_to_rules(options, Graphics3D.options)
         )
 
 
@@ -2622,5 +2661,7 @@ class DensityPlot(_Plot3D):
 
     def final_graphics(self, graphics, options):
         return Expression(
-            "Graphics", Expression("List", *graphics), *options_to_rules(options, Graphics.options)
+            "Graphics",
+            Expression("List", *graphics),
+            *options_to_rules(options, Graphics.options)
         )
