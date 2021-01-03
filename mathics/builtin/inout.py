@@ -670,7 +670,7 @@ class InterpretationBox(Builtin):
     """
     <dl>
     <dt>'InterpretationBox[{...}]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr.
     </dl>
     """
@@ -706,7 +706,7 @@ class TagBox(Builtin):
     """
     <dl>
     <dt>'TagBox[boxes, tag]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr
     </dl>
     """
@@ -720,7 +720,7 @@ class TemplateBox(Builtin):
     </dl>
     """
     attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
-    
+
 
 class Row(Builtin):
     """
@@ -2030,7 +2030,7 @@ class MathMLForm(Builtin):
 
 
 class PythonForm(Builtin):
-    """
+    r"""
     <dl>
       <dt>'PythonForm[$expr$]'
       <dd>returns an approximate equivalent of $expr$ in Python, when that is possible. We assume
@@ -2045,6 +2045,9 @@ class PythonForm(Builtin):
     = sympy.E
     >> {1, 2, 3} // PythonForm
     = [1, 2, 3]
+
+    >> PythonForm["a\"bc'd"]
+     = 'a"bc\'d'
     """
     # >> PythonForm[HoldForm[Sqrt[a^3]]]
     #  = sympy.sqrt{a**3} # or something like this

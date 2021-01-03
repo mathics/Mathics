@@ -59,10 +59,10 @@ class ByteOrdering(Predefined):
 
 
 class CommandLine(Predefined):
-    """
+    r"""
     <dl>
     <dt>'$CommandLine'
-      <dd>is a list of strings passed on the command line to launch the Mathics session.
+      <dd>is a list of strings passed on the command line to launch the \Mathics session.
     </dl>
     >> $CommandLine
      = {...}
@@ -141,10 +141,10 @@ class GetEnvironment(Builtin):
 
 
 class Machine(Predefined):
-    """
+    r"""
     <dl>
     <dt>'$Machine'
-        <dd>returns a string describing the type of computer system on which the Mathics is being run.
+        <dd>returns a string describing the type of computer system on which the \Mathics is being run.
     </dl>
     X> $Machine
      = linux
@@ -176,7 +176,7 @@ class MathicsVersion(Predefined):
     r"""
     <dl>
       <dt>'MathicsVersion'
-      <dd>this string is the version of Mathics we are running.
+      <dd>this string is the version of \Mathics we are running.
     </dl>
 
     >> MathicsVersion
@@ -239,10 +239,10 @@ class Names(Builtin):
 
 
 class Packages(Predefined):
-    """
+    r"""
     <dl>
       <dt>'$Packages'
-      <dd>returns a list of the contexts corresponding to all packages which have been loaded into Mathics.
+      <dd>returns a list of the contexts corresponding to all packages which have been loaded into \Mathics.
     </dl>
 
     X> $Packages
@@ -411,10 +411,10 @@ class UserName(Predefined):
 
 
 class Version(Predefined):
-    """
+    r"""
     <dl>
       <dt>'$Version'
-      <dd>returns a string with the current Mathics version and the versions of relevant libraries.
+      <dd>returns a string with the current \Mathics version and the versions of relevant libraries.
     </dl>
 
     >> $Version

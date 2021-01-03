@@ -87,7 +87,7 @@ class ExpressionPointer(object):
         return '%s[[%s]]' % (self.parent, self.position)
 
 
-def from_python(arg):
+def from_python(arg, omit_surrounding_quotes=False):
     number_type = get_type(arg)
     if arg is None:
         return Symbol('Null')
@@ -117,7 +117,7 @@ def from_python(arg):
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"{arg} can't be converted to Mathics")
 
 
 class KeyComparable(object):
@@ -2620,7 +2620,12 @@ class String(Atom):
         return None
 
     def to_python(self, *args, **kwargs) -> str:
-        return '"%s"' % self.value  # add quotes to distinguish from Symbols
+        if kwargs.get("omit_surrounding_quotes", False):
+            return self.value
+        else:
+            # Add quotes to distinguish from Symbols.
+            # We use __repr__ instead of repr() to make the Cython compiler happy
+            return self.value.__repr__()
 
     def __hash__(self):
         return hash(("String", self.value))
