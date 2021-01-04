@@ -10,14 +10,11 @@ from itertools import chain
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
 WL_TO_UNICODE = {
-    'Β': 'Ꞵ', # \[CapitalBeta] (GREEK CAPITAL LETTER BETA) -> LATIN CAPITAL LETTER BETA
-    'Χ': 'Ξ', # \[CapitalChi] (GREEK CAPITAL LETTER CHI) -> GREEK CAPITAL LETTER XI
     '\uf74b': '𝐷', # \[CapitalDifferentialD] -> MATHEMATICAL ITALIC CAPITAL D
     '\uf76a': '⌘', # \[CommandKey] -> PLACE OF INTEREST SIGN
     '\uf7da': '𝕔', # \[ConstantC] -> MATHEMATICAL DOUBLE-STRUCK SMALL C
     '\uf3b1': '⋱', # \[Continuation] -> DOWN RIGHT DIAGONAL ELLIPSIS
     '\uf4a0': '⨯', # \[Cross] -> VECTOR OR CROSS PRODUCT
-    '∆': 'Δ', # \[DifferenceDelta] (INCREMENT) -> GREEK CAPITAL LETTER DELTA
     '\uf74c': '𝑑', # \[DifferentialD] -> MATHEMATICAL ITALIC SMALL D
     '\uf3d5': '→', # \[DirectedEdge] -> RIGHTWARDS ARROW
     '\uf4a4': 'ϴ', # \[DiscreteRatio] -> GREEK CAPITAL THETA SYMBOL
@@ -273,6 +270,7 @@ WL_TO_UNICODE = {
     '\uf762': '»', # \[RightSkeleton] -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
     '\uf522': '→', # \[Rule] -> RIGHTWARDS ARROW
     '\uf51f': '⧴', # \[RuleDelayed] -> RULE-DELAYED
+    # This one is changed because \[CapitalSampi] is mapped to GREEK LETTER SAMPI already
     'Ϡ': 'ϡ', # \[Sampi] (GREEK LETTER SAMPI) -> GREEK SMALL LETTER SAMPI
     '\uf6b2': '𝒶', # \[ScriptA] -> MATHEMATICAL SCRIPT SMALL A
     '\uf6b3': '𝒷', # \[ScriptB] -> MATHEMATICAL SCRIPT SMALL B
@@ -285,7 +283,6 @@ WL_TO_UNICODE = {
     '\uf77a': '𝒦', # \[ScriptCapitalK] -> MATHEMATICAL SCRIPT CAPITAL K
     '\uf77d': '𝒩', # \[ScriptCapitalN] -> MATHEMATICAL SCRIPT CAPITAL N
     '\uf77e': '𝒪', # \[ScriptCapitalO] -> MATHEMATICAL SCRIPT CAPITAL O
-    '℘': '𝒫', # \[WeierstrassP] (SCRIPT CAPITAL P) -> MATHEMATICAL SCRIPT CAPITAL P
     '\uf780': '𝒬', # \[ScriptCapitalQ] -> MATHEMATICAL SCRIPT CAPITAL Q
     '\uf782': '𝒮', # \[ScriptCapitalS] -> MATHEMATICAL SCRIPT CAPITAL S
     '\uf783': '𝒯', # \[ScriptCapitalT] -> MATHEMATICAL SCRIPT CAPITAL T
@@ -333,13 +330,10 @@ WL_TO_UNICODE = {
 }
 
 UNICODE_TO_WL = {
-    'Ꞵ': 'Β', # LATIN CAPITAL LETTER BETA -> \[CapitalBeta]
-    'Ξ': 'Χ', # GREEK CAPITAL LETTER XI -> \[CapitalChi]
     '𝐷': '\uf74b', # MATHEMATICAL ITALIC CAPITAL D -> \[CapitalDifferentialD]
     '⌘': '\uf76a', # PLACE OF INTEREST SIGN -> \[CommandKey]
     '𝕔': '\uf6e8', # MATHEMATICAL DOUBLE-STRUCK SMALL C -> \[DoubleStruckC]
     '⨯': '\uf4a0', # VECTOR OR CROSS PRODUCT -> \[Cross]
-    'Δ': '∆', # GREEK CAPITAL LETTER DELTA -> \[DifferenceDelta]
     '𝑑': '\uf74c', # MATHEMATICAL ITALIC SMALL D -> \[DifferentialD]
     '→': '\uf525', # RIGHTWARDS ARROW -> \[ShortRightArrow]
     'ϴ': '\uf4a4', # GREEK CAPITAL THETA SYMBOL -> \[DiscreteRatio]
@@ -512,6 +506,7 @@ UNICODE_TO_WL = {
     'ṛ': '\uf811', # LATIN SMALL LETTER R WITH DOT BELOW -> \[FormalR]
     'ρ̣': '\uf864', # GREEK SMALL LETTER RHO + COMBINING DOT BELOW -> \[FormalRho]
     'ṣ': '\uf812', # LATIN SMALL LETTER S WITH DOT BELOW -> \[FormalS]
+    # This one is changed because GREEK LETTER SAMPI is mapped to \[CapitalSampi] already
     'ϡ̣': '\uf884', # GREEK SMALL LETTER SAMPI + COMBINING DOT BELOW -> \[FormalSampi]
     'σ̣': '\uf866', # GREEK SMALL LETTER SIGMA + COMBINING DOT BELOW -> \[FormalSigma]
     'ϛ': '\uf87e', # GREEK SMALL LETTER STIGMA -> \[FormalStigma]
@@ -599,7 +594,6 @@ UNICODE_TO_WL = {
     '𝒦': '\uf77a', # MATHEMATICAL SCRIPT CAPITAL K -> \[ScriptCapitalK]
     '𝒩': '\uf77d', # MATHEMATICAL SCRIPT CAPITAL N -> \[ScriptCapitalN]
     '𝒪': '\uf77e', # MATHEMATICAL SCRIPT CAPITAL O -> \[ScriptCapitalO]
-    '𝒫': '℘', # MATHEMATICAL SCRIPT CAPITAL P -> \[WeierstrassP]
     '𝒬': '\uf780', # MATHEMATICAL SCRIPT CAPITAL Q -> \[ScriptCapitalQ]
     '𝒮': '\uf782', # MATHEMATICAL SCRIPT CAPITAL S -> \[ScriptCapitalS]
     '𝒯': '\uf783', # MATHEMATICAL SCRIPT CAPITAL T -> \[ScriptCapitalT]
