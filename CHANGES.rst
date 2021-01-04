@@ -1,6 +1,17 @@
 CHANGES
 =======
 
+2.0.0
+-----
+
+Bugs fixed
+
+- Fix evaluation timeouts
+  
+New builtins
+
+- ``TimeRemaining`` and ``TimeConstrained``
+
 1.1.1
 -----
 
@@ -39,13 +50,12 @@ New builtins:
 - ``Throw`` and ``Catch``
 - ``With``
 - ``FileNameTake``
-- ``TimeRemaining`` and ``TimeConstrained``
+
 
 
   Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
 
-- Fix evaluation timeouts 
 - Workaround for ``Compile`` so it accepts functions ##1026
 - Add ``Trace`` option to ``Get``. ``Get["fn", Trace->True]`` will show lines as they are read.
 - Convert to/from Boolean types properly in ``from_python``, ``to_python``. Previously they were 0, and 1.
