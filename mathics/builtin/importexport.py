@@ -151,6 +151,7 @@ mimetype_dict = {
 
 IMPORTERS = {}
 EXPORTERS = {}
+EXTENSIONMAPPINGS = {"*.3ds" : "3DS", "*.aco" : "ACO", "*.aif" : "AIFF", "*.aiff" : "AIFF", "*.au" : "AU", "*.avi" : "AVI", "*.b64" : "BASE64", "*.bdf" : "BDF", "*.bmp" : "BMP", "*.dib" : "BMP", "*.bson" : "BSON", "*.byu" : "BYU", "*.bz2" : "BZIP2", "*.c" : "C", "*.cdf" : "CDF", "*.cif" : "CIF", "*.col" : "DIMACS", "*.col.b" : "DIMACS", "*.csv" : "CSV", "*.css" : "CSS", "*.cur" : "CUR", "*.dae" : "DAE", "*.dat" : "Table", "*.dcm" : "DICOM", "*.dic" : "DICOM", "*.dicm" : "DICOM", "*.dif" : "DIF", "*.dot" : "DOT", "*.dxf" : "DXF", "*.edf" : "EDF", "*.emf" : "EMF", "*.eml" : "EML", "*.enc" : "UUE", "*.ent" : "PDB", "*.eps" : "EPS", "*.epsf" : "EPS", "*.epsi" : "EPS", "*.fcs" : "FCS", "*.fsa" : "FASTA", "*.fasta" : "FASTA", "*.fa" : "FASTA", "*.mpfa" : "FASTA", "*.fq" : "FASTQ", "*.fastq" : "FASTQ", "*.fit" : "FITS", "*.fits" : "FITS", "*.flac" : "FLAC", "*.flv" : "FLV", "*.fmu" : "FMU", "*.g6" : "Graph6", "*.gif" : "GIF", "*.gml" : "Graphlet", "*.grd" : "SurferGrid", "*.grib" : "GRIB", "*.grb" : "GRIB", "*.gv" : "DOT", "*.gw" : "LEDA", "*.gxl" : "GXL", "*.graphml" : "GraphML", "*.gz" : "GZIP", "*.hdf" : "HDF", "*.hmm" : "HMMER", "*.htm" : "HTML", "*.html" : "HTML", "*.sds" : "HDF", "*.h5" : "HDF5", "*.icc" : "ICC", "*.icm" : "ICC", "*.icns" : "ICNS", "*.ico" : "ICO", "*.ics" : "ICS", "*.ini" : "INI", "*.jar" : "ZIP", "*.jp2" : "JPEG2000", "*.j2k" : "JPEG2000", "*.jpc" : "JPEG2000", "*.jpg" : "JPEG", "*.jpeg" : "JPEG", "*.jfif" : "JPEG", "*.jvx" : "JVX", "*.kml" : "KML", "*.kmz" : "KML", "*.lgr" : "LEDA", "*.lmd" : "FCS", "*.lwo" : "LWO", "*.m" : "Package", "*.m4a" : "M4A", "*.aac" : "M4A", "*.ma" : "Maya", "*.mat" : "MAT", "*.mbx" : "MBOX", "*.mbox" : "MBOX", "*.mesh" : "MESH", "*.mgf" : "MGF", "*.mid" : "MIDI", "*.mml" : "MathML", "*.mo" : "MO", "*.mol" : "MOL", "*.mol2" : "MOL2", "*.mov" : "QuickTime", "*.mp3" : "MP3", "*.mtx" : "MTX", "*.mulaw" : "AU", "*.mx" : "MX", "*.nb" : "NB", "*.nc" : "NETCDF", "*.ndk" : "NDK", "*.net" : "PAJEK", "*.nex" : "NEXUS", "*.noff" : "NOFF", "*.nxs" : "NEXUS", "*.obj" : "OBJ", "*.ods" : "ODS", "*.off" : "OFF", "*.oga" : "OGG", "*.ogg" : "OGG", "*.pcx" : "PCX", "*.pbm" : "PBM", "*.pgm" : "PGM", "*.ppm" : "PPM", "*.pnm" : "PNM", "*.png" : "PNG", "*.pdb" : "PDB", "*.pdf" : "PDF", "*.pic" : "PXR", "*.pic" : "PICT", "*.pict" : "PICT", "*.pct" : "PICT", "*.ply" : "PLY", "*.pov" : "POV", "*.properties" : "JavaProperties", "*.pxr" : "PXR", "*.qt" : "QuickTime", "*.raw" : "RawBitmap", "*.rib" : "RIB", "*.rtf" : "RTF", "*.sdf" : "SDF", "*.sct" : "SCT", "*.ch" : "SCT", "*.ct" : "SCT", "*.sff" : "SFF", "*.sp3" : "SP3", "*.stl" : "STL", "*.s6" : "Sparse6", "*.sma" : "SMA", "*.sme" : "SME", "*.smi" : "SMILES", "*.snd" : "SND", "*.svg" : "SVG", "*.svgz" : "SVGZ", "*.swf" : "SWF", "*.tar" : "TAR", "*.tex" : "TeX", "*.tga" : "TGA", "*.tgf" : "TGF", "*.tgz" : "GZIP", "*.tff" : "TIFF", "*.tif" : "TIFF", "*.tiff" : "TIFF", "*.tsv" : "TSV", "*.txt" : "Text", "*.uue" : "UUE", "*.w64" : "Wave64", "*.wav" : "WAV", "*.webp" : "WebP", "*.wdx" : "WDX", "*.wl" : "Package", "*.wls" : "Package", "*.wlnet" : "WLNet", "*.wmf" : "WMF", "*.wmlf" : "WMLF", "*.html" : "XHTML", "*.htm" : "XHTML", "*.xhtml" : "XHTML", "*.xbm" : "XBM", "*.xht" : "XHTML", "*.xml" : "XML", "*.xml" : "ExpressionML", "*.xml" : "XHTML", "*.xml" : "XHTMLMathML", "*.xls" : "XLS", "*.xlsx" : "XLSX", "*.wrl" : "VRML", "*.wxf" : "WXF", "*.vtk" : "VTK", "*.x3d" : "X3D", "*.xyz" : "XYZ", "*.zip" : "ZIP", "*.zpr" : "ZPR", "*.cha" : "HarwellBoeing", "*.che" : "HarwellBoeing", "*.cra" : "HarwellBoeing", "*.cre" : "HarwellBoeing", "*.csa" : "HarwellBoeing", "*.cse" : "HarwellBoeing", "*.cua" : "HarwellBoeing", "*.cue" : "HarwellBoeing", "*.cza" : "HarwellBoeing", "*.cze" : "HarwellBoeing", "*.pha" : "HarwellBoeing", "*.phe" : "HarwellBoeing", "*.pra" : "HarwellBoeing", "*.pre" : "HarwellBoeing", "*.psa" : "HarwellBoeing", "*.pse" : "HarwellBoeing", "*.pua" : "HarwellBoeing", "*.pue" : "HarwellBoeing", "*.pza" : "HarwellBoeing", "*.pze" : "HarwellBoeing", "*.rha" : "HarwellBoeing", "*.rhe" : "HarwellBoeing", "*.rra" : "HarwellBoeing", "*.rre" : "HarwellBoeing", "*.rsa" : "HarwellBoeing", "*.rse" : "HarwellBoeing", "*.rua" : "HarwellBoeing", "*.rue" : "HarwellBoeing", "*.rza" : "HarwellBoeing", "*.rze" : "HarwellBoeing", "*.json" : "JSON", "*.ubj" : "UBJSON", "*.geojson" : "GeoJSON", "*.bay" : "Raw", "*.bmq" : "Raw", "*.cr2" : "Raw", "*.crw" : "Raw", "*.cs1" : "Raw", "*.dc2" : "Raw", "*.dcr" : "Raw", "*.dng" : "Raw", "*.erf" : "Raw", "*.fff" : "Raw", "*.hdr" : "Raw", "*.k25" : "Raw", "*.kdc" : "Raw", "*.mdc" : "Raw", "*.mos" : "Raw", "*.mrw" : "Raw", "*.nef" : "Raw", "*.orf" : "Raw", "*.pef" : "Raw", "*.pxn" : "Raw", "*.raf" : "Raw", "*.raw" : "Raw", "*.rdc" : "Raw", "*.sr2" : "Raw", "*.srf" : "Raw", "*.x3f" : "Raw", "*.arw" : "Raw", "*.3fr" : "Raw", "*.cine" : "Raw", "*.ia" : "Raw", "*.kc2" : "Raw", "*.mef" : "Raw", "*.nrw" : "Raw", "*.qtk" : "Raw", "*.rw2" : "Raw", "*.sti" : "Raw", "*.rwl" : "Raw", "*.rle" : "RLE", "*.tcx" : "TECHEXPLORER", "*.tcx" : "TCX", "*.css" : "CSS"}
 
 
 def _importer_exporter_options(available_options, options, builtin_name: str, evaluation):
@@ -223,7 +224,25 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return Expression('List', *sorted(EXPORTERS.keys()))
 
+class ConverterDumpsExtensionMappings(Predefined):
+    """
+    <dl>
+    <dt>'$extensionMappings'
+        <dd>Returns a list of associations between file extensions and file types. 
+    </dl>
+    
+    """
+    context = 'System`ConvertersDump`'
+    name = "$extensionMappings"
+    attributes = ['Unprotected']
 
+    def evaluate(self, evaluation):
+        'System`ConvertersDump`$extensionMappings'
+        print("returning extensionmappings")
+        return Expression('List',
+                          Expression('List', *sorted(EXTENSIONMAPPINGS.keys())))
+
+    
 class RegisterImport(Builtin):
     """
     <dl>
@@ -1365,3 +1384,5 @@ class B64Decode(Builtin):
             evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")
         return clearstring
+
+

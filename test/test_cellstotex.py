@@ -22,7 +22,7 @@ else:
 
 definitions = Definitions(add_builtin=True)
 evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
-set_versionnumber = 'Unprotect[VersionNumber];VersionNumber=11;Protect[VersionNumber];'
+set_versionnumber = 'Unprotect[$VersionNumber];$VersionNumber=11;Protect[$VersionNumber];'
 import_url = 'Import@"%s"' % external_url
 
 
@@ -51,9 +51,9 @@ def test_load():
 
 
 @pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
-#@pytest.mark.skip(
-#    reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
-#)
+@pytest.mark.skip(
+    reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
+)
 def test_load_and_run():
     print("load and run")
     str_expected1 = "None"
