@@ -6141,7 +6141,7 @@ class Failure(Builtin):
 class FirstCase(Builtin):
     """
     <dl>
-    <dt> FirstCase[{$e1$, $e2$, $\ldots$}, $pattern$]
+    <dt> FirstCase[{$e1$, $e2$, $\\ldots$}, $pattern$]
         <dd>gives the first $ei$ to match $pattern$, or $Missing[\"NotFound\"]$ if none matching pattern is found.
 
     <dt> FirstCase[{$e1$,$e2$, $\ldots$}, $pattern$ -> $rhs$]

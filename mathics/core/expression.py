@@ -1115,6 +1115,9 @@ class Expression(BaseExpression):
 
     def evaluate(self, evaluation) -> typing.Union['Expression', 'Symbol']:
         from mathics.core.evaluation import ReturnInterrupt
+        if evaluation.timeout:
+            # evaluation.timeout = False
+            return
 
         expr = self
         reevaluate = True
@@ -1125,8 +1128,6 @@ class Expression(BaseExpression):
 
         old_options = evaluation.options
         evaluation.inc_recursion_depth()
-        if evaluation.timeout:
-            return
         try:
             while reevaluate:
                 # changed before last evaluated?
