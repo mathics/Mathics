@@ -1408,8 +1408,10 @@ class ConvertCommonDumpRemoveLinearSyntax(Builtin):
     """
 
     options = {"System`Convert`CommonDump`ConvertRecursive" : "False", }
+    # options = {"ConvertRecursive" : "False", }
     attributes = ('ReadProtected',)
-    context = "System`Convert`CommonDump"
+    context = "System`Convert`CommonDump`"
+    name = "RemoveLinearSyntax"
 
     def apply(self, arg , evaluation):
         'System`Convert`CommonDump`RemoveLinearSyntax[arg_]'
