@@ -430,6 +430,21 @@ def set_part(varlist, indices, newval):
     rec(varlist, indices)
 
 
+
+def _parts_all_selector():
+    start = 1
+    stop = None
+    step = 1
+    def select(inner):
+        if inner.is_atom():
+            raise MessageException("Part", "partd")
+        py_slice = python_seq(start, stop, step, len(inner.leaves))
+        if py_slice is None:
+            raise MessageException("Part", "take", start, stop, inner)
+        return inner.leaves[py_slice]
+
+    return select
+
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)
@@ -502,6 +517,8 @@ def _part_selectors(indices):
     for index in indices:
         if index.has_form("Span", None):
             yield _parts_span_selector(index)
+        elif index.get_name() == "System`All":
+            yield  _parts_all_selector()
         elif index.has_form("List", None):
             yield _parts_sequence_selector(index.leaves)
         elif isinstance(index, Integer):

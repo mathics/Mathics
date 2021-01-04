@@ -233,7 +233,6 @@ class ConverterDumpsExtensionMappings(Predefined):
     <dt>'$extensionMappings'
         <dd>Returns a list of associations between file extensions and file types. 
     </dl>
-    
     """
     context = 'System`ConvertersDump`'
     name = "$extensionMappings"
@@ -249,8 +248,7 @@ class ConverterDumpsFormatMappings(Predefined):
     <dl>
     <dt>'$formatMappings'
         <dd>Returns a list of associations between file extensions and file types. 
-    </dl>
-    
+    </dl>    
     """
     context = 'System`ConvertersDump`'
     name = "$formatMappings"
@@ -1408,12 +1406,12 @@ class ConvertCommonDumpRemoveLinearSyntax(Builtin):
     <dt> 'System`Convert`CommonDump`RemoveLinearSyntax[$something$]'
     <dd> Keine anung... Undocumented in wma
     </dl>
-    
     """
+
     options = {"System`Convert`CommonDump`ConvertRecursive" : "False", }
     attributes = ('ReadProtected',)
     context = "System`Convert`CommonDump"
-    
+
     def apply(self, arg , evaluation):
         'System`Convert`CommonDump`RemoveLinearSyntax[arg_]'
         print("No idea what should this do. By now, do nothing...")
