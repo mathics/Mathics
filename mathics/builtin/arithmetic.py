@@ -1898,6 +1898,10 @@ class Sum(_IterationFunction, SympyFunction):
      = Sum[i / Log[i], {i, 1, Infinity}]
     #> Sum[Cos[Pi i], {i, 1, Infinity}]
      = Sum[Cos[Pi i], {i, 1, Infinity}]
+
+    ## Combinatorica V0.9 issue in computing NumberofInvolutions
+    >> Sum[k!, {k, 0, Quotient[4, 2]}]
+     = 4
     """
 
     # Do not throw warning message for symbolic iteration bounds
@@ -1921,16 +1925,28 @@ class Sum(_IterationFunction, SympyFunction):
         return Expression("Plus", *items)
 
     def to_sympy(self, expr, **kwargs):
+        """
+        Perform summation via sympy.summation
+        """
         if expr.has_form("Sum", 2) and expr.leaves[1].has_form("List", 3):
             index = expr.leaves[1]
             arg_kwargs = kwargs.copy()
             arg_kwargs["convert_all_global_functions"] = True
             arg = expr.leaves[0].to_sympy(**arg_kwargs)
-            bounds = (
-                index.leaves[0].to_sympy(**kwargs),
-                index.leaves[1].to_sympy(**kwargs),
-                index.leaves[2].to_sympy(**kwargs),
-            )
+            evaluation = kwargs.get("evaluation", None)
+
+            # Handle summation parameters: variable, min, max
+            var_min_max = index.leaves[:3]
+            bounds = [expr.to_sympy(**kwargs) for expr in var_min_max]
+
+            if evaluation:
+                # Min and max might be Mathics expressions. If so, evaluate them.
+                for i in (1, 2):
+                    expr = var_min_max[i]
+                    if not isinstance(expr, Symbol):
+                        expr = expr.evaluate(evaluation)
+                        value = expr.to_sympy(**kwargs)
+                        bounds[i] = value
 
             if arg is not None and None not in bounds:
                 return sympy.summation(arg, bounds)

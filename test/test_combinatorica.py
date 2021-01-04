@@ -16,7 +16,7 @@ session.evaluate(
 # more clear in a test.
 
 
-def test_combinatorica_permutations_1_1():
+def test_permutations_1_1():
 
     for str_expr, str_expected, message in (
         (
@@ -110,7 +110,7 @@ def test_combinatorica_permutations_1_1():
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_combinatorica_permutations_1_2():
+def test_permutations_groups_1_2():
 
     for str_expr, str_expected, message in (
         (
@@ -282,7 +282,7 @@ def test_combinatorica_permutations_1_2():
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_combinatorica_permutations_1_3():
+def test_inversions_and_inversion_vectors_1_3():
 
     for str_expr, str_expected, message in (
         (
@@ -343,7 +343,28 @@ def test_combinatorica_permutations_1_3():
     ):
         check_evaluation(str_expr, str_expected, message)
 
-def test_combinatorica_permutations_1_5():
+def test_special_classes_of_permutations_1_4():
+
+    # We include this earlier since the above in fact rely on KSubsets
+    for str_expr, str_expected, message in (
+        (
+            "Map[ ToCycles, Select[ Permutations[Range[4]], InvolutionQ ] ]",
+            "{{{1}, {2}, {3}, {4}}, {{1}, {2}, {4, 3}}, "
+            "{{1}, {3, 2}, {4}}, {{1}, {4, 2}, {3}}, "
+            "{{2, 1}, {3}, {4}}, {{2, 1}, {4, 3}}, "
+            "{{3, 1}, {2}, {4}}, {{3, 1}, {4, 2}}, "
+            "{{4, 1}, {2}, {3}}, {{4, 1}, {3, 2}}}",
+            "Involutions 1.4.1, Page 33",
+        ),
+        (
+            "NumberOfInvolutions[4]",
+            "10",
+            "NumberOfInvolutions 1.4.1, Page 33",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
+
+def test_combinations_1_5():
 
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
