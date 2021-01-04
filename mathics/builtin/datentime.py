@@ -112,7 +112,7 @@ class TimeRemaining(Builtin):
 
     X> TimeConstrained[1+2; Print[TimeRemaining[]], 0.9]
      | 0.899318
-
+     
     """
 
     def apply(self, evaluation):
@@ -146,6 +146,11 @@ class TimeConstrained(Builtin):
 
     >> a=1; s
     = -Cos[x] + Cos[x] ^ 3 / 3
+
+    Possible issues: for certain time-consuming functions (like simplify)
+    which are based on sympy or other libraries, it is possible that
+    the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\$Aborted$ and the results will not affect
+    the state of the mathics kernel.
 
     """
 
