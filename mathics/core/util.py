@@ -10,19 +10,18 @@ from itertools import chain
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
 WL_TO_UNICODE = {
-    'Β': 'Ꞵ', # \[CapitalBeta] -> LATIN CAPITAL LETTER BETA
-    'Χ': 'Ξ', # \[CapitalChi] -> GREEK CAPITAL LETTER XI
+    'Β': 'Ꞵ', # \[CapitalBeta] (GREEK CAPITAL LETTER BETA) -> LATIN CAPITAL LETTER BETA
+    'Χ': 'Ξ', # \[CapitalChi] (GREEK CAPITAL LETTER CHI) -> GREEK CAPITAL LETTER XI
     '\uf74b': '𝐷', # \[CapitalDifferentialD] -> MATHEMATICAL ITALIC CAPITAL D
     '\uf76a': '⌘', # \[CommandKey] -> PLACE OF INTEREST SIGN
     '\uf7da': '𝕔', # \[ConstantC] -> MATHEMATICAL DOUBLE-STRUCK SMALL C
     '\uf3b1': '⋱', # \[Continuation] -> DOWN RIGHT DIAGONAL ELLIPSIS
     '\uf4a0': '⨯', # \[Cross] -> VECTOR OR CROSS PRODUCT
-    '∆': 'Δ', # \[DifferenceDelta] -> GREEK CAPITAL LETTER DELTA
+    '∆': 'Δ', # \[DifferenceDelta] (INCREMENT) -> GREEK CAPITAL LETTER DELTA
     '\uf74c': '𝑑', # \[DifferentialD] -> MATHEMATICAL ITALIC SMALL D
     '\uf3d5': '→', # \[DirectedEdge] -> RIGHTWARDS ARROW
     '\uf4a4': 'ϴ', # \[DiscreteRatio] -> GREEK CAPITAL THETA SYMBOL
-    'ı': 'I', # \[DotlessI] -> LATIN CAPITAL LETTER I
-    '\uf700': 'J', # \[DotlessJ] -> LATIN CAPITAL LETTER J
+    '\uf700': 'ȷ', # \[DotlessJ] -> LATIN SMALL LETTER DOTLESS J
     '\uf751': '⛶', # \[DottedSquare] -> SQUARE FOUR CORNERS
     '\uf74a': 'ℽ', # \[DoubledGamma] -> DOUBLE-STRUCK SMALL GAMMA
     '\uf749': 'ℼ', # \[DoubledPi] -> DOUBLE-STRUCK SMALL PI
@@ -88,12 +87,11 @@ WL_TO_UNICODE = {
     '\uf6fe': '𝕪', # \[DoubleStruckY] -> MATHEMATICAL DOUBLE-STRUCK SMALL Y
     '\uf6ff': '𝕫', # \[DoubleStruckZ] -> MATHEMATICAL DOUBLE-STRUCK SMALL Z
     '\uf7db': '𝟘', # \[DoubleStruckZero] -> MATHEMATICAL DOUBLE-STRUCK DIGIT ZERO
-    '♁': '⊕', # \[Earth] -> CIRCLED PLUS
+    '\uf755': ' ̑', # \[DownBreve] -> SPACE + COMBINING INVERTED BREVE
     '\uf431': '⩵', # \[Equal] -> TWO CONSECUTIVE EQUALS SIGNS
-    '⧦': '⇔', # \[Equivalent] -> LEFT RIGHT DOUBLE ARROW
+    '⧦': '⇔', # \[Equivalent] (GLEICH STARK) -> LEFT RIGHT DOUBLE ARROW
     '\uf74d': 'ⅇ', # \[ExponentialE] -> DOUBLE-STRUCK ITALIC SMALL E
     '\uf750': '•', # \[FilledSmallCircle] -> BULLET
-    '◼': '■', # \[FilledSmallSquare] -> BLACK SQUARE
     '\uf800': 'ạ', # \[FormalA] -> LATIN SMALL LETTER A WITH DOT BELOW
     '\uf854': 'α̣', # \[FormalAlpha] -> GREEK SMALL LETTER ALPHA + COMBINING DOT BELOW
     '\uf801': 'ḅ', # \[FormalB] -> LATIN SMALL LETTER B WITH DOT BELOW
@@ -275,7 +273,7 @@ WL_TO_UNICODE = {
     '\uf762': '»', # \[RightSkeleton] -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
     '\uf522': '→', # \[Rule] -> RIGHTWARDS ARROW
     '\uf51f': '⧴', # \[RuleDelayed] -> RULE-DELAYED
-    'Ϡ': 'ϡ', # \[Sampi] -> GREEK SMALL LETTER SAMPI
+    'Ϡ': 'ϡ', # \[Sampi] (GREEK LETTER SAMPI) -> GREEK SMALL LETTER SAMPI
     '\uf6b2': '𝒶', # \[ScriptA] -> MATHEMATICAL SCRIPT SMALL A
     '\uf6b3': '𝒷', # \[ScriptB] -> MATHEMATICAL SCRIPT SMALL B
     '\uf6b4': '𝒸', # \[ScriptC] -> MATHEMATICAL SCRIPT SMALL C
@@ -287,7 +285,7 @@ WL_TO_UNICODE = {
     '\uf77a': '𝒦', # \[ScriptCapitalK] -> MATHEMATICAL SCRIPT CAPITAL K
     '\uf77d': '𝒩', # \[ScriptCapitalN] -> MATHEMATICAL SCRIPT CAPITAL N
     '\uf77e': '𝒪', # \[ScriptCapitalO] -> MATHEMATICAL SCRIPT CAPITAL O
-    '℘': '𝒫', # \[WeierstrassP] -> MATHEMATICAL SCRIPT CAPITAL P
+    '℘': '𝒫', # \[WeierstrassP] (SCRIPT CAPITAL P) -> MATHEMATICAL SCRIPT CAPITAL P
     '\uf780': '𝒬', # \[ScriptCapitalQ] -> MATHEMATICAL SCRIPT CAPITAL Q
     '\uf782': '𝒮', # \[ScriptCapitalS] -> MATHEMATICAL SCRIPT CAPITAL S
     '\uf783': '𝒯', # \[ScriptCapitalT] -> MATHEMATICAL SCRIPT CAPITAL T
@@ -330,7 +328,7 @@ WL_TO_UNICODE = {
     '\uf3c7': 'ᵀ', # \[Transpose] -> MODIFIER LETTER CAPITAL T
     '\uf758': '⋯', # \[TripleDot] -> MIDLINE HORIZONTAL ELLIPSIS
     '\uf3d4': '↔', # \[UndirectedEdge] -> LEFT RIGHT ARROW
-    '♅': '⛢', # \[Uranus] -> ASTRONOMICAL SYMBOL FOR URANUS
+    '♅': '⛢', # \[Uranus] (URANUS) -> ASTRONOMICAL SYMBOL FOR URANUS
     '\uf3d0': '|', # \[VerticalBar] -> VERTICAL LINE
 }
 
@@ -345,8 +343,7 @@ UNICODE_TO_WL = {
     '𝑑': '\uf74c', # MATHEMATICAL ITALIC SMALL D -> \[DifferentialD]
     '→': '\uf525', # RIGHTWARDS ARROW -> \[ShortRightArrow]
     'ϴ': '\uf4a4', # GREEK CAPITAL THETA SYMBOL -> \[DiscreteRatio]
-    'I': 'ı', # LATIN CAPITAL LETTER I -> \[DotlessI]
-    'J': '\uf700', # LATIN CAPITAL LETTER J -> \[DotlessJ]
+    'ȷ': '\uf700', # LATIN SMALL LETTER DOTLESS J -> \[DotlessJ]
     '⛶': '\uf751', # SQUARE FOUR CORNERS -> \[DottedSquare]
     'ℽ': '\uf74a', # DOUBLE-STRUCK SMALL GAMMA -> \[DoubledGamma]
     'ℼ': '\uf749', # DOUBLE-STRUCK SMALL PI -> \[DoubledPi]
@@ -411,7 +408,6 @@ UNICODE_TO_WL = {
     '𝕪': '\uf6fe', # MATHEMATICAL DOUBLE-STRUCK SMALL Y -> \[DoubleStruckY]
     '𝕫': '\uf6ff', # MATHEMATICAL DOUBLE-STRUCK SMALL Z -> \[DoubleStruckZ]
     '𝟘': '\uf7db', # MATHEMATICAL DOUBLE-STRUCK DIGIT ZERO -> \[DoubleStruckZero]
-    '⊕': '♁', # CIRCLED PLUS -> \[Earth]
     '⩵': '\uf431', # TWO CONSECUTIVE EQUALS SIGNS -> \[Equal]
     '⇔': '⧦', # LEFT RIGHT DOUBLE ARROW -> \[Equivalent]
     'ⅇ': '\uf74d', # DOUBLE-STRUCK ITALIC SMALL E -> \[ExponentialE]
