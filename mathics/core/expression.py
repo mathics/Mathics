@@ -19,7 +19,7 @@ from bisect import bisect_left
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
-
+        
 def fully_qualified_symbol_name(name) -> bool:
     return (isinstance(name, str) and
             '`' in name and
@@ -112,6 +112,9 @@ def from_python(arg):
         #     return String(arg[1:-1])
         # else:
         #     return Symbol(arg)
+    elif isinstance(arg, dict):
+        entries = [Expression('Rule',from_python(key), from_python(arg[key])) for key in arg]
+        return Expression('List', *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
@@ -475,7 +478,6 @@ class BaseExpression(KeyComparable):
 
     def get_rules_list(self):
         from mathics.core.rules import Rule
-
         list_expr = self.flatten(Symbol('List'))
         list = []
         if list_expr.has_form('List', None):

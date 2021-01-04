@@ -239,8 +239,7 @@ class ConverterDumpsExtensionMappings(Predefined):
     attributes = ['Unprotected']
 
     def evaluate(self, evaluation):
-        return Expression('List',
-                          Expression('List', *sorted(EXTENSIONMAPPINGS.keys())))
+        return from_python(EXTENSIONMAPPINGS)
 
 
 class ConverterDumpsFormatMappings(Predefined):
@@ -254,7 +253,7 @@ class ConverterDumpsFormatMappings(Predefined):
     name = "$formatMappings"
     attributes = ['Unprotected']
     def evaluate(self, evaluation):
-        return Expression('List', *sorted(FORMATMAPPINGS.keys()))
+        return from_python(FORMATMAPPINGS)
 
 
 class RegisterImport(Builtin):
