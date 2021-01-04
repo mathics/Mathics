@@ -1402,3 +1402,19 @@ class B64Decode(Builtin):
         return clearstring
 
 
+class ConvertCommonDumpRemoveLinearSyntax(Builtin):
+    """
+    <dl>
+    <dt> 'System`Convert`CommonDump`RemoveLinearSyntax[$something$]'
+    <dd> Keine anung... Undocumented in wma
+    </dl>
+    
+    """
+    options = {"System`Convert`CommonDump`ConvertRecursive" : "False", }
+    attributes = ('ReadProtected',)
+    context = "System`Convert`CommonDump"
+    
+    def apply(self, arg , evaluation):
+        'System`Convert`CommonDump`RemoveLinearSyntax[arg_]'
+        print("No idea what should this do. By now, do nothing...")
+        return arg
