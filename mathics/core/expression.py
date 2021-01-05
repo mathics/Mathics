@@ -1118,9 +1118,7 @@ class Expression(BaseExpression):
     def evaluate(self, evaluation) -> typing.Union['Expression', 'Symbol']:
         from mathics.core.evaluation import ReturnInterrupt
         if evaluation.timeout:
-            # evaluation.timeout = False
             return
-
         expr = self
         reevaluate = True
         limit = None
