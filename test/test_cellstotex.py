@@ -51,20 +51,31 @@ def test_load():
 
 
 @pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
-@pytest.mark.skip(
-    reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
-)
+#@pytest.mark.skip(
+#    reason="FIXME: full CellToTeX import test is not working yet: implement levelspec > 1"
+#)
 def test_load_and_run():
     print("load and run")
-    str_expected1 = "None"
-    message1 = "Import::nffil: File not found during Import."
+    str_expected0 = "None"
+    message0 = "Import::nffil: File not found during Import."
     _evaluate(set_versionnumber)
-    result1 = _evaluate(import_url)
-    print(result1)
-    expected1 = _evaluate(str_expected1)
+    result0 = _evaluate(import_url)
+    expected0 = _evaluate(str_expected0)
 
-    if result1 == Symbol("System`$Failed"):
+    if result0 == Symbol("System`$Failed"):
         return 0
+
+    str_expr1 = 'boxes=MakeBoxes[Pi];\
+                 cell = Cell[BoxData[boxes], "Input"];res=Catch[CellToTeX[cell, Style->"Automatic"]]'
+    str_expected1 = '"\\begin{mmaCell}{Input}\n  \\pi\n\\end{mmaCell}"'
+    print(str_expr1)
+    message1 = ""
+    result1 = _evaluate(str_expr1)
+    expected1 = _evaluate(str_expected1)
+    if message1:
+        assert result1 == expected1, message1
+    else:
+        assert result1 == expected1
 
     str_expr2 = 'boxes=MakeBoxes[(-b \[PlusMinus] Sqrt[b^2-4*a*c])/(2 a)];\
                  cell = Cell[BoxData[boxes],"Input"];res=Catch[CellToTeX[cell]]'
