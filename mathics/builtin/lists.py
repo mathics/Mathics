@@ -6144,7 +6144,7 @@ class FirstCase(Builtin):
     <dt> FirstCase[{$e1$, $e2$, $\\ldots$}, $pattern$]
         <dd>gives the first $ei$ to match $pattern$, or $Missing[\"NotFound\"]$ if none matching pattern is found.
 
-    <dt> FirstCase[{$e1$,$e2$, $\ldots$}, $pattern$ -> $rhs$]
+    <dt> FirstCase[{$e1$,$e2$, $\\ldots$}, $pattern$ -> $rhs$]
         <dd> gives the value of $rhs$ corresponding to the first $ei$ to match pattern.
     <dt> FirstCase[$expr$, $pattern$, $default$]
          <dd> gives $default$ if no element matching $pattern$ is found.
