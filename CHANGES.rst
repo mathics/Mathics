@@ -14,6 +14,8 @@ New builtins
 - ``\[RadicalBox]``
 - ``FirstCase``, ``Lookup``
 - ``Catalan``, ``LerchPhi``
+- ``FirstCase``
+
 
 Document updates
 ----------------
