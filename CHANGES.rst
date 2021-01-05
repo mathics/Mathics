@@ -1,6 +1,17 @@
 CHANGES
 =======
 
+2.0.0
+-----
+
+Bugs fixed
+
+- Fix evaluation timeouts
+  
+New builtins
+
+- ``TimeRemaining`` and ``TimeConstrained``
+
 1.1.1
 -----
 
@@ -39,6 +50,8 @@ New builtins:
 - ``Throw`` and ``Catch``
 - ``With``
 - ``FileNameTake``
+
+
 
   Enhancements and Bug fixes:
 +++++++++++++++++++++++++++
