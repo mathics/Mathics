@@ -14,6 +14,8 @@ New builtins
 - ``\[RadicalBox]``
 - ``FirstCase``, ``Lookup``
 - ``Catalan``, ``LerchPhi``
+- ``System`ConvertersDump`` context variables 
+
 
 Document updates
 ----------------
@@ -26,7 +28,11 @@ Enhancements and Bug fixes:
 
 - Fix evaluation timeouts
 - ``Sum``'s lower and upper bounds values can now be Mathics expressions
-
+- Support for ``All`` as a ``Part`` espeficication
+- Fix BeginPackage
+- Improving support for OptionValue. Not it support list of Options.
+- Adding support in ``from_python()`` to convert dictionaries in list of rules.
+  
 
 1.1.1
 -----
