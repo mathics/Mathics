@@ -14,7 +14,7 @@ New builtins
 - ``\[RadicalBox]``
 - ``FirstCase``, ``Lookup``
 - ``Catalan``, ``LerchPhi``
-- ``System`ConvertersDump`` context variables 
+- ``System`ConvertersDump`` context variables
 
 
 Document updates
@@ -32,7 +32,7 @@ Enhancements and Bug fixes:
 - Fix BeginPackage
 - Improving support for OptionValue. Not it support list of Options.
 - Adding support in ``from_python()`` to convert dictionaries in list of rules.
-  
+
 
 1.1.1
 -----
@@ -109,10 +109,6 @@ Enhancements and Bug fixes:
 - Improving support for ```Names``. PR #1003
 - Adding a ``MathicsSession`` class to simplify running Mathics from Python. PR #1001
 - Improving support for ```Protect``` and ```Unprotect``` list of symbols and regular expressions. PR #1003
-
-
-1.1.0 rc1
----------
 
 Package Updates
 +++++++++++++++

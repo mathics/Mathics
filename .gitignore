@@ -15,6 +15,7 @@
 /.cache
 /.python-version
 /Mathics3.egg-info
+/Mathics.egg-info
 ChangeLog
 Documents/
 Homepage/

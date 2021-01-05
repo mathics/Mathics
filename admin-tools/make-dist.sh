@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 PACKAGE=mathics3
+=======
+#!/bin/bash
+PACKAGE=mathics
+>>>>>>> 87662f3e... Get ready for release 1.1.0rc1
 
 # FIXME put some of the below in a common routine
 function finish {

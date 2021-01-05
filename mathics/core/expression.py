@@ -2093,7 +2093,7 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator == 0
+        return self.numerator().is_zero
 
 
 class Real(Number):
@@ -2238,6 +2238,12 @@ class MachineReal(Real):
     @property
     def is_zero(self) -> bool:
         return self.value == 0.0
+
+    @property
+    def is_approx_zero(self) -> bool:
+        # FIXME: figure out how to hook int $MachinePrecision and
+        # what the right definition here would be.
+        return abs(self.value) <= 10**-14
 
 
 class PrecisionReal(Real):
@@ -2430,6 +2436,12 @@ class Complex(Number):
     @property
     def is_zero(self) -> bool:
         return self.real.is_zero and self.imag.is_zero
+
+    @property
+    def is_approx_zero(self) -> bool:
+        real_zero = self.real.is_approx_zero if hasattr(self.real, "is_approx_zero") else self.real.is_zero
+        imag_zero = self.imag.is_approx_zero if hasattr(self.imag, "is_approx_zero") else self.imag.is_zero
+        return real_zero and imag_zero
 
 
 def encode_mathml(text: str) -> str:
