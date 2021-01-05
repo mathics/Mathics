@@ -114,6 +114,19 @@ def run_with_timeout_and_stack(request, timeout, evaluation):
     thread = Thread(target=_thread_target, args=(request, queue))
     thread.start()
 
+    # Thead join(timeout) can leave zombie threads (we are the parent)
+    # when a time out occurs, but the thread hasn't terminated.  See
+    # https://docs.python.org/3/library/multiprocessing.shared_memory.html
+    # for a detailed discussion of this.
+    #
+    # To reduce this problem, we make use of specific properties of
+    # the Mathics evaluator: if we set "evaluation.stopped", and then
+    # at various points of evaluation check_stopped() is called an the
+    # thread will raise a TimeoutInterrupt.
+    #
+    # However this still will not terminate long-running processes
+    # in Sympy or or libraries called by Mathics that might hang or run
+    # for a long time.
     thread.join(timeout)
     if thread.is_alive():
         evaluation.timeout = True

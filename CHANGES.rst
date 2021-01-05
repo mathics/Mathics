@@ -4,13 +4,29 @@ CHANGES
 2.0.0
 -----
 
-Bugs fixed
+The Django front-end has been unbundled and is a separate `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
 
-- Fix evaluation timeouts
-  
 New builtins
+++++++++++++++
 
 - ``TimeRemaining`` and ``TimeConstrained``
+-``MathicsVersion`` (this is not in WL)
+- ``\[RadicalBox]``
+- ``FirstCase``, ``Lookup``
+- ``Catalan``, ``LerchPhi``
+
+Document updates
+----------------
+
+- Start a readthedocs `Developers Guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_
+
+
+Enhancements and Bug fixes:
++++++++++++++++++++++++++++
+
+- Fix evaluation timeouts
+- ``Sum``'s lower and upper bounds values can now be Mathics expressions
+
 
 1.1.1
 -----
@@ -42,7 +58,7 @@ Rubi may appear in a future release, possibly in a year or so. However this migh
 
 
 New builtins:
-++++++++++++++++++++++++++++
+++++++++++++++
 
 - ``StirlingS1``, ``StirlingS2`` (not all WL variations handled)
 - ``MapAt`` (not all WL variations handled)
