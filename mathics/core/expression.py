@@ -1135,7 +1135,10 @@ class Expression(BaseExpression):
                     break
 
                 names.add(expr.get_lookup_name())
-
+                if hasattr(expr, '_head'):
+                    head_name = expr._head.get_name()
+                    expr.options = definitions.get_options(head_name)
+                    
                 if hasattr(expr, 'options') and expr.options:
                     evaluation.options = expr.options
 
