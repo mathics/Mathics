@@ -10,23 +10,37 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import re
 
-from mathics.core.expression import (Expression, Real, Symbol, String, Integer,
-                                     from_python)
+from mathics.core.expression import (
+    Expression,
+    Real,
+    Symbol,
+    SymbolAborted,
+    SymbolInfinity,
+    String,
+    Integer,
+    from_python)
+
+from mathics.core.evaluation import (
+    TimeoutInterrupt,
+    _thread_target,
+    run_with_timeout_and_stack
+)
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import TIME_12HOUR
 
+
 START_TIME = time.time()
 
 TIME_INCREMENTS = {
-    'Year': (1, 0, 0, 0, 0, 0),
-    'Quarter': (0, 3, 0, 0, 0, 0),
-    'Month': (0, 1, 0, 0, 0, 0),
-    'Week': (0, 0, 7, 0, 0, 0),
-    'Day': (0, 0, 1, 0, 0, 0),
-    'Hour': (0, 0, 0, 1, 0, 0),
-    'Minute': (0, 0, 0, 0, 1, 0),
-    'Second': (0, 0, 0, 0, 0, 1),
+    "Year": (1, 0, 0, 0, 0, 0),
+    "Quarter": (0, 3, 0, 0, 0, 0),
+    "Month": (0, 1, 0, 0, 0, 0),
+    "Week": (0, 0, 7, 0, 0, 0),
+    "Day": (0, 0, 1, 0, 0, 0),
+    "Hour": (0, 0, 0, 1, 0, 0),
+    "Minute": (0, 0, 0, 0, 1, 0),
+    "Second": (0, 0, 0, 0, 0, 1),
 }
 
 # FIXME: Some of the formats are not supported by strftime/strptime
@@ -71,12 +85,103 @@ DATE_STRING_FORMATS = {
 
 EPOCH_START = datetime(1900, 1, 1)
 
-if not hasattr(timedelta, 'total_seconds'):
+if not hasattr(timedelta, "total_seconds"):
     def total_seconds(td):
-        return float(td.microseconds +
-                     (td.seconds + td.days * 24 * 3600) * 10 ** 6) / 10 ** 6
+        return (
+            float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6)
+            / 10 ** 6
+        )
+
+
 else:
     total_seconds = timedelta.total_seconds
+
+
+class TimeRemaining(Builtin):
+    """
+    <dl>
+    <dt>'TimeRemaining[]'
+        <dd>Gives the number of seconds remaining until the earliest enclosing 'TimeConstrained' will request the current computation to stop.
+    <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
+        <dd>returns $failexpr$ if the time constraint is not met.
+    </dl>
+
+    If TimeConstrained is called out of a TimeConstrained expression, returns `Infinity`
+    >> TimeRemaining[]
+     = Infinity
+
+    X> TimeConstrained[1+2; Print[TimeRemaining[]], 0.9]
+     | 0.899318
+     
+    """
+
+    def apply(self, evaluation):
+        "TimeRemaining[]"
+        if len(evaluation.timeout_queue) > 0:
+            t, start_time = evaluation.timeout_queue[-1]
+            curr_time = datetime.now().timestamp()
+            deltat = t + start_time - curr_time
+            return Real(deltat)
+        else:
+            return SymbolInfinity
+
+
+class TimeConstrained(Builtin):
+    """
+    <dl>
+    <dt>'TimeConstrained[$expr$, $t$]'
+        <dd>'evaluates $expr$, stopping after $t$ seconds.'
+    <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
+        <dd>'returns $failexpr$ if the time constraint is not met.'
+    </dl>
+    >> TimeConstrained[Integrate[Sin[x]^1000000,x],1]
+    = $Aborted
+
+    >> TimeConstrained[Integrate[Sin[x]^1000000,x], 1, Integrate[Cos[x],x]]
+    = Sin[x]
+
+    >> s=TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+     : Number of seconds a is not a positive machine-sized number or Infinity.
+     = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+
+    >> a=1; s
+    = -Cos[x] + Cos[x] ^ 3 / 3
+
+    Possible issues: for certain time-consuming functions (like simplify)
+    which are based on sympy or other libraries, it is possible that
+    the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\$Aborted$ and the results will not affect
+    the state of the mathics kernel.
+
+    """
+
+    attributes = ('HoldAll',)
+    messages = {
+        'timc': 'Number of seconds `1` is not a positive machine-sized number or Infinity.',
+    }
+
+    def apply_2(self, expr, t, evaluation):
+        'TimeConstrained[expr_, t_]'
+        return self.apply_3(expr, t, SymbolAborted, evaluation)
+
+    def apply_3(self, expr, t, failexpr, evaluation):
+        'TimeConstrained[expr_, t_, failexpr_]'
+        t = t.evaluate(evaluation)
+        if not t.is_numeric():
+            evaluation.message('TimeConstrained', 'timc', t)
+            return
+        try:
+            t = float(t.to_python())
+            evaluation.timeout_queue.append((t, datetime.now().timestamp()))
+            request = lambda : expr.evaluate(evaluation)
+            res = run_with_timeout_and_stack(request, t, evaluation)
+        except TimeoutInterrupt:
+            evaluation.timeout_queue.pop()
+            return failexpr.evaluate(evaluation)
+        except:
+            evaluation.timeout_queue.pop()
+            raise
+        evaluation.timeout_queue.pop()
+        return res
 
 
 class Timing(Builtin):
@@ -431,6 +536,7 @@ class DateString(_DateFormat):
 
     #> DateString[{"5/19"}]
      = 5/19
+
     """
 
     rules = {
@@ -443,6 +549,7 @@ class DateString(_DateFormat):
             'DateString[DateList[], format]'),
         'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
     }
+
 
     attributes = ('ReadProtected',)
 
