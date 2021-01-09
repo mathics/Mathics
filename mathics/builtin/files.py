@@ -4931,6 +4931,15 @@ class Needs(Builtin):
         if test_loaded.is_true():
             # Already loaded
             return SymbolNull
+
+        # TODO: Figure out why this raises the message:
+        # "Select::normal: Nonatomic expression expected."
+        already_loaded = Expression('MemberQ',
+                                    Symbol('System`$Packages'), context)
+        already_loaded = already_loaded.evaluate(evaluation).is_true()
+        if already_loaded:
+           return Symbol('Null')
+
         result = Expression('Get', context).evaluate(evaluation)
 
         if result == SymbolFailed:
@@ -4938,4 +4947,3 @@ class Needs(Builtin):
             return SymbolFailed
 
         return SymbolNull
-

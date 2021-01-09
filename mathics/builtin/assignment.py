@@ -874,7 +874,7 @@ class Information(PrefixOperator):
      = f[x] returns the square of x
 
     >> ? Table
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -887,7 +887,7 @@ class Information(PrefixOperator):
      .
 
     >> Information[Table]
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -1035,7 +1035,7 @@ class Clear(Builtin):
      : Symbol Sin is Protected.
     The values and rules associated with built-in symbols will not get lost when applying 'Clear'
     (after unprotecting them):
-    >> Unprotect[Sin]
+    >> Unprotect[Sin];
     >> Clear[Sin]
     >> Sin[Pi]
      = 0
@@ -1063,6 +1063,7 @@ class Clear(Builtin):
         definition.upvalues = []
         definition.formatvalues = {}
         definition.nvalues = []
+
 
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
@@ -1098,7 +1099,6 @@ class Clear(Builtin):
                     continue
                 definition = evaluation.definitions.get_user_definition(name)
                 self.do_clear(definition)
-
         return Symbol('Null')
 
     def apply_all(self, evaluation):

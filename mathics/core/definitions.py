@@ -22,6 +22,7 @@ from mathics.core.expression import (
 from mathics.core.characters import letters, letterlikes
 
 type_compiled_pattern = type(re.compile("a.a"))
+
 names_wildcards = "@*"
 base_names_pattern = r"((?![0-9])([0-9${0}{1}{2}])+)".format(
     letters, letterlikes, names_wildcards

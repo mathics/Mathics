@@ -27,7 +27,6 @@ from mathics import version_string
 from mathics.builtin.strings import to_regex
 from mathics.version import __version__
 
-
 class Aborted(Predefined):
     """
     <dl>
@@ -253,10 +252,19 @@ class Packages(Predefined):
     """
 
     name = "$Packages"
+<<<<<<< HEAD
     rules = {
         "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',
     }
+=======
+    rules = {'$Packages': '{"CombinatoricaOld`","ImportExport`","Internal`","System`","XML`"}',}
+    # def evaluate(self, evaluation):
+    #    return Expression(
+    #        "List",
+    #        *(String(name) for name in evaluation.definitions.get_package_names()),
+    #    )
 
+>>>>>>> fix doctest for
 
 class ParentProcessID(Predefined):
     r"""
