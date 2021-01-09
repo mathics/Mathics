@@ -34,16 +34,18 @@ from mathics.core.numbers import (
     PrecisionValueError,
 )
 from mathics.core.expression import (
-    Integer,
-    Real,
     Complex,
     Expression,
-    Number,
-    Symbol,
-    Rational,
-    from_python,
+    Integer,
     MachineReal,
+    Number,
     PrecisionReal,
+    Rational,
+    Real,
+    Symbol,
+    SymbolFalse,
+    SymbolTrue,
+    from_python,
 )
 from mathics.core.convert import from_sympy
 
@@ -748,7 +750,7 @@ class NumericQ(Builtin):
             else:
                 return expr.is_numeric()
 
-        return Symbol("True") if test(expr) else Symbol("False")
+        return SymbolTrue if test(expr) else SymbolFalse
 
 
 class RealValuedNumericQ(Builtin):
