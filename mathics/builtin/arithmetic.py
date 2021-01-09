@@ -25,17 +25,18 @@ from mathics.builtin.base import (
 )
 
 from mathics.core.expression import (
+    Complex,
     Expression,
-    Number,
     Integer,
+    Number,
     Rational,
     Real,
-    Symbol,
-    SymbolNull,
-    Complex,
     String,
-    SymbolTrue,
+    Symbol,
     SymbolFalse,
+    SymbolNull,
+    SymbolTrue,
+    from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
@@ -1368,8 +1369,8 @@ class Indeterminate(SympyConstant):
 class NumberQ(Test):
     """
     <dl>
-    <dt>'NumberQ[$expr$]'
-        <dd>returns 'True' if $expr$ is an explicit number, and 'False' otherwise.
+      <dt>'NumberQ[$expr$]'
+      <dd>returns 'True' if $expr$ is an explicit number, and 'False' otherwise.
     </dl>
 
     >> NumberQ[3+I]
@@ -1382,6 +1383,67 @@ class NumberQ(Test):
 
     def test(self, expr):
         return isinstance(expr, Number)
+
+
+class PossibleZeroQ(SympyFunction):
+    """
+    <dl>
+      <dt>'PossibleZeroQ[$expr$]'
+      <dd>returns 'True' if basic symbolic and numerical methods suggest that expr has value zero, and 'False' otherwise.
+    </dl>
+
+    Test whether a numeric expression is zero:
+    >> PossibleZeroQ[E^(I Pi/4) - (-1)^(1/4)]
+     = True
+
+    The determination is approximate.
+
+    Test whether a symbolic expression is likely to be identically zero:
+    >> PossibleZeroQ[(x + 1) (x - 1) - x^2 + 1]
+     = True
+
+
+    >> PossibleZeroQ[(E + Pi)^2 - E^2 - Pi^2 - 2 E Pi]
+     = True
+
+    Show that a numeric expression is nonzero:
+    >> PossibleZeroQ[E^Pi - Pi^E]
+     = False
+
+    >> PossibleZeroQ[1/x + 1/y - (x + y)/(x y)]
+     = True
+
+    Decide that a numeric expression is zero, based on approximate computations:
+    >> PossibleZeroQ[2^(2 I) - 2^(-2 I) - 2 I Sin[Log[4]]]
+     = True
+
+    >> PossibleZeroQ[Sqrt[x^2] - x]
+     = False
+    """
+
+    sympy_name = "_iszero"
+
+    def apply(self, expr, evaluation):
+        "%(name)s[expr_]"
+        from sympy.matrices.utilities import _iszero
+
+        sympy_expr = expr.to_sympy()
+        result = _iszero(sympy_expr)
+        if result is None:
+            # Can't get exact answer, so try approximate equal
+            numeric_val = Expression("N", expr).evaluate(evaluation)
+            if numeric_val and hasattr(numeric_val, "is_approx_zero"):
+                result = numeric_val.is_approx_zero
+            elif (
+                Expression("NumericQ", numeric_val).evaluate(evaluation) == SymbolFalse
+            ):
+                return (
+                    SymbolTrue
+                    if Expression("Simplify", expr).evaluate(evaluation) == Integer(0)
+                    else SymbolFalse
+                )
+
+        return from_python(result)
 
 
 class RealNumberQ(Test):
