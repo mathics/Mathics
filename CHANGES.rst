@@ -14,8 +14,7 @@ New builtins
 - ``\[RadicalBox]``
 - ``FirstCase``, ``Lookup``
 - ``Catalan``, ``LerchPhi``
-- ``FirstCase``
-
+- ``System`ConvertersDump`` context variables 
 
 Document updates
 ----------------
@@ -85,7 +84,13 @@ New builtins:
 - ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
 - Install shell scripts ``dmathicserver``, ``dmathicsscript``, and ``dmathics`` to simplify running docker
 - Adjust $InputFileName inside ``Get`` and ``Needs``.
+- Support for ``All`` as a ``Part`` espeficication
+- Fix BeginPackage
+- Improving support for OptionValue. Not it support list of Options.
+- Adding support in ``from_python()`` to convert dictionaries in list of rules.
+- Fix OptionsPattern associated symbols.
 
+  
 1.1.0
 -----
 

@@ -629,7 +629,7 @@ class BeginPackage(Builtin):
                  Append[System`Private`$ContextPathStack, $ContextPath];
              $ContextPath = {context, "System`"};
              $Packages = If[MemberQ[System`$Packages,$Context],
-                            None,
+                            $Packages,
                             System`$Packages=Join[{$Context}, System`$Packages]];
              Protect[System`Private`$ContextPathStack, System`$Packages];
              context

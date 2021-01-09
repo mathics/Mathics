@@ -112,6 +112,9 @@ def from_python(arg):
         #     return String(arg[1:-1])
         # else:
         #     return Symbol(arg)
+    elif isinstance(arg, dict):
+        entries = [Expression('Rule',from_python(key), from_python(arg[key])) for key in arg]
+        return Expression('List', *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
@@ -1116,7 +1119,6 @@ class Expression(BaseExpression):
     def evaluate(self, evaluation) -> typing.Union['Expression', 'Symbol']:
         from mathics.core.evaluation import ReturnInterrupt
         if evaluation.timeout:
-            # evaluation.timeout = False
             return
 
         expr = self
