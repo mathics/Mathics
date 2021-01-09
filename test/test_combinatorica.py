@@ -354,18 +354,51 @@ def test_special_classes_of_permutations_1_4():
             "{{2, 1}, {3}, {4}}, {{2, 1}, {4, 3}}, "
             "{{3, 1}, {2}, {4}}, {{3, 1}, {4, 2}}, "
             "{{4, 1}, {2}, {3}}, {{4, 1}, {3, 2}}}",
-            "Involutions 1.4.1, Page 33",
+            "Involutions; 1.4.1, Page 33",
         ),
         (
             "NumberOfInvolutions[4]",
             "10",
-            "NumberOfInvolutions 1.4.1, Page 33",
+            "NumberOfInvolutions; 1.4.1, Page 33",
+        ),
+        (
+            "Table[NumberOfDerangements[i], {i, 1, 10}]",
+            "{0, 1, 2, 9, 44, 265, 1854, 14833, 133496, 1334961}",
+            "NumberOfDerangements; 1.4.2, Page 33",
+        ),
+        # This works, interactively, but not in test. Why?
+        # (
+        #     "Table[ N[ NumberOfDerangements[i]/(i!) ], {i, 1, 10} ]",
+        #     "{0., 0.5, 0.333333, 0.375, 0.366667, 0.368056, 0.367857, 0.367882, 0.367879, 0.367879}",
+        #     "Confused Secretary 1.4.2, Page 34",
+        # ),
+        (
+            "Table[Round[n!/N[E]], {n, 1, 10}]",
+            "{0, 1, 2, 9, 44, 265, 1854, 14833, 133496, 1334961}",
+            "Rounding as a nicer way to get derangmeants; 1.4.2, Page 34",
+        ),
+        (
+            "Josephus[17, 7]",
+            "{16, 17, 5, 3, 14, 7, 1, 11, 10, 12, 9, 4, 6, 2, 15, 13, 8}",
+            "Josephus; 1.4.3, Page 35",
+        ),
+        # FIXME: Note RandomPermutation for large numbers isn't random
+        (
+            "HeapSort[Reverse[Range[10]]]",
+            "Range[10]",
+            "Heapsort test 1; 1.4.4, Page 38",
+        ),
+        (
+            "HeapSort[RandomPermutation[10]]",
+            "Range[10]",
+            "Heapsort test 2; 1.4.4, Page 38",
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
 
 def test_combinations_1_5():
 
+    # Continue from here...
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
         (
