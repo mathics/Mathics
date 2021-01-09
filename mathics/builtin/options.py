@@ -124,12 +124,12 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
-     def apply(self, symbol, evaluation):
-         'OptionValue[symbol_]'
+    def apply(self, symbol, evaluation):
+        'OptionValue[symbol_]'
         
-         if evaluation.options is None:
-             return
-
+        if evaluation.options is None:
+            return
+        
         optvals = []
         for symbol in [symbol]:
             name = symbol.get_name()
