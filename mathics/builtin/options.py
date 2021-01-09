@@ -99,6 +99,8 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$name$]'
         <dd>gives the value of the option $name$ as specified in a
         call to a function with 'OptionsPattern'.
+    <dt>'OptionValue[$list$]'
+        <dd>recover the value of the options in $list$ .
     </dl>
 
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a]}
@@ -124,22 +126,64 @@ class OptionValue(Builtin):
 
     def apply(self, symbol, evaluation):
         'OptionValue[symbol_]'
-
+        
         if evaluation.options is None:
             return
-        name = symbol.get_name()
-        if not name:
-            name = symbol.get_string_value()
-            if name:
-                name = ensure_context(name)
-        if not name:
-            evaluation.message('OptionValue', 'sym', symbol, 1)
+        
+        optvals = []
+        for symbol in [symbol]:
+            name = symbol.get_name()
+            if not name:
+                name = symbol.get_string_value()
+                if name:
+                    name = ensure_context(name)
+            if not name:
+                evaluation.message('OptionValue', 'sym', symbol, 1)
+                optvals.append(Expression('OptionValue', symbol))
+                continue
+
+            value = evaluation.options.get(name)
+            if value is None:
+                evaluation.message('OptionValue', 'optnf', symbol)
+                optvals.append(Expression('OptionValue', symbol))
+                continue
+            optvals.append(value)
+        if len(optvals) == 1:
+            return optvals[0]
+        elif len(optvals) == 0:
             return
-        value = evaluation.options.get(name)
-        if value is None:
-            evaluation.message('OptionValue', 'optnf', symbol)
+        return Expression('List', *optvals)
+
+    def apply_2(self, symbols, evaluation):
+        'OptionValue[symbols_List]'
+        print("OptionValue of Lists")
+        if evaluation.options is None:
             return
-        return value
+
+        symbols = symbols.get_leaves()
+        optvals = []
+        for symbol in symbols:
+            name = symbol.get_name()
+            if not name:
+                name = symbol.get_string_value()
+                if name:
+                    name = ensure_context(name)
+            if not name:
+                evaluation.message('OptionValue', 'sym', symbol, 1)
+                optvals.append(Expression('OptionValue', symbol))
+                continue
+
+            value = evaluation.options.get(name)
+            if value is None:
+                evaluation.message('OptionValue', 'optnf', symbol)
+                optvals.append(Expression('OptionValue', symbol))
+                continue
+            optvals.append(value)
+        if len(optvals) == 1:
+            return optvals[0]
+        elif len(optvals) == 0:
+            return
+        return Expression('List', *optvals)
 
 
 class Default(Builtin):

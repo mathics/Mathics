@@ -429,7 +429,20 @@ def set_part(varlist, indices, newval):
 
     rec(varlist, indices)
 
+def _parts_all_selector():
+    start = 1
+    stop = None
+    step = 1
+    def select(inner):
+        if inner.is_atom():
+            raise MessageException("Part", "partd")
+        py_slice = python_seq(start, stop, step, len(inner.leaves))
+        if py_slice is None:
+            raise MessageException("Part", "take", start, stop, inner)
+        return inner.leaves[py_slice]
 
+    return select
+    
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)
@@ -502,6 +515,8 @@ def _part_selectors(indices):
     for index in indices:
         if index.has_form("Span", None):
             yield _parts_span_selector(index)
+        elif index.get_name() == "System`All":
+            yield  _parts_all_selector()
         elif index.has_form("List", None):
             yield _parts_sequence_selector(index.leaves)
         elif isinstance(index, Integer):
@@ -1952,13 +1967,6 @@ class DeleteCases(Builtin):
         "innf": "Non-negative integer or Infinity expected at position 4 in `1`",
     }
 
-    # def apply(self, items, pattern, evaluation):
-    #    'DeleteCases[items_, pattern_]'
-    #    return self.apply_ls_n(items, pattern, Integer(1), SymbolNull, evaluation)
-
-    # def apply_ls(self, items, pattern, levelspec, evaluation):
-    #    'DeleteCases[items_, pattern_, levelspec_]'
-    #    return self.apply_ls_n(items, pattern, levelspec, SymbolNull, evaluation)
 
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         "DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]"
@@ -1994,9 +2002,6 @@ class DeleteCases(Builtin):
 
         if levelspec[0] != 1 or levelspec[1] != 1:
             return deletecases_with_levelspec(items, pattern, evaluation, levelspec, n)
-        else:
-            print("using a simpler algorithm")
-            print(f"levelspec {levelspec}   n={n}")
         # A more efficient way to proceed if levelspec == 1
         from mathics.builtin.patterns import Matcher
 

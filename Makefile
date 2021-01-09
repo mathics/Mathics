@@ -43,6 +43,7 @@ install:
 
 check: pytest gstest doctest
 
+
 #: Remove derived files
 clean:
 	rm mathics/*/*.so; \
