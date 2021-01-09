@@ -442,7 +442,7 @@ def _parts_all_selector():
         return inner.leaves[py_slice]
 
     return select
-    
+
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)
@@ -1967,10 +1967,8 @@ class DeleteCases(Builtin):
         "innf": "Non-negative integer or Infinity expected at position 4 in `1`",
     }
 
-
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         "DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]"
-
         if items.is_atom():
             evaluation.message("Select", "normal")
             return

@@ -395,7 +395,6 @@ class Evaluation(object):
                 self.exc_result = SymbolAborted
             except ReturnInterrupt as ret:
                 self.exc_result = ret.expr
-
             if self.exc_result is not None:
                 self.recursion_depth = 0
                 if self.exc_result != self.SymbolNull:
