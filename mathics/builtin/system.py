@@ -252,9 +252,19 @@ class Packages(Predefined):
     """
 
     name = "$Packages"
+<<<<<<< HEAD
     rules = {
         "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',
     }
+=======
+    rules = {'$Packages': '{"CombinatoricaOld`","ImportExport`","Internal`","System`","XML`"}',}
+    # def evaluate(self, evaluation):
+    #    return Expression(
+    #        "List",
+    #        *(String(name) for name in evaluation.definitions.get_package_names()),
+    #    )
+
+>>>>>>> fix doctest for
 
 class ParentProcessID(Predefined):
     r"""
