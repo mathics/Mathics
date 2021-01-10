@@ -12,9 +12,10 @@ Numerical values and derivatives can be computed; however, most special exact va
 
 import sympy
 import mpmath
+import numpy
 import math
 
-from mathics.builtin.base import Builtin, SympyConstant
+from mathics.builtin.base import Builtin, MPMathConstant, NumpyConstant, SympyConstant
 from mathics.core.expression import (
     Expression,
     Real,
@@ -297,7 +298,7 @@ class Cosh(_MPMathFunction):
     }
 
 
-class Catalan(_MPMathFunction):
+class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     """
     <dl>
     <dt>'Catalan'
@@ -311,28 +312,20 @@ class Catalan(_MPMathFunction):
      = 0.91596559417721901505
     """
 
-    sympy_name = "Catalan"
     mpmath_name = "catalan"
+    numpy_name = "catalan"
+    sympy_name = "Catalan"
 
     def apply_N(self, precision, evaluation):
         "N[Catalan, precision_]"
-
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        if d is None:
-            return MachineReal(mpmath.catalan)
-        else:
-            return PrecisionReal(sympy.Catalan.n(d))
+        return self.get_constant(precision, evaluation, preference="sympy")
 
 
-class Degree(SympyConstant):
+class Degree(MPMathConstant, SympyConstant):
     u"""
     <dl>
-    <dt>'Degree'
-        <dd>is the number of radians in one degree.
+      <dt>'Degree'
+      <dd>is the number of radians in one degree.
     </dl>
     >> Cos[60 Degree]
      = 1 / 2
@@ -354,17 +347,25 @@ class Degree(SympyConstant):
      = 0.0174532925199432957692369076849
     """
 
-    def to_sympy(self, expr):
+    mpmath_name = "degree"
+
+    def to_sympy(self, expr=None, **kwargs):
         if expr == Symbol("System`Degree"):
+            # return mpmath.degree
             return sympy.pi / 180
 
     def apply_N(self, precision, evaluation):
         "N[Degree, precision_]"
-
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
             return
+
+        # FIXME: There are all sorts of interactions between in the trig functions,
+        # that are expected to work out right. Until we have convertion between
+        # mpmath and sympy worked out so that values can be made the to the same
+        # precision and compared. we have to not use mpmath right now.
+        # return self.get_constant(precision, evaluation, preference="mpmath")
 
         if d is None:
             return MachineReal(math.pi / 180)
@@ -372,7 +373,8 @@ class Degree(SympyConstant):
             return PrecisionReal((sympy.pi / 180).n(d))
 
 
-class E(SympyConstant):
+
+class E(MPMathConstant, SympyConstant):
     """
     <dl>
     <dt>'E'
@@ -391,19 +393,33 @@ class E(SympyConstant):
     """
 
     sympy_name = "E"
+    mpmath_name = "e"
 
     def apply_N(self, precision, evaluation):
         "N[E, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
 
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
+class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
+    """
+    <dl>
+      <dt>'EulerGamma'
+      <dd>is Euler's constant $y$ with numerial value around 0.577216.
+    </dl>
 
-        if d is None:
-            return MachineReal(math.e)
-        else:
-            return PrecisionReal(sympy.E.n(d))
+    >> EulerGamma // N
+     = 0.577216
+
+    >> N[EulerGamma, 40]
+     = 0.5772156649015328606065120900824024310422
+    """
+
+    sympy_name = "EulerGamma"
+    mpmath_name = "euler"
+    numpy_name = "euler_gamma"
+
+    def apply_N(self, precision, evaluation):
+        "N[EulerGamma, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
 
 
 class Exp(_MPMathFunction):
@@ -436,22 +452,25 @@ class Exp(_MPMathFunction):
         return Expression("Power", Symbol("E"), leaves[0])
 
 
-class GoldenRatio(SympyConstant):
+class GoldenRatio(MPMathConstant, SympyConstant):
     """
     <dl>
-    <dt>'GoldenRatio'
-        <dd>is the golden ratio.
+      <dt>'GoldenRatio'
+      <dd>is the golden ratio, Phi = (1+Sqrt[5])/2.
     </dl>
 
-    >> N[GoldenRatio]
+    >> GoldenRatio // N
      = 1.61803
+    >> N[GoldenRatio, 40]
+     = 1.618033988749894848204586834365638117720
     """
 
     sympy_name = "GoldenRatio"
+    mpmath_name = "phi"
 
-    rules = {
-        "N[GoldenRatio, prec_]": "N[(1+Sqrt[5])/2, prec]",
-    }
+    def apply_N(self, precision, evaluation):
+        "N[GoldenRatio, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
 
 
 class Log(_MPMathFunction):
@@ -547,11 +566,11 @@ class Log10(Builtin):
     }
 
 
-class Pi(SympyConstant):
+class Pi(MPMathConstant, SympyConstant):
     """
     <dl>
-    <dt>'Pi'
-        <dd>is the constant \u03c0.
+      <dt>'Pi'
+      <dd>is the constant \u03c0.
     </dl>
 
     >> N[Pi]
@@ -563,19 +582,12 @@ class Pi(SympyConstant):
     """
 
     sympy_name = "pi"
+    mpmath_name = "pi"
+    numpy_name = "pi"
 
     def apply_N(self, precision, evaluation):
         "N[Pi, precision_]"
-
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        if d is None:
-            return MachineReal(math.pi)
-        else:
-            return PrecisionReal(sympy.pi.n(d))
+        return self.get_constant(precision, evaluation, preference="sympy")
 
 # Look over and add
 # class PolyGamma(_MPMathFunction):

@@ -164,12 +164,13 @@ def create_output(tests, output_xml, output_tex):
             }
 
 
-def test_section(section, quiet=False, stop_on_failure=False):
+def test_section(sections: set, quiet=False, stop_on_failure=False):
     failed = 0
     index = 0
-    print("Testing section %s" % section)
+    print("Testing section(s): %s" % ", ".join(sections))
+    sections |= {"$" + s for s in sections}
     for tests in documentation.get_tests():
-        if tests.section == section or tests.section == "$" + section:
+        if tests.section in sections:
             found = True
             for test in tests.tests:
                 if test.ignore:
@@ -336,7 +337,8 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--section", "-s", dest="section", metavar="SECTION", help="only test SECTION"
+        "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names."
     )
     parser.add_argument(
         "--pymathics",
@@ -399,10 +401,11 @@ def main():
     # If a test for a specific section is called
     # just test it
     if args.section:
+        sections = set(args.section.split(","))
         if args.pymathics:  # in case the section is in a pymathics module...
             documentation.load_pymathics_doc()
 
-        test_section(args.section, stop_on_failure=args.stop_on_failure)
+        test_section(sections, stop_on_failure=args.stop_on_failure)
     else:
         # if we want to check also the pymathics modules
         if args.pymathics:
