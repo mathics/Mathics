@@ -1575,7 +1575,15 @@ class ToString(Builtin):
     >> "U" <> ToString[2]
      = U2
     """
+    options = {'CharacterEncoding' : '"Unicode"',
+                'FormatType' : 'OutputForm',
+                'NumberMarks': '$NumberMarks',
+                'PageHeight' : 'Infinity',
+                'PageWidth' : 'Infinity',
+                'TotalHeight' : 'Infinity',
+                'TotalWidth' : 'Infinity'}
 
+    
     def apply(self, value, evaluation):
         'ToString[value_]'
 
