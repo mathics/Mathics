@@ -43,7 +43,6 @@ from mathics.core.numbers import min_prec, dps, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy
 
-
 class _MPMathFunction(SympyFunction):
 
     attributes = ("Listable", "NumericFunction")

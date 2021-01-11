@@ -1791,8 +1791,7 @@ class Symbol(Atom):
         if (builtin is None or not builtin.sympy_name or    # nopep8
             not builtin.is_constant()):
             return sympy.Symbol(sympy_symbol_prefix + self.name)
-        else:
-            return builtin.to_sympy(self)
+        return builtin.to_sympy(self, **kwargs)
 
     def to_python(self, *args, **kwargs):
         if self == SymbolTrue:
@@ -2246,11 +2245,13 @@ class MachineReal(Real):
 
 
 class PrecisionReal(Real):
-    '''
+    """
     Arbitrary precision real number.
 
     Stored internally as a sympy.Float.
-    '''
+
+    Note: Plays nicely with the mpmath.mpf (float) type.
+    """
     value: sympy.Float
 
     def __new__(cls, value) -> 'PrecisionReal':
