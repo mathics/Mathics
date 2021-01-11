@@ -261,7 +261,7 @@ WL_TO_UNICODE = {
     '\uf603': '|', # \[LeftBracketingBar] -> VERTICAL LINE
     '\uf605': '‖', # \[LeftDoubleBracketingBar] -> DOUBLE VERTICAL LINE
     '\uf761': '«', # \[LeftSkeleton] -> LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
-    '\uf7d9': '=', # \[LongEqual] -> EQUALS SIGN + EQUALS SIGN
+    '\uf7d9': '=', # \[LongEqual] -> EQUALS SIGN
     '\uf724': '#', # \[NumberSign] -> NUMBER SIGN
     '\uf3de': '⊙', # \[PermutationProduct] -> CIRCLED DOT OPERATOR
     '\uf528': '⎕', # \[Placeholder] -> APL FUNCTIONAL SYMBOL QUAD
