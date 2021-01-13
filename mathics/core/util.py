@@ -576,7 +576,8 @@ UNICODE_TO_WL = {
     '⟹': '\uf523', # LONG RIGHTWARDS DOUBLE ARROW -> \[Implies]
     '|': '\uf3d0', # VERTICAL LINE -> 
     '«': '\uf761', # LEFT-POINTING DOUBLE ANGLE QUOTATION MARK -> \[LeftSkeleton]
-    '=': '\uf7d9', # EQUALS SIGN -> \[LongEqual]
+    # The following is ommited so that `a := b` or `a = b` don't get converted to `a :\uf7d9 b` or `a \uf7d9 b`
+    # '=': '\uf7d9', # EQUALS SIGN -> \[LongEqual]
     '#': '\uf724', # NUMBER SIGN -> \[NumberSign]
     '⊙': '\uf3de', # CIRCLED DOT OPERATOR -> \[PermutationProduct]
     '⎕': '\uf528', # APL FUNCTIONAL SYMBOL QUAD -> \[Placeholder]
