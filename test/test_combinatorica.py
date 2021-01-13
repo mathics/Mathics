@@ -402,11 +402,44 @@ def test_combinations_1_5():
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
         (
-            "KSubsets[Range[5], 3]",
-            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, {1, 3, 5}, "
-            "{1, 4, 5},  {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, {3, 4, 5}}",
-            "KSubsets 1.5.5, Page 45",
+            "Strings[Range[3], 3]",
+            "{{1, 1, 1}, {1, 1, 2}, {1, 1, 3}, {1, 2, 1}, "
+            " {1, 2, 2}, {1, 2, 3}, {1, 3, 1}, {1, 3, 2}, {1, 3, 3}, "
+            " {2, 1, 1}, {2, 1, 2}, {2, 1, 3}, {2, 2, 1}, {2, 2, 2}, "
+            " {2, 2, 3}, {2, 3, 1}, {2, 3, 2}, {2, 3, 3}, {3, 1, 1}, "
+            " {3, 1, 2}, {3, 1, 3}, {3, 2, 1}, {3, 2, 2}, {3, 2, 3}, "
+            " {3, 3, 1}, {3, 3, 2}, {3, 3, 3}}",
+            "String 1.5.1, Page 40",
         ),
+        (
+            "BinarySubsets[{a,b,c,d}]",
+            "{{}, {a}, {b}, {a, b}, {c}, {a, c}, {b, c}, "
+            "{a, b, c}, {d}, {a, d}, {b, d}, {a, b, d}, {c, d}, "
+            "{a, c, d}, {b, c, d}, {a, b, c, d}}",
+            "BinarySubsets 1.5.2, Page 41",
+        ),
+        (
+            "Table[NthSubset[n, {a,b,c,d}], {n, 0, 15}]",
+            "{{}, {a}, {b}, {a, b}, {c}, {a, c}, {b, c}, "
+            "{a, b, c}, {d}, {a, d}, {b, d}, {a, b, d}, {c, d}, "
+            "{a, c, d}, {b, c, d}, {a, b, c, d}}",
+            "NthSubset 1.5.2, Page 451",
+        ),
+        (
+            "NthSubset[-10, {a, b, c, d}]",
+            "{b, c}",
+            "NthSubset 1.5.2, Page 41",
+        ),
+
+        # Start here:
+        # RankSubset is broken. MemberQ is probably the culprit
+        # Part::pspec: Part specification
+        # DiscreteMath`CombinatoricaV0.9`private`i$40 is neither an
+        # integer nor a list of integer.
+        #
+        # ( "RankSubset[Range[4], ...
+        #  ...]"  ...
+        # "RankSubset 1.5.2, Page 42, ),
         (
             "KSubsets[Range[3], 0]",
             "{ {} } ",
