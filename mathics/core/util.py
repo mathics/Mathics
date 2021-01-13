@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
-
 import re
 import sys
 from itertools import chain
@@ -1605,18 +1603,16 @@ WL_TO_NAMED = {
     'ž': '\\[ZHacek]',
 }
 
-NAMED_TO_WL = {named: wl for wl, named in WL_TO_NAMED.items()}
-
-WL_REPLACE_DICT = {re.escape(k): v 
-                  for k, v in {**WL_TO_NAMED, **WL_TO_UNICODE}.items()}
-WL_REPLACE_RE = re.compile(
-    "|".join(sorted(WL_REPLACE_DICT.keys(), key=lambda k: (-len(k), k)))
+WL_TO_UNICODE_DICT = {re.escape(k): v 
+                     for k, v in {**WL_TO_NAMED, **WL_TO_UNICODE}.items()}
+WL_TO_UNICODE_RE = re.compile(
+    "|".join(sorted(WL_TO_UNICODE_DICT.keys(), key=lambda k: (-len(k), k)))
 )
 
-WL_REPLACE_DICT_NO_UNICODE = {re.escape(k): v for k, v in WL_TO_NAMED.items()}
-WL_REPLACE_RE_NO_UNICODE = re.compile(
+WL_TO_PLAIN_DICT = {re.escape(k): v for k, v in WL_TO_NAMED.items()}
+WL_TO_PLAIN_RE = re.compile(
     "|".join(
-        sorted(WL_REPLACE_DICT_NO_UNICODE.keys(), key=lambda k: (-len(k), k))
+        sorted(WL_TO_PLAIN_DICT.keys(), key=lambda k: (-len(k), k))
     )
 )
 
@@ -1830,16 +1826,14 @@ def robust_min(iterable):
             minimum = i
     return minimum
 
-def replace_wl_with_unicode(wl_input: str, use_unicode=True) -> str:
+def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     """WL uses some non-unicode character for various things.
     Replace them with the unicode equivalent.
     """
-    regex = WL_REPLACE_RE if use_unicode else WL_REPLACE_RE_NO_UNICODE
-    d = WL_REPLACE_DICT if use_unicode else WL_REPLACE_DICT_NO_UNICODE
+    r = WL_TO_UNICODE_RE if use_unicode else WL_TO_PLAIN_RE
+    d = WL_TO_UNICODE_DICT if use_unicode else WL_TO_PLAIN_DICT
 
-    return regex.sub(
-        lambda m: d[re.escape(m.group(0))], wl_input
-    )
+    return r.sub(lambda m: d[re.escape(m.group(0))], wl_input)
 
 def replace_unicode_with_wl(unicode_input: str) -> str:
     """WL uses some non-unicode character for various things.
