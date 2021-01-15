@@ -7,324 +7,904 @@ from itertools import chain
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
+# IMPORTANT: The entries in this dictionary should be kept in here even when 
+# the key maps to itself, or otherwise they will be overwritten by the entries 
+# of WL_TO_NAMED in WL_TO_UNICODE_DICT
 WL_TO_UNICODE = {
-    '\uf74b': '𝐷', # \[CapitalDifferentialD] -> MATHEMATICAL ITALIC CAPITAL D
-    '\uf76a': '⌘', # \[CommandKey] -> PLACE OF INTEREST SIGN
-    '\uf7da': '𝕔', # \[ConstantC] -> MATHEMATICAL DOUBLE-STRUCK SMALL C
-    '\uf3b1': '⋱', # \[Continuation] -> DOWN RIGHT DIAGONAL ELLIPSIS
-    '\uf4a0': '⨯', # \[Cross] -> VECTOR OR CROSS PRODUCT
-    '\uf74c': '𝑑', # \[DifferentialD] -> MATHEMATICAL ITALIC SMALL D
-    '\uf3d5': '→', # \[DirectedEdge] -> RIGHTWARDS ARROW
-    '\uf4a4': 'ϴ', # \[DiscreteRatio] -> GREEK CAPITAL THETA SYMBOL
-    '\uf700': 'ȷ', # \[DotlessJ] -> LATIN SMALL LETTER DOTLESS J
-    '\uf751': '⛶', # \[DottedSquare] -> SQUARE FOUR CORNERS
-    '\uf74a': 'ℽ', # \[DoubledGamma] -> DOUBLE-STRUCK SMALL GAMMA
-    '\uf749': 'ℼ', # \[DoubledPi] -> DOUBLE-STRUCK SMALL PI
-    '\uf6e6': '𝕒', # \[DoubleStruckA] -> MATHEMATICAL DOUBLE-STRUCK SMALL A
-    '\uf6e7': '𝕓', # \[DoubleStruckB] -> MATHEMATICAL DOUBLE-STRUCK SMALL B
-    '\uf6e8': '𝕔', # \[DoubleStruckC] -> MATHEMATICAL DOUBLE-STRUCK SMALL C
-    '\uf7a4': '𝔸', # \[DoubleStruckCapitalA] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL A
-    '\uf7a5': '𝔹', # \[DoubleStruckCapitalB] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL B
-    '\uf7a6': 'ℂ', # \[DoubleStruckCapitalC] -> DOUBLE-STRUCK CAPITAL C
-    '\uf7a7': '𝔻', # \[DoubleStruckCapitalD] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL D
-    '\uf7a8': '𝔼', # \[DoubleStruckCapitalE] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL E
-    '\uf7a9': '𝔽', # \[DoubleStruckCapitalF] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL F
-    '\uf7aa': '𝔾', # \[DoubleStruckCapitalG] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL G
-    '\uf7ab': 'ℍ', # \[DoubleStruckCapitalH] -> DOUBLE-STRUCK CAPITAL H
-    '\uf7ac': '𝕀', # \[DoubleStruckCapitalI] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL I
-    '\uf7ad': '𝕁', # \[DoubleStruckCapitalJ] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL J
-    '\uf7ae': '𝕂', # \[DoubleStruckCapitalK] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL K
-    '\uf7af': '𝕃', # \[DoubleStruckCapitalL] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL L
-    '\uf7b0': '𝕄', # \[DoubleStruckCapitalM] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL M
-    '\uf7b1': 'ℕ', # \[DoubleStruckCapitalN] -> DOUBLE-STRUCK CAPITAL N
-    '\uf7b2': '𝕆', # \[DoubleStruckCapitalO] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL O
-    '\uf7b3': 'ℙ', # \[DoubleStruckCapitalP] -> DOUBLE-STRUCK CAPITAL P
-    '\uf7b4': 'ℚ', # \[DoubleStruckCapitalQ] -> DOUBLE-STRUCK CAPITAL Q
-    '\uf7b5': 'ℝ', # \[DoubleStruckCapitalR] -> DOUBLE-STRUCK CAPITAL R
-    '\uf7b6': '𝕊', # \[DoubleStruckCapitalS] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL S
-    '\uf7b7': '𝕋', # \[DoubleStruckCapitalT] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL T
-    '\uf7b8': '𝕌', # \[DoubleStruckCapitalU] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL U
-    '\uf7b9': '𝕍', # \[DoubleStruckCapitalV] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL V
-    '\uf7ba': '𝕎', # \[DoubleStruckCapitalW] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL W
-    '\uf7bb': '𝕏', # \[DoubleStruckCapitalX] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL X
-    '\uf7bc': '𝕐', # \[DoubleStruckCapitalY] -> MATHEMATICAL DOUBLE-STRUCK CAPITAL Y
-    '\uf7bd': 'ℤ', # \[DoubleStruckCapitalZ] -> DOUBLE-STRUCK CAPITAL Z
-    '\uf6e9': '𝕕', # \[DoubleStruckD] -> MATHEMATICAL DOUBLE-STRUCK SMALL D
-    '\uf6ea': '𝕖', # \[DoubleStruckE] -> MATHEMATICAL DOUBLE-STRUCK SMALL E
-    '\uf7e3': '𝟠', # \[DoubleStruckEight] -> MATHEMATICAL DOUBLE-STRUCK DIGIT EIGHT
-    '\uf6eb': '𝕗', # \[DoubleStruckF] -> MATHEMATICAL DOUBLE-STRUCK SMALL F
-    '\uf7e0': '𝟝', # \[DoubleStruckFive] -> MATHEMATICAL DOUBLE-STRUCK DIGIT FIVE
-    '\uf7df': '𝟜', # \[DoubleStruckFour] -> MATHEMATICAL DOUBLE-STRUCK DIGIT FOUR
-    '\uf6ec': '𝕘', # \[DoubleStruckG] -> MATHEMATICAL DOUBLE-STRUCK SMALL G
-    '\uf6ed': '𝕙', # \[DoubleStruckH] -> MATHEMATICAL DOUBLE-STRUCK SMALL H
-    '\uf6ee': '𝕚', # \[DoubleStruckI] -> MATHEMATICAL DOUBLE-STRUCK SMALL I
-    '\uf6ef': '𝕛', # \[DoubleStruckJ] -> MATHEMATICAL DOUBLE-STRUCK SMALL J
-    '\uf6f0': '𝕜', # \[DoubleStruckK] -> MATHEMATICAL DOUBLE-STRUCK SMALL K
-    '\uf6f1': '𝕝', # \[DoubleStruckL] -> MATHEMATICAL DOUBLE-STRUCK SMALL L
-    '\uf6f2': '𝕞', # \[DoubleStruckM] -> MATHEMATICAL DOUBLE-STRUCK SMALL M
-    '\uf6f3': '𝕟', # \[DoubleStruckN] -> MATHEMATICAL DOUBLE-STRUCK SMALL N
-    '\uf7e4': '𝟡', # \[DoubleStruckNine] -> MATHEMATICAL DOUBLE-STRUCK DIGIT NINE
-    '\uf6f4': '𝕠', # \[DoubleStruckO] -> MATHEMATICAL DOUBLE-STRUCK SMALL O
-    '\uf7dc': '𝟙', # \[DoubleStruckOne] -> MATHEMATICAL DOUBLE-STRUCK DIGIT ONE
-    '\uf6f5': '𝕡', # \[DoubleStruckP] -> MATHEMATICAL DOUBLE-STRUCK SMALL P
-    '\uf6f6': '𝕢', # \[DoubleStruckQ] -> MATHEMATICAL DOUBLE-STRUCK SMALL Q
-    '\uf6f7': '𝕣', # \[DoubleStruckR] -> MATHEMATICAL DOUBLE-STRUCK SMALL R
-    '\uf6f8': '𝕤', # \[DoubleStruckS] -> MATHEMATICAL DOUBLE-STRUCK SMALL S
-    '\uf7e2': '𝟟', # \[DoubleStruckSeven] -> MATHEMATICAL DOUBLE-STRUCK DIGIT SEVEN
-    '\uf7e1': '𝟞', # \[DoubleStruckSix] -> MATHEMATICAL DOUBLE-STRUCK DIGIT SIX
-    '\uf6f9': '𝕥', # \[DoubleStruckT] -> MATHEMATICAL DOUBLE-STRUCK SMALL T
-    '\uf7de': '𝟛', # \[DoubleStruckThree] -> MATHEMATICAL DOUBLE-STRUCK DIGIT THREE
-    '\uf7dd': '𝟚', # \[DoubleStruckTwo] -> MATHEMATICAL DOUBLE-STRUCK DIGIT TWO
-    '\uf6fa': '𝕦', # \[DoubleStruckU] -> MATHEMATICAL DOUBLE-STRUCK SMALL U
-    '\uf6fb': '𝕧', # \[DoubleStruckV] -> MATHEMATICAL DOUBLE-STRUCK SMALL V
-    '\uf6fc': '𝕨', # \[DoubleStruckW] -> MATHEMATICAL DOUBLE-STRUCK SMALL W
-    '\uf6fd': '𝕩', # \[DoubleStruckX] -> MATHEMATICAL DOUBLE-STRUCK SMALL X
-    '\uf6fe': '𝕪', # \[DoubleStruckY] -> MATHEMATICAL DOUBLE-STRUCK SMALL Y
-    '\uf6ff': '𝕫', # \[DoubleStruckZ] -> MATHEMATICAL DOUBLE-STRUCK SMALL Z
-    '\uf7db': '𝟘', # \[DoubleStruckZero] -> MATHEMATICAL DOUBLE-STRUCK DIGIT ZERO
-    '\uf755': ' ̑', # \[DownBreve] -> SPACE + COMBINING INVERTED BREVE
-    '\uf431': '⩵', # \[Equal] -> TWO CONSECUTIVE EQUALS SIGNS
+    'á': 'á', # \[AAcute] (LATIN SMALL LETTER A WITH ACUTE) -> LATIN SMALL LETTER A WITH ACUTE
+    'ā': 'ā', # \[ABar] (LATIN SMALL LETTER A WITH MACRON) -> LATIN SMALL LETTER A WITH MACRON
+    'ă': 'ă', # \[ACup] (LATIN SMALL LETTER A WITH BREVE) -> LATIN SMALL LETTER A WITH BREVE
+    'ä': 'ä', # \[ADoubleDot] (LATIN SMALL LETTER A WITH DIAERESIS) -> LATIN SMALL LETTER A WITH DIAERESIS
+    'æ': 'æ', # \[AE] (LATIN SMALL LETTER AE) -> LATIN SMALL LETTER AE
+    'à': 'à', # \[AGrave] (LATIN SMALL LETTER A WITH GRAVE) -> LATIN SMALL LETTER A WITH GRAVE
+    'â': 'â', # \[AHat] (LATIN SMALL LETTER A WITH CIRCUMFLEX) -> LATIN SMALL LETTER A WITH CIRCUMFLEX
+    'ℵ': 'ℵ', # \[Aleph] (ALEF SYMBOL) -> ALEF SYMBOL
+    'α': 'α', # \[Alpha] (GREEK SMALL LETTER ALPHA) -> GREEK SMALL LETTER ALPHA
+    '∧': '∧', # \[And] (LOGICAL AND) -> LOGICAL AND
+    '∠': '∠', # \[Angle] (ANGLE) -> ANGLE
+    'Å': 'Å', # \[Angstrom] (ANGSTROM SIGN) -> ANGSTROM SIGN
+    '♒': '♒', # \[AquariusSign] (AQUARIUS) -> AQUARIUS
+    '♈': '♈', # \[AriesSign] (ARIES) -> ARIES
+    'å': 'å', # \[ARing] (LATIN SMALL LETTER A WITH RING ABOVE) -> LATIN SMALL LETTER A WITH RING ABOVE
+    '⋰': '⋰', # \[AscendingEllipsis] (UP RIGHT DIAGONAL ELLIPSIS) -> UP RIGHT DIAGONAL ELLIPSIS
+    'ã': 'ã', # \[ATilde] (LATIN SMALL LETTER A WITH TILDE) -> LATIN SMALL LETTER A WITH TILDE
+    '∖': '∖', # \[Backslash] (SET MINUS) -> SET MINUS
+    '♫': '♫', # \[BeamedEighthNote] (BEAMED EIGHTH NOTES) -> BEAMED EIGHTH NOTES
+    '♬': '♬', # \[BeamedSixteenthNote] (BEAMED SIXTEENTH NOTES) -> BEAMED SIXTEENTH NOTES
+    '∵': '∵', # \[Because] (BECAUSE) -> BECAUSE
+    'ℶ': 'ℶ', # \[Bet] (BET SYMBOL) -> BET SYMBOL
+    'β': 'β', # \[Beta] (GREEK SMALL LETTER BETA) -> GREEK SMALL LETTER BETA
+    '♝': '♝', # \[BlackBishop] (BLACK CHESS BISHOP) -> BLACK CHESS BISHOP
+    '♚': '♚', # \[BlackKing] (BLACK CHESS KING) -> BLACK CHESS KING
+    '♞': '♞', # \[BlackKnight] (BLACK CHESS KNIGHT) -> BLACK CHESS KNIGHT
+    '♟': '♟', # \[BlackPawn] (BLACK CHESS PAWN) -> BLACK CHESS PAWN
+    '♛': '♛', # \[BlackQueen] (BLACK CHESS QUEEN) -> BLACK CHESS QUEEN
+    '♜': '♜', # \[BlackRook] (BLACK CHESS ROOK) -> BLACK CHESS ROOK
+    '˘': '˘', # \[Breve] (BREVE) -> BREVE
+    '•': '•', # \[Bullet] (BULLET) -> BULLET
+    'ć': 'ć', # \[CAcute] (LATIN SMALL LETTER C WITH ACUTE) -> LATIN SMALL LETTER C WITH ACUTE
+    '♋': '♋', # \[CancerSign] (CANCER) -> CANCER
+    '⌢': '⌢', # \[Cap] (FROWN) -> FROWN
+    'Á': 'Á', # \[CapitalAAcute] (LATIN CAPITAL LETTER A WITH ACUTE) -> LATIN CAPITAL LETTER A WITH ACUTE
+    'Ā': 'Ā', # \[CapitalABar] (LATIN CAPITAL LETTER A WITH MACRON) -> LATIN CAPITAL LETTER A WITH MACRON
+    'Ă': 'Ă', # \[CapitalACup] (LATIN CAPITAL LETTER A WITH BREVE) -> LATIN CAPITAL LETTER A WITH BREVE
+    'Ä': 'Ä', # \[CapitalADoubleDot] (LATIN CAPITAL LETTER A WITH DIAERESIS) -> LATIN CAPITAL LETTER A WITH DIAERESIS
+    'Æ': 'Æ', # \[CapitalAE] (LATIN CAPITAL LETTER AE) -> LATIN CAPITAL LETTER AE
+    'À': 'À', # \[CapitalAGrave] (LATIN CAPITAL LETTER A WITH GRAVE) -> LATIN CAPITAL LETTER A WITH GRAVE
+    'Â': 'Â', # \[CapitalAHat] (LATIN CAPITAL LETTER A WITH CIRCUMFLEX) -> LATIN CAPITAL LETTER A WITH CIRCUMFLEX
+    'Α': 'Α', # \[CapitalAlpha] (GREEK CAPITAL LETTER ALPHA) -> GREEK CAPITAL LETTER ALPHA
+    'Å': 'Å', # \[CapitalARing] (LATIN CAPITAL LETTER A WITH RING ABOVE) -> LATIN CAPITAL LETTER A WITH RING ABOVE
+    'Ã': 'Ã', # \[CapitalATilde] (LATIN CAPITAL LETTER A WITH TILDE) -> LATIN CAPITAL LETTER A WITH TILDE
+    'Β': 'Β', # \[CapitalBeta] (GREEK CAPITAL LETTER BETA) -> GREEK CAPITAL LETTER BETA
+    'Ć': 'Ć', # \[CapitalCAcute] (LATIN CAPITAL LETTER C WITH ACUTE) -> LATIN CAPITAL LETTER C WITH ACUTE
+    'Ç': 'Ç', # \[CapitalCCedilla] (LATIN CAPITAL LETTER C WITH CEDILLA) -> LATIN CAPITAL LETTER C WITH CEDILLA
+    'Č': 'Č', # \[CapitalCHacek] (LATIN CAPITAL LETTER C WITH CARON) -> LATIN CAPITAL LETTER C WITH CARON
+    'Χ': 'Χ', # \[CapitalChi] (GREEK CAPITAL LETTER CHI) -> GREEK CAPITAL LETTER CHI
+    'Δ': 'Δ', # \[CapitalDelta] (GREEK CAPITAL LETTER DELTA) -> GREEK CAPITAL LETTER DELTA
+    'Ď': 'Ď', # \[CapitalDHacek] (LATIN CAPITAL LETTER D WITH CARON) -> LATIN CAPITAL LETTER D WITH CARON
+    '\uf74b': '𝐷', # \[CapitalDifferentialD] (INVALID CHARACTER) -> MATHEMATICAL ITALIC CAPITAL D
+    'Ϝ': 'Ϝ', # \[CapitalDigamma] (GREEK LETTER DIGAMMA) -> GREEK LETTER DIGAMMA
+    'É': 'É', # \[CapitalEAcute] (LATIN CAPITAL LETTER E WITH ACUTE) -> LATIN CAPITAL LETTER E WITH ACUTE
+    'Ē': 'Ē', # \[CapitalEBar] (LATIN CAPITAL LETTER E WITH MACRON) -> LATIN CAPITAL LETTER E WITH MACRON
+    'Ĕ': 'Ĕ', # \[CapitalECup] (LATIN CAPITAL LETTER E WITH BREVE) -> LATIN CAPITAL LETTER E WITH BREVE
+    'Ë': 'Ë', # \[CapitalEDoubleDot] (LATIN CAPITAL LETTER E WITH DIAERESIS) -> LATIN CAPITAL LETTER E WITH DIAERESIS
+    'È': 'È', # \[CapitalEGrave] (LATIN CAPITAL LETTER E WITH GRAVE) -> LATIN CAPITAL LETTER E WITH GRAVE
+    'Ě': 'Ě', # \[CapitalEHacek] (LATIN CAPITAL LETTER E WITH CARON) -> LATIN CAPITAL LETTER E WITH CARON
+    'Ê': 'Ê', # \[CapitalEHat] (LATIN CAPITAL LETTER E WITH CIRCUMFLEX) -> LATIN CAPITAL LETTER E WITH CIRCUMFLEX
+    'Ε': 'Ε', # \[CapitalEpsilon] (GREEK CAPITAL LETTER EPSILON) -> GREEK CAPITAL LETTER EPSILON
+    'Η': 'Η', # \[CapitalEta] (GREEK CAPITAL LETTER ETA) -> GREEK CAPITAL LETTER ETA
+    'Ð': 'Ð', # \[CapitalEth] (LATIN CAPITAL LETTER ETH) -> LATIN CAPITAL LETTER ETH
+    'Γ': 'Γ', # \[CapitalGamma] (GREEK CAPITAL LETTER GAMMA) -> GREEK CAPITAL LETTER GAMMA
+    'Í': 'Í', # \[CapitalIAcute] (LATIN CAPITAL LETTER I WITH ACUTE) -> LATIN CAPITAL LETTER I WITH ACUTE
+    'Ĭ': 'Ĭ', # \[CapitalICup] (LATIN CAPITAL LETTER I WITH BREVE) -> LATIN CAPITAL LETTER I WITH BREVE
+    'Ï': 'Ï', # \[CapitalIDoubleDot] (LATIN CAPITAL LETTER I WITH DIAERESIS) -> LATIN CAPITAL LETTER I WITH DIAERESIS
+    'Ì': 'Ì', # \[CapitalIGrave] (LATIN CAPITAL LETTER I WITH GRAVE) -> LATIN CAPITAL LETTER I WITH GRAVE
+    'Î': 'Î', # \[CapitalIHat] (LATIN CAPITAL LETTER I WITH CIRCUMFLEX) -> LATIN CAPITAL LETTER I WITH CIRCUMFLEX
+    'Ι': 'Ι', # \[CapitalIota] (GREEK CAPITAL LETTER IOTA) -> GREEK CAPITAL LETTER IOTA
+    'Κ': 'Κ', # \[CapitalKappa] (GREEK CAPITAL LETTER KAPPA) -> GREEK CAPITAL LETTER KAPPA
+    'Ϟ': 'Ϟ', # \[CapitalKoppa] (GREEK LETTER KOPPA) -> GREEK LETTER KOPPA
+    'Λ': 'Λ', # \[CapitalLambda] (GREEK CAPITAL LETTER LAMDA) -> GREEK CAPITAL LETTER LAMDA
+    'Ł': 'Ł', # \[CapitalLSlash] (LATIN CAPITAL LETTER L WITH STROKE) -> LATIN CAPITAL LETTER L WITH STROKE
+    'Μ': 'Μ', # \[CapitalMu] (GREEK CAPITAL LETTER MU) -> GREEK CAPITAL LETTER MU
+    'Ň': 'Ň', # \[CapitalNHacek] (LATIN CAPITAL LETTER N WITH CARON) -> LATIN CAPITAL LETTER N WITH CARON
+    'Ñ': 'Ñ', # \[CapitalNTilde] (LATIN CAPITAL LETTER N WITH TILDE) -> LATIN CAPITAL LETTER N WITH TILDE
+    'Ν': 'Ν', # \[CapitalNu] (GREEK CAPITAL LETTER NU) -> GREEK CAPITAL LETTER NU
+    'Ó': 'Ó', # \[CapitalOAcute] (LATIN CAPITAL LETTER O WITH ACUTE) -> LATIN CAPITAL LETTER O WITH ACUTE
+    'Ő': 'Ő', # \[CapitalODoubleAcute] (LATIN CAPITAL LETTER O WITH DOUBLE ACUTE) -> LATIN CAPITAL LETTER O WITH DOUBLE ACUTE
+    'Ö': 'Ö', # \[CapitalODoubleDot] (LATIN CAPITAL LETTER O WITH DIAERESIS) -> LATIN CAPITAL LETTER O WITH DIAERESIS
+    'Œ': 'Œ', # \[CapitalOE] (LATIN CAPITAL LIGATURE OE) -> LATIN CAPITAL LIGATURE OE
+    'Ò': 'Ò', # \[CapitalOGrave] (LATIN CAPITAL LETTER O WITH GRAVE) -> LATIN CAPITAL LETTER O WITH GRAVE
+    'Ô': 'Ô', # \[CapitalOHat] (LATIN CAPITAL LETTER O WITH CIRCUMFLEX) -> LATIN CAPITAL LETTER O WITH CIRCUMFLEX
+    'Ω': 'Ω', # \[CapitalOmega] (GREEK CAPITAL LETTER OMEGA) -> GREEK CAPITAL LETTER OMEGA
+    'Ο': 'Ο', # \[CapitalOmicron] (GREEK CAPITAL LETTER OMICRON) -> GREEK CAPITAL LETTER OMICRON
+    'Ø': 'Ø', # \[CapitalOSlash] (LATIN CAPITAL LETTER O WITH STROKE) -> LATIN CAPITAL LETTER O WITH STROKE
+    'Õ': 'Õ', # \[CapitalOTilde] (LATIN CAPITAL LETTER O WITH TILDE) -> LATIN CAPITAL LETTER O WITH TILDE
+    'Φ': 'Φ', # \[CapitalPhi] (GREEK CAPITAL LETTER PHI) -> GREEK CAPITAL LETTER PHI
+    'Π': 'Π', # \[CapitalPi] (GREEK CAPITAL LETTER PI) -> GREEK CAPITAL LETTER PI
+    'Ψ': 'Ψ', # \[CapitalPsi] (GREEK CAPITAL LETTER PSI) -> GREEK CAPITAL LETTER PSI
+    'Ř': 'Ř', # \[CapitalRHacek] (LATIN CAPITAL LETTER R WITH CARON) -> LATIN CAPITAL LETTER R WITH CARON
+    'Ρ': 'Ρ', # \[CapitalRho] (GREEK CAPITAL LETTER RHO) -> GREEK CAPITAL LETTER RHO
+    'Ϡ': 'Ϡ', # \[CapitalSampi] (GREEK LETTER SAMPI) -> GREEK LETTER SAMPI
+    'Š': 'Š', # \[CapitalSHacek] (LATIN CAPITAL LETTER S WITH CARON) -> LATIN CAPITAL LETTER S WITH CARON
+    'Σ': 'Σ', # \[CapitalSigma] (GREEK CAPITAL LETTER SIGMA) -> GREEK CAPITAL LETTER SIGMA
+    'Ϛ': 'Ϛ', # \[CapitalStigma] (GREEK LETTER STIGMA) -> GREEK LETTER STIGMA
+    'Τ': 'Τ', # \[CapitalTau] (GREEK CAPITAL LETTER TAU) -> GREEK CAPITAL LETTER TAU
+    'Ť': 'Ť', # \[CapitalTHacek] (LATIN CAPITAL LETTER T WITH CARON) -> LATIN CAPITAL LETTER T WITH CARON
+    'Θ': 'Θ', # \[CapitalTheta] (GREEK CAPITAL LETTER THETA) -> GREEK CAPITAL LETTER THETA
+    'Þ': 'Þ', # \[CapitalThorn] (LATIN CAPITAL LETTER THORN) -> LATIN CAPITAL LETTER THORN
+    'Ú': 'Ú', # \[CapitalUAcute] (LATIN CAPITAL LETTER U WITH ACUTE) -> LATIN CAPITAL LETTER U WITH ACUTE
+    'Ű': 'Ű', # \[CapitalUDoubleAcute] (LATIN CAPITAL LETTER U WITH DOUBLE ACUTE) -> LATIN CAPITAL LETTER U WITH DOUBLE ACUTE
+    'Ü': 'Ü', # \[CapitalUDoubleDot] (LATIN CAPITAL LETTER U WITH DIAERESIS) -> LATIN CAPITAL LETTER U WITH DIAERESIS
+    'Ù': 'Ù', # \[CapitalUGrave] (LATIN CAPITAL LETTER U WITH GRAVE) -> LATIN CAPITAL LETTER U WITH GRAVE
+    'Û': 'Û', # \[CapitalUHat] (LATIN CAPITAL LETTER U WITH CIRCUMFLEX) -> LATIN CAPITAL LETTER U WITH CIRCUMFLEX
+    'Υ': 'Υ', # \[CapitalUpsilon] (GREEK CAPITAL LETTER UPSILON) -> GREEK CAPITAL LETTER UPSILON
+    'Ů': 'Ů', # \[CapitalURing] (LATIN CAPITAL LETTER U WITH RING ABOVE) -> LATIN CAPITAL LETTER U WITH RING ABOVE
+    'Ξ': 'Ξ', # \[CapitalXi] (GREEK CAPITAL LETTER XI) -> GREEK CAPITAL LETTER XI
+    'Ý': 'Ý', # \[CapitalYAcute] (LATIN CAPITAL LETTER Y WITH ACUTE) -> LATIN CAPITAL LETTER Y WITH ACUTE
+    'Ζ': 'Ζ', # \[CapitalZeta] (GREEK CAPITAL LETTER ZETA) -> GREEK CAPITAL LETTER ZETA
+    'Ž': 'Ž', # \[CapitalZHacek] (LATIN CAPITAL LETTER Z WITH CARON) -> LATIN CAPITAL LETTER Z WITH CARON
+    '♑': '♑', # \[CapricornSign] (CAPRICORN) -> CAPRICORN
+    'ç': 'ç', # \[CCedilla] (LATIN SMALL LETTER C WITH CEDILLA) -> LATIN SMALL LETTER C WITH CEDILLA
+    '¸': '¸', # \[Cedilla] (CEDILLA) -> CEDILLA
+    '·': '·', # \[CenterDot] (MIDDLE DOT) -> MIDDLE DOT
+    '⋯': '⋯', # \[CenterEllipsis] (MIDLINE HORIZONTAL ELLIPSIS) -> MIDLINE HORIZONTAL ELLIPSIS
+    '¢': '¢', # \[Cent] (CENT SIGN) -> CENT SIGN
+    'č': 'č', # \[CHacek] (LATIN SMALL LETTER C WITH CARON) -> LATIN SMALL LETTER C WITH CARON
+    '☒': '☒', # \[CheckedBox] (BALLOT BOX WITH X) -> BALLOT BOX WITH X
+    '✓': '✓', # \[Checkmark] (CHECK MARK) -> CHECK MARK
+    'χ': 'χ', # \[Chi] (GREEK SMALL LETTER CHI) -> GREEK SMALL LETTER CHI
+    '⊙': '⊙', # \[CircleDot] (CIRCLED DOT OPERATOR) -> CIRCLED DOT OPERATOR
+    '⊖': '⊖', # \[CircleMinus] (CIRCLED MINUS) -> CIRCLED MINUS
+    '⊕': '⊕', # \[CirclePlus] (CIRCLED PLUS) -> CIRCLED PLUS
+    '⊗': '⊗', # \[CircleTimes] (CIRCLED TIMES) -> CIRCLED TIMES
+    '∲': '∲', # \[ClockwiseContourIntegral] (CLOCKWISE CONTOUR INTEGRAL) -> CLOCKWISE CONTOUR INTEGRAL
+    '”': '”', # \[CloseCurlyDoubleQuote] (RIGHT DOUBLE QUOTATION MARK) -> RIGHT DOUBLE QUOTATION MARK
+    '’': '’', # \[CloseCurlyQuote] (RIGHT SINGLE QUOTATION MARK) -> RIGHT SINGLE QUOTATION MARK
+    '⌘': '⌘', # \[CloverLeaf] (PLACE OF INTEREST SIGN) -> PLACE OF INTEREST SIGN
+    '♣': '♣', # \[ClubSuit] (BLACK CLUB SUIT) -> BLACK CLUB SUIT
+    '∶': '∶', # \[Colon] (RATIO) -> RATIO
+    '\uf76a': '⌘', # \[CommandKey] (INVALID CHARACTER) -> PLACE OF INTEREST SIGN
+    '≡': '≡', # \[Congruent] (IDENTICAL TO) -> IDENTICAL TO
+    '\uf7da': '𝕔', # \[ConstantC] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL C
+    '\uf3b1': '⋱', # \[Continuation] (INVALID CHARACTER) -> DOWN RIGHT DIAGONAL ELLIPSIS
+    '∮': '∮', # \[ContourIntegral] (CONTOUR INTEGRAL) -> CONTOUR INTEGRAL
+    '∐': '∐', # \[Coproduct] (N-ARY COPRODUCT) -> N-ARY COPRODUCT
+    '©': '©', # \[Copyright] (COPYRIGHT SIGN) -> COPYRIGHT SIGN
+    '∳': '∳', # \[CounterClockwiseContourIntegral] (ANTICLOCKWISE CONTOUR INTEGRAL) -> ANTICLOCKWISE CONTOUR INTEGRAL
+    '\uf4a0': '⨯', # \[Cross] (INVALID CHARACTER) -> VECTOR OR CROSS PRODUCT
+    '≍': '≍', # \[CupCap] (EQUIVALENT TO) -> EQUIVALENT TO
+    '⌣': '⌣', # \[Cup] (SMILE) -> SMILE
+    'ϒ': 'ϒ', # \[CurlyCapitalUpsilon] (GREEK UPSILON WITH HOOK SYMBOL) -> GREEK UPSILON WITH HOOK SYMBOL
+    'ε': 'ε', # \[CurlyEpsilon] (GREEK SMALL LETTER EPSILON) -> GREEK SMALL LETTER EPSILON
+    'ϰ': 'ϰ', # \[CurlyKappa] (GREEK KAPPA SYMBOL) -> GREEK KAPPA SYMBOL
+    'φ': 'φ', # \[CurlyPhi] (GREEK SMALL LETTER PHI) -> GREEK SMALL LETTER PHI
+    'ϖ': 'ϖ', # \[CurlyPi] (GREEK PI SYMBOL) -> GREEK PI SYMBOL
+    'ϱ': 'ϱ', # \[CurlyRho] (GREEK RHO SYMBOL) -> GREEK RHO SYMBOL
+    'ϑ': 'ϑ', # \[CurlyTheta] (GREEK THETA SYMBOL) -> GREEK THETA SYMBOL
+    '¤': '¤', # \[Currency] (CURRENCY SIGN) -> CURRENCY SIGN
+    '†': '†', # \[Dagger] (DAGGER) -> DAGGER
+    'ℸ': 'ℸ', # \[Dalet] (DALET SYMBOL) -> DALET SYMBOL
+    '–': '–', # \[Dash] (EN DASH) -> EN DASH
+    '°': '°', # \[Degree] (DEGREE SIGN) -> DEGREE SIGN
+    '∇': '∇', # \[Del] (NABLA) -> NABLA
+    'δ': 'δ', # \[Delta] (GREEK SMALL LETTER DELTA) -> GREEK SMALL LETTER DELTA
+    '⋱': '⋱', # \[DescendingEllipsis] (DOWN RIGHT DIAGONAL ELLIPSIS) -> DOWN RIGHT DIAGONAL ELLIPSIS
+    'ď': 'ď', # \[DHacek] (LATIN SMALL LETTER D WITH CARON) -> LATIN SMALL LETTER D WITH CARON
+    '⌀': '⌀', # \[Diameter] (DIAMETER SIGN) -> DIAMETER SIGN
+    '⋄': '⋄', # \[Diamond] (DIAMOND OPERATOR) -> DIAMOND OPERATOR
+    '♢': '♢', # \[DiamondSuit] (WHITE DIAMOND SUIT) -> WHITE DIAMOND SUIT
+    '∆': '∆', # \[DifferenceDelta] (INCREMENT) -> INCREMENT
+    '\uf74c': '𝑑', # \[DifferentialD] (INVALID CHARACTER) -> MATHEMATICAL ITALIC SMALL D
+    'ϝ': 'ϝ', # \[Digamma] (GREEK SMALL LETTER DIGAMMA) -> GREEK SMALL LETTER DIGAMMA
+    '\uf3d5': '→', # \[DirectedEdge] (INVALID CHARACTER) -> RIGHTWARDS ARROW
+    '\uf4a4': 'ϴ', # \[DiscreteRatio] (INVALID CHARACTER) -> GREEK CAPITAL THETA SYMBOL
+    '∣': '∣', # \[Divides] (DIVIDES) -> DIVIDES
+    '÷': '÷', # \[Divide] (DIVISION SIGN) -> DIVISION SIGN
+    '≐': '≐', # \[DotEqual] (APPROACHES THE LIMIT) -> APPROACHES THE LIMIT
+    'ı': 'ı', # \[DotlessI] (LATIN SMALL LETTER DOTLESS I) -> LATIN SMALL LETTER DOTLESS I
+    '\uf700': 'ȷ', # \[DotlessJ] (INVALID CHARACTER) -> LATIN SMALL LETTER DOTLESS J
+    '\uf751': '⛶', # \[DottedSquare] (INVALID CHARACTER) -> SQUARE FOUR CORNERS
+    '∯': '∯', # \[DoubleContourIntegral] (SURFACE INTEGRAL) -> SURFACE INTEGRAL
+    '‡': '‡', # \[DoubleDagger] (DOUBLE DAGGER) -> DOUBLE DAGGER
+    '\uf74a': 'ℽ', # \[DoubledGamma] (INVALID CHARACTER) -> DOUBLE-STRUCK SMALL GAMMA
+    '¨': '¨', # \[DoubleDot] (DIAERESIS) -> DIAERESIS
+    '⇓': '⇓', # \[DoubleDownArrow] (DOWNWARDS DOUBLE ARROW) -> DOWNWARDS DOUBLE ARROW
+    '\uf749': 'ℼ', # \[DoubledPi] (INVALID CHARACTER) -> DOUBLE-STRUCK SMALL PI
+    '⇐': '⇐', # \[DoubleLeftArrow] (LEFTWARDS DOUBLE ARROW) -> LEFTWARDS DOUBLE ARROW
+    '⇔': '⇔', # \[DoubleLeftRightArrow] (LEFT RIGHT DOUBLE ARROW) -> LEFT RIGHT DOUBLE ARROW
+    '⫤': '⫤', # \[DoubleLeftTee] (VERTICAL BAR DOUBLE LEFT TURNSTILE) -> VERTICAL BAR DOUBLE LEFT TURNSTILE
+    '⟸': '⟸', # \[DoubleLongLeftArrow] (LONG LEFTWARDS DOUBLE ARROW) -> LONG LEFTWARDS DOUBLE ARROW
+    '⟺': '⟺', # \[DoubleLongLeftRightArrow] (LONG LEFT RIGHT DOUBLE ARROW) -> LONG LEFT RIGHT DOUBLE ARROW
+    '⟹': '⟹', # \[DoubleLongRightArrow] (LONG RIGHTWARDS DOUBLE ARROW) -> LONG RIGHTWARDS DOUBLE ARROW
+    '″': '″', # \[DoublePrime] (DOUBLE PRIME) -> DOUBLE PRIME
+    '⇒': '⇒', # \[DoubleRightArrow] (RIGHTWARDS DOUBLE ARROW) -> RIGHTWARDS DOUBLE ARROW
+    '⊨': '⊨', # \[DoubleRightTee] (TRUE) -> TRUE
+    '\uf6e6': '𝕒', # \[DoubleStruckA] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL A
+    '\uf6e7': '𝕓', # \[DoubleStruckB] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL B
+    '\uf6e8': '𝕔', # \[DoubleStruckC] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL C
+    '\uf7a4': '𝔸', # \[DoubleStruckCapitalA] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL A
+    '\uf7a5': '𝔹', # \[DoubleStruckCapitalB] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL B
+    '\uf7a6': 'ℂ', # \[DoubleStruckCapitalC] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL C
+    '\uf7a7': '𝔻', # \[DoubleStruckCapitalD] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL D
+    '\uf7a8': '𝔼', # \[DoubleStruckCapitalE] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL E
+    '\uf7a9': '𝔽', # \[DoubleStruckCapitalF] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL F
+    '\uf7aa': '𝔾', # \[DoubleStruckCapitalG] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL G
+    '\uf7ab': 'ℍ', # \[DoubleStruckCapitalH] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL H
+    '\uf7ac': '𝕀', # \[DoubleStruckCapitalI] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL I
+    '\uf7ad': '𝕁', # \[DoubleStruckCapitalJ] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL J
+    '\uf7ae': '𝕂', # \[DoubleStruckCapitalK] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL K
+    '\uf7af': '𝕃', # \[DoubleStruckCapitalL] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL L
+    '\uf7b0': '𝕄', # \[DoubleStruckCapitalM] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL M
+    '\uf7b1': 'ℕ', # \[DoubleStruckCapitalN] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL N
+    '\uf7b2': '𝕆', # \[DoubleStruckCapitalO] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL O
+    '\uf7b3': 'ℙ', # \[DoubleStruckCapitalP] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL P
+    '\uf7b4': 'ℚ', # \[DoubleStruckCapitalQ] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL Q
+    '\uf7b5': 'ℝ', # \[DoubleStruckCapitalR] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL R
+    '\uf7b6': '𝕊', # \[DoubleStruckCapitalS] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL S
+    '\uf7b7': '𝕋', # \[DoubleStruckCapitalT] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL T
+    '\uf7b8': '𝕌', # \[DoubleStruckCapitalU] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL U
+    '\uf7b9': '𝕍', # \[DoubleStruckCapitalV] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL V
+    '\uf7ba': '𝕎', # \[DoubleStruckCapitalW] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL W
+    '\uf7bb': '𝕏', # \[DoubleStruckCapitalX] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL X
+    '\uf7bc': '𝕐', # \[DoubleStruckCapitalY] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK CAPITAL Y
+    '\uf7bd': 'ℤ', # \[DoubleStruckCapitalZ] (INVALID CHARACTER) -> DOUBLE-STRUCK CAPITAL Z
+    '\uf6e9': '𝕕', # \[DoubleStruckD] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL D
+    '\uf6ea': '𝕖', # \[DoubleStruckE] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL E
+    '\uf7e3': '𝟠', # \[DoubleStruckEight] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT EIGHT
+    '\uf6eb': '𝕗', # \[DoubleStruckF] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL F
+    '\uf7e0': '𝟝', # \[DoubleStruckFive] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT FIVE
+    '\uf7df': '𝟜', # \[DoubleStruckFour] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT FOUR
+    '\uf6ec': '𝕘', # \[DoubleStruckG] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL G
+    '\uf6ed': '𝕙', # \[DoubleStruckH] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL H
+    '\uf6ee': '𝕚', # \[DoubleStruckI] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL I
+    '\uf6ef': '𝕛', # \[DoubleStruckJ] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL J
+    '\uf6f0': '𝕜', # \[DoubleStruckK] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL K
+    '\uf6f1': '𝕝', # \[DoubleStruckL] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL L
+    '\uf6f2': '𝕞', # \[DoubleStruckM] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL M
+    '\uf6f3': '𝕟', # \[DoubleStruckN] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL N
+    '\uf7e4': '𝟡', # \[DoubleStruckNine] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT NINE
+    '\uf6f4': '𝕠', # \[DoubleStruckO] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL O
+    '\uf7dc': '𝟙', # \[DoubleStruckOne] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT ONE
+    '\uf6f5': '𝕡', # \[DoubleStruckP] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL P
+    '\uf6f6': '𝕢', # \[DoubleStruckQ] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL Q
+    '\uf6f7': '𝕣', # \[DoubleStruckR] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL R
+    '\uf6f8': '𝕤', # \[DoubleStruckS] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL S
+    '\uf7e2': '𝟟', # \[DoubleStruckSeven] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT SEVEN
+    '\uf7e1': '𝟞', # \[DoubleStruckSix] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT SIX
+    '\uf6f9': '𝕥', # \[DoubleStruckT] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL T
+    '\uf7de': '𝟛', # \[DoubleStruckThree] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT THREE
+    '\uf7dd': '𝟚', # \[DoubleStruckTwo] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT TWO
+    '\uf6fa': '𝕦', # \[DoubleStruckU] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL U
+    '\uf6fb': '𝕧', # \[DoubleStruckV] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL V
+    '\uf6fc': '𝕨', # \[DoubleStruckW] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL W
+    '\uf6fd': '𝕩', # \[DoubleStruckX] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL X
+    '\uf6fe': '𝕪', # \[DoubleStruckY] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL Y
+    '\uf6ff': '𝕫', # \[DoubleStruckZ] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK SMALL Z
+    '\uf7db': '𝟘', # \[DoubleStruckZero] (INVALID CHARACTER) -> MATHEMATICAL DOUBLE-STRUCK DIGIT ZERO
+    '⇑': '⇑', # \[DoubleUpArrow] (UPWARDS DOUBLE ARROW) -> UPWARDS DOUBLE ARROW
+    '⇕': '⇕', # \[DoubleUpDownArrow] (UP DOWN DOUBLE ARROW) -> UP DOWN DOUBLE ARROW
+    '∥': '∥', # \[DoubleVerticalBar] (PARALLEL TO) -> PARALLEL TO
+    '⤓': '⤓', # \[DownArrowBar] (DOWNWARDS ARROW TO BAR) -> DOWNWARDS ARROW TO BAR
+    '↓': '↓', # \[DownArrow] (DOWNWARDS ARROW) -> DOWNWARDS ARROW
+    '⇵': '⇵', # \[DownArrowUpArrow] (DOWNWARDS ARROW LEFTWARDS OF UPWARDS ARROW) -> DOWNWARDS ARROW LEFTWARDS OF UPWARDS ARROW
+    '\uf755': ' ̑', # \[DownBreve] (INVALID CHARACTER) -> COMBINING INVERTED BREVE
+    '¡': '¡', # \[DownExclamation] (INVERTED EXCLAMATION MARK) -> INVERTED EXCLAMATION MARK
+    '⥐': '⥐', # \[DownLeftRightVector] (LEFT BARB DOWN RIGHT BARB DOWN HARPOON) -> LEFT BARB DOWN RIGHT BARB DOWN HARPOON
+    '⥞': '⥞', # \[DownLeftTeeVector] (LEFTWARDS HARPOON WITH BARB DOWN FROM BAR) -> LEFTWARDS HARPOON WITH BARB DOWN FROM BAR
+    '↽': '↽', # \[DownLeftVector] (LEFTWARDS HARPOON WITH BARB DOWNWARDS) -> LEFTWARDS HARPOON WITH BARB DOWNWARDS
+    '⥖': '⥖', # \[DownLeftVectorBar] (LEFTWARDS HARPOON WITH BARB DOWN TO BAR) -> LEFTWARDS HARPOON WITH BARB DOWN TO BAR
+    '▾': '▾', # \[DownPointer] (BLACK DOWN-POINTING SMALL TRIANGLE) -> BLACK DOWN-POINTING SMALL TRIANGLE
+    '¿': '¿', # \[DownQuestion] (INVERTED QUESTION MARK) -> INVERTED QUESTION MARK
+    '⥟': '⥟', # \[DownRightTeeVector] (RIGHTWARDS HARPOON WITH BARB DOWN FROM BAR) -> RIGHTWARDS HARPOON WITH BARB DOWN FROM BAR
+    '⇁': '⇁', # \[DownRightVector] (RIGHTWARDS HARPOON WITH BARB DOWNWARDS) -> RIGHTWARDS HARPOON WITH BARB DOWNWARDS
+    '⥗': '⥗', # \[DownRightVectorBar] (RIGHTWARDS HARPOON WITH BARB DOWN TO BAR) -> RIGHTWARDS HARPOON WITH BARB DOWN TO BAR
+    '↧': '↧', # \[DownTeeArrow] (DOWNWARDS ARROW FROM BAR) -> DOWNWARDS ARROW FROM BAR
+    '⊤': '⊤', # \[DownTee] (DOWN TACK) -> DOWN TACK
+    'é': 'é', # \[EAcute] (LATIN SMALL LETTER E WITH ACUTE) -> LATIN SMALL LETTER E WITH ACUTE
+    '♁': '♁', # \[Earth] (EARTH) -> CIRCLED PLUS
+    'ē': 'ē', # \[EBar] (LATIN SMALL LETTER E WITH MACRON) -> LATIN SMALL LETTER E WITH MACRON
+    'ĕ': 'ĕ', # \[ECup] (LATIN SMALL LETTER E WITH BREVE) -> LATIN SMALL LETTER E WITH BREVE
+    'ë': 'ë', # \[EDoubleDot] (LATIN SMALL LETTER E WITH DIAERESIS) -> LATIN SMALL LETTER E WITH DIAERESIS
+    'è': 'è', # \[EGrave] (LATIN SMALL LETTER E WITH GRAVE) -> LATIN SMALL LETTER E WITH GRAVE
+    'ě': 'ě', # \[EHacek] (LATIN SMALL LETTER E WITH CARON) -> LATIN SMALL LETTER E WITH CARON
+    'ê': 'ê', # \[EHat] (LATIN SMALL LETTER E WITH CIRCUMFLEX) -> LATIN SMALL LETTER E WITH CIRCUMFLEX
+    '♪': '♪', # \[EighthNote] (EIGHTH NOTE) -> EIGHTH NOTE
+    '∈': '∈', # \[Element] (ELEMENT OF) -> ELEMENT OF
+    '…': '…', # \[Ellipsis] (HORIZONTAL ELLIPSIS) -> HORIZONTAL ELLIPSIS
+    '○': '○', # \[EmptyCircle] (WHITE CIRCLE) -> WHITE CIRCLE
+    '◇': '◇', # \[EmptyDiamond] (WHITE DIAMOND) -> WHITE DIAMOND
+    '▽': '▽', # \[EmptyDownTriangle] (WHITE DOWN-POINTING TRIANGLE) -> WHITE DOWN-POINTING TRIANGLE
+    '▯': '▯', # \[EmptyRectangle] (WHITE VERTICAL RECTANGLE) -> WHITE VERTICAL RECTANGLE
+    '∅': '∅', # \[EmptySet] (EMPTY SET) -> EMPTY SET
+    '◦': '◦', # \[EmptySmallCircle] (WHITE BULLET) -> WHITE BULLET
+    '◻': '◻', # \[EmptySmallSquare] (WHITE MEDIUM SQUARE) -> WHITE MEDIUM SQUARE
+    '□': '□', # \[EmptySquare] (WHITE SQUARE) -> WHITE SQUARE
+    '△': '△', # \[EmptyUpTriangle] (WHITE UP-POINTING TRIANGLE) -> WHITE UP-POINTING TRIANGLE
+    '▫': '▫', # \[EmptyVerySmallSquare] (WHITE SMALL SQUARE) -> WHITE SMALL SQUARE
+    'ϵ': 'ϵ', # \[Epsilon] (GREEK LUNATE EPSILON SYMBOL) -> GREEK LUNATE EPSILON SYMBOL
+    '\uf431': '⩵', # \[Equal] (INVALID CHARACTER) -> TWO CONSECUTIVE EQUALS SIGNS
+    '≂': '≂', # \[EqualTilde] (MINUS TILDE) -> MINUS TILDE
+    '⇌': '⇌', # \[Equilibrium] (RIGHTWARDS HARPOON OVER LEFTWARDS HARPOON) -> RIGHTWARDS HARPOON OVER LEFTWARDS HARPOON
     '⧦': '⇔', # \[Equivalent] (GLEICH STARK) -> LEFT RIGHT DOUBLE ARROW
-    '\uf74d': 'ⅇ', # \[ExponentialE] -> DOUBLE-STRUCK ITALIC SMALL E
-    '\uf750': '•', # \[FilledSmallCircle] -> BULLET
-    '\uf800': 'ạ', # \[FormalA] -> LATIN SMALL LETTER A WITH DOT BELOW
-    '\uf854': 'α̣', # \[FormalAlpha] -> GREEK SMALL LETTER ALPHA + COMBINING DOT BELOW
-    '\uf801': 'ḅ', # \[FormalB] -> LATIN SMALL LETTER B WITH DOT BELOW
-    '\uf855': 'β̣', # \[FormalBeta] -> GREEK SMALL LETTER BETA + COMBINING DOT BELOW
-    '\uf802': 'c̣', # \[FormalC] -> LATIN SMALL LETTER C + COMBINING DOT BELOW
-    '\uf81a': 'Ạ', # \[FormalCapitalA] -> LATIN CAPITAL LETTER A WITH DOT BELOW
-    '\uf834': 'Α̣', # \[FormalCapitalAlpha] -> GREEK CAPITAL LETTER ALPHA + COMBINING DOT BELOW
-    '\uf81b': 'Ḅ', # \[FormalCapitalB] -> LATIN CAPITAL LETTER B WITH DOT BELOW
-    '\uf835': 'Β̣', # \[FormalCapitalBeta] -> GREEK CAPITAL LETTER BETA + COMBINING DOT BELOW
-    '\uf81c': 'C̣', # \[FormalCapitalC] -> LATIN CAPITAL LETTER C + COMBINING DOT BELOW
-    '\uf84a': 'Χ̣', # \[FormalCapitalChi] -> GREEK CAPITAL LETTER CHI + COMBINING DOT BELOW
-    '\uf81d': 'Ḍ', # \[FormalCapitalD] -> LATIN CAPITAL LETTER D WITH DOT BELOW
-    '\uf837': 'Δ̣', # \[FormalCapitalDelta] -> GREEK CAPITAL LETTER DELTA + COMBINING DOT BELOW
-    '\uf87f': 'Ϝ̣', # \[FormalCapitalDigamma] -> GREEK LETTER DIGAMMA + COMBINING DOT BELOW
-    '\uf81e': 'Ẹ', # \[FormalCapitalE] -> LATIN CAPITAL LETTER E WITH DOT BELOW
-    '\uf838': 'Ε̣', # \[FormalCapitalEpsilon] -> GREEK CAPITAL LETTER EPSILON + COMBINING DOT BELOW
-    '\uf83a': 'Η̣', # \[FormalCapitalEta] -> GREEK CAPITAL LETTER ETA + COMBINING DOT BELOW
-    '\uf81f': 'F̣', # \[FormalCapitalF] -> LATIN CAPITAL LETTER F + COMBINING DOT BELOW
-    '\uf820': 'G̣', # \[FormalCapitalG] -> LATIN CAPITAL LETTER G + COMBINING DOT BELOW
-    '\uf836': 'Γ', # \[FormalCapitalGamma] -> GREEK CAPITAL LETTER GAMMA
-    '\uf821': 'Ḥ', # \[FormalCapitalH] -> LATIN CAPITAL LETTER H WITH DOT BELOW
-    '\uf822': 'Ị', # \[FormalCapitalI] -> LATIN CAPITAL LETTER I WITH DOT BELOW
-    '\uf83c': 'Ι̣', # \[FormalCapitalIota] -> GREEK CAPITAL LETTER IOTA + COMBINING DOT BELOW
-    '\uf823': 'J̣', # \[FormalCapitalJ] -> LATIN CAPITAL LETTER J + COMBINING DOT BELOW
-    '\uf824': 'Ḳ', # \[FormalCapitalK] -> LATIN CAPITAL LETTER K WITH DOT BELOW
-    '\uf83d': 'Κ̣', # \[FormalCapitalKappa] -> GREEK CAPITAL LETTER KAPPA + COMBINING DOT BELOW
-    '\uf881': 'Ϟ̣', # \[FormalCapitalKoppa] -> GREEK LETTER KOPPA + COMBINING DOT BELOW
-    '\uf825': 'Ḷ', # \[FormalCapitalL] -> LATIN CAPITAL LETTER L WITH DOT BELOW
-    '\uf83e': 'Λ̣', # \[FormalCapitalLambda] -> GREEK CAPITAL LETTER LAMDA + COMBINING DOT BELOW
-    '\uf826': 'Ṃ', # \[FormalCapitalM] -> LATIN CAPITAL LETTER M WITH DOT BELOW
-    '\uf83f': 'Μ̣', # \[FormalCapitalMu] -> GREEK CAPITAL LETTER MU + COMBINING DOT BELOW
-    '\uf827': 'Ṇ', # \[FormalCapitalN] -> LATIN CAPITAL LETTER N WITH DOT BELOW
-    '\uf840': 'Ν̣', # \[FormalCapitalNu] -> GREEK CAPITAL LETTER NU + COMBINING DOT BELOW
-    '\uf828': 'Ọ', # \[FormalCapitalO] -> LATIN CAPITAL LETTER O WITH DOT BELOW
-    '\uf84c': 'Ω̣', # \[FormalCapitalOmega] -> GREEK CAPITAL LETTER OMEGA + COMBINING DOT BELOW
-    '\uf842': 'Ο̣', # \[FormalCapitalOmicron] -> GREEK CAPITAL LETTER OMICRON + COMBINING DOT BELOW
-    '\uf829': 'P̣', # \[FormalCapitalP] -> LATIN CAPITAL LETTER P + COMBINING DOT BELOW
-    '\uf849': 'Φ̣', # \[FormalCapitalPhi] -> GREEK CAPITAL LETTER PHI + COMBINING DOT BELOW
-    '\uf843': 'Π̣', # \[FormalCapitalPi] -> GREEK CAPITAL LETTER PI + COMBINING DOT BELOW
-    '\uf84b': 'Ψ̣', # \[FormalCapitalPsi] -> GREEK CAPITAL LETTER PSI + COMBINING DOT BELOW
-    '\uf82a': 'Q̣', # \[FormalCapitalQ] -> LATIN CAPITAL LETTER Q + COMBINING DOT BELOW
-    '\uf82b': 'Ṛ', # \[FormalCapitalR] -> LATIN CAPITAL LETTER R WITH DOT BELOW
-    '\uf844': 'Ρ̣', # \[FormalCapitalRho] -> GREEK CAPITAL LETTER RHO + COMBINING DOT BELOW
-    '\uf82c': 'Ṣ', # \[FormalCapitalS] -> LATIN CAPITAL LETTER S WITH DOT BELOW
-    '\uf883': 'Ϡ̣', # \[FormalCapitalSampi] -> GREEK LETTER SAMPI + COMBINING DOT BELOW
-    '\uf846': 'Σ̣', # \[FormalCapitalSigma] -> GREEK CAPITAL LETTER SIGMA + COMBINING DOT BELOW
-    '\uf87d': 'Ϛ̣', # \[FormalCapitalStigma] -> GREEK LETTER STIGMA + COMBINING DOT BELOW
-    '\uf82d': 'Ṭ', # \[FormalCapitalT] -> LATIN CAPITAL LETTER T WITH DOT BELOW
-    '\uf847': 'Τ̣', # \[FormalCapitalTau] -> GREEK CAPITAL LETTER TAU + COMBINING DOT BELOW
-    '\uf83b': 'Θ', # \[FormalCapitalTheta] -> GREEK CAPITAL LETTER THETA
-    '\uf82e': 'Ụ', # \[FormalCapitalU] -> LATIN CAPITAL LETTER U WITH DOT BELOW
-    '\uf848': 'Υ̣', # \[FormalCapitalUpsilon] -> GREEK CAPITAL LETTER UPSILON + COMBINING DOT BELOW
-    '\uf82f': 'Ṿ', # \[FormalCapitalV] -> LATIN CAPITAL LETTER V WITH DOT BELOW
-    '\uf830': 'Ẉ', # \[FormalCapitalW] -> LATIN CAPITAL LETTER W WITH DOT BELOW
-    '\uf831': 'X̣', # \[FormalCapitalX] -> LATIN CAPITAL LETTER X + COMBINING DOT BELOW
-    '\uf841': 'Ξ̣', # \[FormalCapitalXi] -> GREEK CAPITAL LETTER XI + COMBINING DOT BELOW
-    '\uf832': 'Ỵ', # \[FormalCapitalY] -> LATIN CAPITAL LETTER Y WITH DOT BELOW
-    '\uf833': 'Ẓ', # \[FormalCapitalZ] -> LATIN CAPITAL LETTER Z WITH DOT BELOW
-    '\uf839': 'Ζ̣', # \[FormalCapitalZeta] -> GREEK CAPITAL LETTER ZETA + COMBINING DOT BELOW
-    '\uf86a': 'χ̣', # \[FormalChi] -> GREEK SMALL LETTER CHI + COMBINING DOT BELOW
-    '\uf875': 'ϒ̣', # \[FormalCurlyCapitalUpsilon] -> GREEK UPSILON WITH HOOK SYMBOL + COMBINING DOT BELOW
-    '\uf858': 'ε̣', # \[FormalCurlyEpsilon] -> GREEK SMALL LETTER EPSILON + COMBINING DOT BELOW
-    '\uf885': 'ϰ̣', # \[FormalCurlyKappa] -> GREEK KAPPA SYMBOL + COMBINING DOT BELOW
-    '\uf869': 'φ̣', # \[FormalCurlyPhi] -> GREEK SMALL LETTER PHI + COMBINING DOT BELOW
-    '\uf879': 'ϖ̣', # \[FormalCurlyPi] -> GREEK PI SYMBOL + COMBINING DOT BELOW
-    '\uf886': 'ϱ̣', # \[FormalCurlyRho] -> GREEK RHO SYMBOL + COMBINING DOT BELOW
-    '\uf874': 'ϑ̣', # \[FormalCurlyTheta] -> GREEK THETA SYMBOL + COMBINING DOT BELOW
-    '\uf803': 'ḍ', # \[FormalD] -> LATIN SMALL LETTER D WITH DOT BELOW
-    '\uf857': 'δ̣', # \[FormalDelta] -> GREEK SMALL LETTER DELTA + COMBINING DOT BELOW
-    '\uf880': 'ϝ', # \[FormalDigamma] -> GREEK SMALL LETTER DIGAMMA
-    '\uf804': 'ẹ', # \[FormalE] -> LATIN SMALL LETTER E WITH DOT BELOW
-    '\uf88a': 'ϵ̣', # \[FormalEpsilon] -> GREEK LUNATE EPSILON SYMBOL + COMBINING DOT BELOW
-    '\uf85a': 'η̣', # \[FormalEta] -> GREEK SMALL LETTER ETA + COMBINING DOT BELOW
-    '\uf805': 'f̣', # \[FormalF] -> LATIN SMALL LETTER F + COMBINING DOT BELOW
-    '\uf865': 'ς̣', # \[FormalFinalSigma] -> GREEK SMALL LETTER FINAL SIGMA + COMBINING DOT BELOW
-    '\uf806': 'g̣', # \[FormalG] -> LATIN SMALL LETTER G + COMBINING DOT BELOW
-    '\uf856': 'γ̣', # \[FormalGamma] -> GREEK SMALL LETTER GAMMA + COMBINING DOT BELOW
-    '\uf807': 'ḥ', # \[FormalH] -> LATIN SMALL LETTER H WITH DOT BELOW
-    '\uf808': 'ị', # \[FormalI] -> LATIN SMALL LETTER I WITH DOT BELOW
-    '\uf85c': 'Ι̣', # \[FormalIota] -> GREEK CAPITAL LETTER IOTA + COMBINING DOT BELOW
-    '\uf809': 'j̣', # \[FormalJ] -> LATIN SMALL LETTER J + COMBINING DOT BELOW
-    '\uf80a': 'ḳ', # \[FormalK] -> LATIN SMALL LETTER K WITH DOT BELOW
-    '\uf85d': 'κ̣', # \[FormalKappa] -> GREEK SMALL LETTER KAPPA + COMBINING DOT BELOW
-    '\uf882': 'ϟ̣', # \[FormalKoppa] -> GREEK SMALL LETTER KOPPA + COMBINING DOT BELOW
-    '\uf80b': 'ḷ', # \[FormalL] -> LATIN SMALL LETTER L WITH DOT BELOW
-    '\uf85e': 'λ̣', # \[FormalLambda] -> GREEK SMALL LETTER LAMDA + COMBINING DOT BELOW
-    '\uf80c': 'ṃ', # \[FormalM] -> LATIN SMALL LETTER M + COMBINING DOT BELOW
-    '\uf85f': 'μ̣', # \[FormalMu] -> GREEK SMALL LETTER MU + COMBINING DOT BELOW
-    '\uf80d': 'ṇ', # \[FormalN] -> LATIN SMALL LETTER N + COMBINING DOT BELOW
-    '\uf860': 'ν̣', # \[FormalNu] -> GREEK SMALL LETTER NU + COMBINING DOT BELOW
-    '\uf80e': 'ọ', # \[FormalO] -> LATIN SMALL LETTER O + COMBINING DOT BELOW
-    '\uf86c': 'ω̣', # \[FormalOmega] -> GREEK SMALL LETTER OMEGA + COMBINING DOT BELOW
-    '\uf862': 'ο̣', # \[FormalOmicron] -> GREEK SMALL LETTER OMICRON + COMBINING DOT BELOW
-    '\uf80f': 'p̣', # \[FormalP] -> LATIN SMALL LETTER P + COMBINING DOT BELOW
-    '\uf878': 'ϕ̣', # \[FormalPhi] -> GREEK PHI SYMBOL + COMBINING DOT BELOW
-    '\uf863': 'π̣', # \[FormalPi] -> GREEK SMALL LETTER PI + COMBINING DOT BELOW
-    '\uf86b': 'ψ̣', # \[FormalPsi] -> GREEK SMALL LETTER PSI + COMBINING DOT BELOW
-    '\uf810': 'q̣', # \[FormalQ] -> LATIN SMALL LETTER Q + COMBINING DOT BELOW
-    '\uf811': 'ṛ', # \[FormalR] -> LATIN SMALL LETTER R WITH DOT BELOW
-    '\uf864': 'ρ̣', # \[FormalRho] -> GREEK SMALL LETTER RHO + COMBINING DOT BELOW
-    '\uf812': 'ṣ', # \[FormalS] -> LATIN SMALL LETTER S WITH DOT BELOW
-    '\uf884': 'ϡ̣', # \[FormalSampi] -> GREEK SMALL LETTER SAMPI + COMBINING DOT BELOW
-    '\uf866': 'σ̣', # \[FormalSigma] -> GREEK SMALL LETTER SIGMA + COMBINING DOT BELOW
-    '\uf87e': 'ϛ', # \[FormalStigma] -> GREEK SMALL LETTER STIGMA
-    '\uf813': 'ṭ', # \[FormalT] -> LATIN SMALL LETTER T WITH DOT BELOW
-    '\uf867': 'τ̣', # \[FormalTau] -> GREEK SMALL LETTER TAU + COMBINING DOT BELOW
-    '\uf85b': 'θ̣', # \[FormalTheta] -> GREEK SMALL LETTER THETA + COMBINING DOT BELOW
-    '\uf814': 'ụ', # \[FormalU] -> LATIN SMALL LETTER U WITH DOT BELOW
-    '\uf868': 'υ̣', # \[FormalUpsilon] -> GREEK SMALL LETTER UPSILON + COMBINING DOT BELOW
-    '\uf815': 'ṿ', # \[FormalV] -> LATIN SMALL LETTER V WITH DOT BELOW
-    '\uf816': 'ẉ', # \[FormalW] -> LATIN SMALL LETTER W WITH DOT BELOW
-    '\uf817': 'x̣', # \[FormalX] -> LATIN SMALL LETTER X + COMBINING DOT BELOW
-    '\uf861': 'ξ̣', # \[FormalXi] -> GREEK SMALL LETTER XI + COMBINING DOT BELOW
-    '\uf818': 'ỵ', # \[FormalY] -> LATIN SMALL LETTER Y WITH DOT BELOW
-    '\uf819': 'ẓ', # \[FormalZ] -> LATIN SMALL LETTER Z WITH DOT BELOW
-    '\uf859': 'ζ̣', # \[FormalZeta] -> GREEK SMALL LETTER ZETA + COMBINING DOT BELOW
-    '\uf4a1': '↦', # \[Function] -> RIGHTWARDS ARROW FROM BAR
-    '\uf6cc': '𝔞', # \[GothicA] -> MATHEMATICAL FRAKTUR SMALL A
-    '\uf6cd': '𝔟', # \[GothicB] -> MATHEMATICAL FRAKTUR SMALL B
-    '\uf6ce': '𝔠', # \[GothicC] -> MATHEMATICAL FRAKTUR SMALL C
-    '\uf78a': '𝔄', # \[GothicCapitalA] -> MATHEMATICAL FRAKTUR CAPITAL A
-    '\uf78b': '𝔅', # \[GothicCapitalB] -> MATHEMATICAL FRAKTUR CAPITAL B
-    '\uf78d': '𝔇', # \[GothicCapitalD] -> MATHEMATICAL FRAKTUR CAPITAL D
-    '\uf78e': '𝔈', # \[GothicCapitalE] -> MATHEMATICAL FRAKTUR CAPITAL E
-    '\uf78f': '𝔉', # \[GothicCapitalF] -> MATHEMATICAL FRAKTUR CAPITAL F
-    '\uf790': '𝔊', # \[GothicCapitalG] -> MATHEMATICAL FRAKTUR CAPITAL G
-    '\uf793': '𝔍', # \[GothicCapitalJ] -> MATHEMATICAL FRAKTUR CAPITAL J
-    '\uf794': '𝔎', # \[GothicCapitalK] -> MATHEMATICAL FRAKTUR CAPITAL K
-    '\uf795': '𝔏', # \[GothicCapitalL] -> MATHEMATICAL FRAKTUR CAPITAL L
-    '\uf796': '𝔐', # \[GothicCapitalM] -> MATHEMATICAL FRAKTUR CAPITAL M
-    '\uf797': '𝔑', # \[GothicCapitalN] -> MATHEMATICAL FRAKTUR CAPITAL N
-    '\uf798': '𝔒', # \[GothicCapitalO] -> MATHEMATICAL FRAKTUR CAPITAL O
-    '\uf799': '𝔓', # \[GothicCapitalP] -> MATHEMATICAL FRAKTUR CAPITAL P
-    '\uf79a': '𝔔', # \[GothicCapitalQ] -> MATHEMATICAL FRAKTUR CAPITAL Q
-    '\uf79c': '𝔖', # \[GothicCapitalS] -> MATHEMATICAL FRAKTUR CAPITAL S
-    '\uf79d': '𝔗', # \[GothicCapitalT] -> MATHEMATICAL FRAKTUR CAPITAL T
-    '\uf79e': '𝔘', # \[GothicCapitalU] -> MATHEMATICAL FRAKTUR CAPITAL U
-    '\uf79f': '𝔙', # \[GothicCapitalV] -> MATHEMATICAL FRAKTUR CAPITAL V
-    '\uf7a0': '𝔚', # \[GothicCapitalW] -> MATHEMATICAL FRAKTUR CAPITAL W
-    '\uf7a1': '𝔛', # \[GothicCapitalX] -> MATHEMATICAL FRAKTUR CAPITAL X
-    '\uf7a2': '𝔜', # \[GothicCapitalY] -> MATHEMATICAL FRAKTUR CAPITAL Y
-    '\uf6cf': '𝔡', # \[GothicD] -> MATHEMATICAL FRAKTUR SMALL D
-    '\uf6d0': '𝔢', # \[GothicE] -> MATHEMATICAL FRAKTUR SMALL E
-    '\uf6d1': '𝔣', # \[GothicF] -> MATHEMATICAL FRAKTUR SMALL F
-    '\uf6d2': '𝔤', # \[GothicG] -> MATHEMATICAL FRAKTUR SMALL G
-    '\uf6d3': '𝔥', # \[GothicH] -> MATHEMATICAL FRAKTUR SMALL H
-    '\uf6d4': '𝔦', # \[GothicI] -> MATHEMATICAL FRAKTUR SMALL I
-    '\uf6d5': '𝔧', # \[GothicJ] -> MATHEMATICAL FRAKTUR SMALL J
-    '\uf6d6': '𝔨', # \[GothicK] -> MATHEMATICAL FRAKTUR SMALL K
-    '\uf6d7': '𝔩', # \[GothicL] -> MATHEMATICAL FRAKTUR SMALL L
-    '\uf6d8': '𝔪', # \[GothicM] -> MATHEMATICAL FRAKTUR SMALL M
-    '\uf6d9': '𝔫', # \[GothicN] -> MATHEMATICAL FRAKTUR SMALL N
-    '\uf6da': '𝔬', # \[GothicO] -> MATHEMATICAL FRAKTUR SMALL O
-    '\uf6db': '𝔭', # \[GothicP] -> MATHEMATICAL FRAKTUR SMALL P
-    '\uf6dc': '𝔮', # \[GothicQ] -> MATHEMATICAL FRAKTUR SMALL Q
-    '\uf6dd': '𝔯', # \[GothicR] -> MATHEMATICAL FRAKTUR SMALL R
-    '\uf6de': '𝔰', # \[GothicS] -> MATHEMATICAL FRAKTUR SMALL S
-    '\uf6df': '𝔱', # \[GothicT] -> MATHEMATICAL FRAKTUR SMALL T
-    '\uf6e0': '𝔲', # \[GothicU] -> MATHEMATICAL FRAKTUR SMALL U
-    '\uf6e1': '𝔳', # \[GothicV] -> MATHEMATICAL FRAKTUR SMALL V
-    '\uf6e2': '𝔴', # \[GothicW] -> MATHEMATICAL FRAKTUR SMALL W
-    '\uf6e3': '𝔵', # \[GothicX] -> MATHEMATICAL FRAKTUR SMALL X
-    '\uf6e4': '𝔶', # \[GothicY] -> MATHEMATICAL FRAKTUR SMALL Y
-    '\uf6e5': '𝔷', # \[GothicZ] -> MATHEMATICAL FRAKTUR SMALL Z
-    '\uf753': '●', # \[GrayCircle] -> BLACK CIRCLE
-    '\uf752': '■', # \[GraySquare] -> BLACK SQUARE
-    '\uf74e': 'ⅈ', # \[ImaginaryI] -> DOUBLE-STRUCK ITALIC SMALL I
-    '\uf74f': 'ⅉ', # \[ImaginaryJ] -> DOUBLE-STRUCK ITALIC SMALL J
-    '\uf523': '⟹', # \[Implies] -> LONG RIGHTWARDS DOUBLE ARROW
-    '\uf603': '|', # \[LeftBracketingBar] -> VERTICAL LINE
-    '\uf605': '‖', # \[LeftDoubleBracketingBar] -> DOUBLE VERTICAL LINE
-    '\uf761': '«', # \[LeftSkeleton] -> LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
-    '\uf7d9': '=', # \[LongEqual] -> EQUALS SIGN
-    '\uf724': '#', # \[NumberSign] -> NUMBER SIGN
-    '\uf3de': '⊙', # \[PermutationProduct] -> CIRCLED DOT OPERATOR
-    '\uf528': '⎕', # \[Placeholder] -> APL FUNCTIONAL SYMBOL QUAD
-    '\uf604': '|', # \[RightBracketingBar] -> VERTICAL LINE
-    '\uf606': '‖', # \[RightDoubleBracketingBar] -> DOUBLE VERTICAL LINE
-    '\uf762': '»', # \[RightSkeleton] -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
-    '\uf522': '→', # \[Rule] -> RIGHTWARDS ARROW
-    '\uf51f': '⧴', # \[RuleDelayed] -> RULE-DELAYED
-    # This one is changed because \[CapitalSampi] is mapped to GREEK LETTER SAMPI already
+    'η': 'η', # \[Eta] (GREEK SMALL LETTER ETA) -> GREEK SMALL LETTER ETA
+    'ð': 'ð', # \[Eth] (LATIN SMALL LETTER ETH) -> LATIN SMALL LETTER ETH
+    '€': '€', # \[Euro] (EURO SIGN) -> EURO SIGN
+    '∃': '∃', # \[Exists] (THERE EXISTS) -> THERE EXISTS
+    '\uf74d': 'ⅇ', # \[ExponentialE] (INVALID CHARACTER) -> DOUBLE-STRUCK ITALIC SMALL E
+    'ﬁ': 'ﬁ', # \[FiLigature] (LATIN SMALL LIGATURE FI) -> LATIN SMALL LIGATURE FI
+    '●': '●', # \[FilledCircle] (BLACK CIRCLE) -> BLACK CIRCLE
+    '◆': '◆', # \[FilledDiamond] (BLACK DIAMOND) -> BLACK DIAMOND
+    '▼': '▼', # \[FilledDownTriangle] (BLACK DOWN-POINTING TRIANGLE) -> BLACK DOWN-POINTING TRIANGLE
+    '◀': '◀', # \[FilledLeftTriangle] (BLACK LEFT-POINTING TRIANGLE) -> BLACK LEFT-POINTING TRIANGLE
+    '▮': '▮', # \[FilledRectangle] (BLACK VERTICAL RECTANGLE) -> BLACK VERTICAL RECTANGLE
+    '▶': '▶', # \[FilledRightTriangle] (BLACK RIGHT-POINTING TRIANGLE) -> BLACK RIGHT-POINTING TRIANGLE
+    '\uf750': '•', # \[FilledSmallCircle] (INVALID CHARACTER) -> BULLET
+    '◼': '◼', # \[FilledSmallSquare] (BLACK MEDIUM SQUARE) -> BLACK MEDIUM SQUARE
+    '■': '■', # \[FilledSquare] (BLACK SQUARE) -> BLACK SQUARE
+    '▲': '▲', # \[FilledUpTriangle] (BLACK UP-POINTING TRIANGLE) -> BLACK UP-POINTING TRIANGLE
+    '▪': '▪', # \[FilledVerySmallSquare] (BLACK SMALL SQUARE) -> BLACK SMALL SQUARE
+    'ς': 'ς', # \[FinalSigma] (GREEK SMALL LETTER FINAL SIGMA) -> GREEK SMALL LETTER FINAL SIGMA
+    '★': '★', # \[FivePointedStar] (BLACK STAR) -> BLACK STAR
+    '♭': '♭', # \[Flat] (MUSIC FLAT SIGN) -> MUSIC FLAT SIGN
+    'ﬂ': 'ﬂ', # \[FlLigature] (LATIN SMALL LIGATURE FL) -> LATIN SMALL LIGATURE FL
+    'ƒ': 'ƒ', # \[Florin] (LATIN SMALL LETTER F WITH HOOK) -> LATIN SMALL LETTER F WITH HOOK
+    '∀': '∀', # \[ForAll] (FOR ALL) -> FOR ALL
+    '\uf800': 'ạ', # \[FormalA] (INVALID CHARACTER) -> LATIN SMALL LETTER A WITH DOT BELOW
+    '\uf854': 'α̣', # \[FormalAlpha] (INVALID CHARACTER) -> GREEK SMALL LETTER ALPHA + COMBINING DOT BELOW
+    '\uf801': 'ḅ', # \[FormalB] (INVALID CHARACTER) -> LATIN SMALL LETTER B WITH DOT BELOW
+    '\uf855': 'β̣', # \[FormalBeta] (INVALID CHARACTER) -> GREEK SMALL LETTER BETA + COMBINING DOT BELOW
+    '\uf802': 'c̣', # \[FormalC] (INVALID CHARACTER) -> LATIN SMALL LETTER C + COMBINING DOT BELOW
+    '\uf81a': 'Ạ', # \[FormalCapitalA] (INVALID CHARACTER) -> LATIN CAPITAL LETTER A WITH DOT BELOW
+    '\uf834': 'Α̣', # \[FormalCapitalAlpha] (INVALID CHARACTER) -> GREEK CAPITAL LETTER ALPHA + COMBINING DOT BELOW
+    '\uf81b': 'Ḅ', # \[FormalCapitalB] (INVALID CHARACTER) -> LATIN CAPITAL LETTER B WITH DOT BELOW
+    '\uf835': 'Β̣', # \[FormalCapitalBeta] (INVALID CHARACTER) -> GREEK CAPITAL LETTER BETA + COMBINING DOT BELOW
+    '\uf81c': 'C̣', # \[FormalCapitalC] (INVALID CHARACTER) -> LATIN CAPITAL LETTER C + COMBINING DOT BELOW
+    '\uf84a': 'Χ̣', # \[FormalCapitalChi] (INVALID CHARACTER) -> GREEK CAPITAL LETTER CHI + COMBINING DOT BELOW
+    '\uf81d': 'Ḍ', # \[FormalCapitalD] (INVALID CHARACTER) -> LATIN CAPITAL LETTER D WITH DOT BELOW
+    '\uf837': 'Δ̣', # \[FormalCapitalDelta] (INVALID CHARACTER) -> GREEK CAPITAL LETTER DELTA + COMBINING DOT BELOW
+    '\uf87f': 'Ϝ̣', # \[FormalCapitalDigamma] (INVALID CHARACTER) -> GREEK LETTER DIGAMMA + COMBINING DOT BELOW
+    '\uf81e': 'Ẹ', # \[FormalCapitalE] (INVALID CHARACTER) -> LATIN CAPITAL LETTER E WITH DOT BELOW
+    '\uf838': 'Ε̣', # \[FormalCapitalEpsilon] (INVALID CHARACTER) -> GREEK CAPITAL LETTER EPSILON + COMBINING DOT BELOW
+    '\uf83a': 'Η̣', # \[FormalCapitalEta] (INVALID CHARACTER) -> GREEK CAPITAL LETTER ETA + COMBINING DOT BELOW
+    '\uf81f': 'F̣', # \[FormalCapitalF] (INVALID CHARACTER) -> LATIN CAPITAL LETTER F + COMBINING DOT BELOW
+    '\uf820': 'G̣', # \[FormalCapitalG] (INVALID CHARACTER) -> LATIN CAPITAL LETTER G + COMBINING DOT BELOW
+    '\uf836': 'Γ', # \[FormalCapitalGamma] (INVALID CHARACTER) -> GREEK CAPITAL LETTER GAMMA
+    '\uf821': 'Ḥ', # \[FormalCapitalH] (INVALID CHARACTER) -> LATIN CAPITAL LETTER H WITH DOT BELOW
+    '\uf822': 'Ị', # \[FormalCapitalI] (INVALID CHARACTER) -> LATIN CAPITAL LETTER I WITH DOT BELOW
+    '\uf83c': 'Ι̣', # \[FormalCapitalIota] (INVALID CHARACTER) -> GREEK CAPITAL LETTER IOTA + COMBINING DOT BELOW + COMBINING DOT BELOW
+    '\uf823': 'J̣', # \[FormalCapitalJ] (INVALID CHARACTER) -> LATIN CAPITAL LETTER J + COMBINING DOT BELOW
+    '\uf824': 'Ḳ', # \[FormalCapitalK] (INVALID CHARACTER) -> LATIN CAPITAL LETTER K WITH DOT BELOW
+    '\uf83d': 'Κ̣', # \[FormalCapitalKappa] (INVALID CHARACTER) -> GREEK CAPITAL LETTER KAPPA + COMBINING DOT BELOW
+    '\uf881': 'Ϟ̣', # \[FormalCapitalKoppa] (INVALID CHARACTER) -> GREEK LETTER KOPPA + COMBINING DOT BELOW
+    '\uf825': 'Ḷ', # \[FormalCapitalL] (INVALID CHARACTER) -> LATIN CAPITAL LETTER L WITH DOT BELOW
+    '\uf83e': 'Λ̣', # \[FormalCapitalLambda] (INVALID CHARACTER) -> GREEK CAPITAL LETTER LAMDA + COMBINING DOT BELOW
+    '\uf826': 'Ṃ', # \[FormalCapitalM] (INVALID CHARACTER) -> LATIN CAPITAL LETTER M WITH DOT BELOW
+    '\uf83f': 'Μ̣', # \[FormalCapitalMu] (INVALID CHARACTER) -> GREEK CAPITAL LETTER MU + COMBINING DOT BELOW
+    '\uf827': 'Ṇ', # \[FormalCapitalN] (INVALID CHARACTER) -> LATIN CAPITAL LETTER N WITH DOT BELOW
+    '\uf840': 'Ν̣', # \[FormalCapitalNu] (INVALID CHARACTER) -> GREEK CAPITAL LETTER NU + COMBINING DOT BELOW
+    '\uf828': 'Ọ', # \[FormalCapitalO] (INVALID CHARACTER) -> LATIN CAPITAL LETTER O WITH DOT BELOW
+    '\uf84c': 'Ω̣', # \[FormalCapitalOmega] (INVALID CHARACTER) -> GREEK CAPITAL LETTER OMEGA + COMBINING DOT BELOW
+    '\uf842': 'Ο̣', # \[FormalCapitalOmicron] (INVALID CHARACTER) -> GREEK CAPITAL LETTER OMICRON + COMBINING DOT BELOW
+    '\uf829': 'P̣', # \[FormalCapitalP] (INVALID CHARACTER) -> LATIN CAPITAL LETTER P + COMBINING DOT BELOW
+    '\uf849': 'Φ̣', # \[FormalCapitalPhi] (INVALID CHARACTER) -> GREEK CAPITAL LETTER PHI + COMBINING DOT BELOW
+    '\uf843': 'Π̣', # \[FormalCapitalPi] (INVALID CHARACTER) -> GREEK CAPITAL LETTER PI + COMBINING DOT BELOW
+    '\uf84b': 'Ψ̣', # \[FormalCapitalPsi] (INVALID CHARACTER) -> GREEK CAPITAL LETTER PSI + COMBINING DOT BELOW
+    '\uf82a': 'Q̣', # \[FormalCapitalQ] (INVALID CHARACTER) -> LATIN CAPITAL LETTER Q + COMBINING DOT BELOW
+    '\uf82b': 'Ṛ', # \[FormalCapitalR] (INVALID CHARACTER) -> LATIN CAPITAL LETTER R WITH DOT BELOW
+    '\uf844': 'Ρ̣', # \[FormalCapitalRho] (INVALID CHARACTER) -> GREEK CAPITAL LETTER RHO + COMBINING DOT BELOW
+    '\uf82c': 'Ṣ', # \[FormalCapitalS] (INVALID CHARACTER) -> LATIN CAPITAL LETTER S WITH DOT BELOW
+    '\uf883': 'Ϡ̣', # \[FormalCapitalSampi] (INVALID CHARACTER) -> GREEK LETTER SAMPI + COMBINING DOT BELOW
+    '\uf846': 'Σ̣', # \[FormalCapitalSigma] (INVALID CHARACTER) -> GREEK CAPITAL LETTER SIGMA + COMBINING DOT BELOW
+    '\uf87d': 'Ϛ̣', # \[FormalCapitalStigma] (INVALID CHARACTER) -> GREEK LETTER STIGMA + COMBINING DOT BELOW
+    '\uf82d': 'Ṭ', # \[FormalCapitalT] (INVALID CHARACTER) -> LATIN CAPITAL LETTER T WITH DOT BELOW
+    '\uf847': 'Τ̣', # \[FormalCapitalTau] (INVALID CHARACTER) -> GREEK CAPITAL LETTER TAU + COMBINING DOT BELOW
+    '\uf83b': 'Θ', # \[FormalCapitalTheta] (INVALID CHARACTER) -> GREEK CAPITAL LETTER THETA
+    '\uf82e': 'Ụ', # \[FormalCapitalU] (INVALID CHARACTER) -> LATIN CAPITAL LETTER U WITH DOT BELOW
+    '\uf848': 'Υ̣', # \[FormalCapitalUpsilon] (INVALID CHARACTER) -> GREEK CAPITAL LETTER UPSILON + COMBINING DOT BELOW
+    '\uf82f': 'Ṿ', # \[FormalCapitalV] (INVALID CHARACTER) -> LATIN CAPITAL LETTER V WITH DOT BELOW
+    '\uf830': 'Ẉ', # \[FormalCapitalW] (INVALID CHARACTER) -> LATIN CAPITAL LETTER W WITH DOT BELOW
+    '\uf831': 'X̣', # \[FormalCapitalX] (INVALID CHARACTER) -> LATIN CAPITAL LETTER X + COMBINING DOT BELOW
+    '\uf841': 'Ξ̣', # \[FormalCapitalXi] (INVALID CHARACTER) -> GREEK CAPITAL LETTER XI + COMBINING DOT BELOW
+    '\uf832': 'Ỵ', # \[FormalCapitalY] (INVALID CHARACTER) -> LATIN CAPITAL LETTER Y WITH DOT BELOW
+    '\uf833': 'Ẓ', # \[FormalCapitalZ] (INVALID CHARACTER) -> LATIN CAPITAL LETTER Z WITH DOT BELOW
+    '\uf839': 'Ζ̣', # \[FormalCapitalZeta] (INVALID CHARACTER) -> GREEK CAPITAL LETTER ZETA + COMBINING DOT BELOW
+    '\uf86a': 'χ̣', # \[FormalChi] (INVALID CHARACTER) -> GREEK SMALL LETTER CHI + COMBINING DOT BELOW
+    '\uf875': 'ϒ̣', # \[FormalCurlyCapitalUpsilon] (INVALID CHARACTER) -> GREEK UPSILON WITH HOOK SYMBOL + COMBINING DOT BELOW
+    '\uf858': 'ε̣', # \[FormalCurlyEpsilon] (INVALID CHARACTER) -> GREEK SMALL LETTER EPSILON + COMBINING DOT BELOW
+    '\uf885': 'ϰ̣', # \[FormalCurlyKappa] (INVALID CHARACTER) -> GREEK KAPPA SYMBOL + COMBINING DOT BELOW
+    '\uf869': 'φ̣', # \[FormalCurlyPhi] (INVALID CHARACTER) -> GREEK SMALL LETTER PHI + COMBINING DOT BELOW
+    '\uf879': 'ϖ̣', # \[FormalCurlyPi] (INVALID CHARACTER) -> GREEK PI SYMBOL + COMBINING DOT BELOW
+    '\uf886': 'ϱ̣', # \[FormalCurlyRho] (INVALID CHARACTER) -> GREEK RHO SYMBOL + COMBINING DOT BELOW
+    '\uf874': 'ϑ̣', # \[FormalCurlyTheta] (INVALID CHARACTER) -> GREEK THETA SYMBOL + COMBINING DOT BELOW
+    '\uf803': 'ḍ', # \[FormalD] (INVALID CHARACTER) -> LATIN SMALL LETTER D WITH DOT BELOW
+    '\uf857': 'δ̣', # \[FormalDelta] (INVALID CHARACTER) -> GREEK SMALL LETTER DELTA + COMBINING DOT BELOW
+    '\uf880': 'ϝ', # \[FormalDigamma] (INVALID CHARACTER) -> GREEK SMALL LETTER DIGAMMA
+    '\uf804': 'ẹ', # \[FormalE] (INVALID CHARACTER) -> LATIN SMALL LETTER E WITH DOT BELOW
+    '\uf88a': 'ϵ̣', # \[FormalEpsilon] (INVALID CHARACTER) -> GREEK LUNATE EPSILON SYMBOL + COMBINING DOT BELOW
+    '\uf85a': 'η̣', # \[FormalEta] (INVALID CHARACTER) -> GREEK SMALL LETTER ETA + COMBINING DOT BELOW
+    '\uf805': 'f̣', # \[FormalF] (INVALID CHARACTER) -> LATIN SMALL LETTER F + COMBINING DOT BELOW
+    '\uf865': 'ς̣', # \[FormalFinalSigma] (INVALID CHARACTER) -> GREEK SMALL LETTER FINAL SIGMA + COMBINING DOT BELOW
+    '\uf806': 'g̣', # \[FormalG] (INVALID CHARACTER) -> LATIN SMALL LETTER G + COMBINING DOT BELOW
+    '\uf856': 'γ̣', # \[FormalGamma] (INVALID CHARACTER) -> GREEK SMALL LETTER GAMMA + COMBINING DOT BELOW
+    '\uf807': 'ḥ', # \[FormalH] (INVALID CHARACTER) -> LATIN SMALL LETTER H WITH DOT BELOW
+    '\uf808': 'ị', # \[FormalI] (INVALID CHARACTER) -> LATIN SMALL LETTER I WITH DOT BELOW
+    '\uf85c': 'Ι̣', # \[FormalIota] (INVALID CHARACTER) -> GREEK CAPITAL LETTER IOTA + COMBINING DOT BELOW + COMBINING DOT BELOW
+    '\uf809': 'j̣', # \[FormalJ] (INVALID CHARACTER) -> LATIN SMALL LETTER J + COMBINING DOT BELOW
+    '\uf80a': 'ḳ', # \[FormalK] (INVALID CHARACTER) -> LATIN SMALL LETTER K WITH DOT BELOW
+    '\uf85d': 'κ̣', # \[FormalKappa] (INVALID CHARACTER) -> GREEK SMALL LETTER KAPPA + COMBINING DOT BELOW
+    '\uf882': 'ϟ̣', # \[FormalKoppa] (INVALID CHARACTER) -> GREEK SMALL LETTER KOPPA + COMBINING DOT BELOW
+    '\uf80b': 'ḷ', # \[FormalL] (INVALID CHARACTER) -> LATIN SMALL LETTER L WITH DOT BELOW
+    '\uf85e': 'λ̣', # \[FormalLambda] (INVALID CHARACTER) -> GREEK SMALL LETTER LAMDA + COMBINING DOT BELOW
+    '\uf80c': 'ṃ', # \[FormalM] (INVALID CHARACTER) -> LATIN SMALL LETTER M + COMBINING DOT BELOW
+    '\uf85f': 'μ̣', # \[FormalMu] (INVALID CHARACTER) -> GREEK SMALL LETTER MU + COMBINING DOT BELOW
+    '\uf80d': 'ṇ', # \[FormalN] (INVALID CHARACTER) -> LATIN SMALL LETTER N + COMBINING DOT BELOW
+    '\uf860': 'ν̣', # \[FormalNu] (INVALID CHARACTER) -> GREEK SMALL LETTER NU + COMBINING DOT BELOW
+    '\uf80e': 'ọ', # \[FormalO] (INVALID CHARACTER) -> LATIN SMALL LETTER O + COMBINING DOT BELOW
+    '\uf86c': 'ω̣', # \[FormalOmega] (INVALID CHARACTER) -> GREEK SMALL LETTER OMEGA + COMBINING DOT BELOW
+    '\uf862': 'ο̣', # \[FormalOmicron] (INVALID CHARACTER) -> GREEK SMALL LETTER OMICRON + COMBINING DOT BELOW
+    '\uf80f': 'p̣', # \[FormalP] (INVALID CHARACTER) -> LATIN SMALL LETTER P + COMBINING DOT BELOW
+    '\uf878': 'ϕ̣', # \[FormalPhi] (INVALID CHARACTER) -> GREEK PHI SYMBOL + COMBINING DOT BELOW
+    '\uf863': 'π̣', # \[FormalPi] (INVALID CHARACTER) -> GREEK SMALL LETTER PI + COMBINING DOT BELOW
+    '\uf86b': 'ψ̣', # \[FormalPsi] (INVALID CHARACTER) -> GREEK SMALL LETTER PSI + COMBINING DOT BELOW
+    '\uf810': 'q̣', # \[FormalQ] (INVALID CHARACTER) -> LATIN SMALL LETTER Q + COMBINING DOT BELOW
+    '\uf811': 'ṛ', # \[FormalR] (INVALID CHARACTER) -> LATIN SMALL LETTER R WITH DOT BELOW
+    '\uf864': 'ρ̣', # \[FormalRho] (INVALID CHARACTER) -> GREEK SMALL LETTER RHO + COMBINING DOT BELOW
+    '\uf812': 'ṣ', # \[FormalS] (INVALID CHARACTER) -> LATIN SMALL LETTER S WITH DOT BELOW
+    '\uf884': 'ϡ̣', # \[FormalSampi] (INVALID CHARACTER) -> GREEK SMALL LETTER SAMPI + COMBINING DOT BELOW
+    '\uf866': 'σ̣', # \[FormalSigma] (INVALID CHARACTER) -> GREEK SMALL LETTER SIGMA + COMBINING DOT BELOW
+    '\uf87e': 'ϛ', # \[FormalStigma] (INVALID CHARACTER) -> GREEK SMALL LETTER STIGMA
+    '\uf813': 'ṭ', # \[FormalT] (INVALID CHARACTER) -> LATIN SMALL LETTER T WITH DOT BELOW
+    '\uf867': 'τ̣', # \[FormalTau] (INVALID CHARACTER) -> GREEK SMALL LETTER TAU + COMBINING DOT BELOW
+    '\uf85b': 'θ̣', # \[FormalTheta] (INVALID CHARACTER) -> GREEK SMALL LETTER THETA + COMBINING DOT BELOW
+    '\uf814': 'ụ', # \[FormalU] (INVALID CHARACTER) -> LATIN SMALL LETTER U WITH DOT BELOW
+    '\uf868': 'υ̣', # \[FormalUpsilon] (INVALID CHARACTER) -> GREEK SMALL LETTER UPSILON + COMBINING DOT BELOW
+    '\uf815': 'ṿ', # \[FormalV] (INVALID CHARACTER) -> LATIN SMALL LETTER V WITH DOT BELOW
+    '\uf816': 'ẉ', # \[FormalW] (INVALID CHARACTER) -> LATIN SMALL LETTER W WITH DOT BELOW
+    '\uf817': 'x̣', # \[FormalX] (INVALID CHARACTER) -> LATIN SMALL LETTER X + COMBINING DOT BELOW
+    '\uf861': 'ξ̣', # \[FormalXi] (INVALID CHARACTER) -> GREEK SMALL LETTER XI + COMBINING DOT BELOW
+    '\uf818': 'ỵ', # \[FormalY] (INVALID CHARACTER) -> LATIN SMALL LETTER Y WITH DOT BELOW
+    '\uf819': 'ẓ', # \[FormalZ] (INVALID CHARACTER) -> LATIN SMALL LETTER Z WITH DOT BELOW
+    '\uf859': 'ζ̣', # \[FormalZeta] (INVALID CHARACTER) -> GREEK SMALL LETTER ZETA + COMBINING DOT BELOW
+    '\uf4a1': '↦', # \[Function] (INVALID CHARACTER) -> RIGHTWARDS ARROW FROM BAR
+    'γ': 'γ', # \[Gamma] (GREEK SMALL LETTER GAMMA) -> GREEK SMALL LETTER GAMMA
+    '♊': '♊', # \[GeminiSign] (GEMINI) -> GEMINI
+    'ℷ': 'ℷ', # \[Gimel] (GIMEL SYMBOL) -> GIMEL SYMBOL
+    '\uf6cc': '𝔞', # \[GothicA] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL A
+    '\uf6cd': '𝔟', # \[GothicB] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL B
+    '\uf6ce': '𝔠', # \[GothicC] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL C
+    '\uf78a': '𝔄', # \[GothicCapitalA] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL A
+    '\uf78b': '𝔅', # \[GothicCapitalB] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL B
+    'ℭ': 'ℭ', # \[GothicCapitalC] (BLACK-LETTER CAPITAL C) -> BLACK-LETTER CAPITAL C
+    '\uf78d': '𝔇', # \[GothicCapitalD] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL D
+    '\uf78e': '𝔈', # \[GothicCapitalE] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL E
+    '\uf78f': '𝔉', # \[GothicCapitalF] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL F
+    '\uf790': '𝔊', # \[GothicCapitalG] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL G
+    'ℌ': 'ℌ', # \[GothicCapitalH] (BLACK-LETTER CAPITAL H) -> BLACK-LETTER CAPITAL H
+    'ℑ': 'ℑ', # \[GothicCapitalI] (BLACK-LETTER CAPITAL I) -> BLACK-LETTER CAPITAL I
+    '\uf793': '𝔍', # \[GothicCapitalJ] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL J
+    '\uf794': '𝔎', # \[GothicCapitalK] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL K
+    '\uf795': '𝔏', # \[GothicCapitalL] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL L
+    '\uf796': '𝔐', # \[GothicCapitalM] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL M
+    '\uf797': '𝔑', # \[GothicCapitalN] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL N
+    '\uf798': '𝔒', # \[GothicCapitalO] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL O
+    '\uf799': '𝔓', # \[GothicCapitalP] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL P
+    '\uf79a': '𝔔', # \[GothicCapitalQ] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL Q
+    'ℜ': 'ℜ', # \[GothicCapitalR] (BLACK-LETTER CAPITAL R) -> BLACK-LETTER CAPITAL R
+    '\uf79c': '𝔖', # \[GothicCapitalS] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL S
+    '\uf79d': '𝔗', # \[GothicCapitalT] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL T
+    '\uf79e': '𝔘', # \[GothicCapitalU] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL U
+    '\uf79f': '𝔙', # \[GothicCapitalV] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL V
+    '\uf7a0': '𝔚', # \[GothicCapitalW] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL W
+    '\uf7a1': '𝔛', # \[GothicCapitalX] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL X
+    '\uf7a2': '𝔜', # \[GothicCapitalY] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR CAPITAL Y
+    'ℨ': 'ℨ', # \[GothicCapitalZ] (BLACK-LETTER CAPITAL Z) -> BLACK-LETTER CAPITAL Z
+    '\uf6cf': '𝔡', # \[GothicD] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL D
+    '\uf6d0': '𝔢', # \[GothicE] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL E
+    '\uf6d1': '𝔣', # \[GothicF] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL F
+    '\uf6d2': '𝔤', # \[GothicG] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL G
+    '\uf6d3': '𝔥', # \[GothicH] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL H
+    '\uf6d4': '𝔦', # \[GothicI] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL I
+    '\uf6d5': '𝔧', # \[GothicJ] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL J
+    '\uf6d6': '𝔨', # \[GothicK] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL K
+    '\uf6d7': '𝔩', # \[GothicL] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL L
+    '\uf6d8': '𝔪', # \[GothicM] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL M
+    '\uf6d9': '𝔫', # \[GothicN] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL N
+    '\uf6da': '𝔬', # \[GothicO] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL O
+    '\uf6db': '𝔭', # \[GothicP] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL P
+    '\uf6dc': '𝔮', # \[GothicQ] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL Q
+    '\uf6dd': '𝔯', # \[GothicR] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL R
+    '\uf6de': '𝔰', # \[GothicS] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL S
+    '\uf6df': '𝔱', # \[GothicT] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL T
+    '\uf6e0': '𝔲', # \[GothicU] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL U
+    '\uf6e1': '𝔳', # \[GothicV] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL V
+    '\uf6e2': '𝔴', # \[GothicW] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL W
+    '\uf6e3': '𝔵', # \[GothicX] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL X
+    '\uf6e4': '𝔶', # \[GothicY] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL Y
+    '\uf6e5': '𝔷', # \[GothicZ] (INVALID CHARACTER) -> MATHEMATICAL FRAKTUR SMALL Z
+    '\uf753': '●', # \[GrayCircle] (INVALID CHARACTER) -> BLACK CIRCLE
+    '\uf752': '■', # \[GraySquare] (INVALID CHARACTER) -> BLACK SQUARE
+    '⋛': '⋛', # \[GreaterEqualLess] (GREATER-THAN EQUAL TO OR LESS-THAN) -> GREATER-THAN EQUAL TO OR LESS-THAN
+    '≥': '≥', # \[GreaterEqual] (GREATER-THAN OR EQUAL TO) -> GREATER-THAN OR EQUAL TO
+    '≧': '≧', # \[GreaterFullEqual] (GREATER-THAN OVER EQUAL TO) -> GREATER-THAN OVER EQUAL TO
+    '≫': '≫', # \[GreaterGreater] (MUCH GREATER-THAN) -> MUCH GREATER-THAN
+    '≷': '≷', # \[GreaterLess] (GREATER-THAN OR LESS-THAN) -> GREATER-THAN OR LESS-THAN
+    '⩾': '⩾', # \[GreaterSlantEqual] (GREATER-THAN OR SLANTED EQUAL TO) -> GREATER-THAN OR SLANTED EQUAL TO
+    '≳': '≳', # \[GreaterTilde] (GREATER-THAN OR EQUIVALENT TO) -> GREATER-THAN OR EQUIVALENT TO
+    'ˇ': 'ˇ', # \[Hacek] (CARON) -> CARON
+    '☺': '☺', # \[HappySmiley] (WHITE SMILING FACE) -> WHITE SMILING FACE
+    'ℏ': 'ℏ', # \[HBar] (PLANCK CONSTANT OVER TWO PI) -> PLANCK CONSTANT OVER TWO PI
+    '♡': '♡', # \[HeartSuit] (WHITE HEART SUIT) -> WHITE HEART SUIT
+    '\uf3ce': '\uf3ce', # \[HermitianConjugate] (INVALID CHARACTER) -> 
+    '─': '─', # \[HorizontalLine] (BOX DRAWINGS LIGHT HORIZONTAL) -> BOX DRAWINGS LIGHT HORIZONTAL
+    '≎': '≎', # \[HumpDownHump] (GEOMETRICALLY EQUIVALENT TO) -> GEOMETRICALLY EQUIVALENT TO
+    '≏': '≏', # \[HumpEqual] (DIFFERENCE BETWEEN) -> DIFFERENCE BETWEEN
+    '‐': '‐', # \[Hyphen] (HYPHEN) -> HYPHEN
+    'í': 'í', # \[IAcute] (LATIN SMALL LETTER I WITH ACUTE) -> LATIN SMALL LETTER I WITH ACUTE
+    'ĭ': 'ĭ', # \[ICup] (LATIN SMALL LETTER I WITH BREVE) -> LATIN SMALL LETTER I WITH BREVE
+    'ï': 'ï', # \[IDoubleDot] (LATIN SMALL LETTER I WITH DIAERESIS) -> LATIN SMALL LETTER I WITH DIAERESIS
+    'ì': 'ì', # \[IGrave] (LATIN SMALL LETTER I WITH GRAVE) -> LATIN SMALL LETTER I WITH GRAVE
+    'î': 'î', # \[IHat] (LATIN SMALL LETTER I WITH CIRCUMFLEX) -> LATIN SMALL LETTER I WITH CIRCUMFLEX
+    '\uf74e': 'ⅈ', # \[ImaginaryI] (INVALID CHARACTER) -> DOUBLE-STRUCK ITALIC SMALL I
+    '\uf74f': 'ⅉ', # \[ImaginaryJ] (INVALID CHARACTER) -> DOUBLE-STRUCK ITALIC SMALL J
+    '\uf523': '⟹', # \[Implies] (INVALID CHARACTER) -> LONG RIGHTWARDS DOUBLE ARROW
+    '∞': '∞', # \[Infinity] (INFINITY) -> INFINITY
+    '∫': '∫', # \[Integral] (INTEGRAL) -> INTEGRAL
+    '⋂': '⋂', # \[Intersection] (N-ARY INTERSECTION) -> N-ARY INTERSECTION
+    'ι': 'ι', # \[Iota] (GREEK SMALL LETTER IOTA) -> GREEK SMALL LETTER IOTA
+    '♃': '♃', # \[Jupiter] (JUPITER) -> JUPITER
+    'κ': 'κ', # \[Kappa] (GREEK SMALL LETTER KAPPA) -> GREEK SMALL LETTER KAPPA
+    'ϟ': 'ϟ', # \[Koppa] (GREEK SMALL LETTER KOPPA) -> GREEK SMALL LETTER KOPPA
+    'λ': 'λ', # \[Lambda] (GREEK SMALL LETTER LAMDA) -> GREEK SMALL LETTER LAMDA
+    '〈': '〈', # \[LeftAngleBracket] (LEFT-POINTING ANGLE BRACKET) -> LEFT-POINTING ANGLE BRACKET
+    '⇤': '⇤', # \[LeftArrowBar] (LEFTWARDS ARROW TO BAR) -> LEFTWARDS ARROW TO BAR
+    '←': '←', # \[LeftArrow] (LEFTWARDS ARROW) -> LEFTWARDS ARROW
+    '⇆': '⇆', # \[LeftArrowRightArrow] (LEFTWARDS ARROW OVER RIGHTWARDS ARROW) -> LEFTWARDS ARROW OVER RIGHTWARDS ARROW
+    '\uf603': '|', # \[LeftBracketingBar] (INVALID CHARACTER) -> VERTICAL LINE
+    '⌈': '⌈', # \[LeftCeiling] (LEFT CEILING) -> LEFT CEILING
+    '〚': '〚', # \[LeftDoubleBracket] (LEFT WHITE SQUARE BRACKET) -> LEFT WHITE SQUARE BRACKET
+    '\uf605': '‖', # \[LeftDoubleBracketingBar] (INVALID CHARACTER) -> DOUBLE VERTICAL LINE
+    '⥡': '⥡', # \[LeftDownTeeVector] (DOWNWARDS HARPOON WITH BARB LEFT FROM BAR) -> DOWNWARDS HARPOON WITH BARB LEFT FROM BAR
+    '⥙': '⥙', # \[LeftDownVectorBar] (DOWNWARDS HARPOON WITH BARB LEFT TO BAR) -> DOWNWARDS HARPOON WITH BARB LEFT TO BAR
+    '⇃': '⇃', # \[LeftDownVector] (DOWNWARDS HARPOON WITH BARB LEFTWARDS) -> DOWNWARDS HARPOON WITH BARB LEFTWARDS
+    '⌊': '⌊', # \[LeftFloor] (LEFT FLOOR) -> LEFT FLOOR
+    '«': '«', # \[LeftGuillemet] (LEFT-POINTING DOUBLE ANGLE QUOTATION MARK) -> LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '◂': '◂', # \[LeftPointer] (BLACK LEFT-POINTING SMALL TRIANGLE) -> BLACK LEFT-POINTING SMALL TRIANGLE
+    '↔': '↔', # \[LeftRightArrow] (LEFT RIGHT ARROW) -> LEFT RIGHT ARROW
+    '⥎': '⥎', # \[LeftRightVector] (LEFT BARB UP RIGHT BARB UP HARPOON) -> LEFT BARB UP RIGHT BARB UP HARPOON
+    '\uf761': '«', # \[LeftSkeleton] (INVALID CHARACTER) -> LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '⊣': '⊣', # \[LeftTee] (LEFT TACK) -> LEFT TACK
+    '↤': '↤', # \[LeftTeeArrow] (LEFTWARDS ARROW FROM BAR) -> LEFTWARDS ARROW FROM BAR
+    '⥚': '⥚', # \[LeftTeeVector] (LEFTWARDS HARPOON WITH BARB UP FROM BAR) -> LEFTWARDS HARPOON WITH BARB UP FROM BAR
+    '⊲': '⊲', # \[LeftTriangle] (NORMAL SUBGROUP OF) -> NORMAL SUBGROUP OF
+    '⧏': '⧏', # \[LeftTriangleBar] (LEFT TRIANGLE BESIDE VERTICAL BAR) -> LEFT TRIANGLE BESIDE VERTICAL BAR
+    '⊴': '⊴', # \[LeftTriangleEqual] (NORMAL SUBGROUP OF OR EQUAL TO) -> NORMAL SUBGROUP OF OR EQUAL TO
+    '⥑': '⥑', # \[LeftUpDownVector] (UP BARB LEFT DOWN BARB LEFT HARPOON) -> UP BARB LEFT DOWN BARB LEFT HARPOON
+    '⥠': '⥠', # \[LeftUpTeeVector] (UPWARDS HARPOON WITH BARB LEFT FROM BAR) -> UPWARDS HARPOON WITH BARB LEFT FROM BAR
+    '↿': '↿', # \[LeftUpVector] (UPWARDS HARPOON WITH BARB LEFTWARDS) -> UPWARDS HARPOON WITH BARB LEFTWARDS
+    '⥘': '⥘', # \[LeftUpVectorBar] (UPWARDS HARPOON WITH BARB LEFT TO BAR) -> UPWARDS HARPOON WITH BARB LEFT TO BAR
+    '↼': '↼', # \[LeftVector] (LEFTWARDS HARPOON WITH BARB UPWARDS) -> LEFTWARDS HARPOON WITH BARB UPWARDS
+    '⥒': '⥒', # \[LeftVectorBar] (LEFTWARDS HARPOON WITH BARB UP TO BAR) -> LEFTWARDS HARPOON WITH BARB UP TO BAR
+    '♌': '♌', # \[LeoSign] (LEO) -> LEO
+    '≤': '≤', # \[LessEqual] (LESS-THAN OR EQUAL TO) -> LESS-THAN OR EQUAL TO
+    '⋚': '⋚', # \[LessEqualGreater] (LESS-THAN EQUAL TO OR GREATER-THAN) -> LESS-THAN EQUAL TO OR GREATER-THAN
+    '≦': '≦', # \[LessFullEqual] (LESS-THAN OVER EQUAL TO) -> LESS-THAN OVER EQUAL TO
+    '≶': '≶', # \[LessGreater] (LESS-THAN OR GREATER-THAN) -> LESS-THAN OR GREATER-THAN
+    '≪': '≪', # \[LessLess] (MUCH LESS-THAN) -> MUCH LESS-THAN
+    '⩽': '⩽', # \[LessSlantEqual] (LESS-THAN OR SLANTED EQUAL TO) -> LESS-THAN OR SLANTED EQUAL TO
+    '≲': '≲', # \[LessTilde] (LESS-THAN OR EQUIVALENT TO) -> LESS-THAN OR EQUIVALENT TO
+    '♎': '♎', # \[LibraSign] (LIBRA) -> LIBRA
+    '—': '—', # \[LongDash] (EM DASH) -> EM DASH
+    '⟵': '⟵', # \[LongLeftArrow] (LONG LEFTWARDS ARROW) -> LONG LEFTWARDS ARROW
+    '⟷': '⟷', # \[LongLeftRightArrow] (LONG LEFT RIGHT ARROW) -> LONG LEFT RIGHT ARROW
+    '⟶': '⟶', # \[LongRightArrow] (LONG RIGHTWARDS ARROW) -> LONG RIGHTWARDS ARROW
+    '↙': '↙', # \[LowerLeftArrow] (SOUTH WEST ARROW) -> SOUTH WEST ARROW
+    '↘': '↘', # \[LowerRightArrow] (SOUTH EAST ARROW) -> SOUTH EAST ARROW
+    'ł': 'ł', # \[LSlash] (LATIN SMALL LETTER L WITH STROKE) -> LATIN SMALL LETTER L WITH STROKE
+    '♂': '♂', # \[Mars] (MALE SIGN) -> MALE SIGN
+    '∡': '∡', # \[MeasuredAngle] (MEASURED ANGLE) -> MEASURED ANGLE
+    '☿': '☿', # \[Mercury] (MERCURY) -> MERCURY
+    '℧': '℧', # \[Mho] (INVERTED OHM SIGN) -> INVERTED OHM SIGN
+    'µ': 'µ', # \[Micro] (MICRO SIGN) -> MICRO SIGN
+    '∓': '∓', # \[MinusPlus] (MINUS-OR-PLUS SIGN) -> MINUS-OR-PLUS SIGN
+    'μ': 'μ', # \[Mu] (GREEK SMALL LETTER MU) -> GREEK SMALL LETTER MU
+    '⊼': '⊼', # \[Nand] (NAND) -> NAND
+    '♮': '♮', # \[Natural] (MUSIC NATURAL SIGN) -> MUSIC NATURAL SIGN
+    '♆': '♆', # \[Neptune] (NEPTUNE) -> NEPTUNE
+    '⪢': '⪢', # \[NestedGreaterGreater] (DOUBLE NESTED GREATER-THAN) -> DOUBLE NESTED GREATER-THAN
+    '⪡': '⪡', # \[NestedLessLess] (DOUBLE NESTED LESS-THAN) -> DOUBLE NESTED LESS-THAN
+    'ň': 'ň', # \[NHacek] (LATIN SMALL LETTER N WITH CARON) -> LATIN SMALL LETTER N WITH CARON
+    '⊽': '⊽', # \[Nor] (NOR) -> NOR
+    '≢': '≢', # \[NotCongruent] (NOT IDENTICAL TO) -> NOT IDENTICAL TO
+    '≭': '≭', # \[NotCupCap] (NOT EQUIVALENT TO) -> NOT EQUIVALENT TO
+    '∦': '∦', # \[NotDoubleVerticalBar] (NOT PARALLEL TO) -> NOT PARALLEL TO
+    '∉': '∉', # \[NotElement] (NOT AN ELEMENT OF) -> NOT AN ELEMENT OF
+    '≠': '≠', # \[NotEqual] (NOT EQUAL TO) -> NOT EQUAL TO
+    '∄': '∄', # \[NotExists] (THERE DOES NOT EXIST) -> THERE DOES NOT EXIST
+    '≯': '≯', # \[NotGreater] (NOT GREATER-THAN) -> NOT GREATER-THAN
+    '≱': '≱', # \[NotGreaterEqual] (NEITHER GREATER-THAN NOR EQUAL TO) -> NEITHER GREATER-THAN NOR EQUAL TO
+    '≩': '≩', # \[NotGreaterFullEqual] (GREATER-THAN BUT NOT EQUAL TO) -> GREATER-THAN BUT NOT EQUAL TO
+    '≹': '≹', # \[NotGreaterLess] (NEITHER GREATER-THAN NOR LESS-THAN) -> NEITHER GREATER-THAN NOR LESS-THAN
+    '≵': '≵', # \[NotGreaterTilde] (NEITHER GREATER-THAN NOR EQUIVALENT TO) -> NEITHER GREATER-THAN NOR EQUIVALENT TO
+    '⋪': '⋪', # \[NotLeftTriangle] (NOT NORMAL SUBGROUP OF) -> NOT NORMAL SUBGROUP OF
+    '⋬': '⋬', # \[NotLeftTriangleEqual] (NOT NORMAL SUBGROUP OF OR EQUAL TO) -> NOT NORMAL SUBGROUP OF OR EQUAL TO
+    '≰': '≰', # \[NotLessEqual] (NEITHER LESS-THAN NOR EQUAL TO) -> NEITHER LESS-THAN NOR EQUAL TO
+    '≨': '≨', # \[NotLessFullEqual] (LESS-THAN BUT NOT EQUAL TO) -> LESS-THAN BUT NOT EQUAL TO
+    '≸': '≸', # \[NotLessGreater] (NEITHER LESS-THAN NOR GREATER-THAN) -> NEITHER LESS-THAN NOR GREATER-THAN
+    '≮': '≮', # \[NotLess] (NOT LESS-THAN) -> NOT LESS-THAN
+    '≴': '≴', # \[NotLessTilde] (NEITHER LESS-THAN NOR EQUIVALENT TO) -> NEITHER LESS-THAN NOR EQUIVALENT TO
+    '⊀': '⊀', # \[NotPrecedes] (DOES NOT PRECEDE) -> DOES NOT PRECEDE
+    '⋠': '⋠', # \[NotPrecedesSlantEqual] (DOES NOT PRECEDE OR EQUAL) -> DOES NOT PRECEDE OR EQUAL
+    '⋨': '⋨', # \[NotPrecedesTilde] (PRECEDES BUT NOT EQUIVALENT TO) -> PRECEDES BUT NOT EQUIVALENT TO
+    '∌': '∌', # \[NotReverseElement] (DOES NOT CONTAIN AS MEMBER) -> DOES NOT CONTAIN AS MEMBER
+    '⋫': '⋫', # \[NotRightTriangle] (DOES NOT CONTAIN AS NORMAL SUBGROUP) -> DOES NOT CONTAIN AS NORMAL SUBGROUP
+    '⋭': '⋭', # \[NotRightTriangleEqual] (DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL) -> DOES NOT CONTAIN AS NORMAL SUBGROUP OR EQUAL
+    '⋢': '⋢', # \[NotSquareSubsetEqual] (NOT SQUARE IMAGE OF OR EQUAL TO) -> NOT SQUARE IMAGE OF OR EQUAL TO
+    '⋣': '⋣', # \[NotSquareSupersetEqual] (NOT SQUARE ORIGINAL OF OR EQUAL TO) -> NOT SQUARE ORIGINAL OF OR EQUAL TO
+    '⊄': '⊄', # \[NotSubset] (NOT A SUBSET OF) -> NOT A SUBSET OF
+    '⊈': '⊈', # \[NotSubsetEqual] (NEITHER A SUBSET OF NOR EQUAL TO) -> NEITHER A SUBSET OF NOR EQUAL TO
+    '⊁': '⊁', # \[NotSucceeds] (DOES NOT SUCCEED) -> DOES NOT SUCCEED
+    '⋡': '⋡', # \[NotSucceedsSlantEqual] (DOES NOT SUCCEED OR EQUAL) -> DOES NOT SUCCEED OR EQUAL
+    '⋩': '⋩', # \[NotSucceedsTilde] (SUCCEEDS BUT NOT EQUIVALENT TO) -> SUCCEEDS BUT NOT EQUIVALENT TO
+    '⊅': '⊅', # \[NotSuperset] (NOT A SUPERSET OF) -> NOT A SUPERSET OF
+    '⊉': '⊉', # \[NotSupersetEqual] (NEITHER A SUPERSET OF NOR EQUAL TO) -> NEITHER A SUPERSET OF NOR EQUAL TO
+    '≁': '≁', # \[NotTilde] (NOT TILDE) -> NOT TILDE
+    '≄': '≄', # \[NotTildeEqual] (NOT ASYMPTOTICALLY EQUAL TO) -> NOT ASYMPTOTICALLY EQUAL TO
+    '≇': '≇', # \[NotTildeFullEqual] (NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO) -> NEITHER APPROXIMATELY NOR ACTUALLY EQUAL TO
+    '≉': '≉', # \[NotTildeTilde] (NOT ALMOST EQUAL TO) -> NOT ALMOST EQUAL TO
+    'ñ': 'ñ', # \[NTilde] (LATIN SMALL LETTER N WITH TILDE) -> LATIN SMALL LETTER N WITH TILDE
+    'ν': 'ν', # \[Nu] (GREEK SMALL LETTER NU) -> GREEK SMALL LETTER NU
+    '\uf724': '#', # \[NumberSign] (INVALID CHARACTER) -> NUMBER SIGN
+    'ó': 'ó', # \[OAcute] (LATIN SMALL LETTER O WITH ACUTE) -> LATIN SMALL LETTER O WITH ACUTE
+    'ő': 'ő', # \[ODoubleAcute] (LATIN SMALL LETTER O WITH DOUBLE ACUTE) -> LATIN SMALL LETTER O WITH DOUBLE ACUTE
+    'ö': 'ö', # \[ODoubleDot] (LATIN SMALL LETTER O WITH DIAERESIS) -> LATIN SMALL LETTER O WITH DIAERESIS
+    'œ': 'œ', # \[OE] (LATIN SMALL LIGATURE OE) -> LATIN SMALL LIGATURE OE
+    'ò': 'ò', # \[OGrave] (LATIN SMALL LETTER O WITH GRAVE) -> LATIN SMALL LETTER O WITH GRAVE
+    'ô': 'ô', # \[OHat] (LATIN SMALL LETTER O WITH CIRCUMFLEX) -> LATIN SMALL LETTER O WITH CIRCUMFLEX
+    'ω': 'ω', # \[Omega] (GREEK SMALL LETTER OMEGA) -> GREEK SMALL LETTER OMEGA
+    'ο': 'ο', # \[Omicron] (GREEK SMALL LETTER OMICRON) -> GREEK SMALL LETTER OMICRON
+    '“': '“', # \[OpenCurlyDoubleQuote] (LEFT DOUBLE QUOTATION MARK) -> LEFT DOUBLE QUOTATION MARK
+    '‘': '‘', # \[OpenCurlyQuote] (LEFT SINGLE QUOTATION MARK) -> LEFT SINGLE QUOTATION MARK
+    '∨': '∨', # \[Or] (LOGICAL OR) -> LOGICAL OR
+    'ø': 'ø', # \[OSlash] (LATIN SMALL LETTER O WITH STROKE) -> LATIN SMALL LETTER O WITH STROKE
+    'õ': 'õ', # \[OTilde] (LATIN SMALL LETTER O WITH TILDE) -> LATIN SMALL LETTER O WITH TILDE
+    '︷': '︷', # \[OverBrace] (PRESENTATION FORM FOR VERTICAL LEFT CURLY BRACKET) -> PRESENTATION FORM FOR VERTICAL LEFT CURLY BRACKET
+    '⎴': '⎴', # \[OverBracket] (TOP SQUARE BRACKET) -> TOP SQUARE BRACKET
+    '︵': '︵', # \[OverParenthesis] (PRESENTATION FORM FOR VERTICAL LEFT PARENTHESIS) -> PRESENTATION FORM FOR VERTICAL LEFT PARENTHESIS
+    '¶': '¶', # \[Paragraph] (PILCROW SIGN) -> PILCROW SIGN
+    '∂': '∂', # \[PartialD] (PARTIAL DIFFERENTIAL) -> PARTIAL DIFFERENTIAL
+    '\uf3de': '⊙', # \[PermutationProduct] (INVALID CHARACTER) -> CIRCLED DOT OPERATOR
+    '⟂': '⟂', # \[Perpendicular] (PERPENDICULAR) -> PERPENDICULAR
+    'ϕ': 'ϕ', # \[Phi] (GREEK PHI SYMBOL) -> GREEK PHI SYMBOL
+    'π': 'π', # \[Pi] (GREEK SMALL LETTER PI) -> GREEK SMALL LETTER PI
+    '♓': '♓', # \[PiscesSign] (PISCES) -> PISCES
+    '\uf528': '⎕', # \[Placeholder] (INVALID CHARACTER) -> APL FUNCTIONAL SYMBOL QUAD
+    '±': '±', # \[PlusMinus] (PLUS-MINUS SIGN) -> PLUS-MINUS SIGN
+    '♇': '♇', # \[Pluto] (PLUTO) -> PLUTO
+    '≺': '≺', # \[Precedes] (PRECEDES) -> PRECEDES
+    '⪯': '⪯', # \[PrecedesEqual] (PRECEDES ABOVE SINGLE-LINE EQUALS SIGN) -> PRECEDES ABOVE SINGLE-LINE EQUALS SIGN
+    '≼': '≼', # \[PrecedesSlantEqual] (PRECEDES OR EQUAL TO) -> PRECEDES OR EQUAL TO
+    '≾': '≾', # \[PrecedesTilde] (PRECEDES OR EQUIVALENT TO) -> PRECEDES OR EQUIVALENT TO
+    '′': '′', # \[Prime] (PRIME) -> PRIME
+    '∏': '∏', # \[Product] (N-ARY PRODUCT) -> N-ARY PRODUCT
+    '∷': '∷', # \[Proportion] (PROPORTION) -> PROPORTION
+    '∝': '∝', # \[Proportional] (PROPORTIONAL TO) -> PROPORTIONAL TO
+    'ψ': 'ψ', # \[Psi] (GREEK SMALL LETTER PSI) -> GREEK SMALL LETTER PSI
+    '♩': '♩', # \[QuarterNote] (QUARTER NOTE) -> QUARTER NOTE
+    '&': '&', # \[RawAmpersand] (AMPERSAND) -> AMPERSAND
+    '@': '@', # \[RawAt] (COMMERCIAL AT) -> COMMERCIAL AT
+    '`': '`', # \[RawBackquote] (GRAVE ACCENT) -> GRAVE ACCENT
+    '\\': '\\', # \[RawBackslash] (REVERSE SOLIDUS) -> REVERSE SOLIDUS
+    ':': ':', # \[RawColon] (COLON) -> COLON
+    ',': ',', # \[RawComma] (COMMA) -> COMMA
+    '-': '-', # \[RawDash] (HYPHEN-MINUS) -> HYPHEN-MINUS
+    '$': '$', # \[RawDollar] (DOLLAR SIGN) -> DOLLAR SIGN
+    '.': '.', # \[RawDot] (FULL STOP) -> FULL STOP
+    '=': '=', # \[RawEqual] (EQUALS SIGN) -> EQUALS SIGN
+    '!': '!', # \[RawExclamation] (EXCLAMATION MARK) -> EXCLAMATION MARK
+    '>': '>', # \[RawGreater] (GREATER-THAN SIGN) -> GREATER-THAN SIGN
+    '{': '{', # \[RawLeftBrace] (LEFT CURLY BRACKET) -> LEFT CURLY BRACKET
+    '[': '[', # \[RawLeftBracket] (LEFT SQUARE BRACKET) -> LEFT SQUARE BRACKET
+    '(': '(', # \[RawLeftParenthesis] (LEFT PARENTHESIS) -> LEFT PARENTHESIS
+    '<': '<', # \[RawLess] (LESS-THAN SIGN) -> LESS-THAN SIGN
+    '#': '#', # \[RawNumberSign] (NUMBER SIGN) -> NUMBER SIGN
+    '%': '%', # \[RawPercent] (PERCENT SIGN) -> PERCENT SIGN
+    '+': '+', # \[RawPlus] (PLUS SIGN) -> PLUS SIGN
+    '?': '?', # \[RawQuestion] (QUESTION MARK) -> QUESTION MARK
+    "'": "'", # \[RawQuote] (APOSTROPHE) -> APOSTROPHE
+    '}': '}', # \[RawRightBrace] (RIGHT CURLY BRACKET) -> RIGHT CURLY BRACKET
+    ']': ']', # \[RawRightBracket] (RIGHT SQUARE BRACKET) -> RIGHT SQUARE BRACKET
+    ')': ')', # \[RawRightParenthesis] (RIGHT PARENTHESIS) -> RIGHT PARENTHESIS
+    '/': '/', # \[RawSlash] (SOLIDUS) -> SOLIDUS
+    ' ': ' ', # \[RawSpace] (SPACE) -> SPACE
+    '*': '*', # \[RawStar] (ASTERISK) -> ASTERISK
+    '~': '~', # \[RawTilde] (TILDE) -> TILDE
+    '_': '_', # \[RawUnderscore] (LOW LINE) -> LOW LINE
+    '|': '|', # \[RawVerticalBar] (VERTICAL LINE) -> VERTICAL LINE
+    '^': '^', # \[RawWedge] (CIRCUMFLEX ACCENT) -> CIRCUMFLEX ACCENT
+    '®': '®', # \[RegisteredTrademark] (REGISTERED SIGN) -> REGISTERED SIGN
+    '↵': '↵', # \[ReturnIndicator] (DOWNWARDS ARROW WITH CORNER LEFTWARDS) -> DOWNWARDS ARROW WITH CORNER LEFTWARDS
+    '‶': '‶', # \[ReverseDoublePrime] (REVERSED DOUBLE PRIME) -> REVERSED DOUBLE PRIME
+    '∋': '∋', # \[ReverseElement] (CONTAINS AS MEMBER) -> CONTAINS AS MEMBER
+    '⇋': '⇋', # \[ReverseEquilibrium] (LEFTWARDS HARPOON OVER RIGHTWARDS HARPOON) -> LEFTWARDS HARPOON OVER RIGHTWARDS HARPOON
+    '‵': '‵', # \[ReversePrime] (REVERSED PRIME) -> REVERSED PRIME
+    '⥯': '⥯', # \[ReverseUpEquilibrium] (DOWNWARDS HARPOON WITH BARB LEFT BESIDE UPWARDS HARPOON WITH BARB RIGHT) -> DOWNWARDS HARPOON WITH BARB LEFT BESIDE UPWARDS HARPOON WITH BARB RIGHT
+    'ř': 'ř', # \[RHacek] (LATIN SMALL LETTER R WITH CARON) -> LATIN SMALL LETTER R WITH CARON
+    'ρ': 'ρ', # \[Rho] (GREEK SMALL LETTER RHO) -> GREEK SMALL LETTER RHO
+    '∟': '∟', # \[RightAngle] (RIGHT ANGLE) -> RIGHT ANGLE
+    '〉': '〉', # \[RightAngleBracket] (RIGHT-POINTING ANGLE BRACKET) -> RIGHT-POINTING ANGLE BRACKET
+    '→': '→', # \[RightArrow] (RIGHTWARDS ARROW) -> RIGHTWARDS ARROW
+    '⇥': '⇥', # \[RightArrowBar] (RIGHTWARDS ARROW TO BAR) -> RIGHTWARDS ARROW TO BAR
+    '⇄': '⇄', # \[RightArrowLeftArrow] (RIGHTWARDS ARROW OVER LEFTWARDS ARROW) -> RIGHTWARDS ARROW OVER LEFTWARDS ARROW
+    '\uf604': '|', # \[RightBracketingBar] (INVALID CHARACTER) -> VERTICAL LINE
+    '⌉': '⌉', # \[RightCeiling] (RIGHT CEILING) -> RIGHT CEILING
+    '〛': '〛', # \[RightDoubleBracket] (RIGHT WHITE SQUARE BRACKET) -> RIGHT WHITE SQUARE BRACKET
+    '\uf606': '‖', # \[RightDoubleBracketingBar] (INVALID CHARACTER) -> DOUBLE VERTICAL LINE
+    '⥝': '⥝', # \[RightDownTeeVector] (DOWNWARDS HARPOON WITH BARB RIGHT FROM BAR) -> DOWNWARDS HARPOON WITH BARB RIGHT FROM BAR
+    '⇂': '⇂', # \[RightDownVector] (DOWNWARDS HARPOON WITH BARB RIGHTWARDS) -> DOWNWARDS HARPOON WITH BARB RIGHTWARDS
+    '⥕': '⥕', # \[RightDownVectorBar] (DOWNWARDS HARPOON WITH BARB RIGHT TO BAR) -> DOWNWARDS HARPOON WITH BARB RIGHT TO BAR
+    '⌋': '⌋', # \[RightFloor] (RIGHT FLOOR) -> RIGHT FLOOR
+    '»': '»', # \[RightGuillemet] (RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK) -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '▸': '▸', # \[RightPointer] (BLACK RIGHT-POINTING SMALL TRIANGLE) -> BLACK RIGHT-POINTING SMALL TRIANGLE
+    '\uf762': '»', # \[RightSkeleton] (INVALID CHARACTER) -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '⊢': '⊢', # \[RightTee] (RIGHT TACK) -> RIGHT TACK
+    '↦': '↦', # \[RightTeeArrow] (RIGHTWARDS ARROW FROM BAR) -> RIGHTWARDS ARROW FROM BAR
+    '⥛': '⥛', # \[RightTeeVector] (RIGHTWARDS HARPOON WITH BARB UP FROM BAR) -> RIGHTWARDS HARPOON WITH BARB UP FROM BAR
+    '⊳': '⊳', # \[RightTriangle] (CONTAINS AS NORMAL SUBGROUP) -> CONTAINS AS NORMAL SUBGROUP
+    '⧐': '⧐', # \[RightTriangleBar] (VERTICAL BAR BESIDE RIGHT TRIANGLE) -> VERTICAL BAR BESIDE RIGHT TRIANGLE
+    '⊵': '⊵', # \[RightTriangleEqual] (CONTAINS AS NORMAL SUBGROUP OR EQUAL TO) -> CONTAINS AS NORMAL SUBGROUP OR EQUAL TO
+    '⥏': '⥏', # \[RightUpDownVector] (UP BARB RIGHT DOWN BARB RIGHT HARPOON) -> UP BARB RIGHT DOWN BARB RIGHT HARPOON
+    '⥜': '⥜', # \[RightUpTeeVector] (UPWARDS HARPOON WITH BARB RIGHT FROM BAR) -> UPWARDS HARPOON WITH BARB RIGHT FROM BAR
+    '↾': '↾', # \[RightUpVector] (UPWARDS HARPOON WITH BARB RIGHTWARDS) -> UPWARDS HARPOON WITH BARB RIGHTWARDS
+    '⥔': '⥔', # \[RightUpVectorBar] (UPWARDS HARPOON WITH BARB RIGHT TO BAR) -> UPWARDS HARPOON WITH BARB RIGHT TO BAR
+    '⇀': '⇀', # \[RightVector] (RIGHTWARDS HARPOON WITH BARB UPWARDS) -> RIGHTWARDS HARPOON WITH BARB UPWARDS
+    '⥓': '⥓', # \[RightVectorBar] (RIGHTWARDS HARPOON WITH BARB UP TO BAR) -> RIGHTWARDS HARPOON WITH BARB UP TO BAR
+    '⥰': '⥰', # \[RoundImplies] (RIGHT DOUBLE ARROW WITH ROUNDED HEAD) -> RIGHT DOUBLE ARROW WITH ROUNDED HEAD
+    '\uf522': '→', # \[Rule] (INVALID CHARACTER) -> RIGHTWARDS ARROW
+    '\uf51f': '⧴', # \[RuleDelayed] (INVALID CHARACTER) -> RULE-DELAYED
+    '☹': '☹', # \[SadSmiley] (WHITE FROWNING FACE) -> WHITE FROWNING FACE
+    '♐': '♐', # \[SagittariusSign] (SAGITTARIUS) -> SAGITTARIUS
+    # This one is changed because GREEK LETTER SAMPI is already used for \[CapitalSampi]
     'Ϡ': 'ϡ', # \[Sampi] (GREEK LETTER SAMPI) -> GREEK SMALL LETTER SAMPI
-    '\uf6b2': '𝒶', # \[ScriptA] -> MATHEMATICAL SCRIPT SMALL A
-    '\uf6b3': '𝒷', # \[ScriptB] -> MATHEMATICAL SCRIPT SMALL B
-    '\uf6b4': '𝒸', # \[ScriptC] -> MATHEMATICAL SCRIPT SMALL C
-    '\uf770': '𝒜', # \[ScriptCapitalA] -> MATHEMATICAL SCRIPT CAPITAL A
-    '\uf772': '𝒞', # \[ScriptCapitalC] -> MATHEMATICAL SCRIPT CAPITAL C
-    '\uf773': '𝒟', # \[ScriptCapitalD] -> MATHEMATICAL SCRIPT CAPITAL D
-    '\uf776': '𝒢', # \[ScriptCapitalG] -> MATHEMATICAL SCRIPT CAPITAL G
-    '\uf779': '𝒥', # \[ScriptCapitalJ] -> MATHEMATICAL SCRIPT CAPITAL J
-    '\uf77a': '𝒦', # \[ScriptCapitalK] -> MATHEMATICAL SCRIPT CAPITAL K
-    '\uf77d': '𝒩', # \[ScriptCapitalN] -> MATHEMATICAL SCRIPT CAPITAL N
-    '\uf77e': '𝒪', # \[ScriptCapitalO] -> MATHEMATICAL SCRIPT CAPITAL O
-    '\uf780': '𝒬', # \[ScriptCapitalQ] -> MATHEMATICAL SCRIPT CAPITAL Q
-    '\uf782': '𝒮', # \[ScriptCapitalS] -> MATHEMATICAL SCRIPT CAPITAL S
-    '\uf783': '𝒯', # \[ScriptCapitalT] -> MATHEMATICAL SCRIPT CAPITAL T
-    '\uf784': '𝒰', # \[ScriptCapitalU] -> MATHEMATICAL SCRIPT CAPITAL U
-    '\uf785': '𝒱', # \[ScriptCapitalV] -> MATHEMATICAL SCRIPT CAPITAL V
-    '\uf786': '𝒲', # \[ScriptCapitalW] -> MATHEMATICAL SCRIPT CAPITAL W
-    '\uf787': '𝒳', # \[ScriptCapitalX] -> MATHEMATICAL SCRIPT CAPITAL X
-    '\uf788': '𝒴', # \[ScriptCapitalY] -> MATHEMATICAL SCRIPT CAPITAL Y
-    '\uf789': '𝒵', # \[ScriptCapitalZ] -> MATHEMATICAL SCRIPT CAPITAL Z
-    '\uf6b5': '𝒹', # \[ScriptD] -> MATHEMATICAL SCRIPT SMALL D
-    '\uf730': '𝒾', # \[ScriptDotlessI] -> MATHEMATICAL SCRIPT SMALL I
-    '\uf731': '𝒿', # \[ScriptDotlessJ] -> MATHEMATICAL SCRIPT SMALL J
-    '\uf6b7': '𝒻', # \[ScriptF] -> MATHEMATICAL SCRIPT SMALL F
-    '\uf6b9': '𝒽', # \[ScriptH] -> MATHEMATICAL SCRIPT SMALL H
-    '\uf6ba': '𝒾', # \[ScriptI] -> MATHEMATICAL SCRIPT SMALL I
-    '\uf6bb': '𝒿', # \[ScriptJ] -> MATHEMATICAL SCRIPT SMALL J
-    '\uf6bc': '𝓀', # \[ScriptK] -> MATHEMATICAL SCRIPT SMALL K
-    '\uf6be': '𝓂', # \[ScriptM] -> MATHEMATICAL SCRIPT SMALL M
-    '\uf6bf': '𝓃', # \[ScriptN] -> MATHEMATICAL SCRIPT SMALL N
-    '\uf6c1': '𝓅', # \[ScriptP] -> MATHEMATICAL SCRIPT SMALL P
-    '\uf6c2': '𝓆', # \[ScriptQ] -> MATHEMATICAL SCRIPT SMALL Q
-    '\uf6c3': '𝓇', # \[ScriptR] -> MATHEMATICAL SCRIPT SMALL R
-    '\uf6c4': '𝓈', # \[ScriptS] -> MATHEMATICAL SCRIPT SMALL S
-    '\uf6c5': '𝓉', # \[ScriptT] -> MATHEMATICAL SCRIPT SMALL T
-    '\uf6c6': '𝓊', # \[ScriptU] -> MATHEMATICAL SCRIPT SMALL U
-    '\uf6c7': '𝓋', # \[ScriptV] -> MATHEMATICAL SCRIPT SMALL V
-    '\uf6c8': '𝓌', # \[ScriptW] -> MATHEMATICAL SCRIPT SMALL W
-    '\uf6c9': '𝓍', # \[ScriptX] -> MATHEMATICAL SCRIPT SMALL X
-    '\uf6ca': '𝓎', # \[ScriptY] -> MATHEMATICAL SCRIPT SMALL Y
-    '\uf6cb': '𝓏', # \[ScriptZ] -> MATHEMATICAL SCRIPT SMALL Z
-    '\uf52b': '↓', # \[ShortDownArrow] -> DOWNWARDS ARROW
-    '\uf526': '←', # \[ShortLeftArrow] -> LEFTWARDS ARROW
-    '\uf525': '→', # \[ShortRightArrow] -> RIGHTWARDS ARROW
-    '\uf52a': '↑', # \[ShortUpArrow] -> UPWARDS ARROW
-    '\uf3bb': '⋮', # \[SpanFromAbove] -> VERTICAL ELLIPSIS
-    '\uf3bc': '⋱', # \[SpanFromBoth] -> DOWN RIGHT DIAGONAL ELLIPSIS
-    '\uf3ba': '⋯', # \[SpanFromLeft] -> MIDLINE HORIZONTAL ELLIPSIS
-    '\uf520': '▫', # \[Square] -> WHITE SMALL SQUARE
-    '\uf3da': '⊗', # \[TensorProduct] -> CIRCLED TIMES
-    '\uf3c7': 'ᵀ', # \[Transpose] -> MODIFIER LETTER CAPITAL T
-    '\uf758': '⋯', # \[TripleDot] -> MIDLINE HORIZONTAL ELLIPSIS
-    '\uf3d4': '↔', # \[UndirectedEdge] -> LEFT RIGHT ARROW
+    '♄': '♄', # \[Saturn] (SATURN) -> SATURN
+    '♏': '♏', # \[ScorpioSign] (SCORPIUS) -> SCORPIUS
+    '\uf6b2': '𝒶', # \[ScriptA] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL A
+    '\uf6b3': '𝒷', # \[ScriptB] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL B
+    '\uf6b4': '𝒸', # \[ScriptC] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL C
+    '\uf770': '𝒜', # \[ScriptCapitalA] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL A
+    'ℬ': 'ℬ', # \[ScriptCapitalB] (SCRIPT CAPITAL B) -> SCRIPT CAPITAL B
+    '\uf772': '𝒞', # \[ScriptCapitalC] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL C
+    '\uf773': '𝒟', # \[ScriptCapitalD] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL D
+    'ℰ': 'ℰ', # \[ScriptCapitalE] (SCRIPT CAPITAL E) -> SCRIPT CAPITAL E
+    'ℱ': 'ℱ', # \[ScriptCapitalF] (SCRIPT CAPITAL F) -> SCRIPT CAPITAL F
+    '\uf776': '𝒢', # \[ScriptCapitalG] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL G
+    'ℋ': 'ℋ', # \[ScriptCapitalH] (SCRIPT CAPITAL H) -> SCRIPT CAPITAL H
+    'ℐ': 'ℐ', # \[ScriptCapitalI] (SCRIPT CAPITAL I) -> SCRIPT CAPITAL I
+    '\uf779': '𝒥', # \[ScriptCapitalJ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL J
+    '\uf77a': '𝒦', # \[ScriptCapitalK] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL K
+    'ℒ': 'ℒ', # \[ScriptCapitalL] (SCRIPT CAPITAL L) -> SCRIPT CAPITAL L
+    'ℳ': 'ℳ', # \[ScriptCapitalM] (SCRIPT CAPITAL M) -> SCRIPT CAPITAL M
+    '\uf77d': '𝒩', # \[ScriptCapitalN] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL N
+    '\uf77e': '𝒪', # \[ScriptCapitalO] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL O
+    '℘': '𝒫', # \[ScriptCapitalP] (SCRIPT CAPITAL P) -> MATHEMATICAL SCRIPT CAPITAL P
+    '\uf780': '𝒬', # \[ScriptCapitalQ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL Q
+    'ℛ': 'ℛ', # \[ScriptCapitalR] (SCRIPT CAPITAL R) -> SCRIPT CAPITAL R
+    '\uf782': '𝒮', # \[ScriptCapitalS] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL S
+    '\uf783': '𝒯', # \[ScriptCapitalT] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL T
+    '\uf784': '𝒰', # \[ScriptCapitalU] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL U
+    '\uf785': '𝒱', # \[ScriptCapitalV] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL V
+    '\uf786': '𝒲', # \[ScriptCapitalW] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL W
+    '\uf787': '𝒳', # \[ScriptCapitalX] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL X
+    '\uf788': '𝒴', # \[ScriptCapitalY] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL Y
+    '\uf789': '𝒵', # \[ScriptCapitalZ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT CAPITAL Z
+    '\uf6b5': '𝒹', # \[ScriptD] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL D
+    '\uf730': '𝒾', # \[ScriptDotlessI] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL I
+    '\uf731': '𝒿', # \[ScriptDotlessJ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL J
+    'ℯ': 'ℯ', # \[ScriptE] (SCRIPT SMALL E) -> SCRIPT SMALL E
+    '\uf6b7': '𝒻', # \[ScriptF] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL F
+    'ℊ': 'ℊ', # \[ScriptG] (SCRIPT SMALL G) -> SCRIPT SMALL G
+    '\uf6b9': '𝒽', # \[ScriptH] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL H
+    '\uf6ba': '𝒾', # \[ScriptI] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL I
+    '\uf6bb': '𝒿', # \[ScriptJ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL J
+    '\uf6bc': '𝓀', # \[ScriptK] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL K
+    'ℓ': 'ℓ', # \[ScriptL] (SCRIPT SMALL L) -> SCRIPT SMALL L
+    '\uf6be': '𝓂', # \[ScriptM] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL M
+    '\uf6bf': '𝓃', # \[ScriptN] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL N
+    'ℴ': 'ℴ', # \[ScriptO] (SCRIPT SMALL O) -> SCRIPT SMALL O
+    '\uf6c1': '𝓅', # \[ScriptP] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL P
+    '\uf6c2': '𝓆', # \[ScriptQ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL Q
+    '\uf6c3': '𝓇', # \[ScriptR] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL R
+    '\uf6c4': '𝓈', # \[ScriptS] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL S
+    '\uf6c5': '𝓉', # \[ScriptT] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL T
+    '\uf6c6': '𝓊', # \[ScriptU] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL U
+    '\uf6c7': '𝓋', # \[ScriptV] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL V
+    '\uf6c8': '𝓌', # \[ScriptW] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL W
+    '\uf6c9': '𝓍', # \[ScriptX] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL X
+    '\uf6ca': '𝓎', # \[ScriptY] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL Y
+    '\uf6cb': '𝓏', # \[ScriptZ] (INVALID CHARACTER) -> MATHEMATICAL SCRIPT SMALL Z
+    '§': '§', # \[Section] (SECTION SIGN) -> SECTION SIGN
+    'š': 'š', # \[SHacek] (LATIN SMALL LETTER S WITH CARON) -> LATIN SMALL LETTER S WITH CARON
+    '♯': '♯', # \[Sharp] (MUSIC SHARP SIGN) -> MUSIC SHARP SIGN
+    '\uf52b': '↓', # \[ShortDownArrow] (INVALID CHARACTER) -> DOWNWARDS ARROW
+    '\uf526': '←', # \[ShortLeftArrow] (INVALID CHARACTER) -> LEFTWARDS ARROW
+    '\uf525': '→', # \[ShortRightArrow] (INVALID CHARACTER) -> RIGHTWARDS ARROW
+    '\uf52a': '↑', # \[ShortUpArrow] (INVALID CHARACTER) -> UPWARDS ARROW
+    'σ': 'σ', # \[Sigma] (GREEK SMALL LETTER SIGMA) -> GREEK SMALL LETTER SIGMA
+    '✶': '✶', # \[SixPointedStar] (SIX POINTED BLACK STAR) -> SIX POINTED BLACK STAR
+    '⁃': '⁃', # \[SkeletonIndicator] (HYPHEN BULLET) -> HYPHEN BULLET
+    '∘': '∘', # \[SmallCircle] (RING OPERATOR) -> RING OPERATOR
+    '␣': '␣', # \[SpaceIndicator] (OPEN BOX) -> OPEN BOX
+    '♠': '♠', # \[SpadeSuit] (BLACK SPADE SUIT) -> BLACK SPADE SUIT
+    '\uf3bb': '⋮', # \[SpanFromAbove] (INVALID CHARACTER) -> VERTICAL ELLIPSIS
+    '\uf3bc': '⋱', # \[SpanFromBoth] (INVALID CHARACTER) -> DOWN RIGHT DIAGONAL ELLIPSIS
+    '\uf3ba': '⋯', # \[SpanFromLeft] (INVALID CHARACTER) -> MIDLINE HORIZONTAL ELLIPSIS
+    '∢': '∢', # \[SphericalAngle] (SPHERICAL ANGLE) -> SPHERICAL ANGLE
+    '√': '√', # \[Sqrt] (SQUARE ROOT) -> SQUARE ROOT
+    '\uf520': '▫', # \[Square] (INVALID CHARACTER) -> WHITE SMALL SQUARE
+    '⊓': '⊓', # \[SquareIntersection] (SQUARE CAP) -> SQUARE CAP
+    '⊏': '⊏', # \[SquareSubset] (SQUARE IMAGE OF) -> SQUARE IMAGE OF
+    '⊑': '⊑', # \[SquareSubsetEqual] (SQUARE IMAGE OF OR EQUAL TO) -> SQUARE IMAGE OF OR EQUAL TO
+    '⊐': '⊐', # \[SquareSuperset] (SQUARE ORIGINAL OF) -> SQUARE ORIGINAL OF
+    '⊒': '⊒', # \[SquareSupersetEqual] (SQUARE ORIGINAL OF OR EQUAL TO) -> SQUARE ORIGINAL OF OR EQUAL TO
+    '⊔': '⊔', # \[SquareUnion] (SQUARE CUP) -> SQUARE CUP
+    '⋆': '⋆', # \[Star] (STAR OPERATOR) -> STAR OPERATOR
+    '£': '£', # \[Sterling] (POUND SIGN) -> POUND SIGN
+    'ϛ': 'ϛ', # \[Stigma] (GREEK SMALL LETTER STIGMA) -> GREEK SMALL LETTER STIGMA
+    '⊂': '⊂', # \[Subset] (SUBSET OF) -> SUBSET OF
+    '⊆': '⊆', # \[SubsetEqual] (SUBSET OF OR EQUAL TO) -> SUBSET OF OR EQUAL TO
+    '≻': '≻', # \[Succeeds] (SUCCEEDS) -> SUCCEEDS
+    '⪰': '⪰', # \[SucceedsEqual] (SUCCEEDS ABOVE SINGLE-LINE EQUALS SIGN) -> SUCCEEDS ABOVE SINGLE-LINE EQUALS SIGN
+    '≽': '≽', # \[SucceedsSlantEqual] (SUCCEEDS OR EQUAL TO) -> SUCCEEDS OR EQUAL TO
+    '≿': '≿', # \[SucceedsTilde] (SUCCEEDS OR EQUIVALENT TO) -> SUCCEEDS OR EQUIVALENT TO
+    '∍': '∍', # \[SuchThat] (SMALL CONTAINS AS MEMBER) -> SMALL CONTAINS AS MEMBER
+    '∑': '∑', # \[Sum] (N-ARY SUMMATION) -> N-ARY SUMMATION
+    '⊃': '⊃', # \[Superset] (SUPERSET OF) -> SUPERSET OF
+    '⊇': '⊇', # \[SupersetEqual] (SUPERSET OF OR EQUAL TO) -> SUPERSET OF OR EQUAL TO
+    'ß': 'ß', # \[SZ] (LATIN SMALL LETTER SHARP S) -> LATIN SMALL LETTER SHARP S
+    'τ': 'τ', # \[Tau] (GREEK SMALL LETTER TAU) -> GREEK SMALL LETTER TAU
+    '♉': '♉', # \[TaurusSign] (TAURUS) -> TAURUS
+    '\uf3da': '⊗', # \[TensorProduct] (INVALID CHARACTER) -> CIRCLED TIMES
+    'ť': 'ť', # \[THacek] (LATIN SMALL LETTER T WITH CARON) -> LATIN SMALL LETTER T WITH CARON
+    '∴': '∴', # \[Therefore] (THEREFORE) -> THEREFORE
+    'θ': 'θ', # \[Theta] (GREEK SMALL LETTER THETA) -> GREEK SMALL LETTER THETA
+    '\u2005': '\u2005', # \[ThickSpace] (FOUR-PER-EM SPACE) -> FOUR-PER-EM SPACE
+    'þ': 'þ', # \[Thorn] (LATIN SMALL LETTER THORN) -> LATIN SMALL LETTER THORN
+    '∼': '∼', # \[Tilde] (TILDE OPERATOR) -> TILDE OPERATOR
+    '≃': '≃', # \[TildeEqual] (ASYMPTOTICALLY EQUAL TO) -> ASYMPTOTICALLY EQUAL TO
+    '≅': '≅', # \[TildeFullEqual] (APPROXIMATELY EQUAL TO) -> APPROXIMATELY EQUAL TO
+    '≈': '≈', # \[TildeTilde] (ALMOST EQUAL TO) -> ALMOST EQUAL TO
+    '×': '×', # \[Times] (MULTIPLICATION SIGN) -> MULTIPLICATION SIGN
+    '™': '™', # \[Trademark] (TRADE MARK SIGN) -> TRADE MARK SIGN
+    '\uf3c7': 'ᵀ', # \[Transpose] (INVALID CHARACTER) -> MODIFIER LETTER CAPITAL T
+    '\uf758': '⋯', # \[TripleDot] (INVALID CHARACTER) -> MIDLINE HORIZONTAL ELLIPSIS
+    'ú': 'ú', # \[UAcute] (LATIN SMALL LETTER U WITH ACUTE) -> LATIN SMALL LETTER U WITH ACUTE
+    'ű': 'ű', # \[UDoubleAcute] (LATIN SMALL LETTER U WITH DOUBLE ACUTE) -> LATIN SMALL LETTER U WITH DOUBLE ACUTE
+    'ü': 'ü', # \[UDoubleDot] (LATIN SMALL LETTER U WITH DIAERESIS) -> LATIN SMALL LETTER U WITH DIAERESIS
+    'ù': 'ù', # \[UGrave] (LATIN SMALL LETTER U WITH GRAVE) -> LATIN SMALL LETTER U WITH GRAVE
+    'û': 'û', # \[UHat] (LATIN SMALL LETTER U WITH CIRCUMFLEX) -> LATIN SMALL LETTER U WITH CIRCUMFLEX
+    '︸': '︸', # \[UnderBrace] (PRESENTATION FORM FOR VERTICAL RIGHT CURLY BRACKET) -> PRESENTATION FORM FOR VERTICAL RIGHT CURLY BRACKET
+    '⎵': '⎵', # \[UnderBracket] (BOTTOM SQUARE BRACKET) -> BOTTOM SQUARE BRACKET
+    '︶': '︶', # \[UnderParenthesis] (PRESENTATION FORM FOR VERTICAL RIGHT PARENTHESIS) -> PRESENTATION FORM FOR VERTICAL RIGHT PARENTHESIS
+    '\uf3d4': '↔', # \[UndirectedEdge] (INVALID CHARACTER) -> LEFT RIGHT ARROW
+    '⋃': '⋃', # \[Union] (N-ARY UNION) -> N-ARY UNION
+    '⊎': '⊎', # \[UnionPlus] (MULTISET UNION) -> MULTISET UNION
+    '↑': '↑', # \[UpArrow] (UPWARDS ARROW) -> UPWARDS ARROW
+    '⤒': '⤒', # \[UpArrowBar] (UPWARDS ARROW TO BAR) -> UPWARDS ARROW TO BAR
+    '⇅': '⇅', # \[UpArrowDownArrow] (UPWARDS ARROW LEFTWARDS OF DOWNWARDS ARROW) -> UPWARDS ARROW LEFTWARDS OF DOWNWARDS ARROW
+    '↕': '↕', # \[UpDownArrow] (UP DOWN ARROW) -> UP DOWN ARROW
+    '⥮': '⥮', # \[UpEquilibrium] (UPWARDS HARPOON WITH BARB LEFT BESIDE DOWNWARDS HARPOON WITH BARB RIGHT) -> UPWARDS HARPOON WITH BARB LEFT BESIDE DOWNWARDS HARPOON WITH BARB RIGHT
+    '↖': '↖', # \[UpperLeftArrow] (NORTH WEST ARROW) -> NORTH WEST ARROW
+    '↗': '↗', # \[UpperRightArrow] (NORTH EAST ARROW) -> NORTH EAST ARROW
+    '▴': '▴', # \[UpPointer] (BLACK UP-POINTING SMALL TRIANGLE) -> BLACK UP-POINTING SMALL TRIANGLE
+    'υ': 'υ', # \[Upsilon] (GREEK SMALL LETTER UPSILON) -> GREEK SMALL LETTER UPSILON
+    '⊥': '⊥', # \[UpTee] (UP TACK) -> UP TACK
+    '↥': '↥', # \[UpTeeArrow] (UPWARDS ARROW FROM BAR) -> UPWARDS ARROW FROM BAR
     '♅': '⛢', # \[Uranus] (URANUS) -> ASTRONOMICAL SYMBOL FOR URANUS
-    '\uf3d0': '|', # \[VerticalBar] -> VERTICAL LINE
+    'ů': 'ů', # \[URing] (LATIN SMALL LETTER U WITH RING ABOVE) -> LATIN SMALL LETTER U WITH RING ABOVE
+    '⋁': '⋁', # \[Vee] (N-ARY LOGICAL OR) -> N-ARY LOGICAL OR
+    '♀': '♀', # \[Venus] (FEMALE SIGN) -> FEMALE SIGN
+    '\uf3d0': '|', # \[VerticalBar] (INVALID CHARACTER) -> VERTICAL LINE
+    '⋮': '⋮', # \[VerticalEllipsis] (VERTICAL ELLIPSIS) -> VERTICAL ELLIPSIS
+    '│': '│', # \[VerticalLine] (BOX DRAWINGS LIGHT VERTICAL) -> BOX DRAWINGS LIGHT VERTICAL
+    '≀': '≀', # \[VerticalTilde] (WREATH PRODUCT) -> WREATH PRODUCT
+    '\u200a': '\u200a', # \[VeryThinSpace] (HAIR SPACE) -> HAIR SPACE
+    '♍': '♍', # \[VirgoSign] (VIRGO) -> VIRGO
+    '\uf725': '\uf725', # \[WarningSign] (INVALID CHARACTER) -> 
+    '⌚': '⌚', # \[WatchIcon] (WATCH) -> WATCH
+    '⋀': '⋀', # \[Wedge] (N-ARY LOGICAL AND) -> N-ARY LOGICAL AND
+    '℘': '℘', # \[WeierstrassP] (SCRIPT CAPITAL P) -> SCRIPT CAPITAL P
+    '♗': '♗', # \[WhiteBishop] (WHITE CHESS BISHOP) -> WHITE CHESS BISHOP
+    '♔': '♔', # \[WhiteKing] (WHITE CHESS KING) -> WHITE CHESS KING
+    '♘': '♘', # \[WhiteKnight] (WHITE CHESS KNIGHT) -> WHITE CHESS KNIGHT
+    '♙': '♙', # \[WhitePawn] (WHITE CHESS PAWN) -> WHITE CHESS PAWN
+    '♕': '♕', # \[WhiteQueen] (WHITE CHESS QUEEN) -> WHITE CHESS QUEEN
+    '♖': '♖', # \[WhiteRook] (WHITE CHESS ROOK) -> WHITE CHESS ROOK
+    'ξ': 'ξ', # \[Xi] (GREEK SMALL LETTER XI) -> GREEK SMALL LETTER XI
+    '⊻': '⊻', # \[Xor] (XOR) -> XOR
+    'ý': 'ý', # \[YAcute] (LATIN SMALL LETTER Y WITH ACUTE) -> LATIN SMALL LETTER Y WITH ACUTE
+    'ÿ': 'ÿ', # \[YDoubleDot] (LATIN SMALL LETTER Y WITH DIAERESIS) -> LATIN SMALL LETTER Y WITH DIAERESIS
+    '¥': '¥', # \[Yen] (YEN SIGN) -> YEN SIGN
+    'ζ': 'ζ', # \[Zeta] (GREEK SMALL LETTER ZETA) -> GREEK SMALL LETTER ZETA
+    'ž': 'ž', # \[ZHacek] (LATIN SMALL LETTER Z WITH CARON) -> LATIN SMALL LETTER Z WITH CARON
 }
 
 UNICODE_TO_WL = {
@@ -1603,20 +2183,29 @@ WL_TO_NAMED = {
     'ž': '\\[ZHacek]',
 }
 
+# Combine the two dictionaries and exclude entries that map to themselves
 WL_TO_UNICODE_DICT = {re.escape(k): v 
-                     for k, v in {**WL_TO_NAMED, **WL_TO_UNICODE}.items()}
+                     for k, v in {**WL_TO_NAMED, **WL_TO_UNICODE}.items()
+                     if k != v}
+
+# The keys should be sorted to prevent shorter keys from obscuring longer keys 
+# when pattern matching
 WL_TO_UNICODE_RE = re.compile(
     "|".join(sorted(WL_TO_UNICODE_DICT.keys(), key=lambda k: (-len(k), k)))
 )
 
 WL_TO_PLAIN_DICT = {re.escape(k): v for k, v in WL_TO_NAMED.items()}
+
+# The keys should be sorted to prevent shorter keys from obscuring longer keys 
+# when pattern matching
 WL_TO_PLAIN_RE = re.compile(
-    "|".join(
-        sorted(WL_TO_PLAIN_DICT.keys(), key=lambda k: (-len(k), k))
-    )
+    "|".join(sorted(WL_TO_PLAIN_DICT.keys(), key=lambda k: (-len(k), k)))
 )
 
 UNICODE_REPLACE_DICT = {re.escape(k): v for k, v in UNICODE_TO_WL.items()}
+
+# The keys should be sorted to prevent shorter keys from obscuring longer keys 
+# when pattern matching
 UNICODE_REPLACE_RE = re.compile(
     "|".join(sorted(UNICODE_REPLACE_DICT.keys(), key=lambda k: (-len(k), k)))
 )
