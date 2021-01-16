@@ -781,7 +781,7 @@ class Pattern_(PatternObject):
             # for vars_2, rest in self.pattern.match(
             #    expression, new_vars, evaluation):
             #    yield vars_2, rest
-            self.pattern.match(yield_func, expression, new_vars, evaluation)
+            self.pattern.match(yield_func, expression, new_vars, evaluation, **kwargs)
         else:
             if existing.same(expression):
                 yield_func(vars, None)

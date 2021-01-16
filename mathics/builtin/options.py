@@ -156,7 +156,6 @@ class OptionValue(Builtin):
 
     def apply_2(self, symbols, evaluation):
         'OptionValue[symbols_List]'
-        print("OptionValue of Lists")
         if evaluation.options is None:
             return
 

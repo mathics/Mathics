@@ -59,7 +59,6 @@ class UseSansSerif(Predefined):
     }
 
     def evaluate(self, evaluation):
-        print("evaluation $UseSansSerif")
         return Integer(self.value)
 
 class Format(Builtin):
