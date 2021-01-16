@@ -782,7 +782,10 @@ class Pattern_(PatternObject):
             # for vars_2, rest in self.pattern.match(
             #    expression, new_vars, evaluation):
             #    yield vars_2, rest
-            self.pattern.match(yield_func, expression, new_vars, evaluation, **kwargs)
+            if type(self.pattern) is OptionsPattern:
+                self.pattern.match(yield_func, expression, new_vars, evaluation, **kwargs)
+            else:
+                self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
             if existing.same(expression):
                 yield_func(vars, None)
