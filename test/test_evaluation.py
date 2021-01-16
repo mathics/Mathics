@@ -54,14 +54,14 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
 
 
 def test_optionvalues():
-    session.evaluate("Options[f1]:={a->12}")
-    session.evaluate("f1[x_,OptionsPattern[]]:=x^OptionValue[a]")
+    session.evaluate("ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={q->12}")
+    session.evaluate("f1[x_,OptionsPattern[]]:=x^OptionValue[q]")
     result =  session.evaluate('f1[y]')
     expected = session.evaluate('y ^ 12')
     assert(result == expected)
 
-    session.evaluate("Options[f2]:={a->12}")
-    session.evaluate("f2[x_,opt:OptionsPattern[]]:=x^OptionValue[a]")
+    session.evaluate("Options[f2]:={s->12}")
+    session.evaluate("f2[x_,opt:OptionsPattern[]]:=x^OptionValue[s]")
     result =  session.evaluate('f2[y]')
     expected = session.evaluate('y ^ 12')
     assert(result == expected)
