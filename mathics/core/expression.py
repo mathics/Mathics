@@ -88,23 +88,26 @@ class ExpressionPointer(object):
 
 
 def from_python(arg):
+    """Converts a Python expression into a Mathics expression.
+
+    TODO: I think there are number of subtleties to be explained here.
+    In particlar the expression might have come form Sympy so we
+    may need to deal with Sympy symbol or variables in the near future.
+    """
     number_type = get_type(arg)
     if arg is None:
-        return Symbol('Null')
+        return SymbolNull
     if isinstance(arg, bool):
-        if arg:
-            return SymbolTrue
-        else:
-            return SymbolFalse
-    if isinstance(arg, int) or number_type == 'z':
+        return SymbolTrue if arg else SymbolFalse
+    if isinstance(arg, int) or number_type == "z":
         return Integer(arg)
-    elif isinstance(arg, float) or number_type == 'f':
+    elif isinstance(arg, float) or number_type == "f":
         return Real(arg)
-    elif number_type == 'q':
+    elif number_type == "q":
         return Rational(arg)
     elif isinstance(arg, complex):
         return Complex(Real(arg.real), Real(arg.imag))
-    elif number_type == 'c':
+    elif number_type == "c":
         return Complex(arg.real, arg.imag)
     elif isinstance(arg, str):
         return String(arg)
@@ -113,8 +116,15 @@ def from_python(arg):
         # else:
         #     return Symbol(arg)
     elif isinstance(arg, dict):
-        entries = [Expression('Rule',from_python(key), from_python(arg[key])) for key in arg]
-        return Expression('List', *entries)
+        entries = [
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
+        ]
+        return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):

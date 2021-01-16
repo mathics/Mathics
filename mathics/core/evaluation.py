@@ -121,8 +121,8 @@ def run_with_timeout_and_stack(request, timeout, evaluation):
     #
     # To reduce this problem, we make use of specific properties of
     # the Mathics evaluator: if we set "evaluation.timeout", the
-    # next call to "Expression.evaluate" in the thread will finish it 
-    # inmediatly.
+    # next call to "Expression.evaluate" in the thread will finish it
+    # immediately.
     #
     # However this still will not terminate long-running processes
     # in Sympy or or libraries called by Mathics that might hang or run

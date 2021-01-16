@@ -430,16 +430,11 @@ def test_combinations_1_5():
             "{b, c}",
             "NthSubset 1.5.2, Page 41",
         ),
-
-        # Start here:
-        # RankSubset is broken. MemberQ is probably the culprit
-        # Part::pspec: Part specification
-        # DiscreteMath`CombinatoricaV0.9`private`i$40 is neither an
-        # integer nor a list of integer.
-        #
-        # ( "RankSubset[Range[4], ...
-        #  ...]"  ...
-        # "RankSubset 1.5.2, Page 42, ),
+        (
+            "Map[ (RankSubset[Range[4], #])&, BinarySubsets[Range[4]] ]",
+            "Range[0, 15]",
+            "RankSubset 1.5.2, Page 42",
+        ),
         (
             "KSubsets[Range[3], 0]",
             "{ {} } ",
