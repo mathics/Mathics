@@ -2224,7 +2224,7 @@ WL_TO_UNICODE_RE = re.compile(
     "|".join(sorted(WL_TO_UNICODE_DICT.keys(), key=lambda k: (-len(k), k)))
 )
 
-WL_TO_PLAIN_DICT = {re.escape(k): v for k, v in WL_TO_NAMED.items()}
+WL_TO_PLAIN_DICT = {re.escape(k): f"\\[{v}]" for k, v in WL_TO_NAMED.items()}
 
 # The keys should be sorted to prevent shorter keys from obscuring longer keys 
 # when pattern matching
