@@ -12,7 +12,7 @@ from mathics.core.util import dict_with_escaped_keys, re_from_keys
 
 # Load the data on characters
 with open(os.path.join(ROOT_DIR, "data/characters.yml"), "r") as f:
-    _CHAR_DATA = yaml.load(f)
+    _CHAR_DATA = yaml.load(f, Loader=yaml.FullLoader)
 
 _WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHAR_DATA["named-characters"].items()}
 
