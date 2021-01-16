@@ -6,7 +6,13 @@ import itertools
 
 import sympy
 
-from mathics.builtin.base import BinaryOperator, Builtin, SympyFunction
+from mathics.builtin.base import (
+    BinaryOperator,
+    Builtin,
+    SympyFunction,
+    mp_convert_constant,
+    )
+
 from mathics.core.expression import (
     Complex,
     Expression,
@@ -195,6 +201,9 @@ class _InequalityOperator(BinaryOperator):
             items = items.numerify(evaluation).get_sequence()
         return items
 
+# Imperical number that seems to work.
+# We have to be able to match mpmath values with sympy values
+COMPARE_PREC = 50
 
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
@@ -217,14 +226,20 @@ class _EqualityOperator(_InequalityOperator):
                     return result
             return True
 
-        l1_sympy = l1.to_sympy()
-        l2_sympy = l2.to_sympy()
+        l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
 
         if l1_sympy is None or l2_sympy is None:
             return None
+
+        if not hasattr(l1_sympy, "is_number"):
+            l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
+        if not hasattr(l2_sympy, "is_number"):
+            l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
+
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
-            prec = 64  # TODO: Use $MaxExtraPrecision
+            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
             if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
                 return True
             return False

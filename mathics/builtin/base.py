@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import mpmath
 import re
 import sympy
+
 from functools import total_ordering
 import importlib
 from itertools import chain
@@ -16,12 +18,30 @@ from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (
     BaseExpression,
     Expression,
-    Symbol,
-    String,
     Integer,
+    MachineReal,
+    PrecisionReal,
+    String,
+    Symbol,
     ensure_context,
     strip_context,
 )
+from mathics.core.numbers import get_precision, PrecisionValueError
+
+def mp_fn(fn, d=None):
+    if d is None:
+        return getattr(mpmath, fn)()
+    else:
+        mpmath.mp.dps = int_d = int(d)
+        return getattr(mpmath, fn)(prec=int_d)
+
+def mp_convert_constant(obj, **kwargs):
+    if isinstance(obj, mpmath.ctx_mp_python._constant):
+        prec = kwargs.get("prec", None)
+        if prec is not None:
+            return sympy.Float(obj(prec=prec))
+        return sympy.Float(obj)
+    return obj
 
 
 def get_option(options, name, evaluation, pop=False, evaluate=True):
@@ -53,6 +73,7 @@ def has_option(options, name, evaluation):
 
 mathics_to_python = {}
 
+
 class Builtin(object):
     name: typing.Optional[str] = None
     context = "System`"
@@ -68,7 +89,7 @@ class Builtin(object):
         if kwargs.get("expression", None) is not False:
             return Expression(cls.get_name(), *args)
         else:
-            instance = super(Builtin, cls).__new__(cls)
+            instance = super().__new__(cls)
             if not instance.formats:
                 # Reset formats so that not every instance shares the same
                 # empty dict {}
@@ -76,7 +97,7 @@ class Builtin(object):
             return instance
 
     def __init__(self, *args, **kwargs):
-        super(Builtin, self).__init__()
+        super().__init__()
         if hasattr(self, "python_equivalent"):
             mathics_to_python[self.get_name()] = self.python_equivalent
 
@@ -319,7 +340,7 @@ class Builtin(object):
                 pattern = pattern % {"name": name}
                 definition_class = (
                     PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
-                    )
+                )
                 pattern = parse_builtin_rule(pattern, definition_class)
                 if unavailable_function:
                     function = unavailable_function
@@ -367,7 +388,7 @@ class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs["expression"] = False
-        instance = super(InstancableBuiltin, cls).__new__(cls, *args, **new_kwargs)
+        instance = super().__new__(cls, *args, **new_kwargs)
         if not instance.formats:
             # Reset formats so that not every instance shares the same empty
             # dict {}
@@ -393,7 +414,7 @@ class AtomBuiltin(Builtin):
     # see Image[] for an example of this.
 
     def get_name(self, short=False) -> str:
-        name = super(AtomBuiltin, self).get_name(short=short)
+        name = super().get_name(short=short)
         return re.sub(r"Atom$", "", name)
 
 
@@ -417,7 +438,7 @@ class Operator(Builtin):
 
 class Predefined(Builtin):
     def get_functions(self, prefix="apply", is_pymodule=False):
-        functions = list(super(Predefined, self).get_functions(prefix))
+        functions = list(super().get_functions(prefix))
         if prefix == "apply" and hasattr(self, "evaluate"):
             functions.append((Symbol(self.get_name()), self.evaluate))
         return functions
@@ -425,7 +446,7 @@ class Predefined(Builtin):
 
 class UnaryOperator(Operator):
     def __init__(self, format_function, *args, **kwargs):
-        super(UnaryOperator, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         name = self.get_name()
         if self.needs_verbatim:
             name = "Verbatim[%s]" % name
@@ -444,12 +465,12 @@ class UnaryOperator(Operator):
 
 class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
-        super(PrefixOperator, self).__init__("Prefix", *args, **kwargs)
+        super().__init__("Prefix", *args, **kwargs)
 
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
-        super(PostfixOperator, self).__init__("Postfix", *args, **kwargs)
+        super().__init__("Postfix", *args, **kwargs)
 
 
 class BinaryOperator(Operator):
@@ -509,13 +530,89 @@ class Test(Builtin):
             return Symbol("False")
 
 
+class MPMathConstant(Predefined):
+    """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
+
+    attributes = ("Constant", "ReadProtected")
+
+    # Subclasses should define this.
+    mpmath_name = None
+
+    mathics_to_mpmath = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.mpmath_name is None:
+            self.mpmath_name = strip_context(self.get_name()).lower()
+        self.mathics_to_mpmath[self.__class__.__name__] = self.mpmath_name
+
+    def get_constant(self, precision, evaluation, preference="mpmath"):
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        mpmath_name = self.mpmath_name
+        if d is None:
+            return MachineReal(mp_fn(mpmath_name))
+        elif preference == "mpmath":
+            result = mp_fn(mpmath_name, d)
+        else:
+            sympy_fn = self.to_sympy()
+            try:
+                result = sympy_fn.n(d)
+            except:
+                from trepan.api import debug; debug()
+                pass
+        return PrecisionReal(result)
+
+
+    def is_constant(self) -> bool:
+        # free Symbol will be converted to corresponding SymPy symbol
+        return True
+
+    def to_mpmath(self, args):
+        if self.mpmath_name is None or len(args) != self.nargs:
+            return None
+        return getattr(mpmath, self.mpmath_name)
+
+
+class NumpyConstant(Predefined):
+    """Representation of a constant in numpy, e.g. Pi, E, etc."""
+
+    attributes = ("Constant", "ReadProtected")
+
+    # Subclasses should define this.
+    numpy_name = None
+
+    mathics_to_numpy = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.numpy_name is None:
+            self.numpy_name = strip_context(self.get_name()).lower()
+        self.mathics_to_numpy[self.__class__.__name__] = self.numpy_name
+
+    def is_constant(self) -> bool:
+        # free Symbol will be converted to corresponding SymPy symbol
+        return True
+
+    def to_numpy(self, args):
+        if self.numpy_name is None or len(args) != self.nargs:
+            return None
+        return getattr(numpy, self.numpy_name)
+
+
 class SympyObject(Builtin):
     sympy_name: typing.Optional[str] = None
 
+    mathics_to_sympy = {}
+
     def __init__(self, *args, **kwargs):
-        super(SympyObject, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.sympy_name is None:
             self.sympy_name = strip_context(self.get_name()).lower()
+        self.mathics_to_sympy[self.__class__.__name__] = self.sympy_name
 
     def is_constant(self) -> bool:
         return False
@@ -526,14 +623,72 @@ class SympyObject(Builtin):
         return []
 
 
-class SympyFunction(SympyObject):
-    def prepare_sympy(self, leaves):
-        return leaves
+class SympyConstant(SympyObject, Predefined):
+    """Representation of a constant in Sympy, e.g. Pi, E, I, Catalan, etc."""
 
-    def get_sympy_function(self, leaves):
+    attributes = ("Constant", "ReadProtected")
+
+    # Subclasses should define this.
+    sympy_name = None
+
+    def get_constant(self, precision, evaluation, preference="sympy"):
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        sympy_fn = self.to_sympy()
+        if d is None:
+            if hasattr(self, "mpmath_name"):
+                # Prefer mpmath when precision is not given.
+                result = mp_fn(self.mpmath_name)
+            else:
+                result = sympy_fn()
+            return MachineReal(result)
+
+        if preference == "sympy":
+            result = sympy_fn_n(d)
+        elif hasattr(self, "mpmath_name"):
+            result = mp_fn(self.mpmath_name, d)
+
+        return PrecisionReal(result)
+
+    def is_constant(self) -> bool:
+        # free Symbol will be converted to corresponding SymPy symbol
+        return True
+
+    def to_sympy(self, expr=None, **kwargs):
+        if expr is None or expr.is_atom():
+            result = getattr(sympy, self.sympy_name)
+            if kwargs.get("evaluate", False):
+                result = mp_convert_constant(result, **kwargs)
+            return result
+        else:
+            # there is no "native" SymPy expression for e.g. E[x]
+            return None
+
+
+class SympyFunction(SympyObject):
+    def get_constant(self, precision, have_mpmath=False):
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        sympy_fn = self.to_sympy()
+        if d is None:
+            result = self.get_mpmath_function()if have_mpmath else sympy_fn()
+            return MachineReal(result)
+        else:
+            return PrecisionReal(sympy_fn.n(d))
+
+    def get_sympy_function(self, leaves=None):
         if self.sympy_name:
             return getattr(sympy, self.sympy_name)
         return None
+
+    def prepare_sympy(self, leaves):
+        return leaves
 
     def to_sympy(self, expr, **kwargs):
         try:
@@ -552,21 +707,6 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
-
-
-class SympyConstant(SympyObject, Predefined):
-    attributes = ("Constant", "ReadProtected")
-
-    def is_constant(self) -> bool:
-        # free Symbol will be converted to corresponding SymPy symbol
-        return True
-
-    def to_sympy(self, expr, **kwargs):
-        if expr.is_atom():
-            return getattr(sympy, self.sympy_name)
-        else:
-            # there is no "native" SymPy expression for e.g. E[x]
-            return None
 
 
 class InvalidLevelspecError(Exception):
@@ -609,12 +749,12 @@ class BoxConstruct(Builtin):
 
 class PatternError(Exception):
     def __init__(self, name, tag, *args):
-        super(PatternError).__init__()
+        super().__init__()
 
 
 class PatternArgumentError(PatternError):
     def __init__(self, name, count, expected):
-        super(PatternArgumentError, self).__init__(None, None)
+        super().__init__(None, None)
 
 
 class PatternObject(InstancableBuiltin, Pattern):
@@ -623,7 +763,7 @@ class PatternObject(InstancableBuiltin, Pattern):
     arg_counts: typing.List[int] = []
 
     def init(self, expr):
-        super(PatternObject, self).init(expr)
+        super().init(expr)
         if self.arg_counts is not None:
             if len(expr.leaves) not in self.arg_counts:
                 self.error_args(len(expr.leaves), *self.arg_counts)
