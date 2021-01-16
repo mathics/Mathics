@@ -1438,6 +1438,7 @@ named-characters:
   'DownExclamation': "\xA1"
   'DownQuestion': "\xBF"
   'DownTee': "\u22A4"
+  'DoubleRightTee': "\u22A8" 
   'EAcute': "\xE9"
   'EBar': "\u0113"
   'ECup': "\u0115"
