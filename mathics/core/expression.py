@@ -2523,9 +2523,11 @@ class String(Atom):
 
     def boxes_to_text(self, show_string_characters=False, **options) -> str:
         value = self.value
+
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
+
         return value
 
     def boxes_to_xml(self, show_string_characters=False, **options) -> str:
