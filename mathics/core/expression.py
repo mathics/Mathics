@@ -19,7 +19,7 @@ from bisect import bisect_left
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 
-        
+
 def fully_qualified_symbol_name(name) -> bool:
     return (isinstance(name, str) and
             '`' in name and
@@ -478,6 +478,7 @@ class BaseExpression(KeyComparable):
 
     def get_rules_list(self):
         from mathics.core.rules import Rule
+
         list_expr = self.flatten(Symbol('List'))
         list = []
         if list_expr.has_form('List', None):
@@ -1119,6 +1120,7 @@ class Expression(BaseExpression):
         from mathics.core.evaluation import ReturnInterrupt
         if evaluation.timeout:
             return
+
         expr = self
         reevaluate = True
         limit = None
@@ -1135,10 +1137,7 @@ class Expression(BaseExpression):
                     break
 
                 names.add(expr.get_lookup_name())
-                #if hasattr(expr, '_head'):
-                #    head_name = expr._head.get_name()
-                #    expr.options = definitions.get_options(head_name)
-                    
+
                 if hasattr(expr, 'options') and expr.options:
                     evaluation.options = expr.options
 

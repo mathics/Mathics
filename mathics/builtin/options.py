@@ -118,19 +118,18 @@ class OptionValue(Builtin):
     However, it can be evaluated dynamically:
     >> f[a->5] /. f[OptionsPattern[{}]] -> {OptionValue[Symbol["a"]]}
      = {5}
-
     """
 
     messages = {
         'optnf': "Option name `1` not found.",
     }
 
-
     def apply(self, symbol, evaluation):
         'OptionValue[symbol_]'
         
         if evaluation.options is None:
             return
+
         optvals = []
         for symbol in [symbol]:
             name = symbol.get_name()

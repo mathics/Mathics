@@ -158,7 +158,6 @@ FORMATMAPPINGS = {"Agilent" : "AgilentMicroarray", "BZIP" : "BZIP2", "BZ2" : "BZ
 
 
 
-
 def _importer_exporter_options(available_options, options, builtin_name: str, evaluation):
     stream_options = []
     custom_options = []
@@ -233,7 +232,7 @@ class ConverterDumpsExtensionMappings(Predefined):
     """
     <dl>
     <dt>'$extensionMappings'
-        <dd>Returns a list of associations between file extensions and file types. 
+        <dd>Returns a list of associations between file extensions and file types.
     </dl>
     """
     context = 'System`ConvertersDump`'
@@ -248,8 +247,8 @@ class ConverterDumpsFormatMappings(Predefined):
     """
     <dl>
     <dt>'$formatMappings'
-        <dd>Returns a list of associations between file extensions and file types. 
-    </dl>    
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
     """
     context = 'System`ConvertersDump`'
     name = "$formatMappings"

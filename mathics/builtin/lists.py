@@ -1967,8 +1967,10 @@ class DeleteCases(Builtin):
         "innf": "Non-negative integer or Infinity expected at position 4 in `1`",
     }
 
+
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         "DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]"
+
         if items.is_atom():
             evaluation.message("Select", "normal")
             return

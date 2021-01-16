@@ -465,8 +465,6 @@ class Contexts(Builtin):
     ## this assignment makes sure that a definition in Global` exists
     >> x = 5;
     X> Contexts[] // InputForm
-
-
     """
 
     def apply(self, evaluation):
