@@ -53,6 +53,32 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
         assert result == expected
 
 
+def test_optionvalues():
+    session.evaluate("Options[f1]:={a->12}")
+    session.evaluate("f1[x_,OptionsPattern[]]:=x^OptionValue[a]")
+    result =  session.evaluate('f1[y]')
+    expected = session.evaluate('y ^ 12')
+    assert(result == expected)
+
+    session.evaluate("Options[f2]:={a->12}")
+    session.evaluate("f2[x_,opt:OptionsPattern[]]:=x^OptionValue[a]")
+    result =  session.evaluate('f2[y]')
+    expected = session.evaluate('y ^ 12')
+    assert(result == expected)
+
+    session.evaluate("Options[f3]:={a->12}")
+    session.evaluate("f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]")
+    result =  session.evaluate('f3[y]')
+    expected = session.evaluate('y ^ 4')
+    assert(result == expected)
+
+    session.evaluate("Options[f4]:={a->12}")
+    session.evaluate("f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]")
+    result =  session.evaluate('f4[y]')
+    expected = session.evaluate('y ^ 4')
+    assert(result == expected)
+
+
 if sys.platform in ("linux",):
 
     def test_system_specific_long_integer():
