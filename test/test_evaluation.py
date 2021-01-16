@@ -79,6 +79,28 @@ def test_optionvalues():
     assert(result == expected)
 
 
+    session.evaluate("Options[F]:={a->89,b->37}")
+    result = session.evaluate("OptionValue[F, a]")
+    expected = session.evaluate('89')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {a,b}]")
+    expected = session.evaluate('{89, 37}')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {a,b, l}]")
+    expected = session.evaluate('{89, 37, OptionValue[l]}')
+    msg = "OptionValue::optnf: Option name l not found."
+    assert result == expected, msg
+
+    result = session.evaluate("OptionValue[F, {l->77}, {a,b, l}]")
+    expected = session.evaluate('{89, 37, 77}')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {b->-1, l->77}, {a,b, l}]")
+    expected = session.evaluate('{89, -1, 77}')
+    assert(result == expected)
+
 if sys.platform in ("linux",):
 
     def test_system_specific_long_integer():
