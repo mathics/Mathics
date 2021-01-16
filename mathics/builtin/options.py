@@ -104,7 +104,7 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$f$, $optvals$, $name$]'
         <dd>recover the value of the option $name$ associated to the symbol $f$,
             extracting the values from $optvals$ if available.
-    <dt>'OptionValue[$\ldots$, $list$]'
+    <dt>'OptionValue[$\\ldots$, $list$]'
         <dd>recover the value of the options in $list$ .
     </dl>
 
