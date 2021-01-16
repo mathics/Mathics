@@ -185,7 +185,6 @@ def _importer_exporter_options(available_options, options, builtin_name: str, ev
     if syntax_option and syntax_option !=  Symbol("System`Ignore"):
         # warn about unsupported options.
         for name, value in remaining_options.items():
-            print(" es de acá....")
             evaluation.message(
                 builtin_name,
                 "optx",

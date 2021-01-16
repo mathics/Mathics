@@ -156,7 +156,6 @@ class OptionValue(Builtin):
 
     def apply_2(self, symbols, evaluation):
         'OptionValue[symbols_List]'
-        ## Avoids to erase options
         if evaluation.options is None:
             return
         symbols = symbols.get_leaves()
