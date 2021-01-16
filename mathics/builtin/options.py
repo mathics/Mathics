@@ -150,7 +150,7 @@ class OptionValue(Builtin):
 
         val = evaluation.options.get(name)
         if val is None:
-            evaluation.message('OptionValue', 'optnf', symbol)
+            evaluation.message('OptionValue', 'optnf', optname)
             return Expression('OptionValue', optname)
         return val
 
