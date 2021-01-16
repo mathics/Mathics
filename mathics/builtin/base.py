@@ -50,20 +50,17 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
     # matter. Also, the quoted string form "X" is ok. all these
     # variants name the same option. this matches Wolfram Language
     # behaviour.
-
+    name = strip_context(name)
     contexts = (s + "%s" for s in evaluation.definitions.get_context_path())
 
     for variant in chain(contexts, ('"%s"',)):
         resolved_name = variant % name
-
         if pop:
             value = options.pop(resolved_name, None)
         else:
             value = options.get(resolved_name)
-
         if value is not None:
             return value.evaluate(evaluation) if evaluate else value
-
     return None
 
 

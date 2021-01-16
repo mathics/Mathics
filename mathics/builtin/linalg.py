@@ -701,7 +701,7 @@ class Eigenvalues(Builtin):
      = {-1, 1, 2}
 
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
-     = {1, Cos[theta] + Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])], Cos[theta] - Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])]}
+     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
 
     >> Eigenvalues[{{7, 1}, {-4, 3}}]
      = {5, 5}

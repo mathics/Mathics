@@ -5,8 +5,8 @@
 Options and Default Arguments
 """
 
-from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
+from mathics.builtin.base import Builtin, Test, get_option
+from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
 from mathics.builtin.image import Image
 from mathics.core.expression import strip_context
 
@@ -99,7 +99,12 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$name$]'
         <dd>gives the value of the option $name$ as specified in a
         call to a function with 'OptionsPattern'.
-    <dt>'OptionValue[$list$]'
+    <dt>'OptionValue[$f$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$.
+    <dt>'OptionValue[$f$, $optvals$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$,
+            extracting the values from $optvals$ if available.
+    <dt>'OptionValue[$\\ldots$, $list$]'
         <dd>recover the value of the options in $list$ .
     </dl>
 
@@ -109,7 +114,7 @@ class OptionValue(Builtin):
     Unavailable options generate a message:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[b]}
      : Option name b not found.
-     = {OptionValue[b]}
+     = {b}
 
     The argument of 'OptionValue' must be a symbol:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a+b]}
@@ -124,64 +129,88 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
-    def apply(self, symbol, evaluation):
-        'OptionValue[symbol_]'
-        
+
+    rules = {
+        'OptionValue[optnames_List]': 'OptionValue/@optnames',
+        'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
+        'OptionValue[f_, opts_, optnames_List]':'OptionValue[f,opts, #1]&/@optnames',
+    }
+    
+    def apply_1(self, optname, evaluation):
+        'OptionValue[optname_]'
         if evaluation.options is None:
             return
 
-        optvals = []
-        for symbol in [symbol]:
-            name = symbol.get_name()
-            if not name:
-                name = symbol.get_string_value()
-                if name:
-                    name = ensure_context(name)
-            if not name:
-                evaluation.message('OptionValue', 'sym', symbol, 1)
-                optvals.append(Expression('OptionValue', symbol))
-                continue
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
 
-            value = evaluation.options.get(name)
-            if value is None:
-                evaluation.message('OptionValue', 'optnf', symbol)
-                optvals.append(Expression('OptionValue', symbol))
-                continue
-            optvals.append(value)
-        if len(optvals) == 1:
-            return optvals[0]
-        elif len(optvals) == 0:
+        name = optname.get_name()
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
             return
-        return Expression('List', *optvals)
 
-    def apply_2(self, symbols, evaluation):
-        'OptionValue[symbols_List]'
-        if evaluation.options is None:
-            return
-        symbols = symbols.get_leaves()
-        optvals = []
-        for symbol in symbols:
-            name = symbol.get_name()
-            if not name:
-                name = symbol.get_string_value()
-                if name:
-                    name = ensure_context(name)
-            if not name:
-                evaluation.message('OptionValue', 'sym', symbol, 1)
-                optvals.append(Expression('OptionValue', symbol))
-                continue
+        val = get_option(evaluation.options, name, evaluation)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Symbol(name)
+        return val
 
-            value = evaluation.options.get(name)
-            if value is None:
-                evaluation.message('OptionValue', 'optnf', symbol)
-                optvals.append(Expression('OptionValue', symbol))
-                continue
-            optvals.append(value)
-        if len(optvals) == 1:
-            return optvals[0]
-        elif len(optvals) == 0:
+    def apply_2(self, f, optname, evaluation):
+        'OptionValue[f_, optname_]'
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
+            return 
+
+        val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
+        if val is None and evaluation.options:
+            val = get_option(evaluation.options, name, evaluation)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Symbol(name)
+        return val
+
+    def apply_3(self, f, optvals, optname, evaluation):
+        'OptionValue[f_, optvals_, optname_]'
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
             return
-        return Expression('List', *optvals)
+
+        val = get_option(optvals.get_option_values(evaluation), name, evaluation)
+        if val is None:
+            val = get_option(
+                evaluation.definitions.get_options(f.get_name()),
+                name,
+                evaluation)
+        if val is None and evaluation.options:
+            val = get_option(evaluation.options, name, evaluation)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Symbol(name)
+        return val
 
 
 class Default(Builtin):
@@ -252,6 +281,14 @@ class OptionQ(Test):
     >> OptionQ[{a :> True}]
      = True
 
+    Options lists are flattened when are applyied, so
+    >> OptionQ[{a -> True, {b->1, "c"->2}}]
+     = True
+    >> OptionQ[{a -> True, {b->1, c}}]
+     = False
+    >> OptionQ[{a -> True, F[b->1,c->2]}]
+     = False
+
     'OptionQ' returns 'False' if its argument is not a valid option
     specification:
     >> OptionQ[x]
@@ -259,10 +296,13 @@ class OptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:
             expr = expr.get_leaves()
+
+        
         return all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
                    for e in expr)
 
@@ -287,6 +327,7 @@ class NotOptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:

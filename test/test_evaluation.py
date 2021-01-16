@@ -54,8 +54,8 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
 
 
 def test_optionvalues():
-    session.evaluate("ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={q->12}")
-    session.evaluate("f1[x_,OptionsPattern[]]:=x^OptionValue[q]")
+    session.evaluate('ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={"q"->12}')
+    session.evaluate('f1[x_,OptionsPattern[]]:=x^OptionValue["q"]')
     result =  session.evaluate('f1[y]')
     expected = session.evaluate('y ^ 12')
     assert(result == expected)
@@ -76,6 +76,47 @@ def test_optionvalues():
     session.evaluate("f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]")
     result =  session.evaluate('f4[y]')
     expected = session.evaluate('y ^ 4')
+    assert(result == expected)
+
+
+    session.evaluate("Options[F]:={a->89,b->37}")
+    result = session.evaluate("OptionValue[F, a]")
+    expected = session.evaluate('89')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {a,b}]")
+    expected = session.evaluate('{89, 37}')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {a,b, l}]")
+    expected = session.evaluate('{89, 37, l}')
+    msg = "OptionValue::optnf: Option name l not found."
+    assert result == expected, msg
+
+    session.evaluate('Options[f5]:={"a"->12}')
+    session.evaluate("f5[x_,opt:OptionsPattern[]]:=x^OptionValue[a]")
+    result =  session.evaluate('f5[y]')
+    expected = session.evaluate('y ^ 12')
+    assert(result == expected)
+
+    session.evaluate('Options[f6]:={a->12}')
+    session.evaluate('f6[x_,opt:OptionsPattern[]]:=x^OptionValue["a"]')
+    result =  session.evaluate('f6[y]')
+    expected = session.evaluate('y ^ 12')
+    assert(result == expected)
+
+    session.evaluate('Options[f7]:={a->12}')
+    session.evaluate('f7[x_,OptionsPattern[{"a"->67}]]:=x^OptionValue[a]')
+    result =  session.evaluate('f7[y]')
+    expected = session.evaluate('y ^ 67')
+    assert(result == expected)
+    
+    result = session.evaluate("OptionValue[F, {l->77}, {a,b, l}]")
+    expected = session.evaluate('{89, 37, 77}')
+    assert(result == expected)
+
+    result = session.evaluate("OptionValue[F, {b->-1, l->77}, {a,b, l}]")
+    expected = session.evaluate('{89, -1, 77}')
     assert(result == expected)
 
 

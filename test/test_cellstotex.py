@@ -65,10 +65,18 @@ def test_load_and_run():
     if result0 == Symbol("System`$Failed"):
         return 0
 
+
+
+    str_expr1 = 'CellsToTeXPreamble[]'
+    str_expected1 = '"\\mmaSet{morefv={gobble=2,},}\\n"'
+    result1 = _evaluate(str_expr1)
+    expected1 = _evaluate(str_expected1)
+    assert result1 == expected1
+
+    
     str_expr1 = 'boxes=MakeBoxes[Pi];\
-                 cell = Cell[BoxData[boxes], "Input"];res=Catch[CellToTeX[cell, Style->"Automatic"]]'
+                 cell = Cell[BoxData[boxes], "Input"];res=Catch[CellToTeX[cell, Style->"Input"]]'
     str_expected1 = '"\\begin{mmaCell}{Input}\n  \\pi\n\\end{mmaCell}"'
-    print(str_expr1)
     message1 = ""
     result1 = _evaluate(str_expr1)
     expected1 = _evaluate(str_expected1)
@@ -78,7 +86,7 @@ def test_load_and_run():
         assert result1 == expected1
 
     str_expr2 = 'boxes=MakeBoxes[(-b \\[PlusMinus] Sqrt[b^2-4*a*c])/(2 a)];\
-                 cell = Cell[BoxData[boxes],"Input"];res=Catch[CellToTeX[cell]]'
+                 cell = Cell[BoxData[boxes],"Input"];res=Catch[CellToTeX[cell], Style->"Input"]'
     str_expected2 = '"\\begin{mmaCell}{Input}\n  \\mmaFrac{-b\\(\\pmb{\\pm}\\)\\mmaSqrt{\\mmaSup{b}{2}-4 a c}}{2 a}\n\\end{mmaCell}"'
     print(str_expr2)
     message2 = ""
