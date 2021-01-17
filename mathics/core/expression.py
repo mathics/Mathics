@@ -91,7 +91,7 @@ def from_python(arg):
     """Converts a Python expression into a Mathics expression.
 
     TODO: I think there are number of subtleties to be explained here.
-    In particlar the expression might have come form Sympy so we
+    In particular, the expression might have come form Sympy so we
     may need to deal with Sympy symbol or variables in the near future.
     """
     number_type = get_type(arg)
