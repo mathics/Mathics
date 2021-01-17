@@ -38,29 +38,6 @@ UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]): v["wl-unicode"]
                      if "unicode-equivalent" in v and v["has-unicode-inverse"]}
 UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
 
-# -------------------------
-# Load the data on characters
-# with open(os.path.join(ROOT_DIR, "data/characters.yml"), "r") as f:
-#     _CHARS_DATA = yaml.load(f, Loader=yaml.FullLoader)
-# 
-# _WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHARS_DATA["named-characters"].items()}
-# 
-# # Conversion from WL to the fully qualified names
-# _WL_TO_PLAIN_DICT = dict_with_escaped_keys(_WL_TO_NAMED)
-# _WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
-# 
-# # Conversion from WL to unicode
-# _WL_TO_UNICODE_DICT = dict_with_escaped_keys(
-#     {k: v for k, v in {**_WL_TO_NAMED, **_CHARS_DATA["wl-to-unicode"]}.items()
-#      if k != v}
-# )
-# _WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
-# 
-# # Conversion from unicode to WL
-# _UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHARS_DATA["unicode-to-wl"])
-# _UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
-# -------------------------
-
 ##############################
 
 # Character ranges of letters
