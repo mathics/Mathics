@@ -10,26 +10,56 @@ from mathics.core.util import dict_with_escaped_keys, re_from_keys
 
 ####### INITIALIZATION #######
 
-# Load the data on characters
-with open(os.path.join(ROOT_DIR, "data/characters.yml"), "r") as f:
-    _CHAR_DATA = yaml.load(f, Loader=yaml.FullLoader)
+def unicode_equivalent(k: str, v: dict):
+    if "unicode-equivalent" in v:
+        return v["unicode-equivalent"]
+    else:
+        return f"\\[{k}]"
 
-_WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHAR_DATA["named-characters"].items()}
+# Load the raw data
+with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
+    CHAR_DATA = yaml.load(f, Loder=yaml.FullLoader)
 
 # Conversion from WL to the fully qualified names
-_WL_TO_PLAIN_DICT = dict_with_escaped_keys(_WL_TO_NAMED)
-_WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
+WL_TO_PLAIN_DICT = {re.escape(v["wl-unicode"]): f"\\[{k}]" 
+                   for k, v in CHAR_DATA.items()}
+WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
 
 # Conversion from WL to unicode
-_WL_TO_UNICODE_DICT = dict_with_escaped_keys(
-    {k: v for k, v in {**_WL_TO_NAMED, **_CHAR_DATA["wl-to-unicode"]}.items()
-     if k != v}
-)
-_WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
+WL_TO_UNICODE_DICT = {re.escape(v["wl-unicode"]): unicode_equivalent(k, v)
+                     for k, v in CHAR_DATA.items()
+                     if "unicode-equivalent" not in v 
+                       or v["unicode-equivalent"] != v["wl-unicode"]}
+WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
 
 # Conversion from unicode to WL
-_UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHAR_DATA["unicode-to-wl"])
-_UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
+UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]: v["wl-unicode"]
+                     for v in CHARS_DATA.values()
+                     if "unicode-equivalent" in v and v["has-unicode-inverse"]}
+UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
+
+
+# -------------------------
+# Load the data on characters
+# with open(os.path.join(ROOT_DIR, "data/characters.yml"), "r") as f:
+#     _CHAR_DATA = yaml.load(f, Loader=yaml.FullLoader)
+# 
+# _WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHAR_DATA["named-characters"].items()}
+# 
+# # Conversion from WL to the fully qualified names
+# _WL_TO_PLAIN_DICT = dict_with_escaped_keys(_WL_TO_NAMED)
+# _WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
+# 
+# # Conversion from WL to unicode
+# _WL_TO_UNICODE_DICT = dict_with_escaped_keys(
+#     {k: v for k, v in {**_WL_TO_NAMED, **_CHAR_DATA["wl-to-unicode"]}.items()
+#      if k != v}
+# )
+# _WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
+# 
+# # Conversion from unicode to WL
+# _UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHAR_DATA["unicode-to-wl"])
+# _UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
 
 ##############################
 
@@ -45,25 +75,28 @@ letters = "a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
 \uf793-\uf79a\uf79c-\uf7a2\uf7a4-\uf7bd\uf800-\uf833\ufb01\ufb02"
 
 # Character ranges of letterlikes
-letterlikes = "".join(_CHAR_DATA["letterlike"])
+letterlikes = "".join(v["wl-unicode"] for v in CHAR_DATA.values()
+                      if v["is-letter-like"])
 
 # All supported named characters
-named_characters = _CHAR_DATA["named-characters"].copy()
+named_characters = {k: v["wl-unicode"] for k, v in CHAR_DATA.items()}
 
 def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
-    """WL uses some non-unicode character for various things.
+    """
+    WL uses some non-unicode character for various things.
     Replace them with the unicode equivalent.
     """
-    r = _WL_TO_UNICODE_RE if use_unicode else _WL_TO_PLAIN_RE
-    d = _WL_TO_UNICODE_DICT if use_unicode else _WL_TO_PLAIN_DICT
+    r = WL_TO_UNICODE_RE if use_unicode else WL_TO_PLAIN_RE
+    d = WL_TO_UNICODE_DICT if use_unicode else WL_TO_PLAIN_DICT
 
     return r.sub(lambda m: d[re.escape(m.group(0))], wl_input)
 
 def replace_unicode_with_wl(unicode_input: str) -> str:
-    """WL uses some non-unicode character for various things.
+    """
+    WL uses some non-unicode character for various things.
     Replace their unicode equivalent with them.
     """
-    return _UNICODE_TO_WL_RE.sub(
-        lambda m: _UNICODE_TO_WL_DICT[re.escape(m.group(0))], unicode_input
+    return UNICODE_TO_WL_RE.sub(
+        lambda m: UNICODE_TO_WL_DICT[re.escape(m.group(0))], unicode_input
     )
 
