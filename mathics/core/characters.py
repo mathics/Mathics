@@ -23,20 +23,20 @@ with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
 # Conversion from WL to the fully qualified names
 WL_TO_PLAIN_DICT = {re.escape(v["wl-unicode"]): f"\\[{k}]" 
                    for k, v in CHAR_DATA.items()}
-WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
+WL_TO_PLAIN_RE = re_from_keys(WL_TO_PLAIN_DICT)
 
 # Conversion from WL to unicode
 WL_TO_UNICODE_DICT = {re.escape(v["wl-unicode"]): unicode_equivalent(k, v)
                      for k, v in CHAR_DATA.items()
                      if "unicode-equivalent" not in v 
                      or v["unicode-equivalent"] != v["wl-unicode"]}
-WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
+WL_TO_UNICODE_RE = re_from_keys(WL_TO_UNICODE_DICT)
 
 # Conversion from unicode to WL
 UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]): v["wl-unicode"]
                      for v in CHARS_DATA.values()
                      if "unicode-equivalent" in v and v["has-unicode-inverse"]}
-UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
+UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
 
 # -------------------------
 # Load the data on characters
