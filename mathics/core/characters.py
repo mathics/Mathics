@@ -29,15 +29,14 @@ WL_TO_PLAIN_RE = re_from_keys(_WL_TO_PLAIN_DICT)
 WL_TO_UNICODE_DICT = {re.escape(v["wl-unicode"]): unicode_equivalent(k, v)
                      for k, v in CHAR_DATA.items()
                      if "unicode-equivalent" not in v 
-                       or v["unicode-equivalent"] != v["wl-unicode"]}
+                     or v["unicode-equivalent"] != v["wl-unicode"]}
 WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
 
 # Conversion from unicode to WL
-UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]: v["wl-unicode"]
+UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]): v["wl-unicode"]
                      for v in CHARS_DATA.values()
                      if "unicode-equivalent" in v and v["has-unicode-inverse"]}
 UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
-
 
 # -------------------------
 # Load the data on characters
@@ -60,6 +59,7 @@ UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
 # # Conversion from unicode to WL
 # _UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHAR_DATA["unicode-to-wl"])
 # _UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
+# -------------------------
 
 ##############################
 
