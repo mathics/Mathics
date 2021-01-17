@@ -22,12 +22,12 @@ with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
 
 # Conversion from WL to the fully qualified names
 WL_TO_PLAIN_DICT = {re.escape(v["wl-unicode"]): f"\\[{k}]" 
-                   for k, v in CHAR_DATA.items()}
+                   for k, v in CHARS_DATA.items()}
 WL_TO_PLAIN_RE = re_from_keys(WL_TO_PLAIN_DICT)
 
 # Conversion from WL to unicode
 WL_TO_UNICODE_DICT = {re.escape(v["wl-unicode"]): unicode_equivalent(k, v)
-                     for k, v in CHAR_DATA.items()
+                     for k, v in CHARS_DATA.items()
                      if "unicode-equivalent" not in v 
                      or v["unicode-equivalent"] != v["wl-unicode"]}
 WL_TO_UNICODE_RE = re_from_keys(WL_TO_UNICODE_DICT)
@@ -41,9 +41,9 @@ UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
 # -------------------------
 # Load the data on characters
 # with open(os.path.join(ROOT_DIR, "data/characters.yml"), "r") as f:
-#     _CHAR_DATA = yaml.load(f, Loader=yaml.FullLoader)
+#     _CHARS_DATA = yaml.load(f, Loader=yaml.FullLoader)
 # 
-# _WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHAR_DATA["named-characters"].items()}
+# _WL_TO_NAMED = {v: f"\\[{k}]" for k, v in _CHARS_DATA["named-characters"].items()}
 # 
 # # Conversion from WL to the fully qualified names
 # _WL_TO_PLAIN_DICT = dict_with_escaped_keys(_WL_TO_NAMED)
@@ -51,13 +51,13 @@ UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
 # 
 # # Conversion from WL to unicode
 # _WL_TO_UNICODE_DICT = dict_with_escaped_keys(
-#     {k: v for k, v in {**_WL_TO_NAMED, **_CHAR_DATA["wl-to-unicode"]}.items()
+#     {k: v for k, v in {**_WL_TO_NAMED, **_CHARS_DATA["wl-to-unicode"]}.items()
 #      if k != v}
 # )
 # _WL_TO_UNICODE_RE = re_from_keys(_WL_TO_UNICODE_DICT)
 # 
 # # Conversion from unicode to WL
-# _UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHAR_DATA["unicode-to-wl"])
+# _UNICODE_TO_WL_DICT = dict_with_escaped_keys(_CHARS_DATA["unicode-to-wl"])
 # _UNICODE_TO_WL_RE = re_from_keys(_UNICODE_TO_WL_DICT)
 # -------------------------
 
@@ -75,11 +75,11 @@ letters = "a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
 \uf793-\uf79a\uf79c-\uf7a2\uf7a4-\uf7bd\uf800-\uf833\ufb01\ufb02"
 
 # Character ranges of letterlikes
-letterlikes = "".join(v["wl-unicode"] for v in CHAR_DATA.values()
+letterlikes = "".join(v["wl-unicode"] for v in CHARS_DATA.values()
                       if v["is-letter-like"])
 
 # All supported named characters
-named_characters = {k: v["wl-unicode"] for k, v in CHAR_DATA.items()}
+named_characters = {k: v["wl-unicode"] for k, v in CHARS_DATA.items()}
 
 def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     """
