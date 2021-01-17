@@ -18,7 +18,7 @@ def unicode_equivalent(k: str, v: dict):
 
 # Load the raw data
 with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
-    CHAR_DATA = yaml.load(f, Loder=yaml.FullLoader)
+    CHAR_DATA = yaml.load(f, Loader=yaml.FullLoader)
 
 # Conversion from WL to the fully qualified names
 WL_TO_PLAIN_DICT = {re.escape(v["wl-unicode"]): f"\\[{k}]" 
