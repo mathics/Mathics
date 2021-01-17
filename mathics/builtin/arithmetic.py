@@ -1030,7 +1030,7 @@ class Infinity(SympyConstant):
     #> FullForm[Infinity]
      = DirectedInfinity[1]
     #> (2 + 3.5*I) / Infinity
-     = 0. + 0. I
+     = 0.
     #> Infinity + Infinity
      = Infinity
     #> Infinity / Infinity
@@ -1464,7 +1464,7 @@ class RealNumberQ(Test):
     >> RealNumberQ[0 * I]
      = True
     >> RealNumberQ[0.0 * I]
-     = False
+     = True
     """
 
     def test(self, expr):
@@ -1719,12 +1719,12 @@ class Complex_(Builtin):
     #> Complex[0.0, 0.0]
      = 0. + 0. I
     #> 0. I
-     = 0. + 0. I
+     = 0.
     #> 0. + 0. I
-     = 0. + 0. I
+     = 0.
 
     #> 1. + 0. I
-     = 1. + 0. I
+     = 1.
     #> 0. + 1. I
      = 0. + 1. I
 

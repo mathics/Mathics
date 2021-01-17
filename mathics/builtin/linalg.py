@@ -11,7 +11,7 @@ from mpmath import mp
 
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Expression, Integer, Symbol, Real
+from mathics.core.expression import Expression, Integer, Symbol, Real, Number
 
 
 def matrix_data(m):
@@ -28,6 +28,9 @@ def matrix_data(m):
 
 
 def to_sympy_matrix(data, **kwargs):
+    """Convert a Mathics matrix to one that can be used by Sympy.
+    None is returned if we can't convert to a Sympy matrix.
+    """
     if not isinstance(data, list):
         data = matrix_data(data)
     try:
@@ -37,6 +40,9 @@ def to_sympy_matrix(data, **kwargs):
 
 
 def to_mpmath_matrix(data, **kwargs):
+    """Convert a Mathics matrix to one that can be used by mpmath.
+    None is returned if we can't convert to a mpmath matrix.
+    """
     def mpmath_matrix_data(m):
         if not m.has_form('List', None):
             return None
@@ -693,15 +699,23 @@ class MatrixRank(Builtin):
 class Eigenvalues(Builtin):
     """
     <dl>
-    <dt>'Eigenvalues[$m$]'
-        <dd>computes the eigenvalues of the matrix $m$.
+      <dt>'Eigenvalues[$m$]'
+      <dd>computes the eigenvalues of the matrix $m$.
+      By default Sympy's routine is used. Sometiems this is slow and
+      less good than the corresponding mpmath routine. Use option Method->"mpmath" if you want
+      to use mpmath's routine instead.
     </dl>
 
-    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}] // Sort
-     = {-1, 1, 2}
+    Numeric eigenvalues are sorted in order of decreasing absolute value:
+    >> Eigenvalues[{{1, 1, 0}, {1, 0, 1}, {0, 1, 1}}]
+     = {2, -1, 1}
 
+    Symbolic eigenvalues:
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
      = {1, Cos[theta] + Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])], Cos[theta] - Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])]}
+
+    >> Eigenvalues[{{7, 1}, {-4, 3}}]
+     = {5, 5}
 
     >> Eigenvalues[{{7, 1}, {-4, 3}}]
      = {5, 5}
@@ -709,26 +723,57 @@ class Eigenvalues(Builtin):
     #> Eigenvalues[{{1, 0}, {0}}]
      : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
      = Eigenvalues[{{1, 0}, {0}}]
+
+    Compute Eigenvalues using mpmath's routines; Sympy is slow here and returns
+    complex numbers.
+    >> Eigenvalues[{{-8, 12, 4}, {12, -20, 0}, {4, 0, -2}}, Method->"mpmath"]
+     = {{0.842134, 0.396577, 0.365428}, {-0.5328, 0.507232, 0.677377}, {0.0832756, -0.765142, 0.638454}}
     """
+
+    sympy_name = "eigenvalues"
+    mpmath_name = "eig"
 
     messages = {
         'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
     }
 
-    def apply(self, m, evaluation):
-        'Eigenvalues[m_]'
+    @staticmethod
+    def mp_eig(mp_matrix) -> Expression:
+        try:
+            _, ER = mp.eig(mp_matrix)
+        except:
+            return None
 
-        matrix = to_sympy_matrix(m)
-        if matrix is None:
+        eigenvalues = ER.tolist()
+        # Sort the eigenvalues in the Mathematica convention: largest first.
+        eigenvalues.sort(key=lambda v: (abs(v[0]),-v[0].real,-(v[0].imag)), reverse=True)
+        eigenvalues = [[Number.from_mpmath(c) for c in row] for row in eigenvalues]
+        return Expression('List', *eigenvalues)
+
+
+    options = {
+        'Method': 'Sympy',
+    }
+
+    def apply(self, m, evaluation, options={}) -> Expression:
+        'Eigenvalues[m_, OptionsPattern[Eigenvalues]]'
+
+        method = self.get_option(options, 'Method', evaluation)
+        if method and method.get_string_value() == "mpmath":
+            mp_matrix = to_mpmath_matrix(m)
+            if mp_matrix is not None:
+                return self.mp_eig(mp_matrix)
+
+        sympy_matrix = to_sympy_matrix(m)
+        if sympy_matrix is None:
             return evaluation.message('Eigenvalues', 'matrix', m, 1)
 
-        if matrix.cols != matrix.rows or matrix.cols == 0:
+        if sympy_matrix.cols != sympy_matrix.rows or sympy_matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
 
-        eigenvalues = list(matrix.eigenvals().items())
-
-        # Try to sort the eigenvalues in the Mathematica convention
+        eigenvalues = list(sympy_matrix.eigenvals().items())
         if all(v.is_complex for (v, _) in eigenvalues):
+            # Try to sort the eigenvalues in the Mathematica convention: largest first.
             try:
                 eigenvalues.sort(key=lambda v: (abs(v[0]),-re(v[0]),-im(v[0])),
                                  reverse=True)
@@ -740,8 +785,9 @@ class Eigenvalues(Builtin):
             except TypeError:
                 pass
 
-        # Sort the eigenvalues by their sort key
         eigenvalues = [(from_sympy(v), c) for (v, c) in eigenvalues]
+
+        # Sort the eigenvalues by their sort key
         eigenvalues.sort(key=lambda v: v[0].get_sort_key())
 
         eigenvalues = [v for (v, c) in eigenvalues for _ in range(c)]
