@@ -19,7 +19,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics.core.characters import letters, letterlikes
+from mathics_scanner import letters, letterlikes
 
 type_compiled_pattern = type(re.compile("a.a"))
 names_wildcards = "@*"

@@ -23,6 +23,7 @@ import pathlib
 import os.path as osp
 from itertools import chain
 
+from mathics_scanner import TranslateError, FileLineFeeder
 
 from mathics.core.expression import (
     Expression,
@@ -2158,7 +2159,7 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation, options):
         "Get[path_String, OptionsPattern[Get]]"
-        from mathics.core.parser import parse, TranslateError, FileLineFeeder
+        from mathics.core.parser import parse
 
         def check_options(options):
             # Options
