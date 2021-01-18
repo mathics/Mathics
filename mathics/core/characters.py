@@ -3,18 +3,23 @@
 
 import re
 import yaml
+import ujson
 import os
 
 from mathics.settings import ROOT_DIR
 from mathics.core.util import re_from_keys
 
 ####### INITIALIZATION #######
+# FIXME: Move this to an install-time script
 
-def unicode_equivalent(k: str, v: dict):
-    if "unicode-equivalent" in v:
-        return v["unicode-equivalent"]
-    else:
-        return f"\\[{k}]"
+def re_from_keys(d: dict) -> str:
+    """Returns a regex that matches any of the keys of the dictionary"""
+
+    # The keys are sorted to prevent shorter keys from obscuring longer keys 
+    # when pattern matching
+    return "|".join(
+        sorted(map(re.escape, d.keys()), key=lambda k: (-len(k), k))
+    )
 
 # Load the raw data
 with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
@@ -26,7 +31,7 @@ WL_TO_PLAIN_DICT = {v["wl-unicode"]: f"\\[{k}]"
 WL_TO_PLAIN_RE = re_from_keys(WL_TO_PLAIN_DICT)
 
 # Conversion from WL to unicode
-WL_TO_UNICODE_DICT = {v["wl-unicode"]: unicode_equivalent(k, v)
+WL_TO_UNICODE_DICT = {v["wl-unicode"]: v.get("unicode-equivalent") or f"\\[{k}]"
                      for k, v in CHARS_DATA.items()
                      if "unicode-equivalent" not in v 
                      or v["unicode-equivalent"] != v["wl-unicode"]}
@@ -38,7 +43,33 @@ UNICODE_TO_WL_DICT = {v["unicode-equivalent"]: v["wl-unicode"]
                      if "unicode-equivalent" in v and v["has-unicode-inverse"]}
 UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
 
+# Character ranges of letterlikes
+LETTERLIKES = "".join(v["wl-unicode"] for v in CHARS_DATA.values()
+                      if v["is-letter-like"])
+
+# All supported named characters
+NAMED_CHARACTERS = {k: v["wl-unicode"] for k, v in CHARS_DATA.items()}
+
+# Dump the proprocessed dictioanries to disk as JSON
+with open(os.path.join(ROOT_DIR, "data/characters.json"), "w") as f:
+    json = {
+        "wl-to-plain-dict": WL_TO_PLAIN_DICT,
+        "wl-to-plain-re": WL_TO_PLAIN_RE,
+        "wl-to-unicode-dict": WL_TO_UNICODE_DICT,
+        "wl-to-unicode-re": WL_TO_UNICODE_RE,
+        "unicode-to-wl-dict": UNICODE_TO_WL_DICT,
+        "unicode-to-wl-re": UNICODE_TO_WL_RE,
+        "letterlikes": LETTERLIKES,
+        "named-characters": NAMED_CHARACTERS,
+    }
+
+    ujson.dump(json, f)
+
 ##############################
+
+# Load the conversion tables from disk
+with open(os.path.join(ROOT_DIR, "data/characters.json"), "r") as f:
+    _data = ujson.load(f)
 
 # Character ranges of letters
 letters = "a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
@@ -51,20 +82,31 @@ letters = "a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
 \uf776\uf779\uf77a\uf77d-\uf780\uf782-\uf78b\uf78d-\uf78f\uf790\
 \uf793-\uf79a\uf79c-\uf7a2\uf7a4-\uf7bd\uf800-\uf833\ufb01\ufb02"
 
+# Conversion from WL to the fully qualified names
+wl_to_plain_text = _data["wl-to-plain-dict"]
+_wl_to_plain_re = re.compile(_data["wl-to-plain-re"])
+
+# Conversion from WL to unicode
+wl_to_unicode = _data["wl-to-unicode-dict"]
+_wl_to_unicode_re = re.compile(_data["wl-to-unicode-re"])
+
+# Conversion from unicode to WL
+unicode_to_wl = _data["unicode-to-wl-dict"]
+_unicode_to_wl_re = re.compile(_data["unicode-to-wl-re"])
+
 # Character ranges of letterlikes
-letterlikes = "".join(v["wl-unicode"] for v in CHARS_DATA.values()
-                      if v["is-letter-like"])
+letterlikes = _data["letterlikes"]
 
 # All supported named characters
-named_characters = {k: v["wl-unicode"] for k, v in CHARS_DATA.items()}
+named_characters = _data["named-characters"]
 
 def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     """
     WL uses some non-unicode character for various things.
     Replace them with the unicode equivalent.
     """
-    r = WL_TO_UNICODE_RE if use_unicode else WL_TO_PLAIN_RE
-    d = WL_TO_UNICODE_DICT if use_unicode else WL_TO_PLAIN_DICT
+    r = _wl_to_unicode_re if use_unicode else _wl_to_plain_re
+    d = wl_to_unicode if use_unicode else wl_to_plain_text
 
     return r.sub(lambda m: d[m.group(0)], wl_input)
 
@@ -73,7 +115,7 @@ def replace_unicode_with_wl(unicode_input: str) -> str:
     WL uses some non-unicode character for various things.
     Replace their unicode equivalent with them.
     """
-    return UNICODE_TO_WL_RE.sub(
-        lambda m: UNICODE_TO_WL_DICT[m.group(0)], unicode_input
+    return _unicode_to_wl_re.sub(
+        lambda m: unicode_to_wl[m.group(0)], unicode_input
     )
 

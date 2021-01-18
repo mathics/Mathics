@@ -212,12 +212,3 @@ def robust_min(iterable):
             minimum = i
     return minimum
 
-def re_from_keys(d: dict) -> 're':
-    """Returns a regex that matches any of the keys of the dictionary"""
-
-    # The keys are sorted to prevent shorter keys from obscuring longer keys 
-    # when pattern matching
-    return re.compile(
-        "|".join(sorted(map(re.escape, d.keys()), key=lambda k: (-len(k), k)))
-    )
-
