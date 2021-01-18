@@ -27,9 +27,8 @@ def compile_tables(data: dict) -> dict:
     """
 
     # Conversion from WL to the fully qualified names
-    wl_to_plain_dict = {v["wl-unicode"]: f"\\[{k}]" 
-                       for k, v in data.items()}
-    wl_to_plain_re = re_from_keys(wl_to_plain_dict)
+    wl_to_ascii_dict = {v["wl-unicode"]: f"\\[{k}]" for k, v in data.items()}
+    wl_to_ascii_re = re_from_keys(wl_to_ascii_dict)
 
     # Conversion from wl to unicode
     wl_to_unicode_dict = {v["wl-unicode"]: v.get("unicode-equivalent") or f"\\[{k}]"
@@ -57,8 +56,8 @@ def compile_tables(data: dict) -> dict:
                          for v in data.values() if "esc-alias" in v}
 
     return {
-        "wl-to-plain-dict": wl_to_plain_dict,
-        "wl-to-plain-re": wl_to_plain_re,
+        "wl-to-ascii-dict": wl_to_ascii_dict,
+        "wl-to-ascii-re": wl_to_ascii_re,
         "wl-to-unicode-dict": wl_to_unicode_dict,
         "wl-to-unicode-re": wl_to_unicode_re,
         "unicode-to-wl-dict": unicode_to_wl_dict,
@@ -97,8 +96,8 @@ letters = "a-zA-Z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u0103\u0106\u0107\
 \uf793-\uf79a\uf79c-\uf7a2\uf7a4-\uf7bd\uf800-\uf833\ufb01\ufb02"
 
 # Conversion from WL to the fully qualified names
-wl_to_plain_text = _data["wl-to-plain-dict"]
-_wl_to_plain_re = re.compile(_data["wl-to-plain-re"])
+wl_to_ascii = _data["wl-to-ascii-dict"]
+_wl_to_ascii_re = re.compile(_data["wl-to-ascii-re"])
 
 # Conversion from WL to unicode
 wl_to_unicode = _data["wl-to-unicode-dict"]
@@ -122,8 +121,8 @@ def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     WL uses some non-unicode character for various things.
     Replace them with the unicode equivalent.
     """
-    r = _wl_to_unicode_re if use_unicode else _wl_to_plain_re
-    d = wl_to_unicode if use_unicode else wl_to_plain_text
+    r = _wl_to_unicode_re if use_unicode else _wl_to_ascii_re
+    d = wl_to_unicode if use_unicode else wl_to_ascii
 
     return r.sub(lambda m: d[m.group(0)], wl_input)
 
