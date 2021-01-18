@@ -20,54 +20,64 @@ def re_from_keys(d: dict) -> str:
         sorted(map(re.escape, d.keys()), key=lambda k: (-len(k), k))
     )
 
-# Load the raw data
-with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
-    CHARS_DATA = yaml.load(f, Loader=yaml.FullLoader)
+def compile_tables(data: dict) -> dict:
+    """
+    Compiles the general table into the tables used internally by the library 
+    for fast access
+    """
 
-# Conversion from WL to the fully qualified names
-WL_TO_PLAIN_DICT = {v["wl-unicode"]: f"\\[{k}]" 
-                   for k, v in CHARS_DATA.items()}
-WL_TO_PLAIN_RE = re_from_keys(WL_TO_PLAIN_DICT)
+    # Conversion from WL to the fully qualified names
+    wl_to_plain_dict = {v["wl-unicode"]: f"\\[{k}]" 
+                       for k, v in data.items()}
+    wl_to_plain_re = re_from_keys(wl_to_plain_dict)
 
-# Conversion from WL to unicode
-WL_TO_UNICODE_DICT = {v["wl-unicode"]: v.get("unicode-equivalent") or f"\\[{k}]"
-                     for k, v in CHARS_DATA.items()
-                     if "unicode-equivalent" not in v 
-                     or v["unicode-equivalent"] != v["wl-unicode"]}
-WL_TO_UNICODE_RE = re_from_keys(WL_TO_UNICODE_DICT)
+    # Conversion from wl to unicode
+    wl_to_unicode_dict = {v["wl-unicode"]: v.get("unicode-equivalent") or f"\\[{k}]"
+                         for k, v in data.items()
+                         if "unicode-equivalent" not in v 
+                         or v["unicode-equivalent"] != v["wl-unicode"]}
+    wl_to_unicode_re = re_from_keys(wl_to_unicode_dict)
 
-# Conversion from unicode to WL
-UNICODE_TO_WL_DICT = {v["unicode-equivalent"]: v["wl-unicode"]
-                     for v in CHARS_DATA.values()
-                     if "unicode-equivalent" in v and v["has-unicode-inverse"]}
-UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
+    # Conversion from unicode to wl
+    unicode_to_wl_dict = {v["unicode-equivalent"]: v["wl-unicode"]
+                         for v in data.values()
+                         if "unicode-equivalent" in v 
+                         and v["has-unicode-inverse"]}
+    unicode_to_wl_re = re_from_keys(unicode_to_wl_dict)
 
-# Character ranges of letterlikes
-LETTERLIKES = "".join(v["wl-unicode"] for v in CHARS_DATA.values()
-                      if v["is-letter-like"])
+    # Character ranges of letterlikes
+    letterlikes = "".join(v["wl-unicode"] for v in data.values()
+                          if v["is-letter-like"])
 
-# All supported named characters
-NAMED_CHARACTERS = {k: v["wl-unicode"] for k, v in CHARS_DATA.items()}
+    # All supported named characters
+    named_characters = {k: v["wl-unicode"] for k, v in data.items()}
 
-# ESC sequence aliases
-ALIASED_CHARACTERS = {v["esc-alias"]: v["wl-unicode"] 
-                     for v in CHARS_DATA.values() if "esc-alias" in v}
+    # ESC sequence aliases
+    aliased_characters = {v["esc-alias"]: v["wl-unicode"] 
+                         for v in data.values() if "esc-alias" in v}
 
-# Dump the proprocessed dictioanries to disk as JSON
-with open(os.path.join(ROOT_DIR, "data/characters.json"), "w") as f:
-    json = {
-        "wl-to-plain-dict": WL_TO_PLAIN_DICT,
-        "wl-to-plain-re": WL_TO_PLAIN_RE,
-        "wl-to-unicode-dict": WL_TO_UNICODE_DICT,
-        "wl-to-unicode-re": WL_TO_UNICODE_RE,
-        "unicode-to-wl-dict": UNICODE_TO_WL_DICT,
-        "unicode-to-wl-re": UNICODE_TO_WL_RE,
-        "letterlikes": LETTERLIKES,
-        "named-characters": NAMED_CHARACTERS,
-        "aliased-characters": ALIASED_CHARACTERS,
+    return {
+        "wl-to-plain-dict": wl_to_plain_dict,
+        "wl-to-plain-re": wl_to_plain_re,
+        "wl-to-unicode-dict": wl_to_unicode_dict,
+        "wl-to-unicode-re": wl_to_unicode_re,
+        "unicode-to-wl-dict": unicode_to_wl_dict,
+        "unicode-to-wl-re": unicode_to_wl_re,
+        "letterlikes": letterlikes,
+        "named-characters": named_characters,
+        "aliased-characters": aliased_characters,
     }
 
-    ujson.dump(json, f)
+# Process the data and dump it to disk
+with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as i, open(os.path.join(ROOT_DIR, "data/characters.json"), "w") as o:
+    # Load the YAML data
+    data = yaml.load(i, Loader=yaml.FullLoader) 
+
+    # Precompile the tables
+    data = compile_tables(data)
+
+    # Dump the proprocessed dictioanries to disk as JSON
+    ujson.dump(data, o)
 
 ##############################
 
