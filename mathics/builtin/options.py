@@ -114,7 +114,7 @@ class OptionValue(Builtin):
     Unavailable options generate a message:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[b]}
      : Option name b not found.
-     = {OptionValue[b]}
+     = {b}
 
     The argument of 'OptionValue' must be a symbol:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a+b]}
@@ -153,7 +153,7 @@ class OptionValue(Builtin):
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Symbol(name)
+            return
 
         val = get_option(evaluation.options, name, evaluation)
         if val is None:
@@ -174,7 +174,7 @@ class OptionValue(Builtin):
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Symbol(name)
+            return 
 
         val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
         if val is None and evaluation.options:
@@ -197,7 +197,7 @@ class OptionValue(Builtin):
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Symbol(name)
+            return
 
         val = get_option(optvals.get_option_values(evaluation), name, evaluation)
         if val is None:
