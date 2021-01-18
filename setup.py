@@ -91,6 +91,7 @@ INSTALL_REQUIRES += [
     "scikit-image",
     "wordcloud", # Used in builtin/image.py by WordCloud()
     "PyYAML", # Used in mathics.core.characters
+    "ujson", # Used in mathics.core.characters
 ]
 
 
@@ -157,6 +158,7 @@ setup(
             "data/*.csv",
             "data/*.yml",
             "data/*.yaml",
+            "data/*.json",
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",
