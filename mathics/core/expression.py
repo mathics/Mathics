@@ -91,9 +91,16 @@ def from_python(arg):
     """Converts a Python expression into a Mathics expression.
 
     TODO: I think there are number of subtleties to be explained here.
-    In particular, the expression might have come form Sympy so we
-    may need to deal with Sympy symbol or variables in the near future.
+    In particular, the expression might beeen the result of evaluation
+    a sympy expression which contains sympy symbols.
+
+    If the end result is to go back into Mathics for further
+    evaluation, then probably no problem.  However if the end result
+    is produce say a Python string, then at a minimum we may want to
+    convert backtick (context) symbols into some Python identifier
+    symbol like underscore.
     """
+
     number_type = get_type(arg)
     if arg is None:
         return SymbolNull
