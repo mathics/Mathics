@@ -184,7 +184,7 @@ setup(
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.org/",
-    download_url="https://github.com/mathics/Mathics/tarball/v1.1dev",
+    download_url="https://github.com/mathics/Mathics/releases",
     keywords=["Mathematica", "Wolfram", "Interpreter", "Shell", "Math", "CAS"],
     classifiers=[
         "Intended Audience :: Developers",
