@@ -6,7 +6,7 @@ import yaml
 import os
 
 from mathics.settings import ROOT_DIR
-from mathics.core.util import dict_with_escaped_keys, re_from_keys
+from mathics.core.util import re_from_keys
 
 ####### INITIALIZATION #######
 
@@ -21,19 +21,19 @@ with open(os.path.join(ROOT_DIR, "data/named-characters.yml"), "r") as f:
     CHARS_DATA = yaml.load(f, Loader=yaml.FullLoader)
 
 # Conversion from WL to the fully qualified names
-WL_TO_PLAIN_DICT = {re.escape(v["wl-unicode"]): f"\\[{k}]" 
+WL_TO_PLAIN_DICT = {v["wl-unicode"]: f"\\[{k}]" 
                    for k, v in CHARS_DATA.items()}
 WL_TO_PLAIN_RE = re_from_keys(WL_TO_PLAIN_DICT)
 
 # Conversion from WL to unicode
-WL_TO_UNICODE_DICT = {re.escape(v["wl-unicode"]): unicode_equivalent(k, v)
+WL_TO_UNICODE_DICT = {v["wl-unicode"]: unicode_equivalent(k, v)
                      for k, v in CHARS_DATA.items()
                      if "unicode-equivalent" not in v 
                      or v["unicode-equivalent"] != v["wl-unicode"]}
 WL_TO_UNICODE_RE = re_from_keys(WL_TO_UNICODE_DICT)
 
 # Conversion from unicode to WL
-UNICODE_TO_WL_DICT = {re.escape(v["unicode-equivalent"]): v["wl-unicode"]
+UNICODE_TO_WL_DICT = {v["unicode-equivalent"]: v["wl-unicode"]
                      for v in CHARS_DATA.values()
                      if "unicode-equivalent" in v and v["has-unicode-inverse"]}
 UNICODE_TO_WL_RE = re_from_keys(UNICODE_TO_WL_DICT)
@@ -66,7 +66,7 @@ def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     r = WL_TO_UNICODE_RE if use_unicode else WL_TO_PLAIN_RE
     d = WL_TO_UNICODE_DICT if use_unicode else WL_TO_PLAIN_DICT
 
-    return r.sub(lambda m: d[re.escape(m.group(0))], wl_input)
+    return r.sub(lambda m: d[m.group(0)], wl_input)
 
 def replace_unicode_with_wl(unicode_input: str) -> str:
     """
@@ -74,6 +74,6 @@ def replace_unicode_with_wl(unicode_input: str) -> str:
     Replace their unicode equivalent with them.
     """
     return UNICODE_TO_WL_RE.sub(
-        lambda m: UNICODE_TO_WL_DICT[re.escape(m.group(0))], unicode_input
+        lambda m: UNICODE_TO_WL_DICT[m.group(0)], unicode_input
     )
 

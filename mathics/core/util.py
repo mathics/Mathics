@@ -217,10 +217,7 @@ def re_from_keys(d: dict) -> 're':
 
     # The keys are sorted to prevent shorter keys from obscuring longer keys 
     # when pattern matching
-    return re.compile("|".join(sorted(d.keys(), key=lambda k: (-len(k), k))))
-
-def dict_with_escaped_keys(d: dict) -> dict:
-    """Takes a dictionary and returns a copy of it where the keys are escaped 
-    with re.escape"""
-    return {re.escape(k): v for k, v in d.items()}
+    return re.compile(
+        "|".join(sorted(map(re.escape, d.keys()), key=lambda k: (-len(k), k)))
+    )
 
