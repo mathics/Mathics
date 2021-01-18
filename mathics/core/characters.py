@@ -7,7 +7,6 @@ import ujson
 import os
 
 from mathics.settings import ROOT_DIR
-from mathics.core.util import re_from_keys
 
 ####### INITIALIZATION #######
 # FIXME: Move this to an install-time script
