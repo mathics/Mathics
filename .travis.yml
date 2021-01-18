@@ -21,6 +21,7 @@ before_install:
   - pip install cython
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
+  - pip install -e git://github.com/Mathics3/mathics-scanner.git#egg=Mathics-Scanner
   - make develop
 script:
   - make -j3 doc
