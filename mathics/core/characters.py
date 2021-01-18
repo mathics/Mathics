@@ -49,6 +49,10 @@ LETTERLIKES = "".join(v["wl-unicode"] for v in CHARS_DATA.values()
 # All supported named characters
 NAMED_CHARACTERS = {k: v["wl-unicode"] for k, v in CHARS_DATA.items()}
 
+# ESC sequence aliases
+ALIASED_CHARACTERS = {v["esc-alias"]: v["wl-unicode"] 
+                     for v in CHARS_DATA.values() if "esc-alias" in v}
+
 # Dump the proprocessed dictioanries to disk as JSON
 with open(os.path.join(ROOT_DIR, "data/characters.json"), "w") as f:
     json = {
@@ -60,6 +64,7 @@ with open(os.path.join(ROOT_DIR, "data/characters.json"), "w") as f:
         "unicode-to-wl-re": UNICODE_TO_WL_RE,
         "letterlikes": LETTERLIKES,
         "named-characters": NAMED_CHARACTERS,
+        "aliased-characters": ALIASED_CHARACTERS,
     }
 
     ujson.dump(json, f)
@@ -98,6 +103,9 @@ letterlikes = _data["letterlikes"]
 
 # All supported named characters
 named_characters = _data["named-characters"]
+
+# ESC sequence aliases
+aliased_characters = _data["aliased-characters"]
 
 def replace_wl_with_plain_text(wl_input: str, use_unicode=True) -> str:
     """
