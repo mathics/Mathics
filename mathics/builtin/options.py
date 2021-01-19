@@ -5,8 +5,8 @@
 Options and Default Arguments
 """
 
-from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
+from mathics.builtin.base import Builtin, Test, get_option
+from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
 from mathics.builtin.image import Image
 from mathics.core.expression import strip_context
 
@@ -114,7 +114,7 @@ class OptionValue(Builtin):
     Unavailable options generate a message:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[b]}
      : Option name b not found.
-     = {OptionValue[b]}
+     = {b}
 
     The argument of 'OptionValue' must be a symbol:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a+b]}
@@ -139,6 +139,12 @@ class OptionValue(Builtin):
         'OptionValue[optname_]'
         if evaluation.options is None:
             return
+
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
         name = optname.get_name()
         if not name:
             name = optname.get_string_value()
@@ -146,48 +152,63 @@ class OptionValue(Builtin):
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Expression('OptionValue', optname)
+            return
 
-        val = evaluation.options.get(name)
+        val = get_option(evaluation.options, name, evaluation)
         if val is None:
             evaluation.message('OptionValue', 'optnf', optname)
-            return Expression('OptionValue', optname)
+            return Symbol(name)
         return val
 
     def apply_2(self, f, optname, evaluation):
         'OptionValue[f_, optname_]'
-        name = optname.get_name()
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
         if not name:
             name = optname.get_string_value()
             if name:
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Expression('OptionValue', optname)
+            return 
 
-        val = evaluation.definitions.get_options(f.get_name()).get(name, None)
+        val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
+        if val is None and evaluation.options:
+            val = get_option(evaluation.options, name, evaluation)
         if val is None:
             evaluation.message('OptionValue', 'optnf', optname)
-            return Expression('OptionValue', optname)
+            return Symbol(name)
         return val
 
     def apply_3(self, f, optvals, optname, evaluation):
         'OptionValue[f_, optvals_, optname_]'
-        name = optname.get_name()
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
         if not name:
             name = optname.get_string_value()
             if name:
                 name = ensure_context(name)
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
-            return Expression('OptionValue', optname)
+            return
 
-        val = optvals.get_option_values(evaluation).get(name, None)
+        val = get_option(optvals.get_option_values(evaluation), name, evaluation)
         if val is None:
-            val = evaluation.definitions.get_options(f.get_name()).get(name, None)
+            val = get_option(
+                evaluation.definitions.get_options(f.get_name()),
+                name,
+                evaluation)
+        if val is None and evaluation.options:
+            val = get_option(evaluation.options, name, evaluation)
         if val is None:
             evaluation.message('OptionValue', 'optnf', optname)
-            return Expression('OptionValue', optname)
+            return Symbol(name)
         return val
 
 
