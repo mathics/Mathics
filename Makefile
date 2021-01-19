@@ -35,12 +35,10 @@ build:
 
 #: Set up to run from the source tree
 develop:
-	$(PIP) install PyYAML
 	$(PIP) install -e .
 
 #: Install mathics
 install:
-	$(PIP) install PyYAML
 	$(PYTHON) setup.py install
 
 check: pytest gstest doctest
