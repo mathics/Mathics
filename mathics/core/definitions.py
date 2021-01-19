@@ -19,7 +19,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics_scanner.tokenizer import base_names_patter, full_names_pattern
+from mathics_scanner.tokeniser import base_names_pattern, full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
 
