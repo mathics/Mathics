@@ -94,20 +94,22 @@ class Function(PostfixOperator):
 
         ## FIXME: In order to get the proper behaviour, we need
         ## to take into account  the attributes in the evaluation
-        ## By
+        ##
 
         print("Warning: incomplete implementation")
         if attr.has_form('List', None):
-            attr = attr.leaves
+            attr = [str(a) for a in  attr.leaves]
         else:
-            attr = [attr]
-        
+            attr = [str(attr)]
+
+            
         if vars.has_form('List', None):
             vars = vars.leaves
         else:
             vars = [vars]
 
-        args = args.get_sequence()
+
+        args = args.get_sequence()        
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:

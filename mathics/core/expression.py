@@ -855,6 +855,14 @@ class Expression(BaseExpression):
         if self._cache:
             self._cache = self._cache.reordered()
 
+    def get_attributes(self, definitions):
+        if type(self._head) is Expression and \
+            head.get_head_name() == "System`Function" and \
+            len(self._leaves > 2):
+            attributes = _leaves[2]
+        else:    
+            return set()
+
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
 
@@ -1173,8 +1181,9 @@ class Expression(BaseExpression):
 
     def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
         head = self._head.evaluate(evaluation)
-        attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
+        attributes = head.get_attributes(evaluation.definitions)
+
 
         def rest_range(indices):
             if 'System`HoldAllComplete' not in attributes:
