@@ -19,6 +19,8 @@ class Function(PostfixOperator):
         <dd>represents a pure function with parameters '#1', '#2', etc.
     <dt>'Function[{$x1$, $x2$, ...}, $body$]'
         <dd>represents a pure function with parameters $x1$, $x2$, etc.
+    <dt>'Function[{$x1$, $x2$, ...}, $body$, $attr$]'
+        <dd>assume that the function has the attributes $attr$.
     </dl>
 
     >> f := # ^ 2 &
@@ -80,6 +82,23 @@ class Function(PostfixOperator):
             vars = [vars]
 
         args = args.get_sequence()
+        if len(vars) > len(args):
+            evaluation.message('Function', 'fpct', )
+        else:
+            vars = dict(list(zip((
+                var.get_name() for var in vars), args[:len(vars)])))
+            return body.replace_vars(vars)
+
+    # Not sure it DRY is possible here...
+    def apply_named_attr(self, vars, body, attr, args, evaluation):
+        'Function[vars_, body_, attr_][args___]'
+        
+        if vars.has_form('List', None):
+            vars = vars.leaves
+        else:
+            vars = [vars]
+
+        args = args.get_sequence()        
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
