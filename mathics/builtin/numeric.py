@@ -1390,13 +1390,12 @@ class Hash(Builtin):
         h = hash_func()
         user_hash(h.update)
         res = h.hexdigest()
-        if  outformat == "HexString" or \
-            outformat == "HexStringLittleEndian" :
+        if  py_format in ('HexString', "HexStringLittleEndian") :
             return from_python(res)
         res = int(res, 16)
-        if outformat == "DecimalString":
+        if py_format == "DecimalString":
             return from_python(str(res))
-        elif outformat == "ByteArray":
+        elif py_format == "ByteArray":
             print("Not implemented. Return a string")
             return from_python(str(res))
         # Default: Integer
