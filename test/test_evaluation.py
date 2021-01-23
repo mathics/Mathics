@@ -99,10 +99,9 @@ def test_optionvalues():
         check_evaluation(str_expr, str_expected)
 
     result = session.evaluate("OptionValue[F, {a,b, l}]")
-    expected = session.evaluate('{89, 37, OptionValue[l]}')
+    expected = session.evaluate('{89, 37, l}')
     msg = "OptionValue::optnf: Option name l not found."
     assert result == expected, msg
-
 
 if sys.platform in ("linux",):
 
