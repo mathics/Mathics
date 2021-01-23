@@ -1340,6 +1340,8 @@ class Hash(Builtin):
     <dt>'Hash[$expr$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $expr$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'Hash[$expr$, $type$, $format$]'
+      <dd>Returns the hash in the  especified format.</dd>
     </dl>
 
     > Hash["The Adventures of Huckleberry Finn"]
@@ -1362,7 +1364,8 @@ class Hash(Builtin):
     """
 
     rules = {
-        "Hash[expr_]": 'Hash[expr, "MD5"]',
+        "Hash[expr_]": 'Hash[expr, "MD5", "Integer"]',
+        "Hash[expr_, type_String]": 'Hash[expr, type, "Integer"]',
     }
 
     attributes = ("Protected", "ReadProtected")
@@ -1380,17 +1383,32 @@ class Hash(Builtin):
     }
 
     @staticmethod
-    def compute(user_hash, py_hashtype):
+    def compute(user_hash, py_hashtype, py_format):
         hash_func = Hash._supported_hashes.get(py_hashtype)
         if hash_func is None:  # unknown hash function?
             return  # in order to return original Expression
         h = hash_func()
         user_hash(h.update)
-        return from_python(int(h.hexdigest(), 16))
+        res = h.hexdigest()
+        if  outformat == "HexString" or \
+            outformat == "HexStringLittleEndian" :
+            return from_python(res)
+        res = int(res, 16)
+        if outformat == "DecimalString":
+            return from_python(str(res))
+        elif outformat == "ByteArray":
+            print("Not implemented. Return a string")
+            return from_python(str(res))
+        # Default: Integer
+        return from_python(res)
+        
 
-    def apply(self, expr, hashtype, evaluation):
-        "Hash[expr_, hashtype_String]"
-        return Hash.compute(expr.user_hash, hashtype.get_string_value())
+    def apply(self, expr, hashtype, outformat, evaluation):
+        "Hash[expr_, hashtype_String, outformat_String]"
+        print("hashtype", hashtype)
+        return Hash.compute(expr.user_hash,
+                           hashtype.get_string_value(),
+                           outformat.get_string_value())
 
 
 class TypeEscalation(Exception):
