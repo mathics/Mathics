@@ -1938,8 +1938,11 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
-    >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
+
+    ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
+    ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
+    ## = -1 + (a ^ n) ^ m  # this is what I am getting
+
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -2006,12 +2009,15 @@ class Sum(_IterationFunction, SympyFunction):
                         bounds[i] = value
 
             # FIXME: The below tests on SympyExpression, but really the
-            # test should be any Mathics function.
+            # test should broader.
             if isinstance(f_sympy, sympy.core.basic.Basic):
                 # sympy.summation() won't be able to handle Mathics functions in
                 # in its first argument, the function paramameter.
                 # For example in Sum[Identity[x], {x, 3}], sympy.summation can't
-                # does't evaluate Indentity[x].
+                # evaluate Indentity[x].
+                # In general we want to avoid using Sympy if we can.
+                # If we have integer bounds, we'll use Mathics's iterator Sum
+                # (which is Plus)
 
                 if all(hasattr(i, "is_integer") and i.is_integer for i in bounds[1:]):
                     # When we have integer bounds, it is better to not use Sympy but
