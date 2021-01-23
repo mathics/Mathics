@@ -1938,11 +1938,9 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
-
     ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-    ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
     ## = -1 + (a ^ n) ^ m  # this is what I am getting
-
+    ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -2009,7 +2007,7 @@ class Sum(_IterationFunction, SympyFunction):
                         bounds[i] = value
 
             # FIXME: The below tests on SympyExpression, but really the
-            # test should broader.
+            # test should be broader.
             if isinstance(f_sympy, sympy.core.basic.Basic):
                 # sympy.summation() won't be able to handle Mathics functions in
                 # in its first argument, the function paramameter.
