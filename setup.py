@@ -54,7 +54,7 @@ long_description = read("README.rst") + "\n"
 is_PyPy = platform.python_implementation() == "PyPy"
 
 INSTALL_REQUIRES = []
-DEPENDENCY_LINKS = ['http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics-Scanner-1.0.0dev']
+DEPENDENCY_LINKS = ['http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev']
 
 try:
     if is_PyPy:
@@ -80,7 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics-Scanner>=1.0.0dev",
+    "Mathics_Scanner>=1.0.0.dev",
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.1.0",
     "numpy",
