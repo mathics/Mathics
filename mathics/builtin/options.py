@@ -162,7 +162,6 @@ class OptionValue(Builtin):
 
     def apply_2(self, f, optname, evaluation):
         'OptionValue[f_, optname_]'
-
         if type(optname) is String:
             name = optname.to_python()[1:-1]
         else:

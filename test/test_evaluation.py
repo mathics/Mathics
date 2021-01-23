@@ -61,7 +61,6 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
     else:
         assert result == expected
 
-
 @pytest.mark.parametrize(
     "str_setup,str_expr,str_expected,msg",
     [
@@ -95,7 +94,6 @@ def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str 
         assert result == expected, msg
     else:
         assert result == expected
-
 
 if sys.platform in ("linux",):
 

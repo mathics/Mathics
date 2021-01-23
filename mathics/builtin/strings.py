@@ -1583,7 +1583,6 @@ class ToString(Builtin):
                 'TotalHeight' : 'Infinity',
                 'TotalWidth' : 'Infinity'}
 
-    
     def apply(self, value, evaluation):
         'ToString[value_]'
 
