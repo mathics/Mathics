@@ -129,7 +129,6 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
-
     rules = {
         'OptionValue[optnames_List]': 'OptionValue/@optnames',
         'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
@@ -163,6 +162,7 @@ class OptionValue(Builtin):
 
     def apply_2(self, f, optname, evaluation):
         'OptionValue[f_, optname_]'
+
         if type(optname) is String:
             name = optname.to_python()[1:-1]
         else:

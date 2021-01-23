@@ -88,23 +88,33 @@ class ExpressionPointer(object):
 
 
 def from_python(arg):
+    """Converts a Python expression into a Mathics expression.
+
+    TODO: I think there are number of subtleties to be explained here.
+    In particular, the expression might beeen the result of evaluation
+    a sympy expression which contains sympy symbols.
+
+    If the end result is to go back into Mathics for further
+    evaluation, then probably no problem.  However if the end result
+    is produce say a Python string, then at a minimum we may want to
+    convert backtick (context) symbols into some Python identifier
+    symbol like underscore.
+    """
+
     number_type = get_type(arg)
     if arg is None:
-        return Symbol('Null')
+        return SymbolNull
     if isinstance(arg, bool):
-        if arg:
-            return SymbolTrue
-        else:
-            return SymbolFalse
-    if isinstance(arg, int) or number_type == 'z':
+        return SymbolTrue if arg else SymbolFalse
+    if isinstance(arg, int) or number_type == "z":
         return Integer(arg)
-    elif isinstance(arg, float) or number_type == 'f':
+    elif isinstance(arg, float) or number_type == "f":
         return Real(arg)
-    elif number_type == 'q':
+    elif number_type == "q":
         return Rational(arg)
     elif isinstance(arg, complex):
         return Complex(Real(arg.real), Real(arg.imag))
-    elif number_type == 'c':
+    elif number_type == "c":
         return Complex(arg.real, arg.imag)
     elif isinstance(arg, str):
         return String(arg)
@@ -113,8 +123,15 @@ def from_python(arg):
         # else:
         #     return Symbol(arg)
     elif isinstance(arg, dict):
-        entries = [Expression('Rule',from_python(key), from_python(arg[key])) for key in arg]
-        return Expression('List', *entries)
+        entries = [
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
+        ]
+        return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
@@ -1890,7 +1907,6 @@ class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
 
-    @staticmethod
     def from_mpmath(value, prec=None):
         'Converts mpf or mpc to Number.'
         if isinstance(value, mpmath.mpf):
@@ -1900,6 +1916,8 @@ class Number(Atom):
                 # HACK: use str here to prevent loss of precision
                 return PrecisionReal(sympy.Float(str(value), prec))
         elif isinstance(value, mpmath.mpc):
+            if value.imag == 0.0:
+                return Number.from_mpmath(value.real, prec)
             real = Number.from_mpmath(value.real, prec)
             imag = Number.from_mpmath(value.imag, prec)
             return Complex(real, imag)

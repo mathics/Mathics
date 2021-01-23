@@ -14,6 +14,15 @@ import pytest
         (r"s={x,1,3};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
+
+        # Sum tests:
+        (r"Sum[Identity[j], {j, 3}]", "6"),
+        (r"Sum[2 Identity[j], {j, 3}]", "12"),
+        ## Combinatorica V0.9 issue in computing NumberofInvolutions
+        (r"Sum[k!, {k, 0, Quotient[4, 2]}]", "4"),
+        ## Issue #431
+        (r"Sum[2^(-i), {i, 1, \[Infinity]}]", "1"),
+
         # Global System Information
         (r"Abs[$ByteOrdering]", "1"),
         (r"Head[$CommandLine]", "List"),
@@ -51,7 +60,6 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
         assert result == expected, message
     else:
         assert result == expected
-
 
 
 @pytest.mark.parametrize(
