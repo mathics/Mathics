@@ -281,6 +281,14 @@ class OptionQ(Test):
     >> OptionQ[{a :> True}]
      = True
 
+    Options lists are flattened when are applyied, so
+    >> OptionQ[{a -> True, {b->1, "c"->2}}]
+     = True
+    >> OptionQ[{a -> True, {b->1, c}}]
+     = False
+    >> OptionQ[{a -> True, F[b->1,c->2]}]
+     = False
+
     'OptionQ' returns 'False' if its argument is not a valid option
     specification:
     >> OptionQ[x]
@@ -288,6 +296,7 @@ class OptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:
@@ -316,6 +325,7 @@ class NotOptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:

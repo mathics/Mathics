@@ -855,6 +855,16 @@ class Expression(BaseExpression):
         if self._cache:
             self._cache = self._cache.reordered()
 
+    def get_attributes(self, definitions):
+        if self.get_head_name() == "System`Function" and \
+            len(self._leaves) > 2:
+            res = self._leaves[2]
+            if res.is_symbol():
+                return (str(res),)
+            elif res.has_form('List', None):
+                return set( str(a) for a in res._leaves )
+        return set()
+
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
 
