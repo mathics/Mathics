@@ -21,6 +21,13 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import get_precision, PrecisionValueError
 
+def mp_constant(fn, d=None):
+    if d is None:
+        return getattr(mpmath, fn)()
+    else:
+        mpmath.mp.dps = int_d = int(d)
+        return getattr(mpmath, fn)(prec=int_d)
+
 def mp_convert_constant(obj, **kwargs):
     if isinstance(obj, mpmath.ctx_mp_python._constant):
         prec = kwargs.get("prec", None)
@@ -29,21 +36,45 @@ def mp_convert_constant(obj, **kwargs):
         return sympy.Float(obj)
     return obj
 
+def numpy_constant(name, d=None):
+    return getattr(numpy, name)
 
-def mp_fn(fn, d=None):
-    if d is None:
-        return getattr(mpmath, fn)()
-    else:
-        mpmath.mp.dps = int_d = int(d)
-        return getattr(mpmath, fn)(prec=int_d)
+def sympy_constant(fn, d=None):
+    return getattr(sympy, fn).evalf(n=d)
 
 class _Constant_Common(Predefined):
 
     attributes = ("Constant", "ReadProtected")
+    nargs = 0
 
     def is_constant(self) -> bool:
-        # free Symbol will be converted to corresponding SymPy symbol
         return True
+
+    def get_constant(self, precision, evaluation, preference=None):
+        ## print("XXX", self, preference)
+        if preference is None:
+            preference = evaluation.parse("Settings`$PreferredBackendMethod").evaluate(evaluation).get_string_value()
+            # TODO: validate PreferredBackendMethod is in "mpmath", "numpy", "sympy"
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            d = None
+        ## print("XXX1", self, preference)
+
+        if preference == "sympy" and hasattr(self, "sympy_name"):
+            value = sympy_constant(self.sympy_name, d)
+        elif preference == "mathmp" and hasattr(self, "mpmath_name"):
+            value = mp_constant(self.mpmath_name, d)
+        elif preference == "numpy_name" and hasattr(self, "numpy_name"):
+            value = numpy_constant(self.numpy_name)
+        elif hasattr(self, "mpmath_name"):
+            value = mp_constant(self.mpmath_name, d)
+        elif hasattr(self, "sympy_name"):
+            value = sympy_constant(self.sympy_name, d)
+        elif hasattr(self, "numpy_name"):
+            value = numpy_constant(self.numpy_name)
+        return PrecisionReal(value)
+
 
 class MPMathConstant(_Constant_Common):
     """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
@@ -59,25 +90,8 @@ class MPMathConstant(_Constant_Common):
             self.mpmath_name = strip_context(self.get_name()).lower()
         self.mathics_to_mpmath[self.__class__.__name__] = self.mpmath_name
 
-    def get_constant(self, precision, evaluation, preference="mpmath"):
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        mpmath_name = self.mpmath_name
-        if d is None:
-            return MachineReal(mp_fn(mpmath_name))
-        elif preference == "mpmath":
-            result = mp_fn(mpmath_name, d)
-        else:
-            sympy_fn = self.to_sympy()
-            result = sympy_fn.n(d)
-        return PrecisionReal(result)
-
-
     def to_mpmath(self, args):
-        if self.mpmath_name is None or len(args) != self.nargs:
+        if self.mpmath_name is None or len(args) != 0:
             return None
         return getattr(mpmath, self.mpmath_name)
 
@@ -97,9 +111,9 @@ class NumpyConstant(_Constant_Common):
         self.mathics_to_numpy[self.__class__.__name__] = self.numpy_name
 
     def to_numpy(self, args):
-        if self.numpy_name is None or len(args) != self.nargs:
+        if self.numpy_name is None or len(args) != 0:
             return None
-        return getattr(numpy, self.numpy_name)
+        return self.get_constant()
 
 
 class SympyConstant(_Constant_Common, SympyObject):
@@ -107,28 +121,6 @@ class SympyConstant(_Constant_Common, SympyObject):
 
     # Subclasses should define this.
     sympy_name = None
-
-    def get_constant(self, precision, evaluation, preference="sympy"):
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        sympy_fn = self.to_sympy()
-        if d is None:
-            if hasattr(self, "mpmath_name"):
-                # Prefer mpmath when precision is not given.
-                result = mp_fn(self.mpmath_name)
-            else:
-                result = sympy_fn()
-            return MachineReal(result)
-
-        if preference == "sympy":
-            result = sympy_fn_n(d)
-        elif hasattr(self, "mpmath_name"):
-            result = mp_fn(self.mpmath_name, d)
-
-        return PrecisionReal(result)
 
     def to_sympy(self, expr=None, **kwargs):
         if expr is None or expr.is_atom():
@@ -269,7 +261,7 @@ class E(MPMathConstant, SympyConstant):
 
     def apply_N(self, precision, evaluation):
         "N[E, precision_]"
-        return self.get_constant(precision, evaluation, preference="sympy")
+        return self.get_constant(precision, evaluation)
 
 class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
     """
@@ -291,7 +283,7 @@ class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
 
     def apply_N(self, precision, evaluation):
         "N[EulerGamma, precision_]"
-        return self.get_constant(precision, evaluation, preference="sympy")
+        return self.get_constant(precision, evaluation)
 
 
 class GoldenRatio(MPMathConstant, SympyConstant):
@@ -312,7 +304,7 @@ class GoldenRatio(MPMathConstant, SympyConstant):
 
     def apply_N(self, precision, evaluation):
         "N[GoldenRatio, precision_]"
-        return self.get_constant(precision, evaluation, preference="sympy")
+        return self.get_constant(precision, evaluation)
 
 
 class Indeterminate(SympyConstant):
@@ -361,6 +353,8 @@ class Infinity(SympyConstant):
     """
 
     sympy_name = "oo"
+    numpy_name = "Inf"
+    mpmath_name = "inf"
     python_equivalent = math.inf
 
     rules = {
@@ -390,4 +384,4 @@ class Pi(MPMathConstant, SympyConstant):
 
     def apply_N(self, precision, evaluation):
         "N[Pi, precision_]"
-        return self.get_constant(precision, evaluation, preference="sympy")
+        return self.get_constant(precision, evaluation)
