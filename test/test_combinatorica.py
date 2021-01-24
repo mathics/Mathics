@@ -399,7 +399,6 @@ def test_special_classes_of_permutations_1_4():
 
 def test_combinations_1_5():
 
-    # Continue from here...
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
         (
@@ -437,6 +436,20 @@ def test_combinations_1_5():
             "RankSubset 1.5.2, Page 42",
         ),
         (
+            "GrayCode[Range[4]]",
+            "{{}, {1}, {1, 2}, {2}, {2, 3}, {1, 2, 3}, "
+            "{1, 3}, {3}, {3, 4}, {1, 3, 4}, {1, 2, 3, 4}, "
+            "{2, 3, 4}, {2, 4}, {1, 2, 4}, {1, 4}, {4}}",
+            "GrayCode 1.5.3, Page 43",
+        ),
+        (
+            "LexicographicSubsets[Range[4]]",
+            "{{}, {1}, {1, 2}, {1, 2, 3}, {1, 2, 3, 4}, "
+            "{1, 2, 4}, {1, 3}, {1, 3, 4}, {1, 4}, {2}, {2, 3}, "
+            "{2, 3, 4}, {2, 4}, {3}, {3, 4}, {4}}",
+            "LexicographicSubsets 1.5.4, Page 44",
+        ),
+        (
             "KSubsets[Range[3], 0]",
             "{ {} } ",
             "KSubsets[0] == { {} }",
@@ -447,10 +460,18 @@ def test_combinations_1_5():
             "KSubsets[Range[n, 1] == Partition[n]",
         ),
         (
+            "KSubsets[Range[5], 3]",
+            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, "
+            "{1, 3, 5}, {1, 4, 5}, {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, "
+            "{3, 4, 5}}",
+            "KSubsets 1.5.5, Page 44",
+        ),
+        (
             "KSubsets[Range[5], 5]",
             "{Range[5]} ",
             "KSubsets[l, k] == Length(l)",
         ),
+        # Start here in section 2.1 ...
     ):
         check_evaluation(str_expr, str_expected, message)
 
