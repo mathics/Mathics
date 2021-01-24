@@ -59,7 +59,10 @@ class _Constant_Common(Predefined):
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
             d = None
-        ## print("XXX1", self, preference)
+
+        conversion_fn = MachineReal if d is None else PrecisionReal
+
+        # print("XXX1", self, preference, conversion_fn)
 
         if preference == "sympy" and hasattr(self, "sympy_name"):
             value = sympy_constant(self.sympy_name, d)
@@ -73,7 +76,7 @@ class _Constant_Common(Predefined):
             value = sympy_constant(self.sympy_name, d)
         elif hasattr(self, "numpy_name"):
             value = numpy_constant(self.numpy_name)
-        return PrecisionReal(value)
+        return conversion_fn(value)
 
 
 class MPMathConstant(_Constant_Common):
