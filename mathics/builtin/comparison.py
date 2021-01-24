@@ -10,8 +10,9 @@ from mathics.builtin.base import (
     BinaryOperator,
     Builtin,
     SympyFunction,
-    mp_convert_constant,
     )
+
+from mathics.builtin.constants import mp_convert_constant
 
 from mathics.core.expression import (
     Complex,
