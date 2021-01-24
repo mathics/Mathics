@@ -382,7 +382,8 @@ def test_special_classes_of_permutations_1_4():
             "{16, 17, 5, 3, 14, 7, 1, 11, 10, 12, 9, 4, 6, 2, 15, 13, 8}",
             "Josephus; 1.4.3, Page 35",
         ),
-        # FIXME: Note RandomPermutation for large numbers isn't random
+        # FIXME: Note RandomPermutation1 for large numbers isn't random
+        # Therefore in combinatorica we use RandomPermutation2.
         (
             "HeapSort[Reverse[Range[10]]]",
             "Range[10]",
