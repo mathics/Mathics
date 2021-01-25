@@ -714,11 +714,6 @@ class Eigenvalues(Builtin):
     #> Eigenvalues[{{1, 0}, {0}}]
      : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
      = Eigenvalues[{{1, 0}, {0}}]
-
-    Compute Eigenvalues using mpmath's routines; Sympy is slow here and returns
-    complex numbers.
-    >> Eigenvalues[{{-8, 12, 4}, {12, -20, 0}, {4, 0, -2}}, Method->"mpmath"]
-     = {{0.842134, 0.396577, 0.365428}, {-0.5328, 0.507232, 0.677377}, {0.0832756, -0.765142, 0.638454}}
     """
 
     sympy_name = "eigenvalues"
@@ -1029,8 +1024,13 @@ class Eigenvectors(Builtin):
      = {{0, 1, 0}, {1, 0, 0}, {0, 0, 1}}
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+
+
+    ## There are problems, in $MachinePrecision = UnsignedInteger32 vs UnsignedIntegeret128
+    ## in testing. And this is better done in a unit test.
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
+     = ...
+    ### = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
      = {{1, 7, 3}, {1, 1, 0}, {0, 0, 0}}

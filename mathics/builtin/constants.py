@@ -21,12 +21,17 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import get_precision, PrecisionValueError
 
-def mp_constant(fn, d=None):
+
+def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
+    """
+    Return the mpmath constant _fn_ with integer precision _d_.
+    """
     if d is None:
         return getattr(mpmath, fn)()
     else:
         mpmath.mp.dps = int_d = int(d)
         return getattr(mpmath, fn)(prec=int_d)
+
 
 def mp_convert_constant(obj, **kwargs):
     if isinstance(obj, mpmath.ctx_mp_python._constant):
@@ -36,16 +41,23 @@ def mp_convert_constant(obj, **kwargs):
         return sympy.Float(obj)
     return obj
 
-def numpy_constant(name, d=None):
+
+def numpy_constant(name: str, d=None) -> float:
     return getattr(numpy, name)
+
 
 def sympy_constant(fn, d=None):
     return getattr(sympy, fn).evalf(n=d)
 
+
 class _Constant_Common(Predefined):
 
-    attributes = ("Constant", "ReadProtected")
+    attributes = ("Constant", "Protected", "ReadProtected")
     nargs = 0
+
+    def apply_N(self, precision, evaluation):
+        "N[%(name)s, precision_]"
+        return self.get_constant(precision, evaluation)
 
     def is_constant(self) -> bool:
         return True
@@ -53,7 +65,11 @@ class _Constant_Common(Predefined):
     def get_constant(self, precision, evaluation, preference=None):
         ## print("XXX", self, preference)
         if preference is None:
-            preference = evaluation.parse("Settings`$PreferredBackendMethod").evaluate(evaluation).get_string_value()
+            preference = (
+                evaluation.parse("Settings`$PreferredBackendMethod")
+                .evaluate(evaluation)
+                .get_string_value()
+            )
             # TODO: validate PreferredBackendMethod is in "mpmath", "numpy", "sympy"
         try:
             d = get_precision(precision, evaluation)
@@ -66,9 +82,9 @@ class _Constant_Common(Predefined):
 
         if preference == "sympy" and hasattr(self, "sympy_name"):
             value = sympy_constant(self.sympy_name, d)
-        elif preference == "mathmp" and hasattr(self, "mpmath_name"):
+        elif preference == "mpmath" and hasattr(self, "mpmath_name"):
             value = mp_constant(self.mpmath_name, d)
-        elif preference == "numpy_name" and hasattr(self, "numpy_name"):
+        elif preference == "numpy" and hasattr(self, "numpy_name"):
             value = numpy_constant(self.numpy_name)
         elif hasattr(self, "mpmath_name"):
             value = mp_constant(self.mpmath_name, d)
@@ -135,6 +151,7 @@ class SympyConstant(_Constant_Common, SympyObject):
             # there is no "native" SymPy expression for e.g. E[x]
             return None
 
+
 class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     """
     <dl>
@@ -152,10 +169,6 @@ class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     mpmath_name = "catalan"
     numpy_name = "catalan"
     sympy_name = "Catalan"
-
-    def apply_N(self, precision, evaluation):
-        "N[Catalan, precision_]"
-        return self.get_constant(precision, evaluation, preference="sympy")
 
 
 class ComplexInfinity(SympyConstant):
@@ -188,7 +201,7 @@ class ComplexInfinity(SympyConstant):
     }
 
 
-class Degree(MPMathConstant, SympyConstant):
+class Degree(MPMathConstant, NumpyConstant, SympyConstant):
     u"""
     <dl>
       <dt>'Degree'
@@ -221,6 +234,11 @@ class Degree(MPMathConstant, SympyConstant):
             # return mpmath.degree
             return sympy.pi / 180
 
+    def to_numpy(self, expr=None, **kwargs):
+        if expr == Symbol("System`Degree"):
+            # return mpmath.degree
+            return numpy.pi / 180
+
     def apply_N(self, precision, evaluation):
         "N[Degree, precision_]"
         try:
@@ -240,31 +258,32 @@ class Degree(MPMathConstant, SympyConstant):
             return PrecisionReal((sympy.pi / 180).n(d))
 
 
-
-class E(MPMathConstant, SympyConstant):
+class E(MPMathConstant, NumpyConstant, SympyConstant):
     """
-,    <dl>
-    <dt>'E'
-        <dd>is the constant e.
-    </dl>
+    ,    <dl>
+        <dt>'E'
+            <dd>is the constant e.
+        </dl>
 
-    >> N[E]
-     = 2.71828
-    >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937000
-    >> Attributes[E]
-     = {Constant, Protected, ReadProtected}
+        >> N[E]
+         = 2.71828
+        >> N[E, 50]
+         = 2.7182818284590452353602874713526624977572470937000
+        >> Attributes[E]
+         = {Constant, Protected, ReadProtected}
 
-    #> 5. E
-     = 13.5914
+        #> 5. E
+         = 13.5914
     """
 
-    sympy_name = "E"
     mpmath_name = "e"
+    numpy_name = "e"
+    sympy_name = "E"
 
     def apply_N(self, precision, evaluation):
         "N[E, precision_]"
         return self.get_constant(precision, evaluation)
+
 
 class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
     """
@@ -280,13 +299,25 @@ class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
      = 0.5772156649015328606065120900824024310422
     """
 
-    sympy_name = "EulerGamma"
     mpmath_name = "euler"
     numpy_name = "euler_gamma"
+    sympy_name = "EulerGamma"
 
-    def apply_N(self, precision, evaluation):
-        "N[EulerGamma, precision_]"
-        return self.get_constant(precision, evaluation)
+
+class Glaisher(MPMathConstant):
+    """
+    <dl>
+      <dt>'Glaisher'
+      <dd>is Glaisher's constant, with numerical value about 1.28243.
+    </dl>
+
+    >> N[Glaisher]
+     = 1.28243
+    >> N[Glaisher, 50]
+     = 1.2824271291006219541941391071304678916931152343750
+    """
+
+    mpmath_name = "glaisher"
 
 
 class GoldenRatio(MPMathConstant, SympyConstant):
@@ -304,10 +335,6 @@ class GoldenRatio(MPMathConstant, SympyConstant):
 
     sympy_name = "GoldenRatio"
     mpmath_name = "phi"
-
-    def apply_N(self, precision, evaluation):
-        "N[GoldenRatio, precision_]"
-        return self.get_constant(precision, evaluation)
 
 
 class Indeterminate(SympyConstant):
@@ -366,6 +393,22 @@ class Infinity(SympyConstant):
     }
 
 
+class Khinchin(MPMathConstant):
+    """
+    <dl>
+      <dt>'Khinchin'
+      <dd>is Khinchin's constant, with numerical value aboug 2.68545.
+    </dl>
+
+    >> N[Khinchin]
+     = 2.68545
+    >> N[Khinchin, 50]
+     = 2.6854520010653075701156922150403261184692382812500
+    """
+
+    mpmath_name = "khinchin"
+
+
 class Pi(MPMathConstant, SympyConstant):
     """
     <dl>
@@ -384,7 +427,3 @@ class Pi(MPMathConstant, SympyConstant):
     sympy_name = "pi"
     mpmath_name = "pi"
     numpy_name = "pi"
-
-    def apply_N(self, precision, evaluation):
-        "N[Pi, precision_]"
-        return self.get_constant(precision, evaluation)
