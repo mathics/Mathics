@@ -187,7 +187,6 @@ class OptionValue(Builtin):
         # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...        
         if val is None:
             if f.is_symbol():
-                print("f ", f, " is a symbol")
                 val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
             else:
                 if f.get_head_name() in ('System`Rule', 'System`RuleDelayed'):
@@ -195,7 +194,6 @@ class OptionValue(Builtin):
                 if f.get_head_name() == 'System`List':
                     for leave in f.get_leaves():
                         if leave.is_symbol():
-                            print("it is a symbol")
                             val = get_option(evaluation.definitions.get_options(leave.get_name()), name, evaluation)
                             if val:
                                 break
