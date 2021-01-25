@@ -10,6 +10,8 @@ from threading import Thread, stack_size as set_thread_stack_size
 
 from typing import Tuple
 
+from mathics_scanner import TranslateError
+
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
 
@@ -276,7 +278,6 @@ class Evaluation(object):
     def parse_feeder_returning_code(self, feeder):
         "Parse a single expression from feeder and print the messages."
         from mathics.core.parser.util import parse_returning_code
-        from mathics.core.parser import TranslateError
 
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)

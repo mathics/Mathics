@@ -54,7 +54,7 @@ long_description = read("README.rst") + "\n"
 is_PyPy = platform.python_implementation() == "PyPy"
 
 INSTALL_REQUIRES = []
-DEPENDENCY_LINKS = []
+DEPENDENCY_LINKS = ['http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev']
 
 try:
     if is_PyPy:
@@ -80,6 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
+    "Mathics_Scanner>=1.0.0.dev",
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.1.0",
     "numpy",
@@ -90,6 +91,7 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud", # Used in builtin/image.py by WordCloud()
+    "PyYAML", # Used in mathics.core.characters
 ]
 
 
@@ -154,6 +156,8 @@ setup(
     package_data={
         "mathics": [
             "data/*.csv",
+            "data/*.yml",
+            "data/*.yaml",
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",

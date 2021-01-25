@@ -19,6 +19,7 @@ before_install:
   - pip install ipywidgets ipykernel requests IPython==5.0.0 langid pycountry pyenchant lxml matplotlib unittest2 pexpect
   - python travis.py
   - pip install cython
+  - pip install -e git://github.com/Mathics3/mathics-scanner.git#egg=Mathics_Scanner
 install:
   - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
   - make develop
