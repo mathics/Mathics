@@ -156,7 +156,7 @@ class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     """
     <dl>
     <dt>'Catalan'
-        <dd>is Catalan's constant with numerical value about 0.915966
+        <dd>is Catalan's constant with numerical value \u2243 0.915966.
     </dl>
 
     >> Catalan // N
@@ -205,7 +205,7 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
     u"""
     <dl>
       <dt>'Degree'
-      <dd>is the number of radians in one degree.
+      <dd>is the number of radians in one degree. It hsas a numerical value of \u03c0 / 180.
     </dl>
     >> Cos[60 Degree]
      = 1 / 2
@@ -260,17 +260,15 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
 
 class E(MPMathConstant, NumpyConstant, SympyConstant):
     """
-    ,    <dl>
-        <dt>'E'
-            <dd>is the constant e.
+        <dl>
+        <dt>'E'</dt>
+            <dd>is the constant \u2147 with numerical value \u2243 2.71828.
         </dl>
 
         >> N[E]
          = 2.71828
         >> N[E, 50]
          = 2.7182818284590452353602874713526624977572470937000
-        >> Attributes[E]
-         = {Constant, Protected, ReadProtected}
 
         #> 5. E
          = 13.5914
@@ -286,10 +284,10 @@ class E(MPMathConstant, NumpyConstant, SympyConstant):
 
 
 class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
-    """
+    u"""
     <dl>
-      <dt>'EulerGamma'
-      <dd>is Euler's constant $y$ with numerial value around 0.577216.
+      <dt>'EulerGamma'</dt>
+      <dd>is Euler's constant \u03b3 with numerial value \u2243 0.577216.
     </dl>
 
     >> EulerGamma // N
@@ -305,10 +303,10 @@ class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
 
 
 class Glaisher(MPMathConstant):
-    """
+    u"""
     <dl>
-      <dt>'Glaisher'
-      <dd>is Glaisher's constant, with numerical value about 1.28243.
+      <dt>'Glaisher'</dt>
+      <dd>is Glaisher's constant, with numerical value \u2243 1.28243.
     </dl>
 
     >> N[Glaisher]
@@ -321,10 +319,10 @@ class Glaisher(MPMathConstant):
 
 
 class GoldenRatio(MPMathConstant, SympyConstant):
-    """
+    u"""
     <dl>
       <dt>'GoldenRatio'
-      <dd>is the golden ratio, Phi = (1+Sqrt[5])/2.
+      <dd>is the golden ratio, \u03D5 = (1+Sqrt[5])/2.
     </dl>
 
     >> GoldenRatio // N
@@ -340,7 +338,7 @@ class GoldenRatio(MPMathConstant, SympyConstant):
 class Indeterminate(SympyConstant):
     """
     <dl>
-    <dt>'Indeterminate'
+    <dt>'Indeterminate'</dt>
         <dd>represents an indeterminate result.
     </dl>
 
@@ -394,10 +392,10 @@ class Infinity(SympyConstant):
 
 
 class Khinchin(MPMathConstant):
-    """
+    u"""
     <dl>
-      <dt>'Khinchin'
-      <dd>is Khinchin's constant, with numerical value aboug 2.68545.
+      <dt>'Khinchin'</dt>
+      <dd>is Khinchin's constant, with numerical value \u2243 2.68545.
     </dl>
 
     >> N[Khinchin]
@@ -412,7 +410,7 @@ class Khinchin(MPMathConstant):
 class Pi(MPMathConstant, SympyConstant):
     """
     <dl>
-      <dt>'Pi'
+      <dt>'Pi'</dt>
       <dd>is the constant \u03c0.
     </dl>
 

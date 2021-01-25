@@ -692,7 +692,7 @@ class Eigenvalues(Builtin):
     <dl>
       <dt>'Eigenvalues[$m$]'
       <dd>computes the eigenvalues of the matrix $m$.
-      By default Sympy's routine is used. Sometiems this is slow and
+      By default Sympy's routine is used. Sometimes this is slow and
       less good than the corresponding mpmath routine. Use option Method->"mpmath" if you want
       to use mpmath's routine instead.
     </dl>
