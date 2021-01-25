@@ -163,26 +163,7 @@ class OptionValue(Builtin):
 
     def apply_2(self, f, optname, evaluation):
         'OptionValue[f_, optname_]'
-        if type(optname) is String:
-            name = optname.to_python()[1:-1]
-        else:
-            name = optname.get_name()
-
-        if not name:
-            name = optname.get_string_value()
-            if name:
-                name = ensure_context(name)
-        if not name:
-            evaluation.message('OptionValue', 'sym', optname, 1)
-            return 
-
-        val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
-        if val is None and evaluation.options:
-            val = get_option(evaluation.options, name, evaluation)
-        if val is None:
-            evaluation.message('OptionValue', 'optnf', optname)
-            return Symbol(name)
-        return val
+        return self.apply_3(f, None, optname, evaluation)
 
     def apply_3(self, f, optvals, optname, evaluation):
         'OptionValue[f_, optvals_, optname_]'
@@ -198,13 +179,32 @@ class OptionValue(Builtin):
         if not name:
             evaluation.message('OptionValue', 'sym', optname, 1)
             return
-
-        val = get_option(optvals.get_option_values(evaluation), name, evaluation)
+        # Look first in the explicit list
+        if optvals:
+            val = get_option(optvals.get_option_values(evaluation), name, evaluation)
+        else:
+            val = None
+        # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...        
         if val is None:
-            val = get_option(
-                evaluation.definitions.get_options(f.get_name()),
-                name,
-                evaluation)
+            if f.is_symbol():
+                print("f ", f, " is a symbol")
+                val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
+            else:
+                if f.get_head_name() in ('System`Rule', 'System`RuleDelayed'):
+                    f = Expression("List", f)
+                if f.get_head_name() == 'System`List':
+                    for leave in f.get_leaves():
+                        if leave.is_symbol():
+                            print("it is a symbol")
+                            val = get_option(evaluation.definitions.get_options(leave.get_name()), name, evaluation)
+                            if val:
+                                break
+                        else:
+                            values = leave.get_option_values(evaluation)
+                            val = get_option(values, name, evaluation)
+                            if val:
+                                break
+
         if val is None and evaluation.options:
             val = get_option(evaluation.options, name, evaluation)
         if val is None:
