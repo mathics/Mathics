@@ -14,7 +14,7 @@ from mathics_scanner import TranslateError
 
 from mathics import settings
 
-#from mathics.layout.client import NoWebEngine
+from mathics.layout.client import NoWebEngine
 from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
 
 

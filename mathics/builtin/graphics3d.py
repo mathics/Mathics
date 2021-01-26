@@ -114,21 +114,20 @@ class Graphics3D(Graphics):
      . import three;
      . import solids;
      . size(6.6667cm, 6.6667cm);
-     . currentprojection=perspective(2.6,-4.8,4.0);
+     . currentprojection=perspective(1.3,-2.4,2.0);
      . currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
-     . path3 g=(0,1,0)--(0.20791,0.97815,0)--(0.40674,0.91355,0)--(0.58779,0.80902,0)--(0.74314,0.66913,0)--(0.86603,0.5,0)--(0.95106,0.30902,0)--(0.99452,0.10453,0)--(0.99452,-0.10453,0)--(0.95106,-0.30902,0)--(0.86603,-0.5,0)--(0.74314,-0.66913,0)--(0.58779,-0.80902,0)--(0.40674,-0.91355,0)--(0.20791,-0.97815,0)--(5.6655e-16,-1,0)--(-0.20791,-0.97815,0)--(-0.40674,-0.91355,0)--(-0.58779,-0.80902,0)--(-0.74314,-0.66913,0)--(-0.86603,-0.5,0)--(-0.95106,-0.30902,0)--(-0.99452,-0.10453,0)--(-0.99452,0.10453,0)--(-0.95106,0.30902,0)--(-0.86603,0.5,0)--(-0.74314,0.66913,0)--(-0.58779,0.80902,0)--(-0.40674,0.91355,0)--(-0.20791,0.97815,0)--(1.5314e-15,1,0)--cycle;dot(g, rgb(0, 0, 0));
-     . draw(((-0.99452,-1,-1)--(0.99452,-1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,1,-1)--(0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,-1,1)--(0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,1,1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,-1,-1)--(-0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.99452,-1,-1)--(0.99452,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,-1,1)--(-0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.99452,-1,1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,-1,-1)--(-0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.99452,-1,-1)--(0.99452,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((-0.99452,1,-1)--(-0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
-     . draw(((0.99452,1,-1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,0,0)--(1,0,0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,1,0)--(1,1,0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,0,1)--(1,0,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,1,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,0,0)--(0,1,0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,0,0)--(1,1,0)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,0,1)--(0,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,0,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,0,0)--(0,0,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,0,0)--(1,0,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((0,1,0)--(0,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+     . draw(((1,1,0)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . \end{asy}
     """
 
@@ -773,6 +772,7 @@ class Graphics3DElements(_GraphicsElements):
         ) = self.pixel_height = self.extent_width = self.extent_height = None
 
     def make_coords(self, points):
+        print("make_coords3d",points)
         return [Coords3D(self, p) for p in points]
 
     def extent(self, completely_visible_only=False):
@@ -800,6 +800,7 @@ class Graphics3DElements(_GraphicsElements):
 
 class Point3DBox(PointBox):
     def init(self, *args, **kwargs):
+        print("Point3DBox.init")
         super(Point3DBox, self).init(*args, **kwargs)
 
     def process_option(self, name, value):
@@ -903,6 +904,7 @@ class Line3DBox(LineBox):
 class Polygon3DBox(PolygonBox):
     def init(self, *args, **kwargs):
         self.vertex_normals = None
+        self.vertex_colors = None
         super(Polygon3DBox, self).init(*args, **kwargs)
 
     def process_option(self, name, value):

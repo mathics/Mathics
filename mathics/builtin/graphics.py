@@ -48,6 +48,11 @@ GRAPHICS_OPTIONS = {
     "ImageSize": "Automatic",
     "Background": "Automatic",
     "$OptionSyntax": "Ignore",
+    # Mathics specific; used internally to enable stuff like
+    # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics
+    # will hit SVGs numerical accuracy abilities in some browsers as strokes with width < 1e-6
+    # will get rounded to 0 and thus won't get scale transformed in SVG and vanish.
+    "Transformation": "Automatic",
 }
 
 
@@ -72,21 +77,21 @@ def get_class(name):
     # like return globals().get(name)
 
 
-<<<<<<< HEAD
-def expr_to_coords(value):
-    if not value.has_form('List', 2):
-        raise CoordinatesError
-    x, y = value.leaves[0].to_mpmath(), value.leaves[1].to_mpmath()
-    if x is None or y is None:
-        raise CoordinatesError
-    return x, y
+
+# def expr_to_coords(value):
+#    if not value.has_form('List', 2):
+#        raise CoordinatesError
+#    x, y = value.leaves[0].to_mpmath(), value.leaves[1].to_mpmath()
+#    if x is None or y is None:
+#        raise CoordinatesError
+#    return x, y
 
 
-def add_coords(a, b):
-    x1, y1 = a
-    x2, y2 = b
-    return x1 + x2, y1 + y2
-=======
+# def add_coords(a, b):
+#    x1, y1 = a
+#    x2, y2 = b
+#    return x1 + x2, y1 + y2
+
 def coords(value):
     if value.has_form("List", 2):
         x, y = value.leaves[0].round_to_float(), value.leaves[1].round_to_float()
@@ -113,7 +118,7 @@ class Coords(object):
 
     def pos(self):
         p = self.graphics.translate(self.p)
-        p = (cut(p[0]), cut(p[1]))
+        p = (cut_global(p[0]), cut_global(p[1]))
         if self.d is not None:
             d = self.graphics.translate_absolute(self.d)
             return (p[0] + d[0], p[1] + d[1])
@@ -122,7 +127,7 @@ class Coords(object):
     def add(self, x, y):
         p = (self.p[0] + x, self.p[1] + y)
         return Coords(self.graphics, pos=p, d=self.d)
->>>>>>> upstream/master
+
 
 
 def axis_coords(graphics, pos, d=None):
@@ -133,6 +138,14 @@ def axis_coords(graphics, pos, d=None):
     else:
         return p
 
+def cut_global(value):
+    "Cut values in graphics primitives (not displayed otherwise in SVG)"
+    border = 10 ** 8
+    if value < -border:
+        value = -border
+    elif value > border:
+        value = border
+    return value
 
 def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None):
     css = []
@@ -167,14 +180,9 @@ def _to_float(x):
     return x
 
 
-<<<<<<< HEAD
-def create_pens(edge_color=None, face_color=None, stroke_width=None,
-                is_face_element=False):
-=======
 def create_pens(
     edge_color=None, face_color=None, stroke_width=None, is_face_element=False
 ):
->>>>>>> upstream/master
     result = []
     if face_color is not None:
         brush, opacity = face_color.to_asy()
@@ -227,34 +235,13 @@ def _component_distance(a, b, i):
 def _cie2000_distance(lab1, lab2):
     # reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon
-<<<<<<< HEAD
-    kL = kC = kH = 1 #common values
-=======
     kL = kC = kH = 1  # common values
->>>>>>> upstream/master
 
     L1, L2 = lab1[0], lab2[0]
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
 
     dL = L2 - L1
-<<<<<<< HEAD
-    Lm = (L1 + L2)/2
-    C1 = sqrt(a1**2 + b1**2)
-    C2 = sqrt(a2**2 + b2**2)
-    Cm = (C1 + C2)/2;
-
-    a1 = a1 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-    a2 = a2 * (1 + (1 - sqrt(Cm**7/(Cm**7 + 25**7)))/2)
-
-    C1 = sqrt(a1**2 + b1**2)
-    C2 = sqrt(a2**2 + b2**2)
-    Cm = (C1 + C2)/2
-    dC = C2 - C1
-
-    h1 = (180 * atan2(b1, a1 + e))/pi % 360
-    h2 = (180 * atan2(b2, a2 + e))/pi % 360
-=======
     Lm = (L1 + L2) / 2
     C1 = sqrt(a1 ** 2 + b1 ** 2)
     C2 = sqrt(a2 ** 2 + b2 ** 2)
@@ -270,7 +257,6 @@ def _cie2000_distance(lab1, lab2):
 
     h1 = (180 * atan2(b1, a1 + e)) / pi % 360
     h2 = (180 * atan2(b2, a2 + e)) / pi % 360
->>>>>>> upstream/master
     if abs(h2 - h1) <= 180:
         dh = h2 - h1
     elif abs(h2 - h1) > 180 and h2 <= h1:
@@ -278,19 +264,6 @@ def _cie2000_distance(lab1, lab2):
     elif abs(h2 - h1) > 180 and h2 > h1:
         dh = h2 - h1 - 360
 
-<<<<<<< HEAD
-    dH = 2*sqrt(C1*C2)*sin(radians(dh)/2)
-
-    Hm = (h1 + h2)/2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360)/2
-    T = 1 - 0.17*cos(radians(Hm - 30)) + 0.24*cos(radians(2*Hm)) + 0.32*cos(radians(3*Hm + 6)) - 0.2*cos(radians(4*Hm - 63))
-
-    SL = 1 + (0.015*(Lm - 50)**2)/sqrt(20 + (Lm - 50)**2)
-    SC = 1 + 0.045*Cm
-    SH = 1 + 0.015*Cm*T
-
-    rT = -2 * sqrt(Cm**7/(Cm**7 + 25**7))*sin(radians(60*exp(-((Hm - 275)**2 / 25**2))))
-    return sqrt((dL/(SL*kL))**2 + (dC/(SC*kC))**2 + (dH/(SH*kH))**2 + rT*(dC/(SC*kC))*(dH/(SH*kH)))
-=======
     dH = 2 * sqrt(C1 * C2) * sin(radians(dh) / 2)
 
     Hm = (h1 + h2) / 2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360) / 2
@@ -317,7 +290,7 @@ def _cie2000_distance(lab1, lab2):
         + (dH / (SH * kH)) ** 2
         + rT * (dC / (SC * kC)) * (dH / (SH * kH))
     )
->>>>>>> upstream/master
+
 
 
 def _CMC_distance(lab1, lab2, l, c):
@@ -326,24 +299,6 @@ def _CMC_distance(lab1, lab2, l, c):
     a1, a2 = lab1[1], lab2[1]
     b1, b2 = lab1[2], lab2[2]
 
-<<<<<<< HEAD
-    dL, da, db = L2-L1, a2-a1, b2-b1
-    e = machine_epsilon
-
-    C1 = sqrt(a1**2 + b1**2);
-    C2 = sqrt(a2**2 + b2**2);
-
-    h1 = (180 * atan2(b1, a1 + e))/pi % 360;
-    dC = C2 - C1;
-    dH2 = da**2 + db**2 - dC**2;
-    F = C1**2/sqrt(C1**4 + 1900);
-    T = 0.56 + abs(0.2*cos(radians(h1 + 168))) if (164 <= h1 and h1 <= 345) else 0.36 + abs(0.4*cos(radians(h1 + 35)));
-
-    SL = 0.511 if L1 < 16 else (0.040975*L1)/(1 + 0.01765*L1);
-    SC = (0.0638*C1)/(1 + 0.0131*C1) + 0.638;
-    SH = SC*(F*T + 1 - F);
-    return sqrt((dL/(l*SL))**2 + (dC/(c*SC))**2 + dH2/SH**2)
-=======
     dL, da, db = L2 - L1, a2 - a1, b2 - b1
     e = machine_epsilon
 
@@ -364,7 +319,7 @@ def _CMC_distance(lab1, lab2, l, c):
     SC = (0.0638 * C1) / (1 + 0.0131 * C1) + 0.638
     SH = SC * (F * T + 1 - F)
     return sqrt((dL / (l * SL)) ** 2 + (dC / (c * SC)) ** 2 + dH2 / SH ** 2)
->>>>>>> upstream/master
+
 
 
 def _extract_graphics(graphics, format, evaluation):
@@ -372,39 +327,28 @@ def _extract_graphics(graphics, format, evaluation):
     builtin = GraphicsBox(expression=False)
 
     elements, calc_dimensions = builtin._prepare_elements(
-<<<<<<< HEAD
-        graphics_box.leaves, {'evaluation': evaluation}, neg_y=True)
-=======
         graphics_box.leaves, {"evaluation": evaluation}, neg_y=True
     )
     xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
->>>>>>> upstream/master
 
     if not isinstance(elements.elements[0], GeometricTransformationBox):
         raise ValueError('expected GeometricTransformationBox')
 
+    # mmatera: in master, contents = elements.elements. Not sure what is de best 
     contents = elements.elements[0].contents
-
+    
     # generate code for svg or asy.
 
-<<<<<<< HEAD
-    if format == 'asy':
-        code = '\n'.join(element.to_asy() for element in contents)
-    elif format == 'svg':
-        code = ''.join(element.to_svg() for element in contents)
-=======
     if format == "asy":
         code = "\n".join(element.to_asy() for element in elements.elements)
     elif format == "svg":
         code = elements.to_svg()
->>>>>>> upstream/master
     else:
         raise NotImplementedError
 
     return code
 
-
-<<<<<<< HEAD
+# This function and class were defined by poke1024.
 def _to_float(x):
     if isinstance(x, Integer):
         return x.get_int_value()
@@ -442,35 +386,11 @@ class _Transform:
             return self.multiply(transform0)
         else:
             t = self
-=======
-class _SVGTransform:
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        self.transforms.append("matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f))
-
-    def translate(self, x, y):
-        self.transforms.append("translate(%f, %f)" % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append("scale(%f, %f)" % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append("rotate(%f)" % x)
-
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (" ".join(self.transforms), svg)
->>>>>>> upstream/master
 
             def combined(*p, w=1):
                 return transform0(*t(*p, w=w), w=w)
             return combined
 
-<<<<<<< HEAD
     def inverse(self):
         return _Transform(Matrix(self.matrix).inv().tolist())
 
@@ -481,19 +401,6 @@ class _SVGTransform:
 
     def __call__(self, *p, w=1):
         m = self.matrix
-=======
-class _ASYTransform:
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
->>>>>>> upstream/master
 
         m11 = m[0][0]
         m12 = m[0][1]
@@ -528,7 +435,6 @@ class _ASYTransform:
         # a c e
         # b d f
         # 0 0 1
-<<<<<<< HEAD
 
         t = 'matrix(%f, %f, %f, %f, %f, %f)' % (a, b, c, d, e, f)
         return '<g transform="%s">%s</g>' % (t, svg)
@@ -559,7 +465,60 @@ class _ASYTransform:
 
 def _no_transform(*p, w=None):
     return p
-=======
+
+# This is what we have now in master
+class _SVGTransform:
+    def __init__(self):
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        self.transforms.append("matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f))
+
+    def translate(self, x, y):
+        self.transforms.append("translate(%f, %f)" % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append("scale(%f, %f)" % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append("rotate(%f)" % x)
+
+    def apply(self, svg):
+        return '<g transform="%s">%s</g>' % (" ".join(self.transforms), svg)
+
+
+
+class _ASYTransform:
+    _template = """
+    add(%s * (new picture() {
+        picture saved = currentpicture;
+        picture transformed = new picture;
+        currentpicture = transformed;
+        %s
+        currentpicture = saved;
+        return transformed;
+    })());
+    """
+
+    def to_svg(self, svg):
+        m = self.matrix
+
+        a = m[0][0]
+        b = m[1][0]
+        c = m[0][1]
+        d = m[1][1]
+        e = m[0][2]
+        f = m[1][2]
+
+        if m[2][0] != 0. or m[2][1] != 0. or m[2][2] != 1.:
+            raise BoxConstructError
+
+        # a c e
+        # b d f
+        # 0 0 1
         # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
         self.transforms.append("(%f, %f, %f, %f, %f, %f)" % (e, f, a, c, b, d))
 
@@ -607,7 +566,6 @@ class Show(Builtin):
         graphics = graphics.restructure(graphics.head, new_leaves, evaluation)
 
         return graphics
->>>>>>> upstream/master
 
 
 class Graphics(Builtin):
@@ -655,34 +613,13 @@ class Graphics(Builtin):
      . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
      . \end{asy}
-<<<<<<< HEAD
 
     Invalid graphics directives yield invalid box structures:
     >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]], Rule[Transformation, Automatic]] is not a valid box structure.
-    """
-
-    options = {
-        'Axes': 'False',
-        'TicksStyle': '{}',
-        'AxesStyle': '{}',
-        'LabelStyle': '{}',
-        'AspectRatio': 'Automatic',
-        'PlotRange': 'Automatic',
-        'PlotRangePadding': 'Automatic',
-        'ImageSize': 'Automatic',
-        'Background': 'Automatic',
-
-        'Transformation': 'Automatic',  # Mathics specific; used internally to enable stuff like
-        # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics
-        # will hit SVGs numerical accuracy abilities in some browsers as strokes with width < 1e-6
-        # will get rounded to 0 and thus won't get scale transformed in SVG and vanish.
-    }
-=======
+     : GraphicsBox[CircleBox[List[a, b]], Rule[$OptionSyntax, Ignore], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]], Rule[Transformation, Automatic]] is not a valid box structure.
     """
 
     options = GRAPHICS_OPTIONS
->>>>>>> upstream/master
 
     box_suffix = "Box"
 
@@ -693,21 +630,14 @@ class Graphics(Builtin):
         def convert(content):
             head = content.get_head_name()
 
-<<<<<<< HEAD
-            if head == 'System`List':
-                return Expression('List', *[convert(item) for item in content.leaves])
-            elif head == 'System`Style':
-                return Expression('StyleBox', *[convert(item) for item in content.leaves])
-            elif head == 'System`GeometricTransformation' and len(content.leaves) == 2:
-                return Expression('GeometricTransformationBox', convert(content.leaves[0]), content.leaves[1])
-=======
             if head == "System`List":
                 return Expression("List", *[convert(item) for item in content.leaves])
             elif head == "System`Style":
                 return Expression(
                     "StyleBox", *[convert(item) for item in content.leaves]
                 )
->>>>>>> upstream/master
+            elif head == "System`GeometricTransformation" and len(content.leaves) == 2:
+                return Expression("GeometricTransformationBox", convert(content.leaves[0]), content.leaves[1])
 
             if head in element_heads:
                 if head == "System`Text":
@@ -790,14 +720,8 @@ class _Color(_GraphicsElement):
                 # become RGBColor[0, 0, 0, 1]. does not seem the right thing
                 # to do in this general context. poke1024
 
-<<<<<<< HEAD
-                # if len(components) < len(self.default_components):
-                #    components.extend(self.default_components[
-                #                      len(components):])
-=======
-                if len(components) < 3:
-                    components.extend(self.default_components[len(components) :])
->>>>>>> upstream/master
+                # if len(components) < 3:
+                #    components.extend(self.default_components[len(components) :])
 
                 self.components = components
             else:
@@ -1077,32 +1001,15 @@ class ColorDistance(Builtin):
     }
 
     messages = {
-<<<<<<< HEAD
-        'invdist': '`1` is not Automatic or a valid distance specification.',
-        'invarg': '`1` and `2` should be two colors or a color and a lists of colors or ' +
-                  'two lists of colors of the same length.'
-
-=======
         "invdist": "`1` is not Automatic or a valid distance specification.",
         "invarg": "`1` and `2` should be two colors or a color and a lists of colors or "
         + "two lists of colors of the same length.",
->>>>>>> upstream/master
     }
 
     # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
 
     _distances = {
-<<<<<<< HEAD
-        "CIE76": lambda c1, c2: _euclidean_distance(c1.to_color_space('LAB')[:3], c2.to_color_space('LAB')[:3]),
-        "CIE94": lambda c1, c2: _euclidean_distance(c1.to_color_space('LCH')[:3], c2.to_color_space('LCH')[:3]),
-        "CIE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "CIEDE2000": lambda c1, c2: _cie2000_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3])/100,
-        "DeltaL": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 0),
-        "DeltaC": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 1),
-        "DeltaH": lambda c1, c2: _component_distance(c1.to_color_space('LCH'), c2.to_color_space('LCH'), 2),
-        "CMC": lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3], 100*c2.to_color_space('LAB')[:3], 1, 1)/100
-=======
         "CIE76": lambda c1, c2: _euclidean_distance(
             c1.to_color_space("LAB")[:3], c2.to_color_space("LAB")[:3]
         ),
@@ -1130,7 +1037,6 @@ class ColorDistance(Builtin):
             100 * c1.to_color_space("LAB")[:3], 100 * c2.to_color_space("LAB")[:3], 1, 1
         )
         / 100,
->>>>>>> upstream/master
     }
 
     def apply(self, c1, c2, evaluation, options):
@@ -1165,19 +1071,6 @@ class ColorDistance(Builtin):
                 elif distance_function.leaves[1].get_string_value() == "Perceptibility":
                     compute = ColorDistance._distances.get("CMC")
 
-<<<<<<< HEAD
-                elif distance_function.leaves[1].has_form('List', 2):
-                    if (isinstance(distance_function.leaves[1].leaves[0], Integer)
-                    and isinstance(distance_function.leaves[1].leaves[1], Integer)):
-                        if (distance_function.leaves[1].leaves[0].get_int_value() > 0
-                        and distance_function.leaves[1].leaves[1].get_int_value() > 0):
-                            lightness = distance_function.leaves[1].leaves[0].get_int_value()
-                            chroma = distance_function.leaves[1].leaves[1].get_int_value()
-                            compute = lambda c1, c2: _CMC_distance(100*c1.to_color_space('LAB')[:3],
-                                                                    100*c2.to_color_space('LAB')[:3], lightness, chroma)/100
-
-        elif isinstance(distance_function, Symbol) and distance_function.get_name() == 'System`Automatic':
-=======
                 elif distance_function.leaves[1].has_form("List", 2):
                     if isinstance(
                         distance_function.leaves[1].leaves[0], Integer
@@ -1207,7 +1100,6 @@ class ColorDistance(Builtin):
             isinstance(distance_function, Symbol)
             and distance_function.get_name() == "System`Automatic"
         ):
->>>>>>> upstream/master
             compute = ColorDistance._distances.get("CIE76")
         else:
 
@@ -1516,49 +1408,43 @@ class RectangleBox(_GraphicsElement):
         super(RectangleBox, self).init(graphics, item, style)
         if len(item.leaves) not in (1, 2):
             raise BoxConstructError
-<<<<<<< HEAD
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=True)
-
-        self.p1 = expr_to_coords(item.leaves[0])
-=======
-        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+        
         self.p1 = Coords(graphics, item.leaves[0])
->>>>>>> upstream/master
+        # Poke1024 used tuples for coordinates. Now we are using a specific class
         if len(item.leaves) == 1:
-            self.p2 = add_coords(self.p1, (1, 1))
+            self.p2 = self.p1
+            self.p2.add(1,1)
         elif len(item.leaves) == 2:
-            self.p2 = expr_to_coords(item.leaves[1])
+            self.p2 = Coords(graphics, item.leaves[1])
 
     def extent(self):
         l = self.style.get_line_width(face_element=True) / 2
         result = []
-<<<<<<< HEAD
 
-        tx1, ty1 = self.p1
-        tx2, ty2 = self.p2
+# This was what poke1024 did instead of the next loop:
+#        tx1, ty1 = self.p1
+#        tx2, ty2 = self.p2
+#        x1 = min(tx1, tx2) - l
+#        x2 = max(tx1, tx2) + l
+#        y1 = min(ty1, ty2) - l
+#        y2 = max(ty1, ty2) + l
+#
+#        result.extend([(x1, y1), (x1, y2), (x2, y1), (x2, y2)])
 
-        x1 = min(tx1, tx2) - l
-        x2 = max(tx1, tx2) + l
-        y1 = min(ty1, ty2) - l
-        y2 = max(ty1, ty2) + l
-
-        result.extend([(x1, y1), (x1, y2), (x2, y1), (x2, y2)])
-
-=======
         for p in [self.p1, self.p2]:
-            x, y = p.pos()
+            x, y = p.p #pos()
             result.extend(
                 [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
             )
->>>>>>> upstream/master
+
         return result
 
     def to_svg(self, transform):
         l = self.style.get_line_width(face_element=True)
-        p1, p2 = transform(self.p1, self.p2)
-        x1, y1 = p1
-        x2, y2 = p2
+        x1, y1 = self.p1.p # pos()
+        x2, y2 = self.p2.p # pos()
         xmin = min(x1, x2)
         ymin = min(y1, y2)
         w = max(x1, x2) - xmin
@@ -1574,19 +1460,8 @@ class RectangleBox(_GraphicsElement):
 
     def to_asy(self, transform):
         l = self.style.get_line_width(face_element=True)
-<<<<<<< HEAD
-        p1, p2 = transform(self.p1, self.p2)
-        x1, y1 = p1
-        x2, y2 = p2
-        pens = create_pens(
-            self.edge_color, self.face_color, l, is_face_element=True)
-        x1, x2, y1, y2 = asy_number(x1), asy_number(
-            x2), asy_number(y1), asy_number(y2)
-        return 'filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);' % (
-            x1, y1, x2, y1, x2, y2, x1, y2, pens)
-=======
-        x1, y1 = self.p1.pos()
-        x2, y2 = self.p2.pos()
+        x1, y1 = self.p1.p #.pos()
+        x2, y2 = self.p2.p #.pos()
         pens = create_pens(self.edge_color, self.face_color, l, is_face_element=True)
         x1, x2, y1, y2 = asy_number(x1), asy_number(x2), asy_number(y1), asy_number(y2)
         return "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
@@ -1600,7 +1475,6 @@ class RectangleBox(_GraphicsElement):
             y2,
             pens,
         )
->>>>>>> upstream/master
 
 
 class _RoundBox(_GraphicsElement):
@@ -1611,14 +1485,9 @@ class _RoundBox(_GraphicsElement):
         if len(item.leaves) not in (1, 2):
             raise BoxConstructError
         self.edge_color, self.face_color = style.get_style(
-<<<<<<< HEAD
-            _Color, face_element=self.face_element)
-        self.c = expr_to_coords(item.leaves[0])
-=======
             _Color, face_element=self.face_element
         )
         self.c = Coords(graphics, item.leaves[0])
->>>>>>> upstream/master
         if len(item.leaves) == 1:
             rx = ry = 1
         elif len(item.leaves) == 2:
@@ -1628,12 +1497,12 @@ class _RoundBox(_GraphicsElement):
                 ry = r.leaves[1].round_to_float()
             else:
                 rx = ry = r.round_to_float()
-        self.r = add_coords(self.c, (rx, ry))
+        self.r = self.c.add(rx, ry)
 
     def extent(self):
         l = self.style.get_line_width(face_element=self.face_element) / 2
-        x, y = self.c
-        rx, ry = self.r
+        x, y = self.c.p   #pos()
+        rx, ry = self.r.p #pos()
         rx -= x
         ry = y - ry
         rx += l
@@ -1641,7 +1510,7 @@ class _RoundBox(_GraphicsElement):
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
 
     def to_svg(self, transform):
-        c, r = transform(self.c, self.r)
+        c, r = transform(self.c.p, self.r.p)
         x, y = c
         rx, ry = r
         rx -= x
@@ -1658,8 +1527,8 @@ class _RoundBox(_GraphicsElement):
 
     def to_asy(self, transform):
         c, r = transform(self.c, self.r)
-        x, y = c
-        rx, ry = r
+        x, y = c.p
+        rx, ry = r.p
         rx -= x
         ry = abs(ry - y)
         l = self.style.get_line_width(face_element=self.face_element)
@@ -1810,30 +1679,28 @@ class _Polyline(_GraphicsElement):
                 lines.append(leaf.leaves)
             else:
                 raise BoxConstructError
-<<<<<<< HEAD
+
         make_coords = graphics.make_coords  # for Graphics and Graphics3D support
-        self.lines = [make_coords(line) for line in lines]
-=======
-        self.lines = [
-            [graphics.coords(graphics, point) for point in line] for line in lines
-        ]
->>>>>>> upstream/master
+        # I am not sure about why the next line is needed for the next one,
+        # but it seems to work....
+        self.lines = []
+        lines = [make_coords(graphics, line) for line in lines]
+        self.lines = lines
+
+#        self.lines = [
+#            [graphics.coords(graphics, point) for point in line] for line in lines
+#        ]
+
 
     def extent(self):
         l = self.style.get_line_width(face_element=False)
         result = []
         for line in self.lines:
             for c in line:
-<<<<<<< HEAD
-                x, y = c
-                result.extend([(x - l, y - l), (
-                    x - l, y + l), (x + l, y - l), (x + l, y + l)])
-=======
                 x, y = c.pos()
                 result.extend(
                     [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
                 )
->>>>>>> upstream/master
         return result
 
 
@@ -1879,47 +1746,34 @@ class PointBox(_Polyline):
         if point_size is None:
             point_size = PointSize(self.graphics, value=0.005)
         size = point_size.get_size()
-
-<<<<<<< HEAD
-        graphics = self.graphics
-        size_x = size
-        size_y = size_x * (graphics.extent_height / graphics.extent_width) * (graphics.pixel_width / graphics.pixel_height)
-
-        style = create_css(edge_color=self.edge_color,
-                           stroke_width=0, face_color=self.face_color)
-        svg = ''
-        for line in self.lines:
-            for x, y in transform(*line):
-                svg += '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
-                    x, y, size_x, size_y, style)
-=======
         style = create_css(
             edge_color=self.edge_color, stroke_width=0, face_color=self.face_color
         )
         svg = ""
+        graphics = self.graphics
+        size_x = size
+        size_y = size_x * (graphics.extent_height / graphics.extent_width) * (graphics.pixel_width / graphics.pixel_height)
+
         for line in self.lines:
-            for coords in line:
-                svg += '<circle cx="%f" cy="%f" r="%f" style="%s" />' % (
-                    coords.pos()[0],
-                    coords.pos()[1],
-                    size,
-                    style,
-                )
->>>>>>> upstream/master
+            for x, y in transform(*line):
+                svg += '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
+                    x, y, size_x, size_y, style)
+#        for line in self.lines:
+#            for coords in line:
+#                svg += '<circle cx="%f" cy="%f" r="%f" style="%s" />' % (
+#                    coords.pos()[0],
+#                    coords.pos()[1],
+#                    size,
+#                    style,
+#                )
         return svg
 
     def to_asy(self, transform):
         pen = create_pens(face_color=self.face_color, is_face_element=False)
-
         asy = ""
         for line in self.lines:
-<<<<<<< HEAD
             for x, y in transform(*line):
                 asy += 'dot(%s, %s);' % ((x, y), pen)
-=======
-            for coords in line:
-                asy += "dot(%s, %s);" % (coords.pos(), pen)
->>>>>>> upstream/master
 
         return asy
 
@@ -1961,40 +1815,31 @@ class LineBox(_Polyline):
         l = self.style.get_line_width(face_element=False)
         l = list(transform((l, l), w=0))[0][0]
         style = create_css(edge_color=self.edge_color, stroke_width=l)
-<<<<<<< HEAD
-
-        svg = ''
+        svg = ""
+        graphics = self.graphics
         for line in self.lines:
-            path = ' '.join(['%f,%f' % c for c in transform(*line)])
+            tc = transform(*[r.p for r in line])
+            path = ' '.join(['%f,%f' % c for c in tc])
             svg += '<polyline points="%s" style="%s" />' % (path, style)
 
-=======
-        svg = ""
-        for line in self.lines:
-            svg += '<polyline points="%s" style="%s" />' % (
-                " ".join(["%f,%f" % coords.pos() for coords in line]),
-                style,
-            )
->>>>>>> upstream/master
+        #for line in self.lines:
+        #    svg += '<polyline points="%s" style="%s" />' % (
+        #        " ".join(["%f,%f" % coords.pos() for coords in line]),
+        #        style,
+        #    )
         return svg
 
     def to_asy(self, transform):
         l = self.style.get_line_width(face_element=False)
         l = list(transform((l, l), w=0))[0][0]
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
-<<<<<<< HEAD
-
-        asy = ''
+        asy = ""
         for line in self.lines:
             path = '--'.join(['(%.5g,%5g)' % c for c in transform(*line)])
             asy += 'draw(%s, %s);' % (path, pen)
-
-=======
-        asy = ""
-        for line in self.lines:
-            path = "--".join(["(%.5g,%5g)" % coords.pos() for coords in line])
-            asy += "draw(%s, %s);" % (path, pen)
->>>>>>> upstream/master
+#        for line in self.lines:
+#            path = "--".join(["(%.5g,%5g)" % coords.pos() for coords in line])
+#            asy += "draw(%s, %s);" % (path, pen)
         return asy
 
 
@@ -2139,11 +1984,8 @@ class BezierCurveBox(_Polyline):
 
         svg = ""
         for line in self.lines:
-<<<<<<< HEAD
-            s = ' '.join(_svg_bezier((self.spline_degree, transform(*line))))
-=======
-            s = " ".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
->>>>>>> upstream/master
+            s = " ".join(_svg_bezier((self.spline_degree, transform(*line))))
+            # s = " ".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
             svg += '<path d="%s" style="%s"/>' % (s, style)
         return svg
 
@@ -2153,15 +1995,13 @@ class BezierCurveBox(_Polyline):
 
         asy = ""
         for line in self.lines:
-<<<<<<< HEAD
             for path in _asy_bezier((self.spline_degree, transform(*line))):
                 asy += 'draw(%s, %s);' % (path, pen)
-=======
-            for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
-                if path[:2] == "..":
-                    path = "(0.,0.)" + path
-                asy += "draw(%s, %s);" % (path, pen)
->>>>>>> upstream/master
+#            for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
+#                if path[:2] == "..":
+#                    path = "(0.,0.)" + path
+#                asy += "draw(%s, %s);" % (path, pen)
+
         return asy
 
 
@@ -2215,13 +2055,7 @@ class FilledCurveBox(_GraphicsElement):
                     for part in parts:
                         if part.get_head_name() != "System`List":
                             raise BoxConstructError
-<<<<<<< HEAD
-                        c.extend([expr_to_coords(xy) for xy in part.leaves])
-=======
-                        coords.extend(
-                            [graphics.coords(graphics, xy) for xy in part.leaves]
-                        )
->>>>>>> upstream/master
+                        c.extend([Coords(graphics, xy) for xy in part.leaves])
 
                     yield k, c
 
@@ -2240,13 +2074,12 @@ class FilledCurveBox(_GraphicsElement):
 
         def components():
             for component in self.components:
-<<<<<<< HEAD
+
                 transformed = [(k, transform(*p)) for k, p in component]
                 yield ' '.join(_svg_bezier(*transformed)) + ' Z'
-=======
-                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
-                yield " ".join(_svg_bezier(*transformed)) + " Z"
->>>>>>> upstream/master
+#                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
+#                yield " ".join(_svg_bezier(*transformed)) + " Z"
+
 
         return '<path d="%s" style="%s" fill-rule="evenodd"/>' % (
             " ".join(components()),
@@ -2262,13 +2095,12 @@ class FilledCurveBox(_GraphicsElement):
 
         def components():
             for component in self.components:
-<<<<<<< HEAD
+
                 transformed = [(k, transform(*p)) for k, p in component]
                 yield 'fill(%s--cycle, %s);' % (''.join(_asy_bezier(*transformed)), pen)
-=======
-                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
-                yield "fill(%s--cycle, %s);" % ("".join(_asy_bezier(*transformed)), pen)
->>>>>>> upstream/master
+#                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
+#                yield "fill(%s--cycle, %s);" % ("".join(_asy_bezier(*transformed)), pen)
+
 
         return "".join(components())
 
@@ -2278,15 +2110,8 @@ class FilledCurveBox(_GraphicsElement):
         for component in self.components:
             for _, points in component:
                 for p in points:
-<<<<<<< HEAD
-                    x, y = p
-                    result.extend([(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)])
-=======
                     x, y = p.pos()
-                    result.extend(
-                        [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
-                    )
->>>>>>> upstream/master
+                    result.extend([(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)])
         return result
 
 
@@ -2365,26 +2190,23 @@ class PolygonBox(_Polyline):
         if self.vertex_colors is not None:
             mesh = []
             for index, line in enumerate(self.lines):
-<<<<<<< HEAD
-                data = [[coords, color.to_js()] for coords, color in zip(
-                    transform(*line), self.vertex_colors[index])]
-=======
+                tc = transform(*[r.p for r in line])
                 data = [
-                    [coords.pos(), color.to_js()]
-                    for coords, color in zip(line, self.vertex_colors[index])
-                ]
->>>>>>> upstream/master
+                    [coords, color.to_js()] for coords, color in zip(
+                    tc, self.vertex_colors[index])
+#                    [coords.pos(), color.to_js()] for coords, color in zip(
+#                    line,            self.vertex_colors[index])
+                 ]
+
                 mesh.append(data)
             svg += '<meshgradient data="%s" />' % json.dumps(mesh)
         for line in self.lines:
+            tc = transform(*[r.p for r in line])
             svg += '<polygon points="%s" style="%s" />' % (
-<<<<<<< HEAD
-                ' '.join('%f,%f' % c for c in transform(*line)), style)
-=======
-                " ".join("%f,%f" % coords.pos() for coords in line),
+                " ".join('%f,%f' % c for c in tc), 
+#                " ".join("%f,%f" % coords.pos() for coords in line),
                 style,
             )
->>>>>>> upstream/master
         return svg
 
     def to_asy(self, transform):
@@ -2405,15 +2227,12 @@ class PolygonBox(_Polyline):
             colors = []
             edges = []
             for index, line in enumerate(self.lines):
-<<<<<<< HEAD
-                paths.append('--'.join([
-                    '(%.5g,%.5g)' % c for c in transform(*line)]) + '--cycle')
-=======
+
                 paths.append(
-                    "--".join(["(%.5g,%.5g)" % coords.pos() for coords in line])
-                    + "--cycle"
+                    "--".join([
+                    "(%.5g,%.5g)" % c for c in transform(*line)])    + "--cycle"
+#                   "(%.5g,%.5g)" % coords.pos() for coords in line])+ "--cycle"
                 )
->>>>>>> upstream/master
 
                 # ignore opacity
                 colors.append(
@@ -2431,17 +2250,14 @@ class PolygonBox(_Polyline):
             )
         if pens and pens != "nullpen":
             for line in self.lines:
-<<<<<<< HEAD
-                path = '--'.join(
-                    ['(%.5g,%.5g)' % c for c in transform(*line)]) + '--cycle'
-                asy += 'filldraw(%s, %s);' % (path, pens)
-=======
+
                 path = (
-                    "--".join(["(%.5g,%.5g)" % coords.pos() for coords in line])
+                    '--'.join(
+                    ['(%.5g,%.5g)' % c for c in transform(*line)])
+#                   ["(%.5g,%.5g)" % coords.pos() for coords in line])
                     + "--cycle"
                 )
                 asy += "filldraw(%s, %s);" % (path, pens)
->>>>>>> upstream/master
         return asy
 
 
@@ -2642,8 +2458,8 @@ class Arrowheads(_GraphicsElement):
 
 
 def _norm(p, q):
-    px, py = p
-    qx, qy = q
+    px, py = p.p
+    qx, qy = q.p
 
     dx = qx - px
     dy = qy - py
@@ -2672,8 +2488,8 @@ class _Line:
     def arrows(self, points, heads):  # heads has to be sorted by pos
         def segments(points):
             for i in range(len(points) - 1):
-                px, py = points[i]
-                dx, dy, dl = _norm((px, py), points[i + 1])
+                px, py = points[i].p
+                dx, dy, dl = _norm(points[i], points[i + 1])
                 yield dl, px, py, dx, dy
 
         seg = list(segments(points))
@@ -2901,7 +2717,7 @@ class ArrowBox(_Polyline):
                     return []
                 xy, length = setback(line[0], line[1], s)
                 if xy is not None:
-                    line[0] = add_coords(line[0], xy)
+                    line[0] = line[0].add(*xy)
                 else:
                     line = line[1:]
                 s -= length
@@ -2931,18 +2747,15 @@ class ArrowBox(_Polyline):
 
     def _custom_arrow(self, format, transform):
         def make(graphics):
-<<<<<<< HEAD
             code = _extract_graphics(
                 graphics, format, self.graphics.evaluation)
 
             half_pi = pi / 2.
-=======
-            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
-                graphics, format, self.graphics.evaluation
-            )
-            boxw = xmax - xmin
-            boxh = ymax - ymin
->>>>>>> upstream/master
+#            xmin, xmax, ymin, ymax, ox, oy, ex, ey, code = _extract_graphics(
+#                graphics, format, self.graphics.evaluation
+#            )
+#            boxw = xmax - xmin
+#            boxh = ymax - ymin
 
             def draw(px, py, vx, vy, t1, s):
                 t0 = t1
@@ -2973,11 +2786,7 @@ class ArrowBox(_Polyline):
 
         def polygon(points):
             yield '<polygon points="'
-<<<<<<< HEAD
-            yield ' '.join('%f,%f' % xy for xy in transform(*points))
-=======
-            yield " ".join("%f,%f" % xy for xy in points)
->>>>>>> upstream/master
+            yield " ".join('%f,%f' % xy for xy in transform(*points))
             yield '" style="%s" />' % arrow_style
 
         def svg_transform(m, code):
@@ -2985,13 +2794,8 @@ class ArrowBox(_Polyline):
 
         extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-<<<<<<< HEAD
         custom_arrow = self._custom_arrow('svg', svg_transform)
-        return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
-=======
-        custom_arrow = self._custom_arrow("svg", _SVGTransform)
         return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
->>>>>>> upstream/master
 
     def to_asy(self, transform):
         width = self.style.get_line_width(face_element=False)
@@ -3001,35 +2805,24 @@ class ArrowBox(_Polyline):
         arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
 
         def polygon(points):
-<<<<<<< HEAD
             yield 'filldraw('
             yield '--'.join(['(%.5g,%5g)' % xy for xy in transform(*points)])
             yield '--cycle, % s);' % arrow_pen
-=======
-            yield "filldraw("
-            yield "--".join(["(%.5g,%5g)" % xy for xy in points])
-            yield "--cycle, % s);" % arrow_pen
->>>>>>> upstream/master
 
         def asy_transform(m, code):
             return _Transform(m).to_asy(code)
 
         extent = self.graphics.extent_width or 0
         default_arrow = self._default_arrow(polygon)
-<<<<<<< HEAD
         custom_arrow = self._custom_arrow('asy', asy_transform)
         return ''.join(self._draw(polyline, default_arrow, custom_arrow, extent))
-=======
-        custom_arrow = self._custom_arrow("asy", _ASYTransform)
-        return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
->>>>>>> upstream/master
 
     def extent(self):
         width = self.style.get_line_width(face_element=False)
 
         def polyline(points):
             for p in points:
-                x, y = p
+                x, y = p.p
                 yield x - width, y - width
                 yield x - width, y + width
                 yield x + width, y - width
@@ -3206,7 +2999,8 @@ class GeometricTransformationBox(_GraphicsElement):
                 for content in self.contents:
                     content_svg = content.to_svg(transform0)
                     for transform in self.transforms:
-                        yield transform.to_svg(content_svg)
+                        res = transform.to_svg(content_svg)
+                        yield res
         return ''.join(instances())
 
     def to_asy(self, transform0):
@@ -3219,12 +3013,8 @@ class GeometricTransformationBox(_GraphicsElement):
 
 
 class InsetBox(_GraphicsElement):
-<<<<<<< HEAD
     def init(self, graphics, style, item=None, content=None, pos=None,
              opos=(0, 0), font_size=None, is_absolute=False):
-=======
-    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
->>>>>>> upstream/master
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option("System`FontColor")
@@ -3244,22 +3034,25 @@ class InsetBox(_GraphicsElement):
             content = item.leaves[0]
             self.content = content.format(graphics.evaluation, "TraditionalForm")
             if len(item.leaves) > 1:
-                self.pos = expr_to_coords(item.leaves[1])
+                self.pos = Coords(graphics, item.leaves[1])
             else:
                 self.pos = (0, 0)
             if len(item.leaves) > 2:
-                self.opos = expr_to_coords(item.leaves[2])
+                self.opos = Coords(graphics, item.leaves[1])
             else:
-                self.opos = (0, 0)
+                self.opos = Coords(graphics, pos=(0, 0))
         else:
             self.content = content
             self.pos = pos
             self.opos = opos
-<<<<<<< HEAD
+
 
         self.is_absolute = is_absolute
 
         try:
+#            self.content_text = self.content.boxes_to_text(
+#                evaluation=self.graphics.evaluation
+#                  )  # In HEAD
             self._prepare_text_svg()
         except WebEngineUnavailable as e:
             self.svg = None
@@ -3277,34 +3070,23 @@ class InsetBox(_GraphicsElement):
                 'General', 'nowebeng', str(e), once=True)
 
     def extent(self):
-        p = self.pos
+        p = self.pos.p
 
         if not self.svg:
             h = 25
-            w = len(self.content_text) * \
-                7  # rough approximation by numbers of characters
+            if not hasattr(self, 'content_text'):
+                self.content_text = self.content.to_python()
+            w = len(self.content_text) * 7  # rough approximation by numbers of characters
         else:
             _, w, h = self.svg
             scale = self._text_svg_scale(h)
             w *= scale
             h *= scale
-
-=======
-        self.content_text = self.content.boxes_to_text(
-            evaluation=self.graphics.evaluation
-        )
-
-    def extent(self):
-        p = self.pos.pos()
-        h = 25
-        w = len(self.content_text) * 7  # rough approximation by numbers of characters
->>>>>>> upstream/master
         opos = self.opos
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
 
-<<<<<<< HEAD
     def _prepare_text_svg(self):
         self.graphics.evaluation.output.assume_web_engine()
 
@@ -3362,7 +3144,7 @@ class InsetBox(_GraphicsElement):
 
     def to_svg(self, transform):
         evaluation = self.graphics.evaluation
-        x, y = transform(self.pos)[0]
+        x, y = transform(self.pos.p)[0]
 
         content = self.content.boxes_to_xml(
             evaluation=evaluation)
@@ -3387,24 +3169,10 @@ class InsetBox(_GraphicsElement):
         return svg
 
     def to_asy(self, transform):
-        x, y = transform(self.pos)[0]
+#        x, y = self.pos.pos()
+        x, y = transform(self.pos.pos())[0]
         content = self.content.boxes_to_tex(
             evaluation=self.graphics.evaluation)
-=======
-    def to_svg(self):
-        x, y = self.pos.pos()
-        content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
-        style = create_css(font_color=self.color)
-        svg = (
-            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            "<math>%s</math></foreignObject>"
-        ) % (x, y, self.opos[0], self.opos[1], style, content)
-        return svg
-
-    def to_asy(self):
-        x, y = self.pos.pos()
-        content = self.content.boxes_to_tex(evaluation=self.graphics.evaluation)
->>>>>>> upstream/master
         pen = create_pens(edge_color=self.color)
         asy = 'label("$%s$", (%s,%s), (%s,%s), %s);' % (
             content,
@@ -3629,13 +3397,9 @@ class _GraphicsElements(object):
                         item.leaves[0], stylebox_style(style, item.leaves[1:])
                     ):
                         yield element
-<<<<<<< HEAD
                 elif head == 'System`GeometricTransformationBox':
                     yield GeometricTransformationBox(self, style, list(convert(item.leaves[0], style)), item.leaves[1])
                 elif head[-3:] == 'Box':  # and head[:-3] in element_heads:
-=======
-                elif head[-3:] == "Box":  # and head[:-3] in element_heads:
->>>>>>> upstream/master
                     element_class = get_class(head)
                     if element_class is not None:
                         options = get_options(head[:-3])
@@ -3656,8 +3420,9 @@ class _GraphicsElements(object):
 
         self.elements = list(convert(content, self.get_style_class()(self)))
 
-    def make_coords(self, points):  # overriden by Graphics3DElements
-        return [expr_to_coords(p) for p in points]
+    def make_coords(self, graphics, points):  # overriden by Graphics3DElements
+        #return [expr_to_coords(p) for p in points]
+        return  [Coords(graphics, p) for p in points]
 
     def create_style(self, expr):
         style = self.get_style_class()(self)
@@ -3686,6 +3451,8 @@ class GraphicsElements(_GraphicsElements):
         self.local_to_screen = None
 
     def set_size(self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height):
+        # this is in master
+        # return '\n'.join(element.to_svg(cut) for element in self.elements)                
         self.pixel_width = pixel_width
         self.pixel_height = pixel_height
         self.extent_width = extent_width
@@ -3726,23 +3493,21 @@ class GraphicsElements(_GraphicsElements):
         self.elements.append(e)
 
     def translate(self, coords):
-<<<<<<< HEAD
-        if self.local_to_screen:
+        if self.local_to_screen:  # this if is in poke1024's
             return list(self.local_to_screen(coords))[0]
-=======
-        if self.pixel_width is not None:
+        elif self.pixel_width is not None:  # this is in master
             w = self.extent_width if self.extent_width > 0 else 1
             h = self.extent_height if self.extent_height > 0 else 1
+            x, y = coords
             result = [
-                (coords[0] - self.xmin) * self.pixel_width / w,
-                (coords[1] - self.ymin) * self.pixel_height / h,
+                (x - self.xmin) * self.pixel_width / w,
+                (y - self.ymin) * self.pixel_height / h,
             ]
             if self.neg_y:
                 result[1] = self.pixel_height - result[1]
             return tuple(result)
->>>>>>> upstream/master
         else:
-            return coords[0], coords[1]
+            return coords
 
     def translate_absolute(self, d):
         s = self.extent_width / self.pixel_width
@@ -3787,28 +3552,21 @@ class GraphicsElements(_GraphicsElements):
         return xmin, xmax, ymin, ymax
 
     def to_svg(self):
-<<<<<<< HEAD
         border = 10 ** 8
 
         def cut_coords(xy):
             "Cut values in graphics primitives (not displayed otherwise in SVG)"
             return min(max(xy[0], -border), border), min(max(xy[1], -border), border)
 
-        def cut(*p, w=None):
-            return [cut_coords(q) for q in p]
-=======
-        return "\n".join(element.to_svg() for element in self.elements)
+        def cut_(*p, w=None):
+            result = [cut_coords(q) for q in p]
+            return result
 
-    def to_asy(self):
-        return "\n".join(element.to_asy() for element in self.elements)
+        return '\n'.join(element.to_svg(cut_) for element in self.elements)
+   
 
-    def set_size(
-        self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height
-    ):
->>>>>>> upstream/master
-
-        return '\n'.join(element.to_svg(cut) for element in self.elements)
-
+        
+    
     def to_asy(self):
         return '\n'.join(element.to_asy(_no_transform) for element in self.elements)
 
@@ -3897,7 +3655,7 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-<<<<<<< HEAD
+
         transformation = Expression('System`TransformationFunction', [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
         precompute_transformations = graphics_options['System`Transformation'].get_string_value() == 'Precomputed'
@@ -3906,9 +3664,6 @@ class GraphicsBox(BoxConstruct):
             Expression('System`GeometricTransformationBox', leaves[0], transformation),
             options['evaluation'], neg_y, precompute_transformations)
 
-=======
-        elements = GraphicsElements(leaves[0], options["evaluation"], neg_y)
->>>>>>> upstream/master
         axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
@@ -4042,25 +3797,14 @@ class GraphicsBox(BoxConstruct):
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
-<<<<<<< HEAD
-        asy_completely_visible = '\n'.join(
-            element.to_asy(_no_transform) for element in elements.elements
-            if element.is_completely_visible)
-
-        asy_regular = '\n'.join(
-            element.to_asy(_no_transform) for element in elements.elements
-            if not element.is_completely_visible)
-
-        asy_box = 'box((%s,%s), (%s,%s))' % (asy_number(xmin), asy_number(ymin), asy_number(xmax), asy_number(ymax))
-=======
         asy_completely_visible = "\n".join(
-            element.to_asy()
+            element.to_asy(_no_transform)  # in master, this goes without the parameter
             for element in elements.elements
             if element.is_completely_visible
         )
 
         asy_regular = "\n".join(
-            element.to_asy()
+            element.to_asy(_no_transform) # the same
             for element in elements.elements
             if not element.is_completely_visible
         )
@@ -4071,7 +3815,6 @@ class GraphicsBox(BoxConstruct):
             asy_number(xmax),
             asy_number(ymax),
         )
->>>>>>> upstream/master
 
         if self.background_color is not None:
             color, opacity = self.background_color.to_asy()
@@ -4121,15 +3864,6 @@ clip(%s);
         w += 2
         h += 2
 
-<<<<<<< HEAD
-        svg_xml = '<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" ' \
-            'version="1.1" viewBox="%s">%s</svg>' % (' '.join('%f' % t for t in (xmin, ymin, w, h)), svg)
-
-        return '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>' % (
-            int(width),
-            int(height),
-            base64.b64encode(svg_xml.encode('utf8')).decode('utf8'))
-=======
         svg_xml = """
             <svg xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
@@ -4150,7 +3884,6 @@ clip(%s);
                 base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
             )
         )
->>>>>>> upstream/master
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):
@@ -4293,14 +4026,8 @@ clip(%s);
                     ticks_y_int,
                 ),
             ]
-        ):
+        ):            
             if axes[index]:
-<<<<<<< HEAD
-                add_element(LineBox(
-                    elements, axes_style[index],
-                    lines=[[axis_coords(elements, pos=p_origin(min), d=p_other0(-axes_extra)),
-                            axis_coords(elements, pos=p_origin(max), d=p_other0(axes_extra))]]))
-=======
                 add_element(
                     LineBox(
                         elements,
@@ -4317,16 +4044,10 @@ clip(%s);
                         ],
                     )
                 )
->>>>>>> upstream/master
                 ticks_lines = []
                 tick_label_style = ticks_style[index].clone()
                 tick_label_style.extend(label_style)
                 for x in ticks:
-<<<<<<< HEAD
-                    ticks_lines.append([axis_coords(elements, pos=p_origin(x)),
-                                        axis_coords(elements, pos=p_origin(x),
-                                               d=p_self0(tick_large_size))])
-=======
                     ticks_lines.append(
                         [
                             Coords(elements, pos=p_origin(x)),
@@ -4335,36 +4056,21 @@ clip(%s);
                             ),
                         ]
                     )
->>>>>>> upstream/master
                     if ticks_int:
                         content = String(str(int(x)))
                     elif x == floor(x):
                         content = String("%.1f" % x)  # e.g. 1.0 (instead of 1.)
                     else:
-<<<<<<< HEAD
-                        content = String('%g' % x)  # fix e.g. 0.6000000000000001
-                    add_element(InsetBox(
-                        elements, tick_label_style,
-                        content=content,
-                        pos=axis_coords(elements, pos=p_origin(x), d=p_self0(-tick_label_d)),
-                        opos=p_self0(1), font_size=font_size, is_absolute=True))
-                for x in ticks_small:
-                    pos = p_origin(x)
-                    ticks_lines.append([axis_coords(elements, pos=pos),
-                                        axis_coords(elements, pos=pos,
-                                               d=p_self0(tick_small_size))])
-                add_element(LineBox(elements, axes_style[0],
-                                    lines=ticks_lines))
-=======
                         content = String("%g" % x)  # fix e.g. 0.6000000000000001
+                    tickpos = Coords(
+                                elements, pos=p_origin(x), d=p_self0(-tick_label_d)
+                            )
                     add_element(
                         InsetBox(
                             elements,
                             tick_label_style,
                             content=content,
-                            pos=Coords(
-                                elements, pos=p_origin(x), d=p_self0(-tick_label_d)
-                            ),
+                            pos=tickpos,
                             opos=p_self0(1),
                         )
                     )
@@ -4377,7 +4083,6 @@ clip(%s);
                         ]
                     )
                 add_element(LineBox(elements, axes_style[0], lines=ticks_lines))
->>>>>>> upstream/master
         return axes
 
         """if axes[1]:
@@ -4729,13 +4434,9 @@ class Automatic(Builtin):
     graphical options:
 
     >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
-<<<<<<< HEAD
      = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic, Transformation :> Automatic}
-    '''
-=======
-     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
     """
->>>>>>> upstream/master
+
 
 
 class Tiny(Builtin):
@@ -4771,40 +4472,7 @@ class Large(Builtin):
     <dt>'ImageSize' -> 'Large'
         <dd>produces a large image.
     </dl>
-<<<<<<< HEAD
-    '''
-
-
-element_heads = frozenset(system_symbols(
-    'Rectangle', 'Disk', 'Line', 'Arrow', 'FilledCurve', 'BezierCurve',
-    'Point', 'Circle', 'Polygon', 'RegularPolygon',
-    'Inset', 'Text', 'Sphere', 'Style'))
-
-styles = system_symbols_dict({
-    'RGBColor': RGBColor,
-    'XYZColor': XYZColor,
-    'LABColor': LABColor,
-    'LCHColor': LCHColor,
-    'LUVColor': LUVColor,
-    'CMYKColor': CMYKColor,
-    'Hue': Hue,
-    'GrayLevel': GrayLevel,
-
-    'Thickness': Thickness,
-    'AbsoluteThickness': AbsoluteThickness,
-    'Thick': Thick,
-    'Thin': Thin,
-    'PointSize': PointSize,
-    'FontSize': FontSize,
-    'Arrowheads': Arrowheads,
-})
-
-style_options = system_symbols_dict({
-    'FontColor': _style,
-})
-=======
     """
-
 
 element_heads = frozenset(
     system_symbols(
@@ -4824,6 +4492,7 @@ element_heads = frozenset(
         "Style",
     )
 )
+
 
 styles = system_symbols_dict(
     {
@@ -4849,7 +4518,6 @@ style_options = system_symbols_dict(
         "FontColor": _style,
     }
 )
->>>>>>> upstream/master
 
 style_heads = frozenset(styles.keys())
 
