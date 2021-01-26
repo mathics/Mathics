@@ -34,7 +34,7 @@ class Compile(Builtin):
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
      : Expression Sin[x + z] could not be compiled.
-     = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
+     = Function[{Global`x, Global`y}, Sin[x + z]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
     #> cf[1, 2]
@@ -53,7 +53,7 @@ class Compile(Builtin):
     Loops and variable assignments are not yet supported
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
      : Expression While[b != 0, {a, b} = {b, Mod[a, b]}] ; a could not be compiled.
-     = Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}] ; a]
+     = Function[{Global`a, Global`b}, While[b != 0, {a, b} = {b, Mod[a, b]}] ; a]
     '''
 
     requires = (
@@ -84,7 +84,7 @@ class Compile(Builtin):
         if not vars.has_form('List', None):
             return evaluation.message('Compile', 'invars')
         args = []
-        names = set([])
+        names = []
         for var in vars.get_leaves():
             if isinstance(var, Symbol):
                 symb = var
@@ -104,14 +104,15 @@ class Compile(Builtin):
             if name in names:
                 return evaluation.message('Compile', 'fdup', symb, vars)
             else:
-                names.add(name)
-
+                names.append(name)
             args.append(CompileArg(name, typ))
 
         try:
             cfunc = _compile(expr, args)
         except CompileError:
-            return evaluation.message('Compile', 'comperr', expr)
+            evaluation.message('Compile', 'comperr', expr)
+            args = Expression("List",*names)
+            return Expression("Function", args, expr)
         code = CompiledCode(cfunc, args)
         arg_names = Expression('List', *(Symbol(arg.name) for arg in args))
         return Expression('CompiledFunction', arg_names, expr, code)
@@ -152,6 +153,9 @@ class CompiledCode(Atom):
 
 
 class CompiledCodeBox(BoxConstruct):
+    """
+    Used internally by <i>CompileCode[]</i>.
+    """
     def boxes_to_text(self, leaves, **options):
         return '-CompiledCode-'
 
@@ -163,6 +167,20 @@ class CompiledCodeBox(BoxConstruct):
 
 
 class CompiledFunction(Builtin):
+    """'
+    <dl>
+      <dt>'CompiledFunction[$args$...]'
+      <dd>represents compiled code for evaluating a compiled function.
+    </dl>
+
+    >> sqr = Compile[{x}, x x]
+     = CompiledFunction[{x}, x ^ 2, -CompiledCode-]
+    >> Head[sqr]
+     = CompiledFunction
+    >> sqr[2]
+     = 4.
+
+    """
     messages = {
         'argerr': 'Invalid argument `1` should be Integer, Real or boolean.',
     }

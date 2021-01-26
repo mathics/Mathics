@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Patterns and rules
+Patterns and Rules
 
 Some examples:
 >> a + b + c /. a + b -> t
@@ -36,7 +36,7 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
-from mathics.builtin.base import PatternObject
+from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
@@ -207,6 +207,9 @@ class Replace(Builtin):
         except InvalidLevelspecError:
             evaluation.message('General', 'level', ls)
 
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+
 
 class ReplaceAll(BinaryOperator):
     """
@@ -267,13 +270,16 @@ class ReplaceAll(BinaryOperator):
 
     def apply(self, expr, rules, evaluation):
         'ReplaceAll[expr_, rules_]'
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
 
-        rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
-        if ret:
-            return rules
+            if ret:
+                return rules
 
-        result, applied = expr.apply_rules(rules, evaluation)
-        return result
+            result, applied = expr.apply_rules(rules, evaluation)
+            return result
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
 
 
 class ReplaceRepeated(BinaryOperator):
@@ -309,8 +315,12 @@ class ReplaceRepeated(BinaryOperator):
 
     def apply_list(self, expr, rules, evaluation):
         'ReplaceRepeated[expr_, rules_]'
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+            return None
 
-        rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
         if ret:
             return rules
 
@@ -374,9 +384,13 @@ class ReplaceList(Builtin):
             if max_count is None or max_count < 0:
                 evaluation.message('ReplaceList', 'innf', 3)
                 return
+        try:
+            rules, ret = create_rules(
+                rules, expr, 'ReplaceList', evaluation, extra_args=[max])
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+            return None
 
-        rules, ret = create_rules(
-            rules, expr, 'ReplaceList', evaluation, extra_args=[max])
         if ret:
             return rules
 
@@ -753,6 +767,9 @@ class Pattern_(PatternObject):
             self.error('patvar', expr)
         self.pattern = Pattern.create(expr.leaves[1])
 
+    def __repr__(self):
+        return '<Pattern: %s>' % repr(self.pattern)
+
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
 
@@ -764,7 +781,10 @@ class Pattern_(PatternObject):
             # for vars_2, rest in self.pattern.match(
             #    expression, new_vars, evaluation):
             #    yield vars_2, rest
-            self.pattern.match(yield_func, expression, new_vars, evaluation)
+            if type(self.pattern) is OptionsPattern:
+                self.pattern.match(yield_func, expression, new_vars, evaluation, **kwargs)
+            else:
+                self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
             if existing.same(expression):
                 yield_func(vars, None)
@@ -1111,7 +1131,8 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            if (leaf_1.has_form('List', 1, 2) and all(leaf.get_int_value() for leaf in leaf_1.leaves)):
+            allnumbers = not any(leaf.get_int_value() is None for leaf in leaf_1.get_leaves())
+            if leaf_1.has_form('List', 1, 2) and allnumbers:
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():

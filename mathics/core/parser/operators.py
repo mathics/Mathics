@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -16,6 +16,8 @@ prefix_ops = {
     'Exists': 240,
     'NotExists': 240,
     'Not': 230,
+    'Information': 5001,
+    'Definition': 5000,
 }
 
 postfix_ops = {
@@ -131,6 +133,7 @@ flat_binary_ops = {
 
 nonassoc_binary_ops = {
     'UndirectedEdge': 120,
+    'DirectedEdge': 128,
     'PatternTest': 680,
 }
 
@@ -145,6 +148,7 @@ misc_ops = {
     'Pattern': 150,
     'Optional': 140,
     'SqrtBox': 670,
+    'RadicalBox': 670,
     'FractionBox': 670,
     'OverscriptBox': 710,
     'UnderscriptBox': 710,

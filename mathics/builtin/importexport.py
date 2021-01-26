@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Importing and Exporting
 """
 
-from mathics.core.expression import Expression, from_python, strip_context
-from mathics.builtin.base import Builtin, Predefined, Symbol, String, Integer
+from mathics.core.expression import Expression, from_python, strip_context, Symbol, SymbolFailed
+from mathics.builtin.base import Builtin, Predefined, String, Integer, get_option
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
@@ -151,11 +151,18 @@ mimetype_dict = {
 
 IMPORTERS = {}
 EXPORTERS = {}
+EXTENSIONMAPPINGS = {"*.3ds" : "3DS", "*.aco" : "ACO", "*.aif" : "AIFF", "*.aiff" : "AIFF", "*.au" : "AU", "*.avi" : "AVI", "*.b64" : "BASE64", "*.bdf" : "BDF", "*.bmp" : "BMP", "*.dib" : "BMP", "*.bson" : "BSON", "*.byu" : "BYU", "*.bz2" : "BZIP2", "*.c" : "C", "*.cdf" : "CDF", "*.cif" : "CIF", "*.col" : "DIMACS", "*.col.b" : "DIMACS", "*.csv" : "CSV", "*.css" : "CSS", "*.cur" : "CUR", "*.dae" : "DAE", "*.dat" : "Table", "*.dcm" : "DICOM", "*.dic" : "DICOM", "*.dicm" : "DICOM", "*.dif" : "DIF", "*.dot" : "DOT", "*.dxf" : "DXF", "*.edf" : "EDF", "*.emf" : "EMF", "*.eml" : "EML", "*.enc" : "UUE", "*.ent" : "PDB", "*.eps" : "EPS", "*.epsf" : "EPS", "*.epsi" : "EPS", "*.fcs" : "FCS", "*.fsa" : "FASTA", "*.fasta" : "FASTA", "*.fa" : "FASTA", "*.mpfa" : "FASTA", "*.fq" : "FASTQ", "*.fastq" : "FASTQ", "*.fit" : "FITS", "*.fits" : "FITS", "*.flac" : "FLAC", "*.flv" : "FLV", "*.fmu" : "FMU", "*.g6" : "Graph6", "*.gif" : "GIF", "*.gml" : "Graphlet", "*.grd" : "SurferGrid", "*.grib" : "GRIB", "*.grb" : "GRIB", "*.gv" : "DOT", "*.gw" : "LEDA", "*.gxl" : "GXL", "*.graphml" : "GraphML", "*.gz" : "GZIP", "*.hdf" : "HDF", "*.hmm" : "HMMER", "*.htm" : "HTML", "*.html" : "HTML", "*.sds" : "HDF", "*.h5" : "HDF5", "*.icc" : "ICC", "*.icm" : "ICC", "*.icns" : "ICNS", "*.ico" : "ICO", "*.ics" : "ICS", "*.ini" : "INI", "*.jar" : "ZIP", "*.jp2" : "JPEG2000", "*.j2k" : "JPEG2000", "*.jpc" : "JPEG2000", "*.jpg" : "JPEG", "*.jpeg" : "JPEG", "*.jfif" : "JPEG", "*.jvx" : "JVX", "*.kml" : "KML", "*.kmz" : "KML", "*.lgr" : "LEDA", "*.lmd" : "FCS", "*.lwo" : "LWO", "*.m" : "Package", "*.m4a" : "M4A", "*.aac" : "M4A", "*.ma" : "Maya", "*.mat" : "MAT", "*.mbx" : "MBOX", "*.mbox" : "MBOX", "*.mesh" : "MESH", "*.mgf" : "MGF", "*.mid" : "MIDI", "*.mml" : "MathML", "*.mo" : "MO", "*.mol" : "MOL", "*.mol2" : "MOL2", "*.mov" : "QuickTime", "*.mp3" : "MP3", "*.mtx" : "MTX", "*.mulaw" : "AU", "*.mx" : "MX", "*.nb" : "NB", "*.nc" : "NETCDF", "*.ndk" : "NDK", "*.net" : "PAJEK", "*.nex" : "NEXUS", "*.noff" : "NOFF", "*.nxs" : "NEXUS", "*.obj" : "OBJ", "*.ods" : "ODS", "*.off" : "OFF", "*.oga" : "OGG", "*.ogg" : "OGG", "*.pcx" : "PCX", "*.pbm" : "PBM", "*.pgm" : "PGM", "*.ppm" : "PPM", "*.pnm" : "PNM", "*.png" : "PNG", "*.pdb" : "PDB", "*.pdf" : "PDF", "*.pic" : "PXR", "*.pic" : "PICT", "*.pict" : "PICT", "*.pct" : "PICT", "*.ply" : "PLY", "*.pov" : "POV", "*.properties" : "JavaProperties", "*.pxr" : "PXR", "*.qt" : "QuickTime", "*.raw" : "RawBitmap", "*.rib" : "RIB", "*.rtf" : "RTF", "*.sdf" : "SDF", "*.sct" : "SCT", "*.ch" : "SCT", "*.ct" : "SCT", "*.sff" : "SFF", "*.sp3" : "SP3", "*.stl" : "STL", "*.s6" : "Sparse6", "*.sma" : "SMA", "*.sme" : "SME", "*.smi" : "SMILES", "*.snd" : "SND", "*.svg" : "SVG", "*.svgz" : "SVGZ", "*.swf" : "SWF", "*.tar" : "TAR", "*.tex" : "TeX", "*.tga" : "TGA", "*.tgf" : "TGF", "*.tgz" : "GZIP", "*.tff" : "TIFF", "*.tif" : "TIFF", "*.tiff" : "TIFF", "*.tsv" : "TSV", "*.txt" : "Text", "*.uue" : "UUE", "*.w64" : "Wave64", "*.wav" : "WAV", "*.webp" : "WebP", "*.wdx" : "WDX", "*.wl" : "Package", "*.wls" : "Package", "*.wlnet" : "WLNet", "*.wmf" : "WMF", "*.wmlf" : "WMLF", "*.html" : "XHTML", "*.htm" : "XHTML", "*.xhtml" : "XHTML", "*.xbm" : "XBM", "*.xht" : "XHTML", "*.xml" : "XML", "*.xml" : "ExpressionML", "*.xml" : "XHTML", "*.xml" : "XHTMLMathML", "*.xls" : "XLS", "*.xlsx" : "XLSX", "*.wrl" : "VRML", "*.wxf" : "WXF", "*.vtk" : "VTK", "*.x3d" : "X3D", "*.xyz" : "XYZ", "*.zip" : "ZIP", "*.zpr" : "ZPR", "*.cha" : "HarwellBoeing", "*.che" : "HarwellBoeing", "*.cra" : "HarwellBoeing", "*.cre" : "HarwellBoeing", "*.csa" : "HarwellBoeing", "*.cse" : "HarwellBoeing", "*.cua" : "HarwellBoeing", "*.cue" : "HarwellBoeing", "*.cza" : "HarwellBoeing", "*.cze" : "HarwellBoeing", "*.pha" : "HarwellBoeing", "*.phe" : "HarwellBoeing", "*.pra" : "HarwellBoeing", "*.pre" : "HarwellBoeing", "*.psa" : "HarwellBoeing", "*.pse" : "HarwellBoeing", "*.pua" : "HarwellBoeing", "*.pue" : "HarwellBoeing", "*.pza" : "HarwellBoeing", "*.pze" : "HarwellBoeing", "*.rha" : "HarwellBoeing", "*.rhe" : "HarwellBoeing", "*.rra" : "HarwellBoeing", "*.rre" : "HarwellBoeing", "*.rsa" : "HarwellBoeing", "*.rse" : "HarwellBoeing", "*.rua" : "HarwellBoeing", "*.rue" : "HarwellBoeing", "*.rza" : "HarwellBoeing", "*.rze" : "HarwellBoeing", "*.json" : "JSON", "*.ubj" : "UBJSON", "*.geojson" : "GeoJSON", "*.bay" : "Raw", "*.bmq" : "Raw", "*.cr2" : "Raw", "*.crw" : "Raw", "*.cs1" : "Raw", "*.dc2" : "Raw", "*.dcr" : "Raw", "*.dng" : "Raw", "*.erf" : "Raw", "*.fff" : "Raw", "*.hdr" : "Raw", "*.k25" : "Raw", "*.kdc" : "Raw", "*.mdc" : "Raw", "*.mos" : "Raw", "*.mrw" : "Raw", "*.nef" : "Raw", "*.orf" : "Raw", "*.pef" : "Raw", "*.pxn" : "Raw", "*.raf" : "Raw", "*.raw" : "Raw", "*.rdc" : "Raw", "*.sr2" : "Raw", "*.srf" : "Raw", "*.x3f" : "Raw", "*.arw" : "Raw", "*.3fr" : "Raw", "*.cine" : "Raw", "*.ia" : "Raw", "*.kc2" : "Raw", "*.mef" : "Raw", "*.nrw" : "Raw", "*.qtk" : "Raw", "*.rw2" : "Raw", "*.sti" : "Raw", "*.rwl" : "Raw", "*.rle" : "RLE", "*.tcx" : "TECHEXPLORER", "*.tcx" : "TCX", "*.css" : "CSS"}
 
 
-def _importer_exporter_options(available_options, options, evaluation):
+FORMATMAPPINGS = {"Agilent" : "AgilentMicroarray", "BZIP" : "BZIP2", "BZ2" : "BZIP2", "Excel" : "XLS", "MatrixMarket" : "MTX", "GraphWin" : "LEDA", "GZ" : "GZIP", "TGZ" : "GZIP", "vCard" : "VCF", "Metafile" : "WMF", "JPG" : "JPEG", "JCAMPDX" : "JCAMP-DX", "WAVE" : "WAV", "AIFC" : "AIFF", "MuLaw" : "AU", "Flash" : "SWF", "HTMLMathML" : "XHTMLMathML", "RichText" : "RTF", "JAR" : "ZIP", "WEBP" : "WebP", "RAW" : "Raw", "3DS" : "3DS", "ACO" : "ACO", "AFFYMETRIX" : "Affymetrix", "AGILENTMICROARRAY" : "AgilentMicroarray", "AIFF" : "AIFF", "APACHELOG" : "ApacheLog", "ARCGRID" : "ArcGRID", "AU" : "AU", "AVI" : "AVI", "BASE64" : "Base64", "BDF" : "BDF", "BINARY" : "Binary", "BIT" : "Bit", "BMP" : "BMP", "BSON" : "BSON", "BYTE" : "Byte", "BYU" : "BYU", "BZIP2" : "BZIP2", "CDED" : "CDED", "CDF" : "CDF", "CHARACTER16" : "Character16", "CHARACTER8" : "Character8", "CIF" : "CIF", "COMPLEX128" : "Complex128", "COMPLEX256" : "Complex256", "COMPLEX64" : "Complex64", "CSV" : "CSV", "CUR" : "CUR", "DAE" : "DAE", "DBF" : "DBF", "DICOM" : "DICOM", "DIF" : "DIF", "DIMACS" : "DIMACS", "DIRECTORY" : "Directory", "DOT" : "DOT", "DXF" : "DXF", "EDF" : "EDF", "EML" : "EML", "EPS" : "EPS", "EXPRESSIONJSON" : "ExpressionJSON", "EXPRESSIONML" : "ExpressionML", "FASTA" : "FASTA", "FASTQ" : "FASTQ", "FCS" : "FCS", "FITS" : "FITS", "FLAC" : "FLAC", "GENBANK" : "GenBank", "GEOJSON" : "GeoJSON", "GEOTIFF" : "GeoTIFF", "GIF" : "GIF", "GPX" : "GPX", "GRAPH6" : "Graph6", "GRAPHLET" : "Graphlet", "GRAPHML" : "GraphML", "GRIB" : "GRIB", "GTOPO30" : "GTOPO30", "GXL" : "GXL", "GZIP" : "GZIP", "HARWELLBOEING" : "HarwellBoeing", "HDF5" : "HDF5", "HDF" : "HDF", "HIN" : "HIN", "HTML" : "HTML", "HTTPREQUEST" : "HTTPRequest", "HTTPRESPONSE" : "HTTPResponse", "ICC" : "ICC", "ICNS" : "ICNS", "ICO" : "ICO", "ICS" : "ICS", "INI" : "Ini", "INTEGER128" : "Integer128", "INTEGER16" : "Integer16", "INTEGER24" : "Integer24", "INTEGER32" : "Integer32", "INTEGER64" : "Integer64", "INTEGER8" : "Integer8", "JAVAPROPERTIES" : "JavaProperties", "JAVASCRIPTEXPRESSION" : "JavaScriptExpression", "JCAMP-DX" : "JCAMP-DX", "JPEG2000" : "JPEG2000", "JPEG" : "JPEG", "JSON" : "JSON", "JVX" : "JVX", "KML" : "KML", "LATEX" : "LaTeX", "LEDA" : "LEDA", "LIST" : "List", "LWO" : "LWO", "M4A" : "M4A", "MATHML" : "MathML", "MAT" : "MAT", "MBOX" : "MBOX", "MCTT" : "MCTT", "MDB" : "MDB", "MESH" : "MESH", "MGF" : "MGF", "MIDI" : "MIDI", "MMCIF" : "MMCIF", "MO" : "MO", "MOL2" : "MOL2", "MOL" : "MOL", "MP3" : "MP3", "MPS" : "MPS", "MTP" : "MTP", "MTX" : "MTX", "MX" : "MX", "MXNET" : "MXNet", "NASACDF" : "NASACDF", "NB" : "NB", "NDK" : "NDK", "NETCDF" : "NetCDF", "NEXUS" : "NEXUS", "NOFF" : "NOFF", "OBJ" : "OBJ", "ODS" : "ODS", "OFF" : "OFF", "OGG" : "OGG", "OPENEXR" : "OpenEXR", "PACKAGE" : "Package", "PAJEK" : "Pajek", "PBM" : "PBM", "PCAP" : "PCAP", "PCX" : "PCX", "PDB" : "PDB", "PDF" : "PDF", "PGM" : "PGM", "PHPINI" : "PHPIni", "PLY" : "PLY", "PNG" : "PNG", "PNM" : "PNM", "PPM" : "PPM", "PXR" : "PXR", "PYTHONEXPRESSION" : "PythonExpression", "QUICKTIME" : "QuickTime", "RAWBITMAP" : "RawBitmap", "RAW" : "Raw", "RAWJSON" : "RawJSON", "REAL128" : "Real128", "REAL32" : "Real32", "REAL64" : "Real64", "RIB" : "RIB", "RLE" : "RLE", "RSS" : "RSS", "RTF" : "RTF", "SCT" : "SCT", "SDF" : "SDF", "SDTSDEM" : "SDTSDEM", "SDTS" : "SDTS", "SFF" : "SFF", "SHP" : "SHP", "SMA" : "SMA", "SME" : "SME", "SMILES" : "SMILES", "SND" : "SND", "SP3" : "SP3", "SPARSE6" : "Sparse6", "STL" : "STL", "STRING" : "String", "SURFERGRID" : "SurferGrid", "SXC" : "SXC", "TABLE" : "Table", "TAR" : "TAR", "TERMINATEDSTRING" : "TerminatedString", "TEX" : "TeX", "TEXT" : "Text", "TGA" : "TGA", "TGF" : "TGF", "TIFF" : "TIFF", "TIGER" : "TIGER", "TLE" : "TLE", "TSV" : "TSV", "UBJSON" : "UBJSON", "UNSIGNEDINTEGER128" : "UnsignedInteger128", "UNSIGNEDINTEGER16" : "UnsignedInteger16", "UNSIGNEDINTEGER24" : "UnsignedInteger24", "UNSIGNEDINTEGER32" : "UnsignedInteger32", "UNSIGNEDINTEGER64" : "UnsignedInteger64", "UNSIGNEDINTEGER8" : "UnsignedInteger8", "USGSDEM" : "USGSDEM", "UUE" : "UUE", "VCF" : "VCF", "VCS" : "VCS", "VTK" : "VTK", "WARC" : "WARC", "WAVE64" : "Wave64", "WAV" : "WAV", "WDX" : "WDX", "WEBP" : "WebP", "WLNET" : "WLNet", "WMLF" : "WMLF", "WXF" : "WXF", "XBM" : "XBM", "XHTML" : "XHTML", "XHTMLMATHML" : "XHTMLMathML", "XLS" : "XLS", "XLSX" : "XLSX", "XML" : "XML", "XPORT" : "XPORT", "XYZ" : "XYZ", "ZIP" : "ZIP", "C" : "C", "EMF" : "EMF", "FLV" : "FLV", "FMU" : "FMU", "HTMLFRAGMENT" : "HTMLFragment", "MAYA" : "Maya", "PICT" : "PICT", "POV" : "POV", "SVG" : "SVG", "SWF" : "SWF", "TEXFRAGMENT" : "TeXFragment", "VIDEOFRAMES" : "VideoFrames", "VRML" : "VRML", "WMF" : "WMF", "X3D" : "X3D", "ZPR" : "ZPR", "AUDIO/AIFF" : "AIFF", "AUDIO/X-AIFF" : "AIFF", "AUDIO/BASIC" : "AU", "AUDIO/X-AU" : "AU", "AUDIO/X-ULAW" : "AU", "APPLICATION/X-TROFF-MSVIDEO" : "AVI", "VIDEO/AVI" : "AVI", "VIDEO/MSVIDEO" : "AVI", "VIDEO/X-MSVIDEO" : "AVI", "APPLICATION/BMP" : "BMP", "APPLICATION/X-BMP" : "BMP", "APPLICATION/X-WIN-BITMAP" : "BMP", "IMAGE/BITMAP" : "BMP", "IMAGE/BMP" : "BMP", "IMAGE/MS-BMP" : "BMP", "IMAGE/X-BITMAP" : "BMP", "IMAGE/X-BMP" : "BMP", "IMAGE/X-MS-BMP" : "BMP", "IMAGE/X-WIN-BITMAP" : "BMP", "IMAGE/X-WINDOWS-BITMAP" : "BMP", "APPLICATION/X-BZIP" : "BZIP2", "BZ2" : "BZIP2", "BZIP" : "BZIP2", "APPLICATION/VND.WOLFRAM.CDF.TEXT" : "CDF", "APPLICATION/DICOM" : "DICOM", "APPLICATION/ACAD" : "DXF", "APPLICATION/DXF" : "DXF", "APPLICATION/X-AUTOCAD" : "DXF", "APPLICATION/X-DXF" : "DXF", "IMAGE/DXF" : "DXF", "IMAGE/VND.DXF" : "DXF", "IMAGE/X-AUTOCAD" : "DXF", "IMAGE/X-DXF" : "DXF", "ZZ-APPLICATION/ZZ-WINASSOC-DXF" : "DXF", "APPLICATION/EMF" : "EMF", "APPLICATION/X-EMF" : "EMF", "ENHANCEDMETAFILE" : "EMF", "IMAGE/X-EMF" : "EMF", "IMAGE/X-MGX-EMF" : "EMF", "IMAGE/X-XBITMAP" : "EMF", "APPLICATION/EPS" : "EPS", "APPLICATION/POSTSCRIPT" : "EPS", "APPLICATION/X-EPS" : "EPS", "IMAGE/EPS" : "EPS", "IMAGE/X-EPS" : "EPS", "APPLICATION/FITS" : "FITS", "IMAGE/FITS" : "FITS", "VIDEO/X-FLV" : "FLV", "IMAGE/GIF" : "GIF", "APPLICATION/X-HDF" : "HDF", "APPLICATION/X-HDF5" : "HDF5", "APPLICATION/JPG" : "JPEG", "APPLICATION/X-JPG" : "JPEG", "IMAGE/JPEG" : "JPEG", "IMAGE/JPG" : "JPEG", "IMAGE/PJPEG" : "JPEG", "IMAGE/JP2" : "JPEG2000", "IMAGE/JPEG2000" : "JPEG2000", "IMAGE/JPEG2000-IMAGE" : "JPEG2000", "IMAGE/X-JPEG2000-IMAGE" : "JPEG2000", "AUDIO/AAC" : "M4A", "AUDIO/AACP" : "M4A", "AUDIO/3GPP" : "M4A", "AUDIO/3GPP2" : "M4A", "AUDIO/MP4" : "M4A", "AUDIO/MP4A-LATM" : "M4A", "AUDIO/MPEG4-GENERIC" : "M4A", "AUDIO/MPEG" : "MP3", "AUDIO/X-MPEG" : "MP3", "AUDIO/MP3" : "MP3", "AUDIO/X-MP3" : "MP3", "AUDIO/MPEG3" : "MP3", "AUDIO/X-MPEG3" : "MP3", "AUDIO/MPG" : "MP3", "AUDIO/X-MPG" : "MP3", "AUDIO/X-MPEGAUDIO" : "MP3", "APPLICATION/MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.PLAYER" : "NB", "APPLICATION/VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "APPLICATION/X-VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "AUDIO/OGG" : "OGG", "AUDIO/VORBIS" : "OGG", "IMAGE/X-EXR" : "OpenEXR", "APPLICATION/VND.TCPDUMP.PCAP" : "PCAP", "APPLICATION/X-PCAPNG" : "PCAP", "APPLICATION/ACROBAT" : "PDF", "APPLICATION/PDF" : "PDF", "APPLICATION/VND.PDF" : "PDF", "APPLICATION/X-PDF" : "PDF", "TEXT/PDF" : "PDF", "TEXT/X-PDF" : "PDF", "APPLICATION/PNG" : "PNG", "APPLICATION/X-PNG" : "PNG", "IMAGE/PNG" : "PNG", "IMAGE/X-PNG" : "PNG", "IMAGE/X-PBM" : "PBM", "IMAGE/X-PORTABLE-BITMAP" : "PBM", "IMAGE/X-PGM" : "PGM", "IMAGE/X-PORTABLE-GRAYMAP" : "PGM", "IMAGE/X-PPM" : "PPM", "IMAGE/X-PORTABLE-PIXMAP" : "PPM", "IMAGE/X-PNM" : "PNM", "IMAGE/X-PORTABLE-ANYMAP" : "PNM", "APPLICATION/RTF" : "RTF", "APPLICATION/X-RTF" : "RTF", "RICHTEXT" : "RTF", "TEXT/RICHTEXT" : "RTF", "TEXT/RTF" : "RTF", "APPLICATION/X-SHOCKWAVE-FLASH" : "SWF", "FLASH" : "SWF", "APPLICATION/X-GZIP" : "GZIP", "APPLICATION/X-GZIP-COMPRESSED" : "GZIP", "MULTIPART/X-GZIP" : "GZIP", "APPLICATION/TAR" : "TAR", "APPLICATION/X-TAR" : "TAR", "MULTIPART/X-TAR" : "TAR", "APPLICATION/TIF" : "TIFF", "APPLICATION/TIFF" : "TIFF", "APPLICATION/X-TIF" : "TIFF", "APPLICATION/X-TIFF" : "TIFF", "IMAGE/TIF" : "TIFF", "IMAGE/TIFF" : "TIFF", "IMAGE/X-TIF" : "TIFF", "IMAGE/X-TIFF" : "TIFF", "APPLICATION/X-3DS" : "3DS", "IMAGE/X-3DS" : "3DS", "APPLICATION/VCARD" : "VCF", "TEXT/X-VCARD" : "VCF", "VCARD" : "VCF", "AUDIO/WAV" : "WAV", "AUDIO/WAVE" : "WAV", "AUDIO/X-WAV" : "WAV", "WAVE" : "WAV", "APPLICATION/WMF" : "WMF", "APPLICATION/X-MSMETAFILE" : "WMF", "APPLICATION/X-WMF" : "WMF", "IMAGE/WMF" : "WMF", "IMAGE/X-WIN-METAFILE" : "WMF", "IMAGE/X-WMF" : "WMF", "METAFILE" : "WMF", "WINDOWS/METAFILE" : "WMF", "ZZ-APPLICATION/ZZ-WINASSOC-WMF" : "WMF", "APPLICATION/EXCEL" : "XLS", "APPLICATION/MS-EXCEL" : "XLS", "APPLICATION/VND.MS-EXCEL" : "XLS", "APPLICATION/X-DOS_MS_EXCEL" : "XLS", "APPLICATION/X-EXCEL" : "XLS", "APPLICATION/X-MS-EXCEL" : "XLS", "APPLICATION/X-MSEXCEL" : "XLS", "APPLICATION/X-XLS" : "XLS", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLS", "APPLICATION/EXCEL" : "XLSX", "APPLICATION/MS-EXCEL" : "XLSX", "APPLICATION/VND.MS-EXCEL" : "XLSX", "APPLICATION/X-DOS_MS_EXCEL" : "XLSX", "APPLICATION/X-EXCEL" : "XLSX", "APPLICATION/X-MS-EXCEL" : "XLSX", "APPLICATION/X-MSEXCEL" : "XLSX", "APPLICATION/X-XLS" : "XLSX", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX", "APPLICATION/MSWORD" : "DOC", "APPLICATION/X-WINZIP" : "ZIP", "APPLICATION/X-ZIP" : "ZIP", "APPLICATION/X-ZIP-COMPRESSED" : "ZIP", "APPLICATION/ZIP" : "ZIP", "MULTIPART/X-ZIP" : "ZIP", "IMAGE/SVG-XML" : "SVG", "IMAGE/SVG+XML" : "SVG", "TEXT/CALENDAR" : "VCS", "TEXT/CALENDAR" : "ICS", "APPLICATION/TGA" : "TGA", "APPLICATION/X-TARGA" : "TGA", "APPLICATION/X-TGA" : "TGA", "IMAGE/TARGA" : "TGA", "IMAGE/TGA" : "TGA", "IMAGE/X-TARGA" : "TGA", "IMAGE/X-TGA" : "TGA", "APPLICATION/WARC" : "WARC", "TEXT/HTML" : "HTML", "APPLICATION/XHTML+XML" : "XHTML", "APPLICATION/XML" : "XML", "TEXT/XML" : "XML", "APPLICATION/X-TEX" : "TeX", "APPLICATION/CSV" : "CSV", "TEXT/COMMA-SEPARATED-VALUES" : "CSV", "TEXT/CSV" : "CSV", "TEXT/X-COMMA-SEPARATED-VALUES" : "CSV", "TEXT/TAB-SEPARATED-VALUES" : "TSV", "APPLICATION/VND.WOLFRAM.MATHEMATICA.PACKAGE" : "Package", "MESSAGE/RFC822" : "EML", "IMAGE/VND.MICROSOFT.ICON" : "ICO", "APPLICATION/JSON" : "JSON", "APPLICATION/UBJSON" : "UBJSON", "APPLICATION/GEO+JSON" : "GeoJSON", "APPLICATION/X-LATEX" : "LaTeX", "VIDEO/X-MATROSKA" : "MKV", "APPLICATION/PCX" : "PCX", "APPLICATION/X-PCX" : "PCX", "IMAGE/PCX" : "PCX", "IMAGE/X-PC-PAINTBRUCH" : "PCX", "IMAGE/X-PCX" : "PCX", "ZZ-APPLICATION/ZZ-WINASSOC-PCX" : "PCX", "IMAGE/PICT" : "PICT", "IMAGE/X-PICT" : "PICT", "MODEL/X-POV" : "POV", "VIDEO/QUICKTIME" : "QuickTime", "APPLICATION/SLA" : "STL", "XBITMAP" : "XBM", "IMAGE/XBM" : "XBM", "IMAGE/X-XBITMAP" : "XBM", "IMAGE/X-XBM" : "XBM", "APPLICATION/TXT" : "Text", "TEXT/PLAIN" : "Text"}
+ 
+
+
+
+def _importer_exporter_options(available_options, options, builtin_name: str, evaluation):
     stream_options = []
     custom_options = []
+    remaining_options = options.copy()
 
     if available_options and available_options.has_form('List', None):
         for name in available_options.leaves:
@@ -167,7 +174,7 @@ def _importer_exporter_options(available_options, options, evaluation):
                 py_name = None
 
             if py_name:
-                value = Builtin.get_option(options, py_name, evaluation)
+                value = get_option(remaining_options, py_name, evaluation, pop=True)
                 if value is not None:
                     expr = Expression('Rule', String(py_name), value)
                     if py_name == 'CharacterEncoding':
@@ -175,7 +182,18 @@ def _importer_exporter_options(available_options, options, evaluation):
                     else:
                         custom_options.append(expr)
 
+    syntax_option = remaining_options.get("System`$OptionSyntax", None)
+    if syntax_option and syntax_option !=  Symbol("System`Ignore"):
+        # warn about unsupported options.
+        for name, value in remaining_options.items():
+            evaluation.message(
+                builtin_name,
+                "optx",
+                Expression('Rule', strip_context(name), value),
+                strip_context(builtin_name))
+
     return stream_options, custom_options
+
 
 class ImportFormats(Predefined):
     """
@@ -209,6 +227,36 @@ class ExportFormats(Predefined):
 
     def evaluate(self, evaluation):
         return Expression('List', *sorted(EXPORTERS.keys()))
+
+
+class ConverterDumpsExtensionMappings(Predefined):
+    """
+    <dl>
+    <dt>'$extensionMappings'
+        <dd>Returns a list of associations between file extensions and file types. 
+    </dl>
+    """
+    context = 'System`ConvertersDump`'
+    name = "$extensionMappings"
+    attributes = ['Unprotected']
+
+    def evaluate(self, evaluation):
+        return from_python(EXTENSIONMAPPINGS)
+
+
+class ConverterDumpsFormatMappings(Predefined):
+    """
+    <dl>
+    <dt>'$formatMappings'
+        <dd>Returns a list of associations between file extensions and file types. 
+    </dl>    
+    """
+    context = 'System`ConvertersDump`'
+    name = "$formatMappings"
+    attributes = ['Unprotected']
+    def evaluate(self, evaluation):
+        return from_python(FORMATMAPPINGS)
+
 
 
 class RegisterImport(Builtin):
@@ -320,7 +368,7 @@ class RegisterImport(Builtin):
         if not (len(leaves) >= 1 and isinstance(leaves[-1], Symbol) and
                 all(x.has_form('RuleDelayed', None) for x in leaves[:-1])):
             # TODO: Message
-            return Symbol('$Failed')
+            return SymbolFailed
 
         conditionals = {
             elem.get_string_value(): expr for (elem, expr) in
@@ -389,12 +437,18 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
-class FetchURL(Builtin):
+class URLFetch(Builtin):
     '''
-    #> Quiet[FetchURL["https:////", {}]]
+    <dl>
+    <dt>'URLFetch[$URL$]'
+      <dd> Returns the content of $URL$ as a string.
+    </dl>
+
+
+    #> Quiet[URLFetch["https:////", {}]]
      = $Failed
 
-    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+    #> Quiet[URLFetch["https://www.example.com", {}]]
      = $Failed
     '''
 
@@ -403,7 +457,7 @@ class FetchURL(Builtin):
     }
 
     def apply(self, url, elements, evaluation, options={}):
-        'FetchURL[url_String, elements_, OptionsPattern[]]'
+        'URLFetch[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -436,18 +490,18 @@ class FetchURL(Builtin):
             result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
-                'FetchURL', 'httperr', url,
+                'URLFetch', 'httperr', url,
                 'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
-            return Symbol('$Failed')
+            return SymbolFailed
         except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
-                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
-            return Symbol('$Failed')
+                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
+            return SymbolFailed
         except ValueError as e:
-            evaluation.message('FetchURL', 'httperr', url, str(e))
-            return Symbol('$Failed')
+            evaluation.message('URLFetch', 'httperr', url, str(e))
+            return SymbolFailed
         finally:
             os.unlink(temp_path)
 
@@ -515,6 +569,10 @@ class Import(Builtin):
         'Import[filename_]': 'Import[filename, {}]',
     }
 
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
+
     def apply(self, filename, evaluation, options={}):
         'Import[filename_, OptionsPattern[]]'
         return self.apply_elements(filename, Expression('List'), evaluation, options)
@@ -529,17 +587,12 @@ class Import(Builtin):
         path = filename.to_python()
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
-            return Symbol('$Failed')
-
-        # Download via URL
-        if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements, *options_to_rules(options))
+            return SymbolFailed
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
 
-        if findfile == Symbol('$Failed'):
+        if findfile == SymbolFailed:
             evaluation.message('Import', 'nffil')
             return findfile
 
@@ -563,7 +616,7 @@ class Import(Builtin):
 
                 evaluation.message('Import', 'noelem', el)
                 evaluation.predetermined_out = current_predetermined_out
-                return Symbol('$Failed')
+                return SymbolFailed
 
         elements = [el.get_string_value() for el in elements]
 
@@ -579,13 +632,13 @@ class Import(Builtin):
         if filetype not in IMPORTERS.keys():
             evaluation.message('Import', 'fmtnosup', filetype)
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # Load the importer
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
         stream_options, custom_options = _importer_exporter_options(
-            importer_options.get("System`Options"), options, evaluation)
+            importer_options.get("System`Options"), options, "System`Import", evaluation)
 
         function_channels = importer_options.get("System`FunctionChannels")
 
@@ -596,14 +649,14 @@ class Import(Builtin):
             else:
                 evaluation.message('ImportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
 
         default_element = importer_options.get("System`DefaultElement")
         if default_element is None:
             # TODO message
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
         def get_results(tmp_function, findfile):
             if function_channels == Expression('List', String('FileNames')):
@@ -636,7 +689,7 @@ class Import(Builtin):
             else:
                 # TODO message
                 evaluation.predetermined_out = current_predetermined_out
-                return Symbol('$Failed')
+                return SymbolFailed
             tmp = tmp.get_leaves()
             if not all(expr.has_form('Rule', None) for expr in tmp):
                 evaluation.predetermined_out = current_predetermined_out
@@ -655,7 +708,7 @@ class Import(Builtin):
             defaults = get_results(default_function, findfile)
             if defaults is None:
                 evaluation.predetermined_out = current_predetermined_out
-                return Symbol('$Failed')
+                return SymbolFailed
             if default_element == Symbol("Automatic"):
                 evaluation.predetermined_out = current_predetermined_out
                 return Expression('List', *(
@@ -667,7 +720,7 @@ class Import(Builtin):
                     evaluation.message('Import', 'noelem', default_element,
                                        from_python(filetype))
                     evaluation.predetermined_out = current_predetermined_out
-                    return Symbol('$Failed')
+                    return SymbolFailed
                 evaluation.predetermined_out = current_predetermined_out
                 return result
         else:
@@ -677,7 +730,7 @@ class Import(Builtin):
                 defaults = get_results(default_function, findfile)
                 if defaults is None:
                     evaluation.predetermined_out = current_predetermined_out
-                    return Symbol('$Failed')
+                    return SymbolFailed
                 # Use set() to remove duplicates
                 evaluation.predetermined_out = current_predetermined_out
                 return from_python(sorted(set(
@@ -687,7 +740,7 @@ class Import(Builtin):
                     result = get_results(conditionals[el], findfile)
                     if result is None:
                         evaluation.predetermined_out = current_predetermined_out
-                        return Symbol('$Failed')
+                        return SymbolFailed
                     if len(list(result.keys())) == 1 and list(result.keys())[0] == el:
                         evaluation.predetermined_out = current_predetermined_out
                         return list(result.values())[0]
@@ -696,13 +749,13 @@ class Import(Builtin):
                     result = get_results(posts[el])
                     if result is None:
                         evaluation.predetermined_out = current_predetermined_out
-                        return Symbol('$Failed')
+                        return SymbolFailed
                 else:
                     if defaults is None:
                         defaults = get_results(default_function, findfile)
                         if defaults is None:
                             evaluation.predetermined_out = current_predetermined_out
-                            return Symbol('$Failed')
+                            return SymbolFailed
                     if el in defaults.keys():
                         evaluation.predetermined_out = current_predetermined_out
                         return defaults[el]
@@ -710,7 +763,7 @@ class Import(Builtin):
                         evaluation.message('Import', 'noelem', from_python(el),
                                            from_python(filetype))
                         evaluation.predetermined_out = current_predetermined_otu
-                        return Symbol('$Failed')
+                        return SymbolFailed
 
 
 class ImportString(Import):
@@ -720,11 +773,11 @@ class ImportString(Import):
       <dd>imports data in the specified format from a string.
     <dt>'ImportString["$file$", $elements$]'
       <dd>imports the specified elements from a string.
-    <dt>'ImportString["$data$"]' 
+    <dt>'ImportString["$data$"]'
       <dd>attempts to determine the format of the string from its content.
     </dl>
 
-     
+
     #> ImportString[x]
      : First argument x is not a string.
      = $Failed
@@ -751,7 +804,7 @@ class ImportString(Import):
     >> ImportString[str, "Lines"]
      = ...
     """
-       
+
     messages = {
         'string': 'First argument `1` is not a string.',
         'noelem': (
@@ -762,23 +815,23 @@ class ImportString(Import):
     rules = {
             }
 
-        
+
     def apply(self, data, evaluation, options={}):
         'ImportString[data_, OptionsPattern[]]'
         return self.apply_elements(data, Expression('List'), evaluation, options)
 
     def apply_element(self, data, element, evaluation, options={}):
         'ImportString[data_, element_String, OptionsPattern[]]'
-        
+
         return self.apply_elements(data, Expression('List', element), evaluation, options)
 
-    
+
     def apply_elements(self, data, elements, evaluation, options={}):
         'ImportString[data_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
         if not (isinstance(data, String)):
             evaluation.message('ImportString', 'string', data)
-            return Symbol('$Failed')
-        
+            return SymbolFailed
+
         def determine_filetype():
             if not FileFormat.detector:
                 loader = magic.MagicLoader()
@@ -795,7 +848,7 @@ class ImportString(Import):
             # installations of Windows, where we end up classifying .csv files als XLS.
             if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
                 return String('CSV')
-            
+
             if len(result) == 0:
                 result = 'Binary'
             elif len(result) == 1:
@@ -804,13 +857,13 @@ class ImportString(Import):
                 return None
 
             return result
-        
+
         return self._import(None, determine_filetype, elements, evaluation, options, data = data)
 
 
 
-    
-                    
+
+
 class Export(Builtin):
     """
     <dl>
@@ -930,19 +983,23 @@ class Export(Builtin):
             'Export[filename, expr, {elems}]'),
     }
 
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
+
     def apply(self, filename, expr, evaluation, options={}):
         "Export[filename_, expr_, OptionsPattern[]]"
 
         # Check filename
         if not self._check_filename(filename, evaluation):
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # Determine Format
         form = self._infer_form(filename, evaluation)
 
         if form is None:
             evaluation.message('Export', 'infer', filename)
-            return Symbol('$Failed')
+            return SymbolFailed
         else:
             return self.apply_elements(filename, expr, String(form), evaluation, options)
 
@@ -955,7 +1012,7 @@ class Export(Builtin):
 
         # Check filename
         if not self._check_filename(filename, evaluation):
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # Process elems {comp* format?, elem1*}
         leaves = elems.get_leaves()
@@ -982,7 +1039,7 @@ class Export(Builtin):
             if format_spec is None:
                 evaluation.message('Export', 'infer', filename)
                 evaluation.predetermined_out = current_predetermined_out
-                return Symbol('$Failed')
+                return SymbolFailed
             format_spec = [format_spec]
         else:
             assert format_spec != []
@@ -994,20 +1051,20 @@ class Export(Builtin):
             evaluation.message(
                 'Export', 'noelem', elems, String(format_spec[0]))
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-        
-        stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
 
-        
+        stream_options, custom_options = _importer_exporter_options(
+            exporter_options.get("System`Options"), options, 'System`Export', evaluation)
+
+
         if function_channels is None:
             evaluation.message('Export', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
         elif function_channels == Expression('List', String('FileNames')):
             exporter_function = Expression(
                 exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
@@ -1021,12 +1078,12 @@ class Export(Builtin):
             exporter_function = Expression(
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
-            Expression('Close', stream).evaluate(evaluation)            
+            Expression('Close', stream).evaluate(evaluation)
         if res == Symbol('Null'):
             evaluation.predetermined_out = current_predetermined_out
-            return filename      
+            return filename
         evaluation.predetermined_out = current_predetermined_out
-        return Symbol('$Failed')
+        return SymbolFailed
 
     def _check_filename(self, filename, evaluation):
         path = filename.to_python()
@@ -1062,7 +1119,7 @@ class ExportString(Builtin):
      . 3,
      . 4,
     >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
-     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
+     = ...
     """
 
     messages = {
@@ -1092,7 +1149,7 @@ class ExportString(Builtin):
 
             if not found_form and leaf_str in EXPORTERS:
                 found_form = True
-                
+
             if found_form:
                 format_spec.append(leaf_str)
             else:
@@ -1105,7 +1162,7 @@ class ExportString(Builtin):
         if format_spec is None:
             evaluation.message('ExportString', 'infer', filename)
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # First item in format_spec is the explicit format.
         # The other elements (if present) are compression formats
@@ -1118,19 +1175,19 @@ class ExportString(Builtin):
                 evaluation.message(
                     'ExportString', 'noelem', elems, String("Unknown"))
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
 
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
 
         stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
-        
+            exporter_options.get("System`Options"), options, "System Options", evaluation)
+
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
+            return SymbolFailed
         elif function_channels == Expression('List', String('FileNames')):
             # Generates a temporary file
             import tempfile
@@ -1141,7 +1198,7 @@ class ExportString(Builtin):
                 exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
             if exporter_function.evaluate(evaluation) != Symbol('Null'):
                 evaluation.predetermined_out = current_predetermined_out
-                return Symbol('$Failed')
+                return SymbolFailed
             else:
                 try:
                     tmpstream = open(filename.value, 'rb')
@@ -1151,7 +1208,7 @@ class ExportString(Builtin):
                     print("something went wrong")
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
-                    return Symbol('$Failed')
+                    return SymbolFailed
                 res = String(str(res))
         elif function_channels == Expression('List', String('Streams')):
             from io import StringIO
@@ -1171,8 +1228,8 @@ class ExportString(Builtin):
         else:
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
-            return Symbol('$Failed')
-        
+            return SymbolFailed
+
         evaluation.predetermined_out = current_predetermined_out
         return res
 
@@ -1211,7 +1268,7 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
      = Text
 
-    #> FileFormat["ExampleData/benzene.xyz"]
+    S> FileFormat["ExampleData/benzene.xyz"]
      = XYZ
 
     #> FileFormat["ExampleData/colors.json"]
@@ -1241,13 +1298,12 @@ class FileFormat(Builtin):
         'FileFormat[filename_String]'
 
         findfile = Expression('FindFile', filename).evaluate(evaluation)
-        if findfile == Symbol('$Failed'):
+        if findfile == SymbolFailed:
             evaluation.message(
                 'FileFormat', 'nffil', Expression('FileFormat', filename))
             return findfile
 
         path = findfile.get_string_value()
-
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
@@ -1262,7 +1318,6 @@ class FileFormat(Builtin):
                 mime = set([])
             else:
                 mime = set([mime])
-
         result = []
         for key in mimetype_dict.keys():
             if key in mime:
@@ -1304,7 +1359,7 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Decode[%]
      = ∫ f  x
     """
-    
+
     context = "System`Convert`B64Dump`"
     name = "B64Encode"
 
@@ -1323,12 +1378,12 @@ class B64Decode(Builtin):
     <dt> 'System`Convert`B64Dump`B64Decode[$string$]'
     <dd>Decode  $string$ in Base64 coding to an expression.
     </dl>
-    
+
     >> System`Convert`B64Dump`B64Decode["R!="]
      : String "R!=" is not a valid b64 encoded string.
      = $Failed
     """
-    
+
     context = "System`Convert`B64Dump`"
     name = "B64Decode"
 
@@ -1345,3 +1400,23 @@ class B64Decode(Builtin):
             evaluation.message("System`Convert`B64Dump`B64Decode", "b64invalidstr", expr)
             return Symbol("$Failed")
         return clearstring
+
+
+class ConvertCommonDumpRemoveLinearSyntax(Builtin):
+    """
+    <dl>
+    <dt> 'System`Convert`CommonDump`RemoveLinearSyntax[$something$]'
+    <dd> Keine anung... Undocumented in wma
+    </dl>
+    """
+
+    options = {"System`Convert`CommonDump`ConvertRecursive" : "False", }
+    # options = {"ConvertRecursive" : "False", }
+    attributes = ('ReadProtected',)
+    context = "System`Convert`CommonDump`"
+    name = "RemoveLinearSyntax"
+
+    def apply(self, arg , evaluation):
+        'System`Convert`CommonDump`RemoveLinearSyntax[arg_]'
+        print("No idea what should this do. By now, do nothing...")
+        return arg

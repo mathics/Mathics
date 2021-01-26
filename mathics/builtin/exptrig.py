@@ -1,460 +1,34 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Exponential, trigonometric and hyperbolic functions
+r"""
+Exponential, Trigonometric and Hyperbolic Functions
 
-Mathics basically supports all important trigonometric and hyperbolic functions.
-Numerical values and derivatives can be computed; however, most special exact values and simplification
-rules are not implemented yet.
+\Mathics basically supports all important trigonometric and hyperbolic functions.
+
+Numerical values and derivatives can be computed; however, most special exact values and simplification rules are not implemented yet.
 """
 
 
 import sympy
 import mpmath
+import numpy
 import math
 
-from mathics.builtin.base import Builtin, SympyConstant
+from mathics.builtin.base import Builtin, MPMathConstant, NumpyConstant, SympyConstant
 from mathics.core.expression import (
-    Expression, Real, Integer, Symbol, PrecisionReal, MachineReal, Number)
+    Expression,
+    Real,
+    Integer,
+    Symbol,
+    PrecisionReal,
+    MachineReal,
+    Number,
+)
 from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
 from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
-
-
-class Pi(SympyConstant):
-    """
-    <dl>
-    <dt>'Pi'
-        <dd>is the constant \u03c0.
-    </dl>
-
-    >> N[Pi]
-     = 3.14159
-    >> N[Pi, 50]
-     = 3.1415926535897932384626433832795028841971693993751
-    >> Attributes[Pi]
-     = {Constant, Protected, ReadProtected}
-    """
-
-    sympy_name = 'pi'
-
-    def apply_N(self, precision, evaluation):
-        'N[Pi, precision_]'
-
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        if d is None:
-            return MachineReal(math.pi)
-        else:
-            return PrecisionReal(sympy.pi.n(d))
-
-
-class E(SympyConstant):
-    """
-    <dl>
-    <dt>'E'
-        <dd>is the constant e.
-    </dl>
-
-    >> N[E]
-     = 2.71828
-    >> N[E, 50]
-     = 2.7182818284590452353602874713526624977572470937000
-    >> Attributes[E]
-     = {Constant, Protected, ReadProtected}
-
-    #> 5. E
-     = 13.5914
-    """
-
-    sympy_name = 'E'
-
-    def apply_N(self, precision, evaluation):
-        'N[E, precision_]'
-
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        if d is None:
-            return MachineReal(math.e)
-        else:
-            return PrecisionReal(sympy.E.n(d))
-
-
-class GoldenRatio(SympyConstant):
-    """
-    <dl>
-    <dt>'GoldenRatio'
-        <dd>is the golden ratio.
-    </dl>
-
-    >> N[GoldenRatio]
-     = 1.61803
-    """
-
-    sympy_name = 'GoldenRatio'
-
-    rules = {
-        'N[GoldenRatio, prec_]': 'N[(1+Sqrt[5])/2, prec]',
-    }
-
-
-class Degree(SympyConstant):
-    """
-    <dl>
-    <dt>'Degree'
-        <dd>is the number of radians in one degree.
-    </dl>
-    >> Cos[60 Degree]
-     = 1 / 2
-
-    Degree has the value of Pi / 180
-    >> Degree == Pi / 180
-     = True
-
-    #> Cos[Degree[x]]
-     = Cos[Degree[x]]
-
-    ## Issue 274
-    #> \[Degree] == ° == Degree
-     = True
-
-    #> N[Degree]
-     = 0.0174533
-    #> N[Degree, 30]
-     = 0.0174532925199432957692369076849
-    """
-
-    def to_sympy(self, expr):
-        if expr == Symbol('System`Degree'):
-            return sympy.pi / 180
-
-    def apply_N(self, precision, evaluation):
-        'N[Degree, precision_]'
-
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            return
-
-        if d is None:
-            return MachineReal(math.pi / 180)
-        else:
-            return PrecisionReal((sympy.pi / 180).n(d))
-
-
-class Exp(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Exp[$z$]'
-        <dd>returns the exponential function of $z$.
-    </dl>
-
-    >> Exp[1]
-     = E
-    >> Exp[10.0]
-     = 22026.5
-    >> Exp[x] //FullForm
-     = Power[E, x]
-
-    >> Plot[Exp[x], {x, 0, 3}]
-     = -Graphics-
-    #> Exp[1.*^20]
-     : Overflow occurred in computation.
-     = Overflow[]
-    """
-
-    rules = {
-        'Exp[x_]': 'E ^ x',
-        'Derivative[1][Exp]': 'Exp',
-    }
-
-    def from_sympy(self, sympy_name, leaves):
-        return Expression('Power', Symbol('E'), leaves[0])
-
-
-class Log(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Log[$z$]'
-        <dd>returns the natural logarithm of $z$.
-    </dl>
-
-    >> Log[{0, 1, E, E * E, E ^ 3, E ^ x}]
-     = {-Infinity, 0, 1, 2, 3, Log[E ^ x]}
-    >> Log[0.]
-     = Indeterminate
-    >> Plot[Log[x], {x, 0, 5}]
-     = -Graphics-
-
-    #> Log[1000] / Log[10] // Simplify
-     = 3
-
-    #> Log[1.4]
-     = 0.336472
-
-    #> Log[Exp[1.4]]
-     = 1.4
-
-    #> Log[-1.4]
-     = 0.336472 + 3.14159 I
-
-    #> N[Log[10], 30]
-     = 2.30258509299404568401799145468
-    """
-
-    nargs = 2
-    mpmath_name = 'log'
-    sympy_name = 'log'
-
-    rules = {
-        'Log[0.]': 'Indeterminate',
-        'Log[0]': 'DirectedInfinity[-1]',
-        'Log[1]': '0',
-        'Log[E]': '1',
-        'Log[E^x_Integer]': 'x',
-        'Derivative[1][Log]': '1/#&',
-        'Log[x_?InexactNumberQ]': 'Log[E, x]',
-    }
-
-    def prepare_sympy(self, leaves):
-        if len(leaves) == 2:
-            leaves = [leaves[1], leaves[0]]
-        return leaves
-
-    def get_mpmath_function(self, args):
-        return lambda base, x: mpmath.log(x, base)
-
-
-class Log2(Builtin):
-    """
-    <dl>
-    <dt>'Log2[$z$]'
-        <dd>returns the base-2 logarithm of $z$.
-    </dl>
-
-    >> Log2[4 ^ 8]
-     = 16
-    >> Log2[5.6]
-     = 2.48543
-    >> Log2[E ^ 2]
-     = 2 / Log[2]
-    """
-
-    rules = {
-        'Log2[x_]': 'Log[2, x]',
-    }
-
-
-class Log10(Builtin):
-    """
-    <dl>
-    <dt>'Log10[$z$]'
-        <dd>returns the base-10 logarithm of $z$.
-    </dl>
-
-    >> Log10[1000]
-     = 3
-    >> Log10[{2., 5.}]
-     = {0.30103, 0.69897}
-    >> Log10[E ^ 3]
-     = 3 / Log[10]
-    """
-
-    rules = {
-        'Log10[x_]': 'Log[10, x]',
-    }
-
-
-class Sin(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Sin[$z$]'
-        <dd>returns the sine of $z$.
-    </dl>
-
-    >> Sin[0]
-     = 0
-    >> Sin[0.5]
-     = 0.479426
-    >> Sin[3 Pi]
-     = 0
-    >> Sin[1.0 + I]
-     = 1.29846 + 0.634964 I
-
-    >> Plot[Sin[x], {x, -Pi, Pi}]
-     = -Graphics-
-
-    #> N[Sin[1], 40]
-     = 0.8414709848078965066525023216302989996226
-    """
-
-    mpmath_name = 'sin'
-
-    rules = {
-        'Sin[Pi]': '0',
-        'Sin[n_Integer*Pi]': '0',
-        'Sin[(1/2) * Pi]': '1',
-        'Sin[0]': '0',
-        'Derivative[1][Sin]': 'Cos[#]&',
-    }
-
-
-class Cos(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Cos[$z$]'
-        <dd>returns the cosine of $z$.
-    </dl>
-
-    >> Cos[3 Pi]
-     = -1
-
-    #> Cos[1.5 Pi]
-     = -1.83697*^-16
-    """
-
-    mpmath_name = 'cos'
-
-    rules = {
-        'Cos[Pi]': '-1',
-        'Cos[n_Integer * Pi]': '(-1)^n',
-        'Cos[(1/2) * Pi]': '0',
-        'Cos[0]': '1',
-        'Derivative[1][Cos]': '-Sin[#]&',
-    }
-
-
-class Tan(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Tan[$z$]'
-        <dd>returns the tangent of $z$.
-    </dl>
-
-    >> Tan[0]
-     = 0
-    >> Tan[Pi / 2]
-     = ComplexInfinity
-
-    #> Tan[0.5 Pi]
-     = 1.63312*^16
-    """
-
-    mpmath_name = 'tan'
-
-    rules = {
-        'Tan[(1/2) * Pi]': 'ComplexInfinity',
-        'Tan[0]': '0',
-        'Derivative[1][Tan]': 'Sec[#]^2&',
-    }
-
-
-class Sec(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Sec[$z$]'
-        <dd>returns the secant of $z$.
-    </dl>
-
-    >> Sec[0]
-     = 1
-    >> Sec[1] (* Sec[1] in Mathematica *)
-     = 1 / Cos[1]
-    >> Sec[1.]
-     = 1.85082
-    """
-
-    mpmath_name = 'sec'
-
-    rules = {
-        'Derivative[1][Sec]': 'Sec[#] Tan[#]&',
-        'Sec[0]': '1',
-    }
-
-    def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Cos', expr.leaves[0]),
-                              Integer(-1)).to_sympy()
-
-
-class Csc(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Csc[$z$]'
-        <dd>returns the cosecant of $z$.
-    </dl>
-
-    >> Csc[0]
-     = ComplexInfinity
-    >> Csc[1] (* Csc[1] in Mathematica *)
-     = 1 / Sin[1]
-    >> Csc[1.]
-     = 1.1884
-    """
-
-    mpmath_name = 'csc'
-
-    rules = {
-        'Derivative[1][Csc]': '-Cot[#] Csc[#]&',
-        'Csc[0]': 'ComplexInfinity',
-    }
-
-    def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Sin', expr.leaves[0]),
-                              Integer(-1)).to_sympy()
-
-
-class Cot(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Cot[$z$]'
-        <dd>returns the cotangent of $z$.
-    </dl>
-
-    >> Cot[0]
-     = ComplexInfinity
-    >> Cot[1.]
-     = 0.642093
-    """
-
-    mpmath_name = 'cot'
-
-    rules = {
-        'Derivative[1][Cot]': '-Csc[#]^2&',
-        'Cot[0]': 'ComplexInfinity',
-    }
-
-
-class ArcSin(_MPMathFunction):
-    """
-    <dl>
-    <dt>'ArcSin[$z$]'
-        <dd>returns the inverse sine of $z$.
-    </dl>
-
-    >> ArcSin[0]
-     = 0
-    >> ArcSin[1]
-     = Pi / 2
-    """
-
-    sympy_name = 'asin'
-    mpmath_name = 'asin'
-
-    rules = {
-        'Derivative[1][ArcSin]': '1/Sqrt[1-#^2]&',
-        'ArcSin[0]': '0',
-        'ArcSin[1]': 'Pi / 2',
-    }
 
 
 class ArcCos(_MPMathFunction):
@@ -472,14 +46,95 @@ class ArcCos(_MPMathFunction):
      = Pi
     """
 
-    sympy_name = 'acos'
-    mpmath_name = 'acos'
+    sympy_name = "acos"
+    mpmath_name = "acos"
 
     rules = {
-        'Derivative[1][ArcCos]': '-1/Sqrt[1-#^2]&',
-        'ArcCos[0]': 'Pi / 2',
-        'ArcCos[1]': '0',
+        "Derivative[1][ArcCos]": "-1/Sqrt[1-#^2]&",
+        "ArcCos[0]": "Pi / 2",
+        "ArcCos[1]": "0",
     }
+
+
+class ArcCsc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ArcCsc[$z$]'
+        <dd>returns the inverse cosecant of $z$.
+    </dl>
+
+    >> ArcCsc[1]
+     = Pi / 2
+    >> ArcCsc[-1]
+     = -Pi / 2
+    """
+
+    sympy_name = ""
+    mpmath_name = "acsc"
+
+    rules = {
+        "Derivative[1][ArcCsc]": "-1 / (Sqrt[1 - 1/#^2] * #^2)&",
+        "ArcCsc[0]": "ComplexInfinity",
+        "ArcCsc[1]": "Pi / 2",
+    }
+
+    def to_sympy(self, expr, **kwargs):
+        if len(expr.leaves) == 1:
+            return Expression(
+                "ArcSin", Expression("Power", expr.leaves[0], Integer(-1))
+            ).to_sympy()
+
+
+class ArcSin(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ArcSin[$z$]'
+        <dd>returns the inverse sine of $z$.
+    </dl>
+
+    >> ArcSin[0]
+     = 0
+    >> ArcSin[1]
+     = Pi / 2
+    """
+
+    sympy_name = "asin"
+    mpmath_name = "asin"
+
+    rules = {
+        "Derivative[1][ArcSin]": "1/Sqrt[1-#^2]&",
+        "ArcSin[0]": "0",
+        "ArcSin[1]": "Pi / 2",
+    }
+
+
+class ArcSec(_MPMathFunction):
+    """
+    <dl>
+    <dt>'ArcSec[$z$]'
+        <dd>returns the inverse secant of $z$.
+    </dl>
+
+    >> ArcSec[1]
+     = 0
+    >> ArcSec[-1]
+     = Pi
+    """
+
+    sympy_name = ""
+    mpmath_name = "asec"
+
+    rules = {
+        "Derivative[1][ArcSec]": "1 / (Sqrt[1 - 1/#^2] * #^2)&",
+        "ArcSec[0]": "ComplexInfinity",
+        "ArcSec[1]": "0",
+    }
+
+    def to_sympy(self, expr, **kwargs):
+        if len(expr.leaves) == 1:
+            return Expression(
+                "ArcCos", Expression("Power", expr.leaves[0], Integer(-1))
+            ).to_sympy()
 
 
 class ArcTan(_MPMathFunction):
@@ -515,73 +170,16 @@ class ArcTan(_MPMathFunction):
      = -Pi / 2
     """
 
-    sympy_name = 'atan'
-    mpmath_name = 'atan'
+    sympy_name = "atan"
+    mpmath_name = "atan"
 
     rules = {
-        'ArcTan[1]': 'Pi/4',
-        'ArcTan[0]': '0',
-        'Derivative[1][ArcTan]': '1/(1+#^2)&',
-        'ArcTan[x_?RealNumberQ, y_?RealNumberQ]':
-        '''If[x == 0, If[y == 0, 0, If[y > 0, Pi/2, -Pi/2]], If[x > 0,
-            ArcTan[y/x], If[y >= 0, ArcTan[y/x] + Pi, ArcTan[y/x] - Pi]]]''',
+        "ArcTan[1]": "Pi/4",
+        "ArcTan[0]": "0",
+        "Derivative[1][ArcTan]": "1/(1+#^2)&",
+        "ArcTan[x_?RealNumberQ, y_?RealNumberQ]": """If[x == 0, If[y == 0, 0, If[y > 0, Pi/2, -Pi/2]], If[x > 0,
+            ArcTan[y/x], If[y >= 0, ArcTan[y/x] + Pi, ArcTan[y/x] - Pi]]]""",
     }
-
-
-class ArcSec(_MPMathFunction):
-    """
-    <dl>
-    <dt>'ArcSec[$z$]'
-        <dd>returns the inverse secant of $z$.
-    </dl>
-
-    >> ArcSec[1]
-     = 0
-    >> ArcSec[-1]
-     = Pi
-    """
-
-    sympy_name = ''
-    mpmath_name = 'asec'
-
-    rules = {
-        'Derivative[1][ArcSec]': '1 / (Sqrt[1 - 1/#^2] * #^2)&',
-        'ArcSec[0]': 'ComplexInfinity',
-        'ArcSec[1]': '0',
-    }
-
-    def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
-            return Expression('ArcCos', Expression('Power', expr.leaves[0],
-                              Integer(-1))).to_sympy()
-
-
-class ArcCsc(_MPMathFunction):
-    """
-    <dl>
-    <dt>'ArcCsc[$z$]'
-        <dd>returns the inverse cosecant of $z$.
-    </dl>
-
-    >> ArcCsc[1]
-     = Pi / 2
-    >> ArcCsc[-1]
-     = -Pi / 2
-    """
-
-    sympy_name = ''
-    mpmath_name = 'acsc'
-
-    rules = {
-        'Derivative[1][ArcCsc]': '-1 / (Sqrt[1 - 1/#^2] * #^2)&',
-        'ArcCsc[0]': 'ComplexInfinity',
-        'ArcCsc[1]': 'Pi / 2',
-    }
-
-    def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
-            return Expression('ArcSin', Expression('Power', expr.leaves[0],
-                              Integer(-1))).to_sympy()
 
 
 class ArcCot(_MPMathFunction):
@@ -597,13 +195,518 @@ class ArcCot(_MPMathFunction):
      = Pi / 4
     """
 
-    sympy_name = 'acot'
-    mpmath_name = 'acot'
+    sympy_name = "acot"
+    mpmath_name = "acot"
 
     rules = {
-        'Derivative[1][ArcCot]': '-1/(1+#^2)&',
-        'ArcCot[0]': 'Pi / 2',
-        'ArcCot[1]': 'Pi / 4',
+        "Derivative[1][ArcCot]": "-1/(1+#^2)&",
+        "ArcCot[0]": "Pi / 2",
+        "ArcCot[1]": "Pi / 4",
+    }
+
+
+class Cos(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Cos[$z$]'
+        <dd>returns the cosine of $z$.
+    </dl>
+
+    >> Cos[3 Pi]
+     = -1
+
+    #> Cos[1.5 Pi]
+     = -1.83697*^-16
+    """
+
+    mpmath_name = "cos"
+
+    rules = {
+        "Cos[Pi]": "-1",
+        "Cos[n_Integer * Pi]": "(-1)^n",
+        "Cos[(1/2) * Pi]": "0",
+        "Cos[0]": "1",
+        "Derivative[1][Cos]": "-Sin[#]&",
+    }
+
+
+class Cot(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Cot[$z$]'
+        <dd>returns the cotangent of $z$.
+    </dl>
+
+    >> Cot[0]
+     = ComplexInfinity
+    >> Cot[1.]
+     = 0.642093
+    """
+
+    mpmath_name = "cot"
+
+    rules = {
+        "Derivative[1][Cot]": "-Csc[#]^2&",
+        "Cot[0]": "ComplexInfinity",
+    }
+
+
+class Csc(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Csc[$z$]'
+        <dd>returns the cosecant of $z$.
+    </dl>
+
+    >> Csc[0]
+     = ComplexInfinity
+    >> Csc[1] (* Csc[1] in Mathematica *)
+     = 1 / Sin[1]
+    >> Csc[1.]
+     = 1.1884
+    """
+
+    mpmath_name = "csc"
+
+    rules = {
+        "Derivative[1][Csc]": "-Cot[#] Csc[#]&",
+        "Csc[0]": "ComplexInfinity",
+    }
+
+    def to_sympy(self, expr, **kwargs):
+        if len(expr.leaves) == 1:
+            return Expression(
+                "Power", Expression("Sin", expr.leaves[0]), Integer(-1)
+            ).to_sympy()
+
+
+class Cosh(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Cosh[$z$]'
+        <dd>returns the hyperbolic cosine of $z$.
+    </dl>
+
+    >> Cosh[0]
+     = 1
+    """
+
+    mpmath_name = "cosh"
+
+    rules = {
+        "Derivative[1][Cosh]": "Sinh[#]&",
+    }
+
+
+class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
+    """
+    <dl>
+    <dt>'Catalan'
+        <dd>is Catalan's constant with numerical value about 0.915966
+    </dl>
+
+    >> Catalan // N
+     = 0.915966
+
+    >> N[Catalan, 20]
+     = 0.91596559417721901505
+    """
+
+    mpmath_name = "catalan"
+    numpy_name = "catalan"
+    sympy_name = "Catalan"
+
+    def apply_N(self, precision, evaluation):
+        "N[Catalan, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
+
+
+class Degree(MPMathConstant, SympyConstant):
+    u"""
+    <dl>
+      <dt>'Degree'
+      <dd>is the number of radians in one degree.
+    </dl>
+    >> Cos[60 Degree]
+     = 1 / 2
+
+    Degree has the value of Pi / 180
+    >> Degree == Pi / 180
+     = True
+
+    #> Cos[Degree[x]]
+     = Cos[Degree[x]]
+
+    ## Issue 274
+    #> \\[Degree] == ° == Degree
+     = True
+
+    #> N[Degree]
+     = 0.0174533
+    #> N[Degree, 30]
+     = 0.0174532925199432957692369076849
+    """
+
+    mpmath_name = "degree"
+
+    def to_sympy(self, expr=None, **kwargs):
+        if expr == Symbol("System`Degree"):
+            # return mpmath.degree
+            return sympy.pi / 180
+
+    def apply_N(self, precision, evaluation):
+        "N[Degree, precision_]"
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        # FIXME: There are all sorts of interactions between in the trig functions,
+        # that are expected to work out right. Until we have convertion between
+        # mpmath and sympy worked out so that values can be made the to the same
+        # precision and compared. we have to not use mpmath right now.
+        # return self.get_constant(precision, evaluation, preference="mpmath")
+
+        if d is None:
+            return MachineReal(math.pi / 180)
+        else:
+            return PrecisionReal((sympy.pi / 180).n(d))
+
+
+
+class E(MPMathConstant, SympyConstant):
+    """
+    <dl>
+    <dt>'E'
+        <dd>is the constant e.
+    </dl>
+
+    >> N[E]
+     = 2.71828
+    >> N[E, 50]
+     = 2.7182818284590452353602874713526624977572470937000
+    >> Attributes[E]
+     = {Constant, Protected, ReadProtected}
+
+    #> 5. E
+     = 13.5914
+    """
+
+    sympy_name = "E"
+    mpmath_name = "e"
+
+    def apply_N(self, precision, evaluation):
+        "N[E, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
+
+class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
+    """
+    <dl>
+      <dt>'EulerGamma'
+      <dd>is Euler's constant $y$ with numerial value around 0.577216.
+    </dl>
+
+    >> EulerGamma // N
+     = 0.577216
+
+    >> N[EulerGamma, 40]
+     = 0.5772156649015328606065120900824024310422
+    """
+
+    sympy_name = "EulerGamma"
+    mpmath_name = "euler"
+    numpy_name = "euler_gamma"
+
+    def apply_N(self, precision, evaluation):
+        "N[EulerGamma, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
+
+
+class Exp(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Exp[$z$]'
+        <dd>returns the exponential function of $z$.
+    </dl>
+
+    >> Exp[1]
+     = E
+    >> Exp[10.0]
+     = 22026.5
+    >> Exp[x] //FullForm
+     = Power[E, x]
+
+    >> Plot[Exp[x], {x, 0, 3}]
+     = -Graphics-
+    #> Exp[1.*^20]
+     : Overflow occurred in computation.
+     = Overflow[]
+    """
+
+    rules = {
+        "Exp[x_]": "E ^ x",
+        "Derivative[1][Exp]": "Exp",
+    }
+
+    def from_sympy(self, sympy_name, leaves):
+        return Expression("Power", Symbol("E"), leaves[0])
+
+
+class GoldenRatio(MPMathConstant, SympyConstant):
+    """
+    <dl>
+      <dt>'GoldenRatio'
+      <dd>is the golden ratio, Phi = (1+Sqrt[5])/2.
+    </dl>
+
+    >> GoldenRatio // N
+     = 1.61803
+    >> N[GoldenRatio, 40]
+     = 1.618033988749894848204586834365638117720
+    """
+
+    sympy_name = "GoldenRatio"
+    mpmath_name = "phi"
+
+    def apply_N(self, precision, evaluation):
+        "N[GoldenRatio, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
+
+
+class Log(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Log[$z$]'
+        <dd>returns the natural logarithm of $z$.
+    </dl>
+
+    >> Log[{0, 1, E, E * E, E ^ 3, E ^ x}]
+     = {-Infinity, 0, 1, 2, 3, Log[E ^ x]}
+    >> Log[0.]
+     = Indeterminate
+    >> Plot[Log[x], {x, 0, 5}]
+     = -Graphics-
+
+    #> Log[1000] / Log[10] // Simplify
+     = 3
+
+    #> Log[1.4]
+     = 0.336472
+
+    #> Log[Exp[1.4]]
+     = 1.4
+
+    #> Log[-1.4]
+     = 0.336472 + 3.14159 I
+
+    #> N[Log[10], 30]
+     = 2.30258509299404568401799145468
+    """
+
+    nargs = 2
+    mpmath_name = "log"
+    sympy_name = "log"
+
+    rules = {
+        "Log[0.]": "Indeterminate",
+        "Log[0]": "DirectedInfinity[-1]",
+        "Log[1]": "0",
+        "Log[E]": "1",
+        "Log[E^x_Integer]": "x",
+        "Derivative[1][Log]": "1/#&",
+        "Log[x_?InexactNumberQ]": "Log[E, x]",
+    }
+
+    def prepare_sympy(self, leaves):
+        if len(leaves) == 2:
+            leaves = [leaves[1], leaves[0]]
+        return leaves
+
+    def get_mpmath_function(self, args):
+        return lambda base, x: mpmath.log(x, base)
+
+
+class Log2(Builtin):
+    """
+    <dl>
+    <dt>'Log2[$z$]'
+        <dd>returns the base-2 logarithm of $z$.
+    </dl>
+
+    >> Log2[4 ^ 8]
+     = 16
+    >> Log2[5.6]
+     = 2.48543
+    >> Log2[E ^ 2]
+     = 2 / Log[2]
+    """
+
+    rules = {
+        "Log2[x_]": "Log[2, x]",
+    }
+
+
+class Log10(Builtin):
+    """
+    <dl>
+    <dt>'Log10[$z$]'
+        <dd>returns the base-10 logarithm of $z$.
+    </dl>
+
+    >> Log10[1000]
+     = 3
+    >> Log10[{2., 5.}]
+     = {0.30103, 0.69897}
+    >> Log10[E ^ 3]
+     = 3 / Log[10]
+    """
+
+    rules = {
+        "Log10[x_]": "Log[10, x]",
+    }
+
+
+class Pi(MPMathConstant, SympyConstant):
+    """
+    <dl>
+      <dt>'Pi'
+      <dd>is the constant \u03c0.
+    </dl>
+
+    >> N[Pi]
+     = 3.14159
+    >> N[Pi, 50]
+     = 3.1415926535897932384626433832795028841971693993751
+    >> Attributes[Pi]
+     = {Constant, Protected, ReadProtected}
+    """
+
+    sympy_name = "pi"
+    mpmath_name = "pi"
+    numpy_name = "pi"
+
+    def apply_N(self, precision, evaluation):
+        "N[Pi, precision_]"
+        return self.get_constant(precision, evaluation, preference="sympy")
+
+# Look over and add
+# class PolyGamma(_MPMathFunction):
+#     """
+#     <dl>
+#       <dt>'Polygama[$z$]'
+#       <dd>returns the digamma function .
+
+#       <dt>'Polygama[$n$, $z$]'
+#       <dd>gives the n^(th) derivative of the digamma function .
+#     </dl>
+
+#     >> PolyGamma[5]
+
+#     >> PolyGamma[3, 5]
+#     """
+
+#     sympy_name = "polygamma"
+#     mpmath_name = "polygamma"
+
+#     def apply_N(self, precision, evaluation):
+#         "N[PolyGamma, precision_]"
+
+#         try:
+#             d = get_precision(precision, evaluation)
+#         except PrecisionValueError:
+#             return
+
+#         if d is None:
+#             return MachineReal(mpmath.polygamma)
+#         else:
+#             return PrecisionReal(sympy.polygamma.n(d))
+
+
+class Sec(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Sec[$z$]'
+        <dd>returns the secant of $z$.
+    </dl>
+
+    >> Sec[0]
+     = 1
+    >> Sec[1] (* Sec[1] in Mathematica *)
+     = 1 / Cos[1]
+    >> Sec[1.]
+     = 1.85082
+    """
+
+    mpmath_name = "sec"
+
+    rules = {
+        "Derivative[1][Sec]": "Sec[#] Tan[#]&",
+        "Sec[0]": "1",
+    }
+
+    def to_sympy(self, expr, **kwargs):
+        if len(expr.leaves) == 1:
+            return Expression(
+                "Power", Expression("Cos", expr.leaves[0]), Integer(-1)
+            ).to_sympy()
+
+
+class Sin(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Sin[$z$]'
+        <dd>returns the sine of $z$.
+    </dl>
+
+    >> Sin[0]
+     = 0
+    >> Sin[0.5]
+     = 0.479426
+    >> Sin[3 Pi]
+     = 0
+    >> Sin[1.0 + I]
+     = 1.29846 + 0.634964 I
+
+    >> Plot[Sin[x], {x, -Pi, Pi}]
+     = -Graphics-
+
+    #> N[Sin[1], 40]
+     = 0.8414709848078965066525023216302989996226
+    """
+
+    mpmath_name = "sin"
+
+    rules = {
+        "Sin[Pi]": "0",
+        "Sin[n_Integer*Pi]": "0",
+        "Sin[(1/2) * Pi]": "1",
+        "Sin[0]": "0",
+        "Derivative[1][Sin]": "Cos[#]&",
+    }
+
+
+class Tan(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Tan[$z$]'
+        <dd>returns the tangent of $z$.
+    </dl>
+
+    >> Tan[0]
+     = 0
+    >> Tan[Pi / 2]
+     = ComplexInfinity
+
+    #> Tan[0.5 Pi]
+     = 1.63312*^16
+    """
+
+    mpmath_name = "tan"
+
+    rules = {
+        "Tan[(1/2) * Pi]": "ComplexInfinity",
+        "Tan[0]": "0",
+        "Derivative[1][Tan]": "Sec[#]^2&",
     }
 
 
@@ -618,28 +721,10 @@ class Sinh(_MPMathFunction):
      = 0
     """
 
-    mpmath_name = 'sinh'
+    mpmath_name = "sinh"
 
     rules = {
-        'Derivative[1][Sinh]': 'Cosh[#]&',
-    }
-
-
-class Cosh(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Cosh[$z$]'
-        <dd>returns the hyperbolic cosine of $z$.
-    </dl>
-
-    >> Cosh[0]
-     = 1
-    """
-
-    mpmath_name = 'cosh'
-
-    rules = {
-        'Derivative[1][Cosh]': 'Sinh[#]&',
+        "Derivative[1][Sinh]": "Cosh[#]&",
     }
 
 
@@ -654,10 +739,10 @@ class Tanh(_MPMathFunction):
      = 0
     """
 
-    mpmath_name = 'tanh'
+    mpmath_name = "tanh"
 
     rules = {
-        'Derivative[1][Tanh]': 'Sech[#1]^2&',
+        "Derivative[1][Tanh]": "Sech[#1]^2&",
     }
 
 
@@ -672,17 +757,18 @@ class Sech(_MPMathFunction):
      = 1
     """
 
-    sympy_name = ''
-    mpmath_name = 'sech'
+    sympy_name = ""
+    mpmath_name = "sech"
 
     rules = {
-        'Derivative[1][Sech]': '-Sech[#1] Tanh[#1]&',
+        "Derivative[1][Sech]": "-Sech[#1] Tanh[#1]&",
     }
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Cosh', expr.leaves[0]),
-                              Integer(-1)).to_sympy()
+            return Expression(
+                "Power", Expression("Cosh", expr.leaves[0]), Integer(-1)
+            ).to_sympy()
 
 
 class Csch(_MPMathFunction):
@@ -696,19 +782,20 @@ class Csch(_MPMathFunction):
      = ComplexInfinity
     """
 
-    sympy_name = ''
-    mpmath_name = 'csch'
+    sympy_name = ""
+    mpmath_name = "csch"
 
     rules = {
-        'Csch[0]': 'ComplexInfinity',
-        'Csch[0.]': 'ComplexInfinity',
-        'Derivative[1][Csch]': '-Coth[#1] Csch[#1]&',
+        "Csch[0]": "ComplexInfinity",
+        "Csch[0.]": "ComplexInfinity",
+        "Derivative[1][Csch]": "-Coth[#1] Csch[#1]&",
     }
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('Power', Expression('Sinh', expr.leaves[0]),
-                              Integer(-1)).to_sympy()
+            return Expression(
+                "Power", Expression("Sinh", expr.leaves[0]), Integer(-1)
+            ).to_sympy()
 
 
 class Coth(_MPMathFunction):
@@ -722,12 +809,12 @@ class Coth(_MPMathFunction):
      = ComplexInfinity
     """
 
-    mpmath_name = 'coth'
+    mpmath_name = "coth"
 
     rules = {
-        'Coth[0]': 'ComplexInfinity',
-        'Coth[0.]': 'ComplexInfinity',
-        'Derivative[1][Coth]': '-Csch[#1]^2&',
+        "Coth[0]": "ComplexInfinity",
+        "Coth[0.]": "ComplexInfinity",
+        "Derivative[1][Coth]": "-Csch[#1]^2&",
     }
 
 
@@ -746,11 +833,11 @@ class ArcSinh(_MPMathFunction):
      = 0.881374
     """
 
-    sympy_name = 'asinh'
-    mpmath_name = 'asinh'
+    sympy_name = "asinh"
+    mpmath_name = "asinh"
 
     rules = {
-        'Derivative[1][ArcSinh]': '1/Sqrt[1+#^2]&',
+        "Derivative[1][ArcSinh]": "1/Sqrt[1+#^2]&",
     }
 
 
@@ -772,11 +859,11 @@ class ArcCosh(_MPMathFunction):
      = 0.867015
     """
 
-    sympy_name = 'acosh'
-    mpmath_name = 'acosh'
+    sympy_name = "acosh"
+    mpmath_name = "acosh"
 
     rules = {
-        'Derivative[1][ArcCosh]': '1/(Sqrt[#-1]*Sqrt[#+1])&',
+        "Derivative[1][ArcCosh]": "1/(Sqrt[#-1]*Sqrt[#+1])&",
     }
 
 
@@ -799,11 +886,11 @@ class ArcTanh(_MPMathFunction):
      = ArcTanh[2 + I]
     """
 
-    sympy_name = 'atanh'
-    mpmath_name = 'atanh'
+    sympy_name = "atanh"
+    mpmath_name = "atanh"
 
     rules = {
-        'Derivative[1][ArcTanh]': '1/(1-#^2)&',
+        "Derivative[1][ArcTanh]": "1/(1-#^2)&",
     }
 
 
@@ -822,19 +909,20 @@ class ArcSech(_MPMathFunction):
      = 1.31696
     """
 
-    sympy_name = ''
-    mpmath_name = 'asech'
+    sympy_name = ""
+    mpmath_name = "asech"
 
     rules = {
-        'ArcSech[0]': 'Infinity',
-        'ArcSech[0.]': 'Indeterminate',
-        'Derivative[1][ArcSech]': '-1 / (# * Sqrt[(1-#)/(1+#)] (1+#)) &',
+        "ArcSech[0]": "Infinity",
+        "ArcSech[0.]": "Indeterminate",
+        "Derivative[1][ArcSech]": "-1 / (# * Sqrt[(1-#)/(1+#)] (1+#)) &",
     }
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcCosh', Expression('Power', expr.leaves[0],
-                              Integer(-1))).to_sympy()
+            return Expression(
+                "ArcCosh", Expression("Power", expr.leaves[0], Integer(-1))
+            ).to_sympy()
 
 
 class ArcCsch(_MPMathFunction):
@@ -850,19 +938,20 @@ class ArcCsch(_MPMathFunction):
      = 0.881374
     """
 
-    sympy_name = ''
-    mpmath_name = 'acsch'
+    sympy_name = ""
+    mpmath_name = "acsch"
 
     rules = {
-        'ArcCsch[0]': 'ComplexInfinity',
-        'ArcCsch[0.]': 'ComplexInfinity',
-        'Derivative[1][ArcCsch]': '-1 / (Sqrt[1+1/#^2] * #^2) &',
+        "ArcCsch[0]": "ComplexInfinity",
+        "ArcCsch[0.]": "ComplexInfinity",
+        "Derivative[1][ArcCsch]": "-1 / (Sqrt[1+1/#^2] * #^2) &",
     }
 
     def to_sympy(self, expr, **kwargs):
         if len(expr.leaves) == 1:
-            return Expression('ArcSinh', Expression('Power', expr.leaves[0],
-                              Integer(-1))).to_sympy()
+            return Expression(
+                "ArcSinh", Expression("Power", expr.leaves[0], Integer(-1))
+            ).to_sympy()
 
 
 class ArcCoth(_MPMathFunction):
@@ -885,12 +974,12 @@ class ArcCoth(_MPMathFunction):
      = 1.57079632679489661923132169163975144210 I
     """
 
-    sympy_name = 'acoth'
-    mpmath_name = 'acoth'
+    sympy_name = "acoth"
+    mpmath_name = "acoth"
 
     rules = {
-        'ArcCoth[z:0.0]': 'N[I / 2 Pi, Precision[1+z]]',
-        'Derivative[1][ArcCoth]': '1/(1-#^2)&',
+        "ArcCoth[z:0.0]": "N[I / 2 Pi, Precision[1+z]]",
+        "Derivative[1][ArcCoth]": "1/(1-#^2)&",
     }
 
 
@@ -908,9 +997,7 @@ class Haversine(_MPMathFunction):
      = -1.15082 + 0.869405 I
     """
 
-    rules = {
-        'Haversine[z_]': 'Power[Sin[z/2], 2]'
-    }
+    rules = {"Haversine[z_]": "Power[Sin[z/2], 2]"}
 
 
 class InverseHaversine(_MPMathFunction):
@@ -927,9 +1014,7 @@ class InverseHaversine(_MPMathFunction):
      = 1.76459 + 2.33097 I
     """
 
-    rules = {
-        'InverseHaversine[z_]': '2 * ArcSin[Sqrt[z]]'
-    }
+    rules = {"InverseHaversine[z_]": "2 * ArcSin[Sqrt[z]]"}
 
 
 class AngleVector(Builtin):
@@ -953,10 +1038,10 @@ class AngleVector(Builtin):
     """
 
     rules = {
-        'AngleVector[phi_]': '{Cos[phi], Sin[phi]}',
-        'AngleVector[{r_, phi_}]': '{r * Cos[phi], r * Sin[phi]}',
-        'AngleVector[{x_, y_}, phi_]': '{x + Cos[phi], y + Sin[phi]}',
-        'AngleVector[{x_, y_}, {r_, phi_}]': '{x + r * Cos[phi], y + r * Sin[phi]}',
+        "AngleVector[phi_]": "{Cos[phi], Sin[phi]}",
+        "AngleVector[{r_, phi_}]": "{r * Cos[phi], r * Sin[phi]}",
+        "AngleVector[{x_, y_}, phi_]": "{x + Cos[phi], y + Sin[phi]}",
+        "AngleVector[{x_, y_}, {r_, phi_}]": "{x + r * Cos[phi], y + r * Sin[phi]}",
     }
 
 
@@ -1065,55 +1150,62 @@ class AnglePath(Builtin):
      = -Graphics-
     """
 
-    messages = {
-        'steps': '`1` is not a valid description of steps.'
-    }
+    messages = {"steps": "`1` is not a valid description of steps."}
 
     @staticmethod
     def _compute(x0, y0, phi0, steps, evaluation):
         if not steps:
-            return Expression('List')
+            return Expression("List")
 
-        if steps[0].get_head_name() == 'System`List':
+        if steps[0].get_head_name() == "System`List":
+
             def parse(step):
-                if step.get_head_name() != 'System`List':
+                if step.get_head_name() != "System`List":
                     raise _IllegalStepSpecification
                 arguments = step.leaves
                 if len(arguments) != 2:
                     raise _IllegalStepSpecification
                 return arguments
+
         else:
+
             def parse(step):
-                if step.get_head_name() == 'System`List':
+                if step.get_head_name() == "System`List":
                     raise _IllegalStepSpecification
                 return None, step
 
         try:
             fold = AnglePathFold(parse)
-            leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
-            return Expression('List', *leaves)
+            leaves = [
+                Expression("List", x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)
+            ]
+            return Expression("List", *leaves)
         except _IllegalStepSpecification:
-            evaluation.message('AnglePath', 'steps', Expression('List', *steps))
+            evaluation.message("AnglePath", "steps", Expression("List", *steps))
 
     def apply(self, steps, evaluation):
-        'AnglePath[{steps___}]'
-        return AnglePath._compute(Integer(0), Integer(0), None, steps.get_sequence(), evaluation)
+        "AnglePath[{steps___}]"
+        return AnglePath._compute(
+            Integer(0), Integer(0), None, steps.get_sequence(), evaluation
+        )
 
     def apply_phi0(self, phi0, steps, evaluation):
-        'AnglePath[phi0_, {steps___}]'
-        return AnglePath._compute(Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation)
+        "AnglePath[phi0_, {steps___}]"
+        return AnglePath._compute(
+            Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation
+        )
 
     def apply_xy(self, x, y, steps, evaluation):
-        'AnglePath[{x_, y_}, {steps___}]'
+        "AnglePath[{x_, y_}, {steps___}]"
         return AnglePath._compute(x, y, None, steps.get_sequence(), evaluation)
 
     def apply_xy_phi0(self, x, y, phi0, steps, evaluation):
-        'AnglePath[{{x_, y_}, phi0_}, {steps___}]'
+        "AnglePath[{{x_, y_}, phi0_}, {steps___}]"
         return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
 
     def apply_xy_dx(self, x, y, dx, dy, steps, evaluation):
-        'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
-        phi0 = Expression('ArcTan', dx, dy)
+        "AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]"
+        phi0 = Expression("ArcTan", dx, dy)
         return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
 
 
@@ -1123,7 +1215,7 @@ class LogisticSigmoid(Builtin):
     <dt>'LogisticSigmoid[$z$]'
         <dd>returns the logistic sigmoid of $z$.
     </dl>
-    
+
     >> LogisticSigmoid[0.5]
      = 0.622459
 
@@ -1137,8 +1229,9 @@ class LogisticSigmoid(Builtin):
      = LogisticSigmoid[I Pi]
     """
 
-    attributes = ('Listable', 'NumericFunction',)
-    
-    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
+    attributes = (
+        "Listable",
+        "NumericFunction",
+    )
 
-    
+    rules = {"LogisticSigmoid[z_?NumberQ]": "1 / (1 + Exp[-z])"}

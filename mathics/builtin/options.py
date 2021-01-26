@@ -1,13 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Options and default arguments
+Options and Default Arguments
 """
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
+from mathics.core.expression import strip_context
 
 
 class Options(Builtin):
@@ -98,6 +99,13 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$name$]'
         <dd>gives the value of the option $name$ as specified in a
         call to a function with 'OptionsPattern'.
+    <dt>'OptionValue[$f$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$.
+    <dt>'OptionValue[$f$, $optvals$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$,
+            extracting the values from $optvals$ if available.
+    <dt>'OptionValue[$\\ldots$, $list$]'
+        <dd>recover the value of the options in $list$ .
     </dl>
 
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a]}
@@ -121,24 +129,67 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
-    def apply(self, symbol, evaluation):
-        'OptionValue[symbol_]'
 
+    rules = {
+        'OptionValue[optnames_List]': 'OptionValue/@optnames',
+        'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
+        'OptionValue[f_, opts_, optnames_List]':'OptionValue[f,opts, #1]&/@optnames',
+    }
+    
+    def apply_1(self, optname, evaluation):
+        'OptionValue[optname_]'
         if evaluation.options is None:
             return
-        name = symbol.get_name()
+        name = optname.get_name()
         if not name:
-            name = symbol.get_string_value()
+            name = optname.get_string_value()
             if name:
                 name = ensure_context(name)
         if not name:
-            evaluation.message('OptionValue', 'sym', symbol, 1)
-            return
-        value = evaluation.options.get(name)
-        if value is None:
-            evaluation.message('OptionValue', 'optnf', symbol)
-            return
-        return value
+            evaluation.message('OptionValue', 'sym', optname, 1)
+            return Expression('OptionValue', optname)
+
+        val = evaluation.options.get(name)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Expression('OptionValue', optname)
+        return val
+
+    def apply_2(self, f, optname, evaluation):
+        'OptionValue[f_, optname_]'
+        name = optname.get_name()
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
+            return Expression('OptionValue', optname)
+
+        val = evaluation.definitions.get_options(f.get_name()).get(name, None)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Expression('OptionValue', optname)
+        return val
+
+    def apply_3(self, f, optvals, optname, evaluation):
+        'OptionValue[f_, optvals_, optname_]'
+        name = optname.get_name()
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
+            return Expression('OptionValue', optname)
+
+        val = optvals.get_option_values(evaluation).get(name, None)
+        if val is None:
+            val = evaluation.definitions.get_options(f.get_name()).get(name, None)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Expression('OptionValue', optname)
+        return val
 
 
 class Default(Builtin):
@@ -285,6 +336,8 @@ class FilterRules(Builtin):
         return Expression('List', *list(matched()))
 
 
-def options_to_rules(options):
+def options_to_rules(options, filter=None):
     items = sorted(options.items())
+    if filter:
+        items = [(name, value) for name, value in items if strip_context(name) in filter.keys()]
     return [Expression('Rule', Symbol(name), value) for name, value in items]

@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
 import unittest
 
 from mathics.builtin.numpy_utils import stack, unstack, concat, vectorize, conditional, clip, array, choose
-from mathics.builtin.numpy_utils import minimum, maximum, dot_t, mod, floor, sqrt, allclose
+from mathics.builtin.numpy_utils import minimum, maximum,  dot_t, mod, floor, sqrt, allclose
 
 
 @conditional

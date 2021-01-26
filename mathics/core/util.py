@@ -1,13 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-
 
 import re
 import sys
+from itertools import chain
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
-
 
 def interpolate_string(text, get_param) -> str:
     index = [1]
@@ -70,10 +68,10 @@ def subsets(items, min, max, included=None, less_first=False):
         if count < 0 or len(rest) < count:
             return
         if count == 0:
-            yield chosen, not_chosen + rest
+            yield chosen, list(chain(not_chosen, rest))
         elif len(rest) == count:
             if included is None or all(item in included for item in rest):
-                yield chosen + rest, not_chosen
+                yield list(chain(chosen, rest)), not_chosen
         elif rest:
             item = rest[0]
             if included is None or item in included:
@@ -207,10 +205,22 @@ def function_arguments(f):
     except (TypeError, ValueError):
         return _cython_function_arguments(f)
 
-
 def robust_min(iterable):
     minimum = None
     for i in iterable:
         if minimum is None or i < minimum:
             minimum = i
     return minimum
+
+def re_from_keys(d: dict) -> 're':
+    """Returns a regex that matches any of the keys of the dictionary"""
+
+    # The keys are sorted to prevent shorter keys from obscuring longer keys 
+    # when pattern matching
+    return re.compile("|".join(sorted(d.keys(), key=lambda k: (-len(k), k))))
+
+def dict_with_escaped_keys(d: dict) -> dict:
+    """Takes a dictionary and returns a copy of it where the keys are escaped 
+    with re.escape"""
+    return {re.escape(k): v for k, v in d.items()}
+
