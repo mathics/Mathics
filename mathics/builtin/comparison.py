@@ -3,6 +3,7 @@
 
 
 import itertools
+from typing import Optional, Union
 
 import sympy
 
@@ -26,6 +27,9 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import dps
 
+def cmp(a, b) -> int:
+    "Returns 0 if a == b, -1 if a < b and 1 if a > b"
+    return (a > b) - (a < b)
 
 class SameQ(BinaryOperator):
     """
@@ -208,7 +212,7 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2):
+    def do_compare(self, l1, l2) -> Union[bool, None]:
         if l1.same(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
@@ -254,7 +258,13 @@ class _EqualityOperator(_InequalityOperator):
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for x, y in itertools.combinations(args, 2):
-            c = do_cmp(x, y)
+            if isinstance(x, String) or isinstance(y, String):
+                if not (isinstance(x, String) and isinstance(y, String)):
+                    c = 1
+                else:
+                    c = cmp(x.get_string_value(), y.get_string_value())
+            else:
+                c = do_cmp(x, y)
             if c is None:
                 return
             elif c not in wanted:
@@ -345,7 +355,7 @@ class Inequality(Builtin):
             return Expression("And", *groups)
 
 
-def do_cmp(x1, x2):
+def do_cmp(x1, x2) -> Optional[int]:
 
     # don't attempt to compare complex numbers
     for x in (x1, x2):
@@ -399,8 +409,8 @@ class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Equal[$x$, $y$]'
-    <dt>'$x$ == $y$'
-        <dd>yields 'True' if $x$ and $y$ are known to be equal, or
+      <dt>'$x$ == $y$'
+      <dd>yields 'True' if $x$ and $y$ are known to be equal, or
         'False' if $x$ and $y$ are known to be unequal.
     <dt>'$lhs$ == $rhs$'
         <dd>represents the equation $lhs$ = $rhs$.
@@ -412,6 +422,17 @@ class Equal(_EqualityOperator, SympyComparison):
      = a == b
     >> 1==1.
      = True
+
+    Strings are allowed:
+    Equal["11", "11"]
+     = True
+
+    Equal["121", "11"]
+     = False
+
+    Comparision to mismatched types is False:
+    Equal[11, "11"]
+     = False
 
     Lists are compared based on their elements:
     >> {{1}, {2}} == {{1}, {2}}
@@ -499,6 +520,17 @@ class Unequal(_EqualityOperator, SympyComparison):
 
     >> 1 != 1.
      = False
+
+    Strings are allowed:
+    Unequal["11", "11"]
+     = False
+
+    Equal["121", "11"]
+     = True
+
+    Comparision to mismatched types is True:
+    Equal[11, "11"]
+     = True
 
     Lists are compared based on their elements:
     >> {1} != {2}
