@@ -1360,7 +1360,7 @@ class Hash(Builtin):
     = 58042316473471877315442015469706095084
 
     >> Hash[{a, b, c}, "xyzstr"]
-     = Hash[{a, b, c}, xyzstr]
+     = Hash[{a, b, c}, xyzstr, Integer]
     """
 
     rules = {
@@ -1404,7 +1404,6 @@ class Hash(Builtin):
 
     def apply(self, expr, hashtype, outformat, evaluation):
         "Hash[expr_, hashtype_String, outformat_String]"
-        print("hashtype", hashtype)
         return Hash.compute(expr.user_hash,
                            hashtype.get_string_value(),
                            outformat.get_string_value())

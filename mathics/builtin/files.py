@@ -3812,6 +3812,8 @@ class FileHash(Builtin):
     <dt>'FileHash[$file$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $file$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'FileHash[$file$, $type$, $format$]'
+      <dd>gives a hash code in the specified format.</dd>
     </dl>
 
     >> FileHash["ExampleData/sunflowers.jpg"]
@@ -3840,19 +3842,20 @@ class FileHash(Builtin):
     #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
      = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
     #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
-     = FileHash[ExampleData/sunflowers.jpg, xyzstr]
+     = FileHash[ExampleData/sunflowers.jpg, xyzstr, Integer]
     #> FileHash[xyzsymbol]
      = FileHash[xyzsymbol]
     """
 
     rules = {
-        "FileHash[filename_String]": 'FileHash[filename, "MD5"]',
+        "FileHash[filename_String]": 'FileHash[filename, "MD5", "Integer"]',
+        "FileHash[filename_String, hashtype_String]": 'FileHash[filename, hashtype, "Integer"]',
     }
 
     attributes = ("Protected", "ReadProtected")
 
-    def apply(self, filename, hashtype, evaluation):
-        "FileHash[filename_String, hashtype_String]"
+    def apply(self, filename, hashtype, format, evaluation):
+        "FileHash[filename_String, hashtype_String, format_String]"
         py_filename = filename.get_string_value()
 
         try:
@@ -3865,7 +3868,7 @@ class FileHash(Builtin):
             e.message(evaluation)
             return
 
-        return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
+        return Hash.compute(lambda update: update(dump), hashtype.get_string_value(), format.get_string_value())
 
 
 class FileDate(Builtin):
