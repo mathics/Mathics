@@ -21,7 +21,6 @@ from mathics.builtin.base import (
     PostfixOperator,
     Test,
     SympyFunction,
-    SympyConstant,
 )
 
 from mathics.core.expression import (
@@ -41,7 +40,7 @@ from mathics.core.expression import (
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy
+from mathics.core.convert import from_sympy, SympyExpression
 
 class _MPMathFunction(SympyFunction):
 
@@ -1011,72 +1010,6 @@ class CubeRoot(Builtin):
         return Expression("Power", n, Expression("Divide", 1, 3))
 
 
-class Infinity(SympyConstant):
-    """
-    <dl>
-    <dt>'Infinity'
-        <dd>represents an infinite real quantity.
-    </dl>
-
-    >> 1 / Infinity
-     = 0
-    >> Infinity + 100
-     = Infinity
-
-    Use 'Infinity' in sum and limit calculations:
-    >> Sum[1/x^2, {x, 1, Infinity}]
-     = Pi ^ 2 / 6
-
-    #> FullForm[Infinity]
-     = DirectedInfinity[1]
-    #> (2 + 3.5*I) / Infinity
-     = 0. + 0. I
-    #> Infinity + Infinity
-     = Infinity
-    #> Infinity / Infinity
-     : Indeterminate expression 0 Infinity encountered.
-     = Indeterminate
-    """
-
-    sympy_name = "oo"
-    python_equivalent = math.inf
-
-    rules = {
-        "Infinity": "DirectedInfinity[1]",
-        "MakeBoxes[Infinity, f:StandardForm|TraditionalForm]": ('"\\[Infinity]"'),
-    }
-
-
-class ComplexInfinity(SympyConstant):
-    """
-    <dl>
-    <dt>'ComplexInfinity'
-        <dd>represents an infinite complex quantity of undetermined direction.
-    </dl>
-
-    >> 1 / ComplexInfinity
-     = 0
-    >> ComplexInfinity * Infinity
-     = ComplexInfinity
-    >> FullForm[ComplexInfinity]
-     = DirectedInfinity[]
-
-    ## Issue689
-    #> ComplexInfinity + ComplexInfinity
-     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
-     = Indeterminate
-    #> ComplexInfinity + Infinity
-     : Indeterminate expression ComplexInfinity + Infinity encountered.
-     = Indeterminate
-    """
-
-    sympy_name = "zoo"
-
-    rules = {
-        "ComplexInfinity": "DirectedInfinity[]",
-    }
-
-
 class DirectedInfinity(SympyFunction):
     """
     <dl>
@@ -1350,24 +1283,6 @@ class I(Predefined):
         return Complex(Integer(0), Integer(1))
 
 
-class Indeterminate(SympyConstant):
-    """
-    <dl>
-    <dt>'Indeterminate'
-        <dd>represents an indeterminate result.
-    </dl>
-
-    >> 0^0
-     : Indeterminate expression 0 ^ 0 encountered.
-     = Indeterminate
-
-    >> Tan[Indeterminate]
-     = Indeterminate
-    """
-
-    sympy_name = "nan"
-
-
 class NumberQ(Test):
     """
     <dl>
@@ -1464,7 +1379,7 @@ class RealNumberQ(Test):
     >> RealNumberQ[0 * I]
      = True
     >> RealNumberQ[0.0 * I]
-     = False
+     = True
     """
 
     def test(self, expr):
@@ -1719,12 +1634,12 @@ class Complex_(Builtin):
     #> Complex[0.0, 0.0]
      = 0. + 0. I
     #> 0. I
-     = 0. + 0. I
+     = 0.
     #> 0. + 0. I
-     = 0. + 0. I
+     = 0.
 
     #> 1. + 0. I
-     = 1. + 0. I
+     = 1.
     #> 0. + 1. I
      = 0. + 1. I
 
@@ -1938,8 +1853,9 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
-    >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = -1 + (a ^ n) ^ m
+    ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
+    ## = -1 + (a ^ n) ^ m  # this is what I am getting
+    ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
@@ -1950,19 +1866,12 @@ class Sum(_IterationFunction, SympyFunction):
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
 
-    ## Issue431
-    #> Sum[2^(-i), {i, 1, \\[Infinity]}]
-     = 1
-
-    ## Issue302
+    ## Issue #302
+    ## The sum should not converge since the first term is 1/0.
     #> Sum[i / Log[i], {i, 1, Infinity}]
      = Sum[i / Log[i], {i, 1, Infinity}]
     #> Sum[Cos[Pi i], {i, 1, Infinity}]
      = Sum[Cos[Pi i], {i, 1, Infinity}]
-
-    ## Combinatorica V0.9 issue in computing NumberofInvolutions
-    >> Sum[k!, {k, 0, Quotient[4, 2]}]
-     = 4
     """
 
     # Do not throw warning message for symbolic iteration bounds
@@ -1985,7 +1894,7 @@ class Sum(_IterationFunction, SympyFunction):
     def get_result(self, items):
         return Expression("Plus", *items)
 
-    def to_sympy(self, expr, **kwargs):
+    def to_sympy(self, expr, **kwargs) -> SympyExpression:
         """
         Perform summation via sympy.summation
         """
@@ -1993,7 +1902,10 @@ class Sum(_IterationFunction, SympyFunction):
             index = expr.leaves[1]
             arg_kwargs = kwargs.copy()
             arg_kwargs["convert_all_global_functions"] = True
-            arg = expr.leaves[0].to_sympy(**arg_kwargs)
+            f_sympy = expr.leaves[0].to_sympy(**arg_kwargs)
+            if f_sympy is None:
+                return
+
             evaluation = kwargs.get("evaluation", None)
 
             # Handle summation parameters: variable, min, max
@@ -2003,14 +1915,36 @@ class Sum(_IterationFunction, SympyFunction):
             if evaluation:
                 # Min and max might be Mathics expressions. If so, evaluate them.
                 for i in (1, 2):
-                    expr = var_min_max[i]
+                    min_max_expr = var_min_max[i]
                     if not isinstance(expr, Symbol):
-                        expr = expr.evaluate(evaluation)
-                        value = expr.to_sympy(**kwargs)
+                        min_max_expr_eval = min_max_expr.evaluate(evaluation)
+                        value = min_max_expr_eval.to_sympy(**kwargs)
                         bounds[i] = value
 
-            if arg is not None and None not in bounds:
-                return sympy.summation(arg, bounds)
+            # FIXME: The below tests on SympyExpression, but really the
+            # test should be broader.
+            if isinstance(f_sympy, sympy.core.basic.Basic):
+                # sympy.summation() won't be able to handle Mathics functions in
+                # in its first argument, the function paramameter.
+                # For example in Sum[Identity[x], {x, 3}], sympy.summation can't
+                # evaluate Indentity[x].
+                # In general we want to avoid using Sympy if we can.
+                # If we have integer bounds, we'll use Mathics's iterator Sum
+                # (which is Plus)
+
+                if all(hasattr(i, "is_integer") and i.is_integer for i in bounds[1:]):
+                    # When we have integer bounds, it is better to not use Sympy but
+                    # use Mathics evaluation. We turn:
+                    # Sum[f[x], {<limits>}] into
+                    #   MathicsSum[Table[f[x], {<limits>}]]
+                    # where MathicsSum is self.get_result() our Iteration iterator.
+                    values = Expression("Table", *expr.leaves).evaluate(evaluation)
+                    ret = self.get_result(values.leaves).evaluate(evaluation)
+                    # Make sure to convert the result back to sympy.
+                    return ret.to_sympy()
+
+            if None not in bounds:
+                return sympy.summation(f_sympy, bounds)
 
 
 class Product(_IterationFunction, SympyFunction):

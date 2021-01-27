@@ -656,6 +656,12 @@ NextPermutation[p_?PermutationQ] :=
 
 (* Section 1.1.3 RandomPermutations, Pages 6-7 *)
 
+(*** FIXME:
+  ListPlot[ RandomPermutation1[30]]
+shows that RandomPermutaion1 isn't good. Therefore we use RandomPermutation2
+for RandomPermutation.
+ ****)
+
 RandomPermutation1[n_Integer?Positive] :=
 	Map[ Last, Sort[ Map[({RandomInteger[],#})&,Range[n]] ] ]
 
@@ -669,7 +675,7 @@ RandomPermutation2[n_Integer?Positive] :=
 		p
 	]
 
-RandomPermutation[n_Integer?Positive] := RandomPermutation1[n]
+RandomPermutation[n_Integer?Positive] := RandomPermutation2[n]
 
 (* Section 1.1.4 Permutation from Transpostions, Page 11 *)
 MinimumChangePermutations[l_List] :=

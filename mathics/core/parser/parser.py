@@ -4,9 +4,14 @@
 
 import string
 
+from mathics_scanner import (
+    InvalidSyntaxError,
+    Tokeniser,
+    TranslateError,
+    is_symbol_name,
+)
+
 from mathics.core.parser.ast import Node, Number, Symbol, String, Filename
-from mathics.core.parser.tokeniser import Tokeniser, is_symbol_name
-from mathics.core.parser.errors import InvalidSyntaxError, TranslateError
 from mathics.core.parser.operators import (
     prefix_ops, postfix_ops, left_binary_ops, right_binary_ops,
     nonassoc_binary_ops, flat_binary_ops, ternary_ops, binary_ops, all_ops,
@@ -276,7 +281,7 @@ class Parser(object):
         self.expect('RawRightAssociation')
         self.bracket_depth -= 1
         return Node('Association', *seq)
-    
+
     def p_LeftRowBox(self, token):
         self.consume()
         children = []

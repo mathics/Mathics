@@ -10,6 +10,8 @@ from threading import Thread, stack_size as set_thread_stack_size
 
 from typing import Tuple
 
+from mathics_scanner import TranslateError
+
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
 
@@ -121,8 +123,8 @@ def run_with_timeout_and_stack(request, timeout, evaluation):
     #
     # To reduce this problem, we make use of specific properties of
     # the Mathics evaluator: if we set "evaluation.timeout", the
-    # next call to "Expression.evaluate" in the thread will finish it 
-    # inmediatly.
+    # next call to "Expression.evaluate" in the thread will finish it
+    # immediately.
     #
     # However this still will not terminate long-running processes
     # in Sympy or or libraries called by Mathics that might hang or run
@@ -276,7 +278,6 @@ class Evaluation(object):
     def parse_feeder_returning_code(self, feeder):
         "Parse a single expression from feeder and print the messages."
         from mathics.core.parser.util import parse_returning_code
-        from mathics.core.parser import TranslateError
 
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)

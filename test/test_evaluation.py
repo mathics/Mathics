@@ -14,6 +14,15 @@ import pytest
         (r"s={x,1,3};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
+
+        # Sum tests:
+        (r"Sum[Identity[j], {j, 3}]", "6"),
+        (r"Sum[2 Identity[j], {j, 3}]", "12"),
+        ## Combinatorica V0.9 issue in computing NumberofInvolutions
+        (r"Sum[k!, {k, 0, Quotient[4, 2]}]", "4"),
+        ## Issue #431
+        (r"Sum[2^(-i), {i, 1, \[Infinity]}]", "1"),
+
         # Global System Information
         (r"Abs[$ByteOrdering]", "1"),
         (r"Head[$CommandLine]", "List"),
@@ -86,7 +95,6 @@ def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str 
     else:
         assert result == expected
 
-
 if sys.platform in ("linux",):
 
     def test_system_specific_long_integer():
@@ -128,6 +136,17 @@ if sys.platform in ("linux",):
                 r"{53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}",
                 "UnsignedInteger128 - 2nd test",
             ),
+
+            # This works but the $Precision is coming out UnsignedInt128 rather tha
+            # UnsignedInt32
+            # (
+            #     'Eigenvalues[{{-8, 12, 4}, {12, -20, 0}, {4, 0, -2}}, Method->"mpmath"]',
+            #     "{{-0.842134, -0.396577, 0.365428}, "
+            #     " { 0.5328,   -0.507232, 0.677377}, "
+            #     " {-0.0832756, 0.765142, 0.638454}}",
+            #     "Eigenvalues via mpmath",
+            # ),
+
         ):
 
             check_evaluation(str_expr, str_expected, message)

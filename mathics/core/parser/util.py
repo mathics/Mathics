@@ -3,9 +3,10 @@
 
 from typing import Any, FrozenSet, Tuple
 
+from mathics_scanner import SingleLineFeeder
+
 from mathics.core.parser.parser import Parser
 from mathics.core.parser.convert import convert
-from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.expression import ensure_context
 
 parser = Parser()

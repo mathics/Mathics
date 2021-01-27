@@ -8,10 +8,11 @@ import re
 import subprocess
 import sys
 
+from mathics_scanner import FileLineFeeder, LineFeeder
+
 from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
 from mathics.core.evaluation import Evaluation, Output
-from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
 

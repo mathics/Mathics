@@ -49,6 +49,7 @@ def test_permutations_1_1():
             " {3, 1, 2, 4}, {3, 1, 4, 2}, {3, 2, 1, 4}, {3, 2, 4, 1}, "
             " {3, 4, 1, 2}, {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 1, 3, 2}, "
             " {4, 2, 1, 3}, {4, 2, 3, 1}, {4, 3, 1, 2}, {4, 3, 2, 1}} ",
+
             "slower method for computing permutations in lex order, 1.1.2, Page 6",
         ),
         (
@@ -382,7 +383,8 @@ def test_special_classes_of_permutations_1_4():
             "{16, 17, 5, 3, 14, 7, 1, 11, 10, 12, 9, 4, 6, 2, 15, 13, 8}",
             "Josephus; 1.4.3, Page 35",
         ),
-        # FIXME: Note RandomPermutation for large numbers isn't random
+        # FIXME: Note RandomPermutation1 for large numbers isn't random
+        # Therefore in combinatorica we use RandomPermutation2.
         (
             "HeapSort[Reverse[Range[10]]]",
             "Range[10]",
@@ -398,7 +400,6 @@ def test_special_classes_of_permutations_1_4():
 
 def test_combinations_1_5():
 
-    # Continue from here...
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
         (
@@ -430,16 +431,25 @@ def test_combinations_1_5():
             "{b, c}",
             "NthSubset 1.5.2, Page 41",
         ),
-
-        # Start here:
-        # RankSubset is broken. MemberQ is probably the culprit
-        # Part::pspec: Part specification
-        # DiscreteMath`CombinatoricaV0.9`private`i$40 is neither an
-        # integer nor a list of integer.
-        #
-        # ( "RankSubset[Range[4], ...
-        #  ...]"  ...
-        # "RankSubset 1.5.2, Page 42, ),
+        (
+            "Map[ (RankSubset[Range[4], #])&, BinarySubsets[Range[4]] ]",
+            "Range[0, 15]",
+            "RankSubset 1.5.2, Page 42",
+        ),
+        (
+            "GrayCode[Range[4]]",
+            "{{}, {1}, {1, 2}, {2}, {2, 3}, {1, 2, 3}, "
+            "{1, 3}, {3}, {3, 4}, {1, 3, 4}, {1, 2, 3, 4}, "
+            "{2, 3, 4}, {2, 4}, {1, 2, 4}, {1, 4}, {4}}",
+            "GrayCode 1.5.3, Page 43",
+        ),
+        (
+            "LexicographicSubsets[Range[4]]",
+            "{{}, {1}, {1, 2}, {1, 2, 3}, {1, 2, 3, 4}, "
+            "{1, 2, 4}, {1, 3}, {1, 3, 4}, {1, 4}, {2}, {2, 3}, "
+            "{2, 3, 4}, {2, 4}, {3}, {3, 4}, {4}}",
+            "LexicographicSubsets 1.5.4, Page 44",
+        ),
         (
             "KSubsets[Range[3], 0]",
             "{ {} } ",
@@ -451,10 +461,18 @@ def test_combinations_1_5():
             "KSubsets[Range[n, 1] == Partition[n]",
         ),
         (
+            "KSubsets[Range[5], 3]",
+            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, "
+            "{1, 3, 5}, {1, 4, 5}, {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, "
+            "{3, 4, 5}}",
+            "KSubsets 1.5.5, Page 44",
+        ),
+        (
             "KSubsets[Range[5], 5]",
             "{Range[5]} ",
             "KSubsets[l, k] == Length(l)",
         ),
+        # Start here in section 2.1 ...
     ):
         check_evaluation(str_expr, str_expected, message)
 

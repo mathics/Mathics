@@ -21,7 +21,6 @@ from mathics.core.expression import (
     PrecisionReal,
 )
 from mathics.core.convert import from_sympy
-from mathics.core.util import replace_wl_with_unicode, replace_unicode_with_wl
 
 
 version_info = {

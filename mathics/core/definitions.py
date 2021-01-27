@@ -19,15 +19,9 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics.core.characters import letters, letterlikes
+from mathics_scanner.tokeniser import base_names_pattern, full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
-names_wildcards = "@*"
-base_names_pattern = r"((?![0-9])([0-9${0}{1}{2}])+)".format(
-    letters, letterlikes, names_wildcards
-)
-full_names_pattern = r"(`?{0}(`{0})*)".format(base_names_pattern)
-
 
 def get_file_time(file) -> float:
     try:
