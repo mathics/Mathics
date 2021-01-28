@@ -124,7 +124,7 @@ class Definitions(object):
         # Ensures that the pymathics module be reloaded
         import sys
         if module in sys.modules:
-            loaded_module = importlib.reload(loaded_module)
+            loaded_module = importlib.reload(sys.modules[module])
         else:
             loaded_module = importlib.import_module(module)
 
@@ -134,7 +134,6 @@ class Definitions(object):
             if hasattr(loaded_module, "__all__")
             else dir(loaded_module)
         )
-        context = "PyMathics`"
         newsymbols = {}
         if not ("pymathics_version_data" in vars):
             raise PyMathicsLoadException(module)
@@ -149,15 +148,20 @@ class Definitions(object):
             ):  # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
-                    symbol_name = context + instance.get_name(short=True)
+                    if not var.context:
+                        var.context = "Pymathics`"
+                    symbol_name = instance.get_name()
                     builtins[symbol_name] = instance
                     builtins_by_module[loaded_module.__name__].append(instance)
                     newsymbols[symbol_name] = instance
 
         for name in newsymbols:
+            luname = self.lookup_name(name)
+            self.user.pop(name, None)
             if remove_on_quit and name not in self.pymathics:
                 self.pymathics[name] = self.builtin.get(name, None)
         self.builtin.update(newsymbols)
+        
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
