@@ -233,7 +233,8 @@ class Evaluation(object):
             definitions=None,
             output=None,
             format="text",
-            catch_interrupt=True
+            catch_interrupt=True,
+            use_unicode=True
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
@@ -247,6 +248,7 @@ class Evaluation(object):
         self.stopped = False
         self.out = []
         self.output = output if output else Output()
+        self.use_unicode = use_unicode
         self.listeners = {}
         self.options = None
         self.predetermined_out = None
