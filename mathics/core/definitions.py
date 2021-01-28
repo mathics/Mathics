@@ -121,8 +121,13 @@ class Definitions(object):
         """
         import importlib
         from mathics.builtin import is_builtin, builtins, builtins_by_module, Builtin
+        # Ensures that the pymathics module be reloaded
+        import sys
+        if module in sys.modules:
+            loaded_module = importlib.reload(loaded_module)
+        else:
+            loaded_module = importlib.import_module(module)
 
-        loaded_module = importlib.import_module(module)
         builtins_by_module[loaded_module.__name__] = []
         vars = set(
             loaded_module.__all__
