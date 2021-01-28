@@ -12,6 +12,7 @@ from itertools import chain
 from bisect import bisect_left
 from functools import lru_cache
 
+from mathics_scanner.characters import replace_wl_with_plain_text
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
@@ -1906,7 +1907,16 @@ class Symbol(Atom):
         return Symbol(self.name)
 
     def boxes_to_text(self, **options) -> str:
-        return str(self.name)
+        name = str(self.name)
+
+        if "evaluation" in options:
+            e = options["evaluation"]
+            return replace_wl_with_plain_text(name, use_unicode=e.use_unicode)
+        else:
+            return name
+
+    def boxes_to_xml(self, **options) -> str:
+        return replace_wl_with_plain_text(str(self.name))
 
     def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
@@ -2725,6 +2735,10 @@ class String(Atom):
         ):
             value = value[1:-1]
 
+        if "evaluation" in options:
+            e = options["evaluation"]
+            value = replace_wl_with_plain_text(value, e.use_unicode)
+
         return value
 
     def boxes_to_xml(self, show_string_characters=False, **options) -> str:
@@ -2742,7 +2756,7 @@ class String(Atom):
         text = self.value
 
         def render(format, string):
-            encoded_text = encode_mathml(string)
+            encoded_text = encode_mathml(replace_wl_with_plain_text(string))
             return format % encoded_text
 
         if text.startswith('"') and text.endswith('"'):
