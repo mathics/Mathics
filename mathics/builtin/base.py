@@ -60,7 +60,8 @@ mathics_to_python = {}
 
 class Builtin(object):
     name: typing.Optional[str] = None
-    context = "System`"
+    # context = "System`"
+    context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
     rules: typing.Dict[str, Any] = {}
@@ -87,11 +88,11 @@ class Builtin(object):
 
     def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
+        # Set the default context
+        if not self.context:
+            self.context = "Pymathics`" if is_pymodule else "System`"
 
-        if is_pymodule:
-            name = "PyMathics`" + self.get_name(short=True)
-        else:
-            name = self.get_name()
+        name = self.get_name()
 
         options = {}
         option_syntax = "Warn"
@@ -317,7 +318,7 @@ class Builtin(object):
                 else:
                     attrs = []
                 if is_pymodule:
-                    name = "PyMathics`" + self.get_name(short=True)
+                    name = ensure_context(self.get_name(short=True), "Pymathics")
                 else:
                     name = self.get_name()
 
@@ -768,3 +769,4 @@ class CountableInteger:
                             return CountableInteger(0, upper_limit=True)
 
         return None  # leave original expression unevaluated
+

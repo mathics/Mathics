@@ -81,11 +81,13 @@ class Definitions(object):
                             module, remove_on_quit=False
                         )
                     except PyMathicsLoadException as e:
-                        print(e.module + " is not a valid pymathics module.")
-                        continue
+                        raise
+                        # print(e.module + " is not a valid pymathics module.")
+                        #continue
                     except ImportError as e:
-                        print(e.__repr__())
-                        continue
+                        raise
+                        #print(e.__repr__())
+                        #continue
                     # print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
 
                 if builtin_filename is not None:
@@ -423,44 +425,47 @@ class Definitions(object):
         pymathics = self.pymathics.get(name, None)
         builtin = self.builtin.get(name, None)
 
-        if user is None and builtin is None:
-            definition = pymathics
-        elif builtin is None:
-            definition = user
-        elif user is None:
-            definition = pymathics if pymathics else builtin
-        else:
-            if user:
-                attributes = user.attributes
-            elif builtin:  #  Never happens
-                attributes = builtin.attributes
-            else:  #  Never happens
-                attributes = set()
-            if not user:  #  Never happens
-                user = Definition(name=name)
-            if not builtin:  #  Never happens
-                builtin = Definition(name=name)
-            options = builtin.options.copy()
-            options.update(user.options)
-            formatvalues = builtin.formatvalues.copy()
-            for form, rules in user.formatvalues.items():
-                if form in formatvalues:
-                    formatvalues[form].extend(rules)
-                else:
-                    formatvalues[form] = rules
-
+        candidates = [user] if user else []
+        if pymathics:
+            candidates.append(pymathics)
+        if builtin:
+            candidates.append(builtin)
+        
+        definition = candidates[0] if len(candidates)==1 else None
+        if len(candidates)>0 and not definition:
+            attributes = user.attributes if user else (
+                pymathics.attributes if pymathics else
+                (builtin.attributes if builtin else set())
+            )
+            upvalues = [], 
+            messages = [],
+            nvalues = [],
+            defaultvalues = [],
+            options = {}
+            formatvalues = {"": [],}
+            # Merge definitions
+            its = [c for c in candidates]
+            while its:
+                curr = its.pop()
+                options.update(curr.options)
+                for form, rules in curr.formatvalues.items():
+                    if form in formatvalues:
+                        formatvalues[form].extend(rules)
+                    else:
+                        formatvalues[form] = rules
+            # Build the new definition
             definition = Definition(
                 name=name,
-                ownvalues=user.ownvalues + builtin.ownvalues,
-                downvalues=user.downvalues + builtin.downvalues,
-                subvalues=user.subvalues + builtin.subvalues,
-                upvalues=user.upvalues + builtin.upvalues,
+                ownvalues=sum((c.ownvalues for c in candidates),[]),
+                downvalues=sum((c.downvalues for c in candidates),[]),
+                subvalues=sum((c.subvalues for c in candidates),[]),
+                upvalues=sum((c.upvalues for c in candidates),[]),
                 formatvalues=formatvalues,
-                messages=user.messages + builtin.messages,
+                messages=sum((c.messages for c in candidates),[]),
                 attributes=attributes,
                 options=options,
-                nvalues=user.nvalues + builtin.nvalues,
-                defaultvalues=user.defaultvalues + builtin.defaultvalues,
+                nvalues=sum((c.nvalues for c in candidates),[]),
+                defaultvalues=sum((c.defaultvalues for c in candidates),[]),
             )
 
         if definition is not None:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from mathics.core.expression import ensure_context
 
 
 from mathics.builtin import (
@@ -136,7 +137,10 @@ for module in modules:
             instance = var(expression=False)
 
             if isinstance(instance, Builtin):
-                builtins.append((instance.get_name(), instance))
+                # This set the default context for symbols in mathics.builtins
+                if not type(instance).context:
+                    type(instance).context = "System`"
+                builtins.append( (instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
 
