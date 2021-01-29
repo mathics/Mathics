@@ -60,7 +60,6 @@ mathics_to_python = {}
 
 class Builtin(object):
     name: typing.Optional[str] = None
-    # context = "System`"
     context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
