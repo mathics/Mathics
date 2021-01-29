@@ -597,7 +597,7 @@ class BoxConstructError(Exception):
     pass
 
 
-class BoxConstruct(Builtin):
+class BoxConstruct(InstancableBuiltin):
     def get_option_values(self, leaves, evaluation=None, **options):
         default = evaluation.definitions.get_options(self.get_name()).copy()
         options = Expression("List", *leaves).get_option_values(evaluation)

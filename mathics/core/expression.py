@@ -1207,6 +1207,7 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
+        from mathics.builtin import BoxConstruct
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
@@ -1306,6 +1307,8 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False
                 if result.same(new):
                     new._timestamp_cache(evaluation)
                     return new, False

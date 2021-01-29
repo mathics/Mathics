@@ -2010,9 +2010,11 @@ class MathMLForm(Builtin):
         'MakeBoxes[expr_, MathMLForm]'
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
+        print("=====MakeBoxes, MathMLForm  boxes=",boxes)
         try:
             xml = boxes.boxes_to_xml(evaluation=evaluation)
         except BoxError:
+            print("======error")
             evaluation.message(
                 'General', 'notboxes',
                 Expression('FullForm', boxes).evaluate(evaluation))
