@@ -150,7 +150,7 @@ mathics_to_sympy = {}  # here we have: name -> sympy object
 mathics_to_python = {}  # here we have: name -> string
 sympy_to_mathics = {}
 
-box_constructs = {}
+# box_constructs = {}
 pattern_objects = {}
 builtins_precedence = {}
 
@@ -166,8 +166,9 @@ def add_builtins(new_builtins):
             mathics_to_sympy[name] = builtin
             for sympy_name in builtin.get_sympy_names():
                 sympy_to_mathics[sympy_name] = builtin
-        if isinstance(builtin, BoxConstruct):
-            box_constructs[name] = builtin
+        # if isinstance(builtin, BoxConstruct):
+        #    box_constructs[name] = builtin
+        #    print("BC ", name)
         if isinstance(builtin, Operator):
             builtins_precedence[name] = builtin.precedence
         if isinstance(builtin, PatternObject):

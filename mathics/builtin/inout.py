@@ -497,7 +497,6 @@ class MakeBoxes(Builtin):
         else:
             head = expr.head
             leaves = expr.leaves
-
             f_name = f.get_name()
             if f_name == 'System`TraditionalForm':
                 left, right = '(', ')'
@@ -780,7 +779,7 @@ class GridBox(BoxConstruct):
     }
 
     def get_array(self, leaves, evaluation):
-        options = self.get_option_values(leaves[1:], evaluation)
+        options = self.get_option_values(leaves=leaves[1:], evaluation=evaluation)
         if not leaves:
             raise BoxConstructError
         expr = leaves[0]
@@ -847,7 +846,9 @@ class GridBox(BoxConstruct):
         result += '</mtable>'
         return result
 
-    def boxes_to_text(self, leaves, **box_options) -> str:
+    def boxes_to_text(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         result = ''

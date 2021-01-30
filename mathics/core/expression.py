@@ -99,7 +99,7 @@ def from_python(arg):
     convert backtick (context) symbols into some Python identifier
     symbol like underscore.
     """
-
+    from mathics.builtin.base import BoxConstruct
     number_type = get_type(arg)
     if arg is None:
         return SymbolNull
@@ -132,6 +132,8 @@ def from_python(arg):
         ]
         return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
+        return arg
+    elif isinstance(arg, BoxConstruct):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
@@ -1368,19 +1370,10 @@ class Expression(BaseExpression):
             return False, options
 
     def boxes_to_text(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
         head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_text(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'text')
         if (self.has_form('RowBox', 1) and  # nopep8
             self._leaves[0].has_form('List', None)):
             return ''.join([leaf.boxes_to_text(**options)
@@ -1392,21 +1385,10 @@ class Expression(BaseExpression):
             raise BoxError(self, 'text')
 
     def boxes_to_xml(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
         head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_xml(self._leaves, **options)
-            except BoxConstructError:
-                # raise # uncomment this to see what is going wrong in
-                # constructing boxes
-                raise BoxError(self, 'xml')
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
@@ -1472,9 +1454,6 @@ class Expression(BaseExpression):
                 raise BoxError(self, 'xml')
 
     def boxes_to_tex(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
@@ -1487,13 +1466,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_tex(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_tex(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'tex')
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
