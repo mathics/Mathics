@@ -454,6 +454,7 @@ class BaseExpression(KeyComparable):
                   head != 'System`Graphics'):
                 new_leaves = [leaf.do_format(evaluation, form)
                               for leaf in expr.leaves]
+                formathead = expr.head.do_format(evaluation, form)
                 expr = Expression(
                     expr.head.do_format(evaluation, form), *new_leaves)
 
@@ -660,8 +661,8 @@ class Expression(BaseExpression):
     leaves: typing.List[Any]
     _sequences: Any
 
-    def __new__(cls, head, *leaves) -> 'Expression':
-        self = super(Expression, cls).__new__(cls)
+    def __new__(cls, head, *leaves, **kwargs) -> 'Expression':
+        self = super(Expression, cls).__new__(cls)    
         if isinstance(head, str):
             head = Symbol(head)
         self._head = head

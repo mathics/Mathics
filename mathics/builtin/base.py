@@ -603,6 +603,10 @@ class BoxConstruct(InstancableBuiltin):
         instance._leaves = leaves
         return instance
 
+    def evaluate(self, evaluation):
+        # Shall here evaluate the leaves?
+        return
+    
     def get_lookup_name(self):
         return self.get_name()
 
