@@ -18,10 +18,11 @@ from mathics.core.expression import Integer, String, Expression
 class Floor(SympyFunction):
     """
     <dl>
-    <dt>'Floor[$x$]'
-        <dd>gives the smallest integer less than or equal to $x$.
-    <dt>'Floor[$x$, $a$]'
-        <dd>gives the smallest multiple of $a$ less than or equal to $x$.
+      <dt>'Floor[$x$]'
+      <dd>gives the smallest integer less than or equal to $x$.
+
+      <dt>'Floor[$x$, $a$]'
+      <dd>gives the smallest multiple of $a$ less than or equal to $x$.
     </dl>
 
     >> Floor[10.4]
@@ -49,12 +50,10 @@ class Floor(SympyFunction):
      = -10
     """
 
-    rules = {
-        'Floor[x_, a_]': 'Floor[x / a] * a'
-    }
+    rules = {"Floor[x_, a_]": "Floor[x / a] * a"}
 
     def apply_real(self, x, evaluation):
-        'Floor[x_]'
+        "Floor[x_]"
         x = x.to_sympy()
         if x is not None:
             return from_sympy(sympy.floor(x))
@@ -63,8 +62,8 @@ class Floor(SympyFunction):
 class Ceiling(SympyFunction):
     """
     <dl>
-    <dt>'Ceiling[$x$]'
-        <dd>gives the first integer greater than $x$.
+       <dt>'Ceiling[$x$]'
+       <dd>gives the first integer greater than $x$.
     </dl>
 
     >> Ceiling[1.2]
@@ -77,12 +76,10 @@ class Ceiling(SympyFunction):
      = 2 + I
     """
 
-    rules = {
-        'Ceiling[x_, a_]': 'Ceiling[x / a] * a'
-    }
+    rules = {"Ceiling[x_, a_]": "Ceiling[x / a] * a"}
 
     def apply(self, x, evaluation):
-        'Ceiling[x_]'
+        "Ceiling[x_]"
         x = x.to_sympy()
         if x is None:
             return
@@ -124,22 +121,22 @@ class IntegerLength(Builtin):
     """
 
     rules = {
-        'IntegerLength[n_]': 'IntegerLength[n, 10]',
+        "IntegerLength[n_]": "IntegerLength[n, 10]",
     }
 
     messages = {
-        'base': "Base `1` is not an integer greater than 1.",
+        "base": "Base `1` is not an integer greater than 1.",
     }
 
     def apply(self, n, b, evaluation):
-        'IntegerLength[n_, b_]'
+        "IntegerLength[n_, b_]"
 
         n, b = n.get_int_value(), b.get_int_value()
         if n is None or b is None:
-            evaluation.message('IntegerLength', 'int')
+            evaluation.message("IntegerLength", "int")
             return
         if b <= 1:
-            evaluation.message('IntegerLength', 'base', b)
+            evaluation.message("IntegerLength", "base", b)
             return
 
         if n == 0:
@@ -170,8 +167,8 @@ class IntegerLength(Builtin):
 class BitLength(Builtin):
     """
     <dl>
-    <dt>'BitLength[$x$]'
-        <dd>gives the number of bits needed to represent the integer $x$. $x$'s sign is ignored.
+      <dt>'BitLength[$x$]'
+      <dd>gives the number of bits needed to represent the integer $x$. $x$'s sign is ignored.
     </dl>
 
     >> BitLength[1023]
@@ -185,14 +182,16 @@ class BitLength(Builtin):
     """
 
     def apply(self, n, evaluation):
-        'BitLength[n_Integer]'
+        "BitLength[n_Integer]"
         n = n.get_int_value()
         if n < 0:
             n = -1 - n
         return Integer(n.bit_length())
 
 
-def _reversed_digits(number, base):  # yield digits for number in base "base" in reverse order
+def _reversed_digits(
+    number, base
+):  # yield digits for number in base "base" in reverse order
     number = abs(number)
     if number == 0:
         yield 0
@@ -246,11 +245,11 @@ class IntegerString(Builtin):
     """
 
     rules = {
-        'IntegerString[n_Integer]': 'IntegerString[n, 10]',
+        "IntegerString[n_Integer]": "IntegerString[n, 10]",
     }
 
     messages = {
-        'basf': 'Base `` must be an integer in the range from 2 to 36.',
+        "basf": "Base `` must be an integer in the range from 2 to 36.",
     }
 
     list_of_symbols = string.digits + string.ascii_letters
@@ -269,32 +268,33 @@ class IntegerString(Builtin):
         else:
             list_of_symbols = IntegerString.list_of_symbols
             if b > len(list_of_symbols) or b < 2:
-                evaluation.message('IntegerString', 'basf', b)
+                evaluation.message("IntegerString", "basf", b)
                 return False
             else:
-                return ''.join(reversed(
-                    [list_of_symbols[r] for r in _reversed_digits(n, b)]))
+                return "".join(
+                    reversed([list_of_symbols[r] for r in _reversed_digits(n, b)])
+                )
 
     def apply_n(self, n, b, evaluation):
-        'IntegerString[n_Integer, b_Integer]'
+        "IntegerString[n_Integer, b_Integer]"
         s = self._symbols(n.get_int_value(), b.get_int_value(), evaluation)
         return String(s) if s else None
 
     def apply_n_b_length(self, n, b, length, evaluation):
-        'IntegerString[n_Integer, b_Integer, length_Integer]'
+        "IntegerString[n_Integer, b_Integer, length_Integer]"
         s = self._symbols(n.get_int_value(), b.get_int_value(), evaluation)
-        return String(_pad(s, length.get_int_value(), '0')) if s else None
+        return String(_pad(s, length.get_int_value(), "0")) if s else None
 
 
 class _IntBaseBuiltin(Builtin):
     messages = {
-        'basf': 'Base `` must be an integer greater than 1.',
+        "basf": "Base `` must be an integer greater than 1.",
     }
 
     def _valid_base(self, b, evaluation):
         base = b.get_int_value()
         if base < 2:
-            evaluation.message(self.get_name(), 'basf', base)
+            evaluation.message(self.get_name(), "basf", base)
             return False
         else:
             return base
@@ -330,22 +330,46 @@ class IntegerDigits(_IntBaseBuiltin):
     """
 
     rules = {
-        'IntegerDigits[n_Integer]': 'IntegerDigits[n, 10]',
+        "IntegerDigits[n_Integer]": "IntegerDigits[n, 10]",
     }
 
     _padding = [Integer(0)]
 
     def apply_n_b(self, n, b, evaluation):
-        'IntegerDigits[n_Integer, b_Integer]'
+        "IntegerDigits[n_Integer, b_Integer]"
         base = self._valid_base(b, evaluation)
-        return Expression('List', *[Integer(d) for d in reversed(
-            _reversed_digits(n.get_int_value(), base))]) if base else None
+        return (
+            Expression(
+                "List",
+                *[
+                    Integer(d)
+                    for d in reversed(list(_reversed_digits(n.get_int_value(), base)))
+                ]
+            )
+            if base
+            else None
+        )
 
     def apply_n_b_length(self, n, b, length, evaluation):
-        'IntegerDigits[n_Integer, b_Integer, length_Integer]'
+        "IntegerDigits[n_Integer, b_Integer, length_Integer]"
         base = self._valid_base(b, evaluation)
-        return Expression('List', *_pad([Integer(d) for d in reversed(
-            _reversed_digits(n.get_int_value(), base))], length.get_int_value(), self._padding)) if base else None
+        return (
+            Expression(
+                "List",
+                *_pad(
+                    [
+                        Integer(d)
+                        for d in reversed(
+                            list(_reversed_digits(n.get_int_value(), base))
+                        )
+                    ],
+                    length.get_int_value(),
+                    self._padding,
+                )
+            )
+            if base
+            else None
+        )
 
 
 class DigitCount(_IntBaseBuiltin):
@@ -370,20 +394,25 @@ class DigitCount(_IntBaseBuiltin):
     """
 
     rules = {
-        'DigitCount[n_Integer]': 'DigitCount[n, 10]',
+        "DigitCount[n_Integer]": "DigitCount[n, 10]",
     }
 
     def apply_n_b_d(self, n, b, d, evaluation):
-        'DigitCount[n_Integer, b_Integer, d_Integer]'
+        "DigitCount[n_Integer, b_Integer, d_Integer]"
         base = self._valid_base(b, evaluation)
         if not base:
             return
         match = d.get_int_value()
-        return Integer(sum(1 for digit in _reversed_digits(
-            n.get_int_value(), base) if digit == match))
+        return Integer(
+            sum(
+                1
+                for digit in _reversed_digits(n.get_int_value(), base)
+                if digit == match
+            )
+        )
 
     def apply_n_b(self, n, b, evaluation):
-        'DigitCount[n_Integer, b_Integer]'
+        "DigitCount[n_Integer, b_Integer]"
         base = self._valid_base(b, evaluation)
         if not base:
             return
@@ -391,7 +420,7 @@ class DigitCount(_IntBaseBuiltin):
         for digit in _reversed_digits(n.get_int_value(), base):
             occurence_count[digit] += 1
         # result list is rotated by one element to the left
-        return Expression('List', *(occurence_count[1:] + [occurence_count[0]]))
+        return Expression("List", *(occurence_count[1:] + [occurence_count[0]]))
 
 
 class IntegerReverse(_IntBaseBuiltin):
@@ -412,11 +441,11 @@ class IntegerReverse(_IntBaseBuiltin):
     """
 
     rules = {
-        'IntegerReverse[n_Integer]': 'IntegerReverse[n, 10]',
+        "IntegerReverse[n_Integer]": "IntegerReverse[n, 10]",
     }
 
     def apply_n_b(self, n, b, evaluation):
-        'IntegerReverse[n_Integer, b_Integer]'
+        "IntegerReverse[n_Integer, b_Integer]"
         base = self._valid_base(b, evaluation)
         if not base:
             return
@@ -465,18 +494,14 @@ class FromDigits(Builtin):
      = FromDigits[x, 10]
     """
 
-    rules = {
-        'FromDigits[l_]': 'FromDigits[l, 10]'
-    }
+    rules = {"FromDigits[l_]": "FromDigits[l, 10]"}
 
-    messages = {
-        'nlst': 'The input must be a string of digits or a list.'
-    }
+    messages = {"nlst": "The input must be a string of digits or a list."}
 
     @staticmethod
     def _parse_string(s, b):
-        code_0 = ord('0')
-        code_a = ord('a')
+        code_0 = ord("0")
+        code_a = ord("a")
         assert code_a > code_0
 
         value = Integer(0)
@@ -487,24 +512,26 @@ class FromDigits(Builtin):
             else:
                 digit = code - code_0
             if 0 <= digit < 36:
-                value = Expression('Plus', Expression('Times', value, b), Integer(digit))
+                value = Expression(
+                    "Plus", Expression("Times", value, b), Integer(digit)
+                )
             else:
                 return None
 
         return value
 
     def apply(self, l, b, evaluation):
-        'FromDigits[l_, b_]'
-        if l.get_head_name() == 'System`List':
+        "FromDigits[l_, b_]"
+        if l.get_head_name() == "System`List":
             value = Integer(0)
             for leaf in l.leaves:
-                value = Expression('Plus', Expression('Times', value, b), leaf)
+                value = Expression("Plus", Expression("Times", value, b), leaf)
             return value
         elif isinstance(l, String):
             value = FromDigits._parse_string(l.get_string_value(), b)
             if value is None:
-                evaluation.message('FromDigits', 'nlst')
+                evaluation.message("FromDigits", "nlst")
             else:
                 return value
         else:
-            evaluation.message('FromDigits', 'nlst')
+            evaluation.message("FromDigits", "nlst")
