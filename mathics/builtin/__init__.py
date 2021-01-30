@@ -1,51 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import glob
+import importlib
+import re
+import os.path as osp
+from mathics.settings import ENABLE_FILES_MODULE
 
-from mathics.builtin import (
-    algebra,
-    arithmetic,
-    assignment,
-    attributes,
-    calculus,
-    combinatorial,
-    compilation,
-    comparison,
-    constants,
-    control,
-    datentime,
-    diffeqns,
-    evaluation,
-    exptrig,
-    functional,
-    graphics,
-    graphics3d,
-    image,
-    inout,
-    integer,
-    iohooks,
-    linalg,
-    lists,
-    logic,
-    manipulate,
-    quantities,
-    numbertheory,
-    numeric,
-    options,
-    patterns,
-    plot,
-    physchemdata,
-    randomnumbers,
-    recurrence,
-    specialfunctions,
-    scoping,
-    strings,
-    structure,
-    system,
-    tensors,
-    xmlformat,
-    optimization,
-)
+# Get a list of file in this directory. We'll exclude from the start
+# files with leading characters we don't want like __init__ with its leading underscore.
+__py_files__ = [
+    osp.basename(f[0:-3])
+    for f in glob.glob(osp.join(osp.dirname(__file__), "[a-z]*.py"))
+]
 
 from mathics.builtin.base import (
     Builtin,
@@ -57,55 +24,23 @@ from mathics.builtin.base import (
 
 from mathics.settings import ENABLE_FILES_MODULE
 
-modules = [
-    algebra,
-    arithmetic,
-    assignment,
-    attributes,
-    calculus,
-    combinatorial,
-    compilation,
-    comparison,
-    constants,
-    control,
-    datentime,
-    diffeqns,
-    evaluation,
-    exptrig,
-    functional,
-    graphics,
-    graphics3d,
-    image,
-    inout,
-    integer,
-    iohooks,
-    linalg,
-    lists,
-    logic,
-    manipulate,
-    quantities,
-    numbertheory,
-    numeric,
-    options,
-    patterns,
-    plot,
-    physchemdata,
-    randomnumbers,
-    recurrence,
-    specialfunctions,
-    scoping,
-    strings,
-    structure,
-    system,
-    tensors,
-    xmlformat,
-    optimization,
+exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
+module_names = [
+    f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
 ]
 
 if ENABLE_FILES_MODULE:
-    from mathics.builtin import files, importexport
+    module_names += ["files", "importexport"]
 
-    modules += [files, importexport]
+modules = []
+
+for module_name in module_names:
+    try:
+        module = importlib.import_module("mathics.builtin." + module_name)
+    except:
+        # print("XXX", module_name)
+        continue
+    modules.append(module)
 
 builtins = []
 builtins_by_module = {}
