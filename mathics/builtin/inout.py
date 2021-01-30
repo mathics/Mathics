@@ -845,7 +845,7 @@ class GridBox(BoxConstruct):
             result += '<mtr>'
             for item in row:
                 result += '<mtd {0}>{1}</mtd>'.format(
-                    joined_attrs, item.boxes_to_xml(**new_box_options))
+                    joined_attrs, item.evaluate(evaluation).boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
         return result

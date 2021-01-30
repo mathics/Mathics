@@ -1228,7 +1228,9 @@ class Expression(BaseExpression):
             for index in indices:
                 leaf = leaves[index]
                 if not leaf.has_form('Unevaluated', 1):
-                    leaves[index] = leaf.evaluate(evaluation)
+                    leaf = leaf.evaluate(evaluation)
+                    if leaf:
+                        leaves[index] = leaf
 
         if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
             # eval_range(range(0, 0))

@@ -606,9 +606,15 @@ class BoxConstruct(InstancableBuiltin):
     def evaluate(self, evaluation):
         # Shall here evaluate the leaves?
         return
-    
+
+    def get_head_name(self):
+        return self.get_name()
+
     def get_lookup_name(self):
         return self.get_name()
+
+    def get_string_value(self):
+        return "-@" + self.get_head_name() + "@-"
 
     def same(self, expr):
         return expr.same(self)
