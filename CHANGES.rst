@@ -9,18 +9,32 @@ Mathics have been split off and moved to separately installable packages. In par
 
 * The Django front-end `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
 * Scanner routines and character translations tables to/from unicode and noting some character properties
+* Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
 
 
+  
+  
 New builtins
 ++++++++++++
 
 - ``TimeRemaining`` and ``TimeConstrained``
 -``MathicsVersion`` (this is not in WL)
 - ``\[RadicalBox]``
-- ``FirstCase``, ``Lookup``
-- ``System`ConvertersDump`` context variables
+- ``ContinuedFraction``
+- ``Insert`` and ``Delete``
+- ``FirstCase``, ``Lookup``, ``Key``, ``Lookup`` and ``Failure``
+- ``ConvertCommonDumpRemoveLinearSyntax`` and ``System`ConvertersDump`` context variables
 - ``PossibleZeroQ`` PR #1100
-
+- ``Run``
+- ``SympyObject``
+- ``NumberQ``
+- ``AnglePath``,  ``AnglePathFold``, ``AngleVector``
+- ``Haversine``, ``InverseHaversine``
+- ``Show``
+-  Improving support for options in the Plot module: ``Axes``, ``Filling``, ``ImageSize``, ``Joined``
+- ``BoxData``, ``TextData``, ``InterpretationBox``, ``StyleBox``, ``TagBox``, ``TemplateBox``, ``ButtonBox``, ``InterpretationBox``
+- ``LerchPhi``
+  
 New Constants
 +++++++++++++
 
@@ -29,10 +43,23 @@ These constants have been added:
 
 - ``Catalan``
 - ``Glaisher``
-- ``LerchPhi``
+- ``Khinchin``
+- ``Degree``
+- ``GoldenRatio``
 - ``Khinchin``
 
+  
 Many of these and the existing constants are computable via mpmath, numpy, or sympy.
+
+
+Settings through WL variables
+-----------------------------
+
+Certain aspects of the configuration of the kernel are now controlled by variables, defined in /autoad/settings.m
+
+- ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug). 
+-  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default)
+
 
 Enhancements
 ------------
@@ -60,6 +87,15 @@ Enhancements and Bug fixes:
 - ``Sum``'s lower and upper bounds values can now be Mathics expressions
 
 
+
+Miscelanea
+----------
+
+- Github workflow "basic" is now called "ubuntu"
+- Enlarge of the set of gries_schneider tests
+- Improvement in the way builtins modules are loaded at initialization time.
+
+  
 1.1.1
 -----
 
