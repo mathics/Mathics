@@ -151,6 +151,7 @@ class Definitions(object):
                     if not var.context:
                         var.context = "Pymathics`"
                     symbol_name = instance.get_name()
+                    print("loading symbol name ", symbol_name )
                     builtins[symbol_name] = instance
                     builtins_by_module[loaded_module.__name__].append(instance)
                     newsymbols[symbol_name] = instance
