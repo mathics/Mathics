@@ -4,17 +4,48 @@ CHANGES
 2.0.0
 -----
 
-The Django front-end has been unbundled and is a separate `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
+In order to accomdate growth and increase use pieces of Mathics inside other packages, some parts of
+Mathics have been split off and moved to separately installable packages. In particular:
+
+* The Django front-end `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
+* Scanner routines and character translations tables to/from unicode and noting some character properties
+
 
 New builtins
-++++++++++++++
+++++++++++++
 
 - ``TimeRemaining`` and ``TimeConstrained``
 -``MathicsVersion`` (this is not in WL)
 - ``\[RadicalBox]``
 - ``FirstCase``, ``Lookup``
-- ``Catalan``, ``LerchPhi``
-- ``System`ConvertersDump`` context variables 
+- ``System`ConvertersDump`` context variables
+- ``PossibleZeroQ`` PR #1100
+
+New Constants
++++++++++++++
+
+Mathematical Constants is now its own module/section. Contants have been filled out.
+These constants have been added:
+
+- ``Catalan``
+- ``Glaisher``
+- ``LerchPhi``
+- ``Khinchin``
+
+Many of these and the existing constants are computable via mpmath, numpy, or sympy.
+
+Enhancements
+------------
+
+Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath.
+
+Bug Fixes
+---------
+
+There have been numerous bug is driven by working on Combinatorica V0.9 and CellsToTeX.
+
+- ``Sum`` involving numeric integer bounds involving Mathics functions fixed.
+- ``Equal`` ``UnEqual`` testing on Strings.
 
 Document updates
 ----------------
@@ -48,7 +79,7 @@ Package Updates
 
 Mathics Packages added:
 
-- ``DiscreteMath`CombinatoricaV0.9`` (preferred) aand
+- ``DiscreteMath`CombinatoricaV0.9`` (preferred) and
   ``DiscreteMath`CombinatoricaV0.6``.
 
 Both of these correspond to Steven Skiena's *older* book: "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
@@ -90,7 +121,7 @@ New builtins:
 - Adding support in ``from_python()`` to convert dictionaries in list of rules.
 - Fix OptionsPattern associated symbols.
 
-  
+
 1.1.0
 -----
 
