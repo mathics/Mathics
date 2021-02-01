@@ -874,7 +874,7 @@ class Information(PrefixOperator):
      = f[x] returns the square of x
 
     >> ? Table
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -887,7 +887,7 @@ class Information(PrefixOperator):
      .
 
     >> Information[Table]
-     = 
+     =
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -910,7 +910,6 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python
         lines = []
         if isinstance(symbol, String):
             evaluation.print_out(symbol)

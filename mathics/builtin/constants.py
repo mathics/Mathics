@@ -29,6 +29,10 @@ def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
     if d is None:
         return getattr(mpmath, fn)()
     else:
+        # TODO: In some function like Pi, you can
+        # ask for a certain number of digits, but the
+        # accuracy will be less than that. Figure out
+        # what's up and compensate somehow.
         mpmath.mp.dps = int_d = int(d)
         return getattr(mpmath, fn)(prec=int_d)
 
@@ -43,6 +47,9 @@ def mp_convert_constant(obj, **kwargs):
 
 
 def numpy_constant(name: str, d=None) -> float:
+    # TODO: although numpy doesn't support arbitrary precision,
+    # if d is smaller than the precision given we could *reduce* the
+    # float returned.
     return getattr(numpy, name)
 
 
@@ -54,10 +61,17 @@ class _Constant_Common(Predefined):
 
     attributes = ("Constant", "Protected", "ReadProtected")
     nargs = 0
+    options = {"Method": "sympy"}
 
-    def apply_N(self, precision, evaluation):
-        "N[%(name)s, precision_]"
-        return self.get_constant(precision, evaluation)
+    def apply_N(self, precision, evaluation, options={}):
+        "N[%(name)s, precision_?NumericQ, OptionsPattern[%(name)s]]"
+
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
+        return self.get_constant(precision, evaluation, preference)
+
+    def apply_N2(self, evaluation, options={}):
+        "N[%(name)s, OptionsPattern[%(name)s]]"
+        return self.apply_N(None, evaluation, options)
 
     def is_constant(self) -> bool:
         return True
@@ -71,10 +85,12 @@ class _Constant_Common(Predefined):
                 .get_string_value()
             )
             # TODO: validate PreferredBackendMethod is in "mpmath", "numpy", "sympy"
-        try:
-            d = get_precision(precision, evaluation)
-        except PrecisionValueError:
-            d = None
+        d = None
+        if precision:
+            try:
+                d = get_precision(precision, evaluation)
+            except PrecisionValueError:
+                pass
 
         conversion_fn = MachineReal if d is None else PrecisionReal
 
@@ -85,13 +101,15 @@ class _Constant_Common(Predefined):
         elif preference == "mpmath" and hasattr(self, "mpmath_name"):
             value = mp_constant(self.mpmath_name, d)
         elif preference == "numpy" and hasattr(self, "numpy_name"):
-            value = numpy_constant(self.numpy_name)
+            # Note numpy doesn't support arbitarary precision
+            value = numpy_constant(self.numpy_name, d)
         elif hasattr(self, "mpmath_name"):
             value = mp_constant(self.mpmath_name, d)
         elif hasattr(self, "sympy_name"):
             value = sympy_constant(self.sympy_name, d)
         elif hasattr(self, "numpy_name"):
-            value = numpy_constant(self.numpy_name)
+            # Note numpy doesn't support arbitarary precision
+            value = numpy_constant(self.numpy_name, d)
         return conversion_fn(value)
 
 
