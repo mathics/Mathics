@@ -29,7 +29,7 @@ def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
     if d is None:
         return getattr(mpmath, fn)()
     else:
-        # TODO: In some function like Pi, you can
+        # TODO: In some functions like Pi, you can
         # ask for a certain number of digits, but the
         # accuracy will be less than that. Figure out
         # what's up and compensate somehow.
@@ -434,7 +434,19 @@ class Pi(MPMathConstant, SympyConstant):
 
     >> N[Pi]
      = 3.14159
-    >> N[Pi, 50]
+
+    Force using the value given from numpy to compute Pi.
+    >> N[Pi, Method->"numpy"]
+     = 3.14159
+
+    Force using the value given from sympy to compute Pi to 3 places,
+    two places after the decimal point.
+
+    Note that sympy is the default method.
+    >> N[Pi, 3, Method->"sympy"]
+     = 3.14
+
+     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}
