@@ -451,7 +451,9 @@ class BaseExpression(KeyComparable):
             if head in formats:
                 expr = expr.do_format(evaluation, form)
             elif (head != 'System`NumberForm' and not expr.is_atom() and
-                  head != 'System`Graphics'):
+                  head != 'System`Graphics' and
+                  head != 'System`Graphics3D'):
+                # print("Not inside graphics or numberform, and not is atom")
                 new_leaves = [leaf.do_format(evaluation, form)
                               for leaf in expr.leaves]
                 formathead = expr.head.do_format(evaluation, form)

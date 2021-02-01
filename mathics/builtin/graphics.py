@@ -470,7 +470,6 @@ class Graphics(Builtin):
     def apply_makeboxes(self, content, evaluation, options):
         """MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]],
         StandardForm|TraditionalForm|OutputForm]"""
-
         def convert(content):
             head = content.get_head_name()
 
@@ -511,11 +510,9 @@ class Graphics(Builtin):
         #box_name = "Graphics" + self.box_suffix
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
         if type(self) is Graphics:
-            ret = GraphicsBox(convert(content), *options_to_rules(options))
-            return ret
-        elif type(self) is Graphics3D:            
-            ret = Graphics3DBox(convert(content), *options_to_rules(options))
-            return ret
+            return GraphicsBox(convert(content), *options_to_rules(options))
+        elif type(self) is Graphics3D:
+            return Graphics3DBox(convert(content), *options_to_rules(options))
 
 
 class _GraphicsElement(InstancableBuiltin):
@@ -2774,7 +2771,6 @@ class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
         self.elements = []
-
         builtins = evaluation.definitions.builtin
 
         def get_options(name):
@@ -2801,9 +2797,6 @@ class _GraphicsElements(object):
 
                     new_style.set_option(name, create(style.graphics, expr))
                 else:
-                    print("stylebox_style")
-                    print("spec=", spec)
-                    print("head_name=", head_name)
                     raise BoxConstructError
             return new_style
 
@@ -3875,6 +3868,7 @@ styles = system_symbols_dict(
 style_options = system_symbols_dict(
     {
         "FontColor": _style,
+        "ImageSizeMultipliers": (lambda *x: x[1])
     }
 )
 
