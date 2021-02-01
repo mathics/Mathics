@@ -2941,7 +2941,7 @@ class GraphicsBox(BoxConstruct):
     def boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-            
+
         self._prepare_elements(leaves, options)  # to test for Box errors
         return "-Graphics-"
 

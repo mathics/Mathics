@@ -60,7 +60,6 @@ mathics_to_python = {}
 
 class Builtin(object):
     name: typing.Optional[str] = None
-    # context = "System`"
     context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
@@ -621,13 +620,13 @@ class BoxConstruct(InstancableBuiltin):
 
     def is_atom(self):
         return False
-    
+
     def do_format(self, evaluation, format):
         return self
-    
+
     def format(self, evaluation, fmt):
         return self
-        
+
     def get_head(self):
         return Symbol(self.get_name())
 
@@ -646,7 +645,7 @@ class BoxConstruct(InstancableBuiltin):
     @leaves.setter
     def leaves(self, value):
         raise ValueError('BoxConstruct.leaves is write protected.')
-    
+
     # I need to repeat this, because this is not
     # an expression...
     def has_form(self, heads, *leaf_counts):
@@ -680,9 +679,6 @@ class BoxConstruct(InstancableBuiltin):
     def flatten_pattern_sequence(self, evaluation)  -> 'BoxConstruct':
         return self
 
-#    def get_name(self):
-        
-    
     def get_option_values(self, leaves, **options):
         evaluation = options.get("evaluation", None)
         if evaluation:

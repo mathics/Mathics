@@ -434,7 +434,7 @@ class BaseExpression(KeyComparable):
                     if result is not None and result != expr:
                         return result.evaluate(evaluation)
                 return None
-            
+
             formatted = format_expr(expr)
             if formatted is not None:
                 result = formatted.do_format(evaluation, form)
@@ -664,7 +664,7 @@ class Expression(BaseExpression):
     _sequences: Any
 
     def __new__(cls, head, *leaves, **kwargs) -> 'Expression':
-        self = super(Expression, cls).__new__(cls)    
+        self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
         self._head = head

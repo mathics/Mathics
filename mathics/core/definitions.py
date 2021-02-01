@@ -162,7 +162,7 @@ class Definitions(object):
             if remove_on_quit and name not in self.pymathics:
                 self.pymathics[name] = self.builtin.get(name, None)
         self.builtin.update(newsymbols)
-        
+
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)

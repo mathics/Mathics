@@ -168,7 +168,7 @@ class CompiledCodeBox(BoxConstruct):
 
     def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
-            leaves = self._leaves        
+            leaves = self._leaves
         return '-CompiledCode-'
 
 
