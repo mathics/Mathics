@@ -848,7 +848,7 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
     bio = pymathics.get(definition.name)
     if bio is None:
         bio = builtins.get(definition.name)
-    
+
     if bio is not None:
         from mathics.doc.doc import Doc
         docstr = bio.builtin.__class__.__doc__
@@ -892,7 +892,7 @@ class Information(PrefixOperator):
 
 
     #> ? Table
-     | 
+     |
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -906,7 +906,7 @@ class Information(PrefixOperator):
      = Null
 
     #> Information[Table]
-     | 
+     |
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
