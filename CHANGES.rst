@@ -58,21 +58,23 @@ Settings through WL variables
 Certain aspects of the configuration of the kernel are now controlled by variables, defined in /autoad/settings.m
 
 - ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug). 
--  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default)
+-  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default) (see #1124)
 
 
 Enhancements
 ------------
 
-Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath.
+- Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath (#1115).
+- Improving the support for OptionValue and OptionsPattern (#1113)
 
+  
 Bug Fixes
 ---------
 
 There have been numerous bug is driven by working on Combinatorica V0.9 and CellsToTeX.
 
 - ``Sum`` involving numeric integer bounds involving Mathics functions fixed.
-- ``Equal`` ``UnEqual`` testing on Strings.
+- ``Equal`` ``UnEqual`` testing on Strings (#1128).
 
 Document updates
 ----------------
@@ -93,7 +95,7 @@ Miscelanea
 
 - Github workflow "basic" is now called "ubuntu"
 - Enlarge of the set of gries_schneider tests
-- Improvement in the way builtins modules are loaded at initialization time.
+- Improvement in the way builtins modules are loaded at initialization time (#1138).
 
   
 1.1.1
