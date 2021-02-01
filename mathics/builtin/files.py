@@ -4444,8 +4444,6 @@ class ResetDirectory(Builtin):
 
     def apply(self, evaluation):
         "ResetDirectory[]"
-        global DIRECTORY_STACK
-
         try:
             tmp = DIRECTORY_STACK.pop()
         except IndexError:
