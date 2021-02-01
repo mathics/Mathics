@@ -2801,6 +2801,9 @@ class _GraphicsElements(object):
 
                     new_style.set_option(name, create(style.graphics, expr))
                 else:
+                    print("stylebox_style")
+                    print("spec=", spec)
+                    print("head_name=", head_name)
                     raise BoxConstructError
             return new_style
 

@@ -1391,7 +1391,7 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
-        head = self._head.get_name()
+        head = self._head
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
