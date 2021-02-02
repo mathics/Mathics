@@ -2601,8 +2601,8 @@ class InsetBox(_GraphicsElement):
         content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
         style = create_css(font_color=self.color)
         svg = (
-            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            "<math>%s</math></foreignObject>"
+            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" width="100" height="100" style="%s">'
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">%s</math></foreignObject>'
         ) % (x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
@@ -3236,7 +3236,7 @@ clip(%s);
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
             svg,
         )
-
+        print("svg=", svg_xml)
         return (
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
             % (
