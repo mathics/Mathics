@@ -3231,7 +3231,15 @@ clip(%s);
                     svg = ff.read()
 
                 svg = svg[svg.find("<svg "):]
-                return svg
+                return (
+                    '<img  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+                    % (
+                        int(1.5 * width),
+                        int(1.5 * height),
+                        base64.b64encode(svg.encode("utf8")).decode("utf8"),
+                    )
+                )
+
                 return (
                     '<mglyph  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
                     % (
