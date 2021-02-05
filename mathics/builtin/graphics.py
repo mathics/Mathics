@@ -3239,20 +3239,8 @@ clip(%s);
                         base64.b64encode(svg.encode("utf8")).decode("utf8"),
                     )
                 )
-
-                # return (
-                #    '<mglyph  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
-                #    % (
-                #        int(width),
-                #        int(height),
-                #        base64.b64encode(svg.encode("utf8")).decode("utf8"),
-                #    )
-                #)
         else:
             print("Asy not available. Continue with standard")
-        
-
-
         
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
