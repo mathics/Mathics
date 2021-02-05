@@ -2257,9 +2257,9 @@ class MachineReal(Real):
 
     @property
     def is_approx_zero(self) -> bool:
-        # FIXME: figure out how to hook int $MachinePrecision and
-        # what the right definition here would be.
-        res = abs(self.value) <= 1e-14
+        # In WMA, Chop[10.^(-10)] == 0,
+        # so, lets take it.
+        res = abs(self.value) <= 1e-10
         return res
 
 
