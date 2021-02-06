@@ -80,7 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.0.0.dev",
+    "Mathics_Scanner>=1.0.0,<1.1.0",
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.1.0",
     "numpy",
