@@ -1347,6 +1347,11 @@ class PossibleZeroQ(SympyFunction):
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
         if result is None:
+        # try expanding the expression
+            exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
+            exprexp = exprexp.to_sympy()
+            result = _iszero(exprexp)        
+        if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)
             if numeric_val and hasattr(numeric_val, "is_approx_zero"):
