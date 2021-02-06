@@ -3202,7 +3202,7 @@ clip(%s);
         if evaluation:
             check_asy = evaluation.definitions.get_ownvalue("Settings`UseAsyForGraphics2D")
             if check_asy:
-                check_asy = check_asy.replace.to_python()
+                check_asy = check_asy.replace.is_true()
         if check_asy:
             import os
             from subprocess import DEVNULL, STDOUT, check_call
@@ -3214,12 +3214,11 @@ clip(%s);
 
         if check_asy:
             asy, width, height = self.boxes_to_tex(leaves, forxml=True, **options)
-                
             fin = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))
             fout = fin + ".svg"
             with open(fin, 'w+') as borrador:
                 borrador.write(asy)
-                
+
             try:
                 check_call(['asy', '-f', 'svg', '-o', fout, fin], stdout=DEVNULL, stderr=DEVNULL)
             except:
@@ -3241,7 +3240,7 @@ clip(%s);
                 )
         else:
             print("Asy not available. Continue with standard")
-        
+
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
