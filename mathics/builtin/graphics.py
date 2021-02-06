@@ -3194,7 +3194,7 @@ clip(%s);
         if forxml:
             return (tex, width, height)
         else:
-            return "\n\\begin{asy}\n" + tex + "\n\\end{asy}"
+            return "\n\\begin{asy}\n" + tex + "\n\\end{asy}\n"
 
     def boxes_to_xml(self, leaves, **options):
         evaluation = options.get("evaluation", None)
