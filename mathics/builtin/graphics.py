@@ -3220,7 +3220,7 @@ clip(%s);
                 borrador.write(asy)
 
             try:
-                check_call(['asy', '-f', 'svg', '-o', fout, fin], stdout=DEVNULL, stderr=DEVNULL)
+                check_call(['asy', '-f', 'svg', '--svgemulation' ,'-o', fout, fin], stdout=DEVNULL, stderr=DEVNULL)
             except:
                 print("Asy failed to build a svg")
                 check_asy = False
