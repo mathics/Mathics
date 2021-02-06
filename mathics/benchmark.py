@@ -15,7 +15,7 @@ except ImportError:
 
 
 import mathics
-from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
+from mathics.core.parser import parse, MathicsMultiLineFeeder, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
@@ -126,7 +126,7 @@ def truncate_line(string):
 
 def benchmark_parse(expression_string):
     print("  '{0}'".format(truncate_line(expression_string)))
-    timeit(lambda: parse(definitions, SingleLineFeeder(expression_string)))
+    timeit(lambda: parse(definitions, MathicsSingleLineFeeder(expression_string)))
 
 
 def benchmark_parse_file(fname):
@@ -140,7 +140,7 @@ def benchmark_parse_file(fname):
         code = f.read().decode('utf-8')
 
     def do_parse():
-        feeder = MultiLineFeeder(code)
+        feeder = MathicsMultiLineFeeder(code)
         while not feeder.empty():
             parse(definitions, feeder)
     timeit(do_parse)
@@ -156,13 +156,13 @@ def benchmark_parser():
 
 def benchmark_format(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(definitions, SingleLineFeeder(expression_string))
+    expr = parse(definitions, MathicsSingleLineFeeder(expression_string))
     timeit(lambda: expr.default_format(evaluation, "FullForm"))
 
 
 def benchmark_expression(expression_string):
     print("  '{0}'".format(expression_string))
-    expr = parse(definitions, SingleLineFeeder(expression_string))
+    expr = parse(definitions, MathicsSingleLineFeeder(expression_string))
     timeit(lambda: expr.evaluate(evaluation))
 
 

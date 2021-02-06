@@ -1,4 +1,4 @@
-from mathics.core.parser import parse, SingleLineFeeder
+from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import pytest
@@ -9,7 +9,7 @@ evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
 
 
 def _evaluate(str_expression):
-    expr = parse(definitions, SingleLineFeeder(str_expression))
+    expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
 
@@ -28,9 +28,3 @@ def test_get_and_put():
 
     result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
     assert result is None
-
-
-
-
-
-
