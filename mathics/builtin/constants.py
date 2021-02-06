@@ -111,17 +111,26 @@ class _Constant_Common(Predefined):
             return
         # Try to determine the numeric value
         value = None
+        if preference == "mpmath" and not hasattr(self, "mpmath_name"):
+            preference = "numpy"
+        elif preference == "sympy" and not hasattr(self, "sympy_name"):
+            preference = "numpy"
+        
+        if preference == "numpy" and not hasattr(self, "numpy_name"):
+            if hasattr(self, "sympy_name"):
+                preference = "sympy"
+            elif hasattr(self, "mpmath_name"):
+                preference = "mpmath"
+            else:
+                preference = ""
         if preference == "numpy":
-            if hasattr(self, "numpy_name"):
-                value = numpy_constant(self.numpy_name)
-                if d == machine_d:
-                    return MachineReal(value)
-        elif preference == "sympy":
-            if hasattr(self, "sympy_name"):
-                value = sympy_constant(self.sympy_name, d+2)
-        elif preference == "mpmath":
-            if hasattr(self, "sympy_name"):
-                value = mp_constant(self.mpmath_name, d+2)
+            value = numpy_constant(self.numpy_name)
+            if d == machine_d:
+                return MachineReal(value)
+        if preference == "sympy":
+            value = sympy_constant(self.sympy_name, d+2)
+        if preference == "mpmath":
+            value = mp_constant(self.mpmath_name, d*2)
         if value:
             return PrecisionReal(sympy.Float(str(value), d))
         # If the value is not available, return none
@@ -185,7 +194,7 @@ class SympyConstant(_Constant_Common, SympyObject):
             return None
 
 
-class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
+class Catalan(MPMathConstant, SympyConstant):
     """
     <dl>
     <dt>'Catalan'
@@ -200,7 +209,7 @@ class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     """
 
     mpmath_name = "catalan"
-    numpy_name = "catalan"
+    # numpy_name = "catalan"  ## This is not defined in numpy
     sympy_name = "Catalan"
 
 
@@ -275,7 +284,10 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
     def apply_N(self, precision, evaluation, options={}):
         "N[Degree, precision_, OptionsPattern[%(name)s]]"
         try:
-            d = get_precision(precision, evaluation)
+            if precision:
+                d = get_precision(precision, evaluation)
+            else:
+                d = get_precision(Symbol("System`MachinePrecision"), evaluation)
         except PrecisionValueError:
             return
 
@@ -343,9 +355,10 @@ class Glaisher(MPMathConstant):
     </dl>
 
     >> N[Glaisher]
-     = 1.28243
+     = 1.28242712910062
     >> N[Glaisher, 50]
-     = 1.2824271291006219541941391071304678916931152343750
+     = 1.2824271291006226368753425688697917277676889273250
+     # 1.2824271291006219541941391071304678916931152343750
     """
 
     mpmath_name = "glaisher"
@@ -432,9 +445,10 @@ class Khinchin(MPMathConstant):
     </dl>
 
     >> N[Khinchin]
-     = 2.68545
+     = 2.68545200106531
     >> N[Khinchin, 50]
-     = 2.6854520010653075701156922150403261184692382812500
+     = 2.6854520010653064453097148354817956938203822939945
+     # = 2.6854520010653075701156922150403261184692382812500
     """
 
     mpmath_name = "khinchin"
