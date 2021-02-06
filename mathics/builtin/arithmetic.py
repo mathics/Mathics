@@ -1309,19 +1309,19 @@ class PossibleZeroQ(SympyFunction):
       <dd>returns 'True' if basic symbolic and numerical methods suggest that expr has value zero, and 'False' otherwise.
     </dl>
 
-    ## Test whether a numeric expression is zero:
-    ## >> PossibleZeroQ[E^(I Pi/4) - (-1)^(1/4)]
-    ##  = True
+    Test whether a numeric expression is zero:
+    >> PossibleZeroQ[E^(I Pi/4) - (-1)^(1/4)]
+     = True
 
-    ## The determination is approximate.
+    The determination is approximate.
 
     Test whether a symbolic expression is likely to be identically zero:
     >> PossibleZeroQ[(x + 1) (x - 1) - x^2 + 1]
      = True
 
 
-    ## >> PossibleZeroQ[(E + Pi)^2 - E^2 - Pi^2 - 2 E Pi]
-    ##  = True
+    >> PossibleZeroQ[(E + Pi)^2 - E^2 - Pi^2 - 2 E Pi]
+     = True
 
     Show that a numeric expression is nonzero:
     >> PossibleZeroQ[E^Pi - Pi^E]
@@ -1346,6 +1346,11 @@ class PossibleZeroQ(SympyFunction):
 
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
+        if result is None:
+        # try expanding the expression
+            exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
+            exprexp = exprexp.to_sympy()
+            result = _iszero(exprexp)        
         if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)
