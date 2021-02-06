@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-from mathics_scanner import FileLineFeeder, LineFeeder
+from mathics.core.parser import MathicsFileLineFeeder, MathicsLineFeeder
 
 from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
@@ -17,7 +17,7 @@ from mathics import version_string, license_string, __version__
 from mathics import settings
 
 
-class TerminalShell(LineFeeder):
+class TerminalShell(MathicsLineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
         super(TerminalShell, self).__init__("<stdin>")
         self.input_encoding = locale.getpreferredencoding()
