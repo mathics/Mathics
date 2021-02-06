@@ -19,7 +19,7 @@ from mathics.core.expression import (
     Symbol,
     strip_context,
 )
-from mathics.core.numbers import get_precision, PrecisionValueError
+from mathics.core.numbers import get_precision, PrecisionValueError, machine_precision
 
 
 def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
@@ -33,7 +33,7 @@ def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
         # ask for a certain number of digits, but the
         # accuracy will be less than that. Figure out
         # what's up and compensate somehow.
-        mpmath.mp.dps = int_d = int(d)
+        mpmath.mp.dps = int_d = int(d * 3.321928)
         return getattr(mpmath, fn)(prec=int_d)
 
 
@@ -47,10 +47,16 @@ def mp_convert_constant(obj, **kwargs):
 
 
 def numpy_constant(name: str, d=None) -> float:
-    # TODO: although numpy doesn't support arbitrary precision,
-    # if d is smaller than the precision given we could *reduce* the
-    # float returned.
-    return getattr(numpy, name)
+    if d:
+        # by mmatera: Here I have a question:
+        # 0.0123`2 should be rounded to
+        # 0.01 or to 0.0123?
+        # (absolute versus relative accuracy)
+        val = getattr(numpy, name)
+        val = numpy.round(val, d)
+        return val
+    else:
+        return getattr(numpy, name)
 
 
 def sympy_constant(fn, d=None):
@@ -61,13 +67,16 @@ class _Constant_Common(Predefined):
 
     attributes = ("Constant", "Protected", "ReadProtected")
     nargs = 0
-    options = {"Method": "sympy"}
+    options = {"Method": "Automatic"}
 
     def apply_N(self, precision, evaluation, options={}):
         "N[%(name)s, precision_?NumericQ, OptionsPattern[%(name)s]]"
 
         preference = self.get_option(options, "Method", evaluation).get_string_value()
-        return self.get_constant(precision, evaluation, preference)
+        if preference == "Automatic":
+            return self.get_constant(precision, evaluation)
+        else:
+            return self.get_constant(precision, evaluation, preference)
 
     def apply_N2(self, evaluation, options={}):
         "N[%(name)s, OptionsPattern[%(name)s]]"
@@ -77,14 +86,8 @@ class _Constant_Common(Predefined):
         return True
 
     def get_constant(self, precision, evaluation, preference=None):
-        ## print("XXX", self, preference)
-        if preference is None:
-            preference = (
-                evaluation.parse("Settings`$PreferredBackendMethod")
-                .evaluate(evaluation)
-                .get_string_value()
-            )
-            # TODO: validate PreferredBackendMethod is in "mpmath", "numpy", "sympy"
+        # first, determine the precision
+        machine_d = int( 0.30103 * machine_precision)
         d = None
         if precision:
             try:
@@ -92,26 +95,38 @@ class _Constant_Common(Predefined):
             except PrecisionValueError:
                 pass
 
-        conversion_fn = MachineReal if d is None else PrecisionReal
+        if d is None:
+            d = machine_d
 
-        # print("XXX1", self, preference, conversion_fn)
-
-        if preference == "sympy" and hasattr(self, "sympy_name"):
-            value = sympy_constant(self.sympy_name, d)
-        elif preference == "mpmath" and hasattr(self, "mpmath_name"):
-            value = mp_constant(self.mpmath_name, d)
-        elif preference == "numpy" and hasattr(self, "numpy_name"):
-            # Note numpy doesn't support arbitarary precision
-            value = numpy_constant(self.numpy_name, d)
-        elif hasattr(self, "mpmath_name"):
-            value = mp_constant(self.mpmath_name, d)
-        elif hasattr(self, "sympy_name"):
-            value = sympy_constant(self.sympy_name, d)
-        elif hasattr(self, "numpy_name"):
-            # Note numpy doesn't support arbitarary precision
-            value = numpy_constant(self.numpy_name, d)
-        return conversion_fn(value)
-
+        # If preference not especified, determine it
+        # from the precision.
+        if preference is None:
+            if d <= machine_d:
+                preference = "numpy"
+            else:
+                preference = "mpmath"
+        # If preference is not valid, send a message and return.
+        if not (preference in  ("sympy", "numpy", "mpmath")):
+            evaluation.message(f'{preference} not in ("sympy", "numpy", "mpmath")')
+            return
+        # Try to determine the numeric value
+        value = None
+        if preference == "numpy":
+            if hasattr(self, "numpy_name"):
+                value = numpy_constant(self.numpy_name)
+                if d == machine_d:
+                    return MachineReal(value)
+        elif preference == "sympy":
+            if hasattr(self, "sympy_name"):
+                value = sympy_constant(self.sympy_name, d)
+        elif preference == "mpmath":
+            if hasattr(self, "sympy_name"):
+                value = mp_constant(self.mpmath_name, d)
+        if value:
+            return PrecisionReal(sympy.Float(str(value), d))
+        # If the value is not available, return none
+        # and keep it unevaluated.
+        return
 
 class MPMathConstant(_Constant_Common):
     """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
