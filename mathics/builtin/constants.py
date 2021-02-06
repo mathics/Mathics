@@ -118,10 +118,10 @@ class _Constant_Common(Predefined):
                     return MachineReal(value)
         elif preference == "sympy":
             if hasattr(self, "sympy_name"):
-                value = sympy_constant(self.sympy_name, d)
+                value = sympy_constant(self.sympy_name, d+2)
         elif preference == "mpmath":
             if hasattr(self, "sympy_name"):
-                value = mp_constant(self.mpmath_name, d)
+                value = mp_constant(self.mpmath_name, d+2)
         if value:
             return PrecisionReal(sympy.Float(str(value), d))
         # If the value is not available, return none
@@ -272,8 +272,8 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
             # return mpmath.degree
             return numpy.pi / 180
 
-    def apply_N(self, precision, evaluation):
-        "N[Degree, precision_]"
+    def apply_N(self, precision, evaluation, options={}):
+        "N[Degree, precision_, OptionsPattern[%(name)s]]"
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
@@ -311,8 +311,8 @@ class E(MPMathConstant, NumpyConstant, SympyConstant):
     numpy_name = "e"
     sympy_name = "E"
 
-    def apply_N(self, precision, evaluation):
-        "N[E, precision_]"
+    def apply_N(self, precision, evaluation, options={}):
+        "N[E, precision_, OptionsPattern[%(name)s]]"
         return self.get_constant(precision, evaluation)
 
 
