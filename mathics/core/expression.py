@@ -2109,7 +2109,7 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero
+        return self.numerator().is_zero and not self.denominator().is_zero()
 
 
 class Real(Number):
@@ -2257,9 +2257,10 @@ class MachineReal(Real):
 
     @property
     def is_approx_zero(self) -> bool:
-        # FIXME: figure out how to hook int $MachinePrecision and
-        # what the right definition here would be.
-        return abs(self.value) <= 10**-14
+        # In WMA, Chop[10.^(-10)] == 0,
+        # so, lets take it.
+        res = abs(self.value) <= 1e-10
+        return res
 
 
 class PrecisionReal(Real):
