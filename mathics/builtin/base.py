@@ -34,20 +34,17 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
     # matter. Also, the quoted string form "X" is ok. all these
     # variants name the same option. this matches Wolfram Language
     # behaviour.
-
+    name = strip_context(name)
     contexts = (s + "%s" for s in evaluation.definitions.get_context_path())
 
     for variant in chain(contexts, ('"%s"',)):
         resolved_name = variant % name
-
         if pop:
             value = options.pop(resolved_name, None)
         else:
             value = options.get(resolved_name)
-
         if value is not None:
             return value.evaluate(evaluation) if evaluate else value
-
     return None
 
 
@@ -60,7 +57,7 @@ mathics_to_python = {}
 
 class Builtin(object):
     name: typing.Optional[str] = None
-    context = "System`"
+    context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
     rules: typing.Dict[str, Any] = {}
@@ -87,11 +84,11 @@ class Builtin(object):
 
     def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
+        # Set the default context
+        if not self.context:
+            self.context = "Pymathics`" if is_pymodule else "System`"
 
-        if is_pymodule:
-            name = "PyMathics`" + self.get_name(short=True)
-        else:
-            name = self.get_name()
+        name = self.get_name()
 
         options = {}
         option_syntax = "Warn"
@@ -317,7 +314,7 @@ class Builtin(object):
                 else:
                     attrs = []
                 if is_pymodule:
-                    name = "PyMathics`" + self.get_name(short=True)
+                    name = ensure_context(self.get_name(short=True), "Pymathics")
                 else:
                     name = self.get_name()
 
@@ -768,3 +765,4 @@ class CountableInteger:
                             return CountableInteger(0, upper_limit=True)
 
         return None  # leave original expression unevaluated
+

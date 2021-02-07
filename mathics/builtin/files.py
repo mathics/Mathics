@@ -3813,6 +3813,8 @@ class FileHash(Builtin):
     <dt>'FileHash[$file$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $file$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'FileHash[$file$, $type$, $format$]'
+      <dd>gives a hash code in the specified format.</dd>
     </dl>
 
     >> FileHash["ExampleData/sunflowers.jpg"]
@@ -3841,19 +3843,20 @@ class FileHash(Builtin):
     #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
      = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
     #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
-     = FileHash[ExampleData/sunflowers.jpg, xyzstr]
+     = FileHash[ExampleData/sunflowers.jpg, xyzstr, Integer]
     #> FileHash[xyzsymbol]
      = FileHash[xyzsymbol]
     """
 
     rules = {
-        "FileHash[filename_String]": 'FileHash[filename, "MD5"]',
+        "FileHash[filename_String]": 'FileHash[filename, "MD5", "Integer"]',
+        "FileHash[filename_String, hashtype_String]": 'FileHash[filename, hashtype, "Integer"]',
     }
 
     attributes = ("Protected", "ReadProtected")
 
-    def apply(self, filename, hashtype, evaluation):
-        "FileHash[filename_String, hashtype_String]"
+    def apply(self, filename, hashtype, format, evaluation):
+        "FileHash[filename_String, hashtype_String, format_String]"
         py_filename = filename.get_string_value()
 
         try:
@@ -3866,7 +3869,7 @@ class FileHash(Builtin):
             e.message(evaluation)
             return
 
-        return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
+        return Hash.compute(lambda update: update(dump), hashtype.get_string_value(), format.get_string_value())
 
 
 class FileDate(Builtin):
@@ -4802,6 +4805,7 @@ class DirectoryQ(Builtin):
             return SymbolTrue
         return SymbolFalse
 
+
 class Needs(Builtin):
     """
     <dl>
@@ -4921,7 +4925,6 @@ class Needs(Builtin):
             curr_ctxt = evaluation.definitions.get_current_context()
             contextstr = curr_ctxt + contextstr[1:]
             context = String(contextstr)
-
         if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
@@ -4931,15 +4934,6 @@ class Needs(Builtin):
         if test_loaded.is_true():
             # Already loaded
             return SymbolNull
-
-        # TODO: Figure out why this raises the message:
-        # "Select::normal: Nonatomic expression expected."
-        already_loaded = Expression('MemberQ',
-                                    Symbol('System`$Packages'), context)
-        already_loaded = already_loaded.evaluate(evaluation).is_true()
-        if already_loaded:
-           return SymbolNull
-
         result = Expression('Get', context).evaluate(evaluation)
 
         if result == SymbolFailed:
@@ -4947,3 +4941,4 @@ class Needs(Builtin):
             return SymbolFailed
 
         return SymbolNull
+
