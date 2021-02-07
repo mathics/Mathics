@@ -892,6 +892,26 @@ class Information(PrefixOperator):
 
 
     #> ? Table
+     |   'Table[expr, {i, n}]'
+     |     evaluates expr with i ranging from 1 to n, returning
+     | a list of the results.
+     |   'Table[expr, {i, start, stop, step}]'
+     |     evaluates expr with i ranging from start to stop,
+     | incrementing by step.
+     |   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     |     evaluates expr with i taking on the values e1, e2,
+     | ..., ei.
+
+    #> Information[Table]
+     |   'Table[expr, {i, n}]'
+     |     evaluates expr with i ranging from 1 to n, returning
+     | a list of the results.
+     |   'Table[expr, {i, start, stop, step}]'
+     |     evaluates expr with i ranging from start to stop,
+     | incrementing by step.
+     |   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     |     evaluates expr with i taking on the values e1, e2,
+     | ..., ei.
      |
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning

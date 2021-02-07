@@ -407,7 +407,10 @@ class UserName(Predefined):
     name = "$UserName"
 
     def evaluate(self, evaluation) -> String:
-        return String(os.getlogin())
+        try:
+            return String(os.getlogin())
+        except:
+            return String("rocky")
 
 
 class Version(Predefined):
