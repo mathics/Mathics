@@ -12,8 +12,8 @@ Mathics have been split off and moved to separately installable packages. In par
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
 
 
-  
-  
+
+
 New builtins
 ++++++++++++
 
@@ -34,7 +34,7 @@ New builtins
 -  Improving support for options in the Plot module: ``Axes``, ``Filling``, ``ImageSize``, ``Joined``
 - ``BoxData``, ``TextData``, ``InterpretationBox``, ``StyleBox``, ``TagBox``, ``TemplateBox``, ``ButtonBox``, ``InterpretationBox``
 - ``LerchPhi``
-  
+
 New Constants
 +++++++++++++
 
@@ -48,7 +48,7 @@ These constants have been added:
 - ``GoldenRatio``
 - ``Khinchin``
 
-  
+
 Many of these and the existing constants are computable via mpmath, numpy, or sympy.
 
 
@@ -57,7 +57,7 @@ Settings through WL variables
 
 Certain aspects of the configuration of the kernel are now controlled by variables, defined in /autoad/settings.m
 
-- ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug). 
+- ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug).
 -  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default) (see #1124)
 
 
@@ -67,7 +67,7 @@ Enhancements
 - Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath (#1115).
 - Improving the support for OptionValue and OptionsPattern (#1113)
 
-  
+
 Bug Fixes
 ---------
 
@@ -93,11 +93,10 @@ Enhancements and Bug fixes:
 Miscelanea
 ----------
 
-- Github workflow "basic" is now called "ubuntu"
 - Enlarge of the set of gries_schneider tests
 - Improvement in the way builtins modules are loaded at initialization time (#1138).
 
-  
+
 1.1.1
 -----
 
