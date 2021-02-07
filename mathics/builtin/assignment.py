@@ -861,17 +861,16 @@ class Information(PrefixOperator):
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
 
-
-    >> a = 2;
-    X> Information[a]
+    #> a = 2;
+    #> Information[a]
      | a = 2
-    >> f[x_] := x ^ 2
-    >> g[f] ^:= 2
-    >> f::usage = "f[x] returns the square of x";
-    X> Information[f]
+    #> f[x_] := x ^ 2
+    #> g[f] ^:= 2
+    #> f::usage = "f[x] returns the square of x";
+    #> Information[f]
      | f[x] returns the square of x
 
-    X> ? Table
+    #> ? Table
      |   'Table[expr, {i, n}]'
      |     evaluates expr with i ranging from 1 to n, returning
      | a list of the results.
@@ -882,7 +881,7 @@ class Information(PrefixOperator):
      |     evaluates expr with i taking on the values e1, e2,
      | ..., ei.
 
-    X> Information[Table]
+    #> Information[Table]
      |   'Table[expr, {i, n}]'
      |     evaluates expr with i ranging from 1 to n, returning
      | a list of the results.
