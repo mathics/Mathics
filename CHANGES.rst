@@ -4,7 +4,7 @@ CHANGES
 2.0.0
 -----
 
-In order to accomdate growth and increase use pieces of Mathics inside other packages, some parts of
+In order to accommodate growth and increase use pieces of Mathics inside other packages, some parts of
 Mathics have been split off and moved to separately installable packages. In particular:
 
 * The Django front-end `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
