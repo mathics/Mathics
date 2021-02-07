@@ -12,6 +12,10 @@ Mathics have been split off and moved to separately installable packages. In par
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
 
 
+Incompatible changes:
++++++++++++++++++++++
+
+* `-e` `--execute` is better suited for embedded use. It shows just evaluation output as text.
 
 
 New builtins
