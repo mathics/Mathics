@@ -895,6 +895,16 @@ class Expression(BaseExpression):
         if self._cache:
             self._cache = self._cache.reordered()
 
+    def get_attributes(self, definitions):
+        if self.get_head_name() == "System`Function" and \
+            len(self._leaves) > 2:
+            res = self._leaves[2]
+            if res.is_symbol():
+                return (str(res),)
+            elif res.has_form('List', None):
+                return set( str(a) for a in res._leaves )
+        return set()
+
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
 
@@ -2107,7 +2117,7 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero
+        return self.numerator().is_zero and not self.denominator().is_zero()
 
 
 class Real(Number):
@@ -2255,9 +2265,10 @@ class MachineReal(Real):
 
     @property
     def is_approx_zero(self) -> bool:
-        # FIXME: figure out how to hook int $MachinePrecision and
-        # what the right definition here would be.
-        return abs(self.value) <= 10**-14
+        # In WMA, Chop[10.^(-10)] == 0,
+        # so, lets take it.
+        res = abs(self.value) <= 1e-10
+        return res
 
 
 class PrecisionReal(Real):

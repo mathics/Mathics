@@ -12,7 +12,7 @@ import mathics
 
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
-from mathics.core.parser import SingleLineFeeder
+from mathics.core.parser import MathicsSingleLineFeeder
 from mathics.builtin import builtins
 
 from mathics import version_string
@@ -73,7 +73,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
             print("%s %s / %s %s" % (stars, tests.chapter, section, stars))
         print("%4d (%2d): TEST %s" % (index, subindex, test))
 
-    feeder = SingleLineFeeder(test, "<test>")
+    feeder = MathicsSingleLineFeeder(test, "<test>")
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
     try:
         query = evaluation.parse_feeder(feeder)

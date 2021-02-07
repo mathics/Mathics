@@ -228,6 +228,34 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return Expression('List', *sorted(EXPORTERS.keys()))
 
+class ConverterDumpsExtensionMappings(Predefined):
+    """
+    <dl>
+    <dt>'$extensionMappings'
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
+    """
+    context = 'System`ConvertersDump`'
+    name = "$extensionMappings"
+    attributes = ['Unprotected']
+
+    def evaluate(self, evaluation):
+        return from_python(EXTENSIONMAPPINGS)
+
+
+class ConverterDumpsFormatMappings(Predefined):
+    """
+    <dl>
+    <dt>'$formatMappings'
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
+    """
+    context = 'System`ConvertersDump`'
+    name = "$formatMappings"
+    attributes = ['Unprotected']
+    def evaluate(self, evaluation):
+        return from_python(FORMATMAPPINGS)
+
 
 class ConverterDumpsExtensionMappings(Predefined):
     """

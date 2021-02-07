@@ -4,17 +4,77 @@ CHANGES
 2.0.0
 -----
 
-The Django front-end has been unbundled and is a separate `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
+In order to accomdate growth and increase use pieces of Mathics inside other packages, some parts of
+Mathics have been split off and moved to separately installable packages. In particular:
+
+* The Django front-end `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
+* Scanner routines and character translations tables to/from unicode and noting some character properties
+* Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
+
+
+
 
 New builtins
-++++++++++++++
+++++++++++++
 
 - ``TimeRemaining`` and ``TimeConstrained``
 -``MathicsVersion`` (this is not in WL)
 - ``\[RadicalBox]``
-- ``FirstCase``, ``Lookup``
-- ``Catalan``, ``LerchPhi``
-- ``System`ConvertersDump`` context variables 
+- ``ContinuedFraction``
+- ``Insert`` and ``Delete``
+- ``FirstCase``, ``Lookup``, ``Key``, ``Lookup`` and ``Failure``
+- ``ConvertCommonDumpRemoveLinearSyntax`` and ``System`ConvertersDump`` context variables
+- ``PossibleZeroQ`` PR #1100
+- ``Run``
+- ``SympyObject``
+- ``NumberQ``
+- ``AnglePath``,  ``AnglePathFold``, ``AngleVector``
+- ``Haversine``, ``InverseHaversine``
+- ``Show``
+-  Improving support for options in the Plot module: ``Axes``, ``Filling``, ``ImageSize``, ``Joined``
+- ``BoxData``, ``TextData``, ``InterpretationBox``, ``StyleBox``, ``TagBox``, ``TemplateBox``, ``ButtonBox``, ``InterpretationBox``
+- ``LerchPhi``
+
+New Constants
++++++++++++++
+
+Mathematical Constants is now its own module/section. Contants have been filled out.
+These constants have been added:
+
+- ``Catalan``
+- ``Glaisher``
+- ``Khinchin``
+- ``Degree``
+- ``GoldenRatio``
+- ``Khinchin``
+
+
+Many of these and the existing constants are computable via mpmath, numpy, or sympy.
+
+
+Settings through WL variables
+-----------------------------
+
+Certain aspects of the configuration of the kernel are now controlled by variables, defined in /autoad/settings.m
+
+- ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug).
+-  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default) (see #1124)
+
+
+Enhancements
+------------
+
+- Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath (#1115).
+- Improving the support for OptionValue and OptionsPattern (#1113)
+
+
+Bug Fixes
+---------
+
+There have been numerous bug is driven by working on Combinatorica V0.9 and CellsToTeX.
+
+- ``Sum`` involving numeric integer bounds involving Mathics functions fixed.
+- ``Equal`` ``UnEqual`` testing on Strings (#1128).
 
 Document updates
 ----------------
@@ -27,6 +87,14 @@ Enhancements and Bug fixes:
 
 - Fix evaluation timeouts
 - ``Sum``'s lower and upper bounds values can now be Mathics expressions
+
+
+
+Miscelanea
+----------
+
+- Enlarge of the set of gries_schneider tests
+- Improvement in the way builtins modules are loaded at initialization time (#1138).
 
 
 1.1.1
@@ -48,7 +116,7 @@ Package Updates
 
 Mathics Packages added:
 
-- ``DiscreteMath`CombinatoricaV0.9`` (preferred) aand
+- ``DiscreteMath`CombinatoricaV0.9`` (preferred) and
   ``DiscreteMath`CombinatoricaV0.6``.
 
 Both of these correspond to Steven Skiena's *older* book: "Implementing Discrete Mathematics: Combinatorics and Graph Theory" book.
@@ -90,7 +158,7 @@ New builtins:
 - Adding support in ``from_python()`` to convert dictionaries in list of rules.
 - Fix OptionsPattern associated symbols.
 
-  
+
 1.1.0
 -----
 
