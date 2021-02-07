@@ -864,36 +864,51 @@ class Information(PrefixOperator):
     #> a = 2;
     #> Information[a]
      | a = 2
-    #> f[x_] := x ^ 2
-    #> g[f] ^:= 2
+     .
+     = Null
+
+    #> f[x_] := x ^ 2;
+    #> g[f] ^:= 2;
     #> f::usage = "f[x] returns the square of x";
     #> Information[f]
      | f[x] returns the square of x
+     .
+     . f[x_] = x ^ 2
+     .
+     . g[f] ^= 2
+     .
+     = Null
+
 
     #> ? Table
-     |   'Table[expr, {i, n}]'
-     |     evaluates expr with i ranging from 1 to n, returning
-     | a list of the results.
-     |   'Table[expr, {i, start, stop, step}]'
-     |     evaluates expr with i ranging from start to stop,
-     | incrementing by step.
-     |   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     |     evaluates expr with i taking on the values e1, e2,
-     | ..., ei.
+     | 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
+     .
+     = Null
 
     #> Information[Table]
-     |   'Table[expr, {i, n}]'
-     |     evaluates expr with i ranging from 1 to n, returning
-     | a list of the results.
-     |   'Table[expr, {i, start, stop, step}]'
-     |     evaluates expr with i ranging from start to stop,
-     | incrementing by step.
-     |   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     |     evaluates expr with i taking on the values e1, e2,
-     | ..., ei.
-     |
-     | Attributes[Table] = {HoldAll, Protected}
-     |
+     | 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
+     .
+     . Attributes[Table] = {HoldAll, Protected}
+     .
+     = Null
     """
 
     operator = "??"
@@ -904,7 +919,7 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        ret = Symbol("Null")
+        ret = Symbol('Null')
         lines = []
         if isinstance(symbol, String):
             evaluation.print_out(symbol)
