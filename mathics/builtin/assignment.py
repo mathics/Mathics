@@ -1757,8 +1757,8 @@ class LoadModule(Builtin):
         # the list, it seems to be preferable to add this PyMathics
         # at the beginning.
         context_path = evaluation.definitions.get_context_path()
-        if "PyMathics`" not in context_path:
-            context_path.insert(0, "PyMathics`")
+        if "Pymathics`" not in context_path:
+            context_path.insert(0, "Pymathics`")
         evaluation.definitions.set_context_path(context_path)
         
         return module
