@@ -134,6 +134,7 @@ class Definitions(object):
             if hasattr(loaded_module, "__all__")
             else dir(loaded_module)
         )
+
         newsymbols = {}
         if not ("pymathics_version_data" in vars):
             raise PyMathicsLoadException(module)
@@ -439,7 +440,7 @@ class Definitions(object):
             candidates.append(pymathics)
         if builtin:
             candidates.append(builtin)
-        
+
         definition = candidates[0] if len(candidates)==1 else None
         if len(candidates)>0 and not definition:
             attributes = user.attributes if user else (

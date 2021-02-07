@@ -89,7 +89,6 @@ class Builtin(object):
             self.context = "Pymathics`" if is_pymodule else "System`"
 
         name = self.get_name()
-
         options = {}
         option_syntax = "Warn"
         for option, value in self.options.items():
