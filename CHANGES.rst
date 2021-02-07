@@ -4,68 +4,64 @@ CHANGES
 2.0.0
 -----
 
-In order to accommodate growth and increase use pieces of Mathics inside other packages, some parts of
-Mathics have been split off and moved to separately installable packages. In particular:
+In order to accommodate growth and increase use pieces of Mathics inside other packages, some parts of Mathics have been split off and moved to separately installable packages. In particular:
 
-* The Django front-end `PyPI installable package <https://pypi.org/project/Mathics-Django/>`_.
-* Scanner routines and character translations tables to/from unicode and noting some character properties
+* The Django front-end is now a PyPI installable package called
+  `Mathics-Django <https://pypi.org/project/Mathics-Django/>`_.
+* Scanner routines and character translations tables to/from unicode and noting some character properties.
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
-
 
 
 
 New builtins
 ++++++++++++
 
-- ``TimeRemaining`` and ``TimeConstrained``
--``MathicsVersion`` (this is not in WL)
-- ``\[RadicalBox]``
+- ``AnglePath``,  ``AnglePathFold``, ``AngleVector``
+- ``BoxData``, ``TextData``, ``InterpretationBox``, ``StyleBox``, ``TagBox``, ``TemplateBox``, ``ButtonBox``, ``InterpretationBox``
 - ``ContinuedFraction``
-- ``Insert`` and ``Delete``
-- ``FirstCase``, ``Lookup``, ``Key``, ``Lookup`` and ``Failure``
 - ``ConvertCommonDumpRemoveLinearSyntax`` and ``System`ConvertersDump`` context variables
+- ``FirstCase``, ``Lookup``, ``Key``, ``Lookup`` and ``Failure``
+- ``Haversine``, ``InverseHaversine``
+- ``Insert`` and ``Delete``
+- ``LerchPhi``
+- ``MathicsVersion`` (this is not in WL)
+- ``NumberQ``
 - ``PossibleZeroQ`` PR #1100
 - ``Run``
-- ``SympyObject``
-- ``NumberQ``
-- ``AnglePath``,  ``AnglePathFold``, ``AngleVector``
-- ``Haversine``, ``InverseHaversine``
 - ``Show``
+- ``SympyObject``
+- ``TimeRemaining`` and ``TimeConstrained``
+- ``\[RadicalBox]``
 -  Improving support for options in the Plot module: ``Axes``, ``Filling``, ``ImageSize``, ``Joined``
-- ``BoxData``, ``TextData``, ``InterpretationBox``, ``StyleBox``, ``TagBox``, ``TemplateBox``, ``ButtonBox``, ``InterpretationBox``
-- ``LerchPhi``
 
 New Constants
 +++++++++++++
 
-Mathematical Constants is now its own module/section. Contants have been filled out.
-These constants have been added:
+Mathematical Constants is now its own module/section. Constants have been filled out. These constants have been added:
 
 - ``Catalan``
-- ``Glaisher``
-- ``Khinchin``
 - ``Degree``
+- ``Glaisher``
 - ``GoldenRatio``
 - ``Khinchin``
 
-
-Many of these and the existing constants are computable via mpmath, numpy, or sympy.
+Many of these and the existing constants are computable via mpmath, NumPy, or Sympy.
 
 
 Settings through WL variables
 -----------------------------
 
-Certain aspects of the configuration of the kernel are now controlled by variables, defined in /autoad/settings.m
+Certain aspects of the configuration of the kernel are now controlled by variables, defined in ``/autoad/settings.m``.
 
 - ``$GetTrace`` (``False`` by default).  Defines if when a WL module is load through ``Get``, definitions will be traced (for debug).
--  ``$PreferredBackendMethod`` Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice (``"sympy"`` by default) (see #1124)
+-  ``$PreferredBackendMethod`` Set this do whether to use mpmath, NumPy or Sympy for numeric and symbolic constants and methods when there is a choice (``"sympy"`` by default) (see #1124)
 
 
 Enhancements
 ------------
 
-- Add ``Method`` option "mpmath" to compute ``Eignevalues`` using mpmath (#1115).
-- Improving the support for OptionValue and OptionsPattern (#1113)
+- Add ``Method`` option "mpmath" to compute ``Eigenvalues`` using mpmath (#1115).
+- Improving the support for ``OptionValue`` and ``OptionsPattern`` (#1113)
 
 
 Bug Fixes
@@ -90,10 +86,10 @@ Enhancements and Bug fixes:
 
 
 
-Miscelanea
-----------
+Miscellanea
+-----------
 
-- Enlarge of the set of gries_schneider tests
+- Enlarge of the set of ``gries_schneider`` tests
 - Improvement in the way builtins modules are loaded at initialization time (#1138).
 
 
@@ -104,15 +100,13 @@ This may be the last update before some major refactoring and interface changing
 
 In a future 2.0.0 release, Django will no longer be bundled here. See `mathics-django <https://github.com/Mathics3/mathics-django>` for the unbundled replacement.
 
-Some changes were made to support `Pymathics Graph <https://github.com/Mathics3/pymathics-graph>`_, a new graph package bundled separately,
-and to support the ability for front-ends to handle rendering on their own. Note that currently this doesn't integrate well into the Django interface, although it works
-well in ``mathicsscript``.
+Some changes were made to support `Pymathics Graph <https://github.com/Mathics3/pymathics-graph>`_, a new graph package bundled separately, and to support the ability for front-ends to handle rendering on their own. Note that currently this doesn't integrate well into the Django interface, although it works well in ``mathicsscript``.
 
 
 Package Updates
 +++++++++++++++
 
-- sympy 1.7.1
+- SymPy 1.7.1
 
 Mathics Packages added:
 
@@ -507,7 +501,7 @@ New features
 Dependency Updates
 ++++++++++++++++++
 
-- upgrade to sympy 0.7.6
+- upgrade to SymPy 0.7.6
 - upgrade to ply3.6 (new parsetab format, see #246)
 - upgrade to mpmath 0.19
 
