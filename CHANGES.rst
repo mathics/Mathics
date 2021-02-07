@@ -11,6 +11,8 @@ In order to accommodate growth and increase use pieces of Mathics inside other p
 * Scanner routines and character translations tables to/from unicode and noting some character properties.
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
 
+There are great changes planned for in the future. This release has some of those starts, but we plan on another major release soon fill out what is started here.
+See below for future work planned.
 
 
 New builtins
@@ -91,6 +93,16 @@ Miscellanea
 
 - Enlarge of the set of ``gries_schneider`` tests
 - Improvement in the way builtins modules are loaded at initialization time (#1138).
+
+
+Future
+------
+
+* We are in the process of splitting out graphics renders, notably for matplotlib. Work is also being done on asymptote.
+* Makeboxes is being decoupled from a renderer.
+* Inline SVG will be supported (right now SVG is binary).
+* Better support integrating unicode in output (such as for Rule arrows) is in the works. These properties will be in the scanner package.
+* A method option, "mpmath", "sympy", or "numpy" option will be added to the ``N[]``.
 
 
 1.1.1
