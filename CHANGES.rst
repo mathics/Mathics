@@ -6,8 +6,7 @@ CHANGES
 
 In order to accommodate growth and increase use pieces of Mathics inside other packages, some parts of Mathics have been split off and moved to separately installable packages. In particular:
 
-* The Django front-end is now a PyPI installable package called
-  `Mathics-Django <https://pypi.org/project/Mathics-Django/>`_.
+* The Django front-end is now a PyPI installable package called `Mathics-Django <https://pypi.org/project/Mathics-Django/>`_.
 * Scanner routines and character translations tables to/from unicode and noting some character properties.
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules.
 
@@ -98,11 +97,12 @@ Miscellanea
 Future
 ------
 
-* We are in the process of splitting out graphics renders, notably for matplotlib. Work is also being done on asymptote.
-* Makeboxes is being decoupled from a renderer.
+* We are in the process of splitting out graphics renders, notably for matplotlib. See `pymathics-matplotlib <https://github.com/Mathics3/pymathics-matplotlib>`_.
+* Work is also being done on asymptote. See `PR #1145 <https://github.com/mathics/Mathics/pull/1145>`_.
+* Makeboxes is being decoupled from a renderer. See `PR #1140 <https://github.com/mathics/Mathics/pull/1140>`_.
 * Inline SVG will be supported (right now SVG is binary).
 * Better support integrating unicode in output (such as for Rule arrows) is in the works. These properties will be in the scanner package.
-* A method option, "mpmath", "sympy", or "numpy" option will be added to the ``N[]``.
+* A method option, "mpmath", "sympy", or "numpy" option will be added to the ``N[]``. See `PR #1144 <https://github.com/mathics/Mathics/pull/1144>`_.
 
 
 1.1.1
