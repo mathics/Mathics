@@ -202,7 +202,7 @@ class Catalan(MPMathConstant, SympyConstant):
     </dl>
 
     >> Catalan // N
-     = 0.915966
+     = 0.915965594177219
 
     >> N[Catalan, 20]
      = 0.91596559417721901505
@@ -372,7 +372,7 @@ class GoldenRatio(MPMathConstant, SympyConstant):
     </dl>
 
     >> GoldenRatio // N
-     = 1.61803
+     = 1.61803398874989
     >> N[GoldenRatio, 40]
      = 1.618033988749894848204586834365638117720
     """
