@@ -1,3 +1,4 @@
+#!/bin/bash
 PACKAGE=mathics3
 
 # FIXME put some of the below in a common routine
