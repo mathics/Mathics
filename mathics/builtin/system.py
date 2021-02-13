@@ -406,8 +406,16 @@ class UserName(Predefined):
 
     name = "$UserName"
 
+    messages = {
+        'nologin': "UserName not available in this system.",
+    }
+
     def evaluate(self, evaluation) -> String:
-        return String(os.getlogin())
+        try:
+            return String(os.getlogin())
+        except:
+            evaluation.message('$UserName', 'nologin')
+            return
 
 
 class Version(Predefined):

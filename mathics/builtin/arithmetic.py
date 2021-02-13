@@ -1343,14 +1343,13 @@ class PossibleZeroQ(SympyFunction):
     def apply(self, expr, evaluation):
         "%(name)s[expr_]"
         from sympy.matrices.utilities import _iszero
-
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
         if result is None:
         # try expanding the expression
             exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
             exprexp = exprexp.to_sympy()
-            result = _iszero(exprexp)        
+            result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)
@@ -1364,7 +1363,6 @@ class PossibleZeroQ(SympyFunction):
                     if Expression("Simplify", expr).evaluate(evaluation) == Integer(0)
                     else SymbolFalse
                 )
-
         return from_python(result)
 
 
