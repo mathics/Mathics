@@ -765,4 +765,3 @@ class CountableInteger:
                             return CountableInteger(0, upper_limit=True)
 
         return None  # leave original expression unevaluated
-
