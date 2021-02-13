@@ -154,7 +154,9 @@ class Graphics3D(Graphics):
 
 
 class Graphics3DBox(GraphicsBox):
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         return "-Graphics3D-"
 
     def _prepare_elements(self, leaves, options, max_width=None):
@@ -435,7 +437,10 @@ class Graphics3DBox(GraphicsBox):
 
         return elements, axes, ticks, calc_dimensions, boxscale
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options, max_width=450
         )
@@ -624,7 +629,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         )
         return tex
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options
         )

@@ -2124,10 +2124,12 @@ class ImageQ(_ImageTest):
 
 
 class ImageBox(BoxConstruct):
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves=None, **options):
+        if leaves is None:
+            leaves = self._leaves
         # see https://tools.ietf.org/html/rfc2397
         return '<mglyph src="%s" width="%dpx" height="%dpx" />' % (
             leaves[0].get_string_value(),
@@ -2135,7 +2137,7 @@ class ImageBox(BoxConstruct):
             leaves[2].get_int_value(),
         )
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
         return "-Image-"
 
 
@@ -2259,8 +2261,7 @@ class Image(Atom):
         encoded = base64.b64encode(contents)
         encoded = b"data:image/png;base64," + encoded
 
-        return Expression(
-            "ImageBox", String(encoded), Integer(scaled_width), Integer(scaled_height)
+        return ImageBox(String(encoded), Integer(scaled_width), Integer(scaled_height)
         )
 
     def __str__(self):

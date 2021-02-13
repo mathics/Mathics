@@ -99,7 +99,7 @@ def from_python(arg):
     convert backtick (context) symbols into some Python identifier
     symbol like underscore.
     """
-
+    from mathics.builtin.base import BoxConstruct
     number_type = get_type(arg)
     if arg is None:
         return SymbolNull
@@ -132,6 +132,8 @@ def from_python(arg):
         ]
         return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
+        return arg
+    elif isinstance(arg, BoxConstruct):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
@@ -432,7 +434,7 @@ class BaseExpression(KeyComparable):
                     if result is not None and result != expr:
                         return result.evaluate(evaluation)
                 return None
-            
+
             formatted = format_expr(expr)
             if formatted is not None:
                 result = formatted.do_format(evaluation, form)
@@ -449,9 +451,12 @@ class BaseExpression(KeyComparable):
             if head in formats:
                 expr = expr.do_format(evaluation, form)
             elif (head != 'System`NumberForm' and not expr.is_atom() and
-                  head != 'System`Graphics'):
+                  head != 'System`Graphics' and
+                  head != 'System`Graphics3D'):
+                # print("Not inside graphics or numberform, and not is atom")
                 new_leaves = [leaf.do_format(evaluation, form)
                               for leaf in expr.leaves]
+                formathead = expr.head.do_format(evaluation, form)
                 expr = Expression(
                     expr.head.do_format(evaluation, form), *new_leaves)
 
@@ -658,7 +663,7 @@ class Expression(BaseExpression):
     leaves: typing.List[Any]
     _sequences: Any
 
-    def __new__(cls, head, *leaves) -> 'Expression':
+    def __new__(cls, head, *leaves, **kwargs) -> 'Expression':
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
@@ -1217,6 +1222,7 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
+        from mathics.builtin import BoxConstruct
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
@@ -1234,7 +1240,9 @@ class Expression(BaseExpression):
             for index in indices:
                 leaf = leaves[index]
                 if not leaf.has_form('Unevaluated', 1):
-                    leaves[index] = leaf.evaluate(evaluation)
+                    leaf = leaf.evaluate(evaluation)
+                    if leaf:
+                        leaves[index] = leaf
 
         if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
             # eval_range(range(0, 0))
@@ -1316,6 +1324,8 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False
                 if result.same(new):
                     new._timestamp_cache(evaluation)
                     return new, False
@@ -1375,19 +1385,10 @@ class Expression(BaseExpression):
             return False, options
 
     def boxes_to_text(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
         head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_text(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'text')
         if (self.has_form('RowBox', 1) and  # nopep8
             self._leaves[0].has_form('List', None)):
             return ''.join([leaf.boxes_to_text(**options)
@@ -1399,21 +1400,10 @@ class Expression(BaseExpression):
             raise BoxError(self, 'text')
 
     def boxes_to_xml(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_xml(self._leaves, **options)
-            except BoxConstructError:
-                # raise # uncomment this to see what is going wrong in
-                # constructing boxes
-                raise BoxError(self, 'xml')
+        head = self._head
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
@@ -1479,9 +1469,6 @@ class Expression(BaseExpression):
                 raise BoxError(self, 'xml')
 
     def boxes_to_tex(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
@@ -1494,13 +1481,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_tex(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_tex(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'tex')
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):

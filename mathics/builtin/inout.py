@@ -497,7 +497,6 @@ class MakeBoxes(Builtin):
         else:
             head = expr.head
             leaves = expr.leaves
-
             f_name = f.get_name()
             if f_name == 'System`TraditionalForm':
                 left, right = '(', ')'
@@ -780,7 +779,7 @@ class GridBox(BoxConstruct):
     }
 
     def get_array(self, leaves, evaluation):
-        options = self.get_option_values(leaves[1:], evaluation)
+        options = self.get_option_values(leaves=leaves[1:], evaluation=evaluation)
         if not leaves:
             raise BoxConstructError
         expr = leaves[0]
@@ -792,7 +791,9 @@ class GridBox(BoxConstruct):
             raise BoxConstructError
         return items, options
 
-    def boxes_to_tex(self, leaves, **box_options) -> str:
+    def boxes_to_tex(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
@@ -812,14 +813,16 @@ class GridBox(BoxConstruct):
             column_count = max(column_count, len(row))
         result = r'\begin{array}{%s} ' % (column_alignments * column_count)
         for index, row in enumerate(items):
-            result += ' & '.join(item.boxes_to_tex(**new_box_options)
+            result += ' & '.join(item.evaluate(evaluation).boxes_to_tex(**new_box_options)
                                  for item in row)
             if index != len(items) - 1:
                 result += '\\\\ '
         result += r'\end{array}'
         return result
 
-    def boxes_to_xml(self, leaves, **box_options) -> str:
+    def boxes_to_xml(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
@@ -842,20 +845,21 @@ class GridBox(BoxConstruct):
             result += '<mtr>'
             for item in row:
                 result += '<mtd {0}>{1}</mtd>'.format(
-                    joined_attrs, item.boxes_to_xml(**new_box_options))
+                    joined_attrs, item.evaluate(evaluation).boxes_to_xml(**new_box_options))
             result += '</mtr>\n'
         result += '</mtable>'
         return result
 
-    def boxes_to_text(self, leaves, **box_options) -> str:
+    def boxes_to_text(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
         evaluation = box_options.get('evaluation')
         items, options = self.get_array(leaves, evaluation)
         result = ''
         if not items:
             return ''
         widths = [0] * len(items[0])
-        cells = [[item.boxes_to_text(**box_options).splitlines()
-                  for item in row] for row in items]
+        cells = [[item.evaluate(evaluation).boxes_to_text(**box_options).splitlines() for item in row] for row in items]
         for row in cells:
             for index, cell in enumerate(row):
                 if index >= len(widths):
@@ -906,14 +910,12 @@ class Grid(Builtin):
     def apply_makeboxes(self, array, f, evaluation, options) -> Expression:
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
-
-        return Expression(
-            'GridBox',
-            Expression('List', *(
+        return GridBox(Expression('List', *(
                 Expression('List', *(
                     Expression('MakeBoxes', item, f) for item in row.leaves))
                 for row in array.leaves)),
             *options_to_rules(options))
+#        return Expression('GridBox',Expression('List', *(Expression('List', *(Expression('MakeBoxes', item, f) for item in row.leaves)) for row in array.leaves)),            *options_to_rules(options))
 
 
 class TableForm(Builtin):
@@ -973,10 +975,13 @@ class TableForm(Builtin):
         if depth <= 0:
             return Expression('MakeBoxes', table, f)
         elif depth == 1:
-            return Expression(
-                'GridBox', Expression('List', *(
+            return GridBox( Expression('List', *(
                     Expression('List', Expression('MakeBoxes', item, f))
                     for item in table.leaves)))
+            #return Expression(
+            #    'GridBox', Expression('List', *(
+            #        Expression('List', Expression('MakeBoxes', item, f))
+            #        for item in table.leaves)))
         else:
             new_depth = Expression('Rule', Symbol('TableDepth'), depth - 2)
 
@@ -986,8 +991,7 @@ class TableForm(Builtin):
                 else:
                     return item
 
-            return Expression(
-                'GridBox', Expression('List', *(
+            return GridBox(Expression('List', *(
                     Expression('List', *(
                         Expression('MakeBoxes', transform_item(item), f)
                         for item in row.leaves)) for row in table.leaves)))

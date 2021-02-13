@@ -337,6 +337,7 @@ class Evaluation(object):
                 self.definitions.add_rule(
                     "Out", Rule(Expression("Out", line_no), stored_result)
                 )
+
             if self.last_eval != self.SymbolNull:
                 if check_io_hook("System`$PrePrint"):
                     self.last_eval = Expression(
