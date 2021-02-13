@@ -152,17 +152,12 @@ class Definitions(object):
                     if not var.context:
                         var.context = "Pymathics`"
                     symbol_name = instance.get_name()
-                    print("loading symbol name ", symbol_name )
-                    builtins[symbol_name] = instance
                     builtins_by_module[loaded_module.__name__].append(instance)
                     newsymbols[symbol_name] = instance
 
         for name in newsymbols:
             luname = self.lookup_name(name)
             self.user.pop(name, None)
-            if remove_on_quit and name not in self.pymathics:
-                self.pymathics[name] = self.builtin.get(name, None)
-        self.builtin.update(newsymbols)
 
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
@@ -178,25 +173,9 @@ class Definitions(object):
             if not key.startswith("mathics."):
                 print(f'removing module "{key}" not in mathics.')
                 del builtins_by_module[key]
-        # print("reloading symbols from current builtins.")
-        for s in self.pymathics:
-            if s in self.builtin:
-                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol.
-                if self.pymathics[s]:
-                    self.builtin[s] = self.pymathics[s]
-                    builtins[s] = None
-                    for key, val in builtins_by_module.items():
-                        for simb in val:
-                            if simb.get_name() == s:
-                                builtins[s] = simb
-                                break
-                        if builtins[s] is not None:
-                            break
-                    if builtins[s] is None:
-                        builtins.__delitem__(s)
-                else:
-                    self.builtin.__delitem__(s)
-                    builtins.__delitem__(s)
+        for key in pymathics:
+            del self.pymathics[key]
+            
         self.pymathics = {}
         # print("everything is clean")
         return None
