@@ -861,20 +861,27 @@ class Information(PrefixOperator):
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
 
+    #> a = 2;
+    #> Information[a]
+     | a = 2
+     .
+     = Null
 
-    >> a = 2;
-    >> Information[a]
-     = a = 2
+    #> f[x_] := x ^ 2;
+    #> g[f] ^:= 2;
+    #> f::usage = "f[x] returns the square of x";
+    #> Information[f]
+     | f[x] returns the square of x
+     .
+     . f[x_] = x ^ 2
+     .
+     . g[f] ^= 2
+     .
+     = Null
 
 
-    >> f[x_] := x ^ 2
-    >> g[f] ^:= 2
-    >> f::usage = "f[x] returns the square of x";
-    X> Information[f]
-     = f[x] returns the square of x
-
-    >> ? Table
-     = 
+    #> ? Table
+     | 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -885,9 +892,10 @@ class Information(PrefixOperator):
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
      .
+     = Null
 
-    >> Information[Table]
-     = 
+    #> Information[Table]
+     | 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -900,6 +908,7 @@ class Information(PrefixOperator):
      .
      . Attributes[Table] = {HoldAll, Protected}
      .
+     = Null
     """
 
     operator = "??"
@@ -910,15 +919,14 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python
+        ret = Symbol('Null')
         lines = []
         if isinstance(symbol, String):
             evaluation.print_out(symbol)
-            evaluation.evaluate(Expression('Information', Symbol('System`String')))
-            return
+            return ret
         if not isinstance(symbol, Symbol):
             evaluation.message('Information', 'notfound', symbol)
-            return Symbol('Null')
+            return ret
         # Print the "usage" message if available.
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
@@ -929,17 +937,16 @@ class Information(PrefixOperator):
 
         if grid:
             if lines:
-                return Expression(
+                infoshow = Expression(
                     'Grid', Expression(
                         'List', *(Expression('List', line) for line in lines)),
                     Expression(
                         'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
-            else:
-                return Symbol('Null')
+                evaluation.print_out(infoshow)
         else:
             for line in lines:
                 evaluation.print_out(Expression('InputForm', line))
-            return Symbol('Null')
+        return ret
 
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
@@ -1006,7 +1013,9 @@ class Information(PrefixOperator):
 
     def format_definition_input(self, symbol, evaluation, options):
         'InputForm: Information[symbol_, OptionsPattern[Information]]'
-        return self.format_definition(symbol, evaluation, options, grid=False)
+        self.format_definition(symbol, evaluation, options, grid=False)
+        ret = Symbol("Null")
+        return ret
 
 
 class Clear(Builtin):
