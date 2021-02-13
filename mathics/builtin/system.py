@@ -414,7 +414,7 @@ class UserName(Predefined):
         try:
             return String(os.getlogin())
         except:
-           evaluation.message('$UserName', 'nologin')
+            evaluation.message('$UserName', 'nologin')
             return
 
 
