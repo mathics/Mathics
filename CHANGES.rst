@@ -10,6 +10,11 @@ To accommodate growth and increased use of pieces of Mathics inside other packag
 * Scanner routines, character translation tables to/from unicode, and character properties are now `mathics-scanner https://github.com/Mathics3/mathics-scanner`_.
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules `pymathics-graph https://github.com/Mathics3/pymathics-graph`_, `pymathics-natlang https://github.com/Mathics3/pymathics-natlang`_.
 
+Incompatible changes:
++++++++++++++++++++++
+
+* `-e` `--execute` is better suited for embedded use. It shows just evaluation output as text.
+
 The bump in the major version number reflects major changes in this release.
 Another major release is planned soon, with more major changes.
 See below for future work planned.

@@ -1749,16 +1749,16 @@ class LoadModule(Builtin):
             evaluation.message(self.get_name(), 'notfound', module)
             return SymbolFailed
 
-        # Add PyMathics` to $ContextPath so that when user don't
-        # have to qualify PyMathics variables and functions,
+        # Add Pymathics` to $ContextPath so that when user don't
+        # have to qualify Pymathics variables and functions,
         # as the those in the module just loaded.
         # Following the example of $ContextPath in the WL
         # reference manual where PackletManager appears first in
         # the list, it seems to be preferable to add this PyMathics
         # at the beginning.
         context_path = evaluation.definitions.get_context_path()
-        if "PyMathics`" not in context_path:
-            context_path.insert(0, "PyMathics`")
+        if "Pymathics`" not in context_path:
+            context_path.insert(0, "Pymathics`")
         evaluation.definitions.set_context_path(context_path)
         
         return module

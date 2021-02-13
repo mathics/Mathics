@@ -109,10 +109,11 @@ class TerminalShell(MathicsLineFeeder):
             return self.rl_read_line(prompt)
         return input(prompt)
 
-    def print_result(self, result):
+    def print_result(self, result, no_out_prompt=False):
         if result is not None and result.result is not None:
             output = self.to_output(str(result.result))
-            print(self.get_out_prompt() + output + "\n")
+            mess = self.get_out_prompt() if not no_out_prompt else ""
+            print(mess + output + "\n")
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
@@ -306,10 +307,9 @@ def main() -> int:
 
     if args.execute:
         for expr in args.execute:
-            print(shell.get_in_prompt() + expr)
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(result)
+            shell.print_result(result, no_out_prompt=True)
             if evaluation.exc_result == Symbol("Null"):
                 exit_rc = 0
             elif evaluation.exc_result == Symbol("$Aborted"):
