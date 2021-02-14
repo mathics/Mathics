@@ -19,7 +19,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics_scanner.tokeniser import base_names_pattern, full_names_pattern
+from mathics_scanner.tokeniser import full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
 
@@ -134,6 +134,7 @@ class Definitions(object):
             if hasattr(loaded_module, "__all__")
             else dir(loaded_module)
         )
+
         newsymbols = {}
         if not ("pymathics_version_data" in vars):
             raise PyMathicsLoadException(module)
@@ -151,17 +152,13 @@ class Definitions(object):
                     if not var.context:
                         var.context = "Pymathics`"
                     symbol_name = instance.get_name()
-                    builtins[symbol_name] = instance
                     builtins_by_module[loaded_module.__name__].append(instance)
                     newsymbols[symbol_name] = instance
 
         for name in newsymbols:
             luname = self.lookup_name(name)
             self.user.pop(name, None)
-            if remove_on_quit and name not in self.pymathics:
-                self.pymathics[name] = self.builtin.get(name, None)
-        self.builtin.update(newsymbols)
-        
+
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
@@ -176,25 +173,9 @@ class Definitions(object):
             if not key.startswith("mathics."):
                 print(f'removing module "{key}" not in mathics.')
                 del builtins_by_module[key]
-        # print("reloading symbols from current builtins.")
-        for s in self.pymathics:
-            if s in self.builtin:
-                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol.
-                if self.pymathics[s]:
-                    self.builtin[s] = self.pymathics[s]
-                    builtins[s] = None
-                    for key, val in builtins_by_module.items():
-                        for simb in val:
-                            if simb.get_name() == s:
-                                builtins[s] = simb
-                                break
-                        if builtins[s] is not None:
-                            break
-                    if builtins[s] is None:
-                        builtins.__delitem__(s)
-                else:
-                    self.builtin.__delitem__(s)
-                    builtins.__delitem__(s)
+        for key in pymathics:
+            del self.pymathics[key]
+
         self.pymathics = {}
         # print("everything is clean")
         return None
@@ -439,14 +420,14 @@ class Definitions(object):
             candidates.append(pymathics)
         if builtin:
             candidates.append(builtin)
-        
+
         definition = candidates[0] if len(candidates)==1 else None
         if len(candidates)>0 and not definition:
             attributes = user.attributes if user else (
                 pymathics.attributes if pymathics else
                 (builtin.attributes if builtin else set())
             )
-            upvalues = [], 
+            upvalues = [],
             messages = [],
             nvalues = [],
             defaultvalues = [],
@@ -753,7 +734,7 @@ class Definition(object):
         options=None,
         nvalues=None,
         defaultvalues=None,
-        builtin=None,
+        builtin=None
     ) -> None:
 
         super(Definition, self).__init__()
