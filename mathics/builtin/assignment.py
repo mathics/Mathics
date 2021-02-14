@@ -1751,7 +1751,7 @@ class LoadModule(Builtin):
      : Python module nomodule does not exist.
      = $Failed
     >> LoadModule["sys"]
-     : Python module sys does not exist.
+     : Python module sys is not a pymathics module.
      = $Failed
     """
     name = "LoadModule"
@@ -1767,9 +1767,6 @@ class LoadModule(Builtin):
             return SymbolFailed
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
-            return SymbolFailed
-        except PyMathicsLoadException as e:
-            evaluation.message(self.get_name(), 'notmathicslib', module)
             return SymbolFailed
         else:
         # Add Pymathics` to $ContextPath so that when user don't

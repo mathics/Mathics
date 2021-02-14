@@ -115,7 +115,7 @@ class Definitions(object):
         from an external Python module in the pymathics module namespace.
         """
         import importlib
-        from mathics.builtin import is_builtin, builtins, builtins_by_module, Builtin
+        from mathics.builtin import is_builtin, builtins_by_module, Builtin
         # Ensures that the pymathics module be reloaded
         import sys
         if module in sys.modules:
