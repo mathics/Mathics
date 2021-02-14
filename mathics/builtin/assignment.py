@@ -5,7 +5,7 @@
 import mathics.builtin
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import (Expression, Symbol, SymbolFailed, valid_context_name,
+from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolNull, valid_context_name,
                                      system_symbols, String)
 from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
@@ -833,23 +833,34 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
     definition = evaluation.definitions.get_definition(symbol.name)
     ruleusage = definition.get_values_list('messages')
     usagetext = None
-    from mathics.builtin import builtins
     import re
-    bio = builtins.get(definition.name)
-
-    if bio is not None:
-        from mathics.doc.doc import Doc
-        if htmlout:
-            usagetext = Doc(bio.__class__.__doc__).text(0)
-        else:
-            usagetext = Doc(bio.__class__.__doc__).text(0)
-        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
-    # For built-in symbols, looks for a docstring.
-    # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
+    # First look at user definitions:
     for rulemsg in ruleusage:
         if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
             usagetext = rulemsg.replace.value
-    return usagetext
+    if usagetext is not None:
+        # Maybe, if htmltout is True, we should convert
+        # the value to a HTML form...
+        return usagetext
+    # Otherwise, look at the pymathics, and builtin docstrings:
+    builtins = evaluation.definitions.builtin
+    pymathics = evaluation.definitions.pymathics
+    bio = pymathics.get(definition.name)
+    if bio is None:
+        bio = builtins.get(definition.name)
+    
+    if bio is not None:
+        from mathics.doc.doc import Doc
+        docstr = bio.builtin.__class__.__doc__
+        if docstr is None:
+            return None
+        if htmlout:
+            usagetext = Doc(docstr).html()
+        else:
+            usagetext = Doc(docstr).text(0)
+        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
+        return usagetext
+    return None
 
 
 class Information(PrefixOperator):
@@ -861,20 +872,27 @@ class Information(PrefixOperator):
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
 
+    #> a = 2;
+    #> Information[a]
+     | a = 2
+     .
+     = Null
 
-    >> a = 2;
-    >> Information[a]
-     = a = 2
+    #> f[x_] := x ^ 2;
+    #> g[f] ^:= 2;
+    #> f::usage = "f[x] returns the square of x";
+    #> Information[f]
+     | f[x] returns the square of x
+     .
+     . f[x_] = x ^ 2
+     .
+     . g[f] ^= 2
+     .
+     = Null
 
 
-    >> f[x_] := x ^ 2
-    >> g[f] ^:= 2
-    >> f::usage = "f[x] returns the square of x";
-    X> Information[f]
-     = f[x] returns the square of x
-
-    >> ? Table
-     = 
+    #> ? Table
+     | 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -885,9 +903,10 @@ class Information(PrefixOperator):
      .     evaluates expr with i taking on the values e1, e2,
      . ..., ei.
      .
+     = Null
 
-    >> Information[Table]
-     = 
+    #> Information[Table]
+     | 
      .   'Table[expr, {i, n}]'
      .     evaluates expr with i ranging from 1 to n, returning
      . a list of the results.
@@ -900,6 +919,7 @@ class Information(PrefixOperator):
      .
      . Attributes[Table] = {HoldAll, Protected}
      .
+     = Null
     """
 
     operator = "??"
@@ -910,15 +930,14 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        from mathics.core.expression import from_python
+        ret = SymbolNull
         lines = []
         if isinstance(symbol, String):
             evaluation.print_out(symbol)
-            evaluation.evaluate(Expression('Information', Symbol('System`String')))
-            return
+            return ret
         if not isinstance(symbol, Symbol):
             evaluation.message('Information', 'notfound', symbol)
-            return Symbol('Null')
+            return ret
         # Print the "usage" message if available.
         usagetext = _get_usage_string(symbol, evaluation)
         if usagetext is not None:
@@ -929,17 +948,16 @@ class Information(PrefixOperator):
 
         if grid:
             if lines:
-                return Expression(
+                infoshow = Expression(
                     'Grid', Expression(
                         'List', *(Expression('List', line) for line in lines)),
                     Expression(
                         'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
-            else:
-                return Symbol('Null')
+                evaluation.print_out(infoshow)
         else:
             for line in lines:
                 evaluation.print_out(Expression('InputForm', line))
-            return Symbol('Null')
+        return ret
 
         # It would be deserable to call here the routine inside Definition, but for some reason it fails...
         # Instead, I just copy the code from Definition
@@ -1006,7 +1024,9 @@ class Information(PrefixOperator):
 
     def format_definition_input(self, symbol, evaluation, options):
         'InputForm: Information[symbol_, OptionsPattern[Information]]'
-        return self.format_definition(symbol, evaluation, options, grid=False)
+        self.format_definition(symbol, evaluation, options, grid=False)
+        ret = SymbolNull
+        return ret
 
 
 class Clear(Builtin):
@@ -1748,17 +1768,19 @@ class LoadModule(Builtin):
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
             return SymbolFailed
-
-        # Add PyMathics` to $ContextPath so that when user don't
-        # have to qualify PyMathics variables and functions,
+        except PyMathicsLoadException as e:
+            evaluation.message(self.get_name(), 'notmathicslib', module)
+            return SymbolFailed
+        else:
+        # Add Pymathics` to $ContextPath so that when user don't
+        # have to qualify Pymathics variables and functions,
         # as the those in the module just loaded.
         # Following the example of $ContextPath in the WL
         # reference manual where PackletManager appears first in
         # the list, it seems to be preferable to add this PyMathics
         # at the beginning.
-        context_path = evaluation.definitions.get_context_path()
-        if "Pymathics`" not in context_path:
-            context_path.insert(0, "Pymathics`")
-        evaluation.definitions.set_context_path(context_path)
-        
+            context_path = evaluation.definitions.get_context_path()
+            if "Pymathics`" not in context_path:
+                context_path.insert(0, "Pymathics`")
+                evaluation.definitions.set_context_path(context_path)
         return module

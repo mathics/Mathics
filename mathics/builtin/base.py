@@ -91,6 +91,7 @@ class Builtin(object):
         name = self.get_name()
         options = {}
         option_syntax = "Warn"
+
         for option, value in self.options.items():
             if option == "$OptionSyntax":
                 option_syntax = value
@@ -147,7 +148,7 @@ class Builtin(object):
         for pattern, function in self.get_functions(is_pymodule=is_pymodule):
             rules.append(
                 BuiltinRule(
-                    name, pattern, function, check_options, system=not is_pymodule
+                    name, pattern, function, check_options, system=True
                 )
             )
         for pattern, replace in self.rules.items():
@@ -260,6 +261,7 @@ class Builtin(object):
                 pattern = Expression("Default", Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
+
         definition = Definition(
             name=name,
             rules=rules,
@@ -268,6 +270,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
+            builtin=self
         )
         if is_pymodule:
             definitions.pymathics[name] = definition
@@ -312,11 +315,10 @@ class Builtin(object):
                     pattern = m.group(2)
                 else:
                     attrs = []
-                if is_pymodule:
-                    name = ensure_context(self.get_name(short=True), "Pymathics")
-                else:
-                    name = self.get_name()
-
+                # if is_pymodule:
+                #    name = ensure_context(self.get_name(short=True), "Pymathics")
+                # else:
+                name = self.get_name()
                 pattern = pattern % {"name": name}
                 definition_class = (
                     PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
@@ -764,4 +766,3 @@ class CountableInteger:
                             return CountableInteger(0, upper_limit=True)
 
         return None  # leave original expression unevaluated
-

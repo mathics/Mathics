@@ -72,12 +72,12 @@ SYSTEM_LIST: FrozenSet[str] = frozenset(
 class PyMathicsDefinitions(object):
     """
     Dummy Definitions object that puts every unqualified symbol in
-    PyMathics`.
+    Pymathics`.
     """
 
     def lookup_name(self, name):
         assert isinstance(name, str)
-        context = "System`" if name in SYSTEM_LIST else "PyMathics`"
+        context = "System`" if name in SYSTEM_LIST else "Pymathics`"
         # print("XXX", name, context)
         return ensure_context(name, context)
 
