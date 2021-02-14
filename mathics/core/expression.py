@@ -2,7 +2,6 @@
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
-
 import ast
 import sympy
 import mpmath
@@ -367,6 +366,10 @@ class BaseExpression(KeyComparable):
         return self, False
 
     def do_format(self, evaluation, form):
+        """
+        Applies formats associated to the expression and removes
+        superfluous enclosing formats.
+        """
         formats = system_symbols(
             'InputForm', 'OutputForm', 'StandardForm',
             'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm')
@@ -377,14 +380,47 @@ class BaseExpression(KeyComparable):
             head = self.get_head_name()
             leaves = self.get_leaves()
             include_form = False
+            # If the expression is enclosed by a Format
+            # takes the form from the expression and 
+            # removes the format from the expression.
             if head in formats and len(leaves) == 1:
                 expr = leaves[0]
                 if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
-
                     include_form = True
             unformatted = expr
+            # If form is Fullform, return it without changes
+            if form == 'System`FullForm':
+                if include_form:
+                    expr = Expression(form, expr)
+                    expr.unformatted = unformatted
+                return expr
 
+            # Repeated and RepeatedNull confuse the formatter,
+            # so we need to hardlink their format rules:
+            if head == "System`Repeated":
+                if len(leaves)==1:
+                    return Expression("System`HoldForm",
+                                  Expression("System`Postfix",
+                                  Expression(
+                                      "System`List",
+                                      leaves[0]
+                                  ),"..",170))
+                else:
+                    return Expression("System`HoldForm",expr)
+            elif head == "System`RepeatedNull":
+                if len(leaves)==1:
+                    return Expression("System`HoldForm",
+                                  Expression("System`Postfix",
+                                  Expression(
+                                      "System`List",
+                                      leaves[0]
+                                  ),"...",170))
+                else:
+                    return Expression("System`HoldForm",expr)
+
+            # If expr is not an atom, looks for formats in its definition
+            # and apply them.
             def format_expr(expr):
                 if not(expr.is_atom()) and not(expr.head.is_atom()):
                     # expr is of the form f[...][...]
@@ -396,48 +432,28 @@ class BaseExpression(KeyComparable):
                     if result is not None and result != expr:
                         return result.evaluate(evaluation)
                 return None
+            
+            formatted = format_expr(expr)
+            if formatted is not None:
+                result = formatted.do_format(evaluation, form)
+                if include_form:
+                    result = Expression(form, result)
+                result.unformatted = unformatted
+                return result
 
-            if form != 'System`FullForm':
-                # Repeated and RepeatedNull confuse the formatter,
-                # so we need to hardlink their format rules:
-                if head == "System`Repeated":
-                    if len(leaves)==1:
-                        return Expression("System`HoldForm",
-                                      Expression("System`Postfix",
-                                      Expression(
-                                          "System`List",
-                                          leaves[0]
-                                      ),"..",170))
-                    else:
-                        return Expression("System`HoldForm",expr)
-                elif head == "System`RepeatedNull":
-                    if len(leaves)==1:
-                        return Expression("System`HoldForm",
-                                      Expression("System`Postfix",
-                                      Expression(
-                                          "System`List",
-                                          leaves[0]
-                                      ),"...",170))
-                    else:
-                        return Expression("System`HoldForm",expr)
-
-                formatted = format_expr(expr)
-                if formatted is not None:
-                    result = formatted.do_format(evaluation, form)
-                    if include_form:
-                        result = Expression(form, result)
-                    result.unformatted = unformatted
-                    return result
-
-                head = expr.get_head_name()
-                if head in formats:
-                    expr = expr.do_format(evaluation, form)
-                elif (head != 'System`NumberForm' and not expr.is_atom() and
-                      head != 'System`Graphics'):
-                    new_leaves = [leaf.do_format(evaluation, form)
-                                  for leaf in expr.leaves]
-                    expr = Expression(
-                        expr.head.do_format(evaluation, form), *new_leaves)
+            # If the expression is still enclosed by a Format,
+            # iterate.
+            # If the expression is not atomic or of certain
+            # specific cases, iterate over the leaves.
+            head = expr.get_head_name()
+            if head in formats:
+                expr = expr.do_format(evaluation, form)
+            elif (head != 'System`NumberForm' and not expr.is_atom() and
+                  head != 'System`Graphics'):
+                new_leaves = [leaf.do_format(evaluation, form)
+                              for leaf in expr.leaves]
+                expr = Expression(
+                    expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
                 expr = Expression(form, expr)
@@ -447,9 +463,11 @@ class BaseExpression(KeyComparable):
             evaluation.dec_recursion_depth()
 
     def format(self, evaluation, form) -> typing.Union['Expression', 'Symbol']:
+        """
+        Applies formats associated to the expression, and then calls Makeboxes
+        """
         expr = self.do_format(evaluation, form)
-        result = Expression(
-            'MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
+        result = Expression('MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
         return result
 
     def is_free(self, form, evaluation) -> bool:
@@ -871,6 +889,16 @@ class Expression(BaseExpression):
         self._leaves = tuple(leaves)
         if self._cache:
             self._cache = self._cache.reordered()
+
+    def get_attributes(self, definitions):
+        if self.get_head_name() == "System`Function" and \
+            len(self._leaves) > 2:
+            res = self._leaves[2]
+            if res.is_symbol():
+                return (str(res),)
+            elif res.has_form('List', None):
+                return set( str(a) for a in res._leaves )
+        return set()
 
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
@@ -2109,7 +2137,7 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero
+        return self.numerator().is_zero and not self.denominator().is_zero()
 
 
 class Real(Number):
@@ -2257,9 +2285,10 @@ class MachineReal(Real):
 
     @property
     def is_approx_zero(self) -> bool:
-        # FIXME: figure out how to hook int $MachinePrecision and
-        # what the right definition here would be.
-        return abs(self.value) <= 10**-14
+        # In WMA, Chop[10.^(-10)] == 0,
+        # so, lets take it.
+        res = abs(self.value) <= 1e-10
+        return res
 
 
 class PrecisionReal(Real):

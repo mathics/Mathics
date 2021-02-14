@@ -61,55 +61,39 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
     else:
         assert result == expected
 
-
-def test_optionvalues():
-    session.evaluate("ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={q->12}")
-    session.evaluate("f1[x_,OptionsPattern[]]:=x^OptionValue[q]")
-    result =  session.evaluate('f1[y]')
-    expected = session.evaluate('y ^ 12')
-    assert(result == expected)
-
-    # FIXME: Still needs fixing.
-    # session.evaluate("Options[f2]:={s->12}")
-    # session.evaluate("f2[x_,opt:OptionsPattern[]]:=x^OptionValue[s]")
-    # result =  session.evaluate('f2[y]')
-    # expected = session.evaluate('y ^ 12')
-    # assert(result == expected)
-
-    session.evaluate("Options[f3]:={a->12}")
-    session.evaluate("f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]")
-    result =  session.evaluate('f3[y]')
-    expected = session.evaluate('y ^ 4')
-    assert(result == expected)
-
-    session.evaluate("Options[f4]:={a->12}")
-    session.evaluate("f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]")
-    result =  session.evaluate('f4[y]')
-    expected = session.evaluate('y ^ 4')
-    assert(result == expected)
-
-
-    session.evaluate("Options[F]:={a->89,b->37}")
-    result = session.evaluate("OptionValue[F, a]")
-    expected = session.evaluate('89')
-    assert(result == expected)
-
-    result = session.evaluate("OptionValue[F, {a,b}]")
-    expected = session.evaluate('{89, 37}')
-    assert(result == expected)
-
-    result = session.evaluate("OptionValue[F, {a,b, l}]")
-    expected = session.evaluate('{89, 37, OptionValue[l]}')
-    msg = "OptionValue::optnf: Option name l not found."
-    assert result == expected, msg
-
-    result = session.evaluate("OptionValue[F, {l->77}, {a,b, l}]")
-    expected = session.evaluate('{89, 37, 77}')
-    assert(result == expected)
-
-    result = session.evaluate("OptionValue[F, {b->-1, l->77}, {a,b, l}]")
-    expected = session.evaluate('{89, -1, 77}')
-    assert(result == expected)
+@pytest.mark.parametrize(
+    "str_setup,str_expr,str_expected,msg",
+    [
+        (r'ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={"q"->12};f1[x_,OptionsPattern[]]:=x^OptionValue["q"]',
+         r'f1[y]',r'y ^ 12', None),
+        # Option is a symbol
+        (r'Options[f2]:={s->12};f2[x_,opt:OptionsPattern[]]:=x^OptionValue[s]',
+         r'f2[y]', r'y ^ 12', None),
+        # OptionsPattern with an argument overwrites the Options of the function
+        # Try with and without a name
+        (r'Options[f3]:={a->12};f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]',r'f3[y]', r'y ^ 4', None),
+        (r'Options[f4]:={a->12};f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]', r'f4[y]', r'y ^ 4', None),
+        # OptionValue outside a function    
+        (r'Options[F]:={a->89,b->37}', r'OptionValue[F, a]', r'89', None),    
+        (None, r'OptionValue[F, {a,b}]',r'{89, 37}', None),
+        (None, r'OptionValue[F, {a,b, l}]',r'{89, 37, l}', r"OptionValue::optnf: Option name l not found."),
+        (r'Options[f5]:={"a"->12};f5[x_,opt:OptionsPattern[]]:=x^OptionValue[a]', r'f5[y]', r'y ^ 12', None),
+        (r'Options[f6]:={a->12};f6[x_,opt:OptionsPattern[]]:=x^OptionValue["a"]', r'f6[y]', r'y ^ 12', None),
+        (r'Options[f7]:={a->12};f7[x_,OptionsPattern[{"a"->67}]]:=x^OptionValue[a]', r'f7[y]', r'y ^ 67', None),
+        # OptionValue with three parameters
+        (None, r'OptionValue[F, {l->77}, {a,b, l}]', r'{89, 37, 77}', None),
+        (None, r"OptionValue[F, {b->-1, l->77}, {a,b, l}]", r'{89, -1, 77}', None)
+    ],
+)
+def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str , messages=""):
+    if str_setup:
+        session.evaluate(str_setup)
+    result =  session.evaluate(str_expr)
+    expected = session.evaluate(str_expected)
+    if msg:
+        assert result == expected, msg
+    else:
+        assert result == expected
 
 if sys.platform in ("linux",):
 
@@ -152,6 +136,17 @@ if sys.platform in ("linux",):
                 r"{53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}",
                 "UnsignedInteger128 - 2nd test",
             ),
+
+            # This works but the $Precision is coming out UnsignedInt128 rather tha
+            # UnsignedInt32
+            # (
+            #     'Eigenvalues[{{-8, 12, 4}, {12, -20, 0}, {4, 0, -2}}, Method->"mpmath"]',
+            #     "{{-0.842134, -0.396577, 0.365428}, "
+            #     " { 0.5328,   -0.507232, 0.677377}, "
+            #     " {-0.0832756, 0.765142, 0.638454}}",
+            #     "Eigenvalues via mpmath",
+            # ),
+
         ):
 
             check_evaluation(str_expr, str_expected, message)

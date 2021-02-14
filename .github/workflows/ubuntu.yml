@@ -22,11 +22,10 @@ jobs:
       run: |
         sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
         python -m pip install --upgrade pip
-        python -m pip install -e git://github.com/Mathics3/mathics-scanner.git#egg=Mathics_Scanner
     - name: Install Mathics
       run: |
         sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
-        make
+        make develop
     - name: Test Mathics
       run: |
         pip install pytest pexpect

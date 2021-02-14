@@ -1898,6 +1898,9 @@ class Print(Builtin):
      | μ
     #> Print["μ"]
      | μ
+    #> Print["-Hola\\n-Qué tal?"]
+     | -Hola
+     . -Qué tal?
     """
 
     def apply(self, expr, evaluation):
