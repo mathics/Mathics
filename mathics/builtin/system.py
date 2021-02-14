@@ -407,7 +407,11 @@ class UserName(Predefined):
     name = "$UserName"
 
     def evaluate(self, evaluation) -> String:
-        return String(os.getlogin())
+        try:
+            return String(os.getlogin())
+        except:
+            import pwd
+            return String(pwd.getpwuid(os.getuid())[0])
 
 
 class Version(Predefined):

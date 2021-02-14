@@ -82,13 +82,8 @@ class Definitions(object):
                         )
                     except PyMathicsLoadException as e:
                         raise
-                        # print(e.module + " is not a valid pymathics module.")
-                        #continue
                     except ImportError as e:
                         raise
-                        #print(e.__repr__())
-                        #continue
-                    # print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
 
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, "wb")
@@ -167,17 +162,13 @@ class Definitions(object):
     def clear_pymathics_modules(self):
         from mathics.builtin import builtins, builtins_by_module
 
-        # Remove all modules that are not in mathics
-        # print("cleaning pymathics modules")
         for key in list(builtins_by_module.keys()):
             if not key.startswith("mathics."):
-                print(f'removing module "{key}" not in mathics.')
                 del builtins_by_module[key]
         for key in pymathics:
             del self.pymathics[key]
 
         self.pymathics = {}
-        # print("everything is clean")
         return None
 
     def clear_cache(self, name=None):
@@ -416,10 +407,14 @@ class Definitions(object):
         builtin = self.builtin.get(name, None)
 
         candidates = [user] if user else []
+        builtin_instance = None
         if pymathics:
+            builtin_instance = pymathics
             candidates.append(pymathics)
         if builtin:
             candidates.append(builtin)
+            if builtin_instance is None:
+                builtin_instance = builtin
 
         definition = candidates[0] if len(candidates)==1 else None
         if len(candidates)>0 and not definition:
@@ -456,6 +451,7 @@ class Definitions(object):
                 options=options,
                 nvalues=sum((c.nvalues for c in candidates),[]),
                 defaultvalues=sum((c.defaultvalues for c in candidates),[]),
+                builtin=builtin_instance
             )
 
         if definition is not None:

@@ -2169,12 +2169,12 @@ class Precedence(Builtin):
     def apply(self, expr, evaluation) -> Real:
         'Precedence[expr_]'
 
-        from mathics.builtin import builtins
-
         name = expr.get_name()
         precedence = 1000
         if name:
-            builtin = builtins.get(name)
+            builtin = evaluation.definitions.get_definition(name, only_if_exists=True)
+            if builtin:
+                builtin = builtin.builtin
             if builtin is not None and isinstance(builtin, Operator):
                 precedence = builtin.precedence
             else:

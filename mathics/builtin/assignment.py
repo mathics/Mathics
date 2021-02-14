@@ -1751,7 +1751,7 @@ class LoadModule(Builtin):
      : Python module nomodule does not exist.
      = $Failed
     >> LoadModule["sys"]
-     : Python module sys is not a pymathics module.
+     : Python module sys does not exist.
      = $Failed
     """
     name = "LoadModule"
