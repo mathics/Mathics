@@ -23,7 +23,8 @@ import pathlib
 import os.path as osp
 from itertools import chain
 
-from mathics_scanner import TranslateError, FileLineFeeder
+from mathics_scanner import TranslateError
+from mathics.core.parser import MathicsFileLineFeeder
 
 from mathics.core.expression import (
     Expression,
@@ -2183,7 +2184,7 @@ class Get(PrefixOperator):
             if trace_fn:
                 trace_fn(pypath)
             with mathics_open(pypath, "r") as f:
-                feeder = FileLineFeeder(f, trace_fn)
+                feeder = MathicsFileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
                         query = parse(definitions, feeder)
@@ -4447,8 +4448,6 @@ class ResetDirectory(Builtin):
 
     def apply(self, evaluation):
         "ResetDirectory[]"
-        global DIRECTORY_STACK
-
         try:
             tmp = DIRECTORY_STACK.pop()
         except IndexError:

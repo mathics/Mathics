@@ -21,7 +21,6 @@ from mathics.builtin.base import (
     PostfixOperator,
     Test,
     SympyFunction,
-    SympyConstant,
 )
 
 from mathics.core.expression import (
@@ -1011,72 +1010,6 @@ class CubeRoot(Builtin):
         return Expression("Power", n, Expression("Divide", 1, 3))
 
 
-class Infinity(SympyConstant):
-    """
-    <dl>
-    <dt>'Infinity'
-        <dd>represents an infinite real quantity.
-    </dl>
-
-    >> 1 / Infinity
-     = 0
-    >> Infinity + 100
-     = Infinity
-
-    Use 'Infinity' in sum and limit calculations:
-    >> Sum[1/x^2, {x, 1, Infinity}]
-     = Pi ^ 2 / 6
-
-    #> FullForm[Infinity]
-     = DirectedInfinity[1]
-    #> (2 + 3.5*I) / Infinity
-     = 0.
-    #> Infinity + Infinity
-     = Infinity
-    #> Infinity / Infinity
-     : Indeterminate expression 0 Infinity encountered.
-     = Indeterminate
-    """
-
-    sympy_name = "oo"
-    python_equivalent = math.inf
-
-    rules = {
-        "Infinity": "DirectedInfinity[1]",
-        "MakeBoxes[Infinity, f:StandardForm|TraditionalForm]": ('"\\[Infinity]"'),
-    }
-
-
-class ComplexInfinity(SympyConstant):
-    """
-    <dl>
-    <dt>'ComplexInfinity'
-        <dd>represents an infinite complex quantity of undetermined direction.
-    </dl>
-
-    >> 1 / ComplexInfinity
-     = 0
-    >> ComplexInfinity * Infinity
-     = ComplexInfinity
-    >> FullForm[ComplexInfinity]
-     = DirectedInfinity[]
-
-    ## Issue689
-    #> ComplexInfinity + ComplexInfinity
-     : Indeterminate expression ComplexInfinity + ComplexInfinity encountered.
-     = Indeterminate
-    #> ComplexInfinity + Infinity
-     : Indeterminate expression ComplexInfinity + Infinity encountered.
-     = Indeterminate
-    """
-
-    sympy_name = "zoo"
-
-    rules = {
-        "ComplexInfinity": "DirectedInfinity[]",
-    }
-
-
 class DirectedInfinity(SympyFunction):
     """
     <dl>
@@ -1350,24 +1283,6 @@ class I(Predefined):
         return Complex(Integer(0), Integer(1))
 
 
-class Indeterminate(SympyConstant):
-    """
-    <dl>
-    <dt>'Indeterminate'
-        <dd>represents an indeterminate result.
-    </dl>
-
-    >> 0^0
-     : Indeterminate expression 0 ^ 0 encountered.
-     = Indeterminate
-
-    >> Tan[Indeterminate]
-     = Indeterminate
-    """
-
-    sympy_name = "nan"
-
-
 class NumberQ(Test):
     """
     <dl>
@@ -1431,6 +1346,11 @@ class PossibleZeroQ(SympyFunction):
 
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
+        if result is None:
+        # try expanding the expression
+            exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
+            exprexp = exprexp.to_sympy()
+            result = _iszero(exprexp)        
         if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)

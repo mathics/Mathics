@@ -1,88 +1,46 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from mathics.core.expression import ensure_context
 
+import glob
+import importlib
+import re
+import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
 
-# Could this be loaded on the fly?
+# Get a list of file in this directory. We'll exclude from the start
+# files with leading characters we don't want like __init__ with its leading underscore.
+__py_files__ = [
+    osp.basename(f[0:-3])
+    for f in glob.glob(osp.join(osp.dirname(__file__), "[a-z]*.py"))
+]
+
+from mathics.builtin.base import (
+    Builtin,
+    SympyObject,
+    BoxConstruct,
+    Operator,
+    PatternObject,
+)
+
+
+exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [
-    "algebra",
-    "arithmetic",
-    "assignment",
-    "attributes",
-    "calculus",
-    "combinatorial",
-    "compilation",
-    "comparison",
-    "control",
-    "datentime",
-    "diffeqns",
-    "evaluation",
-    "exptrig",
-    "functional",
-    "graphics",
-    "graphics3d",
-    "image",
-    "inout",
-    "integer",
-    "iohooks",
-    "linalg",
-    "lists",
-    "logic",
-    "manipulate",
-    "quantities",
-    "numbertheory",
-    "numeric",
-    "options",
-    "patterns",
-    "plot",
-    "physchemdata",
-    "randomnumbers",
-    "recurrence",
-    "specialfunctions",
-    "scoping",
-    "strings",
-    "structure",
-    "system",
-    "tensors",
-    "xmlformat",
-    "optimization"
+    f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
 ]
 
 if ENABLE_FILES_MODULE:
-    # from mathics.builtin import files, importexport
     module_names += ["files", "importexport"]
 
 modules = []
 
 for module_name in module_names:
-    exec(f"from mathics.builtin import {module_name}")
-    exec(f"modules.append({module_name})")
-    
-    
-# from mathics.builtin import (
-#    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
-#    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-#    graphics, graphics3d,
-#    image, inout, integer, iohooks, linalg, lists, logic,
-#    manipulate, quantities, numbertheory, numeric, options, patterns,
-#    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
-#    strings, structure, system, tensors, xmlformat, optimization)
-
-from mathics.builtin.base import (
-    Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
-
-
-
-# modules = [
-#    algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
-#    comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-#    graphics, graphics3d,
-#    image, inout, integer, iohooks, linalg, lists, logic,
-#    manipulate, quantities, numbertheory, numeric, options, patterns,
-#    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
-#    strings, structure, system, tensors, xmlformat, optimization]
-
-
+    try:
+        module = importlib.import_module("mathics.builtin." + module_name)
+    except:
+        # print("XXX", module_name)
+        continue
+    modules.append(module)
 
 builtins = []
 builtins_by_module = {}
@@ -91,7 +49,7 @@ builtins_by_module = {}
 def is_builtin(var):
     if var == Builtin:
         return True
-    if hasattr(var, '__bases__'):
+    if hasattr(var, "__bases__"):
         return any(is_builtin(base) for base in var.__bases__)
     return False
 
@@ -101,23 +59,29 @@ for module in modules:
     vars = dir(module)
     for name in vars:
         var = getattr(module, name)
-        if (hasattr(var, '__module__') and
-            var.__module__.startswith('mathics.builtin.') and
-            var.__module__ != 'mathics.builtin.base' and
-            is_builtin(var) and not name.startswith('_') and
-            var.__module__ == module.__name__):     # nopep8
+        if (
+            hasattr(var, "__module__")
+            and var.__module__.startswith("mathics.builtin.")
+            and var.__module__ != "mathics.builtin.base"
+            and is_builtin(var)
+            and not name.startswith("_")
+            and var.__module__ == module.__name__
+        ):  # nopep8
 
             instance = var(expression=False)
 
             if isinstance(instance, Builtin):
-                builtins.append((instance.get_name(), instance))
+                # This set the default context for symbols in mathics.builtins
+                if not type(instance).context:
+                    type(instance).context = "System`"
+                builtins.append( (instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
 
 # builtins = dict(builtins)
 
-mathics_to_sympy = {} # here we have: name -> sympy object
-mathics_to_python = {} # here we have: name -> string
+mathics_to_sympy = {}  # here we have: name -> sympy object
+mathics_to_python = {}  # here we have: name -> string
 sympy_to_mathics = {}
 
 box_constructs = {}
@@ -156,22 +120,22 @@ def get_module_doc(module):
         doc = doc.strip()
     if doc:
         title = doc.splitlines()[0]
-        text = '\n'.join(doc.splitlines()[1:])
+        text = "\n".join(doc.splitlines()[1:])
     else:
         title = module.__name__
-        for prefix in ('mathics.builtin.', 'mathics.optional.'):
+        for prefix in ("mathics.builtin.", "mathics.optional."):
             if title.startswith(prefix):
-                title = title[len(prefix):]
+                title = title[len(prefix) :]
         title = title.capitalize()
-        text = ''
+        text = ""
     return title, text
 
 
 def contribute(definitions):
     # let MakeBoxes contribute first
-    builtins['System`MakeBoxes'].contribute(definitions)
+    builtins["System`MakeBoxes"].contribute(definitions)
     for name, item in builtins.items():
-        if name != 'System`MakeBoxes':
+        if name != "System`MakeBoxes":
             item.contribute(definitions)
 
     from mathics.core.expression import ensure_context

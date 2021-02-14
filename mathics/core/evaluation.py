@@ -59,7 +59,6 @@ class WLThrowInterrupt(EvaluationInterrupt):
         self.value = value
 
 
-
 def _thread_target(request, queue) -> None:
     try:
         result = request()
@@ -229,11 +228,7 @@ class Output(object):
 
 class Evaluation(object):
     def __init__(
-            self,
-            definitions=None,
-            output=None,
-            format="text",
-            catch_interrupt=True
+        self, definitions=None, output=None, format="text", catch_interrupt=True
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
@@ -263,9 +258,10 @@ class Evaluation(object):
 
     def parse(self, query):
         "Parse a single expression and print the messages."
-        from mathics.core.parser import SingleLineFeeder
+        from mathics.core.parser import MathicsSingleLineFeeder
 
-        return self.parse_feeder(SingleLineFeeder(query))
+        return self.parse_feeder(MathicsSingleLineFeeder(query))
+
 
     def parse_evaluate(self, query, timeout=None):
         expr = self.parse(query)
@@ -278,7 +274,6 @@ class Evaluation(object):
     def parse_feeder_returning_code(self, feeder):
         "Parse a single expression from feeder and print the messages."
         from mathics.core.parser.util import parse_returning_code
-
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)
         except TranslateError:
