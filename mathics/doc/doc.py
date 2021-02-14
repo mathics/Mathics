@@ -1143,7 +1143,6 @@ class DocTest(object):
       `|`  Prints output.
     """
     def __init__(self, index, testcase):
-
         def strip_sentinal(line):
             """Remove END_LINE_SENTINAL from the end of a line if it appears.
 
@@ -1192,7 +1191,7 @@ class DocTest(object):
                     if self.result is not None:
                         self.result += text
                     elif self.outs:
-                        self.outs[-1] += text
+                        self.outs[-1].text += text
                     continue
 
                 match = TESTCASE_OUT_RE.match(line)
@@ -1200,11 +1199,11 @@ class DocTest(object):
                 text = text.strip()
                 if symbol == '=':
                     self.result = text
-                elif text:
-                    if symbol == ':':
-                        out = Message('', '', text)
-                    elif symbol == '|':
-                        out = Print(text)
+                elif symbol == ':':
+                    out = Message('', '', text)
+                    self.outs.append(out)
+                elif symbol == '|':
+                    out = Print(text)
                     self.outs.append(out)
 
     def __str__(self):
