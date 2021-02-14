@@ -270,6 +270,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
+            builtin=self
         )
         if is_pymodule:
             definitions.pymathics[name] = definition

@@ -734,7 +734,7 @@ class Definition(object):
         options=None,
         nvalues=None,
         defaultvalues=None,
-        builtin=None,
+        builtin=None
     ) -> None:
 
         super(Definition, self).__init__()
