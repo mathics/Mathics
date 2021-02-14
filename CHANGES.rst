@@ -13,10 +13,11 @@ To accommodate growth and increased use of pieces of Mathics inside other packag
 Incompatible changes:
 +++++++++++++++++++++
 
-* `-e` `--execute` is better suited for embedded use. It shows just evaluation output as text.
+* ``-e`` ``--execute`` is better suited for embedded use. It shows just evaluation output as text.
+* Docker scripts ``dmathics``, ``dmathicsscript`` and ``dmathicsserver`` have been removed. They are part of the ``docker-mathics`` a separate PyPI package.
 
-The bump in the major version number reflects major changes in this release.
-Another major release is planned soon, with more major changes.
+The bump in the major version number reflects major changes in this release. Another major release is planned soon, with more major changes.
+
 See below for future work planned.
 
 New builtins
