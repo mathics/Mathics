@@ -552,6 +552,7 @@ class ArcTanh(_MPMathFunction):
 
     sympy_name = "atanh"
     mpmath_name = "atanh"
+    numpy_name = "arctanh"
 
     rules = {
         "Derivative[1][ArcTanh]": "1/(1-#^2)&",
