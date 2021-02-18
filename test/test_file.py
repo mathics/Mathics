@@ -1,3 +1,6 @@
+"""
+Tests of Builtins defined in mathics/builtin/file.py
+"""
 from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
@@ -28,3 +31,6 @@ def test_get_and_put():
 
     result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
     assert result is None
+
+def test_installation_directory_attributes():
+    assert _evaluate("Attributes[$InstallationDirectory]").to_python() == []
