@@ -43,6 +43,7 @@ from mathics.core.expression import (
     PrecisionReal,
     Rational,
     Real,
+    String,
     Symbol,
     SymbolFalse,
     SymbolTrue,
@@ -256,7 +257,38 @@ class N(Builtin):
                 )
             return Expression(head, *leaves)
 
+def _scipy_interface(integrator, options_map, mandatory=None, adapt_func=None):
+    """
+    This function provides a proxy for scipy.integrate
+    functions, adapting the parameters.
+    """
+    def _scipy_proxy_func_filter(fun, a, b, **opts):
+        native_opts = {}
+        if mandatory:
+            native_opts.update(mandatory)
+        for opt, val in opts.items():
+            native_opt = options_map.get(opt, None)
+            if native_opt:
+                if native_opt[1]:
+                    val = native_opt[1](val)
+                native_opts[native_opt[0]] = val
+        return adapt_func(integrator(fun, a, b, **native_opts))
+    
+    def _scipy_proxy_func(fun, a, b, **opts):
+        native_opts = {}
+        if mandatory:
+            native_opts.update(mandatory)
+        for opt, val in opts.items():
+            native_opt = options_map.get(opt, None)
+            if native_opt:
+                if native_opt[1]:
+                    val = native_opt[1](val)
+                native_opts[native_opt[0]] = val
+        return integrator(fun, a, b, **native_opts)
 
+    return _scipy_proxy_func_filter if adapt_func else _scipy_proxy_func
+
+    
 
 def _internal_adaptative_simpsons_rule(f, a, b, **opts):
     """
@@ -352,17 +384,22 @@ def _fubini(func, ranges, **opts):
     if tol is None:
         opts["tol"] = 1.e-10
         tol = 1.e-10
-
+    
     if len(ranges) > 1:
         def subintegral(*u):
             def ff(*z):
-                return func(*(u+z))
-            
-            return _fubini(ff, ranges[1:], **opts)[0]
+                val = func(*(u+z))
+                return val
+
+            val = _fubini(ff, ranges[1:], **opts)[0]
+            return val
+
         opts["tol"] = 4. * tol
-        return integrator(subintegral, a, b, **opts)
+        val = integrator(subintegral, a, b, **opts)
+        return val
     else:
-        return integrator(func, a, b, **opts)
+        val = integrator(func, a, b, **opts)
+        return val
 
 
 class NIntegrate(Builtin):
@@ -373,6 +410,7 @@ class NIntegrate(Builtin):
     </dl>
 
     >> Table[1./NIntegrate[x^k,{x,0,1},Tolerance->1*^-6], {k,0,6}]
+     : The especified method failed to return a number. Falling back into the internal evaluator.
      = {1., 2., 3., 4., 5., 6., 7.}
     >> NIntegrate[Exp[-x],{x,0,Infinity},Tolerance->1*^-6]
      = 1.
@@ -380,6 +418,11 @@ class NIntegrate(Builtin):
      = 1.
     >> NIntegrate[Exp[-x^2/2.],{x,-Infinity, Infinity},Tolerance->1*^-6]
      = 2.50663
+
+    >> NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance->1.*^-4]
+     : Integration over a complex domain is not implemented yet
+     = NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance -> 0.0001]
+     # = 6.2832 I
 
     Integrate singularities with weak divergences
     >> Table[NIntegrate[x^(1./k-1.),{x,0,1.},Tolerance->1*^-6], {k,1,7.}]
@@ -394,34 +437,50 @@ class NIntegrate(Builtin):
 #            'NIntegrate[f,{x,a,b}, "AccuracyGoal"->prec]'
 #    }
     
-    # messages =  {'nnintegr':"The integrand `1` is not a numeric function",
-    #             'nninflim': "The inferior limit  `1`  is not numeric",
-    #             'nninflim': "The superior limit `1` is not numeric",
-    #            }
+    messages =  {'bdmtd': "The Method option should be a built-in method name.",
+                 'inumr': " The integrand `1` has evaluated to non-numerical values for all sampling points in the region with boundaries `2`",
+                 'nlim' : '`1` = `2` is not a valid limit of integration.',
+                 'ilim' : 'Invalid integration variable or limit(s) in `1`.',
+                 'mtdfail' : "The especified method failed to return a number. Falling back into the internal evaluator.",
+                 'cmpint' : "Integration over a complex domain is not implemented yet",
+               }
 
-    options = {'"Method"': '"Automatic"',
+    options = {'Method': '"Automatic"',
                'Tolerance': '1*^-10',
                'Accuracy': '1*^-10',
                'MaxRecursion': '10',
     }
 
 
-    methods = {'Automatic': None,}
+    methods = {'Automatic': (None, False),}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.methods["Internal"] = _internal_adaptative_simpsons_rule
+        self.methods["Internal"] = (_internal_adaptative_simpsons_rule, False)
         try:
-            from scipy.integrate import (romberg, quad)
+            from scipy.integrate import (romberg, quad, nquad)
             print("Using scipy.integrate for numeric integration")
-            self.methods["Quadrature"] = quad
-            self.methods["Quadrature"] = romberg
-            self.methods["Automatic"] = self.methods["Internal"]
+            self.methods["NQuadrature"] = (_scipy_interface(nquad,
+                                                          {}, {"full_output": 1},
+                                                            lambda res: (res[0], res[1])), True)            
+            self.methods["Quadrature"] = (_scipy_interface(quad,
+                                                          {"tol": ("epsabs", None),
+                                                           "maxrec": ("limit",lambda maxrec: int(2**maxrec))
+                                                          }, {"full_output": 1},
+                                                           lambda res: (res[0], res[1])), False)
+            self.methods["Romberg"] = (_scipy_interface(romberg,
+                                                          {"tol": ("tol", None),
+                                                           "maxrec": ("divmax", None)
+                                                          }, None, lambda x: (x, np.nan) ), False)
+            self.methods["Automatic"] = self.methods["Quadrature"]
         except Exception as e:
-            print(e)
             print("Scipy not available. Using internal integrator")
             self.methods["Automatic"] = self.methods["Internal"]
             self.methods["Simpson"] = self.methods["Internal"]
+
+        self.messages["bdmtd"] = "The Method option should be a built-in method name in {`" + \
+            "`, `".join(list(self.methods)) + \
+            "`}. Using `Automatic`"
 
     @staticmethod
     def decompose_domain(interval, evaluation):
@@ -432,28 +491,43 @@ class NIntegrate(Builtin):
                 if inner_interval:
                     intervals.append(inner_interval)
                 else:
-                    evaluation.message("Malformed interval")
+                    evaluation.message("ilim", leaf)
                     return None
             return intervals
 
-        if interval.has_form('System`List',3, None):
+        if interval.has_form('System`List', 3, None):
             intervals = []
             intvar = interval.leaves[0]
             if not isinstance(intvar, Symbol):
+                evaluation.message("ilim", interval)
                 return None
             boundaries = [a for a in interval.leaves[1:]]
+            if any([b.get_head_name() == "System`Complex"  for b in boundaries]):
+                intvar = Expression("List", intvar, Expression("Blank", Symbol("Complex")))
             for i in range(len(boundaries)-1):
-                intervals.append((boundaries[i],boundaries[i+1]))
+                intervals.append((boundaries[i], boundaries[i+1]))
             if len(intervals)>0:
                 return (intvar, intervals)
 
-            return None    
-        evaluation.message("Domain not properly formatted")
+            
+        evaluation.message("ilim", interval)
         return None
     
     def apply_2(self, func, domain, evaluation, options):
         "NIntegrate[func_, domain__, OptionsPattern[%(name)s]]"
-        method = options['System`"Method"'].value
+        method = options['System`Method'].evaluate(evaluation)
+        method_options = {}
+        if method.has_form("System`List",2):
+            method = method.leaves[0]
+            method_options.update(method.leaves[1].get_option_values())
+        
+        if isinstance(method, String):
+            method = method.value
+        elif isinstance(method, Symbol):
+            method = method.get_name()
+        else:
+            evaluation.message("NIntegrate", "bdmtd", method)
+            return
         tolerance = options['System`Tolerance'].evaluate(evaluation)
         tolerance = float(tolerance.value)
         accuracy = options['System`Accuracy'].evaluate(evaluation)
@@ -461,9 +535,15 @@ class NIntegrate(Builtin):
         maxrecursion = options['System`MaxRecursion'].evaluate(evaluation)
         maxrecursion = maxrecursion.value
         
-        nintegrate_method = self.methods.get(method)
+        nintegrate_method = self.methods.get(method, None)
         if nintegrate_method is None:
+            evaluation.message("NIntegrate","bdmtd", method)
             nintegrate_method = self.methods.get("Automatic")
+            
+        if type(nintegrate_method) is tuple:
+            nintegrate_method, is_multidimensional = nintegrate_method
+        else:
+            is_multidimensional = False
 
         domain = self.decompose_domain(domain, evaluation)
         if not domain:
@@ -472,12 +552,18 @@ class NIntegrate(Builtin):
             domain = [domain]
         
         coords = [axis[0] for axis in domain]
+        # If any of the points in the integration domain is complex, stop the evaluation...
+        if any([c.get_head_name() == "System`List" for c in coords]):
+            evaluation.message("NIntegrate", "cmpint")            
+            return
+        
         intvars = Expression("List", *coords)
         integrand = Expression("Compile", intvars, func).evaluate(evaluation)
+
         if len(integrand.leaves)>=3:
             integrand = integrand.leaves[2].cfunc
         else:
-            print(func, " could not be compiled")
+            evaluation.message("inumer", func, domain)
             return
         results = []
         for subdomain in  product(*[axis[1] for axis in domain]):
@@ -508,28 +594,39 @@ class NIntegrate(Builtin):
                         coordtransform.append((np.arctanh, lambda u:1./(1.-u**2)))
                     else:
                         if not b.is_numeric():
-                            evaluation.message("Boundary is not numeric.")
-                            return SymbolFailed
+                            evaluation.message("nlim", coords[i], b)
+                            return
                         z = a.leaves[0].value
                         b = b.value
                         subdomain2.append( [machine_epsilon, 1.])
                         coordtransform.append((lambda u: b-z + z/u, lambda u: -z*u**(-2.)))
                 elif b.get_head_name() == 'System`DirectedInfinity':
                     if not a.is_numeric():
-                        evaluation.message("Boundary is not numeric.")
-                        return SymbolFailed
+                        evaluation.message("nlim", coords[i], a)
+                        return
                     a = a.value
                     z = b.leaves[0].value
                     subdomain2.append([machine_epsilon, 1.])
                     coordtransform.append((lambda u: a-z + z/u, lambda u: z*u**(-2.)))
                 elif a.is_numeric() and b.is_numeric():
-                    a = Expression("N", a).evaluate(evaluation).value
-                    b = Expression("N", b).evaluate(evaluation).value
-                    subdomain2.append([a, b])
-                    coordtransform.append(None)
+                    if "System`Complex" in (a.get_head_name(), b.get_head_name()):
+                        evaluation.message("NIntegrate", "Integration over a complex domain is not implemented yet")
+                        return
+                        # a = a.to_python()
+                        # b = b.to_python()
+                        # dab = b - a
+                        # subdomain2.append([0, 1.])
+                        # coordtransform.append((lambda u: a + dab * u, lambda u: dab))
+                    else:
+                        a = Expression("N", a).evaluate(evaluation).value
+                        b = Expression("N", b).evaluate(evaluation).value
+                        subdomain2.append([a, b])
+                        coordtransform.append(None)
                 else:
-                    evaluation.message("Boundary is not numeric.")
-                    return SymbolFailed
+                    for x in (a,b):
+                        if not x.is_numeric():
+                            evaluation.message("nlim", coords[i], x)
+                    return
 
             if nulldomain:
                 continue
@@ -539,19 +636,34 @@ class NIntegrate(Builtin):
                                                 for i, x in enumerate(coordtransform)])
                                    * np.prod([ jac[1](u[i] )
                                                for i, jac in enumerate(coordtransform) if jac]))
-            opts = {#""  : accuracy,
+            opts = {"acur"  : accuracy,
                     "tol"    : tolerance,
-                    #"maxrec" : maxrecursion,
+                    "maxrec" : maxrecursion,
             }
-            if len(subdomain2) >1:
-                val = _fubini(func2, subdomain2,
+            opts.update(method_options)
+            try:    
+                if len(subdomain2) >1:
+                    if is_multidimensional:
+                        nintegrate_method(func2, subdomain2, **opts)
+                    else:
+                        val = _fubini(func2, subdomain2,
                               integrator=nintegrate_method, **opts)
-            else:
-                val = nintegrate_method(func2, *(subdomain2[0]), **opts)
+                else:
+                    val = nintegrate_method(func2, *(subdomain2[0]), **opts)
+            except Exception as e:
+                val = None
+
+            if val is None:
+                evaluation.message("NIntegrate", "mtdfail" )
+                if len(subdomain2) >1:
+                    val = _fubini(func2, subdomain2,
+                              integrator=_internal_adaptative_simpsons_rule, **opts)
+                else:
+                    val = _internal_adaptative_simpsons_rule(func2, *(subdomain2[0]), **opts)
             results.append(val)
+
         result = sum([r[0] for r in results])
         error = sum([r[1] for r in results])
-        # print("result=", result, "  error=",error)
         return from_python(result)
     
 class MachinePrecision(Predefined):
