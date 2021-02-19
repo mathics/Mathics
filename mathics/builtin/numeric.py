@@ -338,7 +338,10 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
         
 
     m, fm, whole = _quad_simpsons_mem(f, a, fa, b, fb)
-    return _quad_asr(f, a, fa, b, fb, tol, whole, m, fm, maxrec)
+    if invert_interval:
+        return -_quad_asr(f, a, fa, b, fb, tol, whole, m, fm, maxrec)
+    else:
+        return _quad_asr(f, a, fa, b, fb, tol, whole, m, fm, maxrec)
 
 def _fubini(func, ranges, **opts):
     if not ranges:
