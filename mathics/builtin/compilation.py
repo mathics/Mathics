@@ -14,7 +14,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 
 class Compile(Builtin):
-    """
+    '''
     <dl>
     <dt>'Compile[{x1, x2, ...}, expr_]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
