@@ -984,16 +984,22 @@ class Expression(BaseExpression):
         Null       -> None
         Symbol     -> '...'
         String     -> '"..."'
+        Function   -> python function
         numbers    -> Python number
         If kwarg n_evaluation is given, apply N first to the expression.
         """
         from mathics.builtin.base import mathics_to_python
-
         n_evaluation = kwargs.get('n_evaluation')
+        head_name = self._head.get_name()
         if n_evaluation is not None:
+            if head_name == 'System`Function':
+                compiled = Expression("System`Compile", *(self._leaves))
+                compiled = compiled.evaluate(n_evaluation)
+                if compiled.get_head_name() == "System`CompiledFunction":
+                    return compiled.leaves[2].cfunc
             value = Expression('N', self).evaluate(n_evaluation)
             return value.to_python()
-        head_name = self._head.get_name()
+
         if head_name == 'System`DirectedInfinity' and len(self._leaves) == 1:
             direction = self._leaves[0].get_int_value()
             if direction == 1:
@@ -1002,6 +1008,7 @@ class Expression(BaseExpression):
                 return -math.inf
         elif head_name == 'System`List':
             return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+
         if head_name in mathics_to_python:
             py_obj = mathics_to_python[head_name]
             # Start here

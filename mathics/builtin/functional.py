@@ -86,7 +86,7 @@ class Function(PostfixOperator):
         # print([v.get_head_name()=="System`Pattern" or v.is_symbol() for v in vars])
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message('Function', 'fpct')
         else:
             # Allows to use both symbols or Blank patterns (z_Complex) to state the symbol.
             # this is not included in WL, and here does not have any impact, but it is needed for
@@ -109,7 +109,7 @@ class Function(PostfixOperator):
 
         args = args.get_sequence()        
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message('Function', 'fpct')
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
