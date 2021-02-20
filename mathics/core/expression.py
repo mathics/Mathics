@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
@@ -1472,7 +1471,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
-        head = self._head
         name = self._head.get_name()
         if (
             name == "System`RowBox"
