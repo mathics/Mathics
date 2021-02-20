@@ -11,6 +11,7 @@ from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
 
 
+
 class Function(PostfixOperator):
     """
     <dl>
@@ -81,13 +82,22 @@ class Function(PostfixOperator):
         else:
             vars = [vars]
 
+        
+        # print([v.get_head_name()=="System`Pattern" or v.is_symbol() for v in vars])
         args = args.get_sequence()
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
-            vars = dict(list(zip((
-                var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            # Allows to use both symbols or Blank patterns (z_Complex) to state the symbol.
+            # this is not included in WL, and here does not have any impact, but it is needed for
+            # translating the function to a compiled version.
+            var_names = (var.get_name() if var.is_symbol()
+                         else var.leaves[0].get_name()  for var in vars)
+            vars = dict(list(zip(var_names, args[:len(vars)])))
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
     # Not sure if DRY is possible here...
     def apply_named_attr(self, vars, body, attr, args, evaluation):
@@ -103,7 +113,10 @@ class Function(PostfixOperator):
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
 
 class Slot(Builtin):
