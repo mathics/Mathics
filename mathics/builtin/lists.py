@@ -443,6 +443,7 @@ def _parts_all_selector():
 
     return select
 
+
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)

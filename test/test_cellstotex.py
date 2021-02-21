@@ -47,7 +47,6 @@ def test_load():
     expected2 = _evaluate('{"CellToTeX", "CellsToTeXException", "CellsToTeXPreamble"}')
     print(result2)
     assert result2 == expected2
-    
 
 
 @pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
@@ -65,15 +64,12 @@ def test_load_and_run():
     if result0 == Symbol("System`$Failed"):
         return 0
 
-
-
     str_expr1 = 'CellsToTeXPreamble[]'
     str_expected1 = '"\\mmaSet{morefv={gobble=2,},}\\n"'
     result1 = _evaluate(str_expr1)
     expected1 = _evaluate(str_expected1)
     assert result1 == expected1
 
-    
     str_expr1 = 'boxes=MakeBoxes[Pi];\
                  cell = Cell[BoxData[boxes], "Input"];res=Catch[CellToTeX[cell, Style->"Input"]]'
     str_expected1 = '"\\begin{mmaCell}{Input}\n  \\pi\n\\end{mmaCell}"'

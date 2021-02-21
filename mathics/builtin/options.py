@@ -129,6 +129,7 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
+
     rules = {
         'OptionValue[optnames_List]': 'OptionValue/@optnames',
         'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
@@ -298,8 +299,6 @@ class OptionQ(Test):
             expr = [expr]
         else:
             expr = expr.get_leaves()
-
-        
         return all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
                    for e in expr)
 

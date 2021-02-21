@@ -23,6 +23,7 @@ from mathics.builtin.base import (
     PatternObject,
 )
 
+from mathics.settings import ENABLE_FILES_MODULE
 
 exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [

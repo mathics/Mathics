@@ -89,38 +89,9 @@ class Function(PostfixOperator):
                 var.get_name() for var in vars), args[:len(vars)])))
             return body.replace_vars(vars)
 
-    def apply_named_attr(self, vars, body, attr, args, evaluation):
-        'Function[vars_, body_, attr_][args___]'
-
-        ## FIXME: In order to get the proper behaviour, we need
-        ## to take into account  the attributes in the evaluation
-        ##
-
-        print("Warning: incomplete implementation")
-        if attr.has_form('List', None):
-            attr = [str(a) for a in  attr.leaves]
-        else:
-            attr = [str(attr)]
-
-            
-        if vars.has_form('List', None):
-            vars = vars.leaves
-        else:
-            vars = [vars]
-
-
-        args = args.get_sequence()        
-        if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
-        else:
-            vars = dict(list(zip((
-                var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
-
-
     # Not sure if DRY is possible here...
     def apply_named_attr(self, vars, body, attr, args, evaluation):
-        'Function[vars_, body_, attr_][args___]'        
+        'Function[vars_, body_, attr_][args___]'
         if vars.has_form('List', None):
             vars = vars.leaves
         else:

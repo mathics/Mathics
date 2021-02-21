@@ -55,7 +55,7 @@ import pytest
 def test_evaluation(str_expr: str, str_expected: str, message=""):
     result = session.evaluate(str_expr)
     expected = session.evaluate(str_expected)
-    print("message=", message)
+
     if message:
         assert result == expected, message
     else:

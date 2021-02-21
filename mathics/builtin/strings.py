@@ -1575,6 +1575,7 @@ class ToString(Builtin):
     >> "U" <> ToString[2]
      = U2
     """
+
     options = {'CharacterEncoding' : '"Unicode"',
                 'FormatType' : 'OutputForm',
                 'NumberMarks': '$NumberMarks',
