@@ -34,7 +34,7 @@ class Compile(Builtin):
      : Duplicate parameter x found in {{x, _Real}, {x, _Integer}}.
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
-     = CompiledFunction[{x, y}, Sin[x + z], -CompiledCode-]
+     = CompiledFunction[{x, y}, Sin[x + z], -PythonizedCode-]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
     #> cf[1, 2]
@@ -53,7 +53,7 @@ class Compile(Builtin):
     Loops and variable assignments are supported as python (not llvmlite)
     functions
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
-     =  CompiledFunction[{a, b}, a, -CompiledCode-]
+     =  CompiledFunction[{a, b}, a, -PythonizedCode-]
     '''
 
     requires = (
