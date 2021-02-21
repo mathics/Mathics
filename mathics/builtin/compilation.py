@@ -3,7 +3,8 @@ import ctypes
 from mathics.builtin.base import Builtin, BoxConstruct
 from mathics.core.expression import Atom, Expression, Symbol, String, from_python, Integer, Real
 from mathics.core.evaluation import Evaluation
-
+from types import FunctionType
+        
 class Compile(Builtin):
     '''
     <dl>
@@ -142,6 +143,8 @@ class CompiledCode(Atom):
         self.args = args
 
     def __str__(self):
+        if type(self.cfunc) is FunctionType:
+            return '-PythonizedCode-'
         return '-CompiledCode-'
 
     def do_copy(self):
@@ -166,7 +169,7 @@ class CompiledCode(Atom):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
-        return Expression('CompiledCodeBox')
+        return Expression('CompiledCodeBox', self)
 
 
 class CompiledCodeBox(BoxConstruct):
@@ -174,13 +177,13 @@ class CompiledCodeBox(BoxConstruct):
     Used internally by <i>CompileCode[]</i>.
     """
     def boxes_to_text(self, leaves, **options):
-        return '-CompiledCode-'
+        return leaves[0].__str__()
 
     def boxes_to_xml(self, leaves, **options):
-        return '-CompiledCode-'
+        return leaves[0].__str__()
 
     def boxes_to_tex(self, leaves, **options):
-        return '-CompiledCode-'
+        return leaves[0].__str__()
 
 
 class CompiledFunction(Builtin):
