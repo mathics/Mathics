@@ -2137,7 +2137,7 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero and not(self.denominator().is_zero)
+        return self.numerator().is_zero and not self.denominator().is_zero()
 
 
 class Real(Number):
