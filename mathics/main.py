@@ -323,7 +323,7 @@ def main() -> int:
             return exit_rc
 
     if args.FILE is not None:
-        feeder = FileLineFeeder(args.FILE)
+        feeder = MathicsFileLineFeeder(args.FILE)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
