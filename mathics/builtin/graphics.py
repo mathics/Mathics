@@ -26,6 +26,8 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolTrue,
+    SymbolFalse,
     strip_context,
     system_symbols,
     system_symbols_dict,
@@ -2936,6 +2938,12 @@ class GraphicsBox(BoxConstruct):
 
     attributes = ("HoldAll", "ReadProtected")
 
+    messages = {
+        "asynotav": 'Asymptote is not available in this system. Using the buggy backend.',
+        "noasyfile": 'Asy requires write permisions over a temporary file, but it was not available. Using the buggy backend',
+        "asyfail": 'Asymptote failed building the svg picture. Using the buggy backend.',
+    }
+    
     def boxes_to_text(self, leaves, **options):
         self._prepare_elements(leaves, options)  # to test for Box errors
         return "-Graphics-"
@@ -3203,6 +3211,7 @@ clip(%s);
             check_asy = evaluation.definitions.get_ownvalue("Settings`UseAsyForGraphics2D")
             if check_asy:
                 check_asy = check_asy.replace.is_true()
+  
         if check_asy:
             import os
             from subprocess import DEVNULL, STDOUT, check_call
@@ -3211,36 +3220,41 @@ clip(%s);
                 check_call(['asy', '--version'], stdout=DEVNULL, stderr=DEVNULL)
             except:
                 check_asy = False
+                evaluation.message("GraphicsBox", "asynotav")
+                Expression("Set", Symbol("Settings`UseAsyForGraphics2D"), SymbolFalse).evaluate(evaluation)
 
         if check_asy:
             asy, width, height = self.boxes_to_tex(leaves, forxml=True, **options)
             fin = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))
             fout = fin + ".svg"
-            with open(fin, 'w+') as borrador:
-                borrador.write(asy)
+            try:
+                with open(fin, 'w+') as borrador:
+                    borrador.write(asy)
+            except:
+                evaluation.message("GraphicsBox", "noasyfile")
+                check_asy = False
 
+        if check_asy:
             try:
                 check_call(['asy', '-f', 'svg', '--svgemulation' ,'-o', fout, fin], stdout=DEVNULL, stderr=DEVNULL)
             except:
-                print("Asy failed to build a svg")
+                evaluation.message("GraphicsBox", "asyfail")
                 check_asy = False
 
-            if check_asy:
-                with open(fout, 'rt') as ff:
-                    svg = ff.read()
+        if check_asy:
+            with open(fout, 'rt') as ff:
+                svg = ff.read()
 
-                svg = svg[svg.find("<svg "):]
-                return (
-                    '<img  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
-                    % (
-                        int(width),
-                        int(height),
-                        base64.b64encode(svg.encode("utf8")).decode("utf8"),
-                    )
+            svg = svg[svg.find("<svg "):]
+            return (
+                '<img  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+                % (
+                    int(width),
+                    int(height),
+                    base64.b64encode(svg.encode("utf8")).decode("utf8"),
                 )
-        else:
-            print("Asy not available. Continue with standard")
-
+            )
+        # Not using asymptote. Continue with the buggy backend...
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
