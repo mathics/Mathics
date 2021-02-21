@@ -3142,7 +3142,7 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_tex(self, leaves, forxml=False, **options):
+    def boxes_to_tex(self, leaves, **options):
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, max_width=450
         )
@@ -3190,7 +3190,7 @@ clip(%s);
             asy_box,
             asy_completely_visible,
         )
-
+        forxml = options.get("forxml", None)
         if forxml:
             return (tex, width, height)
         else:
