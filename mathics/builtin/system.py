@@ -401,7 +401,7 @@ class UserName(Predefined):
     </dl>
 
     X> $UserName
-     = rocky
+     = ...
     """
 
     name = "$UserName"
@@ -410,7 +410,7 @@ class UserName(Predefined):
         try:
             return String(os.getlogin())
         except:
-            return String("rocky")
+            return String("??user-retrieval-error")
 
 
 class Version(Predefined):
