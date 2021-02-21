@@ -8,7 +8,7 @@ Graphics (3D)
 
 import numbers
 from mathics.core.expression import Expression, from_python, system_symbols_dict
-from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
+from mathics.builtin.base import BoxConstructError, Builtin, CustomizableBuiltin
 from .graphics import (
     Graphics,
     GraphicsBox,
@@ -1130,7 +1130,7 @@ class Cuboid(Builtin):
         return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
 
-class _Graphics3DElement(InstancableBuiltin):
+class _Graphics3DElement(CustomizableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError

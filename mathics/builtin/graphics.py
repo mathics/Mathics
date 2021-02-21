@@ -14,7 +14,7 @@ from itertools import chain
 
 from mathics.builtin.base import (
     Builtin,
-    InstancableBuiltin,
+    CustomizableBuiltin,
     BoxConstruct,
     BoxConstructError,
 )
@@ -470,6 +470,7 @@ class Graphics(Builtin):
     def apply_makeboxes(self, content, evaluation, options):
         """MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]],
         StandardForm|TraditionalForm|OutputForm]"""
+
         def convert(content):
             head = content.get_head_name()
 
@@ -507,15 +508,16 @@ class Graphics(Builtin):
         for option in options:
             if option not in ("System`ImageSize",):
                 options[option] = Expression("N", options[option]).evaluate(evaluation)
-        #box_name = "Graphics" + self.box_suffix
+        # box_name = "Graphics" + self.box_suffix
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+
         if type(self) is Graphics:
             return GraphicsBox(convert(content), *options_to_rules(options))
         elif type(self) is Graphics3D:
             return Graphics3DBox(convert(content), *options_to_rules(options))
 
 
-class _GraphicsElement(InstancableBuiltin):
+class _GraphicsElement(CustomizableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
@@ -3236,7 +3238,6 @@ clip(%s);
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
             svg,
         )
-        print("svg=", svg_xml)
         return (
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
             % (
@@ -3666,7 +3667,6 @@ class Black(_ColorObject):
     }
 
 
-
 class White(_ColorObject):
     """
     >> White
@@ -3742,7 +3742,6 @@ class Magenta(_ColorObject):
     rules = {
         "Magenta": "RGBColor[1, 0, 1]",
     }
-
 
 
 class Yellow(_ColorObject):
@@ -3866,10 +3865,7 @@ styles = system_symbols_dict(
 )
 
 style_options = system_symbols_dict(
-    {
-        "FontColor": _style,
-        "ImageSizeMultipliers": (lambda *x: x[1])
-    }
+    {"FontColor": _style, "ImageSizeMultipliers": (lambda *x: x[1])}
 )
 
 style_heads = frozenset(styles.keys())
