@@ -7,4 +7,4 @@ include Makefile
 include mathics/Makefile
 include mathics/Makefile
 recursive-include mathics *.py
-recursive-include test *.py
+recursive-include test *.py *.m
