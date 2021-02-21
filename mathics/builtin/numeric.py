@@ -453,7 +453,7 @@ class NIntegrate(Builtin):
         self.methods["Internal"] = (_internal_adaptative_simpsons_rule, False)
         try:
             from scipy.integrate import (romberg, quad, nquad)
-            print("Using scipy.integrate for numeric integration")
+            # print("Using scipy.integrate for numeric integration")
             self.methods["NQuadrature"] = (_scipy_interface(nquad,
                                                           {}, {"full_output": 1},
                                                             lambda res: (res[0], res[1])), True)
@@ -468,7 +468,7 @@ class NIntegrate(Builtin):
                                                           }, None, lambda x: (x, np.nan) ), False)
             self.methods["Automatic"] = self.methods["Quadrature"]
         except Exception:
-            print("Scipy not available. Using internal integrator")
+            # print("Scipy not available. Using internal integrator")
             self.methods["Automatic"] = self.methods["Internal"]
             self.methods["Simpson"] = self.methods["Internal"]
 

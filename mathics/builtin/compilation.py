@@ -1,5 +1,6 @@
 import ctypes
 
+from llvmlite import ir
 from mathics.builtin.base import Builtin, BoxConstruct
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
@@ -138,7 +139,7 @@ class Compile(Builtin):
 
                 # TODO: check if we can use numba to compile this...
                 cfunc = _pythonized_mathics_expr
-            except Exception as e:
+            except Exception:
                 cfunc = None
 
         if cfunc is None:
@@ -159,6 +160,9 @@ class CompiledCode(Atom):
 
     def __str__(self):
         return "-CompiledCode-"
+        if type(self.cfunc) is ir.FunctionType:
+            return '-PythonizedCode-'
+        return '-CompiledCode-'
 
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
