@@ -1,5 +1,5 @@
 import os
-from mathics.core.parser import parse, SingleLineFeeder
+from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Symbol
@@ -27,7 +27,7 @@ import_url = 'Import@"%s"' % external_url
 
 
 def _evaluate(str_expression):
-    expr = parse(definitions, SingleLineFeeder(str_expression))
+    expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
 def test_load():
@@ -47,7 +47,7 @@ def test_load():
     expected2 = _evaluate('{"CellToTeX", "CellsToTeXException", "CellsToTeXPreamble"}')
     print(result2)
     assert result2 == expected2
-    
+
 
 
 @pytest.mark.skipif(not url_reachable, reason="skipping since we can't reach %s" % external_url)
@@ -57,7 +57,6 @@ def test_load():
 def test_load_and_run():
     print("load and run")
     str_expected0 = "None"
-    message0 = "Import::nffil: File not found during Import."
     _evaluate(set_versionnumber)
     result0 = _evaluate(import_url)
     expected0 = _evaluate(str_expected0)
@@ -73,7 +72,7 @@ def test_load_and_run():
     expected1 = _evaluate(str_expected1)
     assert result1 == expected1
 
-    
+
     str_expr1 = 'boxes=MakeBoxes[Pi];\
                  cell = Cell[BoxData[boxes], "Input"];res=Catch[CellToTeX[cell, Style->"Input"]]'
     str_expected1 = '"\\begin{mmaCell}{Input}\n  \\pi\n\\end{mmaCell}"'
