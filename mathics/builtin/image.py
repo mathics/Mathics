@@ -244,6 +244,8 @@ class ImageExport(_ImageBuiltin):
         if isinstance(expr, Image):
             expr.pil().save(path.get_string_value())
             return SymbolNull
+        elif path.value[-3:] in ("png", "PNG"):
+            return Expression(Symbol("System`Convert`ImageDump`ExportPNG"), expr).evaluate(evaluation)
         else:
             return evaluation.message("ImageExport", "noimage")
 
