@@ -1447,46 +1447,30 @@ class ConvertCommonDumpRemoveLinearSyntax(Builtin):
         print("No idea what should this do. By now, do nothing...")
         return arg
 
+########################   Asy Exporters  ###############################
+#
+# This could be in another module, or in a pymathics external module
+#
+#
 
-class ExportToPDF(Builtin):
-    """
-    <dl>
-    <dt> 'System`Convert`PDFDump`ExportToPDF[$filename$, $expr$]'
-    <dd> Export the expression to a PDF file
-    </dl>
-    
+import tempfile
+import os
+from subprocess import DEVNULL, STDOUT, check_call
+from mathics.core.expression import BoxError
+from mathics_scanner import replace_wl_with_plain_text
 
-    This is an internal builtin that takes an expression,
-    convert it in a Graphics object, and export it to Asy.
-    Then, from the asy set of instructions, a pdf is built
 
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",MatrixForm[{{a,n},{c,d}}]; a+b]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],x]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],{x,a,b}]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot[Cos[x],{x,0,20}]]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
-     = -test.pdf-
-    """
-
-    context = "System`Convert`PDFDump`"
-
+class _AsyExporter(Builtin):
     attributes = ("HoldRest", )
-    
+
     messages = {"boxerr": "Not able to interpret box `1`",
                 "nowrtacs": "ExportToPDF requires write access.",
     }
+
+    extension = None
     
     def apply_asy_pdf(self, filename, expr, evaluation, **options):
         '%(name)s[filename_String, expr_, OptionsPattern[%(name)s]]'
-        import tempfile
-        import os
-        from subprocess import DEVNULL, STDOUT, check_call
-        from mathics.core.expression import BoxError
-        from mathics_scanner import replace_wl_with_plain_text
 
         filename = filename.value
         if expr.get_head_name() not in ("System`Graphics", "System`Graphics3D"):
@@ -1500,7 +1484,7 @@ class ExportToPDF(Builtin):
         try:
             asy_code = asy_code.boxes_to_tex(evaluation=evaluation)
         except BoxError as e:
-            evaluation.message("ExportToPDF","boxerr", e.box)
+            evaluation.message(self.get_name(),"boxerr", e.box)
             return SymbolFailed
 
         asy_code = asy_code[13:-10]
@@ -1513,10 +1497,10 @@ class ExportToPDF(Builtin):
             with open(fin, 'w+') as borrador:
                     borrador.write(asy_code)
         except:
-            evaluation.message("ExportToPDF","nowrtacs")
+            evaluation.message(self.get_name(),"nowrtacs")
             return SymbolFailed
         try:
-            check_call(['asy', '-f', 'pdf',
+            check_call(['asy', '-f', self.extension,
                         '--svgemulation' ,
                         '-o',
                         filename,
@@ -1527,3 +1511,80 @@ class ExportToPDF(Builtin):
             return SymbolFailed
 
         return String("-"+ filename +"-")
+
+
+class ExportSVG(_AsyExporter):
+    """
+    <dl>
+    <dt> 'System`Convert`TextDump`ExportSVG[$filename$, $expr$]'
+    <dd> Export the expression to a SVG file
+
+    This is an internal builtin that takes an expression,
+    convert it in a Graphics object, and export it to Asy.
+    Then, from the asy set of instructions, a pdf is built
+    </dl>
+    >> System`Convert`TextDump`ExportSVG["test.svg",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = -test.svg-
+    >> System`Convert`TextDump`ExportSVG["test.svg",Integrate[f[x],x]]
+     = -test.svg-
+    >> System`Convert`TextDump`ExportSVG["test.svg",Integrate[f[x],{x,a,b}]]
+     = -test.svg-
+    >> System`Convert`TextDump`ExportSVG["test.svg",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = -test.svg-
+    >> System`Convert`TextDump`ExportSVG["test.svg",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = -test.svg-
+    """
+    extension = "svg"
+    context = "System`Convert`TextDump`"
+
+
+class ExportToPDF(_AsyExporter):
+    """
+    <dl>
+    <dt> 'System`Convert`PDFDump`ExportToPDF[$filename$, $expr$]'
+    <dd> Export the expression to a PDF file
+
+    This is an internal builtin that takes an expression,
+    convert it in a Graphics object, and export it to Asy.
+    Then, from the asy set of instructions, a pdf is built
+    </dl>
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],x]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],{x,a,b}]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = -test.pdf-
+    """
+
+    extension = "pdf"
+    context = "System`Convert`PDFDump`"
+
+
+class ExportPNG(_AsyExporter):
+    """
+    <dl>
+    <dt> 'System`Convert`ImageDump`ExportPNG[$filename$, $expr$]'
+    <dd> Export the expression to a PNG file
+
+    This is an internal builtin that takes an expression,
+    convert it in a Graphics object, and export it to Asy.
+    Then, from the asy set of instructions, a pdf is built
+    </dl>
+    >> System`Convert`ImageDump`ExportPNG["test.png",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = -test.png-
+    >> System`Convert`ImageDump`ExportPNG["test.png",Integrate[f[x],x]]
+     = -test.png-
+    >> System`Convert`ImageDump`ExportPNG["test.png",Integrate[f[x],{x,a,b}]]
+     = -test.png-
+    >> System`Convert`ImageDump`ExportPNG["test.png",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = -test.png-
+    >> System`Convert`ImageDump`ExportPNG["test.png",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = -test.png-
+    """
+    extension = "png"
+    context = "System`Convert`ImageDump`"
+
