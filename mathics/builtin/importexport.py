@@ -1233,8 +1233,6 @@ class ExportString(Builtin):
                     res = tmpstream.read().decode('utf-8')
                     tmpstream.close()
                 except Exception as e:
-                    print("something went wrong")
-                    print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return SymbolFailed
                 res = String(str(res))
@@ -1448,3 +1446,84 @@ class ConvertCommonDumpRemoveLinearSyntax(Builtin):
         'System`Convert`CommonDump`RemoveLinearSyntax[arg_]'
         print("No idea what should this do. By now, do nothing...")
         return arg
+
+
+class ExportToPDF(Builtin):
+    """
+    <dl>
+    <dt> 'System`Convert`PDFDump`ExportToPDF[$filename$, $expr$]'
+    <dd> Export the expression to a PDF file
+    </dl>
+    
+
+    This is an internal builtin that takes an expression,
+    convert it in a Graphics object, and export it to Asy.
+    Then, from the asy set of instructions, a pdf is built
+
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],x]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],{x,a,b}]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = -test.pdf-
+    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = -test.pdf-
+    """
+
+    context = "System`Convert`PDFDump`"
+
+    attributes = ("HoldRest", )
+    
+    messages = {"boxerr": "Not able to interpret box `1`",
+                "nowrtacs": "ExportToPDF requires write access.",
+    }
+    
+    def apply_asy_pdf(self, filename, expr, evaluation, **options):
+        '%(name)s[filename_String, expr_, OptionsPattern[%(name)s]]'
+        import tempfile
+        import os
+        from subprocess import DEVNULL, STDOUT, check_call
+        from mathics.core.expression import BoxError
+        from mathics_scanner import replace_wl_with_plain_text
+
+        filename = filename.value
+        if expr.get_head_name() not in ("System`Graphics", "System`Graphics3D"):
+            expr = Expression("Text", expr)
+            expr = Expression("Graphics",
+                              Expression("List",
+                                         expr)
+            )
+
+        asy_code = Expression("MakeBoxes", expr).evaluate(evaluation)
+        try:
+            asy_code = asy_code.boxes_to_tex(evaluation=evaluation)
+        except BoxError as e:
+            evaluation.message("ExportToPDF","boxerr", e.box)
+            return SymbolFailed
+
+        asy_code = asy_code[13:-10]
+        asy_code = replace_wl_with_plain_text(asy_code, False)
+        # TODO: Handle properly WL characters to latex commands
+        asy_code = asy_code.replace("\\[DifferentialD]", "d ")
+        fin = os.path.join(tempfile._get_default_tempdir(),
+                           next(tempfile._get_candidate_names()))
+        try:
+            with open(fin, 'w+') as borrador:
+                    borrador.write(asy_code)
+        except:
+            evaluation.message("ExportToPDF","nowrtacs")
+            return SymbolFailed
+        try:
+            check_call(['asy', '-f', 'pdf',
+                        '--svgemulation' ,
+                        '-o',
+                        filename,
+                        fin],
+                       stdout=DEVNULL,
+                       stderr=DEVNULL)
+        except:
+            return SymbolFailed
+
+        return String("-"+ filename +"-")

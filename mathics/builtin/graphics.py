@@ -2580,14 +2580,13 @@ class InsetBox(_GraphicsElement):
             self.content = content
             self.pos = pos
             self.opos = opos
-        self.content_text = self.content.boxes_to_text(
-            evaluation=self.graphics.evaluation
-        )
+
+        self.estimated_width = 560 # 80 characters x 7
 
     def extent(self):
         p = self.pos.pos()
         h = 25
-        w = len(self.content_text) * 7  # rough approximation by numbers of characters
+        w = self.estimated_width
         opos = self.opos
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0

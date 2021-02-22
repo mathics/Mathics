@@ -4,7 +4,7 @@ Begin["System`Convert`PDF`"]
 
 RegisterImageExport[type_] := ImportExport`RegisterExport[
     type,
-	System`PDFExport,
+	System`Convert`PDFDump`ExportToPDF,
         FunctionChannels -> {"FileNames"},
 	Options -> {},
 	BinaryFormat -> True
