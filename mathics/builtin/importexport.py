@@ -1004,6 +1004,7 @@ class Export(Builtin):
         'txt': 'Text',
         'csv': 'CSV',
         'svg': 'SVG',
+        'pdf': 'PDF',
     }
 
     rules = {
@@ -1024,7 +1025,6 @@ class Export(Builtin):
 
         # Determine Format
         form = self._infer_form(filename, evaluation)
-
         if form is None:
             evaluation.message('Export', 'infer', filename)
             return SymbolFailed
@@ -1074,7 +1074,6 @@ class Export(Builtin):
 
         # First item in format_spec is the explicit format.
         # The other elements (if present) are compression formats
-
         if elems_spec != []:        # FIXME: support elems
             evaluation.message(
                 'Export', 'noelem', elems, String(format_spec[0]))
@@ -1469,7 +1468,7 @@ class _AsyExporter(Builtin):
 
     extension = None
     
-    def apply_asy_pdf(self, filename, expr, evaluation, **options):
+    def apply_asy(self, filename, expr, evaluation, **options):
         '%(name)s[filename_String, expr_, OptionsPattern[%(name)s]]'
 
         filename = filename.value
@@ -1500,8 +1499,16 @@ class _AsyExporter(Builtin):
             evaluation.message(self.get_name(),"nowrtacs")
             return SymbolFailed
         try:
-            check_call(['asy', '-f', self.extension,
+            if self.extension == "svg":
+                check_call(['asy', '-f', self.extension,
                         '--svgemulation' ,
+                        '-o',
+                        filename,
+                        fin],
+                       stdout=DEVNULL,
+                       stderr=DEVNULL)
+            else:
+                check_call(['asy', '-f', self.extension,
                         '-o',
                         filename,
                         fin],
@@ -1510,7 +1517,7 @@ class _AsyExporter(Builtin):
         except:
             return SymbolFailed
 
-        return String("-"+ filename +"-")
+        return Symbol('Null')
 
 
 class ExportSVG(_AsyExporter):
@@ -1523,16 +1530,16 @@ class ExportSVG(_AsyExporter):
     convert it in a Graphics object, and export it to Asy.
     Then, from the asy set of instructions, a pdf is built
     </dl>
-    >> System`Convert`TextDump`ExportSVG["test.svg",MatrixForm[{{a,n},{c,d}}]; a+b]
-     = -test.svg-
-    >> System`Convert`TextDump`ExportSVG["test.svg",Integrate[f[x],x]]
-     = -test.svg-
-    >> System`Convert`TextDump`ExportSVG["test.svg",Integrate[f[x],{x,a,b}]]
-     = -test.svg-
-    >> System`Convert`TextDump`ExportSVG["test.svg",Evaluate[Plot[Cos[x],{x,0,20}]]]
-     = -test.svg-
-    >> System`Convert`TextDump`ExportSVG["test.svg",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
-     = -test.svg-
+    >> Export["test.svg",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = test.svg
+    >> Export["test.svg",Integrate[f[x],x]]
+     = test.svg
+    >> Export["test.svg",Integrate[f[x],{x,a,b}]]
+     = test.svg
+    >> Export["test.svg",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = test.svg
+    >> Export["test.svg",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = test.svg
     """
     extension = "svg"
     context = "System`Convert`TextDump`"
@@ -1548,16 +1555,16 @@ class ExportToPDF(_AsyExporter):
     convert it in a Graphics object, and export it to Asy.
     Then, from the asy set of instructions, a pdf is built
     </dl>
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",MatrixForm[{{a,n},{c,d}}]; a+b]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],x]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Integrate[f[x],{x,a,b}]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot[Cos[x],{x,0,20}]]]
-     = -test.pdf-
-    >> System`Convert`PDFDump`ExportToPDF["test.pdf",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
-     = -test.pdf-
+    >> Export["test.pdf",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = test.pdf
+    >> Export["test.pdf",Integrate[f[x],x]]
+     = test.pdf
+    >> Export["test.pdf",Integrate[f[x],{x,a,b}]]
+     = test.pdf
+    >> Export["test.pdf",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = test.pdf
+    >> Export["test.pdf",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = test.pdf
     """
 
     extension = "pdf"
@@ -1574,16 +1581,16 @@ class ExportPNG(_AsyExporter):
     convert it in a Graphics object, and export it to Asy.
     Then, from the asy set of instructions, a pdf is built
     </dl>
-    >> System`Convert`ImageDump`ExportPNG["test.png",MatrixForm[{{a,n},{c,d}}]; a+b]
-     = -test.png-
-    >> System`Convert`ImageDump`ExportPNG["test.png",Integrate[f[x],x]]
-     = -test.png-
-    >> System`Convert`ImageDump`ExportPNG["test.png",Integrate[f[x],{x,a,b}]]
-     = -test.png-
-    >> System`Convert`ImageDump`ExportPNG["test.png",Evaluate[Plot[Cos[x],{x,0,20}]]]
-     = -test.png-
-    >> System`Convert`ImageDump`ExportPNG["test.png",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
-     = -test.png-
+    >> Export["test.png",MatrixForm[{{a,n},{c,d}}]; a+b]
+     = test.png
+    >> Export["test.png",Integrate[f[x],x]]
+     = test.png
+    >> Export["test.png",Integrate[f[x],{x,a,b}]]
+     = test.png
+    >> Export["test.png",Evaluate[Plot[Cos[x],{x,0,20}]]]
+     = test.png
+    >> Export["test.png",Evaluate[Plot3D[Cos[x*y],{x,-1,1},{y,-1,1}]]]
+     = test.png
     """
     extension = "png"
     context = "System`Convert`ImageDump`"

@@ -5,7 +5,7 @@ Begin["System`Convert`TextDump`"]
 
 ImportExport`RegisterExport[
     "SVG",
-	System`Convert`TextDump`SVGExport,
+	System`Convert`TextDump`ExportSVG,
 	FunctionChannels -> {"FileNames"},
 	Options -> {"ByteOrderMark"},
 	DefaultElement -> "Plaintext",
