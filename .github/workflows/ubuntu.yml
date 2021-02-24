@@ -21,6 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
+        sudo apt-get install -qq asymptote
         python -m pip install --upgrade pip
     - name: Install Mathics
       run: |
