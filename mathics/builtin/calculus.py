@@ -369,7 +369,7 @@ class Integrate(SympyFunction):
 
     Integration in TeX:
     >> Integrate[f[x], {x, a, b}] // TeXForm
-     = \int_a^bf\left[x\right] \, dx
+     = \int_a^b f\left[x\right] \, dx
 
     #> DownValues[Integrate]
      = {}
@@ -437,12 +437,12 @@ class Integrate(SympyFunction):
         'Integrate[list_List, x_]': 'Integrate[#, x]& /@ list',
 
         'MakeBoxes[Integrate[f_, x_], form:StandardForm|TraditionalForm]':
-        r'''RowBox[{"\[Integral]", MakeBoxes[f, form], "\[InvisibleTimes]",
+        r'''RowBox[{"\[Integral]","\[InvisibleTimes]", MakeBoxes[f, form], "\[InvisibleTimes]",
                 RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
         'MakeBoxes[Integrate[f_, {x_, a_, b_}], '
         'form:StandardForm|TraditionalForm]':
         r'''RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form],
-                MakeBoxes[b, form]], MakeBoxes[f, form], "\[InvisibleTimes]",
+                MakeBoxes[b, form]], "\[InvisibleTimes]" , MakeBoxes[f, form], "\[InvisibleTimes]",
                 RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
     }
 
