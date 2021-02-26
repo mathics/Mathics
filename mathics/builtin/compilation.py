@@ -149,7 +149,7 @@ class CompiledCode(Atom):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
-        return CompiledCodeBox(String("Nocode"))
+        return CompiledCodeBox(String("Nocode"), evaluation=evaluation)
 
 
 class CompiledCodeBox(BoxConstruct):

@@ -497,6 +497,7 @@ class MakeBoxes(Builtin):
         else:
             head = expr.head
             leaves = expr.leaves
+
             f_name = f.get_name()
             if f_name == 'System`TraditionalForm':
                 left, right = '(', ')'

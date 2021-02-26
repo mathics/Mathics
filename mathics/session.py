@@ -25,8 +25,6 @@ class MathicsSession:
         res = self.last_result
         if form is None:
             form = self.form
-        if str_expression:
-            self.last_result = self.evaluate(str_expression, timeout)
         return self.last_result.do_format(self.evaluation, form)
 
 

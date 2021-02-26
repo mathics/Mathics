@@ -470,6 +470,7 @@ class Graphics(Builtin):
     def apply_makeboxes(self, content, evaluation, options):
         """MakeBoxes[%(name)s[content_, OptionsPattern[%(name)s]],
         StandardForm|TraditionalForm|OutputForm]"""
+
         def convert(content):
             head = content.get_head_name()
 
@@ -2771,6 +2772,7 @@ class _GraphicsElements(object):
     def __init__(self, content, evaluation):
         self.evaluation = evaluation
         self.elements = []
+
         builtins = evaluation.definitions.builtin
 
         def get_options(name):
