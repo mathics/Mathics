@@ -1768,9 +1768,6 @@ class LoadModule(Builtin):
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
             return SymbolFailed
-        except PyMathicsLoadException as e:
-            evaluation.message(self.get_name(), 'notmathicslib', module)
-            return SymbolFailed
         else:
         # Add Pymathics` to $ContextPath so that when user don't
         # have to qualify Pymathics variables and functions,
