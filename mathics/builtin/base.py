@@ -409,11 +409,9 @@ class Operator(Builtin):
     def get_operator(self) -> typing.Optional[str]:
         return self.operator
 
-    def get_operator_display(self, want_unicode=False) -> typing.Optional[str]:
+    def get_operator_display(self) -> typing.Optional[str]:
         if hasattr(self, "operator_display"):
             return self.operator_display
-        elif want_unicode:
-            return self.operator
         else:
             return self.operator
 
