@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import mpmath
 import re
 import sympy
 
 from functools import total_ordering
 import importlib
 from itertools import chain
-
 import typing
 from typing import Any, cast
 
@@ -411,9 +409,11 @@ class Operator(Builtin):
     def get_operator(self) -> typing.Optional[str]:
         return self.operator
 
-    def get_operator_display(self) -> typing.Optional[str]:
+    def get_operator_display(self, want_unicode=False) -> typing.Optional[str]:
         if hasattr(self, "operator_display"):
             return self.operator_display
+        elif want_unicode:
+            return self.operator
         else:
             return self.operator
 
@@ -533,7 +533,7 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-    def get_constant(self, precision, have_mpmath=False):
+    def get_constant(self, precision, evaluation, have_mpmath=False):
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
