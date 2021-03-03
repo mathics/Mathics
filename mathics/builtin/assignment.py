@@ -5,7 +5,7 @@
 import mathics.builtin
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
-from mathics.core.expression import (Expression, Symbol, SymbolFailed, valid_context_name,
+from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolNull, valid_context_name,
                                      system_symbols, String)
 from mathics.core.rules import Rule, BuiltinRule
 from mathics.builtin.patterns import RuleDelayed
@@ -833,23 +833,34 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
     definition = evaluation.definitions.get_definition(symbol.name)
     ruleusage = definition.get_values_list('messages')
     usagetext = None
-    from mathics.builtin import builtins
     import re
-    bio = builtins.get(definition.name)
-
-    if bio is not None:
-        from mathics.doc.doc import Doc
-        if htmlout:
-            usagetext = Doc(bio.__class__.__doc__).text(0)
-        else:
-            usagetext = Doc(bio.__class__.__doc__).text(0)
-        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
-    # For built-in symbols, looks for a docstring.
-    # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
+    # First look at user definitions:
     for rulemsg in ruleusage:
         if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
             usagetext = rulemsg.replace.value
-    return usagetext
+    if usagetext is not None:
+        # Maybe, if htmltout is True, we should convert
+        # the value to a HTML form...
+        return usagetext
+    # Otherwise, look at the pymathics, and builtin docstrings:
+    builtins = evaluation.definitions.builtin
+    pymathics = evaluation.definitions.pymathics
+    bio = pymathics.get(definition.name)
+    if bio is None:
+        bio = builtins.get(definition.name)
+    
+    if bio is not None:
+        from mathics.doc.doc import Doc
+        docstr = bio.builtin.__class__.__doc__
+        if docstr is None:
+            return None
+        if htmlout:
+            usagetext = Doc(docstr).html()
+        else:
+            usagetext = Doc(docstr).text(0)
+        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
+        return usagetext
+    return None
 
 
 class Information(PrefixOperator):
@@ -919,7 +930,7 @@ class Information(PrefixOperator):
 
     def format_definition(self, symbol, evaluation, options, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
-        ret = Symbol('Null')
+        ret = SymbolNull
         lines = []
         if isinstance(symbol, String):
             evaluation.print_out(symbol)
@@ -1014,7 +1025,7 @@ class Information(PrefixOperator):
     def format_definition_input(self, symbol, evaluation, options):
         'InputForm: Information[symbol_, OptionsPattern[Information]]'
         self.format_definition(symbol, evaluation, options, grid=False)
-        ret = Symbol("Null")
+        ret = SymbolNull
         return ret
 
 
@@ -1757,7 +1768,10 @@ class LoadModule(Builtin):
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
             return SymbolFailed
-
+        except PyMathicsLoadException as e:
+            evaluation.message(self.get_name(), 'notmathicslib', module)
+            return SymbolFailed
+        else:
         # Add Pymathics` to $ContextPath so that when user don't
         # have to qualify Pymathics variables and functions,
         # as the those in the module just loaded.
@@ -1765,9 +1779,8 @@ class LoadModule(Builtin):
         # reference manual where PackletManager appears first in
         # the list, it seems to be preferable to add this PyMathics
         # at the beginning.
-        context_path = evaluation.definitions.get_context_path()
-        if "Pymathics`" not in context_path:
-            context_path.insert(0, "Pymathics`")
-        evaluation.definitions.set_context_path(context_path)
-        
+            context_path = evaluation.definitions.get_context_path()
+            if "Pymathics`" not in context_path:
+                context_path.insert(0, "Pymathics`")
+                evaluation.definitions.set_context_path(context_path)
         return module

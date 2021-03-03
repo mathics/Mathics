@@ -149,7 +149,7 @@ class TimeConstrained(Builtin):
 
     Possible issues: for certain time-consuming functions (like simplify)
     which are based on sympy or other libraries, it is possible that
-    the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\$Aborted$ and the results will not affect
+    the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\\$Aborted$ and the results will not affect
     the state of the mathics kernel.
 
     """

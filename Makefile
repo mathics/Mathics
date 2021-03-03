@@ -37,6 +37,10 @@ build:
 develop:
 	$(PIP) install -e .
 
+#: Make distirbution: wheels, eggs, tarball
+dist:
+	./admin-tools/make-dist.sh
+
 #: Install mathics
 install:
 	$(PYTHON) setup.py install

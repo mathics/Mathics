@@ -1201,11 +1201,10 @@ class DocTest(object):
                     self.result = text
                 elif symbol == ':':
                     out = Message('', '', text)
-                    self.outs.append(out)                    
+                    self.outs.append(out)
                 elif symbol == '|':
                     out = Print(text)
-                    self.outs.append(out)                    
-
+                    self.outs.append(out)
 
     def __str__(self):
         return self.test

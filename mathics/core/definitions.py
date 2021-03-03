@@ -19,7 +19,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics_scanner.tokeniser import base_names_pattern, full_names_pattern
+from mathics_scanner.tokeniser import full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
 
@@ -162,6 +162,12 @@ class Definitions(object):
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
+
+
+        onload = loaded_module.pymathics_version_data.get("onload", None)
+        if onload:
+            onload(self)
+            
         return loaded_module
 
     def clear_pymathics_modules(self):
@@ -175,7 +181,7 @@ class Definitions(object):
                 del builtins_by_module[key]
         for key in pymathics:
             del self.pymathics[key]
-            
+
         self.pymathics = {}
         # print("everything is clean")
         return None
@@ -427,7 +433,7 @@ class Definitions(object):
                 pymathics.attributes if pymathics else
                 (builtin.attributes if builtin else set())
             )
-            upvalues = [], 
+            upvalues = [],
             messages = [],
             nvalues = [],
             defaultvalues = [],
@@ -734,7 +740,7 @@ class Definition(object):
         options=None,
         nvalues=None,
         defaultvalues=None,
-        builtin=None,
+        builtin=None
     ) -> None:
 
         super(Definition, self).__init__()

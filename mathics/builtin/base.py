@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import mpmath
 import re
 import sympy
 
 from functools import total_ordering
 import importlib
 from itertools import chain
-
 import typing
 from typing import Any, cast
 
@@ -270,6 +268,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
+            builtin=self
         )
         if is_pymodule:
             definitions.pymathics[name] = definition
@@ -532,7 +531,7 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-    def get_constant(self, precision, have_mpmath=False):
+    def get_constant(self, precision, evaluation, have_mpmath=False):
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
@@ -855,4 +854,3 @@ class CountableInteger:
                             return CountableInteger(0, upper_limit=True)
 
         return None  # leave original expression unevaluated
-

@@ -11,7 +11,6 @@ Basic arithmetic functions, including complex number arithmetic.
 
 import sympy
 import mpmath
-import math
 
 from mathics.builtin.base import (
     Builtin,
