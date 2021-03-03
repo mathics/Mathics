@@ -11,7 +11,6 @@ Basic arithmetic functions, including complex number arithmetic.
 
 import sympy
 import mpmath
-import math
 
 from mathics.builtin.base import (
     Builtin,
@@ -1350,7 +1349,7 @@ class PossibleZeroQ(SympyFunction):
         # try expanding the expression
             exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
             exprexp = exprexp.to_sympy()
-            result = _iszero(exprexp)        
+            result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)
