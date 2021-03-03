@@ -2218,7 +2218,7 @@ class MachineReal(Real):
     def to_python(self, *args, **kwargs) -> float:
         return self.value
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return sympy.Float(self.value)
 
     def to_mpmath(self):

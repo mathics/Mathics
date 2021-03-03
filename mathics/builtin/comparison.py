@@ -254,8 +254,12 @@ class _EqualityOperator(_InequalityOperator):
     def apply(self, items, evaluation):
         "%(name)s[items___]"
         items_sequence = items.get_sequence()
-        if len(items_sequence) <= 1:
+        n = len(items_sequence)
+        if n <= 1:
             return SymbolTrue
+        is_exact_vals = [Expression("ExactNumberQ", arg).evaluate(evaluation) for arg in items_sequence]
+        if all(val == SymbolTrue for val in is_exact_vals):
+            return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for x, y in itertools.combinations(args, 2):
@@ -274,7 +278,7 @@ class _EqualityOperator(_InequalityOperator):
         return SymbolTrue
 
     def apply_other(self, args, evaluation):
-        "%(name)s[args___?(!RealNumberQ[#]&)]"
+        "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
         for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y)
@@ -283,6 +287,7 @@ class _EqualityOperator(_InequalityOperator):
             if self._op(c) is False:
                 return SymbolFalse
         return SymbolTrue
+
 
 
 class _ComparisonOperator(_InequalityOperator):
