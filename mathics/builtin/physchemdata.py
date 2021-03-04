@@ -20,8 +20,11 @@ class NoElementDataFile(Exception):
 
 def load_element_data():
     try:
-        element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
+        import mathics_scanner
+        datadir = mathics_scanner.__file__[:-11]
+        element_file = open(os.path.join(datadir, 'data/element.csv'), 'r')
     except:
+        print(os.path.join(datadir, 'data/element.csv'), "  not found.")
         return None
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
