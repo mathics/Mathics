@@ -32,5 +32,6 @@ jobs:
         make develop
     - name: Test Mathics
       run: |
+        mathics -e 'AbsoluteTime[50!]'
         pip install pytest pexpect
         make check
