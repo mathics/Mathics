@@ -4961,9 +4961,15 @@ class FileNames(Builtin):
         <dd>Look for files up to the level $n$.
     </dl>
 
-    >> SetDirectory[$InstallationDirectory];
-    >> FileNames[]
-     = {}
+    >> SetDirectory[$InstallationDirectory <> "/autoload"];
+    >> FileNames[]//Length
+     = 1
+    >> FileNames["*.m", "formats"]//Length
+     = 0
+    >> FileNames["*.m", "formats", 3]//Length
+     = 14
+    >> FileNames["*.m", "formats", Infinity]//Length
+     = 14
     """
 
     options = {"IgnoreCase": "Automatic",}
@@ -5041,6 +5047,8 @@ class FileNames(Builtin):
                                    "$") for p in str_forms]
 
         for path in str_paths:
+            if not osp.isdir(path):
+                continue
             if n == 1:
                 for fn in os.listdir(path):
                     fullname = osp.join(path, fn)
