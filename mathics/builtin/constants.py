@@ -19,7 +19,7 @@ from mathics.core.expression import (
     Symbol,
     strip_context,
 )
-from mathics.core.numbers import get_precision, PrecisionValueError, machine_precision
+from mathics.core.numbers import get_precision, PrecisionValueError
 
 
 def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
@@ -29,11 +29,7 @@ def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
     if d is None:
         return getattr(mpmath, fn)()
     else:
-        # TODO: In some functions like Pi, you can
-        # ask for a certain number of digits, but the
-        # accuracy will be less than that. Figure out
-        # what's up and compensate somehow.
-        mpmath.mp.dps = int_d = int(d * 3.321928)
+        mpmath.mp.dps = int_d = int(d)
         return getattr(mpmath, fn)(prec=int_d)
 
 
@@ -47,16 +43,7 @@ def mp_convert_constant(obj, **kwargs):
 
 
 def numpy_constant(name: str, d=None) -> float:
-    if d:
-        # by mmatera: Here I have a question:
-        # 0.0123`2 should be rounded to
-        # 0.01 or to 0.0123?
-        # (absolute versus relative accuracy)
-        val = getattr(numpy, name)
-        val = numpy.round(val, d)
-        return val
-    else:
-        return getattr(numpy, name)
+    return getattr(numpy, name)
 
 
 def sympy_constant(fn, d=None):
@@ -67,75 +54,46 @@ class _Constant_Common(Predefined):
 
     attributes = ("Constant", "Protected", "ReadProtected")
     nargs = 0
-    options = {"Method": "Automatic"}
 
-    def apply_N(self, precision, evaluation, options={}):
-        "N[%(name)s, precision_?NumericQ, OptionsPattern[%(name)s]]"
-
-        preference = self.get_option(options, "Method", evaluation).get_string_value()
-        if preference == "Automatic":
-            return self.get_constant(precision, evaluation)
-        else:
-            return self.get_constant(precision, evaluation, preference)
-
-    def apply_N2(self, evaluation, options={}):
-        "N[%(name)s, OptionsPattern[%(name)s]]"
-        return self.apply_N(None, evaluation, options)
+    def apply_N(self, precision, evaluation):
+        "N[%(name)s, precision_]"
+        return self.get_constant(precision, evaluation)
 
     def is_constant(self) -> bool:
         return True
 
     def get_constant(self, precision, evaluation, preference=None):
-        # first, determine the precision
-        machine_d = int( 0.30103 * machine_precision)
-        d = None
-        if precision:
-            try:
-                d = get_precision(precision, evaluation)
-            except PrecisionValueError:
-                pass
-
-        if d is None:
-            d = machine_d
-
-        # If preference not especified, determine it
-        # from the precision.
+        ## print("XXX", self, preference)
         if preference is None:
-            if d <= machine_d:
-                preference = "numpy"
-            else:
-                preference = "mpmath"
-        # If preference is not valid, send a message and return.
-        if not (preference in  ("sympy", "numpy", "mpmath")):
-            evaluation.message(f'{preference} not in ("sympy", "numpy", "mpmath")')
-            return
-        # Try to determine the numeric value
-        value = None
-        if preference == "mpmath" and not hasattr(self, "mpmath_name"):
-            preference = "numpy"
-        elif preference == "sympy" and not hasattr(self, "sympy_name"):
-            preference = "numpy"
-        
-        if preference == "numpy" and not hasattr(self, "numpy_name"):
-            if hasattr(self, "sympy_name"):
-                preference = "sympy"
-            elif hasattr(self, "mpmath_name"):
-                preference = "mpmath"
-            else:
-                preference = ""
-        if preference == "numpy":
+            preference = (
+                evaluation.parse("Settings`$PreferredBackendMethod")
+                .evaluate(evaluation)
+                .get_string_value()
+            )
+            # TODO: validate PreferredBackendMethod is in "mpmath", "numpy", "sympy"
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            d = None
+
+        conversion_fn = MachineReal if d is None else PrecisionReal
+
+        # print("XXX1", self, preference, conversion_fn)
+
+        if preference == "sympy" and hasattr(self, "sympy_name"):
+            value = sympy_constant(self.sympy_name, d)
+        elif preference == "mpmath" and hasattr(self, "mpmath_name"):
+            value = mp_constant(self.mpmath_name, d)
+        elif preference == "numpy" and hasattr(self, "numpy_name"):
             value = numpy_constant(self.numpy_name)
-            if d == machine_d:
-                return MachineReal(value)
-        if preference == "sympy":
-            value = sympy_constant(self.sympy_name, d+2)
-        if preference == "mpmath":
-            value = mp_constant(self.mpmath_name, d*2)
-        if value:
-            return PrecisionReal(sympy.Float(str(value), d))
-        # If the value is not available, return none
-        # and keep it unevaluated.
-        return
+        elif hasattr(self, "mpmath_name"):
+            value = mp_constant(self.mpmath_name, d)
+        elif hasattr(self, "sympy_name"):
+            value = sympy_constant(self.sympy_name, d)
+        elif hasattr(self, "numpy_name"):
+            value = numpy_constant(self.numpy_name)
+        return conversion_fn(value)
+
 
 class MPMathConstant(_Constant_Common):
     """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
@@ -194,7 +152,7 @@ class SympyConstant(_Constant_Common, SympyObject):
             return None
 
 
-class Catalan(MPMathConstant, SympyConstant):
+class Catalan(MPMathConstant, NumpyConstant, SympyConstant):
     """
     <dl>
     <dt>'Catalan'
@@ -202,14 +160,14 @@ class Catalan(MPMathConstant, SympyConstant):
     </dl>
 
     >> Catalan // N
-     = 0.915965594177219
+     = 0.915966
 
     >> N[Catalan, 20]
      = 0.91596559417721901505
     """
 
     mpmath_name = "catalan"
-    # numpy_name = "catalan"  ## This is not defined in numpy
+    numpy_name = "catalan"
     sympy_name = "Catalan"
 
 
@@ -281,13 +239,10 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
             # return mpmath.degree
             return numpy.pi / 180
 
-    def apply_N(self, precision, evaluation, options={}):
-        "N[Degree, precision_, OptionsPattern[%(name)s]]"
+    def apply_N(self, precision, evaluation):
+        "N[Degree, precision_]"
         try:
-            if precision:
-                d = get_precision(precision, evaluation)
-            else:
-                d = get_precision(Symbol("System`MachinePrecision"), evaluation)
+            d = get_precision(precision, evaluation)
         except PrecisionValueError:
             return
 
@@ -323,8 +278,8 @@ class E(MPMathConstant, NumpyConstant, SympyConstant):
     numpy_name = "e"
     sympy_name = "E"
 
-    def apply_N(self, precision, evaluation, options={}):
-        "N[E, precision_, OptionsPattern[%(name)s]]"
+    def apply_N(self, precision, evaluation):
+        "N[E, precision_]"
         return self.get_constant(precision, evaluation)
 
 
@@ -355,10 +310,9 @@ class Glaisher(MPMathConstant):
     </dl>
 
     >> N[Glaisher]
-     = 1.28242712910062
+     = 1.28243
     >> N[Glaisher, 50]
-     = 1.2824271291006226368753425688697917277676889273250
-     # 1.2824271291006219541941391071304678916931152343750
+     = 1.2824271291006219541941391071304678916931152343750
     """
 
     mpmath_name = "glaisher"
@@ -372,7 +326,7 @@ class GoldenRatio(MPMathConstant, SympyConstant):
     </dl>
 
     >> GoldenRatio // N
-     = 1.61803398874989
+     = 1.61803
     >> N[GoldenRatio, 40]
      = 1.618033988749894848204586834365638117720
     """
@@ -445,10 +399,9 @@ class Khinchin(MPMathConstant):
     </dl>
 
     >> N[Khinchin]
-     = 2.68545200106531
+     = 2.68545
     >> N[Khinchin, 50]
-     = 2.6854520010653064453097148354817956938203822939945
-     # = 2.6854520010653075701156922150403261184692382812500
+     = 2.6854520010653075701156922150403261184692382812500
     """
 
     mpmath_name = "khinchin"
@@ -463,19 +416,7 @@ class Pi(MPMathConstant, SympyConstant):
 
     >> N[Pi]
      = 3.14159
-
-    Force using the value given from numpy to compute Pi.
-    >> N[Pi, Method->"numpy"]
-     = 3.14159
-
-    Force using the value given from sympy to compute Pi to 3 places,
-    two places after the decimal point.
-
-    Note that sympy is the default method.
-    >> N[Pi, 3, Method->"sympy"]
-     = 3.14
-
-     >> N[Pi, 50]
+    >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}

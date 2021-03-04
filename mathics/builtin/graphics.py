@@ -2603,7 +2603,7 @@ class InsetBox(_GraphicsElement):
         style = create_css(font_color=self.color)
         svg = (
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            '<math xmlns="http://www.w3.org/1998/Math/MathML">%s</math></foreignObject>'
+            '<math>%s</math></foreignObject>'
         ) % (x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
@@ -3147,7 +3147,7 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_tex(self, leaves=None, forxml=False, **options):
+    def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(
@@ -3183,12 +3183,14 @@ class GraphicsBox(BoxConstruct):
             asy_background = ""
 
         tex = r"""
+\begin{asy}
 usepackage("amsmath");
 size(%scm, %scm);
 %s
 %s
 clip(%s);
 %s
+\end{asy}
 """ % (
             asy_number(width / 60),
             asy_number(height / 60),
@@ -3198,57 +3200,12 @@ clip(%s);
             asy_completely_visible,
         )
 
-        if forxml:
-            return (tex, width, height)
-        else:
-            return "\n\\begin{asy}\n" + tex + "\n\\end{asy}\n"
+        return tex
 
     def boxes_to_xml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         evaluation = options.get("evaluation", None)
-        check_asy = False
-        if evaluation:
-            check_asy = evaluation.definitions.get_ownvalue("Settings`UseAsyForGraphics2D")
-            if check_asy:
-                check_asy = check_asy.replace.is_true()
-        if check_asy:
-            import os
-            from subprocess import DEVNULL, STDOUT, check_call
-            import tempfile
-            try:
-                check_call(['asy', '--version'], stdout=DEVNULL, stderr=DEVNULL)
-            except:
-                check_asy = False
-
-        if check_asy:
-            asy, width, height = self.boxes_to_tex(leaves, forxml=True, **options)
-            fin = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()))
-            fout = fin + ".svg"
-            with open(fin, 'w+') as borrador:
-                borrador.write(asy)
-
-            try:
-                check_call(['asy', '-f', 'svg', '--svgemulation' ,'-o', fout, fin], stdout=DEVNULL, stderr=DEVNULL)
-            except:
-                print("Asy failed to build a svg")
-                check_asy = False
-
-            if check_asy:
-                with open(fout, 'rt') as ff:
-                    svg = ff.read()
-
-                svg = svg[svg.find("<svg "):]
-                return (
-                    '<img  width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
-                    % (
-                        int(width),
-                        int(height),
-                        base64.b64encode(svg.encode("utf8")).decode("utf8"),
-                    )
-                )
-        else:
-            print("Asy not available. Continue with standard")
 
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
