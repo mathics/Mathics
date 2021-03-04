@@ -5024,9 +5024,10 @@ class FileNames(Builtin):
         if n is not None:
             if n.get_head_name() == "System`Integer":
                 n = n.get_int_value()
-            elif n == SymbolInfinity:
+            elif n.get_head_name() == "System`DirectedInfinity":
                 n = None
             else:
+                print(n)
                 evaluation.message("FileNames", "badn",  n)
                 return
         else:
