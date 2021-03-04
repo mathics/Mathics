@@ -12,6 +12,8 @@ import mpmath
 import numpy
 import sympy
 
+from mathics.version import __version__
+
 from mathics.builtin.base import Predefined, SympyObject
 from mathics.core.expression import (
     MachineReal,

@@ -14,6 +14,7 @@ import hashlib
 from operator import mul as operator_mul
 from functools import reduce
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin
 from mathics.builtin.numpy_utils import instantiate_elements, stack
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,

@@ -1,3 +1,5 @@
+
+from mathics.version import __version__
 from mathics.builtin.base import (Builtin, Test, MessageException)
 from mathics.builtin.randomnumbers import RandomEnv
 from mathics.builtin.strings import to_regex, anchor_pattern, ToLowerCase

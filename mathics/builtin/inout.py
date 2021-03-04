@@ -11,6 +11,7 @@ import mpmath
 import typing
 from typing import Any
 
+from mathics.version import __version__
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator,

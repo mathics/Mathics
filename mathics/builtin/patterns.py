@@ -34,7 +34,7 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
 
-
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError

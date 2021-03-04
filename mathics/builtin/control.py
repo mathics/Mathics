@@ -6,6 +6,7 @@ Control Statements
 """
 
 
+from mathics.version import __version__
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import (Expression, Symbol, from_python, SymbolTrue, SymbolFalse)

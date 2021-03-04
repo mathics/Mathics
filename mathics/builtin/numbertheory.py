@@ -8,6 +8,7 @@ Number theoretic functions
 import sympy
 from itertools import combinations
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, Test, SympyFunction
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)

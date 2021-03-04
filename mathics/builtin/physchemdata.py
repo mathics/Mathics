@@ -9,13 +9,20 @@ import os
 
 from csv import reader as csvreader
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (Expression, from_python, Symbol, String,
                                      strip_context)
 from mathics.settings import ROOT_DIR
 
+class NoElementDataFile(Exception):
+    pass
+
 def load_element_data():
-    element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
+    try:
+        element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
+    except:
+        return None
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
     for row in reader:
@@ -23,8 +30,11 @@ def load_element_data():
     element_file.close()
     return element_data
 
+
 _ELEMENT_DATA = load_element_data()
 
+if _ELEMENT_DATA is None:
+    raise NoElementDataFile("data/elements.csv is not available.")
 
 class ElementData(Builtin):
     """

@@ -8,6 +8,7 @@ Special Functions
 
 import mpmath
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer, Number

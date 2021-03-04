@@ -2,6 +2,7 @@ import ctypes
 
 from mathics.builtin.base import Builtin, BoxConstruct
 from mathics.core.expression import Atom, Expression, Symbol, String, from_python, Integer, Real
+from mathics.version import __version__
 
 
 class Compile(Builtin):

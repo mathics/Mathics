@@ -8,6 +8,7 @@ List Functions
 
 from itertools import chain, permutations
 
+from mathics.version import __version__
 from mathics.builtin.base import (
     Builtin,
     Test,
