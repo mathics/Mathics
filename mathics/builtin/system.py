@@ -174,8 +174,9 @@ class MachineName(Predefined):
             return String(os.uname().nodename)
         try:
             import platform
-            return String(platform.uname().nodename)
+            return String(platform.node())
         except:
+            print("failed to get the machine name...")
             return
 
 
