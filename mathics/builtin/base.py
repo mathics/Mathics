@@ -362,7 +362,7 @@ class Builtin(object):
         return None, s
 
 
-class InstancableBuiltin(Builtin):
+class InstanceableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs["expression"] = False
@@ -375,7 +375,7 @@ class InstancableBuiltin(Builtin):
             try:
                 instance.init(*args, **kwargs)
             except TypeError:
-                # TypeError occurs when unpickling instance, e.g. PatterObject,
+                # TypeError occurs when unpickling instance, e.g. PatternObject,
                 # because parameter expr is not given. This should no be a
                 # problem, as pickled objects need their init-method not
                 # being called.
@@ -590,14 +590,14 @@ class BoxConstructError(Exception):
     pass
 
 
-class BoxConstruct(InstancableBuiltin):
+class BoxConstruct(InstanceableBuiltin):
     def __new__(cls, *leaves, **kwargs):
         instance = super().__new__(cls, *leaves, **kwargs)
         instance._leaves = leaves
         return instance
 
     def evaluate(self, evaluation):
-        # Shall here evaluate the leaves?
+        # THINK about: Should we evaluate the leaves here?
         return
 
     def get_head_name(self):
@@ -707,7 +707,7 @@ class PatternArgumentError(PatternError):
         super().__init__(None, None)
 
 
-class PatternObject(InstancableBuiltin, Pattern):
+class PatternObject(InstanceableBuiltin, Pattern):
     needs_verbatim = True
 
     arg_counts: typing.List[int] = []

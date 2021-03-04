@@ -162,7 +162,7 @@ class Definitions(object):
         onload = loaded_module.pymathics_version_data.get("onload", None)
         if onload:
             onload(self)
-            
+
         return loaded_module
 
     def clear_pymathics_modules(self):

@@ -14,7 +14,7 @@ from itertools import chain
 
 from mathics.builtin.base import (
     Builtin,
-    InstancableBuiltin,
+    InstanceableBuiltin,
     BoxConstruct,
     BoxConstructError,
 )
@@ -508,7 +508,6 @@ class Graphics(Builtin):
         for option in options:
             if option not in ("System`ImageSize",):
                 options[option] = Expression("N", options[option]).evaluate(evaluation)
-        #box_name = "Graphics" + self.box_suffix
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
         if type(self) is Graphics:
             return GraphicsBox(convert(content), *options_to_rules(options))
@@ -516,7 +515,7 @@ class Graphics(Builtin):
             return Graphics3DBox(convert(content), *options_to_rules(options))
 
 
-class _GraphicsElement(InstancableBuiltin):
+class _GraphicsElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
@@ -3205,8 +3204,6 @@ clip(%s);
     def boxes_to_xml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-        evaluation = options.get("evaluation", None)
-
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
