@@ -1193,7 +1193,7 @@ class DocTest(object):
                     elif self.outs:
                         self.outs[-1].text += text
                     continue
-
+                
                 match = TESTCASE_OUT_RE.match(line)
                 symbol, text = match.group(1), match.group(2)
                 text = text.strip()

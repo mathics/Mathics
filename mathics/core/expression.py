@@ -2,11 +2,9 @@
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
-import ast
 import sympy
 import mpmath
 import math
-import inspect
 import re
 
 import typing
@@ -143,7 +141,7 @@ def from_python(arg):
 
 class KeyComparable(object):
     def get_sort_key(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __lt__(self, other) -> bool:
         return self.get_sort_key() < other.get_sort_key()
@@ -383,7 +381,7 @@ class BaseExpression(KeyComparable):
             leaves = self.get_leaves()
             include_form = False
             # If the expression is enclosed by a Format
-            # takes the form from the expression and 
+            # takes the form from the expression and
             # removes the format from the expression.
             if head in formats and len(leaves) == 1:
                 expr = leaves[0]
@@ -2118,6 +2116,7 @@ class Rational(Number):
     @property
     def is_zero(self) -> bool:
         return self.numerator().is_zero # (implicit) and not (self.denominator().is_zero)
+
 
 
 class Real(Number):
