@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2016
     strategy:
       matrix:
         os: [windows]
@@ -21,10 +21,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        choco install llvm
         python -m pip install --upgrade pip
         # LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config 
         python -m pip install wheel
+        choco install llvm
         pip install llvmlite
     - name: Install Mathics
       run: |
