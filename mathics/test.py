@@ -90,7 +90,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-    
+
     if not compare(result, wanted):
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
