@@ -739,7 +739,7 @@ class Eigenvalues(Builtin):
         return Expression("List", *eigenvalues)
 
     options = {
-        "Method": "sympy",
+        "Method": "Sympy",
     }
 
     def apply(self, m, evaluation, options={}) -> Expression:

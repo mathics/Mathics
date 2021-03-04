@@ -1342,6 +1342,7 @@ class PossibleZeroQ(SympyFunction):
     def apply(self, expr, evaluation):
         "%(name)s[expr_]"
         from sympy.matrices.utilities import _iszero
+
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
         if result is None:
@@ -1362,6 +1363,7 @@ class PossibleZeroQ(SympyFunction):
                     if Expression("Simplify", expr).evaluate(evaluation) == Integer(0)
                     else SymbolFalse
                 )
+
         return from_python(result)
 
 
