@@ -169,7 +169,13 @@ class MachineName(Predefined):
     name = "$MachineName"
 
     def evaluate(self, evaluation) -> String:
-        return String(os.uname().nodename)
+        if hasattr(os,'uname'):
+            return String(os.uname().nodename)
+        try:
+            import platform
+            return String(platform.uname().nodename)
+        except:
+            return
 
 
 class MathicsVersion(Predefined):
