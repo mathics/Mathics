@@ -36,6 +36,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
+    SymbolInfinity,
     from_python,
     Integer,
     BoxError,
@@ -46,10 +47,10 @@ from mathics.core.expression import (
 from mathics.core.numbers import dps
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
-from mathics.builtin.strings import to_python_encoding
+from mathics.builtin.strings import to_python_encoding, to_regex
 from mathics.builtin.base import MessageException
 from mathics.settings import ROOT_DIR
-
+import re
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = osp.expanduser("~")
@@ -4942,3 +4943,124 @@ class Needs(Builtin):
 
         return SymbolNull
 
+
+class FileNames(Builtin):
+    """
+    <dl>
+    <dt>'FileNames[]'
+        <dd>Returns a list with the filenames in the current working folder.
+    <dt>'FileNames[$form$]'
+        <dd>Returns a list with the filenames in the current working folder that matches with $form$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$}]'
+        <dd>Returns a list with the filenames in the current working folder that matches with one of $form_1$, $form_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$forms$, $dirs$, $n$]'
+        <dd>Look for files up to the level $n$.
+    </dl>
+
+    >> SetDirectory[$InstallationDirectory];
+    >> FileNames[]
+     = {}
+    """
+
+    options = {"IgnoreCase": "Automatic",}
+
+    messages = {
+        "nofmtstr" : "`1` is not a format or a list of formats.",
+        "nodirstr" : "`1` is not a directory name  or a list of directory names.",
+        "badn" : "`1` is not an integer number.",
+    } 
+
+    def apply_0(self, evaluation, **options):
+        '''FileNames[OptionsPattern[FileNames]]'''        
+        return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_1(self, forms, evaluation, **options):
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''        
+        return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_2(self, forms, paths, evaluation, **options):
+        '''FileNames[forms_, paths_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, paths, None,  evaluation, **options)
+
+    def apply_3(self, forms, paths, n, evaluation, **options):
+        '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
+        filenames = set()        
+        # Building a list of forms
+        if forms.get_head_name() == "System`List":
+            str_forms = []
+            for p in forms._leaves:
+                if p.get_head_name() == "System`String":
+                    str_forms.append(p)
+                else:
+                    evaluation.message("FileNames", "nofmtstr", forms)
+                    return
+        else:
+            str_forms = [forms]
+        # Building a list of directories
+        if paths.get_head_name() == "System`String":
+            str_paths = [paths.value]
+        elif paths.get_head_name() == "System`List":
+            str_paths = []
+            for p in paths._leaves:
+                if p.get_head_name() == "System`String":
+                    str_paths.append(p.value)
+                else:
+                    evaluation.message("FileNames", "nodirstr", paths)
+                    return
+        else:
+            evaluation.message("FileNames", "nodirstr", paths)
+            return
+
+        if n is not None:
+            if n.get_head_name() == "System`Integer":
+                n = n.get_int_value()
+            elif n == SymbolInfinity:
+                n = None
+            else:
+                evaluation.message("Filenames", "badn",  n)
+                return
+        else:
+            n = 1
+
+        # list the files
+        if options.get('System`IgnoreCase', None) == SymbolTrue:
+            patterns = [re.compile("^" +
+                                   to_regex(p, evaluation,
+                                            abbreviated_patterns=True),
+                                   re.IGNORECASE)+"$"
+                        for p in str_forms]
+        else:
+            patterns = [re.compile("^" +
+                                   to_regex(p,
+                                            evaluation,
+                                            abbreviated_patterns=True) +
+                                   "$") for p in str_forms]
+
+        for path in str_paths:
+            if n == 1:
+                for fn in os.listdir(path):
+                    fullname = osp.join(path, fn)
+                    if osp.isfile(fullname):
+                        for pattern in patterns:
+                            if pattern.match(fn):
+                                filenames.add(fullname)
+                                break
+            else:
+                pathlen = len(path)
+                for root, dirs, files in os.walk(path):
+                    # FIXME: This is an ugly and inefficient way
+                    # to avoid looking deeper than the level n, but I do not realize
+                    # how to do this better without a lot of code...
+                    if n is not None and len(root[pathlen:].split(osp.sep))>n:
+                        continue
+                    for fn in files:
+                        for pattern in patterns:
+                            if pattern.match(fn):
+                                filenames.add(osp.join(root,fn))
+                                break
+
+        return Expression("List", *[String(s) for s in filenames])
