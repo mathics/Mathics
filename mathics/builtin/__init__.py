@@ -43,7 +43,7 @@ for module_name in module_names:
         continue
     modules.append(module)
 
-builtins = []
+_builtins = []
 builtins_by_module = {}
 
 
@@ -75,7 +75,7 @@ for module in modules:
                 # This set the default context for symbols in mathics.builtins
                 if not type(instance).context:
                     type(instance).context = "System`"
-                builtins.append( (instance.get_name(), instance))
+                _builtins.append( (instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
 
@@ -104,12 +104,18 @@ def add_builtins(new_builtins):
             builtins_precedence[name] = builtin.precedence
         if isinstance(builtin, PatternObject):
             pattern_objects[name] = builtin.__class__
-    builtins.update(dict(new_builtins))
+    _builtins.update(dict(new_builtins))
 
 
-new_builtins = builtins
-builtins = {}
+new_builtins = _builtins
+_builtins = {}
 add_builtins(new_builtins)
+
+
+def builtins_dict():
+    return { builtin.get_name() : builtin
+             for modname, builtins in builtins_by_module.items()
+             for builtin in builtins}
 
 
 def get_module_doc(module):
@@ -131,8 +137,8 @@ def get_module_doc(module):
 
 def contribute(definitions):
     # let MakeBoxes contribute first
-    builtins["System`MakeBoxes"].contribute(definitions)
-    for name, item in builtins.items():
+    _builtins["System`MakeBoxes"].contribute(definitions)
+    for name, item in _builtins.items():
         if name != "System`MakeBoxes":
             item.contribute(definitions)
 

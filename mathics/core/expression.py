@@ -2540,13 +2540,15 @@ class String(Atom):
 
     def boxes_to_xml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                # name = builtin.get_name()
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 
@@ -2582,13 +2584,15 @@ class String(Atom):
                 return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 

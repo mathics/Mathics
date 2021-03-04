@@ -102,8 +102,7 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set()
-                    )
+                        name=name, attributes=set())
 
         # Check if the given options are actually supported by the Builtin.
         # If not, we might issue an optx error and abort. Using '$OptionSyntax'
@@ -247,8 +246,7 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set()
-                    )
+                        name=name, attributes=set())
         defaults = []
         for spec, value in self.defaults.items():
             value = parse_builtin_rule(value)
