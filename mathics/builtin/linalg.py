@@ -9,6 +9,7 @@ import sympy
 from sympy import re, im
 from mpmath import mp
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Expression, Integer, Symbol, Real, Number

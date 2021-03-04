@@ -4,6 +4,8 @@
 from itertools import chain
 from math import pi
 
+from mathics.version import __version__
+
 from mathics.builtin.numpy_utils import sqrt, floor, mod, cos, sin, arctan2, minimum, maximum, dot_t
 from mathics.builtin.numpy_utils import stack, unstack, array, clip, conditional, choose, stacked
 

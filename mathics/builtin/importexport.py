@@ -5,6 +5,8 @@
 Importing and Exporting
 """
 
+from mathics.version import __version__
+
 from mathics.core.expression import Expression, from_python, strip_context, Symbol, SymbolFailed
 from mathics.builtin.base import Builtin, Predefined, String, Integer, get_option
 from mathics.builtin.options import options_to_rules

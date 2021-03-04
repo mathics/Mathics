@@ -10,6 +10,8 @@ import sympy
 import string
 import math
 
+from mathics.version import __version__
+
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Integer, String, Expression

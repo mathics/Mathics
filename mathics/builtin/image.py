@@ -3,7 +3,7 @@ Image[] and image related functions.
 
 Note that you (currently) need scikit-image installed in order for this module to work.
 """
-
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, AtomBuiltin, Test, BoxConstruct, String
 from mathics.core.expression import (
     Atom,

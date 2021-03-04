@@ -10,6 +10,8 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
 from mathics.core.convert import from_sympy
 
+from mathics.version import __version__
+
 
 class DSolve(Builtin):
     """

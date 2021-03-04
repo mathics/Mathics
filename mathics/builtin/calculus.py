@@ -4,6 +4,7 @@
 """
 Calculus
 """
+from mathics.version import __version__
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (Expression, Integer, Number, SymbolTrue, SymbolFalse)

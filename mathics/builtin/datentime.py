@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 import dateutil.parser
 import re
 
+from mathics.version import __version__
+
 from mathics.core.expression import (
     Expression,
     Real,

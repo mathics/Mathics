@@ -2,6 +2,7 @@
 The Main Loop
 """
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin
 
 

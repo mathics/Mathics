@@ -6,6 +6,7 @@ import itertools
 from typing import Optional, Union
 
 import sympy
+from mathics.version import __version__
 
 from mathics.builtin.base import (
     BinaryOperator,

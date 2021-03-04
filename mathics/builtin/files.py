@@ -23,6 +23,8 @@ import pathlib
 import os.path as osp
 from itertools import chain
 
+from mathics.version import __version__
+
 from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder
 

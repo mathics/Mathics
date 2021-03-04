@@ -7,6 +7,7 @@ import importlib
 import re
 import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
+from mathics.version import __version__
 
 # Get a list of file in this directory. We'll exclude from the start
 # files with leading characters we don't want like __init__ with its leading underscore.
@@ -38,9 +39,15 @@ modules = []
 for module_name in module_names:
     try:
         module = importlib.import_module("mathics.builtin." + module_name)
-    except:
-        # print("XXX", module_name)
+    except Exception as e:
+        print(e)
+        print(f"    Not able to load {module_name}. Check your installation.")
+        print(f"    mathics.builtin loads from {__file__[:-11]}")
         continue
+
+    if  __version__ != module.__version__:
+        print(f"Version {module.__version__} in the module do not match with {__version__}")
+
     modules.append(module)
 
 builtins = []

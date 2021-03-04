@@ -8,7 +8,7 @@ Mathematical Functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-
+from mathics.version import __version__
 import sympy
 import mpmath
 

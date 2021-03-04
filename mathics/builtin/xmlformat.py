@@ -6,6 +6,7 @@ XML
 """
 
 
+from mathics.version import __version__
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open

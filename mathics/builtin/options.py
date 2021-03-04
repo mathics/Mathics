@@ -5,6 +5,7 @@
 Options and Default Arguments
 """
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, Test, get_option
 from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
 from mathics.builtin.image import Image

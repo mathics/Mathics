@@ -7,6 +7,7 @@ Functional Programming
 
 from itertools import chain
 
+from mathics.version import __version__
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
 

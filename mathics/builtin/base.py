@@ -10,6 +10,8 @@ from itertools import chain
 import typing
 from typing import Any, cast
 
+from mathics.version import __version__
+
 from mathics.core.definitions import Definition
 from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions
 from mathics.core.rules import Rule, BuiltinRule, Pattern

@@ -23,6 +23,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain
 
+from mathics.version import __version__
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (

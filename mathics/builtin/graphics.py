@@ -12,6 +12,7 @@ import json
 import base64
 from itertools import chain
 
+from mathics.version import __version__
 from mathics.builtin.base import (
     Builtin,
     InstancableBuiltin,

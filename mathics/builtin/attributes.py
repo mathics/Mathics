@@ -8,6 +8,7 @@ There are several builtin-attributes which have a predefined meaning in \Mathics
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
+from mathics.version import __version__
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.builtin.evaluation import Sequence

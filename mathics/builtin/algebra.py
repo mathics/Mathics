@@ -4,6 +4,7 @@
 Algebraic Manipulation
 """
 
+from mathics.version import __version__
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
