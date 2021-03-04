@@ -25,7 +25,7 @@ To get a full list of avaiable commands, read the output of:
 import sys
 import os.path as osp
 import platform
-from setuptools import setup, Command, Extension
+from setuptools import setup, Extension
 
 # Ensure user has the correct Python version
 if sys.version_info < (3, 6):

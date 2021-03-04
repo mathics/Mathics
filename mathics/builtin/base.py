@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import mpmath
 import re
 import sympy
 
 from functools import total_ordering
 import importlib
 from itertools import chain
-
 import typing
 from typing import Any, cast
 
@@ -531,7 +529,7 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-    def get_constant(self, precision, have_mpmath=False):
+    def get_constant(self, precision, evaluation, have_mpmath=False):
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:

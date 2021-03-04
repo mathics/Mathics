@@ -157,6 +157,12 @@ class Definitions(object):
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
+
+
+        onload = loaded_module.pymathics_version_data.get("onload", None)
+        if onload:
+            onload(self)
+            
         return loaded_module
 
     def clear_pymathics_modules(self):
