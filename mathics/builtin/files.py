@@ -4967,9 +4967,9 @@ class FileNames(Builtin):
     >> FileNames["*.m", "formats"]//Length
      = 0
     >> FileNames["*.m", "formats", 3]//Length
-     = 14
+     = 12
     >> FileNames["*.m", "formats", Infinity]//Length
-     = 14
+     = 12
     """
 
     options = {"IgnoreCase": "Automatic",}
@@ -5027,7 +5027,7 @@ class FileNames(Builtin):
             elif n == SymbolInfinity:
                 n = None
             else:
-                evaluation.message("Filenames", "badn",  n)
+                evaluation.message("FileNames", "badn",  n)
                 return
         else:
             n = 1
