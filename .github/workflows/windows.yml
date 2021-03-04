@@ -25,7 +25,7 @@ jobs:
         # LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config 
         python -m pip install wheel
         choco install llvm
-        set LLVM_DIR="C:\Program Files\LLVM"
+        set LLVM_DIR=C:\Program Files\LLVM
         pip install llvmlite
     - name: Install Mathics
       run: |
