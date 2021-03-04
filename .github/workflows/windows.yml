@@ -23,7 +23,7 @@ jobs:
       run: |
         choco install llvm
         python -m pip install --upgrade pip
-        # LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config 
+        set LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config 
         pip install llvmlite
     - name: Install Mathics
       run: |
