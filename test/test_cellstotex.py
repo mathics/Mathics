@@ -30,6 +30,8 @@ def _evaluate(str_expression):
     expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
+_evaluate('LoadModule["pymathics.asy"]')
+
 def test_load():
     str_expected1 = "{}"
     message1 = ""
