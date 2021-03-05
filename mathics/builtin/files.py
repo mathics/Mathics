@@ -4963,7 +4963,7 @@ class FileNames(Builtin):
 
     >> SetDirectory[$InstallationDirectory <> "/autoload"];
     >> FileNames[]//Length
-     = 1
+     = 2
     >> FileNames["*.m", "formats"]//Length
      = 0
     >> FileNames["*.m", "formats", 3]//Length
@@ -4971,7 +4971,7 @@ class FileNames(Builtin):
     >> FileNames["*.m", "formats", Infinity]//Length
      = 12
     """
-
+    fmtmaps = {Symbol("System`All"): "*" }
     options = {"IgnoreCase": "Automatic",}
 
     messages = {
@@ -4999,13 +4999,14 @@ class FileNames(Builtin):
         if forms.get_head_name() == "System`List":
             str_forms = []
             for p in forms._leaves:
-                if p.get_head_name() == "System`String":
-                    str_forms.append(p)
+                if self.fmtmaps.get(p, None):
+                    str_forms.append(self.fmtmaps[p])
                 else:
-                    evaluation.message("FileNames", "nofmtstr", forms)
-                    return
+                    str_forms.append(p)
         else:
-            str_forms = [forms]
+            str_forms = [self.fmtmaps[forms]
+                         if self.fmtmaps.get(forms, None)
+                         else forms]
         # Building a list of directories
         if paths.get_head_name() == "System`String":
             str_paths = [paths.value]
@@ -5053,11 +5054,10 @@ class FileNames(Builtin):
             if n == 1:
                 for fn in os.listdir(path):
                     fullname = osp.join(path, fn)
-                    if osp.isfile(fullname):
-                        for pattern in patterns:
-                            if pattern.match(fn):
-                                filenames.add(fullname)
-                                break
+                    for pattern in patterns:
+                        if pattern.match(fn):
+                            filenames.add(fullname)
+                            break
             else:
                 pathlen = len(path)
                 for root, dirs, files in os.walk(path):
@@ -5066,10 +5066,11 @@ class FileNames(Builtin):
                     # how to do this better without a lot of code...
                     if n is not None and len(root[pathlen:].split(osp.sep))>n:
                         continue
-                    for fn in files:
+                    for fn in files+dirs:
                         for pattern in patterns:
                             if pattern.match(fn):
                                 filenames.add(osp.join(root,fn))
                                 break
+                    
 
         return Expression("List", *[String(s) for s in filenames])
