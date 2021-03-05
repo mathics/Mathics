@@ -29,7 +29,8 @@ jobs:
         pip install llvmlite
     - name: Install Mathics
       run: |
-        make develop
+        # make develop
+        python setup.py install
     - name: Test Mathics
       run: |
         mathics -e 'AbsoluteTime[50!]'
