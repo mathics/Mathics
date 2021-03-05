@@ -62,6 +62,15 @@ INPUTFILE_VAR = ""
 PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
 
 
+def create_temporary_file(suffix=None, delete=False):
+    if suffix=="":
+        suffix = None
+
+    fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
+    result = fp.name
+    fp.close()
+    return result
+
 def urlsave_tmp(url, location=None, **kwargs):
     suffix = ""
     strip_url = url.split("/")
@@ -71,15 +80,12 @@ def urlsave_tmp(url, location=None, **kwargs):
             suffix = strip_url[len(strip_url.split(".")[0]) :]
         try:
             r = requests.get(url, allow_redirects=True)
-            if location is not None:
-                fp = open(location, "w")
-            elif suffix != "":
-                fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-            else:
-                fp = tempfile.NamedTemporaryFile(delete=False)
-            fp.write(r.content)
-            result = fp.name
-            fp.close()
+            if location is None:
+                location = create_temporary_file(suffix=suffix)
+                
+            with open(location, "w") as fp:
+                fp.write(r.content)
+                result = fp.name
         except Exception:
             result = None
     return result
@@ -4981,8 +4987,51 @@ class URLSave(Builtin):
         if result is None:
             return SymbolFailed
         return String(result)
-        
+
+
+class CreateFile(Builtin):
+    """
+    <dl>
+    <dt>'CreateFile["filename"]'
+        <dd>Creates a file named "filename" temporary file, but do not open it.
+    <dt>'CreateFile[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    rules = {'CreateFile[]':'CreateTemporary[]',}
+    options = {'CreateIntermediateDirectories': 'True',
+               'OverwriteTarget': 'True',
+    }
     
+    def apply_1(self, filename, evaluation, **options):
+        'CreateFile[filename_String, OptionsPattern[CreateFile]]'
+        try:
+            # TODO: Implement options
+            if not osp.isfile(filename.value):
+                f = open(filename.value, "w")
+                res = f.name
+                f.close()
+                return String(res)
+            else:
+                return filename
+        except:
+            return SymbolFailed    
+
+class CreateTemporary(Builtin):
+    """
+    <dl>
+    <dt>'CreateTemporary[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    def apply_0(self, evaluation):
+        'CreateTemporary[]'
+        try:
+            res = create_temporary_file()
+        except:
+            return SymbolFailed
+        return String(res)
+
     
 class FileNames(Builtin):
     """
