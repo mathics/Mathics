@@ -82,8 +82,7 @@ def urlsave_tmp(url, location=None, **kwargs):
             r = requests.get(url, allow_redirects=True)
             if location is None:
                 location = create_temporary_file(suffix=suffix)
-                
-            with open(location, "w") as fp:
+            with open(location, "wb") as fp:
                 fp.write(r.content)
                 result = fp.name
         except Exception:
