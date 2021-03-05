@@ -27,6 +27,9 @@ jobs:
         choco install llvm
         set LLVM_DIR="C:\Program Files\LLVM"
         pip install llvmlite
+        pip install numpy
+        pip install scipy
+        pip install pillow
     - name: Install Mathics
       run: |
         # make develop
