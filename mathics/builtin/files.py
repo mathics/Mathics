@@ -4958,6 +4958,7 @@ class URLSave(Builtin):
         <dd>Save "url" in a temporary file.
     <dt>'URLSave["url", $filename$]'
         <dd>Save "url" in $filename$.
+    </dl>
     """
     messages = {"invfile": '`1` is not a valid Filename',
                 "invhttp": '`1` is not a valid URL'
