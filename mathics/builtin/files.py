@@ -62,6 +62,29 @@ INPUTFILE_VAR = ""
 PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
 
 
+def urlsave_tmp(url, location=None, **kwargs):
+    suffix = ""
+    strip_url = url.split("/")
+    if len(strip_url) > 3:
+        strip_url = strip_url[-1]
+        if strip_url != "":
+            suffix = strip_url[len(strip_url.split(".")[0]) :]
+        try:
+            r = requests.get(url, allow_redirects=True)
+            if location is not None:
+                fp = open(location, "w")
+            elif suffix != "":
+                fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            else:
+                fp = tempfile.NamedTemporaryFile(delete=False)
+            fp.write(r.content)
+            result = fp.name
+            fp.close()
+        except Exception:
+            result = None
+    return result
+    
+
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
     if filename[-1] == "`":
@@ -81,23 +104,7 @@ def path_search(filename):
             or (lenfn > 8 and filename[:8] == "https://")
             or (lenfn > 6 and filename[:6] == "ftp://")
         ):
-            suffix = ""
-            strip_filename = filename.split("/")
-            if len(strip_filename) > 3:
-                strip_filename = strip_filename[-1]
-                if strip_filename != "":
-                    suffix = strip_filename[len(strip_filename.split(".")[0]) :]
-            try:
-                r = requests.get(filename, allow_redirects=True)
-                if suffix != "":
-                    fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                else:
-                    fp = tempfile.NamedTemporaryFile(delete=False)
-                fp.write(r.content)
-                result = fp.name
-                fp.close()
-            except Exception:
-                result = None
+            result = urlsave_tmp(filename)
         else:
             for p in PATH_VAR + [""]:
                 path = osp.join(p, filename)
@@ -4944,6 +4951,38 @@ class Needs(Builtin):
         return SymbolNull
 
 
+class URLSave(Builtin):
+    """
+    <dl>
+    <dt>'URLSave["url"]'
+        <dd>Save "url" in a temporary file.
+    <dt>'URLSave["url", $filename$]'
+        <dd>Save "url" in $filename$.
+    """
+    messages = {"invfile": '`1` is not a valid Filename',
+                "invhttp": '`1` is not a valid URL'
+                }
+    def apply_1(self, url, evaluation, **options):
+        'URLSave[url_String, OptionsPattern[URLSave]]'
+        return self.apply_2(url, None, evaluation, **options)
+
+    def apply_2(self, url, filename, evaluation, **options):
+        'URLSave[url_String, filename_, OptionsPattern[URLSave]]'
+        url = url.value
+        if filename is None:
+            result = urlsave_tmp(url, None, **options)
+        elif filename.get_head_name()=="String":
+            filename = filename.value
+            result = urlsave_tmp(url, filename, **options)
+        else:
+            evaluation.message("URLSave", "invfile", filename)
+            return SymbolFailed
+        if result is None:
+            return SymbolFailed
+        return String(result)
+        
+    
+    
 class FileNames(Builtin):
     """
     <dl>
