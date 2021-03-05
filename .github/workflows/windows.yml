@@ -28,8 +28,15 @@ jobs:
         set LLVM_DIR="C:\Program Files\LLVM"
         pip install llvmlite
         pip install numpy
-        pip install scipy
+        pip install sympy
         pip install pillow
+        pip install scikit-image
+        pip install requests
+        pip install wordcloud
+        pip install PyYAML
+        pip install palettable
+        pip install mpmath
+        pip install mathics_scanner
     - name: Install Mathics
       run: |
         # make develop
