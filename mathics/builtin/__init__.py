@@ -1,13 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from mathics.core.expression import ensure_context
 
 import glob
 import importlib
 import re
 import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 # Get a list of file in this directory. We'll exclude from the start
 # files with leading characters we don't want like __init__ with its leading underscore.
@@ -23,8 +21,6 @@ from mathics.builtin.base import (
     Operator,
     PatternObject,
 )
-
-from mathics.settings import ENABLE_FILES_MODULE
 
 exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [

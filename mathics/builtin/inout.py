@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -11,7 +10,7 @@ import mpmath
 import typing
 from typing import Any
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import (
     Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator,
@@ -670,7 +669,7 @@ class InterpretationBox(Builtin):
     """
     <dl>
     <dt>'InterpretationBox[{...}]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr.
     </dl>
     """
@@ -706,7 +705,7 @@ class TagBox(Builtin):
     """
     <dl>
     <dt>'TagBox[boxes, tag]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr
     </dl>
     """
@@ -720,7 +719,7 @@ class TemplateBox(Builtin):
     </dl>
     """
     attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
-    
+
 
 class Row(Builtin):
     """

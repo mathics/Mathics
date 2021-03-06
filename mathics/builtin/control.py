@@ -6,7 +6,7 @@ Control Statements
 """
 
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import (Expression, Symbol, from_python, SymbolTrue, SymbolFalse)
@@ -94,7 +94,7 @@ class CompoundExpression(BinaryOperator):
 
         return result
 
-    
+
 class If(Builtin):
     """
     <dl>

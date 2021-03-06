@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,7 +6,7 @@ Graphics (3D)
 
 
 import numbers
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.core.expression import Expression, from_python, system_symbols_dict
 from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
 from .graphics import (

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -10,7 +9,7 @@ from itertools import chain
 import typing
 from typing import Any, cast
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.definitions import Definition
 from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions

@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 import mathics.builtin
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)

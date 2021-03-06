@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -10,7 +9,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
 from mathics.core.convert import from_sympy
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 
 class DSolve(Builtin):

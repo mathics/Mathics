@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,7 +7,7 @@ Number theoretic functions
 import sympy
 from itertools import combinations
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, SympyFunction
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)

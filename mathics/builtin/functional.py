@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,7 +6,7 @@ Functional Programming
 
 from itertools import chain
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
 
@@ -98,7 +97,7 @@ class Function(PostfixOperator):
         else:
             vars = [vars]
 
-        args = args.get_sequence()        
+        args = args.get_sequence()
         if len(vars) > len(args):
             evaluation.message('Function', 'fpct', )
         else:
