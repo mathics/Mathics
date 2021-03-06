@@ -429,7 +429,7 @@ class PatternTest(BinaryOperator, PatternObject):
         self.test = expr.leaves[1]
         self.test_name = self.test.get_name()
 
-    def quick_pattern_test(self, candidate, test):
+    def quick_pattern_test(self, candidate, test, evaluation):
         if test == 'System`NumberQ':
             return isinstance(candidate, Number)
         elif test == 'System`Negative':
@@ -448,10 +448,11 @@ class PatternTest(BinaryOperator, PatternObject):
                 isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
                 candidate.leaves[1].value < 0)
         else:
-            from mathics.builtin import builtins
             from mathics.builtin.base import Test
-
-            builtin = builtins.get(test)
+            builtin = None
+            builtin = evaluation.definitions.get_definition(test)
+            if builtin:
+                builtin = builtin.builtin
             if builtin is not None and isinstance(builtin, Test):
                 return builtin.test(candidate)
         return None
@@ -462,7 +463,7 @@ class PatternTest(BinaryOperator, PatternObject):
             items = expression.get_sequence()
             for item in items:
                 item = item.evaluate(evaluation)
-                quick_test = self.quick_pattern_test(item, self.test_name)
+                quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
                 if quick_test is not None:
                     if not quick_test:
                         break

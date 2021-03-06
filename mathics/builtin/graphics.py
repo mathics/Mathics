@@ -14,7 +14,7 @@ from itertools import chain
 
 from mathics.builtin.base import (
     Builtin,
-    InstancableBuiltin,
+    InstanceableBuiltin,
     BoxConstruct,
     BoxConstructError,
 )
@@ -508,11 +508,14 @@ class Graphics(Builtin):
         for option in options:
             if option not in ("System`ImageSize",):
                 options[option] = Expression("N", options[option]).evaluate(evaluation)
-        box_name = "Graphics" + self.box_suffix
-        return Expression(box_name, convert(content), *options_to_rules(options))
+        from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+        if type(self) is Graphics:
+            return GraphicsBox(convert(content), *options_to_rules(options))
+        elif type(self) is Graphics3D:
+            return Graphics3DBox(convert(content), *options_to_rules(options))
 
 
-class _GraphicsElement(InstancableBuiltin):
+class _GraphicsElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
@@ -2599,7 +2602,7 @@ class InsetBox(_GraphicsElement):
         style = create_css(font_color=self.color)
         svg = (
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            "<math>%s</math></foreignObject>"
+            '<math>%s</math></foreignObject>'
         ) % (x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
@@ -2936,7 +2939,10 @@ class GraphicsBox(BoxConstruct):
 
     attributes = ("HoldAll", "ReadProtected")
 
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         self._prepare_elements(leaves, options)  # to test for Box errors
         return "-Graphics-"
 
@@ -2992,9 +2998,7 @@ class GraphicsBox(BoxConstruct):
     def _prepare_elements(self, leaves, options, neg_y=False, max_width=None):
         if not leaves:
             raise BoxConstructError
-
         graphics_options = self.get_option_values(leaves[1:], **options)
-
         background = graphics_options["System`Background"]
         if (
             isinstance(background, Symbol)
@@ -3142,7 +3146,9 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, max_width=450
         )
@@ -3195,7 +3201,9 @@ clip(%s);
 
         return tex
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
@@ -3623,7 +3631,6 @@ class _ColorObject(Builtin):
 
     def __init__(self, *args, **kwargs):
         super(_ColorObject, self).__init__(*args, **kwargs)
-
         if self.text_name is None:
             text_name = strip_context(self.get_name()).lower()
         else:
@@ -3658,6 +3665,7 @@ class Black(_ColorObject):
     rules = {
         "Black": "GrayLevel[0]",
     }
+
 
 
 class White(_ColorObject):
@@ -3735,6 +3743,7 @@ class Magenta(_ColorObject):
     rules = {
         "Magenta": "RGBColor[1, 0, 1]",
     }
+
 
 
 class Yellow(_ColorObject):
@@ -3860,6 +3869,7 @@ styles = system_symbols_dict(
 style_options = system_symbols_dict(
     {
         "FontColor": _style,
+        "ImageSizeMultipliers": (lambda *x: x[1])
     }
 )
 

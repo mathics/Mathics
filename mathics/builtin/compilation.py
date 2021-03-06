@@ -149,20 +149,26 @@ class CompiledCode(Atom):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
-        return Expression('CompiledCodeBox')
+        return CompiledCodeBox(String("Nocode"), evaluation=evaluation)
 
 
 class CompiledCodeBox(BoxConstruct):
     """
     Used internally by <i>CompileCode[]</i>.
     """
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         return '-CompiledCode-'
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         return '-CompiledCode-'
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         return '-CompiledCode-'
 
 

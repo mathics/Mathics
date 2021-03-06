@@ -102,8 +102,7 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set()
-                    )
+                        name=name, attributes=set())
 
         # Check if the given options are actually supported by the Builtin.
         # If not, we might issue an optx error and abort. Using '$OptionSyntax'
@@ -247,8 +246,7 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set()
-                    )
+                        name=name, attributes=set())
         defaults = []
         for spec, value in self.defaults.items():
             value = parse_builtin_rule(value)
@@ -364,7 +362,7 @@ class Builtin(object):
         return None, s
 
 
-class InstancableBuiltin(Builtin):
+class InstanceableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs["expression"] = False
@@ -377,7 +375,7 @@ class InstancableBuiltin(Builtin):
             try:
                 instance.init(*args, **kwargs)
             except TypeError:
-                # TypeError occurs when unpickling instance, e.g. PatterObject,
+                # TypeError occurs when unpickling instance, e.g. PatternObject,
                 # because parameter expr is not given. This should no be a
                 # problem, as pickled objects need their init-method not
                 # being called.
@@ -592,11 +590,101 @@ class BoxConstructError(Exception):
     pass
 
 
-class BoxConstruct(Builtin):
-    def get_option_values(self, leaves, evaluation=None, **options):
-        default = evaluation.definitions.get_options(self.get_name()).copy()
-        options = Expression("List", *leaves).get_option_values(evaluation)
-        default.update(options)
+class BoxConstruct(InstanceableBuiltin):
+    def __new__(cls, *leaves, **kwargs):
+        instance = super().__new__(cls, *leaves, **kwargs)
+        instance._leaves = leaves
+        return instance
+
+    def evaluate(self, evaluation):
+        # THINK about: Should we evaluate the leaves here?
+        return
+
+    def get_head_name(self):
+        return self.get_name()
+
+    def get_lookup_name(self):
+        return self.get_name()
+
+    def get_string_value(self):
+        return "-@" + self.get_head_name() + "@-"
+
+    def same(self, expr):
+        return expr.same(self)
+
+    def is_atom(self):
+        return False
+
+    def do_format(self, evaluation, format):
+        return self
+
+    def format(self, evaluation, fmt):
+        return self
+
+    def get_head(self):
+        return Symbol(self.get_name())
+
+    @property
+    def head(self):
+        return self.get_head()
+
+    @head.setter
+    def head(self, value):
+        raise ValueError('BoxConstruct.head is write protected.')
+
+    @property
+    def leaves(self):
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+        raise ValueError('BoxConstruct.leaves is write protected.')
+
+    # I need to repeat this, because this is not
+    # an expression...
+    def has_form(self, heads, *leaf_counts):
+        """
+        leaf_counts:
+            (,):        no leaves allowed
+            (None,):    no constraint on number of leaves
+            (n, None):  leaf count >= n
+            (n1, n2, ...):    leaf count in {n1, n2, ...}
+        """
+
+        head_name = self.get_name()
+        if isinstance(heads, (tuple, list, set)):
+            if head_name not in [ensure_context(h) for h in heads]:
+                return False
+        else:
+            if head_name != ensure_context(heads):
+                return False
+        if not leaf_counts:
+            return False
+        if leaf_counts and leaf_counts[0] is not None:
+            count = len(self._leaves)
+            if count not in leaf_counts:
+                if (len(leaf_counts) == 2 and   # noqa
+                    leaf_counts[1] is None and count >= leaf_counts[0]):
+                    return True
+                else:
+                    return False
+        return True
+
+    def flatten_pattern_sequence(self, evaluation)  -> 'BoxConstruct':
+        return self
+
+    def get_option_values(self, leaves, **options):
+        evaluation = options.get("evaluation", None)
+        if evaluation:
+            default = evaluation.definitions.get_options(self.get_name()).copy()
+            options = Expression("List", *leaves).get_option_values(evaluation)
+            default.update(options)
+        else:
+            from mathics.core.parser import parse_builtin_rule
+            default = {}
+            for option, value in self.options.items():
+                option = ensure_context(option)
+                default[option] = parse_builtin_rule(value)
         return default
 
     def boxes_to_text(self, leaves, **options) -> str:
@@ -619,7 +707,7 @@ class PatternArgumentError(PatternError):
         super().__init__(None, None)
 
 
-class PatternObject(InstancableBuiltin, Pattern):
+class PatternObject(InstanceableBuiltin, Pattern):
     needs_verbatim = True
 
     arg_counts: typing.List[int] = []
