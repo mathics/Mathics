@@ -3231,7 +3231,7 @@ clip(%s);
         )
 
         return (
-            '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+            '<mtext><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
             % (
                 int(width),
                 int(height),
