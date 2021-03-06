@@ -186,10 +186,19 @@ class ByteArray(Builtin):
     <dt>'ByteArray["string"]'
        <dd> Constructs a byte array where bytes comes from decode a b64 encoded String
     </dl>
+
+    >> A=ByteArray[{1,25,3}]
+     = ByteArray["AQID"]
+    >> A[[2]]
+     = 25
+    >> B=ByteArray["asy"]
+     = ByteArray["WVhONQ=="]
     """
+
     messages = {'aotd': 'Elements in `1` are inconsistent with type Byte',
                 'lend': 'The first argument in Bytearray[`1`] should ' + \
                          'be a B64 enconded string or a vector of integers',}
+
     def apply_str(self, string, evaluation):
         'ByteArray[string_String]'
         return Expression("ByteArray", ByteArrayAtom(string.value))

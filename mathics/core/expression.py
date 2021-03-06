@@ -134,6 +134,8 @@ def from_python(arg):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
+    elif isinstance(arg, bytearray) or isinstance(arg, bytes):
+        return Expression('ByteArray', ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
@@ -2716,10 +2718,10 @@ class ByteArrayAtom(Atom):
         return self
 
     def __str__(self) -> str:
-        return base64.b64encode(self.value).decode('utf8')
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
 
     def boxes_to_text(self, **options) -> str:
-        return base64.b64encode(self.value).decode('utf8')
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
 
     def boxes_to_xml(self, **options) -> str:
         return encode_mathml(String(base64.b64encode(self.value).decode('utf8')))
@@ -2729,7 +2731,7 @@ class ByteArrayAtom(Atom):
         return encode_tex(String(base64.b64encode(self.value).decode('utf8')))
 
     def atom_to_boxes(self, f, evaluation):
-        return String(self.__str__())
+        return String('"' + self.__str__() + '"')
 
     def do_copy(self) -> 'ByteArray':
         return ByteArrayAtom(self.value)
