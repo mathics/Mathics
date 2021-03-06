@@ -12,6 +12,7 @@ import sys
 import re
 import subprocess
 
+from mathics.version import __version__
 from mathics.core.expression import (
     Expression,
     Integer,
@@ -24,7 +25,6 @@ from mathics.core.expression import (
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 from mathics.builtin.strings import to_regex
-from mathics.version import __version__
 
 
 class Aborted(Predefined):
@@ -253,7 +253,7 @@ class Packages(Predefined):
 
     name = "$Packages"
     rules = {
-        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',
+        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}'
     }
 
 
@@ -411,6 +411,7 @@ class UserName(Predefined):
             user = os.getlogin()
         except:
             import pwd
+
             user = pwd.getpwuid(os.getuid())[0]
         return String(user)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # cython: language_level=3
 
 """
@@ -11,6 +10,8 @@ import math
 import mpmath
 import numpy
 import sympy
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Predefined, SympyObject
 from mathics.core.expression import (
@@ -115,7 +116,7 @@ class _Constant_Common(Predefined):
             preference = "numpy"
         elif preference == "sympy" and not hasattr(self, "sympy_name"):
             preference = "numpy"
-        
+
         if preference == "numpy" and not hasattr(self, "numpy_name"):
             if hasattr(self, "sympy_name"):
                 preference = "sympy"

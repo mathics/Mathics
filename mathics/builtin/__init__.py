@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from mathics.core.expression import ensure_context
 
 import glob
 import importlib
 import re
 import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 # Get a list of file in this directory. We'll exclude from the start
 # files with leading characters we don't want like __init__ with its leading underscore.
@@ -23,8 +22,6 @@ from mathics.builtin.base import (
     PatternObject,
 )
 
-from mathics.settings import ENABLE_FILES_MODULE
-
 exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [
     f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
@@ -38,9 +35,17 @@ modules = []
 for module_name in module_names:
     try:
         module = importlib.import_module("mathics.builtin." + module_name)
-    except:
-        # print("XXX", module_name)
+    except Exception as e:
+        print(e)
+        print(f"    Not able to load {module_name}. Check your installation.")
+        print(f"    mathics.builtin loads from {__file__[:-11]}")
         continue
+
+    if __version__ != module.__version__:
+        print(
+            f"Version {module.__version__} in the module do not match with {__version__}"
+        )
+
     modules.append(module)
 
 _builtins = []
@@ -75,7 +80,7 @@ for module in modules:
                 # This set the default context for symbols in mathics.builtins
                 if not type(instance).context:
                     type(instance).context = "System`"
-                _builtins.append( (instance.get_name(), instance))
+                _builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
 
@@ -113,9 +118,11 @@ add_builtins(new_builtins)
 
 
 def builtins_dict():
-    return { builtin.get_name() : builtin
-             for modname, builtins in builtins_by_module.items()
-             for builtin in builtins}
+    return {
+        builtin.get_name(): builtin
+        for modname, builtins in builtins_by_module.items()
+        for builtin in builtins
+    }
 
 
 def get_module_doc(module):

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 r"""
@@ -8,9 +7,9 @@ There are several builtin-attributes which have a predefined meaning in \Mathics
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.builtin.evaluation import Sequence
 from mathics.core.expression import Expression, Symbol, SymbolNull, String
 from mathics.builtin.assignment import get_symbol_list
 

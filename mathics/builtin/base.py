@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -9,6 +8,8 @@ import importlib
 from itertools import chain
 import typing
 from typing import Any, cast
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.definitions import Definition
 from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions
@@ -25,6 +26,7 @@ from mathics.core.expression import (
     strip_context,
 )
 from mathics.core.numbers import get_precision, PrecisionValueError
+
 
 def get_option(options, name, evaluation, pop=False, evaluate=True):
     # we do not care whether an option X is given as System`X,
@@ -82,6 +84,7 @@ class Builtin(object):
 
     def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
+
         # Set the default context
         if not self.context:
             self.context = "Pymathics`" if is_pymodule else "System`"
@@ -102,7 +105,8 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set())
+                        name=name, attributes=set()
+                    )
 
         # Check if the given options are actually supported by the Builtin.
         # If not, we might issue an optx error and abort. Using '$OptionSyntax'
@@ -144,9 +148,7 @@ class Builtin(object):
 
         for pattern, function in self.get_functions(is_pymodule=is_pymodule):
             rules.append(
-                BuiltinRule(
-                    name, pattern, function, check_options, system=True
-                )
+                BuiltinRule(name, pattern, function, check_options, system=True)
             )
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
@@ -246,7 +248,8 @@ class Builtin(object):
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set())
+                        name=name, attributes=set()
+                    )
         defaults = []
         for spec, value in self.defaults.items():
             value = parse_builtin_rule(value)
@@ -266,7 +269,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
-            builtin=self
+            builtin=self,
         )
         if is_pymodule:
             definitions.pymathics[name] = definition
@@ -537,7 +540,7 @@ class SympyFunction(SympyObject):
 
         sympy_fn = self.to_sympy()
         if d is None:
-            result = self.get_mpmath_function()if have_mpmath else sympy_fn()
+            result = self.get_mpmath_function() if have_mpmath else sympy_fn()
             return MachineReal(result)
         else:
             return PrecisionReal(sympy_fn.n(d))
@@ -630,7 +633,7 @@ class BoxConstruct(InstanceableBuiltin):
 
     @head.setter
     def head(self, value):
-        raise ValueError('BoxConstruct.head is write protected.')
+        raise ValueError("BoxConstruct.head is write protected.")
 
     @property
     def leaves(self):
@@ -638,7 +641,7 @@ class BoxConstruct(InstanceableBuiltin):
 
     @leaves.setter
     def leaves(self, value):
-        raise ValueError('BoxConstruct.leaves is write protected.')
+        raise ValueError("BoxConstruct.leaves is write protected.")
 
     # I need to repeat this, because this is not
     # an expression...
@@ -663,14 +666,17 @@ class BoxConstruct(InstanceableBuiltin):
         if leaf_counts and leaf_counts[0] is not None:
             count = len(self._leaves)
             if count not in leaf_counts:
-                if (len(leaf_counts) == 2 and   # noqa
-                    leaf_counts[1] is None and count >= leaf_counts[0]):
+                if (
+                    len(leaf_counts) == 2
+                    and leaf_counts[1] is None  # noqa
+                    and count >= leaf_counts[0]
+                ):
                     return True
                 else:
                     return False
         return True
 
-    def flatten_pattern_sequence(self, evaluation)  -> 'BoxConstruct':
+    def flatten_pattern_sequence(self, evaluation) -> "BoxConstruct":
         return self
 
     def get_option_values(self, leaves, **options):
@@ -681,6 +687,7 @@ class BoxConstruct(InstanceableBuiltin):
             default.update(options)
         else:
             from mathics.core.parser import parse_builtin_rule
+
             default = {}
             for option, value in self.options.items():
                 option = ensure_context(option)

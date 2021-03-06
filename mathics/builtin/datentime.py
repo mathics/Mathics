@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,6 +8,8 @@ import time
 from datetime import datetime, timedelta
 import dateutil.parser
 import re
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.expression import (
     Expression,
@@ -22,7 +23,6 @@ from mathics.core.expression import (
 
 from mathics.core.evaluation import (
     TimeoutInterrupt,
-    _thread_target,
     run_with_timeout_and_stack
 )
 
@@ -112,7 +112,7 @@ class TimeRemaining(Builtin):
 
     X> TimeConstrained[1+2; Print[TimeRemaining[]], 0.9]
      | 0.899318
-     
+
     """
 
     def apply(self, evaluation):

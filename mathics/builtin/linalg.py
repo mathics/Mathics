@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,6 +8,7 @@ import sympy
 from sympy import re, im
 from mpmath import mp
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
 from mathics.core.expression import Expression, Integer, Symbol, Real, Number
@@ -131,16 +131,14 @@ class Cross(Builtin):
      = Cross[{1, 2}, {3, 4, 5}]
     """
 
-    rules = {
-        "Cross[{x_, y_}]": "{-y, x}",
-    }
+    rules = {"Cross[{x_, y_}]": "{-y, x}"}
 
     messages = {
         "nonn1": (
             "The arguments are expected to be vectors of equal length, "
             "and the number of arguments is expected to be 1 less than "
             "their length."
-        ),
+        )
     }
 
     def apply(self, a, b, evaluation):
@@ -178,9 +176,7 @@ class VectorAngle(Builtin):
      = 0
     """
 
-    rules = {
-        "VectorAngle[u_, v_]": "ArcCos[u.v / (Norm[u] Norm[v])]",
-    }
+    rules = {"VectorAngle[u_, v_]": "ArcCos[u.v / (Norm[u] Norm[v])]"}
 
 
 class Inverse(Builtin):
@@ -200,9 +196,7 @@ class Inverse(Builtin):
     = {{1, 0, 0}, {0, Sqrt[3] / 2, -1 / 2}, {0, 1 / 2, Sqrt[3] / 2}}
     """
 
-    messages = {
-        "sing": "The matrix `1` is singular.",
-    }
+    messages = {"sing": "The matrix `1` is singular."}
 
     def apply(self, m, evaluation):
         "Inverse[m_]"
@@ -329,7 +323,7 @@ class PseudoInverse(Builtin):
     """
 
     messages = {
-        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix."
     }
 
     def apply(self, m, evaluation):
@@ -602,7 +596,7 @@ class NullSpace(Builtin):
     """
 
     messages = {
-        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix."
     }
 
     def apply(self, m, evaluation):
@@ -641,7 +635,7 @@ class RowReduce(Builtin):
     """
 
     messages = {
-        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix."
     }
 
     def apply(self, m, evaluation):
@@ -674,7 +668,7 @@ class MatrixRank(Builtin):
     """
 
     messages = {
-        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix."
     }
 
     def apply(self, m, evaluation):
@@ -720,7 +714,7 @@ class Eigenvalues(Builtin):
     mpmath_name = "eig"
 
     messages = {
-        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        "matrix": "Argument `1` at position `2` is not a non-empty rectangular matrix."
     }
 
     @staticmethod
@@ -738,9 +732,7 @@ class Eigenvalues(Builtin):
         eigenvalues = [[Number.from_mpmath(c) for c in row] for row in eigenvalues]
         return Expression("List", *eigenvalues)
 
-    options = {
-        "Method": "sympy",
-    }
+    options = {"Method": "sympy"}
 
     def apply(self, m, evaluation, options={}) -> Expression:
         "Eigenvalues[m_, OptionsPattern[Eigenvalues]]"
@@ -1006,9 +998,7 @@ class Normalize(Builtin):
      = {}
     """
 
-    rules = {
-        "Normalize[v_]": "Module[{norm = Norm[v]}, If[norm == 0, v, v / norm, v]]",
-    }
+    rules = {"Normalize[v_]": "Module[{norm = Norm[v]}, If[norm == 0, v, v / norm, v]]"}
 
 
 class Eigenvectors(Builtin):
@@ -1039,7 +1029,7 @@ class Eigenvectors(Builtin):
     messages = {
         "eigenvecnotimplemented": (
             "Eigenvectors is not yet implemented for the matrix `1`."
-        ),
+        )
     }
 
     # TODO: Normalise the eigenvectors

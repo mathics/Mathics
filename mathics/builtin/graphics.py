@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # cython: language_level=3
 
@@ -12,6 +11,7 @@ import json
 import base64
 from itertools import chain
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
     Builtin,
     InstanceableBuiltin,
@@ -509,6 +509,7 @@ class Graphics(Builtin):
             if option not in ("System`ImageSize",):
                 options[option] = Expression("N", options[option]).evaluate(evaluation)
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+
         if type(self) is Graphics:
             return GraphicsBox(convert(content), *options_to_rules(options))
         elif type(self) is Graphics3D:
@@ -540,9 +541,7 @@ class _Color(_GraphicsElement):
         + "ImageSizeMultipliers -> {1, 1}]"
     }
 
-    rules = {
-        "%(name)s[x_List]": "Apply[%(name)s, x]",
-    }
+    rules = {"%(name)s[x_List]": "Apply[%(name)s, x]"}
 
     components_sizes = []
     default_components = []
@@ -841,9 +840,7 @@ class ColorDistance(Builtin):
 
     """
 
-    options = {
-        "DistanceFunction": "Automatic",
-    }
+    options = {"DistanceFunction": "Automatic"}
 
     messages = {
         "invdist": "`1` is not Automatic or a valid distance specification.",
@@ -1058,9 +1055,7 @@ class Thin(Builtin):
     </dl>
     """
 
-    rules = {
-        "Thin": "AbsoluteThickness[0.5]",
-    }
+    rules = {"Thin": "AbsoluteThickness[0.5]"}
 
 
 class Thick(Builtin):
@@ -1071,9 +1066,7 @@ class Thick(Builtin):
     </dl>
     """
 
-    rules = {
-        "Thick": "AbsoluteThickness[2]",
-    }
+    rules = {"Thick": "AbsoluteThickness[2]"}
 
 
 class PointSize(_Size):
@@ -1119,9 +1112,7 @@ class Rectangle(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Rectangle[]": "Rectangle[{0, 0}]",
-    }
+    rules = {"Rectangle[]": "Rectangle[{0, 0}]"}
 
 
 class Disk(Builtin):
@@ -1152,9 +1143,7 @@ class Disk(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Disk[]": "Disk[{0, 0}]",
-    }
+    rules = {"Disk[]": "Disk[{0, 0}]"}
 
 
 class Circle(Builtin):
@@ -1176,9 +1165,7 @@ class Circle(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Circle[]": "Circle[{0, 0}]",
-    }
+    rules = {"Circle[]": "Circle[{0, 0}]"}
 
 
 class Inset(Builtin):
@@ -1688,13 +1675,13 @@ def _asy_bezier(*segments):
 
 class BernsteinBasis(Builtin):
     rules = {
-        "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]",
+        "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
     }
 
 
 class BezierFunction(Builtin):
     rules = {
-        "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]",
+        "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
     }
 
 
@@ -1712,9 +1699,7 @@ class BezierCurve(Builtin):
      = -Graphics-
     """
 
-    options = {
-        "SplineDegree": "3",
-    }
+    options = {"SplineDegree": "3"}
 
 
 class BezierCurveBox(_Polyline):
@@ -2602,7 +2587,7 @@ class InsetBox(_GraphicsElement):
         style = create_css(font_color=self.color)
         svg = (
             '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            '<math>%s</math></foreignObject>'
+            "<math>%s</math></foreignObject>"
         ) % (x, y, self.opos[0], self.opos[1], style, content)
         return svg
 
@@ -3348,15 +3333,9 @@ clip(%s);
         ticks_x_int = all(floor(x) == x for x in ticks_x)
         ticks_y_int = all(floor(x) == x for x in ticks_y)
 
-        for index, (
-            min,
-            max,
-            p_self0,
-            p_other0,
-            p_origin,
-            ticks,
-            ticks_small,
-            ticks_int,
+        for (
+            index,
+            (min, max, p_self0, p_other0, p_origin, ticks, ticks_small, ticks_int),
         ) in enumerate(
             [
                 (
@@ -3511,9 +3490,7 @@ class Blend(Builtin):
         ),
     }
 
-    rules = {
-        "Blend[colors_]": "Blend[colors, ConstantArray[1, Length[colors]]]",
-    }
+    rules = {"Blend[colors_]": "Blend[colors, ConstantArray[1, Length[colors]]]"}
 
     def do_blend(self, colors, values):
         type = None
@@ -3620,10 +3597,7 @@ class Darker(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Darker[c_, f_]": "Blend[{c, Black}, f]",
-        "Darker[c_]": "Darker[c, 1/3]",
-    }
+    rules = {"Darker[c_, f_]": "Blend[{c, Black}, f]", "Darker[c_]": "Darker[c, 1/3]"}
 
 
 class _ColorObject(Builtin):
@@ -3662,10 +3636,7 @@ class Black(_ColorObject):
      = GrayLevel[0]
     """
 
-    rules = {
-        "Black": "GrayLevel[0]",
-    }
-
+    rules = {"Black": "GrayLevel[0]"}
 
 
 class White(_ColorObject):
@@ -3674,9 +3645,7 @@ class White(_ColorObject):
      = GrayLevel[1]
     """
 
-    rules = {
-        "White": "GrayLevel[1]",
-    }
+    rules = {"White": "GrayLevel[1]"}
 
 
 class Gray(_ColorObject):
@@ -3685,9 +3654,7 @@ class Gray(_ColorObject):
      = GrayLevel[0.5]
     """
 
-    rules = {
-        "Gray": "GrayLevel[0.5]",
-    }
+    rules = {"Gray": "GrayLevel[0.5]"}
 
 
 class Red(_ColorObject):
@@ -3696,9 +3663,7 @@ class Red(_ColorObject):
      = RGBColor[1, 0, 0]
     """
 
-    rules = {
-        "Red": "RGBColor[1, 0, 0]",
-    }
+    rules = {"Red": "RGBColor[1, 0, 0]"}
 
 
 class Green(_ColorObject):
@@ -3707,9 +3672,7 @@ class Green(_ColorObject):
      = RGBColor[0, 1, 0]
     """
 
-    rules = {
-        "Green": "RGBColor[0, 1, 0]",
-    }
+    rules = {"Green": "RGBColor[0, 1, 0]"}
 
 
 class Blue(_ColorObject):
@@ -3718,9 +3681,7 @@ class Blue(_ColorObject):
      = RGBColor[0, 0, 1]
     """
 
-    rules = {
-        "Blue": "RGBColor[0, 0, 1]",
-    }
+    rules = {"Blue": "RGBColor[0, 0, 1]"}
 
 
 class Cyan(_ColorObject):
@@ -3729,9 +3690,7 @@ class Cyan(_ColorObject):
      = RGBColor[0, 1, 1]
     """
 
-    rules = {
-        "Cyan": "RGBColor[0, 1, 1]",
-    }
+    rules = {"Cyan": "RGBColor[0, 1, 1]"}
 
 
 class Magenta(_ColorObject):
@@ -3740,10 +3699,7 @@ class Magenta(_ColorObject):
      = RGBColor[1, 0, 1]
     """
 
-    rules = {
-        "Magenta": "RGBColor[1, 0, 1]",
-    }
-
+    rules = {"Magenta": "RGBColor[1, 0, 1]"}
 
 
 class Yellow(_ColorObject):
@@ -3752,29 +3708,21 @@ class Yellow(_ColorObject):
      = RGBColor[1, 1, 0]
     """
 
-    rules = {
-        "Yellow": "RGBColor[1, 1, 0]",
-    }
+    rules = {"Yellow": "RGBColor[1, 1, 0]"}
 
 
 class Purple(_ColorObject):
-    rules = {
-        "Purple": "RGBColor[0.5, 0, 0.5]",
-    }
+    rules = {"Purple": "RGBColor[0.5, 0, 0.5]"}
 
 
 class LightRed(_ColorObject):
     text_name = "light red"
 
-    rules = {
-        "LightRed": "Lighter[Red, 0.85]",
-    }
+    rules = {"LightRed": "Lighter[Red, 0.85]"}
 
 
 class Orange(_ColorObject):
-    rules = {
-        "Orange": "RGBColor[1, 0.5, 0]",
-    }
+    rules = {"Orange": "RGBColor[1, 0.5, 0]"}
 
 
 class Automatic(Builtin):
@@ -3867,10 +3815,7 @@ styles = system_symbols_dict(
 )
 
 style_options = system_symbols_dict(
-    {
-        "FontColor": _style,
-        "ImageSizeMultipliers": (lambda *x: x[1])
-    }
+    {"FontColor": _style, "ImageSizeMultipliers": (lambda *x: x[1])}
 )
 
 style_heads = frozenset(styles.keys())
