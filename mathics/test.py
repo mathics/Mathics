@@ -90,8 +90,19 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-
+    if False:
+        print("out=-----------------")
+        for rr in out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("wanted_out=-------------------")
+        for rr in wanted_out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("---------------------------------")
+    
     if not compare(result, wanted):
+        print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
@@ -102,6 +113,8 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
+            if False:
+                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break

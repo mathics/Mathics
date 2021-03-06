@@ -401,7 +401,7 @@ class UserName(Predefined):
     </dl>
 
     X> $UserName
-     = rocky
+     = ...
     """
 
     name = "$UserName"

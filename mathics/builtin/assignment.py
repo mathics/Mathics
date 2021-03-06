@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 
 import mathics.builtin
 from mathics.builtin.base import (
@@ -848,7 +846,7 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
     bio = pymathics.get(definition.name)
     if bio is None:
         bio = builtins.get(definition.name)
-    
+
     if bio is not None:
         from mathics.doc.doc import Doc
         docstr = bio.builtin.__class__.__doc__
