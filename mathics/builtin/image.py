@@ -28,17 +28,9 @@ import itertools
 import math
 from collections import defaultdict
 
-_image_requires = (
-    "numpy",
-    "PIL",
-)
+_image_requires = ("numpy", "PIL")
 
-_skimage_requires = _image_requires + (
-    "skimage",
-    "scipy",
-    "matplotlib",
-    "networkx",
-)
+_skimage_requires = _image_requires + ("skimage", "scipy", "matplotlib", "networkx")
 
 try:
     import warnings
@@ -253,9 +245,7 @@ class ImageExport(_ImageBuiltin):
 
 
 class _ImageArithmetic(_ImageBuiltin):
-    messages = {
-        "bddarg": "Expecting a number, image, or graphics instead of `1`.",
-    }
+    messages = {"bddarg": "Expecting a number, image, or graphics instead of `1`."}
 
     @staticmethod
     def convert_Image(image):
@@ -410,9 +400,7 @@ class RandomImage(_ImageBuiltin):
      = -Image-
     """
 
-    options = {
-        "ColorSpace": "Automatic",
-    }
+    options = {"ColorSpace": "Automatic"}
 
     rules = {
         "RandomImage[]": "RandomImage[{0, 1}, {150, 150}]",
@@ -511,9 +499,7 @@ class ImageResize(_ImageBuiltin):
      = ImageResize[-Image-, x]
     """
 
-    options = {
-        "Resampling": "Automatic",
-    }
+    options = {"Resampling": "Automatic"}
 
     messages = {
         "imgrssz": "The size `1` is not a valid image size specification.",
@@ -684,9 +670,7 @@ class ImageReflect(_ImageBuiltin):
         "ImageReflect[image_Image, Left|Right]": "ImageReflect[image, Left -> Right]",
     }
 
-    messages = {
-        "bdrfl2": "`1` is not a valid 2D reflection specification.",
-    }
+    messages = {"bdrfl2": "`1` is not a valid 2D reflection specification."}
 
     def apply(self, image, orig, dest, evaluation):
         "ImageReflect[image_Image, Rule[orig_, dest_]]"
@@ -746,7 +730,7 @@ class ImageRotate(_ImageBuiltin):
     rules = {"ImageRotate[i_Image]": "ImageRotate[i, 90 Degree]"}
 
     messages = {
-        "imgang": "Angle `1` should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another.",
+        "imgang": "Angle `1` should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another."
     }
 
     def apply(self, image, angle, evaluation):
@@ -797,9 +781,7 @@ class ImagePartition(_ImageBuiltin):
 
     rules = {"ImagePartition[i_Image, s_Integer]": "ImagePartition[i, {s, s}]"}
 
-    messages = {
-        "arg2": "`1` is not a valid size specification for image partitions.",
-    }
+    messages = {"arg2": "`1` is not a valid size specification for image partitions."}
 
     def apply(self, image, w, h, evaluation):
         "ImagePartition[image_Image, {w_Integer, h_Integer}]"
@@ -1347,9 +1329,7 @@ class ColorQuantize(_ImageBuiltin):
      = ColorQuantize[-Image-, -1]
     """
 
-    messages = {
-        "intp": "Positive integer expected at position `2` in `1`.",
-    }
+    messages = {"intp": "Positive integer expected at position `2` in `1`."}
 
     def apply(self, image, n, evaluation):
         "ColorQuantize[image_Image, n_Integer]"
@@ -1570,12 +1550,10 @@ class Colorize(_ImageBuiltin):
      = -Image-
     """
 
-    options = {
-        "ColorFunction": "Automatic",
-    }
+    options = {"ColorFunction": "Automatic"}
 
     messages = {
-        "cfun": "`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction.",
+        "cfun": "`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction."
     }
 
     def apply(self, values, evaluation, options):
@@ -1667,10 +1645,7 @@ class DominantColors(_ImageBuiltin):
         "DominantColors[image_Image, options___]": 'DominantColors[image, 256, "Color", options]',
     }
 
-    options = {
-        "ColorCoverage": "Automatic",
-        "MinColorDistance": "Automatic",
-    }
+    options = {"ColorCoverage": "Automatic", "MinColorDistance": "Automatic"}
 
     def apply(self, image, n, prop, evaluation, options):
         "DominantColors[image_Image, n_Integer, prop_String, OptionsPattern[%(name)s]]"
@@ -1906,9 +1881,7 @@ class PixelValue(_ImageBuiltin):
      : Padding not implemented for PixelValue.
     """
 
-    messages = {
-        "nopad": "Padding not implemented for PixelValue.",
-    }
+    messages = {"nopad": "Padding not implemented for PixelValue."}
 
     def apply(self, image, x, y, evaluation):
         "PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]"
@@ -1946,7 +1919,7 @@ class PixelValuePositions(_ImageBuiltin):
     """
 
     rules = {
-        "PixelValuePositions[image_Image, val_?RealNumberQ]": "PixelValuePositions[image, val, 0]",
+        "PixelValuePositions[image_Image, val_?RealNumberQ]": "PixelValuePositions[image, val, 0]"
     }
 
     def apply(self, image, val, d, evaluation):
@@ -2262,8 +2235,7 @@ class Image(Atom):
         encoded = base64.b64encode(contents)
         encoded = b"data:image/png;base64," + encoded
 
-        return ImageBox(String(encoded), Integer(scaled_width), Integer(scaled_height)
-        )
+        return ImageBox(String(encoded), Integer(scaled_width), Integer(scaled_height))
 
     def __str__(self):
         return "-Image-"
@@ -2371,9 +2343,7 @@ class TextRecognize(Builtin):
         "lang": "Language `1` is not supported in your installation of `2`. Please install it.",
     }
 
-    options = {
-        "Language": '"English"',
-    }
+    options = {"Language": '"English"'}
 
     def apply(self, image, evaluation, options):
         "TextRecognize[image_Image, OptionsPattern[%(name)s]]"
@@ -2442,11 +2412,7 @@ class WordCloud(Builtin):
 
     requires = _image_requires + ("wordcloud",)
 
-    options = {
-        "IgnoreCase": "True",
-        "ImageSize": "Automatic",
-        "MaxItems": "Automatic",
-    }
+    options = {"IgnoreCase": "True", "ImageSize": "Automatic", "MaxItems": "Automatic"}
 
     # this is the palettable.colorbrewer.qualitative.Dark2_8 palette
     default_colors = (

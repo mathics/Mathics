@@ -41,8 +41,10 @@ for module_name in module_names:
         print(f"    mathics.builtin loads from {__file__[:-11]}")
         continue
 
-    if  __version__ != module.__version__:
-        print(f"Version {module.__version__} in the module do not match with {__version__}")
+    if __version__ != module.__version__:
+        print(
+            f"Version {module.__version__} in the module do not match with {__version__}"
+        )
 
     modules.append(module)
 
@@ -78,7 +80,7 @@ for module in modules:
                 # This set the default context for symbols in mathics.builtins
                 if not type(instance).context:
                     type(instance).context = "System`"
-                _builtins.append( (instance.get_name(), instance))
+                _builtins.append((instance.get_name(), instance))
                 builtins_by_module[module.__name__].append(instance)
 
 
@@ -116,9 +118,11 @@ add_builtins(new_builtins)
 
 
 def builtins_dict():
-    return { builtin.get_name() : builtin
-             for modname, builtins in builtins_by_module.items()
-             for builtin in builtins}
+    return {
+        builtin.get_name(): builtin
+        for modname, builtins in builtins_by_module.items()
+        for builtin in builtins
+    }
 
 
 def get_module_doc(module):

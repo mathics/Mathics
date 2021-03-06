@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # cython: language_level=3
 
 """
@@ -117,7 +116,7 @@ class _Constant_Common(Predefined):
             preference = "numpy"
         elif preference == "sympy" and not hasattr(self, "sympy_name"):
             preference = "numpy"
-        
+
         if preference == "numpy" and not hasattr(self, "numpy_name"):
             if hasattr(self, "sympy_name"):
                 preference = "sympy"

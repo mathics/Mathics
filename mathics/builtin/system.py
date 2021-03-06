@@ -253,7 +253,7 @@ class Packages(Predefined):
 
     name = "$Packages"
     rules = {
-        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',
+        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}'
     }
 
 
@@ -411,6 +411,7 @@ class UserName(Predefined):
             user = os.getlogin()
         except:
             import pwd
+
             user = pwd.getpwuid(os.getuid())[0]
         return String(user)
 

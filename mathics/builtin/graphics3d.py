@@ -134,23 +134,17 @@ class Graphics3D(Graphics):
 
     options = Graphics.options.copy()
     options.update(
-        {
-            "BoxRatios": "Automatic",
-            "Lighting": "Automatic",
-            "ViewPoint": "{1.3,-2.4,2}",
-        }
+        {"BoxRatios": "Automatic", "Lighting": "Automatic", "ViewPoint": "{1.3,-2.4,2}"}
     )
 
     box_suffix = "3DBox"
 
     rules = {
         "MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], "
-        "        OutputForm]": '"-Graphics3D-"',
+        "        OutputForm]": '"-Graphics3D-"'
     }
 
-    messages = {
-        "invlight": "`1` is not a valid list of light sources.",
-    }
+    messages = {"invlight": "`1` is not a valid list of light sources."}
 
 
 class Graphics3DBox(GraphicsBox):
@@ -229,10 +223,7 @@ class Graphics3DBox(GraphicsBox):
                     color = get_class(head)(light[1])
                     if light[0] == '"Ambient"':
                         self.lighting.append(
-                            {
-                                "type": "Ambient",
-                                "color": color.to_rgba(),
-                            }
+                            {"type": "Ambient", "color": color.to_rgba()}
                         )
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -650,10 +641,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = json.dumps(
             {
                 "elements": json_repr,
-                "axes": {
-                    "hasaxes": axes,
-                    "ticks": ticks,
-                },
+                "axes": {"hasaxes": axes, "ticks": ticks},
                 "extent": {
                     "xmin": xmin,
                     "xmax": xmax,
@@ -1017,9 +1005,7 @@ class Cuboid(Builtin):
      = -Graphics3D-
     """
 
-    rules = {
-        "Cuboid[]": "Cuboid[{0,0,0}]",
-    }
+    rules = {"Cuboid[]": "Cuboid[{0,0,0}]"}
 
     def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
         "Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]"
@@ -1168,11 +1154,7 @@ class Sphere3DBox(_Graphics3DElement):
 
         return "".join(
             "draw(surface(sphere({0}, {1})), rgb({2},{3},{4}));".format(
-                tuple(
-                    coord.pos()[0],
-                ),
-                self.radius,
-                *face_color[:3]
+                tuple(coord.pos()[0]), self.radius, *face_color[:3]
             )
             for coord in self.points
         )
