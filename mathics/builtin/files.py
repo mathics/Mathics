@@ -20,6 +20,7 @@ import sympy
 import requests
 import pathlib
 
+from io import BytesIO, StringIO
 import os.path as osp
 from itertools import chain
 
@@ -1959,8 +1960,10 @@ class WriteString(Builtin):
                     Expression("FullForm", result).evaluate(evaluation),
                 )
             exprs.append(result)
-
-        stream.write("".join(exprs))
+        line = "".join(exprs)
+        if type(stream) is BytesIO:
+            line = line.encode('utf8')
+        stream.write(line)
         try:
             stream.flush()
         except IOError as err:

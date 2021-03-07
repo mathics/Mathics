@@ -188,7 +188,7 @@ class ByteArray(Builtin):
     </dl>
 
     >> A=ByteArray[{1,25,3}]
-     = ByteArray["AQID"]
+     = ByteArray["ARkD"]
     >> A[[2]]
      = 25
     >> B=ByteArray["asy"]
