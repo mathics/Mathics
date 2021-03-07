@@ -16,7 +16,7 @@ from types import FunctionType
 
 
 class Compile(Builtin):
-    """
+    '''
     <dl>
     <dt>'Compile[{x1, x2, ...}, expr_]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
@@ -191,6 +191,7 @@ class CompiledCodeBox(BoxConstruct):
     """
     Used internally by <i>CompileCode[]</i>.
     """
+
     def boxes_to_text(self, leaves, **options):
         return leaves[0].__str__()
 
