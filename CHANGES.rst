@@ -5,15 +5,32 @@ CHANGES
 2.0.1
 -----
 
+General improvements
+--------------------
+- Consistency version checks for builtin modules at load time
 - Partial improvement in Compile: now every expression has a compiled form,
   as a Python function.
-
+- Automatic detection for the best strategy to numeric evaluation of constants.
 New builtins
 ------------
 
 - NIntegrate
 - ArcTanh
 
+Bug fixes
+---------
+- TeXForm for integrals are now properly formatted.
+
+
+Pymathics Modules
+------------------
+- Pymathics modules now can run initialization code when are loaded.
+- The `builtins` list is not hardliked to the library anymore. This simplifies
+  the loading and reloading of pymathics modules.
+- Decoupling of BoxConstructors from the library. Now are defined at the
+  level of the definition objects. This is useful for customizing the
+  Graphics output if it is available.
+  
 
 
 
