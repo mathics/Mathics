@@ -18,10 +18,11 @@ class MathicsSession:
         self.last_result = expr.evaluate(self.evaluation)
         return self.last_result
 
-    def format_result(self, str_expression=None, timeout = None, form=None):
-        self.last_result
+    def format_result(self, str_expression=None, timeout=None, form=None):
+        if str_expression:
+            self.evaluate(str_expression, timeout = None, form=None)
+
+        res = self.last_result
         if form is None:
             form = self.form
-        if str_expression:
-            self.last_result = self.evaluate(str_expression, timeout)
         return self.last_result.do_format(self.evaluation, form)
