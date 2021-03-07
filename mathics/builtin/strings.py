@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -12,6 +11,7 @@ import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolFalse, SymbolTrue, String, Integer,
                                      from_python, string_list)

@@ -13,7 +13,9 @@ import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import MathicsSingleLineFeeder
-from mathics.builtin import builtins
+from mathics.builtin import builtins_dict
+
+builtins = builtins_dict()
 
 from mathics import version_string
 from mathics import settings
@@ -90,8 +92,19 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-
+    if False:
+        print("out=-----------------")
+        for rr in out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("wanted_out=-------------------")
+        for rr in wanted_out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("---------------------------------")
+    
     if not compare(result, wanted):
+        print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
@@ -102,6 +115,8 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
+            if False:
+                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break

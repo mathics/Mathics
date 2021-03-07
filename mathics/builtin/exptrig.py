@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 r"""
@@ -9,11 +8,9 @@ Exponential, Trigonometric and Hyperbolic Functions
 Numerical values and derivatives can be computed; however, most special exact values and simplification rules are not implemented yet.
 """
 
-
-import math
 import mpmath
-import numpy
-import sympy
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (
@@ -21,11 +18,7 @@ from mathics.core.expression import (
     Real,
     Integer,
     Symbol,
-    PrecisionReal,
-    MachineReal,
-    Number,
 )
-from mathics.core.numbers import dps, get_precision, PrecisionValueError
 
 from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
