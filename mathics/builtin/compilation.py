@@ -1,7 +1,7 @@
 import ctypes
 
 from mathics.builtin.base import Builtin, BoxConstruct
-from mathics.core.evaluation import Evaluation
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.core.expression import (
     Atom,
     Expression,
@@ -11,7 +11,7 @@ from mathics.core.expression import (
     Integer,
     Real,
 )
-from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.core.evaluation import Evaluation
 
 
 class Compile(Builtin):
