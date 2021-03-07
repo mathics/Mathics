@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,6 +7,7 @@ List Functions
 
 from itertools import chain, permutations
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
     Builtin,
     Test,
@@ -442,7 +442,7 @@ def _parts_all_selector():
         return inner.leaves[py_slice]
 
     return select
-    
+
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)

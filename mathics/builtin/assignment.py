@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import mathics.builtin
 from mathics.builtin.base import (
@@ -848,7 +848,7 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
     bio = pymathics.get(definition.name)
     if bio is None:
         bio = builtins.get(definition.name)
-    
+
     if bio is not None:
         from mathics.doc.doc import Doc
         docstr = bio.builtin.__class__.__doc__
@@ -1767,9 +1767,6 @@ class LoadModule(Builtin):
             return SymbolFailed
         except ImportError as e:
             evaluation.message(self.get_name(), 'notfound', module)
-            return SymbolFailed
-        except PyMathicsLoadException as e:
-            evaluation.message(self.get_name(), 'notmathicslib', module)
             return SymbolFailed
         else:
         # Add Pymathics` to $ContextPath so that when user don't

@@ -6,6 +6,7 @@ import itertools
 from typing import Optional, Union
 
 import sympy
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import (
     BinaryOperator,
@@ -20,7 +21,6 @@ from mathics.core.expression import (
     Expression,
     Integer,
     Number,
-    Real,
     String,
     Symbol,
     SymbolFalse,
