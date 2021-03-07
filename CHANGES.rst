@@ -1,6 +1,23 @@
 CHANGES
 =======
 
+
+2.0.1
+-----
+
+- Partial improvement in Compile: now every expression has a compiled form,
+  as a Python function.
+
+New builtins
+------------
+
+- NIntegrate
+- ArcTanh
+
+
+
+
+
 2.0.0
 -----
 
