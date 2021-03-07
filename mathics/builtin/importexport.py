@@ -7,7 +7,8 @@ Importing and Exporting
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.expression import Expression, from_python, strip_context, Symbol, SymbolFailed
-from mathics.builtin.base import Builtin, Predefined, String, Integer, get_option
+from mathics.builtin.base import Builtin, Predefined, String, ByteArrayAtom, Integer, get_option
+from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
 import mimetypes
@@ -1206,10 +1207,9 @@ class ExportString(Builtin):
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, "System Options", evaluation)
-
+        is_binary = exporter_options["System`BinaryFormat"].is_true()
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
@@ -1217,29 +1217,39 @@ class ExportString(Builtin):
         elif function_channels == Expression('List', String('FileNames')):
             # Generates a temporary file
             import tempfile
-            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir())
+            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir(), suffix="." + format_spec[0].lower())
             filename = String(tmpfile.name)
             tmpfile.close()
             exporter_function = Expression(
                 exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
-            if exporter_function.evaluate(evaluation) != Symbol('Null'):
+            exportres = exporter_function.evaluate(evaluation)
+            if exportres != Symbol('Null'):
                 evaluation.predetermined_out = current_predetermined_out
                 return SymbolFailed
             else:
                 try:
-                    tmpstream = open(filename.value, 'rb')
-                    res = tmpstream.read().decode('utf-8')
+                    if is_binary:
+                        tmpstream = open(filename.value, 'rb')
+                    else:
+                        tmpstream = open(filename.value, 'r')
+                    res = tmpstream.read()
                     tmpstream.close()
                 except Exception as e:
                     print("something went wrong")
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return SymbolFailed
-                res = String(str(res))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(res))
+                else:
+                    res = String(str(res))
         elif function_channels == Expression('List', String('Streams')):
-            from io import StringIO
+            from io import StringIO, BytesIO
             from mathics.builtin.files import STREAMS, NSTREAMS
-            pystream = StringIO()
+            if is_binary:
+                pystream = BytesIO()
+            else:
+                pystream = StringIO()
             n = next(NSTREAMS)
             STREAMS.append(pystream)
             stream = Expression('OutputStream', String('String'), Integer(n))
@@ -1247,7 +1257,10 @@ class ExportString(Builtin):
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
             if res == Symbol('Null'):
-                res = String(str(pystream.getvalue()))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(pystream.getvalue()))
+                else:
+                    res = String(str(pystream.getvalue()))
             else:
                 res = Symbol("$Failed")
             Expression('Close', stream).evaluate(evaluation)
@@ -1393,6 +1406,8 @@ class B64Encode(Builtin):
         'System`Convert`B64Dump`B64Encode[expr_]'
         if isinstance(expr,String):
             stringtocodify = expr.get_string_value()
+        elif expr.get_head_name() == "ByteArray":
+            return String(base64.b64encode(expr._leaves[0].value).decode('utf8'))
         else:
             stringtocodify = Expression('ToString',expr).evaluate(evaluation).get_string_value()
         return String(base64.b64encode(bytearray(stringtocodify, 'utf8')).decode('utf8'))
