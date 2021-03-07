@@ -28,3 +28,29 @@ def test_get_and_put():
 
     result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
     assert result is None
+
+
+# TODO: add these Unix-specific test. Be sure not to test
+# sys.platform for not Windows and to test for applicability
+# ## writing to dir
+# S> x >> /var/
+#  : Cannot open /var/.
+#  = x >> /var/
+
+# ## writing to read only file
+# S> x >> /proc/uptime
+#  : Cannot open /proc/uptime.
+#  = x >> /proc/uptime
+
+# ## writing to full file
+# S> x >> /dev/full
+#  : No space left on device.
+
+# #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
+#     ## Return $Failed on special files
+#     #> FilePrint["/dev/zero"]
+#      = $Failed
+#     #> FilePrint["/dev/random"]
+#      = $Failed
+#     #> FilePrint["/dev/null"]
+#      = $Failed
