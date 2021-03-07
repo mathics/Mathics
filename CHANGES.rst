@@ -7,10 +7,12 @@ CHANGES
   New builtins
 ++++++++++++++
 
+* ``ArcTanh``
 * ``ByteArray``
-* ``FileNames``
 * ``CreateFile``
 * ``CreateTemporary``
+* ``FileNames``
+* ``NIntegrate``
 
 
 Enhancements
@@ -18,7 +20,8 @@ Enhancements
 
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 * Mathics functions are accepted by ``Compile[]``. The return value or type will be
-  ``CompiledFunction``
+  ``Compiled[]``  every expression ca have has a compiled form,
+  as a Python function.
 * ``EqualQ[]`` now compares complex against other numbers properly.
 
 Miscellanea
