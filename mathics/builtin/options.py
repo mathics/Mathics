@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Options and Default Arguments
 """
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, get_option
 from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
 from mathics.builtin.image import Image
@@ -136,7 +135,7 @@ class OptionValue(Builtin):
         'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
         'OptionValue[f_, opts_, optnames_List]':'OptionValue[f,opts, #1]&/@optnames',
     }
-    
+
     def apply_1(self, optname, evaluation):
         'OptionValue[optname_]'
         if evaluation.options is None:
@@ -185,7 +184,7 @@ class OptionValue(Builtin):
             val = get_option(optvals.get_option_values(evaluation), name, evaluation)
         else:
             val = None
-        # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...        
+        # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...
         if val is None:
             if f.is_symbol():
                 val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)

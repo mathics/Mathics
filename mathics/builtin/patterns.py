@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -34,13 +33,12 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
 
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
-from mathics.core.expression import (
-    Symbol, Expression, Number, Integer, Rational, Real)
+from mathics.core.expression import Symbol, Expression, Number, Integer, Rational, Real
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -67,11 +65,11 @@ class Rule_(BinaryOperator):
      = a
     """
 
-    name = 'Rule'
-    operator = '->'
+    name = "Rule"
+    operator = "->"
     precedence = 120
-    attributes = ('SequenceHold',)
-    grouping = 'Right'
+    attributes = ("SequenceHold",)
+    grouping = "Right"
     needs_verbatim = True
 
 
@@ -88,38 +86,46 @@ class RuleDelayed(BinaryOperator):
      = {HoldRest, Protected, SequenceHold}
     """
 
-    operator = ':>'
+    operator = ":>"
     precedence = 120
-    attributes = ('SequenceHold', 'HoldRest')
+    attributes = ("SequenceHold", "HoldRest")
     needs_verbatim = True
 
 
 def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
-    if rules_expr.has_form('List', None):
+    if rules_expr.has_form("List", None):
         rules = rules_expr.leaves
     else:
         rules = [rules_expr]
-    any_lists = any(item.has_form('List', None) for item in rules)
+    any_lists = any(item.has_form("List", None) for item in rules)
     if any_lists:
-        all_lists = all(item.has_form('List', None) for item in rules)
+        all_lists = all(item.has_form("List", None) for item in rules)
         if all_lists:
-            return Expression(
-                'List', *[Expression(name, expr, item, *extra_args)
-                          for item in rules]), True
+            return (
+                Expression(
+                    "List",
+                    *[Expression(name, expr, item, *extra_args) for item in rules]
+                ),
+                True,
+            )
         else:
-            evaluation.message(name, 'rmix', rules_expr)
+            evaluation.message(name, "rmix", rules_expr)
             return None, True
     else:
         result = []
         for rule in rules:
-            if rule.get_head_name() not in ('System`Rule',
-                                            'System`RuleDelayed'):
-                evaluation.message(name, 'reps', rule)
+            if rule.get_head_name() not in ("System`Rule", "System`RuleDelayed"):
+                evaluation.message(name, "reps", rule)
                 return None, True
             elif len(rule.leaves) != 2:
                 evaluation.message(
                     # TODO: shorten names here
-                    rule.get_head_name(), 'argrx', rule.get_head_name(), 3, 2)
+                    rule.get_head_name(),
+                    "argrx",
+                    rule.get_head_name(),
+                    3,
+                    2,
+                )
                 return None, True
             else:
                 result.append(Rule(rule.leaves[0], rule.leaves[1]))
@@ -179,36 +185,35 @@ class Replace(Builtin):
     """
 
     messages = {
-        'reps': "`1` is not a valid replacement rule.",
-        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+        "reps": "`1` is not a valid replacement rule.",
+        "rmix": "Elements of `1` are a mixture of lists and nonlists.",
     }
 
-    rules = {
-        'Replace[rules_][expr_]': 'Replace[expr, rules]',
-    }
+    rules = {"Replace[rules_][expr_]": "Replace[expr, rules]"}
 
-    options = {
-        'Heads': 'False',
-    }
+    options = {"Heads": "False"}
 
     def apply_levelspec(self, expr, rules, ls, evaluation, options):
-        'Replace[expr_, rules_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Replace]]'
+        "Replace[expr_, rules_, Optional[Pattern[ls, _?LevelQ], {0}], OptionsPattern[Replace]]"
         try:
-            rules, ret = create_rules(rules, expr, 'Replace', evaluation)
+            rules, ret = create_rules(rules, expr, "Replace", evaluation)
             if ret:
                 return rules
 
-            heads = self.get_option(options, 'Heads', evaluation).is_true()
+            heads = self.get_option(options, "Heads", evaluation).is_true()
 
             result, applied = expr.apply_rules(
-                rules, evaluation, level=0, options={
-                    'levelspec': python_levelspec(ls), 'heads': heads})
+                rules,
+                evaluation,
+                level=0,
+                options={"levelspec": python_levelspec(ls), "heads": heads},
+            )
             return result
         except InvalidLevelspecError:
-            evaluation.message('General', 'level', ls)
+            evaluation.message("General", "level", ls)
 
         except PatternError:
-            evaluation.message('Replace','reps', rules)
+            evaluation.message("Replace", "reps", rules)
 
 
 class ReplaceAll(BinaryOperator):
@@ -254,24 +259,22 @@ class ReplaceAll(BinaryOperator):
      = y
     """
 
-    operator = '/.'
+    operator = "/."
     precedence = 110
-    grouping = 'Left'
+    grouping = "Left"
     needs_verbatim = True
 
     messages = {
-        'reps': "`1` is not a valid replacement rule.",
-        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+        "reps": "`1` is not a valid replacement rule.",
+        "rmix": "Elements of `1` are a mixture of lists and nonlists.",
     }
 
-    rules = {
-        'ReplaceAll[rules_][expr_]': 'ReplaceAll[expr, rules]',
-    }
+    rules = {"ReplaceAll[rules_][expr_]": "ReplaceAll[expr, rules]"}
 
     def apply(self, expr, rules, evaluation):
-        'ReplaceAll[expr_, rules_]'
+        "ReplaceAll[expr_, rules_]"
         try:
-            rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
+            rules, ret = create_rules(rules, expr, "ReplaceAll", evaluation)
 
             if ret:
                 return rules
@@ -279,7 +282,7 @@ class ReplaceAll(BinaryOperator):
             result, applied = expr.apply_rules(rules, evaluation)
             return result
         except PatternError:
-            evaluation.message('Replace','reps', rules)
+            evaluation.message("Replace", "reps", rules)
 
 
 class ReplaceRepeated(BinaryOperator):
@@ -303,22 +306,22 @@ class ReplaceRepeated(BinaryOperator):
      = Log[a] + Log[f (b c) ^ d ^ e]
     """
 
-    operator = '//.'
+    operator = "//."
     precedence = 110
-    grouping = 'Left'
+    grouping = "Left"
     needs_verbatim = True
 
     messages = {
-        'reps': "`1` is not a valid replacement rule.",
-        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+        "reps": "`1` is not a valid replacement rule.",
+        "rmix": "Elements of `1` are a mixture of lists and nonlists.",
     }
 
     def apply_list(self, expr, rules, evaluation):
-        'ReplaceRepeated[expr_, rules_]'
+        "ReplaceRepeated[expr_, rules_]"
         try:
-            rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
+            rules, ret = create_rules(rules, expr, "ReplaceRepeated", evaluation)
         except PatternError:
-            evaluation.message('Replace','reps', rules)
+            evaluation.message("Replace", "reps", rules)
             return None
 
         if ret:
@@ -370,25 +373,26 @@ class ReplaceList(Builtin):
     """
 
     messages = {
-        'reps': "`1` is not a valid replacement rule.",
-        'rmix': "Elements of `1` are a mixture of lists and nonlists.",
+        "reps": "`1` is not a valid replacement rule.",
+        "rmix": "Elements of `1` are a mixture of lists and nonlists.",
     }
 
     def apply(self, expr, rules, max, evaluation):
-        'ReplaceList[expr_, rules_, max_:Infinity]'
+        "ReplaceList[expr_, rules_, max_:Infinity]"
 
-        if max.get_name() == 'System`Infinity':
+        if max.get_name() == "System`Infinity":
             max_count = None
         else:
             max_count = max.get_int_value()
             if max_count is None or max_count < 0:
-                evaluation.message('ReplaceList', 'innf', 3)
+                evaluation.message("ReplaceList", "innf", 3)
                 return
         try:
             rules, ret = create_rules(
-                rules, expr, 'ReplaceList', evaluation, extra_args=[max])
+                rules, expr, "ReplaceList", evaluation, extra_args=[max]
+            )
         except PatternError:
-            evaluation.message('Replace','reps', rules)
+            evaluation.message("Replace", "reps", rules)
             return None
 
         if ret:
@@ -396,11 +400,10 @@ class ReplaceList(Builtin):
 
         list = []
         for rule in rules:
-            result = rule.apply(
-                expr, evaluation, return_list=True, max_list=max_count)
+            result = rule.apply(expr, evaluation, return_list=True, max_list=max_count)
             list.extend(result)
 
-        return Expression('List', *list)
+        return Expression("List", *list)
 
 
 class PatternTest(BinaryOperator, PatternObject):
@@ -418,7 +421,7 @@ class PatternTest(BinaryOperator, PatternObject):
      = False
     """
 
-    operator = '?'
+    operator = "?"
     precedence = 680
 
     arg_counts = [2]
@@ -429,29 +432,33 @@ class PatternTest(BinaryOperator, PatternObject):
         self.test = expr.leaves[1]
         self.test_name = self.test.get_name()
 
-    def quick_pattern_test(self, candidate, test):
-        if test == 'System`NumberQ':
+    def quick_pattern_test(self, candidate, test, evaluation):
+        if test == "System`NumberQ":
             return isinstance(candidate, Number)
-        elif test == 'System`Negative':
+        elif test == "System`Negative":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value < 0
             return False
             # pass
-        elif test == 'System`NegativePowerQ':
+        elif test == "System`NegativePowerQ":
             return (
-                candidate.has_form('Power', 2) and
-                isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
-                candidate.leaves[1].value < 0)
-        elif test == 'System`NotNegativePowerQ':
+                candidate.has_form("Power", 2)
+                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
+                and candidate.leaves[1].value < 0
+            )
+        elif test == "System`NotNegativePowerQ":
             return not (
-                candidate.has_form('Power', 2) and
-                isinstance(candidate.leaves[1], (Integer, Rational, Real)) and
-                candidate.leaves[1].value < 0)
+                candidate.has_form("Power", 2)
+                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
+                and candidate.leaves[1].value < 0
+            )
         else:
-            from mathics.builtin import builtins
             from mathics.builtin.base import Test
 
-            builtin = builtins.get(test)
+            builtin = None
+            builtin = evaluation.definitions.get_definition(test)
+            if builtin:
+                builtin = builtin.builtin
             if builtin is not None and isinstance(builtin, Test):
                 return builtin.test(candidate)
         return None
@@ -462,7 +469,7 @@ class PatternTest(BinaryOperator, PatternObject):
             items = expression.get_sequence()
             for item in items:
                 item = item.evaluate(evaluation)
-                quick_test = self.quick_pattern_test(item, self.test_name)
+                quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
                 if quick_test is not None:
                     if not quick_test:
                         break
@@ -475,6 +482,7 @@ class PatternTest(BinaryOperator, PatternObject):
                         # raise StopGenerator
             else:
                 yield_func(vars_2, None)
+
         # try:
         self.pattern.match(yield_match, expression, vars, evaluation)
         # except StopGenerator:
@@ -504,7 +512,7 @@ class Alternatives(BinaryOperator, PatternObject):
      = hdaf
     """
 
-    operator = '|'
+    operator = "|"
     precedence = 160
     needs_verbatim = True
 
@@ -570,7 +578,7 @@ class Except(PatternObject):
         if len(expr.leaves) == 2:
             self.p = Pattern.create(expr.leaves[1])
         else:
-            self.p = Pattern.create(Expression('Blank'))
+            self.p = Pattern.create(Expression("Blank"))
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         def except_yield_func(vars, rest):
@@ -622,12 +630,10 @@ class MatchQ(Builtin):
      = True
     """
 
-    rules = {
-        'MatchQ[form_][expr_]': 'MatchQ[expr, form]',
-    }
+    rules = {"MatchQ[form_][expr_]": "MatchQ[expr, form]"}
 
     def apply(self, expr, form, evaluation):
-        'MatchQ[expr_, form_]'
+        "MatchQ[expr_, form_]"
 
         if match(expr, form, evaluation):
             return Symbol("True")
@@ -682,7 +688,7 @@ class HoldPattern(PatternObject):
      = {HoldAll, Protected}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     arg_counts = [1]
 
@@ -737,38 +743,40 @@ class Pattern_(PatternObject):
      = {b, b}
     """
 
-    name = 'Pattern'
+    name = "Pattern"
 
     arg_counts = [2]
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     messages = {
-        'patvar': "First element in pattern `1` is not a valid pattern name.",
-        'nodef': ("No default setting found for `1` in "
-                  "position `2` when length is `3`."),
+        "patvar": "First element in pattern `1` is not a valid pattern name.",
+        "nodef": (
+            "No default setting found for `1` in " "position `2` when length is `3`."
+        ),
     }
 
     rules = {
-        'MakeBoxes[Verbatim[Pattern][symbol_Symbol, blank_Blank|blank_BlankSequence|blank_BlankNullSequence], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> MakeBoxes[blank, f]',
+        "MakeBoxes[Verbatim[Pattern][symbol_Symbol, blank_Blank|blank_BlankSequence|blank_BlankNullSequence], f:StandardForm|TraditionalForm|InputForm|OutputForm]": "MakeBoxes[symbol, f] <> MakeBoxes[blank, f]",
         # 'StringForm["`1``2`", HoldForm[symbol], blank]',
     }
 
     formats = {
-        'Verbatim[Pattern][symbol_, '
-        'pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]': (
-            'Infix[{symbol, pattern}, ":", 150, Left]'),
+        "Verbatim[Pattern][symbol_, "
+        "pattern_?(!MatchQ[#, _Blank|_BlankSequence|_BlankNullSequence]&)]": (
+            'Infix[{symbol, pattern}, ":", 150, Left]'
+        )
     }
 
     def init(self, expr):
         super(Pattern_, self).init(expr)
         self.varname = expr.leaves[0].get_name()
         if self.varname is None:
-            self.error('patvar', expr)
+            self.error("patvar", expr)
         self.pattern = Pattern.create(expr.leaves[1])
 
     def __repr__(self):
-        return '<Pattern: %s>' % repr(self.pattern)
+        return "<Pattern: %s>" % repr(self.pattern)
 
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
@@ -782,25 +790,28 @@ class Pattern_(PatternObject):
             #    expression, new_vars, evaluation):
             #    yield vars_2, rest
             if type(self.pattern) is OptionsPattern:
-                self.pattern.match(yield_func, expression, new_vars, evaluation, **kwargs)
+                self.pattern.match(
+                    yield_func, expression, new_vars, evaluation, **kwargs
+                )
             else:
                 self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
             if existing.same(expression):
                 yield_func(vars, None)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation,
-                             vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         existing = vars.get(self.varname, None)
         if existing is None:
             return self.pattern.get_match_candidates(
-                leaves, expression, attributes, evaluation, vars)
+                leaves, expression, attributes, evaluation, vars
+            )
         else:
             # Treat existing variable as verbatim
-            verbatim_expr = Expression('Verbatim', existing)
+            verbatim_expr = Expression("Verbatim", existing)
             verbatim = Verbatim(verbatim_expr)
             return verbatim.get_match_candidates(
-                leaves, expression, attributes, evaluation, vars)
+                leaves, expression, attributes, evaluation, vars
+            )
 
 
 class Optional(BinaryOperator, PatternObject):
@@ -847,19 +858,19 @@ class Optional(BinaryOperator, PatternObject):
      = a : (b : c)
     """
 
-    operator = ':'
+    operator = ":"
     precedence = 140
-    grouping = 'Right'
+    grouping = "Right"
 
     default_formats = False
 
     rules = {
-        'MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': 'MakeBoxes[symbol, f] <> "_."',
-        'MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]': '"_."',
+        "MakeBoxes[Verbatim[Optional][Verbatim[Pattern][symbol_Symbol, Verbatim[_]]], f:StandardForm|TraditionalForm|InputForm|OutputForm]": 'MakeBoxes[symbol, f] <> "_."',
+        "MakeBoxes[Verbatim[Optional][Verbatim[_]], f:StandardForm|TraditionalForm|InputForm|OutputForm]": '"_."',
     }
 
     formats = {
-        'Verbatim[Optional][pattern_Pattern, default_]': 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 140, Right]',
+        "Verbatim[Optional][pattern_Pattern, default_]": 'Infix[{HoldForm[pattern], HoldForm[default]}, ":", 140, Right]'
     }
 
     arg_counts = [1, 2]
@@ -872,19 +883,28 @@ class Optional(BinaryOperator, PatternObject):
         else:
             self.default = None
 
-    def match(self, yield_func, expression, vars, evaluation, head=None,
-              leaf_index=None, leaf_count=None, **kwargs):
-        if expression.has_form('Sequence', 0):
+    def match(
+        self,
+        yield_func,
+        expression,
+        vars,
+        evaluation,
+        head=None,
+        leaf_index=None,
+        leaf_count=None,
+        **kwargs
+    ):
+        if expression.has_form("Sequence", 0):
             if self.default is None:
                 if head is None:  # head should be given by match_leaf!
                     default = None
                 else:
                     name = head.get_name()
                     default = get_default_value(
-                        name, evaluation, leaf_index, leaf_count)
+                        name, evaluation, leaf_index, leaf_count
+                    )
                 if default is None:
-                    evaluation.message(
-                        'Pattern', 'nodef', head, leaf_index, leaf_count)
+                    evaluation.message("Pattern", "nodef", head, leaf_index, leaf_count)
                     return
             else:
                 default = self.default
@@ -906,10 +926,12 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(n)
     for pos_len in reversed(range(len(pos) + 1)):
         # Try patterns from specific to general
-        defaultexpr = Expression('Default', Symbol(name),
-                                 *[Integer(index) for index in pos[:pos_len]])
-        result = evaluation.definitions.get_value(name, 'System`DefaultValues',
-                                                  defaultexpr, evaluation)
+        defaultexpr = Expression(
+            "Default", Symbol(name), *[Integer(index) for index in pos[:pos_len]]
+        )
+        result = evaluation.definitions.get_value(
+            name, "System`DefaultValues", defaultexpr, evaluation
+        )
         if result is not None:
             if result.same(defaultexpr):
                 result = result.evaluate(evaluation)
@@ -958,13 +980,14 @@ class Blank(_Blank):
     #> StringReplace["hello world!", _ -> "x"]
      = xxxxxxxxxxxx
     """
+
     rules = {
-        'MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_"',
-        'MakeBoxes[Verbatim[Blank][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"_" <> MakeBoxes[head, f]',
+        "MakeBoxes[Verbatim[Blank][], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"_"',
+        "MakeBoxes[Verbatim[Blank][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"_" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        if not expression.has_form('Sequence', 0):
+        if not expression.has_form("Sequence", 0):
             if self.head is not None:
                 if expression.get_head().same(self.head):
                     yield_func(vars, None)
@@ -1010,9 +1033,10 @@ class BlankSequence(_Blank):
     #> StringReplace[{"ab", "abc", "abcd"}, "b" ~~ __ -> "x"]
      = {ab, ax, ax}
     """
+
     rules = {
-        'MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__"',
-        'MakeBoxes[Verbatim[BlankSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"__" <> MakeBoxes[head, f]',
+        "MakeBoxes[Verbatim[BlankSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"__"',
+        "MakeBoxes[Verbatim[BlankSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"__" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -1065,8 +1089,8 @@ class BlankNullSequence(_Blank):
     """
 
     rules = {
-        'MakeBoxes[Verbatim[BlankNullSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"___"',
-        'MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]': '"___" <> MakeBoxes[head, f]',
+        "MakeBoxes[Verbatim[BlankNullSequence][], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"___"',
+        "MakeBoxes[Verbatim[BlankNullSequence][head_Symbol], f:StandardForm|TraditionalForm|OutputForm|InputForm]": '"___" <> MakeBoxes[head, f]',
     }
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -1114,12 +1138,13 @@ class Repeated(PostfixOperator, PatternObject):
     """
 
     messages = {
-        'range': (
+        "range": (
             "Range specification in integers (max or {min, max}) "
-            "expected at position `1` in `2`."),
+            "expected at position `1` in `2`."
+        )
     }
 
-    operator = '..'
+    operator = ".."
     precedence = 170
 
     arg_counts = [1, 2]
@@ -1131,14 +1156,16 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            allnumbers = not any(leaf.get_int_value() is None for leaf in leaf_1.get_leaves())
-            if leaf_1.has_form('List', 1, 2) and allnumbers:
+            allnumbers = not any(
+                leaf.get_int_value() is None for leaf in leaf_1.get_leaves()
+            )
+            if leaf_1.has_form("List", 1, 2) and allnumbers:
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():
                 self.max = leaf_1.get_int_value()
             else:
-                self.error('range', 2, expr)
+                self.error("range", 2, expr)
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         leaves = expression.get_sequence()
@@ -1157,8 +1184,7 @@ class Repeated(PostfixOperator, PatternObject):
                     #    yield sub_vars, rest
                     iter(yield_iter, rest_leaves[1:], new_vars)
 
-                self.pattern.match(
-                    yield_match, rest_leaves[0], vars, evaluation)
+                self.pattern.match(yield_match, rest_leaves[0], vars, evaluation)
             else:
                 yield_iter(vars, None)
 
@@ -1191,7 +1217,7 @@ class RepeatedNull(Repeated):
      = {True, True, True}
     """
 
-    operator = '...'
+    operator = "..."
     precedence = 170
 
     def init(self, expr):
@@ -1203,13 +1229,14 @@ class Shortest(Builtin):
 
 
 class Longest(Builtin):
-    '''
+    """
     >> StringCases["aabaaab", Longest["a" ~~ __ ~~ "b"]]
      = {aabaaab}
 
     >> StringCases["aabaaab", Longest[RegularExpression["a+b"]]]
      = {aab, aaab}
-    '''
+    """
+
     pass
 
 
@@ -1237,11 +1264,11 @@ class Condition(BinaryOperator, PatternObject):
      = f[-3]
     """
 
-    operator = '/;'
+    operator = "/;"
     precedence = 130
 
     # Don't know why this has attribute HoldAll in Mathematica
-    attributes = ('HoldRest',)
+    attributes = ("HoldRest",)
 
     arg_counts = [2]
 
@@ -1258,6 +1285,7 @@ class Condition(BinaryOperator, PatternObject):
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
                 yield_func(new_vars, rest)
+
         self.pattern.match(yield_match, expression, vars, evaluation)
 
 
@@ -1329,15 +1357,16 @@ class OptionsPattern(PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.defaults is None:
-            self.defaults = kwargs.get('head')
+            self.defaults = kwargs.get("head")
             if self.defaults is None:
                 # we end up here with OptionsPattern that do not have any
                 # default options defined, e.g. with this code:
                 # f[x:OptionsPattern[]] := x; f["Test" -> 1]
                 # set self.defaults to an empty List, so we don't crash.
-                self.defaults = Expression('List')
+                self.defaults = Expression("List")
         values = self.defaults.get_option_values(
-            evaluation, allow_symbols=True, stop_on_error=False)
+            evaluation, allow_symbols=True, stop_on_error=False
+        )
         sequence = expression.get_sequence()
         for options in sequence:
             option_values = options.get_option_values(evaluation)
@@ -1346,17 +1375,18 @@ class OptionsPattern(PatternObject):
             values.update(option_values)
         new_vars = vars.copy()
         for name, value in values.items():
-            new_vars['_option_' + name] = value
+            new_vars["_option_" + name] = value
         yield_func(new_vars, None)
 
     def get_match_count(self, vars={}):
         return (0, None)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation,
-                             vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         def _match(leaf):
-            return (leaf.has_form(('Rule', 'RuleDelayed'), 2) or
-                    leaf.has_form('List', None))
+            return leaf.has_form(("Rule", "RuleDelayed"), 2) or leaf.has_form(
+                "List", None
+            )
+
         return [leaf for leaf in leaves if _match(leaf)]
 
 
@@ -1379,4 +1409,5 @@ def item_is_free(item, form, evaluation):
         return True
     else:
         return item_is_free(item.head, form, evaluation) and all(
-            item_is_free(leaf, form, evaluation) for leaf in item.leaves)
+            item_is_free(leaf, form, evaluation) for leaf in item.leaves
+        )

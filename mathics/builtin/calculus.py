@@ -1,15 +1,13 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Calculus
 """
-from mathics.version import __version__
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import (Expression, Integer, Number, SymbolTrue, SymbolFalse)
-from mathics.core.convert import (
-    sympy_symbol_prefix, SympyExpression, from_sympy)
+from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse
+from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
@@ -100,86 +98,101 @@ class D(SympyFunction):
      = 0
     """
 
-    sympy_name = 'Derivative'
+    sympy_name = "Derivative"
 
     messages = {
-        'dvar': (
+        "dvar": (
             "Multiple derivative specifier `1` does not have the form "
-            "{variable, n}, where n is a non-negative machine integer."),
+            "{variable, n}, where n is a non-negative machine integer."
+        ),
     }
 
     rules = {
-        'D[f_ + g_, x_?NotListQ]': 'D[f, x] + D[g, x]',
-        'D[f_ * g_, x_?NotListQ]': 'D[f, x] * g + f * D[g, x]',
-        'D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]': 'r * f ^ (r-1) * D[f, x]',
-        'D[E ^ f_, x_?NotListQ]': 'E ^ f * D[f, x]',
-        'D[f_ ^ g_, x_?NotListQ]': 'D[E ^ (Log[f] * g), x]',
-
-        'D[f_, x_?NotListQ] /; FreeQ[f, x]': '0',
+        "D[f_ + g_, x_?NotListQ]": "D[f, x] + D[g, x]",
+        "D[f_ * g_, x_?NotListQ]": "D[f, x] * g + f * D[g, x]",
+        "D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]": "r * f ^ (r-1) * D[f, x]",
+        "D[E ^ f_, x_?NotListQ]": "E ^ f * D[f, x]",
+        "D[f_ ^ g_, x_?NotListQ]": "D[E ^ (Log[f] * g), x]",
+        "D[f_, x_?NotListQ] /; FreeQ[f, x]": "0",
         # 'D[f_[g_], x_?NotListQ]': (
         #   'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
         # 'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
-
-        'D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]':
-        'Derivative[Sequence @@ UnitVector['
-        '  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]',
+        "D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]": "Derivative[Sequence @@ UnitVector["
+        "  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]",
         # 'D[f_[args___], x_?NotListQ]':
         # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
         # '/. t->#) * D[#, x]&, {args}]',
-
-        'D[{items___}, x_?NotListQ]': (
-            'Function[{System`Private`item}, D[System`Private`item, x]]'
-            ' /@ {items}'),
-        'D[f_, {list_List}]': 'D[f, #]& /@ list',
-        'D[f_, {list_List, n_Integer?Positive}]': (
-            'D[f, Sequence @@ ConstantArray[{list}, n]]'),
-        'D[f_, x_, rest__]': 'D[D[f, x], rest]',
-
-        'D[expr_, {x_, n_Integer?NonNegative}]': (
-            'Nest[Function[{t}, D[t, x]], expr, n]'),
+        "D[{items___}, x_?NotListQ]": (
+            "Function[{System`Private`item}, D[System`Private`item, x]]" " /@ {items}"
+        ),
+        "D[f_, {list_List}]": "D[f, #]& /@ list",
+        "D[f_, {list_List, n_Integer?Positive}]": (
+            "D[f, Sequence @@ ConstantArray[{list}, n]]"
+        ),
+        "D[f_, x_, rest__]": "D[D[f, x], rest]",
+        "D[expr_, {x_, n_Integer?NonNegative}]": (
+            "Nest[Function[{t}, D[t, x]], expr, n]"
+        ),
     }
 
     def apply(self, f, x, evaluation):
-        'D[f_, x_?NotListQ]'
+        "D[f_, x_?NotListQ]"
 
         if f == x:
             return Integer(1)
         elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
             return Expression(
-                Expression(Expression('Derivative', Integer(1)), f.head), x)
+                Expression(Expression("Derivative", Integer(1)), f.head), x
+            )
         elif not f.is_atom() and len(f.leaves) == 1:
             g = f.leaves[0]
             return Expression(
-                'Times', Expression('D', Expression(f.head, g), g),
-                Expression('D', g, x))
+                "Times",
+                Expression("D", Expression(f.head, g), g),
+                Expression("D", g, x),
+            )
         elif not f.is_atom() and len(f.leaves) > 1:
+
             def summand(leaf, index):
                 if leaf.same(x):
-                    result = Expression(Expression(
+                    result = Expression(
                         Expression(
-                            'Derivative',
-                            *([Integer(0)] * (index) + [Integer(1)] +
-                              [Integer(0)] * (len(f.leaves) - index - 1))),
-                        f.head), *f.leaves)
+                            Expression(
+                                "Derivative",
+                                *(
+                                    [Integer(0)] * (index)
+                                    + [Integer(1)]
+                                    + [Integer(0)] * (len(f.leaves) - index - 1)
+                                )
+                            ),
+                            f.head,
+                        ),
+                        *f.leaves
+                    )
                 else:
-                    result = Expression('D', f, leaf)
-                return Expression('Times', result, Expression('D', leaf, x))
+                    result = Expression("D", f, leaf)
+                return Expression("Times", result, Expression("D", leaf, x))
+
             x_pattern = Pattern.create(x)
             result = Expression(
-                'Plus', *[
-                    summand(leaf, index) for index, leaf in enumerate(f.leaves)
-                    if not leaf.is_free(x_pattern, evaluation)])
+                "Plus",
+                *[
+                    summand(leaf, index)
+                    for index, leaf in enumerate(f.leaves)
+                    if not leaf.is_free(x_pattern, evaluation)
+                ]
+            )
             if len(result.leaves) == 1:
                 return result.leaves[0]
             else:
                 return result
 
     def apply_wrong(self, expr, x, other, evaluation):
-        'D[expr_, {x_, other___}]'
+        "D[expr_, {x_, other___}]"
 
-        arg = Expression('List', x, *other.get_sequence())
-        evaluation.message('D', 'dvar', arg)
-        return Expression('D', expr, arg)
+        arg = Expression("List", x, *other.get_sequence())
+        evaluation.message("D", "dvar", arg)
+        return Expression("D", expr, arg)
 
 
 class Derivative(PostfixOperator, SympyFunction):
@@ -241,20 +254,19 @@ class Derivative(PostfixOperator, SympyFunction):
 
     operator = "'"
     precedence = 670
-    attributes = ('NHoldAll',)
+    attributes = ("NHoldAll",)
 
     rules = {
-        'MakeBoxes[Derivative[n__Integer][f_], '
-        '  form:StandardForm|TraditionalForm]': (
-            r'SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, '
+        "MakeBoxes[Derivative[n__Integer][f_], "
+        "  form:StandardForm|TraditionalForm]": (
+            r"SuperscriptBox[MakeBoxes[f, form], If[{n} === {2}, "
             r'  "\[Prime]\[Prime]", If[{n} === {1}, "\[Prime]", '
-            r'    RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]'),
-        'MakeBoxes[Derivative[n:1|2][f_], form:OutputForm]':
-        """RowBox[{MakeBoxes[f, form], If[n==1, "'", "''"]}]""",
-
-        'Derivative[0...][f_]': 'f',
-        'Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] '
-        '== Length[{n}]': 'Derivative[Sequence @@ ({n} + {m})][f]',
+            r'    RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]'
+        ),
+        "MakeBoxes[Derivative[n:1|2][f_], form:OutputForm]": """RowBox[{MakeBoxes[f, form], If[n==1, "'", "''"]}]""",
+        "Derivative[0...][f_]": "f",
+        "Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] "
+        "== Length[{n}]": "Derivative[Sequence @@ ({n} + {m})][f]",
         """Derivative[n__Integer][f_Symbol] /; Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft=f[t]},
             If[Head[ft] === f
             && FreeQ[Join[UpValues[f], DownValues[f], SubValues[f]], Derivative|D]
@@ -271,8 +283,7 @@ class Derivative(PostfixOperator, SympyFunction):
                 ];
                 FreeQ[result, nothing]
             ]
-            ]""":
-        """Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft},
+            ]""": """Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft},
                 ft = f[t];
                 Block[{f},
                     Unprotect[f];
@@ -282,8 +293,7 @@ class Derivative(PostfixOperator, SympyFunction):
                 ];
                 Function @@ {result}
             ]""",
-        'Derivative[n__Integer][f_Function]':
-        """Evaluate[D[
+        "Derivative[n__Integer][f_Function]": """Evaluate[D[
             Quiet[f[Sequence @@ Table[Slot[i], {i, 1, Length[{n}]}]],
                 Function::slotn],
             Sequence @@ Table[{Slot[i], {n}[[i]]}, {i, 1, Length[{n}]}]]]&""",
@@ -304,8 +314,7 @@ class Derivative(PostfixOperator, SympyFunction):
         except AttributeError:
             pass
 
-        if len(exprs) != 4 or not all(len(exp.leaves) >= 1
-                                      for exp in exprs[:3]):
+        if len(exprs) != 4 or not all(len(exp.leaves) >= 1 for exp in exprs[:3]):
             return
 
         if len(exprs[0].leaves) != len(exprs[2].leaves):
@@ -423,41 +432,37 @@ class Integrate(SympyFunction):
      = f[b] - f[a]
     """
 
-    attributes = ('ReadProtected',)
+    attributes = ("ReadProtected",)
 
-    sympy_name = 'Integral'
+    sympy_name = "Integral"
 
     messages = {
-        'idiv': "Integral of `1` does not converge on `2`.",
-        'ilim': "Invalid integration variable or limit(s).",
-
-        'iconstraints': "Additional constraints needed: `1`",
+        "idiv": "Integral of `1` does not converge on `2`.",
+        "ilim": "Invalid integration variable or limit(s).",
+        "iconstraints": "Additional constraints needed: `1`",
     }
 
     rules = {
-        'Integrate[list_List, x_]': 'Integrate[#, x]& /@ list',
-
-        'MakeBoxes[Integrate[f_, x_], form:StandardForm|TraditionalForm]':
-        r'''RowBox[{"\[Integral]","\[InvisibleTimes]", MakeBoxes[f, form], "\[InvisibleTimes]",
-                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
-        'MakeBoxes[Integrate[f_, {x_, a_, b_}], '
-        'form:StandardForm|TraditionalForm]':
-        r'''RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form],
+        "Integrate[list_List, x_]": "Integrate[#, x]& /@ list",
+        "MakeBoxes[Integrate[f_, x_], form:StandardForm|TraditionalForm]": r"""RowBox[{"\[Integral]","\[InvisibleTimes]", MakeBoxes[f, form], "\[InvisibleTimes]",
+                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]""",
+        "MakeBoxes[Integrate[f_, {x_, a_, b_}], "
+        "form:StandardForm|TraditionalForm]": r"""RowBox[{SubsuperscriptBox["\[Integral]", MakeBoxes[a, form],
                 MakeBoxes[b, form]], "\[InvisibleTimes]" , MakeBoxes[f, form], "\[InvisibleTimes]",
-                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]''',
+                RowBox[{"\[DifferentialD]", MakeBoxes[x, form]}]}]""",
     }
 
     def prepare_sympy(self, leaves):
         if len(leaves) == 2:
             x = leaves[1]
-            if x.has_form('List', 3):
+            if x.has_form("List", 3):
                 return [leaves[0]] + x.leaves
         return leaves
 
     def from_sympy(self, sympy_name, leaves):
         args = []
         for leaf in leaves[1:]:
-            if leaf.has_form('List', 1):
+            if leaf.has_form("List", 1):
                 # {x} -> x
                 args.append(leaf.leaves[0])
             else:
@@ -466,7 +471,7 @@ class Integrate(SympyFunction):
         return Expression(self.get_name(), *new_leaves)
 
     def apply(self, f, xs, evaluation):
-        'Integrate[f_, xs__]'
+        "Integrate[f_, xs__]"
 
         f_sympy = f.to_sympy()
         if f_sympy is None or isinstance(f_sympy, SympyExpression):
@@ -475,7 +480,7 @@ class Integrate(SympyFunction):
         vars = []
         prec = None
         for x in xs:
-            if x.has_form('List', 3):
+            if x.has_form("List", 3):
                 x, a, b = x.leaves
                 prec_a = a.get_precision()
                 prec_b = b.get_precision()
@@ -490,7 +495,7 @@ class Integrate(SympyFunction):
             else:
                 a = b = None
             if not x.get_name():
-                evaluation.message('Integrate', 'ilim')
+                evaluation.message("Integrate", "ilim")
                 return
             x = x.to_sympy()
             if x is None:
@@ -536,53 +541,53 @@ class Root(SympyFunction):
     """
 
     messages = {
-        'nuni': "Argument `1` at position 1 is not a univariate polynomial function",
-        'nint': "Argument `1` at position 2 is not an integer",
-        'iidx': "Argument `1` at position 2 is out of bounds"
+        "nuni": "Argument `1` at position 1 is not a univariate polynomial function",
+        "nint": "Argument `1` at position 2 is not an integer",
+        "iidx": "Argument `1` at position 2 is out of bounds",
     }
 
-    sympy_name = 'CRootOf'
+    sympy_name = "CRootOf"
 
     def apply(self, f, i, evaluation):
-        'Root[f_, i_]'
+        "Root[f_, i_]"
 
         try:
-            if not f.has_form('Function', 1):
+            if not f.has_form("Function", 1):
                 raise sympy.PolynomialError
 
             body = f.leaves[0]
-            poly = body.replace_slots([f, Symbol('_1')], evaluation)
+            poly = body.replace_slots([f, Symbol("_1")], evaluation)
             idx = i.to_sympy() - 1
 
             # Check for negative indeces (they are not allowed in Mathematica)
             if idx < 0:
-                evaluation.message('Root', 'iidx', i)
+                evaluation.message("Root", "iidx", i)
                 return
 
             r = sympy.CRootOf(poly.to_sympy(), idx)
         except sympy.PolynomialError:
-            evaluation.message('Root', 'nuni', f)
+            evaluation.message("Root", "nuni", f)
             return
         except TypeError:
-            evaluation.message('Root', 'nint', i)
+            evaluation.message("Root", "nint", i)
             return
         except IndexError:
-            evaluation.message('Root', 'iidx', i)
+            evaluation.message("Root", "iidx", i)
             return
 
         return from_sympy(r)
 
     def to_sympy(self, expr, **kwargs):
         try:
-            if not expr.has_form('Root', 2):
+            if not expr.has_form("Root", 2):
                 return None
 
             f = expr.leaves[0]
 
-            if not f.has_form('Function', 1):
+            if not f.has_form("Function", 1):
                 return None
 
-            body = f.leaves[0].replace_slots([f, Symbol('_1')], None)
+            body = f.leaves[0].replace_slots([f, Symbol("_1")], None)
             poly = body.to_sympy(**kwargs)
 
             i = expr.leaves[1].get_int_value(**kwargs)
@@ -704,36 +709,40 @@ class Solve(Builtin):
     """
 
     messages = {
-        'eqf': "`1` is not a well-formed equation.",
-        'svars': 'Equations may not give solutions for all "solve" variables.',
+        "eqf": "`1` is not a well-formed equation.",
+        "svars": 'Equations may not give solutions for all "solve" variables.',
     }
 
     rules = {
-        'Solve[eqs_, vars_, Complexes]': 'Solve[eqs, vars]',
-        'Solve[eqs_, vars_, Reals]': (
-            'Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]'),
-        'Solve[eqs_, vars_, Integers]': (
-            'Cases[Solve[eqs, vars], {Rule[x_,y_?IntegerQ]}]'),
+        "Solve[eqs_, vars_, Complexes]": "Solve[eqs, vars]",
+        "Solve[eqs_, vars_, Reals]": (
+            "Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]"
+        ),
+        "Solve[eqs_, vars_, Integers]": (
+            "Cases[Solve[eqs, vars], {Rule[x_,y_?IntegerQ]}]"
+        ),
     }
 
     def apply(self, eqs, vars, evaluation):
-        'Solve[eqs_, vars_]'
+        "Solve[eqs_, vars_]"
 
         vars_original = vars
         head_name = vars.get_head_name()
-        if head_name == 'System`List':
+        if head_name == "System`List":
             vars = vars.leaves
         else:
             vars = [vars]
         for var in vars:
-            if ((var.is_atom() and not var.is_symbol()) or  # noqa
-                head_name in ('System`Plus', 'System`Times', 'System`Power') or
-                'System`Constant' in var.get_attributes(evaluation.definitions)):
+            if (
+                (var.is_atom() and not var.is_symbol())
+                or head_name in ("System`Plus", "System`Times", "System`Power")  # noqa
+                or "System`Constant" in var.get_attributes(evaluation.definitions)
+            ):
 
-                evaluation.message('Solve', 'ivar', vars_original)
+                evaluation.message("Solve", "ivar", vars_original)
                 return
         eqs_original = eqs
-        if eqs.get_head_name() in ('System`List', 'System`And'):
+        if eqs.get_head_name() in ("System`List", "System`And"):
             eqs = eqs.leaves
         else:
             eqs = [eqs]
@@ -743,9 +752,9 @@ class Solve(Builtin):
             if eq == SymbolTrue:
                 pass
             elif eq == SymbolFalse:
-                return Expression('List')
-            elif not eq.has_form('Equal', 2):
-                return evaluation.message('Solve', 'eqf', eqs_original)
+                return Expression("List")
+            elif not eq.has_form("Equal", 2):
+                return evaluation.message("Solve", "eqf", eqs_original)
             else:
                 left, right = eq.leaves
                 left = left.to_sympy()
@@ -815,30 +824,41 @@ class Solve(Builtin):
                 result = sympy.solve(sympy_eqs, vars_sympy)
             if not isinstance(result, list):
                 result = [result]
-            if (isinstance(result, list) and len(result) == 1 and
-                    result[0] is True):
-                return Expression('List', Expression('List'))
+            if isinstance(result, list) and len(result) == 1 and result[0] is True:
+                return Expression("List", Expression("List"))
             if result == [None]:
-                return Expression('List')
+                return Expression("List")
             results = []
             for sol in result:
                 results.extend(transform_solution(sol))
             result = results
-            if any(sol and any(var not in sol for var in all_vars_sympy)
-                   for sol in result):
-                evaluation.message('Solve', 'svars')
+            if any(
+                sol and any(var not in sol for var in all_vars_sympy) for sol in result
+            ):
+                evaluation.message("Solve", "svars")
 
             # Filter out results for which denominator is 0
             # (SymPy should actually do that itself, but it doesn't!)
-            result = [sol for sol in result if all(
-                sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)]
+            result = [
+                sol
+                for sol in result
+                if all(sympy.simplify(denom.subs(sol)) != 0 for denom in sympy_denoms)
+            ]
 
-            return Expression('List', *(Expression(
-                'List',
-                *(Expression('Rule', var, from_sympy(sol[var_sympy]))
-                  for var, var_sympy in zip(vars, vars_sympy)
-                  if var_sympy in sol)
-            ) for sol in result))
+            return Expression(
+                "List",
+                *(
+                    Expression(
+                        "List",
+                        *(
+                            Expression("Rule", var, from_sympy(sol[var_sympy]))
+                            for var, var_sympy in zip(vars, vars_sympy)
+                            if var_sympy in sol
+                        )
+                    )
+                    for sol in result
+                )
+            )
         except sympy.PolynomialError:
             # raised for e.g. Solve[x^2==1&&z^2==-1,{x,y,z}] when not deleting
             # unused variables beforehand
@@ -847,7 +867,8 @@ class Solve(Builtin):
             pass
         except TypeError as exc:
             if str(exc).startswith("expected Symbol, Function or Derivative"):
-                evaluation.message('Solve', 'ivar', vars_original)
+                evaluation.message("Solve", "ivar", vars_original)
+
 
 class Integers(Builtin):
     """
@@ -862,6 +883,7 @@ class Integers(Builtin):
     >> Solve[x^4 == 4, x, Integers]
      = {}
     """
+
 
 class Reals(Builtin):
     """
@@ -916,18 +938,18 @@ class Limit(Builtin):
      = Limit[(1 + cos[x]) / x, x -> 0]
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     options = {
-        'Direction': '1',
+        "Direction": "1",
     }
 
     messages = {
-        'ldir': "Value of Direction -> `1` should be -1 or 1.",
+        "ldir": "Value of Direction -> `1` should be -1 or 1.",
     }
 
     def apply(self, expr, x, x0, evaluation, options={}):
-        'Limit[expr_, x_->x0_, OptionsPattern[Limit]]'
+        "Limit[expr_, x_->x0_, OptionsPattern[Limit]]"
 
         expr = expr.to_sympy()
         x = x.to_sympy()
@@ -936,14 +958,14 @@ class Limit(Builtin):
         if expr is None or x is None or x0 is None:
             return
 
-        direction = self.get_option(options, 'Direction', evaluation)
+        direction = self.get_option(options, "Direction", evaluation)
         value = direction.get_int_value()
         if value == -1:
-            dir_sympy = '+'
+            dir_sympy = "+"
         elif value == 1:
-            dir_sympy = '-'
+            dir_sympy = "-"
         else:
-            return evaluation.message('Limit', 'ldir', direction)
+            return evaluation.message("Limit", "ldir", direction)
 
         try:
             result = sympy.limit(expr, x, x0, dir_sympy)
@@ -982,18 +1004,18 @@ class DiscreteLimit(Builtin):
      = 1 / E
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     options = {
-        'Trials': '5',
+        "Trials": "5",
     }
 
     messages = {
-        'dltrials': "The value of Trials should be a positive integer",
+        "dltrials": "The value of Trials should be a positive integer",
     }
 
     def apply(self, f, n, n0, evaluation, options={}):
-        'DiscreteLimit[f_, n_->n0_, OptionsPattern[DiscreteLimit]]'
+        "DiscreteLimit[f_, n_->n0_, OptionsPattern[DiscreteLimit]]"
 
         f = f.to_sympy(convert_all_global_functions=True)
         n = n.to_sympy()
@@ -1005,17 +1027,16 @@ class DiscreteLimit(Builtin):
         if f is None or n is None:
             return
 
-        trials = options['System`Trials'].get_int_value()
+        trials = options["System`Trials"].get_int_value()
 
         if trials is None or trials <= 0:
-            evaluation.message('DiscreteLimit', 'dltrials')
+            evaluation.message("DiscreteLimit", "dltrials")
             trials = 5
 
         try:
             return from_sympy(sympy.limit_seq(f, n, trials))
         except:
             pass
-
 
 
 class FindRoot(Builtin):
@@ -1067,35 +1088,37 @@ class FindRoot(Builtin):
      = {x -> 2.5}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     messages = {
-        'snum': "Value `1` is not a number.",
-        'nnum': "The function value is not a number at `1` = `2`.",
-        'dsing': "Encountered a singular derivative at the point `1` = `2`.",
-        'maxiter': ("The maximum number of iterations was exceeded. "
-                    "The result might be inaccurate."),
+        "snum": "Value `1` is not a number.",
+        "nnum": "The function value is not a number at `1` = `2`.",
+        "dsing": "Encountered a singular derivative at the point `1` = `2`.",
+        "maxiter": (
+            "The maximum number of iterations was exceeded. "
+            "The result might be inaccurate."
+        ),
     }
 
     rules = {
-        'FindRoot[lhs_ == rhs_, {x_, xs_}]': 'FindRoot[lhs - rhs, {x, xs}]',
+        "FindRoot[lhs_ == rhs_, {x_, xs_}]": "FindRoot[lhs - rhs, {x, xs}]",
     }
 
     def apply(self, f, x, x0, evaluation):
-        'FindRoot[f_, {x_, x0_}]'
+        "FindRoot[f_, {x_, x0_}]"
 
-        x0 = Expression('N', x0).evaluate(evaluation)
+        x0 = Expression("N", x0).evaluate(evaluation)
         if not isinstance(x0, Number):
-            evaluation.message('FindRoot', 'snum', x0)
+            evaluation.message("FindRoot", "snum", x0)
             return
         x_name = x.get_name()
         if not x_name:
-            evaluation.message('FindRoot', 'sym', x, 2)
+            evaluation.message("FindRoot", "sym", x, 2)
             return
         count = 0
 
         def diff(evaluation):
-            return Expression('D', f, x).evaluate(evaluation)
+            return Expression("D", f, x).evaluate(evaluation)
 
         d = dynamic_scoping(diff, {x_name: None}, evaluation)
 
@@ -1103,25 +1126,28 @@ class FindRoot(Builtin):
             d_value = d.evaluate(evaluation)
             if d_value == Integer(0):
                 return None
-            return Expression('Times', f, Expression(
-                'Power', d_value, Integer(-1))).evaluate(evaluation)
+            return Expression(
+                "Times", f, Expression("Power", d_value, Integer(-1))
+            ).evaluate(evaluation)
 
         while count < 100:
             minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
             if minus is None:
-                evaluation.message('FindRoot', 'dsing', x, x0)
+                evaluation.message("FindRoot", "dsing", x, x0)
                 return
-            x1 = Expression('Plus', x0, Expression(
-                'Times', Integer(-1), minus)).evaluate(evaluation)
+            x1 = Expression(
+                "Plus", x0, Expression("Times", Integer(-1), minus)
+            ).evaluate(evaluation)
             if not isinstance(x1, Number):
-                evaluation.message('FindRoot', 'nnum', x, x0)
+                evaluation.message("FindRoot", "nnum", x, x0)
                 return
             if x1 == x0:
                 break
-            x0 = Expression('N', x1).evaluate(
-                evaluation)       # N required due to bug in sympy arithmetic
+            x0 = Expression("N", x1).evaluate(
+                evaluation
+            )  # N required due to bug in sympy arithmetic
             count += 1
         else:
-            evaluation.message('FindRoot', 'maxiter')
+            evaluation.message("FindRoot", "maxiter")
 
-        return Expression('List', Expression('Rule', x, x0))
+        return Expression("List", Expression("Rule", x, x0))

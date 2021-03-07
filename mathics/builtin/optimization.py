@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from mathics.version import __version__
-from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
+from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Number, from_python
 from mathics.core.convert import (
     sympy_symbol_prefix, SympyExpression, from_sympy)
 from mathics.core.rules import Pattern
-from mathics.core.numbers import dps
-from mathics.builtin.scoping import dynamic_scoping
 
 import sympy
-import numpy
 
 class Minimize(Builtin):
     """
@@ -31,26 +27,26 @@ class Minimize(Builtin):
     """
 
     attributes = ('ReadProtected',)
-    
+
     def apply_onevariable(self, f, x, evaluation):
         'Minimize[f_?NotListQ, x_?NotListQ]'
 
         sympy_x        = x.to_sympy()
         sympy_f        = f.to_sympy()
-        
+
         derivative        = sympy.diff(sympy_f, sympy_x)
         second_derivative = sympy.diff(derivative, sympy_x)
         candidates        = sympy.solve(derivative, sympy_x, real=True, dict=True)
-            
+
         minimum_list   = []
-        
+
         for candidate in candidates:
             value = second_derivative.subs(candidate)
             if value.is_real and value  > 0:
-                
+
                 if candidate is not list:
                     candidate = candidate
-                    
+
                 minimum_list.append(
                     [candidate[sympy_x], sympy_f.subs(candidate)]
                 )
@@ -75,11 +71,11 @@ class Minimize(Builtin):
             if ((var.is_atom() and not var.is_symbol()) or  # noqa
                 head_name in ('System`Plus', 'System`Times', 'System`Power') or
                 'System`Constant' in var.get_attributes(evaluation.definitions)):
-                
+
                 evaluation.message('Minimize', 'ivar', vars_or)
                 return
 
-        vars_sympy = [var.to_sympy() for var in vars]    
+        vars_sympy = [var.to_sympy() for var in vars]
         sympy_f  = f.to_sympy()
 
         jacobian = [sympy.diff(sympy_f, x) for x in vars_sympy]
@@ -93,7 +89,7 @@ class Minimize(Builtin):
                 for variable in candidate:
                     for i in range(len(candidate), len(vars_sympy)):
                         candidate[variable] = candidate[variable].subs({vars_sympy[i]: 1})
-                        
+
                 for i in range(len(candidate), len(vars_sympy)):
                     candidate[vars_sympy[i]] = 1
 
@@ -101,7 +97,7 @@ class Minimize(Builtin):
 
         minimum_list = []
 
-        for candidate in candidates:                
+        for candidate in candidates:
             eigenvals = hessian.subs(candidate).eigenvals()
 
             positives_eigenvalues = 0
@@ -126,7 +122,7 @@ class Minimize(Builtin):
             [Expression('Rule', from_sympy(list(minimum.keys())[i]), from_sympy(list(minimum.values())[i])) for i in range(len(vars_sympy))]
         ) for minimum in minimum_list))
 
-    
+
     def apply_constraints(self, f, vars, evaluation):
         'Minimize[f_?ListQ, vars_?ListQ]'
         head_name = vars.get_head_name()
@@ -136,22 +132,22 @@ class Minimize(Builtin):
             if ((var.is_atom() and not var.is_symbol()) or  # noqa
                 head_name in ('System`Plus', 'System`Times', 'System`Power') or
                 'System`Constant' in var.get_attributes(evaluation.definitions)):
-                
+
                 evaluation.message('Minimize', 'ivar', vars_or)
                 return
 
-        vars_sympy = [var.to_sympy() for var in vars]    
+        vars_sympy = [var.to_sympy() for var in vars]
         constraints        = [function for function in f.leaves]
         objective_function = constraints[0].to_sympy()
 
         constraints        = constraints[1:]
-        
+
         g_functions        = []
         h_functions        = []
 
         g_variables        = []
         h_variables        = []
-        
+
         for constraint in constraints:
             left, right = constraint.leaves
             head_name   = constraint.get_head_name()
@@ -174,7 +170,7 @@ class Minimize(Builtin):
 
                 g_functions.append(eq)
                 g_variables.append(sympy.Symbol('kkt_g' + str(len(g_variables))))
-                
+
             elif head_name == 'System`Equal':
                 eq = left - right
                 eq = sympy.together(eq)
@@ -184,7 +180,7 @@ class Minimize(Builtin):
                 h_variables.append(sympy.Symbol('kkt_h' + str(len(h_variables))))
 
         equations = []
-        
+
         for variable in vars_sympy:
             equation = sympy.diff(objective_function, variable)
 
@@ -215,10 +211,10 @@ class Minimize(Builtin):
             equations.append(h_variable * h_function)
 
         all_variables = vars_sympy + g_variables + h_variables
-        
+
         candidates_tmp = sympy.solve(equations, all_variables, dict=True)
         candidates     = []
-        
+
         for candidate in candidates_tmp:
             if len(candidate) != len(vars_sympy):
                 for variable in candidate:
@@ -228,18 +224,18 @@ class Minimize(Builtin):
                     candidate[vars_sympy[i]] = 1
 
             candidates.append(candidate)
-            
+
         kkt_candidates = []
 
         for candidate in candidates:
             kkt_ok = True
 
             sum_constraints = 0
-            
+
             for i in range(len(g_variables)):
                 g_variable = g_variables[i]
                 g_function = g_functions[i]
-                
+
                 if candidate[g_variable] < 0:
                     kkt_ok = False
 
@@ -247,7 +243,7 @@ class Minimize(Builtin):
                     kkt_ok = False
 
                 sum_constraints = sum_constraints + candidate[g_variable]
-                    
+
             for i in range(len(h_variables)):
                 h_variable = h_variables[i]
                 h_function = h_functions[i]
@@ -256,7 +252,7 @@ class Minimize(Builtin):
 
             if sum_constraints <= 0:
                 kkt_ok = False
-                
+
             if not kkt_ok:
                 continue
 
@@ -294,7 +290,7 @@ class Minimize(Builtin):
                     del candidate[g_variable]
                 for h_variable in h_variables:
                     del candidate[h_variable]
-                    
+
                 minimum_list.append(candidate)
 
         return Expression('List', *(Expression(
@@ -302,7 +298,7 @@ class Minimize(Builtin):
             from_sympy(objective_function.subs(minimum).simplify()),
             [Expression('Rule', from_sympy(list(minimum.keys())[i]), from_sympy(list(minimum.values())[i])) for i in range(len(vars_sympy))]
         ) for minimum in minimum_list))
-    
+
 class Maximize(Builtin):
     """
     <dl>
@@ -321,7 +317,7 @@ class Maximize(Builtin):
     """
 
     attributes = ('ReadProtected',)
-    
+
     def apply(self, f, vars, evaluation):
         'Maximize[f_?NotListQ, vars_]'
 
