@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -23,6 +22,8 @@ import pathlib
 from io import BytesIO, StringIO
 import os.path as osp
 from itertools import chain
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder
