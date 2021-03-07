@@ -15,7 +15,7 @@ from mathics.core.evaluation import Evaluation
 
 
 class Compile(Builtin):
-    """
+    '''
     <dl>
     <dt>'Compile[{x1, x2, ...}, expr_]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
