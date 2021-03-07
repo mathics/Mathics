@@ -197,12 +197,12 @@ class CompiledCodeBox(BoxConstruct):
             leaves = self._leaves
         return leaves[0].value
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves        
         return leaves[0].value
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves        
         return leaves[0].value
