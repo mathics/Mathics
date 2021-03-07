@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # cython: language_level=3
 
@@ -8,10 +7,9 @@ Mathematical Functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-
+from mathics.version import __version__  # noqa used in loading to check consistency.
 import sympy
 import mpmath
-import math
 
 from mathics.builtin.base import (
     Builtin,
@@ -1350,7 +1348,7 @@ class PossibleZeroQ(SympyFunction):
         # try expanding the expression
             exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
             exprexp = exprexp.to_sympy()
-            result = _iszero(exprexp)        
+            result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
             numeric_val = Expression("N", expr).evaluate(evaluation)

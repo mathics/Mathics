@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #cython: language_level=3
 # -*- coding: utf-8 -*-
 
@@ -19,11 +18,11 @@ from mpmath import mpf
 import math
 import hashlib
 import zlib
-import math
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain, product
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
@@ -40,7 +39,6 @@ from mathics.core.expression import (
     Integer,
     MachineReal,
     Number,
-    PrecisionReal,
     Rational,
     Real,
     String,
@@ -1811,7 +1809,7 @@ class Hash(Builtin):
             return from_python(str(res))
         # Default: Integer
         return from_python(res)
-        
+
 
     def apply(self, expr, hashtype, outformat, evaluation):
         "Hash[expr_, hashtype_String, outformat_String]"

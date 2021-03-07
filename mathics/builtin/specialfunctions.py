@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,11 +7,11 @@ Special Functions
 
 import mpmath
 
-from mathics.builtin.base import Builtin, SympyFunction
+from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 from mathics.core.expression import Integer, Number
-from mathics.core.numbers import machine_precision, prec, get_precision, PrecisionValueError
-from mathics.core.convert import from_sympy
+from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError
 from mathics.core.numbers import prec as _prec
 
 
