@@ -7,6 +7,7 @@ Combinatorial Functions
 
 import sympy
 from sympy.functions.combinatorial.numbers import stirling
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, SymbolTrue, SymbolFalse
