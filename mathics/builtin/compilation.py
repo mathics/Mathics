@@ -11,8 +11,9 @@ from mathics.core.expression import (
     Integer,
     Real,
 )
-from types import FunctionType
 from mathics.core.evaluation import Evaluation
+from types import FunctionType
+
 
 class Compile(Builtin):
     """
@@ -125,7 +126,7 @@ class Compile(Builtin):
             cfunc = _compile(expr, args)
         except CompileError:
             cfunc = None
-
+        # llvm compilation failed. Try to pythonize it
         if cfunc is None:
             try:
                 def _pythonized_mathics_expr(*x):
@@ -139,7 +140,7 @@ class Compile(Builtin):
                 cfunc = _pythonized_mathics_expr
             except Exception as e:
                 cfunc = None
-
+        # Pythonization failed. Show an error.
         if cfunc is None:
             evaluation.message('Compile', 'comperr', expr)
             args = Expression("List", *names)
