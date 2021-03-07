@@ -161,8 +161,8 @@ class CompiledCode(Atom):
     def __str__(self):
         return "-CompiledCode-"
         if type(self.cfunc) is ir.FunctionType:
-            return '-PythonizedCode-'
-        return '-CompiledCode-'
+            return "-PythonizedCode-"
+        return "-CompiledCode-"
 
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
@@ -195,19 +195,19 @@ class CompiledCodeBox(BoxConstruct):
     """
 
     def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_xml(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_tex(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
 
 class CompiledFunction(Builtin):
