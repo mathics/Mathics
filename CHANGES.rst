@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+2.1.0
+-----
+
+Enhancements
+++++++++++++
+
+* ``FileNameJoin`` - implement ``OperatingSystem`` option
+
 2.0.0
 -----
 

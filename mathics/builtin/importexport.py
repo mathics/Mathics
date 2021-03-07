@@ -30,19 +30,19 @@ mimetypes.add_type('application/json', '.json')
 # TODO: Add more file formats
 
 mimetype_dict = {
-    'application/dicom': 'DICOM',
     'application/dbase': 'DBF',
     'application/dbf': 'DBF',
+    'application/dicom': 'DICOM',
     'application/eps': 'EPS',
     'application/fits': 'FITS',
     'application/json': 'JSON',
     'application/mathematica': 'NB',
-    'application/mdb': 'MDB',
     'application/mbox': 'MBOX',
+    'application/mdb': 'MDB',
     'application/msaccess': 'MDB',
     'application/octet-stream': 'OBJ',
-    'application/pdf': 'PDF',
     'application/pcx': 'PCX',
+    'application/pdf': 'PDF',
     'application/postscript': 'EPS',
     'application/rss+xml': 'RSS',
     'application/rtf': 'RTF',
@@ -51,15 +51,13 @@ mimetype_dict = {
     'application/vnd.google-earth.kml+xml': 'KML',
     'application/vnd.ms-excel': 'XLS',
     'application/vnd.ms-pki.stl': 'STL',
+    'application/vnd.msaccess': 'MDB',
     'application/vnd.oasis.opendocument.spreadsheet': 'ODS',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',  # nopep8
     'application/vnd.sun.xml.calc': 'SXC',
-    'application/vnd.msaccess': 'MDB',
     'application/vnd.wolfram.cdf': 'CDF',
     'application/vnd.wolfram.cdf.text': 'CDF',
     'application/vnd.wolfram.mathematica.package': 'Package',
-    'application/xhtml+xml': 'XHTML',
-    'application/xml': 'XML',
     'application/x-3ds': '3DS',
     'application/x-cdf': 'NASACDF',
     'application/x-eps': 'EPS',
@@ -70,6 +68,8 @@ mimetype_dict = {
     'application/x-netcdf': 'NetCDF',
     'application/x-shockwave-flash': 'SWF',
     'application/x-tex': 'TeX',  # Also TeX
+    'application/xhtml+xml': 'XHTML',
+    'application/xml': 'XML',
     'audio/aiff': 'AIFF',
     'audio/basic': 'AU',  # Also SND
     'audio/midi': 'MIDI',
@@ -77,10 +77,10 @@ mimetype_dict = {
     'audio/x-aiff': 'AIFF',
     'audio/x-flac': 'FLAC',
     'audio/x-wav': 'WAV',
-    'chemical/seq-na-genbank': 'GenBank',
     'chemical/seq-aa-fasta': 'FASTA',
     'chemical/seq-na-fasta': 'FASTA',
     'chemical/seq-na-fastq': 'FASTQ',
+    'chemical/seq-na-genbank': 'GenBank',
     'chemical/seq-na-sff': 'SFF',
     'chemical/x-cif': 'CIF',
     'chemical/x-daylight-smiles': 'SMILES',
@@ -121,10 +121,10 @@ mimetype_dict = {
     'image/x-portable-graymap': 'PGM',
     'image/x-portable-pixmap': 'PPM',
     'image/x-xbitmap': 'XBM',
-    'model/x3d+xml': 'X3D',
     'model/vrml': 'VRML',
     'model/x-lwo': 'LWO',
     'model/x-pov': 'POV',
+    'model/x3d+xml': 'X3D',
     'text/calendar': 'ICS',
     'text/comma-separated-values': 'CSV',
     'text/csv': 'CSV',
@@ -149,10 +149,723 @@ mimetype_dict = {
 
 IMPORTERS = {}
 EXPORTERS = {}
-EXTENSIONMAPPINGS = {"*.3ds" : "3DS", "*.aco" : "ACO", "*.aif" : "AIFF", "*.aiff" : "AIFF", "*.au" : "AU", "*.avi" : "AVI", "*.b64" : "BASE64", "*.bdf" : "BDF", "*.bmp" : "BMP", "*.dib" : "BMP", "*.bson" : "BSON", "*.byu" : "BYU", "*.bz2" : "BZIP2", "*.c" : "C", "*.cdf" : "CDF", "*.cif" : "CIF", "*.col" : "DIMACS", "*.col.b" : "DIMACS", "*.csv" : "CSV", "*.css" : "CSS", "*.cur" : "CUR", "*.dae" : "DAE", "*.dat" : "Table", "*.dcm" : "DICOM", "*.dic" : "DICOM", "*.dicm" : "DICOM", "*.dif" : "DIF", "*.dot" : "DOT", "*.dxf" : "DXF", "*.edf" : "EDF", "*.emf" : "EMF", "*.eml" : "EML", "*.enc" : "UUE", "*.ent" : "PDB", "*.eps" : "EPS", "*.epsf" : "EPS", "*.epsi" : "EPS", "*.fcs" : "FCS", "*.fsa" : "FASTA", "*.fasta" : "FASTA", "*.fa" : "FASTA", "*.mpfa" : "FASTA", "*.fq" : "FASTQ", "*.fastq" : "FASTQ", "*.fit" : "FITS", "*.fits" : "FITS", "*.flac" : "FLAC", "*.flv" : "FLV", "*.fmu" : "FMU", "*.g6" : "Graph6", "*.gif" : "GIF", "*.gml" : "Graphlet", "*.grd" : "SurferGrid", "*.grib" : "GRIB", "*.grb" : "GRIB", "*.gv" : "DOT", "*.gw" : "LEDA", "*.gxl" : "GXL", "*.graphml" : "GraphML", "*.gz" : "GZIP", "*.hdf" : "HDF", "*.hmm" : "HMMER", "*.htm" : "HTML", "*.html" : "HTML", "*.sds" : "HDF", "*.h5" : "HDF5", "*.icc" : "ICC", "*.icm" : "ICC", "*.icns" : "ICNS", "*.ico" : "ICO", "*.ics" : "ICS", "*.ini" : "INI", "*.jar" : "ZIP", "*.jp2" : "JPEG2000", "*.j2k" : "JPEG2000", "*.jpc" : "JPEG2000", "*.jpg" : "JPEG", "*.jpeg" : "JPEG", "*.jfif" : "JPEG", "*.jvx" : "JVX", "*.kml" : "KML", "*.kmz" : "KML", "*.lgr" : "LEDA", "*.lmd" : "FCS", "*.lwo" : "LWO", "*.m" : "Package", "*.m4a" : "M4A", "*.aac" : "M4A", "*.ma" : "Maya", "*.mat" : "MAT", "*.mbx" : "MBOX", "*.mbox" : "MBOX", "*.mesh" : "MESH", "*.mgf" : "MGF", "*.mid" : "MIDI", "*.mml" : "MathML", "*.mo" : "MO", "*.mol" : "MOL", "*.mol2" : "MOL2", "*.mov" : "QuickTime", "*.mp3" : "MP3", "*.mtx" : "MTX", "*.mulaw" : "AU", "*.mx" : "MX", "*.nb" : "NB", "*.nc" : "NETCDF", "*.ndk" : "NDK", "*.net" : "PAJEK", "*.nex" : "NEXUS", "*.noff" : "NOFF", "*.nxs" : "NEXUS", "*.obj" : "OBJ", "*.ods" : "ODS", "*.off" : "OFF", "*.oga" : "OGG", "*.ogg" : "OGG", "*.pcx" : "PCX", "*.pbm" : "PBM", "*.pgm" : "PGM", "*.ppm" : "PPM", "*.pnm" : "PNM", "*.png" : "PNG", "*.pdb" : "PDB", "*.pdf" : "PDF", "*.pic" : "PXR", "*.pic" : "PICT", "*.pict" : "PICT", "*.pct" : "PICT", "*.ply" : "PLY", "*.pov" : "POV", "*.properties" : "JavaProperties", "*.pxr" : "PXR", "*.qt" : "QuickTime", "*.raw" : "RawBitmap", "*.rib" : "RIB", "*.rtf" : "RTF", "*.sdf" : "SDF", "*.sct" : "SCT", "*.ch" : "SCT", "*.ct" : "SCT", "*.sff" : "SFF", "*.sp3" : "SP3", "*.stl" : "STL", "*.s6" : "Sparse6", "*.sma" : "SMA", "*.sme" : "SME", "*.smi" : "SMILES", "*.snd" : "SND", "*.svg" : "SVG", "*.svgz" : "SVGZ", "*.swf" : "SWF", "*.tar" : "TAR", "*.tex" : "TeX", "*.tga" : "TGA", "*.tgf" : "TGF", "*.tgz" : "GZIP", "*.tff" : "TIFF", "*.tif" : "TIFF", "*.tiff" : "TIFF", "*.tsv" : "TSV", "*.txt" : "Text", "*.uue" : "UUE", "*.w64" : "Wave64", "*.wav" : "WAV", "*.webp" : "WebP", "*.wdx" : "WDX", "*.wl" : "Package", "*.wls" : "Package", "*.wlnet" : "WLNet", "*.wmf" : "WMF", "*.wmlf" : "WMLF", "*.html" : "XHTML", "*.htm" : "XHTML", "*.xhtml" : "XHTML", "*.xbm" : "XBM", "*.xht" : "XHTML", "*.xml" : "XML", "*.xml" : "ExpressionML", "*.xml" : "XHTML", "*.xml" : "XHTMLMathML", "*.xls" : "XLS", "*.xlsx" : "XLSX", "*.wrl" : "VRML", "*.wxf" : "WXF", "*.vtk" : "VTK", "*.x3d" : "X3D", "*.xyz" : "XYZ", "*.zip" : "ZIP", "*.zpr" : "ZPR", "*.cha" : "HarwellBoeing", "*.che" : "HarwellBoeing", "*.cra" : "HarwellBoeing", "*.cre" : "HarwellBoeing", "*.csa" : "HarwellBoeing", "*.cse" : "HarwellBoeing", "*.cua" : "HarwellBoeing", "*.cue" : "HarwellBoeing", "*.cza" : "HarwellBoeing", "*.cze" : "HarwellBoeing", "*.pha" : "HarwellBoeing", "*.phe" : "HarwellBoeing", "*.pra" : "HarwellBoeing", "*.pre" : "HarwellBoeing", "*.psa" : "HarwellBoeing", "*.pse" : "HarwellBoeing", "*.pua" : "HarwellBoeing", "*.pue" : "HarwellBoeing", "*.pza" : "HarwellBoeing", "*.pze" : "HarwellBoeing", "*.rha" : "HarwellBoeing", "*.rhe" : "HarwellBoeing", "*.rra" : "HarwellBoeing", "*.rre" : "HarwellBoeing", "*.rsa" : "HarwellBoeing", "*.rse" : "HarwellBoeing", "*.rua" : "HarwellBoeing", "*.rue" : "HarwellBoeing", "*.rza" : "HarwellBoeing", "*.rze" : "HarwellBoeing", "*.json" : "JSON", "*.ubj" : "UBJSON", "*.geojson" : "GeoJSON", "*.bay" : "Raw", "*.bmq" : "Raw", "*.cr2" : "Raw", "*.crw" : "Raw", "*.cs1" : "Raw", "*.dc2" : "Raw", "*.dcr" : "Raw", "*.dng" : "Raw", "*.erf" : "Raw", "*.fff" : "Raw", "*.hdr" : "Raw", "*.k25" : "Raw", "*.kdc" : "Raw", "*.mdc" : "Raw", "*.mos" : "Raw", "*.mrw" : "Raw", "*.nef" : "Raw", "*.orf" : "Raw", "*.pef" : "Raw", "*.pxn" : "Raw", "*.raf" : "Raw", "*.raw" : "Raw", "*.rdc" : "Raw", "*.sr2" : "Raw", "*.srf" : "Raw", "*.x3f" : "Raw", "*.arw" : "Raw", "*.3fr" : "Raw", "*.cine" : "Raw", "*.ia" : "Raw", "*.kc2" : "Raw", "*.mef" : "Raw", "*.nrw" : "Raw", "*.qtk" : "Raw", "*.rw2" : "Raw", "*.sti" : "Raw", "*.rwl" : "Raw", "*.rle" : "RLE", "*.tcx" : "TECHEXPLORER", "*.tcx" : "TCX", "*.css" : "CSS"}
+EXTENSIONMAPPINGS = {
+    "*.3ds" : "3DS",
+    "*.3fr" : "Raw",
+    "*.aac" : "M4A",
+    "*.aco" : "ACO",
+    "*.aif" : "AIFF",
+    "*.aiff" : "AIFF",
+    "*.arw" : "Raw",
+    "*.au" : "AU",
+    "*.avi" : "AVI",
+    "*.b64" : "BASE64",
+    "*.bay" : "Raw",
+    "*.bdf" : "BDF",
+    "*.bmp" : "BMP",
+    "*.bmq" : "Raw",
+    "*.bson" : "BSON",
+    "*.byu" : "BYU",
+    "*.bz2" : "BZIP2",
+    "*.c" : "C",
+    "*.cdf" : "CDF",
+    "*.ch" : "SCT",
+    "*.cha" : "HarwellBoeing",
+    "*.che" : "HarwellBoeing",
+    "*.cif" : "CIF",
+    "*.cine" : "Raw",
+    "*.col" : "DIMACS",
+    "*.col.b" : "DIMACS",
+    "*.cr2" : "Raw",
+    "*.cra" : "HarwellBoeing",
+    "*.cre" : "HarwellBoeing",
+    "*.crw" : "Raw",
+    "*.cs1" : "Raw",
+    "*.csa" : "HarwellBoeing",
+    "*.cse" : "HarwellBoeing",
+    "*.css" : "CSS",
+    "*.csv" : "CSV",
+    "*.ct" : "SCT",
+    "*.cua" : "HarwellBoeing",
+    "*.cue" : "HarwellBoeing",
+    "*.cur" : "CUR",
+    "*.cza" : "HarwellBoeing",
+    "*.cze" : "HarwellBoeing",
+    "*.dae" : "DAE",
+    "*.dat" : "Table",
+    "*.dc2" : "Raw",
+    "*.dcm" : "DICOM",
+    "*.dcr" : "Raw",
+    "*.dib" : "BMP",
+    "*.dic" : "DICOM",
+    "*.dicm" : "DICOM",
+    "*.dif" : "DIF",
+    "*.dng" : "Raw",
+    "*.dot" : "DOT",
+    "*.dxf" : "DXF",
+    "*.edf" : "EDF",
+    "*.emf" : "EMF",
+    "*.eml" : "EML",
+    "*.enc" : "UUE",
+    "*.ent" : "PDB",
+    "*.eps" : "EPS",
+    "*.epsf" : "EPS",
+    "*.epsi" : "EPS",
+    "*.erf" : "Raw",
+    "*.fa" : "FASTA",
+    "*.fasta" : "FASTA",
+    "*.fastq" : "FASTQ",
+    "*.fcs" : "FCS",
+    "*.fff" : "Raw",
+    "*.fit" : "FITS",
+    "*.fits" : "FITS",
+    "*.flac" : "FLAC",
+    "*.flv" : "FLV",
+    "*.fmu" : "FMU",
+    "*.fq" : "FASTQ",
+    "*.fsa" : "FASTA",
+    "*.g6" : "Graph6",
+    "*.geojson" : "GeoJSON",
+    "*.gif" : "GIF",
+    "*.gml" : "Graphlet",
+    "*.graphml" : "GraphML",
+    "*.grb" : "GRIB",
+    "*.grd" : "SurferGrid",
+    "*.grib" : "GRIB",
+    "*.gv" : "DOT",
+    "*.gw" : "LEDA",
+    "*.gxl" : "GXL",
+    "*.gz" : "GZIP",
+    "*.h5" : "HDF5",
+    "*.hdf" : "HDF",
+    "*.hdr" : "Raw",
+    "*.hmm" : "HMMER",
+    "*.htm" : "HTML",
+    "*.htm" : "XHTML",
+    "*.html" : "HTML",
+    # "*.html" : "XHTML",  # Duplicate key - decide which one you want
+    "*.ia" : "Raw",
+    "*.icc" : "ICC",
+    "*.icm" : "ICC",
+    "*.icns" : "ICNS",
+    "*.ico" : "ICO",
+    "*.ics" : "ICS",
+    "*.ini" : "INI",
+    "*.j2k" : "JPEG2000",
+    "*.jar" : "ZIP",
+    "*.jfif" : "JPEG",
+    "*.jp2" : "JPEG2000",
+    "*.jpc" : "JPEG2000",
+    "*.jpeg" : "JPEG",
+    "*.jpg" : "JPEG",
+    "*.json" : "JSON",
+    "*.jvx" : "JVX",
+    "*.k25" : "Raw",
+    "*.kc2" : "Raw",
+    "*.kdc" : "Raw",
+    "*.kml" : "KML",
+    "*.kmz" : "KML",
+    "*.lgr" : "LEDA",
+    "*.lmd" : "FCS",
+    "*.lwo" : "LWO",
+    "*.m" : "Package",
+    "*.m4a" : "M4A",
+    "*.ma" : "Maya",
+    "*.mat" : "MAT",
+    "*.mbox" : "MBOX",
+    "*.mbx" : "MBOX",
+    "*.mdc" : "Raw",
+    "*.mef" : "Raw",
+    "*.mesh" : "MESH",
+    "*.mgf" : "MGF",
+    "*.mid" : "MIDI",
+    "*.mml" : "MathML",
+    "*.mo" : "MO",
+    "*.mol" : "MOL",
+    "*.mol2" : "MOL2",
+    "*.mos" : "Raw",
+    "*.mov" : "QuickTime",
+    "*.mp3" : "MP3",
+    "*.mpfa" : "FASTA",
+    "*.mrw" : "Raw",
+    "*.mtx" : "MTX",
+    "*.mulaw" : "AU",
+    "*.mx" : "MX",
+    "*.nb" : "NB",
+    "*.nc" : "NETCDF",
+    "*.ndk" : "NDK",
+    "*.nef" : "Raw",
+    "*.net" : "PAJEK",
+    "*.nex" : "NEXUS",
+    "*.noff" : "NOFF",
+    "*.nrw" : "Raw",
+    "*.nxs" : "NEXUS",
+    "*.obj" : "OBJ",
+    "*.ods" : "ODS",
+    "*.off" : "OFF",
+    "*.oga" : "OGG",
+    "*.ogg" : "OGG",
+    "*.orf" : "Raw",
+    "*.pbm" : "PBM",
+    "*.pct" : "PICT",
+    "*.pcx" : "PCX",
+    "*.pdb" : "PDB",
+    "*.pdf" : "PDF",
+    "*.pef" : "Raw",
+    "*.pgm" : "PGM",
+    "*.pha" : "HarwellBoeing",
+    "*.phe" : "HarwellBoeing",
+    "*.pic" : "PICT",
+    "*.pic" : "PXR",
+    "*.pict" : "PICT",
+    "*.ply" : "PLY",
+    "*.png" : "PNG",
+    "*.pnm" : "PNM",
+    "*.pov" : "POV",
+    "*.ppm" : "PPM",
+    "*.pra" : "HarwellBoeing",
+    "*.pre" : "HarwellBoeing",
+    "*.properties" : "JavaProperties",
+    "*.psa" : "HarwellBoeing",
+    "*.pse" : "HarwellBoeing",
+    "*.pua" : "HarwellBoeing",
+    "*.pue" : "HarwellBoeing",
+    "*.pxn" : "Raw",
+    "*.pxr" : "PXR",
+    "*.pza" : "HarwellBoeing",
+    "*.pze" : "HarwellBoeing",
+    "*.qt" : "QuickTime",
+    "*.qtk" : "Raw",
+    "*.raf" : "Raw",
+    "*.raw" : "Raw",
+    # "*.raw" : "RawBitmap", # duplicate key - decide which you want
+    "*.rdc" : "Raw",
+    "*.rha" : "HarwellBoeing",
+    "*.rhe" : "HarwellBoeing",
+    "*.rib" : "RIB",
+    "*.rle" : "RLE",
+    "*.rra" : "HarwellBoeing",
+    "*.rre" : "HarwellBoeing",
+    "*.rsa" : "HarwellBoeing",
+    "*.rse" : "HarwellBoeing",
+    "*.rtf" : "RTF",
+    "*.rua" : "HarwellBoeing",
+    "*.rue" : "HarwellBoeing",
+    "*.rw2" : "Raw",
+    "*.rwl" : "Raw",
+    "*.rza" : "HarwellBoeing",
+    "*.rze" : "HarwellBoeing",
+    "*.s6" : "Sparse6",
+    "*.sct" : "SCT",
+    "*.sdf" : "SDF",
+    "*.sds" : "HDF",
+    "*.sff" : "SFF",
+    "*.sma" : "SMA",
+    "*.sme" : "SME",
+    "*.smi" : "SMILES",
+    "*.snd" : "SND",
+    "*.sp3" : "SP3",
+    "*.sr2" : "Raw",
+    "*.srf" : "Raw",
+    "*.sti" : "Raw",
+    "*.stl" : "STL",
+    "*.svg" : "SVG",
+    "*.svgz" : "SVGZ",
+    "*.swf" : "SWF",
+    "*.tar" : "TAR",
+    "*.tcx" : "TCX",
+    "*.tcx" : "TECHEXPLORER",
+    "*.tex" : "TeX",
+    "*.tff" : "TIFF",
+    "*.tga" : "TGA",
+    "*.tgf" : "TGF",
+    "*.tgz" : "GZIP",
+    "*.tif" : "TIFF",
+    "*.tiff" : "TIFF",
+    "*.tsv" : "TSV",
+    "*.txt" : "Text",
+    "*.ubj" : "UBJSON",
+    "*.uue" : "UUE",
+    "*.vtk" : "VTK",
+    "*.w64" : "Wave64",
+    "*.wav" : "WAV",
+    "*.wdx" : "WDX",
+    "*.webp" : "WebP",
+    "*.wl" : "Package",
+    "*.wlnet" : "WLNet",
+    "*.wls" : "Package",
+    "*.wmf" : "WMF",
+    "*.wmlf" : "WMLF",
+    "*.wrl" : "VRML",
+    "*.wxf" : "WXF",
+    "*.x3d" : "X3D",
+    "*.x3f" : "Raw",
+    "*.xbm" : "XBM",
+    "*.xht" : "XHTML",
+    "*.xhtml" : "XHTML",
+    "*.xls" : "XLS",
+    "*.xlsx" : "XLSX",
+    # "*.xml" : "ExpressionML",  # Duplicate key
+    # "*.xml" : "XHTML",         # "
+    # "*.xml" : "XHTMLMathML",   # "
+    "*.xml" : "XML",
+    "*.xyz" : "XYZ",
+    "*.zip" : "ZIP",
+    "*.zpr" : "ZPR",
+    }
 
 
-FORMATMAPPINGS = {"Agilent" : "AgilentMicroarray", "BZIP" : "BZIP2", "BZ2" : "BZIP2", "Excel" : "XLS", "MatrixMarket" : "MTX", "GraphWin" : "LEDA", "GZ" : "GZIP", "TGZ" : "GZIP", "vCard" : "VCF", "Metafile" : "WMF", "JPG" : "JPEG", "JCAMPDX" : "JCAMP-DX", "WAVE" : "WAV", "AIFC" : "AIFF", "MuLaw" : "AU", "Flash" : "SWF", "HTMLMathML" : "XHTMLMathML", "RichText" : "RTF", "JAR" : "ZIP", "WEBP" : "WebP", "RAW" : "Raw", "3DS" : "3DS", "ACO" : "ACO", "AFFYMETRIX" : "Affymetrix", "AGILENTMICROARRAY" : "AgilentMicroarray", "AIFF" : "AIFF", "APACHELOG" : "ApacheLog", "ARCGRID" : "ArcGRID", "AU" : "AU", "AVI" : "AVI", "BASE64" : "Base64", "BDF" : "BDF", "BINARY" : "Binary", "BIT" : "Bit", "BMP" : "BMP", "BSON" : "BSON", "BYTE" : "Byte", "BYU" : "BYU", "BZIP2" : "BZIP2", "CDED" : "CDED", "CDF" : "CDF", "CHARACTER16" : "Character16", "CHARACTER8" : "Character8", "CIF" : "CIF", "COMPLEX128" : "Complex128", "COMPLEX256" : "Complex256", "COMPLEX64" : "Complex64", "CSV" : "CSV", "CUR" : "CUR", "DAE" : "DAE", "DBF" : "DBF", "DICOM" : "DICOM", "DIF" : "DIF", "DIMACS" : "DIMACS", "DIRECTORY" : "Directory", "DOT" : "DOT", "DXF" : "DXF", "EDF" : "EDF", "EML" : "EML", "EPS" : "EPS", "EXPRESSIONJSON" : "ExpressionJSON", "EXPRESSIONML" : "ExpressionML", "FASTA" : "FASTA", "FASTQ" : "FASTQ", "FCS" : "FCS", "FITS" : "FITS", "FLAC" : "FLAC", "GENBANK" : "GenBank", "GEOJSON" : "GeoJSON", "GEOTIFF" : "GeoTIFF", "GIF" : "GIF", "GPX" : "GPX", "GRAPH6" : "Graph6", "GRAPHLET" : "Graphlet", "GRAPHML" : "GraphML", "GRIB" : "GRIB", "GTOPO30" : "GTOPO30", "GXL" : "GXL", "GZIP" : "GZIP", "HARWELLBOEING" : "HarwellBoeing", "HDF5" : "HDF5", "HDF" : "HDF", "HIN" : "HIN", "HTML" : "HTML", "HTTPREQUEST" : "HTTPRequest", "HTTPRESPONSE" : "HTTPResponse", "ICC" : "ICC", "ICNS" : "ICNS", "ICO" : "ICO", "ICS" : "ICS", "INI" : "Ini", "INTEGER128" : "Integer128", "INTEGER16" : "Integer16", "INTEGER24" : "Integer24", "INTEGER32" : "Integer32", "INTEGER64" : "Integer64", "INTEGER8" : "Integer8", "JAVAPROPERTIES" : "JavaProperties", "JAVASCRIPTEXPRESSION" : "JavaScriptExpression", "JCAMP-DX" : "JCAMP-DX", "JPEG2000" : "JPEG2000", "JPEG" : "JPEG", "JSON" : "JSON", "JVX" : "JVX", "KML" : "KML", "LATEX" : "LaTeX", "LEDA" : "LEDA", "LIST" : "List", "LWO" : "LWO", "M4A" : "M4A", "MATHML" : "MathML", "MAT" : "MAT", "MBOX" : "MBOX", "MCTT" : "MCTT", "MDB" : "MDB", "MESH" : "MESH", "MGF" : "MGF", "MIDI" : "MIDI", "MMCIF" : "MMCIF", "MO" : "MO", "MOL2" : "MOL2", "MOL" : "MOL", "MP3" : "MP3", "MPS" : "MPS", "MTP" : "MTP", "MTX" : "MTX", "MX" : "MX", "MXNET" : "MXNet", "NASACDF" : "NASACDF", "NB" : "NB", "NDK" : "NDK", "NETCDF" : "NetCDF", "NEXUS" : "NEXUS", "NOFF" : "NOFF", "OBJ" : "OBJ", "ODS" : "ODS", "OFF" : "OFF", "OGG" : "OGG", "OPENEXR" : "OpenEXR", "PACKAGE" : "Package", "PAJEK" : "Pajek", "PBM" : "PBM", "PCAP" : "PCAP", "PCX" : "PCX", "PDB" : "PDB", "PDF" : "PDF", "PGM" : "PGM", "PHPINI" : "PHPIni", "PLY" : "PLY", "PNG" : "PNG", "PNM" : "PNM", "PPM" : "PPM", "PXR" : "PXR", "PYTHONEXPRESSION" : "PythonExpression", "QUICKTIME" : "QuickTime", "RAWBITMAP" : "RawBitmap", "RAW" : "Raw", "RAWJSON" : "RawJSON", "REAL128" : "Real128", "REAL32" : "Real32", "REAL64" : "Real64", "RIB" : "RIB", "RLE" : "RLE", "RSS" : "RSS", "RTF" : "RTF", "SCT" : "SCT", "SDF" : "SDF", "SDTSDEM" : "SDTSDEM", "SDTS" : "SDTS", "SFF" : "SFF", "SHP" : "SHP", "SMA" : "SMA", "SME" : "SME", "SMILES" : "SMILES", "SND" : "SND", "SP3" : "SP3", "SPARSE6" : "Sparse6", "STL" : "STL", "STRING" : "String", "SURFERGRID" : "SurferGrid", "SXC" : "SXC", "TABLE" : "Table", "TAR" : "TAR", "TERMINATEDSTRING" : "TerminatedString", "TEX" : "TeX", "TEXT" : "Text", "TGA" : "TGA", "TGF" : "TGF", "TIFF" : "TIFF", "TIGER" : "TIGER", "TLE" : "TLE", "TSV" : "TSV", "UBJSON" : "UBJSON", "UNSIGNEDINTEGER128" : "UnsignedInteger128", "UNSIGNEDINTEGER16" : "UnsignedInteger16", "UNSIGNEDINTEGER24" : "UnsignedInteger24", "UNSIGNEDINTEGER32" : "UnsignedInteger32", "UNSIGNEDINTEGER64" : "UnsignedInteger64", "UNSIGNEDINTEGER8" : "UnsignedInteger8", "USGSDEM" : "USGSDEM", "UUE" : "UUE", "VCF" : "VCF", "VCS" : "VCS", "VTK" : "VTK", "WARC" : "WARC", "WAVE64" : "Wave64", "WAV" : "WAV", "WDX" : "WDX", "WEBP" : "WebP", "WLNET" : "WLNet", "WMLF" : "WMLF", "WXF" : "WXF", "XBM" : "XBM", "XHTML" : "XHTML", "XHTMLMATHML" : "XHTMLMathML", "XLS" : "XLS", "XLSX" : "XLSX", "XML" : "XML", "XPORT" : "XPORT", "XYZ" : "XYZ", "ZIP" : "ZIP", "C" : "C", "EMF" : "EMF", "FLV" : "FLV", "FMU" : "FMU", "HTMLFRAGMENT" : "HTMLFragment", "MAYA" : "Maya", "PICT" : "PICT", "POV" : "POV", "SVG" : "SVG", "SWF" : "SWF", "TEXFRAGMENT" : "TeXFragment", "VIDEOFRAMES" : "VideoFrames", "VRML" : "VRML", "WMF" : "WMF", "X3D" : "X3D", "ZPR" : "ZPR", "AUDIO/AIFF" : "AIFF", "AUDIO/X-AIFF" : "AIFF", "AUDIO/BASIC" : "AU", "AUDIO/X-AU" : "AU", "AUDIO/X-ULAW" : "AU", "APPLICATION/X-TROFF-MSVIDEO" : "AVI", "VIDEO/AVI" : "AVI", "VIDEO/MSVIDEO" : "AVI", "VIDEO/X-MSVIDEO" : "AVI", "APPLICATION/BMP" : "BMP", "APPLICATION/X-BMP" : "BMP", "APPLICATION/X-WIN-BITMAP" : "BMP", "IMAGE/BITMAP" : "BMP", "IMAGE/BMP" : "BMP", "IMAGE/MS-BMP" : "BMP", "IMAGE/X-BITMAP" : "BMP", "IMAGE/X-BMP" : "BMP", "IMAGE/X-MS-BMP" : "BMP", "IMAGE/X-WIN-BITMAP" : "BMP", "IMAGE/X-WINDOWS-BITMAP" : "BMP", "APPLICATION/X-BZIP" : "BZIP2", "BZ2" : "BZIP2", "BZIP" : "BZIP2", "APPLICATION/VND.WOLFRAM.CDF.TEXT" : "CDF", "APPLICATION/DICOM" : "DICOM", "APPLICATION/ACAD" : "DXF", "APPLICATION/DXF" : "DXF", "APPLICATION/X-AUTOCAD" : "DXF", "APPLICATION/X-DXF" : "DXF", "IMAGE/DXF" : "DXF", "IMAGE/VND.DXF" : "DXF", "IMAGE/X-AUTOCAD" : "DXF", "IMAGE/X-DXF" : "DXF", "ZZ-APPLICATION/ZZ-WINASSOC-DXF" : "DXF", "APPLICATION/EMF" : "EMF", "APPLICATION/X-EMF" : "EMF", "ENHANCEDMETAFILE" : "EMF", "IMAGE/X-EMF" : "EMF", "IMAGE/X-MGX-EMF" : "EMF", "IMAGE/X-XBITMAP" : "EMF", "APPLICATION/EPS" : "EPS", "APPLICATION/POSTSCRIPT" : "EPS", "APPLICATION/X-EPS" : "EPS", "IMAGE/EPS" : "EPS", "IMAGE/X-EPS" : "EPS", "APPLICATION/FITS" : "FITS", "IMAGE/FITS" : "FITS", "VIDEO/X-FLV" : "FLV", "IMAGE/GIF" : "GIF", "APPLICATION/X-HDF" : "HDF", "APPLICATION/X-HDF5" : "HDF5", "APPLICATION/JPG" : "JPEG", "APPLICATION/X-JPG" : "JPEG", "IMAGE/JPEG" : "JPEG", "IMAGE/JPG" : "JPEG", "IMAGE/PJPEG" : "JPEG", "IMAGE/JP2" : "JPEG2000", "IMAGE/JPEG2000" : "JPEG2000", "IMAGE/JPEG2000-IMAGE" : "JPEG2000", "IMAGE/X-JPEG2000-IMAGE" : "JPEG2000", "AUDIO/AAC" : "M4A", "AUDIO/AACP" : "M4A", "AUDIO/3GPP" : "M4A", "AUDIO/3GPP2" : "M4A", "AUDIO/MP4" : "M4A", "AUDIO/MP4A-LATM" : "M4A", "AUDIO/MPEG4-GENERIC" : "M4A", "AUDIO/MPEG" : "MP3", "AUDIO/X-MPEG" : "MP3", "AUDIO/MP3" : "MP3", "AUDIO/X-MP3" : "MP3", "AUDIO/MPEG3" : "MP3", "AUDIO/X-MPEG3" : "MP3", "AUDIO/MPG" : "MP3", "AUDIO/X-MPG" : "MP3", "AUDIO/X-MPEGAUDIO" : "MP3", "APPLICATION/MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.PLAYER" : "NB", "APPLICATION/VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "APPLICATION/X-VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "AUDIO/OGG" : "OGG", "AUDIO/VORBIS" : "OGG", "IMAGE/X-EXR" : "OpenEXR", "APPLICATION/VND.TCPDUMP.PCAP" : "PCAP", "APPLICATION/X-PCAPNG" : "PCAP", "APPLICATION/ACROBAT" : "PDF", "APPLICATION/PDF" : "PDF", "APPLICATION/VND.PDF" : "PDF", "APPLICATION/X-PDF" : "PDF", "TEXT/PDF" : "PDF", "TEXT/X-PDF" : "PDF", "APPLICATION/PNG" : "PNG", "APPLICATION/X-PNG" : "PNG", "IMAGE/PNG" : "PNG", "IMAGE/X-PNG" : "PNG", "IMAGE/X-PBM" : "PBM", "IMAGE/X-PORTABLE-BITMAP" : "PBM", "IMAGE/X-PGM" : "PGM", "IMAGE/X-PORTABLE-GRAYMAP" : "PGM", "IMAGE/X-PPM" : "PPM", "IMAGE/X-PORTABLE-PIXMAP" : "PPM", "IMAGE/X-PNM" : "PNM", "IMAGE/X-PORTABLE-ANYMAP" : "PNM", "APPLICATION/RTF" : "RTF", "APPLICATION/X-RTF" : "RTF", "RICHTEXT" : "RTF", "TEXT/RICHTEXT" : "RTF", "TEXT/RTF" : "RTF", "APPLICATION/X-SHOCKWAVE-FLASH" : "SWF", "FLASH" : "SWF", "APPLICATION/X-GZIP" : "GZIP", "APPLICATION/X-GZIP-COMPRESSED" : "GZIP", "MULTIPART/X-GZIP" : "GZIP", "APPLICATION/TAR" : "TAR", "APPLICATION/X-TAR" : "TAR", "MULTIPART/X-TAR" : "TAR", "APPLICATION/TIF" : "TIFF", "APPLICATION/TIFF" : "TIFF", "APPLICATION/X-TIF" : "TIFF", "APPLICATION/X-TIFF" : "TIFF", "IMAGE/TIF" : "TIFF", "IMAGE/TIFF" : "TIFF", "IMAGE/X-TIF" : "TIFF", "IMAGE/X-TIFF" : "TIFF", "APPLICATION/X-3DS" : "3DS", "IMAGE/X-3DS" : "3DS", "APPLICATION/VCARD" : "VCF", "TEXT/X-VCARD" : "VCF", "VCARD" : "VCF", "AUDIO/WAV" : "WAV", "AUDIO/WAVE" : "WAV", "AUDIO/X-WAV" : "WAV", "WAVE" : "WAV", "APPLICATION/WMF" : "WMF", "APPLICATION/X-MSMETAFILE" : "WMF", "APPLICATION/X-WMF" : "WMF", "IMAGE/WMF" : "WMF", "IMAGE/X-WIN-METAFILE" : "WMF", "IMAGE/X-WMF" : "WMF", "METAFILE" : "WMF", "WINDOWS/METAFILE" : "WMF", "ZZ-APPLICATION/ZZ-WINASSOC-WMF" : "WMF", "APPLICATION/EXCEL" : "XLS", "APPLICATION/MS-EXCEL" : "XLS", "APPLICATION/VND.MS-EXCEL" : "XLS", "APPLICATION/X-DOS_MS_EXCEL" : "XLS", "APPLICATION/X-EXCEL" : "XLS", "APPLICATION/X-MS-EXCEL" : "XLS", "APPLICATION/X-MSEXCEL" : "XLS", "APPLICATION/X-XLS" : "XLS", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLS", "APPLICATION/EXCEL" : "XLSX", "APPLICATION/MS-EXCEL" : "XLSX", "APPLICATION/VND.MS-EXCEL" : "XLSX", "APPLICATION/X-DOS_MS_EXCEL" : "XLSX", "APPLICATION/X-EXCEL" : "XLSX", "APPLICATION/X-MS-EXCEL" : "XLSX", "APPLICATION/X-MSEXCEL" : "XLSX", "APPLICATION/X-XLS" : "XLSX", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX", "APPLICATION/MSWORD" : "DOC", "APPLICATION/X-WINZIP" : "ZIP", "APPLICATION/X-ZIP" : "ZIP", "APPLICATION/X-ZIP-COMPRESSED" : "ZIP", "APPLICATION/ZIP" : "ZIP", "MULTIPART/X-ZIP" : "ZIP", "IMAGE/SVG-XML" : "SVG", "IMAGE/SVG+XML" : "SVG", "TEXT/CALENDAR" : "VCS", "TEXT/CALENDAR" : "ICS", "APPLICATION/TGA" : "TGA", "APPLICATION/X-TARGA" : "TGA", "APPLICATION/X-TGA" : "TGA", "IMAGE/TARGA" : "TGA", "IMAGE/TGA" : "TGA", "IMAGE/X-TARGA" : "TGA", "IMAGE/X-TGA" : "TGA", "APPLICATION/WARC" : "WARC", "TEXT/HTML" : "HTML", "APPLICATION/XHTML+XML" : "XHTML", "APPLICATION/XML" : "XML", "TEXT/XML" : "XML", "APPLICATION/X-TEX" : "TeX", "APPLICATION/CSV" : "CSV", "TEXT/COMMA-SEPARATED-VALUES" : "CSV", "TEXT/CSV" : "CSV", "TEXT/X-COMMA-SEPARATED-VALUES" : "CSV", "TEXT/TAB-SEPARATED-VALUES" : "TSV", "APPLICATION/VND.WOLFRAM.MATHEMATICA.PACKAGE" : "Package", "MESSAGE/RFC822" : "EML", "IMAGE/VND.MICROSOFT.ICON" : "ICO", "APPLICATION/JSON" : "JSON", "APPLICATION/UBJSON" : "UBJSON", "APPLICATION/GEO+JSON" : "GeoJSON", "APPLICATION/X-LATEX" : "LaTeX", "VIDEO/X-MATROSKA" : "MKV", "APPLICATION/PCX" : "PCX", "APPLICATION/X-PCX" : "PCX", "IMAGE/PCX" : "PCX", "IMAGE/X-PC-PAINTBRUCH" : "PCX", "IMAGE/X-PCX" : "PCX", "ZZ-APPLICATION/ZZ-WINASSOC-PCX" : "PCX", "IMAGE/PICT" : "PICT", "IMAGE/X-PICT" : "PICT", "MODEL/X-POV" : "POV", "VIDEO/QUICKTIME" : "QuickTime", "APPLICATION/SLA" : "STL", "XBITMAP" : "XBM", "IMAGE/XBM" : "XBM", "IMAGE/X-XBITMAP" : "XBM", "IMAGE/X-XBM" : "XBM", "APPLICATION/TXT" : "Text", "TEXT/PLAIN" : "Text"}
+FORMATMAPPINGS = {
+    "3DS" : "3DS",
+    "ACO" : "ACO",
+    "AFFYMETRIX" : "Affymetrix",
+    "AGILENTMICROARRAY" : "AgilentMicroarray",
+    "AIFC" : "AIFF",
+    "AIFF" : "AIFF",
+    "APACHELOG" : "ApacheLog",
+    "APPLICATION/ACAD" : "DXF",
+    "APPLICATION/ACROBAT" : "PDF",
+    "APPLICATION/BMP" : "BMP",
+    "APPLICATION/CSV" : "CSV",
+    "APPLICATION/DICOM" : "DICOM",
+    "APPLICATION/DXF" : "DXF",
+    "APPLICATION/EMF" : "EMF",
+    "APPLICATION/EPS" : "EPS",
+    "APPLICATION/EXCEL" : "XLS",
+    "APPLICATION/EXCEL" : "XLSX",
+    "APPLICATION/FITS" : "FITS",
+    "APPLICATION/GEO+JSON" : "GeoJSON",
+    "APPLICATION/JPG" : "JPEG",
+    "APPLICATION/JSON" : "JSON",
+    "APPLICATION/MATHEMATICA" : "NB",
+    "APPLICATION/MS-EXCEL" : "XLS",
+    "APPLICATION/MS-EXCEL" : "XLSX",
+    "APPLICATION/MSWORD" : "DOC",
+    "APPLICATION/PCX" : "PCX",
+    "APPLICATION/PDF" : "PDF",
+    "APPLICATION/PNG" : "PNG",
+    "APPLICATION/POSTSCRIPT" : "EPS",
+    "APPLICATION/RTF" : "RTF",
+    "APPLICATION/SLA" : "STL",
+    "APPLICATION/TAR" : "TAR",
+    "APPLICATION/TGA" : "TGA",
+    "APPLICATION/TIF" : "TIFF",
+    "APPLICATION/TIFF" : "TIFF",
+    "APPLICATION/TXT" : "Text",
+    "APPLICATION/UBJSON" : "UBJSON",
+    "APPLICATION/VCARD" : "VCF",
+    "APPLICATION/VND.MS-EXCEL" : "XLS",
+    "APPLICATION/VND.MS-EXCEL" : "XLSX",
+    "APPLICATION/VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS",
+    "APPLICATION/VND.PDF" : "PDF",
+    "APPLICATION/VND.TCPDUMP.PCAP" : "PCAP",
+    "APPLICATION/VND.WOLFRAM.CDF.TEXT" : "CDF",
+    "APPLICATION/VND.WOLFRAM.MATHEMATICA" : "NB",
+    "APPLICATION/VND.WOLFRAM.MATHEMATICA.PACKAGE" : "Package",
+    "APPLICATION/VND.WOLFRAM.PLAYER" : "NB",
+    "APPLICATION/WARC" : "WARC",
+    "APPLICATION/WMF" : "WMF",
+    "APPLICATION/X-3DS" : "3DS",
+    "APPLICATION/X-AUTOCAD" : "DXF",
+    "APPLICATION/X-BMP" : "BMP",
+    "APPLICATION/X-BZIP" : "BZIP2",
+    "APPLICATION/X-DOS_MS_EXCEL" : "XLS",
+    "APPLICATION/X-DOS_MS_EXCEL" : "XLSX",
+    "APPLICATION/X-DXF" : "DXF",
+    "APPLICATION/X-EMF" : "EMF",
+    "APPLICATION/X-EPS" : "EPS",
+    "APPLICATION/X-EXCEL" : "XLS",
+    "APPLICATION/X-EXCEL" : "XLSX",
+    "APPLICATION/X-GZIP" : "GZIP",
+    "APPLICATION/X-GZIP-COMPRESSED" : "GZIP",
+    "APPLICATION/X-HDF" : "HDF",
+    "APPLICATION/X-HDF5" : "HDF5",
+    "APPLICATION/X-JPG" : "JPEG",
+    "APPLICATION/X-LATEX" : "LaTeX",
+    "APPLICATION/X-MS-EXCEL" : "XLS",
+    "APPLICATION/X-MS-EXCEL" : "XLSX",
+    "APPLICATION/X-MSEXCEL" : "XLS",
+    "APPLICATION/X-MSEXCEL" : "XLSX",
+    "APPLICATION/X-MSMETAFILE" : "WMF",
+    "APPLICATION/X-PCAPNG" : "PCAP",
+    "APPLICATION/X-PCX" : "PCX",
+    "APPLICATION/X-PDF" : "PDF",
+    "APPLICATION/X-PNG" : "PNG",
+    "APPLICATION/X-RTF" : "RTF",
+    "APPLICATION/X-SHOCKWAVE-FLASH" : "SWF",
+    "APPLICATION/X-TAR" : "TAR",
+    "APPLICATION/X-TARGA" : "TGA",
+    "APPLICATION/X-TEX" : "TeX",
+    "APPLICATION/X-TGA" : "TGA",
+    "APPLICATION/X-TIF" : "TIFF",
+    "APPLICATION/X-TIFF" : "TIFF",
+    "APPLICATION/X-TROFF-MSVIDEO" : "AVI",
+    "APPLICATION/X-VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS",
+    "APPLICATION/X-WIN-BITMAP" : "BMP",
+    "APPLICATION/X-WINZIP" : "ZIP",
+    "APPLICATION/X-WMF" : "WMF",
+    "APPLICATION/X-XLS" : "XLS",
+    # "APPLICATION/X-XLS" : "XLSX", Duplicate key decide whic we want
+    "APPLICATION/X-ZIP" : "ZIP",
+    "APPLICATION/X-ZIP-COMPRESSED" : "ZIP",
+    "APPLICATION/XHTML+XML" : "XHTML",
+    "APPLICATION/XML" : "XML",
+    "APPLICATION/ZIP" : "ZIP",
+    "ARCGRID" : "ArcGRID",
+    "AU" : "AU",
+    "AUDIO/3GPP" : "M4A",
+    "AUDIO/3GPP2" : "M4A",
+    "AUDIO/AAC" : "M4A",
+    "AUDIO/AACP" : "M4A",
+    "AUDIO/AIFF" : "AIFF",
+    "AUDIO/BASIC" : "AU",
+    "AUDIO/MP3" : "MP3",
+    "AUDIO/MP4" : "M4A",
+    "AUDIO/MP4A-LATM" : "M4A",
+    "AUDIO/MPEG" : "MP3",
+    "AUDIO/MPEG3" : "MP3",
+    "AUDIO/MPEG4-GENERIC" : "M4A",
+    "AUDIO/MPG" : "MP3",
+    "AUDIO/OGG" : "OGG",
+    "AUDIO/VORBIS" : "OGG",
+    "AUDIO/WAV" : "WAV",
+    "AUDIO/WAVE" : "WAV",
+    "AUDIO/X-AIFF" : "AIFF",
+    "AUDIO/X-AU" : "AU",
+    "AUDIO/X-MP3" : "MP3",
+    "AUDIO/X-MPEG" : "MP3",
+    "AUDIO/X-MPEG3" : "MP3",
+    "AUDIO/X-MPEGAUDIO" : "MP3",
+    "AUDIO/X-MPG" : "MP3",
+    "AUDIO/X-ULAW" : "AU",
+    "AUDIO/X-WAV" : "WAV",
+    "AVI" : "AVI",
+    "Agilent" : "AgilentMicroarray",
+    "BASE64" : "Base64",
+    "BDF" : "BDF",
+    "BINARY" : "Binary",
+    "BIT" : "Bit",
+    "BMP" : "BMP",
+    "BSON" : "BSON",
+    "BYTE" : "Byte",
+    "BYU" : "BYU",
+    "BZ2" : "BZIP2",
+    "BZ2" : "BZIP2",
+    "BZIP" : "BZIP2",
+    "BZIP" : "BZIP2",
+    "BZIP2" : "BZIP2",
+    "C" : "C",
+    "CDED" : "CDED",
+    "CDF" : "CDF",
+    "CHARACTER16" : "Character16",
+    "CHARACTER8" : "Character8",
+    "CIF" : "CIF",
+    "COMPLEX128" : "Complex128",
+    "COMPLEX256" : "Complex256",
+    "COMPLEX64" : "Complex64",
+    "CSV" : "CSV",
+    "CUR" : "CUR",
+    "DAE" : "DAE",
+    "DBF" : "DBF",
+    "DICOM" : "DICOM",
+    "DIF" : "DIF",
+    "DIMACS" : "DIMACS",
+    "DIRECTORY" : "Directory",
+    "DOT" : "DOT",
+    "DXF" : "DXF",
+    "EDF" : "EDF",
+    "EMF" : "EMF",
+    "EML" : "EML",
+    "ENHANCEDMETAFILE" : "EMF",
+    "EPS" : "EPS",
+    "EXPRESSIONJSON" : "ExpressionJSON",
+    "EXPRESSIONML" : "ExpressionML",
+    "Excel" : "XLS",
+    "FASTA" : "FASTA",
+    "FASTQ" : "FASTQ",
+    "FCS" : "FCS",
+    "FITS" : "FITS",
+    "FLAC" : "FLAC",
+    "FLASH" : "SWF",
+    "FLV" : "FLV",
+    "FMU" : "FMU",
+    "Flash" : "SWF",
+    "GENBANK" : "GenBank",
+    "GEOJSON" : "GeoJSON",
+    "GEOTIFF" : "GeoTIFF",
+    "GIF" : "GIF",
+    "GPX" : "GPX",
+    "GRAPH6" : "Graph6",
+    "GRAPHLET" : "Graphlet",
+    "GRAPHML" : "GraphML",
+    "GRIB" : "GRIB",
+    "GTOPO30" : "GTOPO30",
+    "GXL" : "GXL",
+    "GZ" : "GZIP",
+    "GZIP" : "GZIP",
+    "GraphWin" : "LEDA",
+    "HARWELLBOEING" : "HarwellBoeing",
+    "HDF" : "HDF",
+    "HDF5" : "HDF5",
+    "HIN" : "HIN",
+    "HTML" : "HTML",
+    "HTMLFRAGMENT" : "HTMLFragment",
+    "HTMLMathML" : "XHTMLMathML",
+    "HTTPREQUEST" : "HTTPRequest",
+    "HTTPRESPONSE" : "HTTPResponse",
+    "ICC" : "ICC",
+    "ICNS" : "ICNS",
+    "ICO" : "ICO",
+    "ICS" : "ICS",
+    "IMAGE/BITMAP" : "BMP",
+    "IMAGE/BMP" : "BMP",
+    "IMAGE/DXF" : "DXF",
+    "IMAGE/EPS" : "EPS",
+    "IMAGE/FITS" : "FITS",
+    "IMAGE/GIF" : "GIF",
+    "IMAGE/JP2" : "JPEG2000",
+    "IMAGE/JPEG" : "JPEG",
+    "IMAGE/JPEG2000" : "JPEG2000",
+    "IMAGE/JPEG2000-IMAGE" : "JPEG2000",
+    "IMAGE/JPG" : "JPEG",
+    "IMAGE/MS-BMP" : "BMP",
+    "IMAGE/PCX" : "PCX",
+    "IMAGE/PICT" : "PICT",
+    "IMAGE/PJPEG" : "JPEG",
+    "IMAGE/PNG" : "PNG",
+    "IMAGE/SVG+XML" : "SVG",
+    "IMAGE/SVG-XML" : "SVG",
+    "IMAGE/TARGA" : "TGA",
+    "IMAGE/TGA" : "TGA",
+    "IMAGE/TIF" : "TIFF",
+    "IMAGE/TIFF" : "TIFF",
+    "IMAGE/VND.DXF" : "DXF",
+    "IMAGE/VND.MICROSOFT.ICON" : "ICO",
+    "IMAGE/WMF" : "WMF",
+    "IMAGE/X-3DS" : "3DS",
+    "IMAGE/X-AUTOCAD" : "DXF",
+    "IMAGE/X-BITMAP" : "BMP",
+    "IMAGE/X-BMP" : "BMP",
+    "IMAGE/X-DXF" : "DXF",
+    "IMAGE/X-EMF" : "EMF",
+    "IMAGE/X-EPS" : "EPS",
+    "IMAGE/X-EXR" : "OpenEXR",
+    "IMAGE/X-JPEG2000-IMAGE" : "JPEG2000",
+    "IMAGE/X-MGX-EMF" : "EMF",
+    "IMAGE/X-MS-BMP" : "BMP",
+    "IMAGE/X-PBM" : "PBM",
+    "IMAGE/X-PC-PAINTBRUCH" : "PCX",
+    "IMAGE/X-PCX" : "PCX",
+    "IMAGE/X-PGM" : "PGM",
+    "IMAGE/X-PICT" : "PICT",
+    "IMAGE/X-PNG" : "PNG",
+    "IMAGE/X-PNM" : "PNM",
+    "IMAGE/X-PORTABLE-ANYMAP" : "PNM",
+    "IMAGE/X-PORTABLE-BITMAP" : "PBM",
+    "IMAGE/X-PORTABLE-GRAYMAP" : "PGM",
+    "IMAGE/X-PORTABLE-PIXMAP" : "PPM",
+    "IMAGE/X-PPM" : "PPM",
+    "IMAGE/X-TARGA" : "TGA",
+    "IMAGE/X-TGA" : "TGA",
+    "IMAGE/X-TIF" : "TIFF",
+    "IMAGE/X-TIFF" : "TIFF",
+    "IMAGE/X-WIN-BITMAP" : "BMP",
+    "IMAGE/X-WIN-METAFILE" : "WMF",
+    "IMAGE/X-WINDOWS-BITMAP" : "BMP",
+    "IMAGE/X-WMF" : "WMF",
+    "IMAGE/X-XBITMAP" : "EMF",
+    "IMAGE/X-XBITMAP" : "XBM",
+    "IMAGE/X-XBM" : "XBM",
+    "IMAGE/XBM" : "XBM",
+    "INI" : "Ini",
+    "INTEGER128" : "Integer128",
+    "INTEGER16" : "Integer16",
+    "INTEGER24" : "Integer24",
+    "INTEGER32" : "Integer32",
+    "INTEGER64" : "Integer64",
+    "INTEGER8" : "Integer8",
+    "JAR" : "ZIP",
+    "JAVAPROPERTIES" : "JavaProperties",
+    "JAVASCRIPTEXPRESSION" : "JavaScriptExpression",
+    "JCAMP-DX" : "JCAMP-DX",
+    "JCAMPDX" : "JCAMP-DX",
+    "JPEG" : "JPEG",
+    "JPEG2000" : "JPEG2000",
+    "JPG" : "JPEG",
+    "JSON" : "JSON",
+    "JVX" : "JVX",
+    "KML" : "KML",
+    "LATEX" : "LaTeX",
+    "LEDA" : "LEDA",
+    "LIST" : "List",
+    "LWO" : "LWO",
+    "M4A" : "M4A",
+    "MAT" : "MAT",
+    "MATHML" : "MathML",
+    "MAYA" : "Maya",
+    "MBOX" : "MBOX",
+    "MCTT" : "MCTT",
+    "MDB" : "MDB",
+    "MESH" : "MESH",
+    "MESSAGE/RFC822" : "EML",
+    "METAFILE" : "WMF",
+    "MGF" : "MGF",
+    "MIDI" : "MIDI",
+    "MMCIF" : "MMCIF",
+    "MO" : "MO",
+    "MODEL/X-POV" : "POV",
+    "MOL" : "MOL",
+    "MOL2" : "MOL2",
+    "MP3" : "MP3",
+    "MPS" : "MPS",
+    "MTP" : "MTP",
+    "MTX" : "MTX",
+    "MULTIPART/X-GZIP" : "GZIP",
+    "MULTIPART/X-TAR" : "TAR",
+    "MULTIPART/X-ZIP" : "ZIP",
+    "MX" : "MX",
+    "MXNET" : "MXNet",
+    "MatrixMarket" : "MTX",
+    "Metafile" : "WMF",
+    "MuLaw" : "AU",
+    "NASACDF" : "NASACDF",
+    "NB" : "NB",
+    "NDK" : "NDK",
+    "NETCDF" : "NetCDF",
+    "NEXUS" : "NEXUS",
+    "NOFF" : "NOFF",
+    "OBJ" : "OBJ",
+    "ODS" : "ODS",
+    "OFF" : "OFF",
+    "OGG" : "OGG",
+    "OPENEXR" : "OpenEXR",
+    "PACKAGE" : "Package",
+    "PAJEK" : "Pajek",
+    "PBM" : "PBM",
+    "PCAP" : "PCAP",
+    "PCX" : "PCX",
+    "PDB" : "PDB",
+    "PDF" : "PDF",
+    "PGM" : "PGM",
+    "PHPINI" : "PHPIni",
+    "PICT" : "PICT",
+    "PLY" : "PLY",
+    "PNG" : "PNG",
+    "PNM" : "PNM",
+    "POV" : "POV",
+    "PPM" : "PPM",
+    "PXR" : "PXR",
+    "PYTHONEXPRESSION" : "PythonExpression",
+    "QUICKTIME" : "QuickTime",
+    "RAW" : "Raw",
+    "RAWBITMAP" : "RawBitmap",
+    "RAWJSON" : "RawJSON",
+    "REAL128" : "Real128",
+    "REAL32" : "Real32",
+    "REAL64" : "Real64",
+    "RIB" : "RIB",
+    "RICHTEXT" : "RTF",
+    "RLE" : "RLE",
+    "RSS" : "RSS",
+    "RTF" : "RTF",
+    "RichText" : "RTF",
+    "SCT" : "SCT",
+    "SDF" : "SDF",
+    "SDTS" : "SDTS",
+    "SDTSDEM" : "SDTSDEM",
+    "SFF" : "SFF",
+    "SHP" : "SHP",
+    "SMA" : "SMA",
+    "SME" : "SME",
+    "SMILES" : "SMILES",
+    "SND" : "SND",
+    "SP3" : "SP3",
+    "SPARSE6" : "Sparse6",
+    "STL" : "STL",
+    "STRING" : "String",
+    "SURFERGRID" : "SurferGrid",
+    "SVG" : "SVG",
+    "SWF" : "SWF",
+    "SXC" : "SXC",
+    "TABLE" : "Table",
+    "TAR" : "TAR",
+    "TERMINATEDSTRING" : "TerminatedString",
+    "TEX" : "TeX",
+    "TEXFRAGMENT" : "TeXFragment",
+    "TEXT" : "Text",
+    "TEXT/CALENDAR" : "ICS",
+    "TEXT/CALENDAR" : "VCS",
+    "TEXT/COMMA-SEPARATED-VALUES" : "CSV",
+    "TEXT/CSV" : "CSV",
+    "TEXT/HTML" : "HTML",
+    "TEXT/PDF" : "PDF",
+    "TEXT/PLAIN" : "Text",
+    "TEXT/RICHTEXT" : "RTF",
+    "TEXT/RTF" : "RTF",
+    "TEXT/TAB-SEPARATED-VALUES" : "TSV",
+    "TEXT/X-COMMA-SEPARATED-VALUES" : "CSV",
+    "TEXT/X-PDF" : "PDF",
+    "TEXT/X-VCARD" : "VCF",
+    "TEXT/XML" : "XML",
+    "TGA" : "TGA",
+    "TGF" : "TGF",
+    "TGZ" : "GZIP",
+    "TIFF" : "TIFF",
+    "TIGER" : "TIGER",
+    "TLE" : "TLE",
+    "TSV" : "TSV",
+    "UBJSON" : "UBJSON",
+    "UNSIGNEDINTEGER128" : "UnsignedInteger128",
+    "UNSIGNEDINTEGER16" : "UnsignedInteger16",
+    "UNSIGNEDINTEGER24" : "UnsignedInteger24",
+    "UNSIGNEDINTEGER32" : "UnsignedInteger32",
+    "UNSIGNEDINTEGER64" : "UnsignedInteger64",
+    "UNSIGNEDINTEGER8" : "UnsignedInteger8",
+    "USGSDEM" : "USGSDEM",
+    "UUE" : "UUE",
+    "VCARD" : "VCF",
+    "VCF" : "VCF",
+    "VCS" : "VCS",
+    "VIDEO/AVI" : "AVI",
+    "VIDEO/MSVIDEO" : "AVI",
+    "VIDEO/QUICKTIME" : "QuickTime",
+    "VIDEO/X-FLV" : "FLV",
+    "VIDEO/X-MATROSKA" : "MKV",
+    "VIDEO/X-MSVIDEO" : "AVI",
+    "VIDEOFRAMES" : "VideoFrames",
+    "VRML" : "VRML",
+    "VTK" : "VTK",
+    "WARC" : "WARC",
+    "WAV" : "WAV",
+    "WAVE" : "WAV",
+    "WAVE64" : "Wave64",
+    "WDX" : "WDX",
+    "WEBP" : "WebP",
+    "WEBP" : "WebP",
+    "WINDOWS/METAFILE" : "WMF",
+    "WLNET" : "WLNet",
+    "WMF" : "WMF",
+    "WMLF" : "WMLF",
+    "WXF" : "WXF",
+    "X3D" : "X3D",
+    "XBITMAP" : "XBM",
+    "XBM" : "XBM",
+    "XHTML" : "XHTML",
+    "XHTMLMATHML" : "XHTMLMathML",
+    "XLS" : "XLS",
+    "XLSX" : "XLSX",
+    "XML" : "XML",
+    "XPORT" : "XPORT",
+    "XYZ" : "XYZ",
+    "ZIP" : "ZIP",
+    "ZPR" : "ZPR",
+    "ZZ-APPLICATION/ZZ-WINASSOC-DXF" : "DXF",
+    "ZZ-APPLICATION/ZZ-WINASSOC-PCX" : "PCX",
+    "ZZ-APPLICATION/ZZ-WINASSOC-WMF" : "WMF",
+    "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLS",
+    "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX",
+    "vCard" : "VCF",
+    }
 
 
 
@@ -462,76 +1175,76 @@ class RegisterExport(Builtin):
 
         return Symbol('Null')
 
+if sys.platform != "win32":
+    class URLFetch(Builtin):
+        '''
+        <dl>
+        <dt>'URLFetch[$URL$]'
+          <dd> Returns the content of $URL$ as a string.
+        </dl>
 
-class URLFetch(Builtin):
-    '''
-    <dl>
-    <dt>'URLFetch[$URL$]'
-      <dd> Returns the content of $URL$ as a string.
-    </dl>
 
+        #> Quiet[URLFetch["https:////", {}]]
+         = $Failed
 
-    #> Quiet[URLFetch["https:////", {}]]
-     = $Failed
+        #> Quiet[URLFetch["https://www.example.com", {}]]
+         = $Failed
+        '''
 
-    #> Quiet[URLFetch["https://www.example.com", {}]]
-     = $Failed
-    '''
+        messages = {
+            'httperr': '`1` could not be retrieved; `2`.',
+        }
 
-    messages = {
-        'httperr': '`1` could not be retrieved; `2`.',
-    }
+        def apply(self, url, elements, evaluation, options={}):
+            'URLFetch[url_String, elements_, OptionsPattern[]]'
 
-    def apply(self, url, elements, evaluation, options={}):
-        'URLFetch[url_String, elements_, OptionsPattern[]]'
+            import tempfile
+            import os
 
-        import tempfile
-        import os
+            py_url = url.get_string_value()
 
-        py_url = url.get_string_value()
-
-        temp_handle, temp_path = tempfile.mkstemp(suffix='')
-        try:
-            # some pages need cookies or they will end up in an infinite redirect (i.e. HTTP 303)
-            # loop, which prevents the page from getting loaded.
-            f = urllib2.build_opener(urllib2.HTTPCookieProcessor).open(py_url)
-
+            temp_handle, temp_path = tempfile.mkstemp(suffix='')
             try:
-                if sys.version_info >= (3, 0):
-                    content_type = f.info().get_content_type()
-                else:
-                    content_type = f.headers['content-type']
+                # some pages need cookies or they will end up in an infinite redirect (i.e. HTTP 303)
+                # loop, which prevents the page from getting loaded.
+                f = urllib2.build_opener(urllib2.HTTPCookieProcessor).open(py_url)
 
-                os.write(temp_handle, f.read())
+                try:
+                    if sys.version_info >= (3, 0):
+                        content_type = f.info().get_content_type()
+                    else:
+                        content_type = f.headers['content-type']
+
+                    os.write(temp_handle, f.read())
+                finally:
+                    f.close()
+
+                    # on some OS (e.g. Windows) all writers need to be closed before another
+                    # reader (e.g. Import._import) can access it. so close the file here.
+                    os.close(temp_handle)
+
+                def determine_filetype():
+                    return mimetype_dict.get(content_type)
+
+                result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
+            except HTTPError as e:
+                evaluation.message(
+                    'URLFetch', 'httperr', url,
+                    'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
+                return SymbolFailed
+            except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
+                if hasattr(e, 'reason'):
+                    evaluation.message('URLFetch', 'httperr', url, str(e.reason))
+                elif hasattr(e, 'code'):
+                    evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
+                return SymbolFailed
+            except ValueError as e:
+                evaluation.message('URLFetch', 'httperr', url, str(e))
+                return SymbolFailed
             finally:
-                f.close()
+                os.unlink(temp_path)
 
-                # on some OS (e.g. Windows) all writers need to be closed before another
-                # reader (e.g. Import._import) can access it. so close the file here.
-                os.close(temp_handle)
-
-            def determine_filetype():
-                return mimetype_dict.get(content_type)
-
-            result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
-        except HTTPError as e:
-            evaluation.message(
-                'URLFetch', 'httperr', url,
-                'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
-            return SymbolFailed
-        except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
-            if hasattr(e, 'reason'):
-                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
-            elif hasattr(e, 'code'):
-                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
-            return SymbolFailed
-        except ValueError as e:
-            evaluation.message('URLFetch', 'httperr', url, str(e))
-            return SymbolFailed
-        finally:
-            os.unlink(temp_path)
-
-        return result
+            return result
 
 
 class Import(Builtin):
@@ -790,7 +1503,6 @@ class Import(Builtin):
                                            from_python(filetype))
                         evaluation.predetermined_out = current_predetermined_otu
                         return SymbolFailed
-
 
 class ImportString(Import):
     """
@@ -1294,8 +2006,9 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
      = Text
 
-    S> FileFormat["ExampleData/benzene.xyz"]
-     = XYZ
+    # Doesn't work on MS Windows.
+    # S> FileFormat["ExampleData/benzene.xyz"]
+    #  = XYZ
 
     #> FileFormat["ExampleData/colors.json"]
      = JSON
@@ -1337,7 +2050,7 @@ class FileFormat(Builtin):
 
         mime = set(FileFormat.detector.match(path))
 
-        # If match fails match on extension only
+        # If match fails, match on extension only.
         if mime == set([]):
             mime, encoding = mimetypes.guess_type(path)
             if mime is None:
