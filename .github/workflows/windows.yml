@@ -27,10 +27,22 @@ jobs:
         choco install llvm
         set LLVM_DIR="C:\Program Files\LLVM"
         pip install llvmlite
+        pip install numpy
+        pip install sympy
+        pip install pillow
+        pip install scikit-image
+        pip install requests
+        pip install wordcloud
+        pip install PyYAML
+        pip install palettable
+        pip install mpmath
+        pip install mathics_scanner
     - name: Install Mathics
       run: |
-        make develop
+        # make develop
+        python setup.py install
     - name: Test Mathics
       run: |
+        mathics -e 'AbsoluteTime[50!]'
         pip install pytest pexpect
         make check
