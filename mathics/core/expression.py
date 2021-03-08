@@ -1911,12 +1911,22 @@ class Symbol(Atom):
 
         if "evaluation" in options:
             e = options["evaluation"]
+            if e.use_unicode is None:
+                return name
             return replace_wl_with_plain_text(name, use_unicode=e.use_unicode)
         else:
             return name
 
     def boxes_to_xml(self, **options) -> str:
-        return replace_wl_with_plain_text(str(self.name))
+        name = str(self.name)
+
+        if "evaluation" in options:
+            e = options["evaluation"]
+            if e.use_unicode is None:
+                return name            
+            return replace_wl_with_plain_text(name, use_unicode=e.use_unicode)
+        else:
+            return name
 
     def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
@@ -2737,6 +2747,8 @@ class String(Atom):
 
         if "evaluation" in options:
             e = options["evaluation"]
+            if e.use_unicode is None:
+                return value
             value = replace_wl_with_plain_text(value, e.use_unicode)
 
         return value
@@ -2754,9 +2766,16 @@ class String(Atom):
                     operators.add(operator)
 
         text = self.value
-
+        if "evaluation" in options:
+            use_unicode = options["evaluation"].use_unicode
+        else:
+            use_unicode = None
+            
         def render(format, string):
-            encoded_text = encode_mathml(replace_wl_with_plain_text(string))
+            if use_unicode is None:
+                encoded_text = encode_mathml(string)
+            else:
+                encoded_text = encode_mathml(replace_wl_with_plain_text(string, use_unicode))
             return format % encoded_text
 
         if text.startswith('"') and text.endswith('"'):
