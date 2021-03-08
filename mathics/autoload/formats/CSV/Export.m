@@ -22,7 +22,7 @@ ImportExport`RegisterExport[
     FunctionChannels -> {"Streams"},
     Options -> {"ByteOrderMark"},
     DefaultElement -> "Plaintext",
-    BinaryFormat -> True,
+    BinaryFormat -> False,
     Options -> {
         "CharacterEncoding",
         "FieldSeparators"

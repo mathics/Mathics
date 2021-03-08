@@ -1,6 +1,15 @@
 CHANGES
 =======
 
+New builtins
+++++++++++++
+ByteArray
+FileNames
+CreateFile
+CreateTemporary
+
+
+
 2.0.0
 -----
 
