@@ -19,7 +19,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
     strip_context,
 )
-from mathics_scanner.tokeniser import base_names_pattern, full_names_pattern
+from mathics_scanner.tokeniser import full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
 
@@ -81,12 +81,9 @@ class Definitions(object):
                             module, remove_on_quit=False
                         )
                     except PyMathicsLoadException as e:
-                        print(e.module + " is not a valid pymathics module.")
-                        continue
+                        raise
                     except ImportError as e:
-                        print(e.__repr__())
-                        continue
-                    # print(module + loaded_module.pymathics_version_data['version'] + "  by " + loaded_module.pymathics_version_data['author'])
+                        raise
 
                 if builtin_filename is not None:
                     builtin_file = open(builtin_filename, "wb")
@@ -118,16 +115,21 @@ class Definitions(object):
         from an external Python module in the pymathics module namespace.
         """
         import importlib
-        from mathics.builtin import is_builtin, builtins, builtins_by_module, Builtin
+        from mathics.builtin import is_builtin, builtins_by_module, Builtin
+        # Ensures that the pymathics module be reloaded
+        import sys
+        if module in sys.modules:
+            loaded_module = importlib.reload(sys.modules[module])
+        else:
+            loaded_module = importlib.import_module(module)
 
-        loaded_module = importlib.import_module(module)
         builtins_by_module[loaded_module.__name__] = []
         vars = set(
             loaded_module.__all__
             if hasattr(loaded_module, "__all__")
             else dir(loaded_module)
         )
-        context = "PyMathics`"
+
         newsymbols = {}
         if not ("pymathics_version_data" in vars):
             raise PyMathicsLoadException(module)
@@ -142,50 +144,37 @@ class Definitions(object):
             ):  # nopep8
                 instance = var(expression=False)
                 if isinstance(instance, Builtin):
-                    symbol_name = context + instance.get_name(short=True)
-                    builtins[symbol_name] = instance
+                    if not var.context:
+                        var.context = "Pymathics`"
+                    symbol_name = instance.get_name()
                     builtins_by_module[loaded_module.__name__].append(instance)
                     newsymbols[symbol_name] = instance
 
         for name in newsymbols:
-            if remove_on_quit and name not in self.pymathics:
-                self.pymathics[name] = self.builtin.get(name, None)
-        self.builtin.update(newsymbols)
+            luname = self.lookup_name(name)
+            self.user.pop(name, None)
+
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
+
+
+        onload = loaded_module.pymathics_version_data.get("onload", None)
+        if onload:
+            onload(self)
+
         return loaded_module
 
     def clear_pymathics_modules(self):
         from mathics.builtin import builtins, builtins_by_module
 
-        # Remove all modules that are not in mathics
-        # print("cleaning pymathics modules")
         for key in list(builtins_by_module.keys()):
             if not key.startswith("mathics."):
-                print(f'removing module "{key}" not in mathics.')
                 del builtins_by_module[key]
-        # print("reloading symbols from current builtins.")
-        for s in self.pymathics:
-            if s in self.builtin:
-                # If there was a true built-in definition for the symbol, restore it, else, remove he symbol.
-                if self.pymathics[s]:
-                    self.builtin[s] = self.pymathics[s]
-                    builtins[s] = None
-                    for key, val in builtins_by_module.items():
-                        for simb in val:
-                            if simb.get_name() == s:
-                                builtins[s] = simb
-                                break
-                        if builtins[s] is not None:
-                            break
-                    if builtins[s] is None:
-                        builtins.__delitem__(s)
-                else:
-                    self.builtin.__delitem__(s)
-                    builtins.__delitem__(s)
+        for key in pymathics:
+            del self.pymathics[key]
+
         self.pymathics = {}
-        # print("everything is clean")
         return None
 
     def clear_cache(self, name=None):
@@ -423,44 +412,52 @@ class Definitions(object):
         pymathics = self.pymathics.get(name, None)
         builtin = self.builtin.get(name, None)
 
-        if user is None and builtin is None:
-            definition = pymathics
-        elif builtin is None:
-            definition = user
-        elif user is None:
-            definition = pymathics if pymathics else builtin
-        else:
-            if user:
-                attributes = user.attributes
-            elif builtin:  #  Never happens
-                attributes = builtin.attributes
-            else:  #  Never happens
-                attributes = set()
-            if not user:  #  Never happens
-                user = Definition(name=name)
-            if not builtin:  #  Never happens
-                builtin = Definition(name=name)
-            options = builtin.options.copy()
-            options.update(user.options)
-            formatvalues = builtin.formatvalues.copy()
-            for form, rules in user.formatvalues.items():
-                if form in formatvalues:
-                    formatvalues[form].extend(rules)
-                else:
-                    formatvalues[form] = rules
+        candidates = [user] if user else []
+        builtin_instance = None
+        if pymathics:
+            builtin_instance = pymathics
+            candidates.append(pymathics)
+        if builtin:
+            candidates.append(builtin)
+            if builtin_instance is None:
+                builtin_instance = builtin
 
+        definition = candidates[0] if len(candidates)==1 else None
+        if len(candidates)>0 and not definition:
+            attributes = user.attributes if user else (
+                pymathics.attributes if pymathics else
+                (builtin.attributes if builtin else set())
+            )
+            upvalues = [],
+            messages = [],
+            nvalues = [],
+            defaultvalues = [],
+            options = {}
+            formatvalues = {"": [],}
+            # Merge definitions
+            its = [c for c in candidates]
+            while its:
+                curr = its.pop()
+                options.update(curr.options)
+                for form, rules in curr.formatvalues.items():
+                    if form in formatvalues:
+                        formatvalues[form].extend(rules)
+                    else:
+                        formatvalues[form] = rules
+            # Build the new definition
             definition = Definition(
                 name=name,
-                ownvalues=user.ownvalues + builtin.ownvalues,
-                downvalues=user.downvalues + builtin.downvalues,
-                subvalues=user.subvalues + builtin.subvalues,
-                upvalues=user.upvalues + builtin.upvalues,
+                ownvalues=sum((c.ownvalues for c in candidates),[]),
+                downvalues=sum((c.downvalues for c in candidates),[]),
+                subvalues=sum((c.subvalues for c in candidates),[]),
+                upvalues=sum((c.upvalues for c in candidates),[]),
                 formatvalues=formatvalues,
-                messages=user.messages + builtin.messages,
+                messages=sum((c.messages for c in candidates),[]),
                 attributes=attributes,
                 options=options,
-                nvalues=user.nvalues + builtin.nvalues,
-                defaultvalues=user.defaultvalues + builtin.defaultvalues,
+                nvalues=sum((c.nvalues for c in candidates),[]),
+                defaultvalues=sum((c.defaultvalues for c in candidates),[]),
+                builtin=builtin_instance
             )
 
         if definition is not None:
@@ -739,7 +736,7 @@ class Definition(object):
         options=None,
         nvalues=None,
         defaultvalues=None,
-        builtin=None,
+        builtin=None
     ) -> None:
 
         super(Definition, self).__init__()

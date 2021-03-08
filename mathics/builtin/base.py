@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import mpmath
 import re
 import sympy
 
 from functools import total_ordering
 import importlib
 from itertools import chain
-
 import typing
 from typing import Any, cast
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.definitions import Definition
 from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions
@@ -22,11 +21,13 @@ from mathics.core.expression import (
     MachineReal,
     PrecisionReal,
     String,
+    ByteArrayAtom,
     Symbol,
     ensure_context,
     strip_context,
 )
 from mathics.core.numbers import get_precision, PrecisionValueError
+
 
 def get_option(options, name, evaluation, pop=False, evaluate=True):
     # we do not care whether an option X is given as System`X,
@@ -34,20 +35,17 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
     # matter. Also, the quoted string form "X" is ok. all these
     # variants name the same option. this matches Wolfram Language
     # behaviour.
-
+    name = strip_context(name)
     contexts = (s + "%s" for s in evaluation.definitions.get_context_path())
 
     for variant in chain(contexts, ('"%s"',)):
         resolved_name = variant % name
-
         if pop:
             value = options.pop(resolved_name, None)
         else:
             value = options.get(resolved_name)
-
         if value is not None:
             return value.evaluate(evaluation) if evaluate else value
-
     return None
 
 
@@ -60,7 +58,7 @@ mathics_to_python = {}
 
 class Builtin(object):
     name: typing.Optional[str] = None
-    context = "System`"
+    context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
     rules: typing.Dict[str, Any] = {}
@@ -88,13 +86,14 @@ class Builtin(object):
     def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
-        if is_pymodule:
-            name = "PyMathics`" + self.get_name(short=True)
-        else:
-            name = self.get_name()
+        # Set the default context
+        if not self.context:
+            self.context = "Pymathics`" if is_pymodule else "System`"
 
+        name = self.get_name()
         options = {}
         option_syntax = "Warn"
+
         for option, value in self.options.items():
             if option == "$OptionSyntax":
                 option_syntax = value
@@ -150,9 +149,7 @@ class Builtin(object):
 
         for pattern, function in self.get_functions(is_pymodule=is_pymodule):
             rules.append(
-                BuiltinRule(
-                    name, pattern, function, check_options, system=not is_pymodule
-                )
+                BuiltinRule(name, pattern, function, check_options, system=True)
             )
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
@@ -264,6 +261,7 @@ class Builtin(object):
                 pattern = Expression("Default", Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
+
         definition = Definition(
             name=name,
             rules=rules,
@@ -272,6 +270,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
+            builtin=self,
         )
         if is_pymodule:
             definitions.pymathics[name] = definition
@@ -316,11 +315,10 @@ class Builtin(object):
                     pattern = m.group(2)
                 else:
                     attrs = []
-                if is_pymodule:
-                    name = "PyMathics`" + self.get_name(short=True)
-                else:
-                    name = self.get_name()
-
+                # if is_pymodule:
+                #    name = ensure_context(self.get_name(short=True), "Pymathics")
+                # else:
+                name = self.get_name()
                 pattern = pattern % {"name": name}
                 definition_class = (
                     PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
@@ -368,7 +366,7 @@ class Builtin(object):
         return None, s
 
 
-class InstancableBuiltin(Builtin):
+class InstanceableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs["expression"] = False
@@ -381,7 +379,7 @@ class InstancableBuiltin(Builtin):
             try:
                 instance.init(*args, **kwargs)
             except TypeError:
-                # TypeError occurs when unpickling instance, e.g. PatterObject,
+                # TypeError occurs when unpickling instance, e.g. PatternObject,
                 # because parameter expr is not given. This should no be a
                 # problem, as pickled objects need their init-method not
                 # being called.
@@ -535,7 +533,7 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-    def get_constant(self, precision, have_mpmath=False):
+    def get_constant(self, precision, evaluation, have_mpmath=False):
         try:
             d = get_precision(precision, evaluation)
         except PrecisionValueError:
@@ -543,7 +541,7 @@ class SympyFunction(SympyObject):
 
         sympy_fn = self.to_sympy()
         if d is None:
-            result = self.get_mpmath_function()if have_mpmath else sympy_fn()
+            result = self.get_mpmath_function() if have_mpmath else sympy_fn()
             return MachineReal(result)
         else:
             return PrecisionReal(sympy_fn.n(d))
@@ -596,11 +594,105 @@ class BoxConstructError(Exception):
     pass
 
 
-class BoxConstruct(Builtin):
-    def get_option_values(self, leaves, evaluation=None, **options):
-        default = evaluation.definitions.get_options(self.get_name()).copy()
-        options = Expression("List", *leaves).get_option_values(evaluation)
-        default.update(options)
+class BoxConstruct(InstanceableBuiltin):
+    def __new__(cls, *leaves, **kwargs):
+        instance = super().__new__(cls, *leaves, **kwargs)
+        instance._leaves = leaves
+        return instance
+
+    def evaluate(self, evaluation):
+        # THINK about: Should we evaluate the leaves here?
+        return
+
+    def get_head_name(self):
+        return self.get_name()
+
+    def get_lookup_name(self):
+        return self.get_name()
+
+    def get_string_value(self):
+        return "-@" + self.get_head_name() + "@-"
+
+    def same(self, expr):
+        return expr.same(self)
+
+    def is_atom(self):
+        return False
+
+    def do_format(self, evaluation, format):
+        return self
+
+    def format(self, evaluation, fmt):
+        return self
+
+    def get_head(self):
+        return Symbol(self.get_name())
+
+    @property
+    def head(self):
+        return self.get_head()
+
+    @head.setter
+    def head(self, value):
+        raise ValueError("BoxConstruct.head is write protected.")
+
+    @property
+    def leaves(self):
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+        raise ValueError("BoxConstruct.leaves is write protected.")
+
+    # I need to repeat this, because this is not
+    # an expression...
+    def has_form(self, heads, *leaf_counts):
+        """
+        leaf_counts:
+            (,):        no leaves allowed
+            (None,):    no constraint on number of leaves
+            (n, None):  leaf count >= n
+            (n1, n2, ...):    leaf count in {n1, n2, ...}
+        """
+
+        head_name = self.get_name()
+        if isinstance(heads, (tuple, list, set)):
+            if head_name not in [ensure_context(h) for h in heads]:
+                return False
+        else:
+            if head_name != ensure_context(heads):
+                return False
+        if not leaf_counts:
+            return False
+        if leaf_counts and leaf_counts[0] is not None:
+            count = len(self._leaves)
+            if count not in leaf_counts:
+                if (
+                    len(leaf_counts) == 2
+                    and leaf_counts[1] is None  # noqa
+                    and count >= leaf_counts[0]
+                ):
+                    return True
+                else:
+                    return False
+        return True
+
+    def flatten_pattern_sequence(self, evaluation) -> "BoxConstruct":
+        return self
+
+    def get_option_values(self, leaves, **options):
+        evaluation = options.get("evaluation", None)
+        if evaluation:
+            default = evaluation.definitions.get_options(self.get_name()).copy()
+            options = Expression("List", *leaves).get_option_values(evaluation)
+            default.update(options)
+        else:
+            from mathics.core.parser import parse_builtin_rule
+
+            default = {}
+            for option, value in self.options.items():
+                option = ensure_context(option)
+                default[option] = parse_builtin_rule(value)
         return default
 
     def boxes_to_text(self, leaves, **options) -> str:
@@ -623,7 +715,7 @@ class PatternArgumentError(PatternError):
         super().__init__(None, None)
 
 
-class PatternObject(InstancableBuiltin, Pattern):
+class PatternObject(InstanceableBuiltin, Pattern):
     needs_verbatim = True
 
     arg_counts: typing.List[int] = []

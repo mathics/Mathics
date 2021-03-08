@@ -1,20 +1,19 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Importing and Exporting
 """
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.core.expression import Expression, from_python, strip_context, Symbol, SymbolFailed
-from mathics.builtin.base import Builtin, Predefined, String, Integer, get_option
+from mathics.builtin.base import Builtin, Predefined, String, ByteArrayAtom, Integer, get_option
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
 import mimetypes
 import sys
 from itertools import chain
-
-import urllib
 
 try:
     import urllib.request as urllib2
@@ -155,7 +154,7 @@ EXTENSIONMAPPINGS = {"*.3ds" : "3DS", "*.aco" : "ACO", "*.aif" : "AIFF", "*.aiff
 
 
 FORMATMAPPINGS = {"Agilent" : "AgilentMicroarray", "BZIP" : "BZIP2", "BZ2" : "BZIP2", "Excel" : "XLS", "MatrixMarket" : "MTX", "GraphWin" : "LEDA", "GZ" : "GZIP", "TGZ" : "GZIP", "vCard" : "VCF", "Metafile" : "WMF", "JPG" : "JPEG", "JCAMPDX" : "JCAMP-DX", "WAVE" : "WAV", "AIFC" : "AIFF", "MuLaw" : "AU", "Flash" : "SWF", "HTMLMathML" : "XHTMLMathML", "RichText" : "RTF", "JAR" : "ZIP", "WEBP" : "WebP", "RAW" : "Raw", "3DS" : "3DS", "ACO" : "ACO", "AFFYMETRIX" : "Affymetrix", "AGILENTMICROARRAY" : "AgilentMicroarray", "AIFF" : "AIFF", "APACHELOG" : "ApacheLog", "ARCGRID" : "ArcGRID", "AU" : "AU", "AVI" : "AVI", "BASE64" : "Base64", "BDF" : "BDF", "BINARY" : "Binary", "BIT" : "Bit", "BMP" : "BMP", "BSON" : "BSON", "BYTE" : "Byte", "BYU" : "BYU", "BZIP2" : "BZIP2", "CDED" : "CDED", "CDF" : "CDF", "CHARACTER16" : "Character16", "CHARACTER8" : "Character8", "CIF" : "CIF", "COMPLEX128" : "Complex128", "COMPLEX256" : "Complex256", "COMPLEX64" : "Complex64", "CSV" : "CSV", "CUR" : "CUR", "DAE" : "DAE", "DBF" : "DBF", "DICOM" : "DICOM", "DIF" : "DIF", "DIMACS" : "DIMACS", "DIRECTORY" : "Directory", "DOT" : "DOT", "DXF" : "DXF", "EDF" : "EDF", "EML" : "EML", "EPS" : "EPS", "EXPRESSIONJSON" : "ExpressionJSON", "EXPRESSIONML" : "ExpressionML", "FASTA" : "FASTA", "FASTQ" : "FASTQ", "FCS" : "FCS", "FITS" : "FITS", "FLAC" : "FLAC", "GENBANK" : "GenBank", "GEOJSON" : "GeoJSON", "GEOTIFF" : "GeoTIFF", "GIF" : "GIF", "GPX" : "GPX", "GRAPH6" : "Graph6", "GRAPHLET" : "Graphlet", "GRAPHML" : "GraphML", "GRIB" : "GRIB", "GTOPO30" : "GTOPO30", "GXL" : "GXL", "GZIP" : "GZIP", "HARWELLBOEING" : "HarwellBoeing", "HDF5" : "HDF5", "HDF" : "HDF", "HIN" : "HIN", "HTML" : "HTML", "HTTPREQUEST" : "HTTPRequest", "HTTPRESPONSE" : "HTTPResponse", "ICC" : "ICC", "ICNS" : "ICNS", "ICO" : "ICO", "ICS" : "ICS", "INI" : "Ini", "INTEGER128" : "Integer128", "INTEGER16" : "Integer16", "INTEGER24" : "Integer24", "INTEGER32" : "Integer32", "INTEGER64" : "Integer64", "INTEGER8" : "Integer8", "JAVAPROPERTIES" : "JavaProperties", "JAVASCRIPTEXPRESSION" : "JavaScriptExpression", "JCAMP-DX" : "JCAMP-DX", "JPEG2000" : "JPEG2000", "JPEG" : "JPEG", "JSON" : "JSON", "JVX" : "JVX", "KML" : "KML", "LATEX" : "LaTeX", "LEDA" : "LEDA", "LIST" : "List", "LWO" : "LWO", "M4A" : "M4A", "MATHML" : "MathML", "MAT" : "MAT", "MBOX" : "MBOX", "MCTT" : "MCTT", "MDB" : "MDB", "MESH" : "MESH", "MGF" : "MGF", "MIDI" : "MIDI", "MMCIF" : "MMCIF", "MO" : "MO", "MOL2" : "MOL2", "MOL" : "MOL", "MP3" : "MP3", "MPS" : "MPS", "MTP" : "MTP", "MTX" : "MTX", "MX" : "MX", "MXNET" : "MXNet", "NASACDF" : "NASACDF", "NB" : "NB", "NDK" : "NDK", "NETCDF" : "NetCDF", "NEXUS" : "NEXUS", "NOFF" : "NOFF", "OBJ" : "OBJ", "ODS" : "ODS", "OFF" : "OFF", "OGG" : "OGG", "OPENEXR" : "OpenEXR", "PACKAGE" : "Package", "PAJEK" : "Pajek", "PBM" : "PBM", "PCAP" : "PCAP", "PCX" : "PCX", "PDB" : "PDB", "PDF" : "PDF", "PGM" : "PGM", "PHPINI" : "PHPIni", "PLY" : "PLY", "PNG" : "PNG", "PNM" : "PNM", "PPM" : "PPM", "PXR" : "PXR", "PYTHONEXPRESSION" : "PythonExpression", "QUICKTIME" : "QuickTime", "RAWBITMAP" : "RawBitmap", "RAW" : "Raw", "RAWJSON" : "RawJSON", "REAL128" : "Real128", "REAL32" : "Real32", "REAL64" : "Real64", "RIB" : "RIB", "RLE" : "RLE", "RSS" : "RSS", "RTF" : "RTF", "SCT" : "SCT", "SDF" : "SDF", "SDTSDEM" : "SDTSDEM", "SDTS" : "SDTS", "SFF" : "SFF", "SHP" : "SHP", "SMA" : "SMA", "SME" : "SME", "SMILES" : "SMILES", "SND" : "SND", "SP3" : "SP3", "SPARSE6" : "Sparse6", "STL" : "STL", "STRING" : "String", "SURFERGRID" : "SurferGrid", "SXC" : "SXC", "TABLE" : "Table", "TAR" : "TAR", "TERMINATEDSTRING" : "TerminatedString", "TEX" : "TeX", "TEXT" : "Text", "TGA" : "TGA", "TGF" : "TGF", "TIFF" : "TIFF", "TIGER" : "TIGER", "TLE" : "TLE", "TSV" : "TSV", "UBJSON" : "UBJSON", "UNSIGNEDINTEGER128" : "UnsignedInteger128", "UNSIGNEDINTEGER16" : "UnsignedInteger16", "UNSIGNEDINTEGER24" : "UnsignedInteger24", "UNSIGNEDINTEGER32" : "UnsignedInteger32", "UNSIGNEDINTEGER64" : "UnsignedInteger64", "UNSIGNEDINTEGER8" : "UnsignedInteger8", "USGSDEM" : "USGSDEM", "UUE" : "UUE", "VCF" : "VCF", "VCS" : "VCS", "VTK" : "VTK", "WARC" : "WARC", "WAVE64" : "Wave64", "WAV" : "WAV", "WDX" : "WDX", "WEBP" : "WebP", "WLNET" : "WLNet", "WMLF" : "WMLF", "WXF" : "WXF", "XBM" : "XBM", "XHTML" : "XHTML", "XHTMLMATHML" : "XHTMLMathML", "XLS" : "XLS", "XLSX" : "XLSX", "XML" : "XML", "XPORT" : "XPORT", "XYZ" : "XYZ", "ZIP" : "ZIP", "C" : "C", "EMF" : "EMF", "FLV" : "FLV", "FMU" : "FMU", "HTMLFRAGMENT" : "HTMLFragment", "MAYA" : "Maya", "PICT" : "PICT", "POV" : "POV", "SVG" : "SVG", "SWF" : "SWF", "TEXFRAGMENT" : "TeXFragment", "VIDEOFRAMES" : "VideoFrames", "VRML" : "VRML", "WMF" : "WMF", "X3D" : "X3D", "ZPR" : "ZPR", "AUDIO/AIFF" : "AIFF", "AUDIO/X-AIFF" : "AIFF", "AUDIO/BASIC" : "AU", "AUDIO/X-AU" : "AU", "AUDIO/X-ULAW" : "AU", "APPLICATION/X-TROFF-MSVIDEO" : "AVI", "VIDEO/AVI" : "AVI", "VIDEO/MSVIDEO" : "AVI", "VIDEO/X-MSVIDEO" : "AVI", "APPLICATION/BMP" : "BMP", "APPLICATION/X-BMP" : "BMP", "APPLICATION/X-WIN-BITMAP" : "BMP", "IMAGE/BITMAP" : "BMP", "IMAGE/BMP" : "BMP", "IMAGE/MS-BMP" : "BMP", "IMAGE/X-BITMAP" : "BMP", "IMAGE/X-BMP" : "BMP", "IMAGE/X-MS-BMP" : "BMP", "IMAGE/X-WIN-BITMAP" : "BMP", "IMAGE/X-WINDOWS-BITMAP" : "BMP", "APPLICATION/X-BZIP" : "BZIP2", "BZ2" : "BZIP2", "BZIP" : "BZIP2", "APPLICATION/VND.WOLFRAM.CDF.TEXT" : "CDF", "APPLICATION/DICOM" : "DICOM", "APPLICATION/ACAD" : "DXF", "APPLICATION/DXF" : "DXF", "APPLICATION/X-AUTOCAD" : "DXF", "APPLICATION/X-DXF" : "DXF", "IMAGE/DXF" : "DXF", "IMAGE/VND.DXF" : "DXF", "IMAGE/X-AUTOCAD" : "DXF", "IMAGE/X-DXF" : "DXF", "ZZ-APPLICATION/ZZ-WINASSOC-DXF" : "DXF", "APPLICATION/EMF" : "EMF", "APPLICATION/X-EMF" : "EMF", "ENHANCEDMETAFILE" : "EMF", "IMAGE/X-EMF" : "EMF", "IMAGE/X-MGX-EMF" : "EMF", "IMAGE/X-XBITMAP" : "EMF", "APPLICATION/EPS" : "EPS", "APPLICATION/POSTSCRIPT" : "EPS", "APPLICATION/X-EPS" : "EPS", "IMAGE/EPS" : "EPS", "IMAGE/X-EPS" : "EPS", "APPLICATION/FITS" : "FITS", "IMAGE/FITS" : "FITS", "VIDEO/X-FLV" : "FLV", "IMAGE/GIF" : "GIF", "APPLICATION/X-HDF" : "HDF", "APPLICATION/X-HDF5" : "HDF5", "APPLICATION/JPG" : "JPEG", "APPLICATION/X-JPG" : "JPEG", "IMAGE/JPEG" : "JPEG", "IMAGE/JPG" : "JPEG", "IMAGE/PJPEG" : "JPEG", "IMAGE/JP2" : "JPEG2000", "IMAGE/JPEG2000" : "JPEG2000", "IMAGE/JPEG2000-IMAGE" : "JPEG2000", "IMAGE/X-JPEG2000-IMAGE" : "JPEG2000", "AUDIO/AAC" : "M4A", "AUDIO/AACP" : "M4A", "AUDIO/3GPP" : "M4A", "AUDIO/3GPP2" : "M4A", "AUDIO/MP4" : "M4A", "AUDIO/MP4A-LATM" : "M4A", "AUDIO/MPEG4-GENERIC" : "M4A", "AUDIO/MPEG" : "MP3", "AUDIO/X-MPEG" : "MP3", "AUDIO/MP3" : "MP3", "AUDIO/X-MP3" : "MP3", "AUDIO/MPEG3" : "MP3", "AUDIO/X-MPEG3" : "MP3", "AUDIO/MPG" : "MP3", "AUDIO/X-MPG" : "MP3", "AUDIO/X-MPEGAUDIO" : "MP3", "APPLICATION/MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.MATHEMATICA" : "NB", "APPLICATION/VND.WOLFRAM.PLAYER" : "NB", "APPLICATION/VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "APPLICATION/X-VND.OASIS.OPENDOCUMENT.SPREADSHEET" : "ODS", "AUDIO/OGG" : "OGG", "AUDIO/VORBIS" : "OGG", "IMAGE/X-EXR" : "OpenEXR", "APPLICATION/VND.TCPDUMP.PCAP" : "PCAP", "APPLICATION/X-PCAPNG" : "PCAP", "APPLICATION/ACROBAT" : "PDF", "APPLICATION/PDF" : "PDF", "APPLICATION/VND.PDF" : "PDF", "APPLICATION/X-PDF" : "PDF", "TEXT/PDF" : "PDF", "TEXT/X-PDF" : "PDF", "APPLICATION/PNG" : "PNG", "APPLICATION/X-PNG" : "PNG", "IMAGE/PNG" : "PNG", "IMAGE/X-PNG" : "PNG", "IMAGE/X-PBM" : "PBM", "IMAGE/X-PORTABLE-BITMAP" : "PBM", "IMAGE/X-PGM" : "PGM", "IMAGE/X-PORTABLE-GRAYMAP" : "PGM", "IMAGE/X-PPM" : "PPM", "IMAGE/X-PORTABLE-PIXMAP" : "PPM", "IMAGE/X-PNM" : "PNM", "IMAGE/X-PORTABLE-ANYMAP" : "PNM", "APPLICATION/RTF" : "RTF", "APPLICATION/X-RTF" : "RTF", "RICHTEXT" : "RTF", "TEXT/RICHTEXT" : "RTF", "TEXT/RTF" : "RTF", "APPLICATION/X-SHOCKWAVE-FLASH" : "SWF", "FLASH" : "SWF", "APPLICATION/X-GZIP" : "GZIP", "APPLICATION/X-GZIP-COMPRESSED" : "GZIP", "MULTIPART/X-GZIP" : "GZIP", "APPLICATION/TAR" : "TAR", "APPLICATION/X-TAR" : "TAR", "MULTIPART/X-TAR" : "TAR", "APPLICATION/TIF" : "TIFF", "APPLICATION/TIFF" : "TIFF", "APPLICATION/X-TIF" : "TIFF", "APPLICATION/X-TIFF" : "TIFF", "IMAGE/TIF" : "TIFF", "IMAGE/TIFF" : "TIFF", "IMAGE/X-TIF" : "TIFF", "IMAGE/X-TIFF" : "TIFF", "APPLICATION/X-3DS" : "3DS", "IMAGE/X-3DS" : "3DS", "APPLICATION/VCARD" : "VCF", "TEXT/X-VCARD" : "VCF", "VCARD" : "VCF", "AUDIO/WAV" : "WAV", "AUDIO/WAVE" : "WAV", "AUDIO/X-WAV" : "WAV", "WAVE" : "WAV", "APPLICATION/WMF" : "WMF", "APPLICATION/X-MSMETAFILE" : "WMF", "APPLICATION/X-WMF" : "WMF", "IMAGE/WMF" : "WMF", "IMAGE/X-WIN-METAFILE" : "WMF", "IMAGE/X-WMF" : "WMF", "METAFILE" : "WMF", "WINDOWS/METAFILE" : "WMF", "ZZ-APPLICATION/ZZ-WINASSOC-WMF" : "WMF", "APPLICATION/EXCEL" : "XLS", "APPLICATION/MS-EXCEL" : "XLS", "APPLICATION/VND.MS-EXCEL" : "XLS", "APPLICATION/X-DOS_MS_EXCEL" : "XLS", "APPLICATION/X-EXCEL" : "XLS", "APPLICATION/X-MS-EXCEL" : "XLS", "APPLICATION/X-MSEXCEL" : "XLS", "APPLICATION/X-XLS" : "XLS", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLS", "APPLICATION/EXCEL" : "XLSX", "APPLICATION/MS-EXCEL" : "XLSX", "APPLICATION/VND.MS-EXCEL" : "XLSX", "APPLICATION/X-DOS_MS_EXCEL" : "XLSX", "APPLICATION/X-EXCEL" : "XLSX", "APPLICATION/X-MS-EXCEL" : "XLSX", "APPLICATION/X-MSEXCEL" : "XLSX", "APPLICATION/X-XLS" : "XLSX", "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX", "APPLICATION/MSWORD" : "DOC", "APPLICATION/X-WINZIP" : "ZIP", "APPLICATION/X-ZIP" : "ZIP", "APPLICATION/X-ZIP-COMPRESSED" : "ZIP", "APPLICATION/ZIP" : "ZIP", "MULTIPART/X-ZIP" : "ZIP", "IMAGE/SVG-XML" : "SVG", "IMAGE/SVG+XML" : "SVG", "TEXT/CALENDAR" : "VCS", "TEXT/CALENDAR" : "ICS", "APPLICATION/TGA" : "TGA", "APPLICATION/X-TARGA" : "TGA", "APPLICATION/X-TGA" : "TGA", "IMAGE/TARGA" : "TGA", "IMAGE/TGA" : "TGA", "IMAGE/X-TARGA" : "TGA", "IMAGE/X-TGA" : "TGA", "APPLICATION/WARC" : "WARC", "TEXT/HTML" : "HTML", "APPLICATION/XHTML+XML" : "XHTML", "APPLICATION/XML" : "XML", "TEXT/XML" : "XML", "APPLICATION/X-TEX" : "TeX", "APPLICATION/CSV" : "CSV", "TEXT/COMMA-SEPARATED-VALUES" : "CSV", "TEXT/CSV" : "CSV", "TEXT/X-COMMA-SEPARATED-VALUES" : "CSV", "TEXT/TAB-SEPARATED-VALUES" : "TSV", "APPLICATION/VND.WOLFRAM.MATHEMATICA.PACKAGE" : "Package", "MESSAGE/RFC822" : "EML", "IMAGE/VND.MICROSOFT.ICON" : "ICO", "APPLICATION/JSON" : "JSON", "APPLICATION/UBJSON" : "UBJSON", "APPLICATION/GEO+JSON" : "GeoJSON", "APPLICATION/X-LATEX" : "LaTeX", "VIDEO/X-MATROSKA" : "MKV", "APPLICATION/PCX" : "PCX", "APPLICATION/X-PCX" : "PCX", "IMAGE/PCX" : "PCX", "IMAGE/X-PC-PAINTBRUCH" : "PCX", "IMAGE/X-PCX" : "PCX", "ZZ-APPLICATION/ZZ-WINASSOC-PCX" : "PCX", "IMAGE/PICT" : "PICT", "IMAGE/X-PICT" : "PICT", "MODEL/X-POV" : "POV", "VIDEO/QUICKTIME" : "QuickTime", "APPLICATION/SLA" : "STL", "XBITMAP" : "XBM", "IMAGE/XBM" : "XBM", "IMAGE/X-XBITMAP" : "XBM", "IMAGE/X-XBM" : "XBM", "APPLICATION/TXT" : "Text", "TEXT/PLAIN" : "Text"}
- 
+
 
 
 
@@ -228,12 +227,11 @@ class ExportFormats(Predefined):
     def evaluate(self, evaluation):
         return Expression('List', *sorted(EXPORTERS.keys()))
 
-
 class ConverterDumpsExtensionMappings(Predefined):
     """
     <dl>
     <dt>'$extensionMappings'
-        <dd>Returns a list of associations between file extensions and file types. 
+        <dd>Returns a list of associations between file extensions and file types.
     </dl>
     """
     context = 'System`ConvertersDump`'
@@ -248,8 +246,37 @@ class ConverterDumpsFormatMappings(Predefined):
     """
     <dl>
     <dt>'$formatMappings'
-        <dd>Returns a list of associations between file extensions and file types. 
-    </dl>    
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
+    """
+    context = 'System`ConvertersDump`'
+    name = "$formatMappings"
+    attributes = ['Unprotected']
+    def evaluate(self, evaluation):
+        return from_python(FORMATMAPPINGS)
+
+
+class ConverterDumpsExtensionMappings(Predefined):
+    """
+    <dl>
+    <dt>'$extensionMappings'
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
+    """
+    context = 'System`ConvertersDump`'
+    name = "$extensionMappings"
+    attributes = ['Unprotected']
+
+    def evaluate(self, evaluation):
+        return from_python(EXTENSIONMAPPINGS)
+
+
+class ConverterDumpsFormatMappings(Predefined):
+    """
+    <dl>
+    <dt>'$formatMappings'
+        <dd>Returns a list of associations between file extensions and file types.
+    </dl>
     """
     context = 'System`ConvertersDump`'
     name = "$formatMappings"
@@ -1180,10 +1207,9 @@ class ExportString(Builtin):
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, "System Options", evaluation)
-
+        is_binary = exporter_options["System`BinaryFormat"].is_true()
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
@@ -1191,29 +1217,39 @@ class ExportString(Builtin):
         elif function_channels == Expression('List', String('FileNames')):
             # Generates a temporary file
             import tempfile
-            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir())
+            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir(), suffix="." + format_spec[0].lower())
             filename = String(tmpfile.name)
             tmpfile.close()
             exporter_function = Expression(
                 exporter_symbol, filename, expr, *list(chain(stream_options, custom_options)))
-            if exporter_function.evaluate(evaluation) != Symbol('Null'):
+            exportres = exporter_function.evaluate(evaluation)
+            if exportres != Symbol('Null'):
                 evaluation.predetermined_out = current_predetermined_out
                 return SymbolFailed
             else:
                 try:
-                    tmpstream = open(filename.value, 'rb')
-                    res = tmpstream.read().decode('utf-8')
+                    if is_binary:
+                        tmpstream = open(filename.value, 'rb')
+                    else:
+                        tmpstream = open(filename.value, 'r')
+                    res = tmpstream.read()
                     tmpstream.close()
                 except Exception as e:
                     print("something went wrong")
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return SymbolFailed
-                res = String(str(res))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(res))
+                else:
+                    res = String(str(res))
         elif function_channels == Expression('List', String('Streams')):
-            from io import StringIO
+            from io import StringIO, BytesIO
             from mathics.builtin.files import STREAMS, NSTREAMS
-            pystream = StringIO()
+            if is_binary:
+                pystream = BytesIO()
+            else:
+                pystream = StringIO()
             n = next(NSTREAMS)
             STREAMS.append(pystream)
             stream = Expression('OutputStream', String('String'), Integer(n))
@@ -1221,7 +1257,10 @@ class ExportString(Builtin):
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
             if res == Symbol('Null'):
-                res = String(str(pystream.getvalue()))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(pystream.getvalue()))
+                else:
+                    res = String(str(pystream.getvalue()))
             else:
                 res = Symbol("$Failed")
             Expression('Close', stream).evaluate(evaluation)
@@ -1367,6 +1406,8 @@ class B64Encode(Builtin):
         'System`Convert`B64Dump`B64Encode[expr_]'
         if isinstance(expr,String):
             stringtocodify = expr.get_string_value()
+        elif expr.get_head_name() == "ByteArray":
+            return String(base64.b64encode(expr._leaves[0].value).decode('utf8'))
         else:
             stringtocodify = Expression('ToString',expr).evaluate(evaluation).get_string_value()
         return String(base64.b64encode(bytearray(stringtocodify, 'utf8')).decode('utf8'))

@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer
@@ -110,11 +110,12 @@ class IterationLimit(Predefined):
      = $Aborted
     #> ClearAll[f];
 
-    #> ClearAll[f];
-    #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
-    #> Block[{$IterationLimit = 20}, f[0, 100]]
-     = 100
-    #> ClearAll[f];
+    # FIX Later
+    # #> ClearAll[f];
+    # #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
+    # #> Block[{$IterationLimit = 20}, f[0, 100]]
+    #  = 100
+    # #> ClearAll[f];
     """
 
     name = "$IterationLimit"

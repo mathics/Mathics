@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,6 +7,7 @@ List Functions
 
 from itertools import chain, permutations
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
     Builtin,
     Test,
@@ -28,6 +28,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (
     Expression,
     String,
+    ByteArrayAtom,
     Symbol,
     SymbolFailed,
     SymbolNull,
@@ -175,6 +176,43 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation, levelspec=1,
             tree.append(curr_leave.get_leaves())
             curr_index.append(0)
     return found
+
+
+class ByteArray(Builtin):
+    """
+    <dl>
+    <dt>'ByteArray[{$b_1$, $b_2$, $\ldots$}]'
+       <dd> Represents a sequence of Bytes $b_1$, $b_2$, $\ldots$
+    <dt>'ByteArray["string"]'
+       <dd> Constructs a byte array where bytes comes from decode a b64 encoded String
+    </dl>
+
+    >> A=ByteArray[{1,25,3}]
+     = ByteArray["ARkD"]
+    >> A[[2]]
+     = 25
+    >> B=ByteArray["asy"]
+     = ByteArray["WVhONQ=="]
+    """
+
+    messages = {'aotd': 'Elements in `1` are inconsistent with type Byte',
+                'lend': 'The first argument in Bytearray[`1`] should ' + \
+                         'be a B64 enconded string or a vector of integers',}
+
+    def apply_str(self, string, evaluation):
+        'ByteArray[string_String]'
+        return Expression("ByteArray", ByteArrayAtom(string.value))
+
+    def apply_list(self, values, evaluation):
+        'ByteArray[values_List]'
+        if not values.has_form('List', None):
+            return
+        try:
+            ba = bytearray([b.get_int_value() for b in  values._leaves])
+        except:
+            evaluation.message("ByteArray", 'aotd' , values)
+            return
+        return Expression("ByteArray", ByteArrayAtom(ba))
 
 
 class List(Builtin):
@@ -442,7 +480,7 @@ def _parts_all_selector():
         return inner.leaves[py_slice]
 
     return select
-    
+
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
         raise MessageException("Part", "span", pspec)
@@ -1027,7 +1065,38 @@ class Part(Builtin):
         "Part[list_, i___]"
 
         indices = i.get_sequence()
+        # How to deal with ByteArrays
+        if list.get_head_name() == "System`ByteArray":
+            if len(indices) > 1:
+                print("Part::partd1: Depth of object ByteArray[<3>] " +
+                      "is not sufficient for the given part specification.")
+                return
+            idx = indices[0]
+            if idx.get_head_name() == "System`Integer":
+                idx = idx.get_int_value()
+                if idx == 0:
+                    return Symbol("System`ByteArray")
+                data = list._leaves[0].value
+                lendata = len(data)
+                if idx < 0:
+                    idx = data - idx
+                    if idx < 0:
+                        evaluation.message("Part", "partw",  i, list)
+                        return
+                else:
+                    idx = idx - 1
+                    if idx > lendata:
+                        evaluation.message("Part", "partw",  i, list)
+                        return
+                return Integer(data[idx])
+            if idx == Symbol("System`All"):
+                return list
+            # TODO: handling ranges and lists...
+            evaluation.message("Part", "notimplemented")
+            return
+            
 
+        # Otherwise...
         result = walk_parts([list], indices, evaluation)
         if result:
             return result
@@ -5591,7 +5660,6 @@ class Delete(Builtin):
     messages = {
         "argr": "Delete called with 1 argument; 2 arguments are expected.",
         "argt": "Delete called with `1` arguments; 2 arguments are expected.",
-        "partw": "Part `1` of `2` does not exist.",
         "psl": "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
         "pkspec": "The expression `1` cannot be used as a part specification. Use `2` instead.",
     }
@@ -5602,7 +5670,7 @@ class Delete(Builtin):
         try:
             return delete_one(expr, pos)
         except PartRangeError:
-            evaluation.message("Delete", "partw", Expression("List", pos), expr)
+            evaluation.message("Part", "partw", Expression("List", pos), expr)
 
     def apply(self, expr, positions, evaluation):
         "Delete[expr_, positions___]"
@@ -5640,10 +5708,10 @@ class Delete(Builtin):
             try:
                 newexpr = delete_rec(newexpr, pos)
             except PartDepthError as exc:
-                return evaluation.message("Delete", "partw", Integer(exc.index), expr)
+                return evaluation.message("Part", "partw", Integer(exc.index), expr)
             except PartError:
                 return evaluation.message(
-                    "Delete", "partw", Expression("List", *pos), expr
+                    "Part", "partw", Expression("List", *pos), expr
                 )
         return newexpr
 

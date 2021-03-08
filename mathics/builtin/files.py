@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -20,10 +19,14 @@ import sympy
 import requests
 import pathlib
 
+from io import BytesIO, StringIO
 import os.path as osp
 from itertools import chain
 
-from mathics_scanner import TranslateError, FileLineFeeder
+from mathics.version import __version__  # noqa used in loading to check consistency.
+
+from mathics_scanner import TranslateError
+from mathics.core.parser import MathicsFileLineFeeder
 
 from mathics.core.expression import (
     Expression,
@@ -35,6 +38,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
+    SymbolInfinity,
     from_python,
     Integer,
     BoxError,
@@ -45,10 +49,10 @@ from mathics.core.expression import (
 from mathics.core.numbers import dps
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
-from mathics.builtin.strings import to_python_encoding
+from mathics.builtin.strings import to_python_encoding, to_regex
 from mathics.builtin.base import MessageException
 from mathics.settings import ROOT_DIR
-
+import re
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = osp.expanduser("~")
@@ -59,6 +63,34 @@ INPUT_VAR = ""
 INPUTFILE_VAR = ""
 PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
 
+
+def create_temporary_file(suffix=None, delete=False):
+    if suffix=="":
+        suffix = None
+
+    fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
+    result = fp.name
+    fp.close()
+    return result
+
+def urlsave_tmp(url, location=None, **kwargs):
+    suffix = ""
+    strip_url = url.split("/")
+    if len(strip_url) > 3:
+        strip_url = strip_url[-1]
+        if strip_url != "":
+            suffix = strip_url[len(strip_url.split(".")[0]) :]
+        try:
+            r = requests.get(url, allow_redirects=True)
+            if location is None:
+                location = create_temporary_file(suffix=suffix)
+            with open(location, "wb") as fp:
+                fp.write(r.content)
+                result = fp.name
+        except Exception:
+            result = None
+    return result
+    
 
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
@@ -79,23 +111,7 @@ def path_search(filename):
             or (lenfn > 8 and filename[:8] == "https://")
             or (lenfn > 6 and filename[:6] == "ftp://")
         ):
-            suffix = ""
-            strip_filename = filename.split("/")
-            if len(strip_filename) > 3:
-                strip_filename = strip_filename[-1]
-                if strip_filename != "":
-                    suffix = strip_filename[len(strip_filename.split(".")[0]) :]
-            try:
-                r = requests.get(filename, allow_redirects=True)
-                if suffix != "":
-                    fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                else:
-                    fp = tempfile.NamedTemporaryFile(delete=False)
-                fp.write(r.content)
-                result = fp.name
-                fp.close()
-            except Exception:
-                result = None
+            result = urlsave_tmp(filename)
         else:
             for p in PATH_VAR + [""]:
                 path = osp.join(p, filename)
@@ -1945,8 +1961,10 @@ class WriteString(Builtin):
                     Expression("FullForm", result).evaluate(evaluation),
                 )
             exprs.append(result)
-
-        stream.write("".join(exprs))
+        line = "".join(exprs)
+        if type(stream) is BytesIO:
+            line = line.encode('utf8')
+        stream.write(line)
         try:
             stream.flush()
         except IOError as err:
@@ -2183,7 +2201,7 @@ class Get(PrefixOperator):
             if trace_fn:
                 trace_fn(pypath)
             with mathics_open(pypath, "r") as f:
-                feeder = FileLineFeeder(f, trace_fn)
+                feeder = MathicsFileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
                         query = parse(definitions, feeder)
@@ -3812,6 +3830,8 @@ class FileHash(Builtin):
     <dt>'FileHash[$file$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $file$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'FileHash[$file$, $type$, $format$]'
+      <dd>gives a hash code in the specified format.</dd>
     </dl>
 
     >> FileHash["ExampleData/sunflowers.jpg"]
@@ -3840,19 +3860,20 @@ class FileHash(Builtin):
     #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
      = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
     #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
-     = FileHash[ExampleData/sunflowers.jpg, xyzstr]
+     = FileHash[ExampleData/sunflowers.jpg, xyzstr, Integer]
     #> FileHash[xyzsymbol]
      = FileHash[xyzsymbol]
     """
 
     rules = {
-        "FileHash[filename_String]": 'FileHash[filename, "MD5"]',
+        "FileHash[filename_String]": 'FileHash[filename, "MD5", "Integer"]',
+        "FileHash[filename_String, hashtype_String]": 'FileHash[filename, hashtype, "Integer"]',
     }
 
     attributes = ("Protected", "ReadProtected")
 
-    def apply(self, filename, hashtype, evaluation):
-        "FileHash[filename_String, hashtype_String]"
+    def apply(self, filename, hashtype, format, evaluation):
+        "FileHash[filename_String, hashtype_String, format_String]"
         py_filename = filename.get_string_value()
 
         try:
@@ -3865,7 +3886,7 @@ class FileHash(Builtin):
             e.message(evaluation)
             return
 
-        return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
+        return Hash.compute(lambda update: update(dump), hashtype.get_string_value(), format.get_string_value())
 
 
 class FileDate(Builtin):
@@ -4444,8 +4465,6 @@ class ResetDirectory(Builtin):
 
     def apply(self, evaluation):
         "ResetDirectory[]"
-        global DIRECTORY_STACK
-
         try:
             tmp = DIRECTORY_STACK.pop()
         except IndexError:
@@ -4803,6 +4822,7 @@ class DirectoryQ(Builtin):
             return SymbolTrue
         return SymbolFalse
 
+
 class Needs(Builtin):
     """
     <dl>
@@ -4922,7 +4942,6 @@ class Needs(Builtin):
             curr_ctxt = evaluation.definitions.get_current_context()
             contextstr = curr_ctxt + contextstr[1:]
             context = String(contextstr)
-
         if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
@@ -4932,15 +4951,6 @@ class Needs(Builtin):
         if test_loaded.is_true():
             # Already loaded
             return SymbolNull
-
-        # TODO: Figure out why this raises the message:
-        # "Select::normal: Nonatomic expression expected."
-        already_loaded = Expression('MemberQ',
-                                    Symbol('System`$Packages'), context)
-        already_loaded = already_loaded.evaluate(evaluation).is_true()
-        if already_loaded:
-           return SymbolNull
-
         result = Expression('Get', context).evaluate(evaluation)
 
         if result == SymbolFailed:
@@ -4948,3 +4958,211 @@ class Needs(Builtin):
             return SymbolFailed
 
         return SymbolNull
+
+
+class URLSave(Builtin):
+    """
+    <dl>
+    <dt>'URLSave["url"]'
+        <dd>Save "url" in a temporary file.
+    <dt>'URLSave["url", $filename$]'
+        <dd>Save "url" in $filename$.
+    </dl>
+    """
+    messages = {"invfile": '`1` is not a valid Filename',
+                "invhttp": '`1` is not a valid URL'
+                }
+    def apply_1(self, url, evaluation, **options):
+        'URLSave[url_String, OptionsPattern[URLSave]]'
+        return self.apply_2(url, None, evaluation, **options)
+
+    def apply_2(self, url, filename, evaluation, **options):
+        'URLSave[url_String, filename_, OptionsPattern[URLSave]]'
+        url = url.value
+        if filename is None:
+            result = urlsave_tmp(url, None, **options)
+        elif filename.get_head_name()=="String":
+            filename = filename.value
+            result = urlsave_tmp(url, filename, **options)
+        else:
+            evaluation.message("URLSave", "invfile", filename)
+            return SymbolFailed
+        if result is None:
+            return SymbolFailed
+        return String(result)
+
+
+class CreateFile(Builtin):
+    """
+    <dl>
+    <dt>'CreateFile["filename"]'
+        <dd>Creates a file named "filename" temporary file, but do not open it.
+    <dt>'CreateFile[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    rules = {'CreateFile[]':'CreateTemporary[]',}
+    options = {'CreateIntermediateDirectories': 'True',
+               'OverwriteTarget': 'True',
+    }
+    
+    def apply_1(self, filename, evaluation, **options):
+        'CreateFile[filename_String, OptionsPattern[CreateFile]]'
+        try:
+            # TODO: Implement options
+            if not osp.isfile(filename.value):
+                f = open(filename.value, "w")
+                res = f.name
+                f.close()
+                return String(res)
+            else:
+                return filename
+        except:
+            return SymbolFailed    
+
+class CreateTemporary(Builtin):
+    """
+    <dl>
+    <dt>'CreateTemporary[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    def apply_0(self, evaluation):
+        'CreateTemporary[]'
+        try:
+            res = create_temporary_file()
+        except:
+            return SymbolFailed
+        return String(res)
+
+    
+class FileNames(Builtin):
+    """
+    <dl>
+    <dt>'FileNames[]'
+        <dd>Returns a list with the filenames in the current working folder.
+    <dt>'FileNames[$form$]'
+        <dd>Returns a list with the filenames in the current working folder that matches with $form$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$}]'
+        <dd>Returns a list with the filenames in the current working folder that matches with one of $form_1$, $form_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$forms$, $dirs$, $n$]'
+        <dd>Look for files up to the level $n$.
+    </dl>
+
+    >> SetDirectory[$InstallationDirectory <> "/autoload"];
+    >> FileNames[]//Length
+     = 2
+    >> FileNames["*.m", "formats"]//Length
+     = 0
+    >> FileNames["*.m", "formats", 3]//Length
+     = 12
+    >> FileNames["*.m", "formats", Infinity]//Length
+     = 12
+    """
+    fmtmaps = {Symbol("System`All"): "*" }
+    options = {"IgnoreCase": "Automatic",}
+
+    messages = {
+        "nofmtstr" : "`1` is not a format or a list of formats.",
+        "nodirstr" : "`1` is not a directory name  or a list of directory names.",
+        "badn" : "`1` is not an integer number.",
+    } 
+
+    def apply_0(self, evaluation, **options):
+        '''FileNames[OptionsPattern[FileNames]]'''        
+        return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_1(self, forms, evaluation, **options):
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''        
+        return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_2(self, forms, paths, evaluation, **options):
+        '''FileNames[forms_, paths_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, paths, None,  evaluation, **options)
+
+    def apply_3(self, forms, paths, n, evaluation, **options):
+        '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
+        filenames = set()        
+        # Building a list of forms
+        if forms.get_head_name() == "System`List":
+            str_forms = []
+            for p in forms._leaves:
+                if self.fmtmaps.get(p, None):
+                    str_forms.append(self.fmtmaps[p])
+                else:
+                    str_forms.append(p)
+        else:
+            str_forms = [self.fmtmaps[forms]
+                         if self.fmtmaps.get(forms, None)
+                         else forms]
+        # Building a list of directories
+        if paths.get_head_name() == "System`String":
+            str_paths = [paths.value]
+        elif paths.get_head_name() == "System`List":
+            str_paths = []
+            for p in paths._leaves:
+                if p.get_head_name() == "System`String":
+                    str_paths.append(p.value)
+                else:
+                    evaluation.message("FileNames", "nodirstr", paths)
+                    return
+        else:
+            evaluation.message("FileNames", "nodirstr", paths)
+            return
+
+        if n is not None:
+            if n.get_head_name() == "System`Integer":
+                n = n.get_int_value()
+            elif n.get_head_name() == "System`DirectedInfinity":
+                n = None
+            else:
+                print(n)
+                evaluation.message("FileNames", "badn",  n)
+                return
+        else:
+            n = 1
+
+        # list the files
+        if options.get('System`IgnoreCase', None) == SymbolTrue:
+            patterns = [re.compile("^" +
+                                   to_regex(p, evaluation,
+                                            abbreviated_patterns=True),
+                                   re.IGNORECASE)+"$"
+                        for p in str_forms]
+        else:
+            patterns = [re.compile("^" +
+                                   to_regex(p,
+                                            evaluation,
+                                            abbreviated_patterns=True) +
+                                   "$") for p in str_forms]
+
+        for path in str_paths:
+            if not osp.isdir(path):
+                continue
+            if n == 1:
+                for fn in os.listdir(path):
+                    fullname = osp.join(path, fn)
+                    for pattern in patterns:
+                        if pattern.match(fn):
+                            filenames.add(fullname)
+                            break
+            else:
+                pathlen = len(path)
+                for root, dirs, files in os.walk(path):
+                    # FIXME: This is an ugly and inefficient way
+                    # to avoid looking deeper than the level n, but I do not realize
+                    # how to do this better without a lot of code...
+                    if n is not None and len(root[pathlen:].split(osp.sep))>n:
+                        continue
+                    for fn in files+dirs:
+                        for pattern in patterns:
+                            if pattern.match(fn):
+                                filenames.add(osp.join(root,fn))
+                                break
+                    
+
+        return Expression("List", *[String(s) for s in filenames])

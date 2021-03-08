@@ -2,12 +2,9 @@
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
-
-import ast
 import sympy
 import mpmath
 import math
-import inspect
 import re
 
 import typing
@@ -18,6 +15,7 @@ from mathics_scanner.characters import replace_wl_with_plain_text
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
+import base64
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -100,7 +98,7 @@ def from_python(arg):
     convert backtick (context) symbols into some Python identifier
     symbol like underscore.
     """
-
+    from mathics.builtin.base import BoxConstruct
     number_type = get_type(arg)
     if arg is None:
         return SymbolNull
@@ -134,15 +132,19 @@ def from_python(arg):
         return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
         return arg
+    elif isinstance(arg, BoxConstruct):
+        return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
+    elif isinstance(arg, bytearray) or isinstance(arg, bytes):
+        return Expression('ByteArray', ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
 
 class KeyComparable(object):
     def get_sort_key(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __lt__(self, other) -> bool:
         return self.get_sort_key() < other.get_sort_key()
@@ -367,6 +369,10 @@ class BaseExpression(KeyComparable):
         return self, False
 
     def do_format(self, evaluation, form):
+        """
+        Applies formats associated to the expression and removes
+        superfluous enclosing formats.
+        """
         formats = system_symbols(
             'InputForm', 'OutputForm', 'StandardForm',
             'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm')
@@ -377,14 +383,47 @@ class BaseExpression(KeyComparable):
             head = self.get_head_name()
             leaves = self.get_leaves()
             include_form = False
+            # If the expression is enclosed by a Format
+            # takes the form from the expression and
+            # removes the format from the expression.
             if head in formats and len(leaves) == 1:
                 expr = leaves[0]
                 if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
                     form = head
-
                     include_form = True
             unformatted = expr
+            # If form is Fullform, return it without changes
+            if form == 'System`FullForm':
+                if include_form:
+                    expr = Expression(form, expr)
+                    expr.unformatted = unformatted
+                return expr
 
+            # Repeated and RepeatedNull confuse the formatter,
+            # so we need to hardlink their format rules:
+            if head == "System`Repeated":
+                if len(leaves)==1:
+                    return Expression("System`HoldForm",
+                                  Expression("System`Postfix",
+                                  Expression(
+                                      "System`List",
+                                      leaves[0]
+                                  ),"..",170))
+                else:
+                    return Expression("System`HoldForm",expr)
+            elif head == "System`RepeatedNull":
+                if len(leaves)==1:
+                    return Expression("System`HoldForm",
+                                  Expression("System`Postfix",
+                                  Expression(
+                                      "System`List",
+                                      leaves[0]
+                                  ),"...",170))
+                else:
+                    return Expression("System`HoldForm",expr)
+
+            # If expr is not an atom, looks for formats in its definition
+            # and apply them.
             def format_expr(expr):
                 if not(expr.is_atom()) and not(expr.head.is_atom()):
                     # expr is of the form f[...][...]
@@ -397,47 +436,30 @@ class BaseExpression(KeyComparable):
                         return result.evaluate(evaluation)
                 return None
 
-            if form != 'System`FullForm':
-                # Repeated and RepeatedNull confuse the formatter,
-                # so we need to hardlink their format rules:
-                if head == "System`Repeated":
-                    if len(leaves)==1:
-                        return Expression("System`HoldForm",
-                                      Expression("System`Postfix",
-                                      Expression(
-                                          "System`List",
-                                          leaves[0]
-                                      ),"..",170))
-                    else:
-                        return Expression("System`HoldForm",expr)
-                elif head == "System`RepeatedNull":
-                    if len(leaves)==1:
-                        return Expression("System`HoldForm",
-                                      Expression("System`Postfix",
-                                      Expression(
-                                          "System`List",
-                                          leaves[0]
-                                      ),"...",170))
-                    else:
-                        return Expression("System`HoldForm",expr)
+            formatted = format_expr(expr)
+            if formatted is not None:
+                result = formatted.do_format(evaluation, form)
+                if include_form:
+                    result = Expression(form, result)
+                result.unformatted = unformatted
+                return result
 
-                formatted = format_expr(expr)
-                if formatted is not None:
-                    result = formatted.do_format(evaluation, form)
-                    if include_form:
-                        result = Expression(form, result)
-                    result.unformatted = unformatted
-                    return result
-
-                head = expr.get_head_name()
-                if head in formats:
-                    expr = expr.do_format(evaluation, form)
-                elif (head != 'System`NumberForm' and not expr.is_atom() and
-                      head != 'System`Graphics'):
-                    new_leaves = [leaf.do_format(evaluation, form)
-                                  for leaf in expr.leaves]
-                    expr = Expression(
-                        expr.head.do_format(evaluation, form), *new_leaves)
+            # If the expression is still enclosed by a Format,
+            # iterate.
+            # If the expression is not atomic or of certain
+            # specific cases, iterate over the leaves.
+            head = expr.get_head_name()
+            if head in formats:
+                expr = expr.do_format(evaluation, form)
+            elif (head != 'System`NumberForm' and not expr.is_atom() and
+                  head != 'System`Graphics' and
+                  head != 'System`Graphics3D'):
+                # print("Not inside graphics or numberform, and not is atom")
+                new_leaves = [leaf.do_format(evaluation, form)
+                              for leaf in expr.leaves]
+                formathead = expr.head.do_format(evaluation, form)
+                expr = Expression(
+                    expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
                 expr = Expression(form, expr)
@@ -447,9 +469,11 @@ class BaseExpression(KeyComparable):
             evaluation.dec_recursion_depth()
 
     def format(self, evaluation, form) -> typing.Union['Expression', 'Symbol']:
+        """
+        Applies formats associated to the expression, and then calls Makeboxes
+        """
         expr = self.do_format(evaluation, form)
-        result = Expression(
-            'MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
+        result = Expression('MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
         return result
 
     def is_free(self, form, evaluation) -> bool:
@@ -640,7 +664,7 @@ class Expression(BaseExpression):
     leaves: typing.List[Any]
     _sequences: Any
 
-    def __new__(cls, head, *leaves) -> 'Expression':
+    def __new__(cls, head, *leaves, **kwargs) -> 'Expression':
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
@@ -871,6 +895,16 @@ class Expression(BaseExpression):
         self._leaves = tuple(leaves)
         if self._cache:
             self._cache = self._cache.reordered()
+
+    def get_attributes(self, definitions):
+        if self.get_head_name() == "System`Function" and \
+            len(self._leaves) > 2:
+            res = self._leaves[2]
+            if res.is_symbol():
+                return (str(res),)
+            elif res.has_form('List', None):
+                return set( str(a) for a in res._leaves )
+        return set()
 
     def get_lookup_name(self)-> bool:
         return self._head.get_lookup_name()
@@ -1189,6 +1223,7 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
+        from mathics.builtin import BoxConstruct
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
@@ -1206,7 +1241,9 @@ class Expression(BaseExpression):
             for index in indices:
                 leaf = leaves[index]
                 if not leaf.has_form('Unevaluated', 1):
-                    leaves[index] = leaf.evaluate(evaluation)
+                    leaf = leaf.evaluate(evaluation)
+                    if leaf:
+                        leaves[index] = leaf
 
         if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
             # eval_range(range(0, 0))
@@ -1288,6 +1325,8 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False
                 if result.same(new):
                     new._timestamp_cache(evaluation)
                     return new, False
@@ -1347,19 +1386,10 @@ class Expression(BaseExpression):
             return False, options
 
     def boxes_to_text(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
         head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_text(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'text')
         if (self.has_form('RowBox', 1) and  # nopep8
             self._leaves[0].has_form('List', None)):
             return ''.join([leaf.boxes_to_text(**options)
@@ -1371,21 +1401,10 @@ class Expression(BaseExpression):
             raise BoxError(self, 'text')
 
     def boxes_to_xml(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_xml(self._leaves, **options)
-            except BoxConstructError:
-                # raise # uncomment this to see what is going wrong in
-                # constructing boxes
-                raise BoxError(self, 'xml')
+        head = self._head
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
@@ -1451,9 +1470,6 @@ class Expression(BaseExpression):
                 raise BoxError(self, 'xml')
 
     def boxes_to_tex(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
@@ -1466,13 +1482,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_tex(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_tex(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, 'tex')
         name = self._head.get_name()
         if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
             self._leaves[0].get_head_name() == 'System`List'):
@@ -2118,7 +2127,8 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero
+        return self.numerator().is_zero # (implicit) and not (self.denominator().is_zero)
+
 
 
 class Real(Number):
@@ -2266,9 +2276,10 @@ class MachineReal(Real):
 
     @property
     def is_approx_zero(self) -> bool:
-        # FIXME: figure out how to hook int $MachinePrecision and
-        # what the right definition here would be.
-        return abs(self.value) <= 10**-14
+        # In WMA, Chop[10.^(-10)] == 0,
+        # so, lets take it.
+        res = abs(self.value) <= 1e-10
+        return res
 
 
 class PrecisionReal(Real):
@@ -2545,13 +2556,15 @@ class String(Atom):
 
     def boxes_to_xml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                # name = builtin.get_name()
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 
@@ -2587,13 +2600,15 @@ class String(Atom):
                 return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 
@@ -2685,6 +2700,78 @@ class String(Atom):
     def __getnewargs__(self):
         return (self.value,)
 
+class ByteArrayAtom(Atom):
+    value: str
+    
+    def __new__(cls, value):
+        self = super().__new__(cls)
+        if type(value) in (bytes, bytearray):
+            self.value = value
+        elif type(value) is list:
+            self.value = bytearray(list)
+        elif type(value) is str:
+            self.value = base64.b64encode(bytearray(value, 'utf8'))
+        else:
+            raise Exception("value does not belongs to a valid type")
+        return self
+
+    def __str__(self) -> str:
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+
+    def boxes_to_text(self, **options) -> str:
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+
+    def boxes_to_xml(self, **options) -> str:
+        return encode_mathml(String(base64.b64encode(self.value).decode('utf8')))
+
+    def boxes_to_tex(self, **options) -> str:
+        from mathics.builtin import builtins
+        return encode_tex(String(base64.b64encode(self.value).decode('utf8')))
+
+    def atom_to_boxes(self, f, evaluation):
+        return String('"' + self.__str__() + '"')
+
+    def do_copy(self) -> 'ByteArray':
+        return ByteArrayAtom(self.value)
+
+    def default_format(self, evaluation, form) -> str:
+        value = self.value
+        return value.__str__()
+
+    def get_sort_key(self, pattern_sort=False):
+        if pattern_sort:
+            return super().get_sort_key(True)
+        else:
+            return [0, 1, self.value, 0, 1]
+
+    def same(self, other) -> bool:
+        # FIX: check
+        if isinstance(other, ByteArrayAtom):
+            return self.value == other.value
+        return False
+
+    def get_string_value(self) -> str:
+        try:
+            return self.value.decode('utf-8')
+        except:
+            return None
+
+    def to_sympy(self, **kwargs):
+        return None
+
+    def to_python(self, *args, **kwargs) -> str:
+        return self.value
+
+    def __hash__(self):
+        return hash(("ByteArrayAtom", self.value))
+
+    def user_hash(self, update):
+        # hashing a String is the one case where the user gets the untampered
+        # hash value of the string's text. this corresponds to MMA behavior.
+        update(self.value)
+
+    def __getnewargs__(self):
+        return (self.value,)
 
 class StringFromPython(String):
     def __new__(cls, value):

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Setuptools based setup script for Mathics.
+"""Python Setuptools for Mathics core
 
-For the easiest installation just type the following command (you'll probably
-need root privileges):
+For the easiest installation:
 
-    python setup.py install
+    pip install -e .
 
 This will install the library in the default location. For instructions on
 how to customize the install procedure read the output of:
@@ -21,19 +20,18 @@ To get a full list of avaiable commands, read the output of:
 
     python setup.py --help-commands
 
-Or, if all else fails, feel free to write to the mathics users list at
-mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
 import os.path as osp
 import platform
-from setuptools import setup, Command, Extension
+from setuptools import setup, Extension
 
 # Ensure user has the correct Python version
 if sys.version_info < (3, 6):
     print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
+
 
 def get_srcdir():
     filename = osp.normcase(osp.dirname(osp.abspath(__file__)))
@@ -54,7 +52,9 @@ long_description = read("README.rst") + "\n"
 is_PyPy = platform.python_implementation() == "PyPy"
 
 INSTALL_REQUIRES = []
-DEPENDENCY_LINKS = ['http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev']
+DEPENDENCY_LINKS = [
+    "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"
+]
 
 try:
     if is_PyPy:
@@ -80,7 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.0.0.dev",
+    "Mathics_Scanner>=1.0.0,<1.1.0",
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.1.0",
     "numpy",
@@ -90,8 +90,8 @@ INSTALL_REQUIRES += [
     "llvmlite",
     "requests",
     "scikit-image",
-    "wordcloud", # Used in builtin/image.py by WordCloud()
-    "PyYAML", # Used in mathics.core.characters
+    "wordcloud",  # Used in builtin/image.py by WordCloud()
+    "PyYAML",  # Used in mathics.core.characters
 ]
 
 
@@ -99,38 +99,6 @@ def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
         yield root + "*/" * k + file
 
-
-class test(Command):
-    """
-    Run the unittests
-    """
-
-    description = "run the unittests"
-    user_options = []
-
-    def __init__(self, *args):
-        self.args = args[0]  # so we can pass it to other classes
-        Command.__init__(self, *args)
-
-    def initialize_options(self):  # distutils wants this
-        pass
-
-    def finalize_options(self):  # this too
-        pass
-
-    def run(self):
-        import unittest
-
-        test_loader = unittest.defaultTestLoader
-        test_runner = unittest.TextTestRunner(verbosity=3)
-        test_suite = test_loader.discover("test/")
-        test_result = test_runner.run(test_suite)
-
-        if not test_result.wasSuccessful():
-            sys.exit(1)
-
-
-CMDCLASS["test"] = test
 
 mathjax_files = list(subdirs("media/js/mathjax/"))
 
@@ -175,16 +143,13 @@ setup(
             "mathics = mathics.main:main",
         ],
     },
-    scripts = [
-        "script/dmathicsserver",
-        "script/dmathicsscript",
-    ],
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # don't pack Mathics in egg because of media files, etc.
     zip_safe=False,
     # metadata for upload to PyPI
     maintainer="Mathics Group",
+    maintainer_email="mathic-devel@googlegroups.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.org/",
