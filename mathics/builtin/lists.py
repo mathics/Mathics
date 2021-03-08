@@ -178,6 +178,15 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation, levelspec=1,
     return found
 
 
+class Normal(Builtin):
+    """
+        <dl>
+    <dt>'Normal[expr_]'
+       <dd> Brings especial expressions to a normal expression from 
+       different especial forms.
+    </dl>
+    """
+
 class ByteArray(Builtin):
     """
     <dl>
@@ -191,7 +200,7 @@ class ByteArray(Builtin):
      = ByteArray["ARkD"]
     >> A[[2]]
      = 25
-    >> System`Normal[A]
+    >> Normal[A]
      = {1, 25, 3}
     >> ToString[A]
      = ByteArray["ARkD"]
