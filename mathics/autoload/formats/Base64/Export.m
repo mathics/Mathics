@@ -21,7 +21,7 @@ ImportExport`RegisterExport[
 	FunctionChannels -> {"FileNames"},
 	Options -> {"CharacterEncoding", "ByteOrderMark"},
 	DefaultElement -> "Plaintext",
-	BinaryFormat -> True
+	BinaryFormat -> False
 ]
 
 
