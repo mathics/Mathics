@@ -15,6 +15,7 @@ from bisect import bisect_left
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
+import base64
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -135,6 +136,8 @@ def from_python(arg):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression('List', *[from_python(leaf) for leaf in arg])
+    elif isinstance(arg, bytearray) or isinstance(arg, bytes):
+        return Expression('ByteArray', ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
@@ -2684,6 +2687,78 @@ class String(Atom):
     def __getnewargs__(self):
         return (self.value,)
 
+class ByteArrayAtom(Atom):
+    value: str
+    
+    def __new__(cls, value):
+        self = super().__new__(cls)
+        if type(value) in (bytes, bytearray):
+            self.value = value
+        elif type(value) is list:
+            self.value = bytearray(list)
+        elif type(value) is str:
+            self.value = base64.b64encode(bytearray(value, 'utf8'))
+        else:
+            raise Exception("value does not belongs to a valid type")
+        return self
+
+    def __str__(self) -> str:
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+
+    def boxes_to_text(self, **options) -> str:
+        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+
+    def boxes_to_xml(self, **options) -> str:
+        return encode_mathml(String(base64.b64encode(self.value).decode('utf8')))
+
+    def boxes_to_tex(self, **options) -> str:
+        from mathics.builtin import builtins
+        return encode_tex(String(base64.b64encode(self.value).decode('utf8')))
+
+    def atom_to_boxes(self, f, evaluation):
+        return String('"' + self.__str__() + '"')
+
+    def do_copy(self) -> 'ByteArray':
+        return ByteArrayAtom(self.value)
+
+    def default_format(self, evaluation, form) -> str:
+        value = self.value
+        return value.__str__()
+
+    def get_sort_key(self, pattern_sort=False):
+        if pattern_sort:
+            return super().get_sort_key(True)
+        else:
+            return [0, 1, self.value, 0, 1]
+
+    def same(self, other) -> bool:
+        # FIX: check
+        if isinstance(other, ByteArrayAtom):
+            return self.value == other.value
+        return False
+
+    def get_string_value(self) -> str:
+        try:
+            return self.value.decode('utf-8')
+        except:
+            return None
+
+    def to_sympy(self, **kwargs):
+        return None
+
+    def to_python(self, *args, **kwargs) -> str:
+        return self.value
+
+    def __hash__(self):
+        return hash(("ByteArrayAtom", self.value))
+
+    def user_hash(self, update):
+        # hashing a String is the one case where the user gets the untampered
+        # hash value of the string's text. this corresponds to MMA behavior.
+        update(self.value)
+
+    def __getnewargs__(self):
+        return (self.value,)
 
 class StringFromPython(String):
     def __new__(cls, value):

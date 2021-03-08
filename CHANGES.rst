@@ -4,6 +4,15 @@ CHANGES
 2.1.0
 -----
 
+  New builtins
+++++++++++++++
+
+* ``ByteArray``
+* ``FileNames``
+* ``CreateFile``
+* ``CreateTemporary``
+
+
 Enhancements
 ++++++++++++
 
