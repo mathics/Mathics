@@ -1,14 +1,22 @@
 CHANGES
 =======
 
-New builtins
+2.1.0
+-----
+
+  New builtins
+++++++++++++++
+
+* ``ByteArray``
+* ``FileNames``
+* ``CreateFile``
+* ``CreateTemporary``
+
+
+Enhancements
 ++++++++++++
-ByteArray
-FileNames
-CreateFile
-CreateTemporary
 
-
+* ``FileNameJoin`` - implement ``OperatingSystem`` option
 
 2.0.0
 -----
