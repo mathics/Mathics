@@ -485,3 +485,4 @@ class Pi(MPMathConstant, SympyConstant):
     sympy_name = "pi"
     mpmath_name = "pi"
     numpy_name = "pi"
+    options = {"Method": "sympy"}

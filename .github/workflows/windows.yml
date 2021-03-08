@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config 
+        # LLVM_CONFIG=/usr/local/Cellar/llvm@9/9.0.1_2/bin/llvm-config
         python -m pip install wheel
         choco install llvm
         set LLVM_DIR="C:\Program Files\LLVM"
@@ -43,6 +43,6 @@ jobs:
         python setup.py install
     - name: Test Mathics
       run: |
-        mathics -e 'AbsoluteTime[50!]'
+        mathics -e 'Print[$SystemWordLength]; Print[$MachinePrecision]'
         pip install pytest pexpect
         make check
