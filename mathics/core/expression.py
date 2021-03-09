@@ -2697,33 +2697,33 @@ class ByteArrayAtom(Atom):
         elif type(value) is list:
             self.value = bytearray(list)
         elif type(value) is str:
-            self.value = base64.b64encode(bytearray(value, 'utf8'))
+            self.value = base64.b64decode(value)
         else:
             raise Exception("value does not belongs to a valid type")
         return self
 
     def __str__(self) -> str:
-        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+        return base64.b64encode(self.value).decode('utf8')
 
     def boxes_to_text(self, **options) -> str:
-        return '"' + base64.b64encode(self.value).decode('utf8') + '"'
+        return '"' + self.__str__() + '"'
 
     def boxes_to_xml(self, **options) -> str:
-        return encode_mathml(String(base64.b64encode(self.value).decode('utf8')))
+        return encode_mathml(String('"'+self.__str__()+'"'))
 
     def boxes_to_tex(self, **options) -> str:
-        from mathics.builtin import builtins
-        return encode_tex(String(base64.b64encode(self.value).decode('utf8')))
+        return encode_tex(String('"'+self.__str__()+'"'))
 
     def atom_to_boxes(self, f, evaluation):
-        return String('"' + self.__str__() + '"')
+        res = String('""' + self.__str__() + '""')
+        return res
 
     def do_copy(self) -> 'ByteArray':
         return ByteArrayAtom(self.value)
 
     def default_format(self, evaluation, form) -> str:
         value = self.value
-        return value.__str__()
+        return '"' +  value.__str__() + '"'
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -2759,6 +2759,7 @@ class ByteArrayAtom(Atom):
 
     def __getnewargs__(self):
         return (self.value,)
+
 
 class StringFromPython(String):
     def __new__(cls, value):
