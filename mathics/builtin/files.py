@@ -3703,11 +3703,6 @@ class Compress(Builtin):
     >> Compress[N[Pi, 10]]
      = eJwz1jM0MTS1NDIzNQEADRsCNw==
 
-    ## Unicode char
-    #> Compress["―"]
-     = eJxTetQwVQkABwMCPA==
-    #> Uncompress[eJxTUlACAADLAGU=%]
-     = ―
     """
 
     attributes = "Protected"

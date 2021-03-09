@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+from .helper import check_evaluation
 from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import pathlib
+import os
 import sys
 
 
@@ -13,6 +16,19 @@ def _evaluate(str_expression):
     expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
+# A better test has to do with handling unicode
+if sys.platform not in {"win32",} and not os.environ.get("CI"):
+    def test_non_win32_compress():
+        for str_expr, str_expected, message in (
+            (
+             'Compress["―"]',
+             "= eJxTetQwVQkABwMCPA=="
+             ),
+            ("Uncompress[eJxTUlACAADLAGU=%]",
+             "―"
+             ),
+        ):
+            check_evaluation(str_expr, str_expected, message)
 
 def test_get_and_put():
     temp_directory = _evaluate("$TemporaryDirectory").to_python()
