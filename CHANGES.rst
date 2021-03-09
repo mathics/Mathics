@@ -21,7 +21,7 @@ Enhancements
 Miscellanea
 +++++++++++
 
-A pass was made to improve Microsof Windows compatability and testin
+A pass was made to improve Microsoft Windows compatability and testing
 Windows under MSYS.
 
 2.0.0
