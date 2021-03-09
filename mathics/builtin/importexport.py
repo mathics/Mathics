@@ -2225,7 +2225,7 @@ class B64Encode(Builtin):
                 Expression("ToString", expr).evaluate(evaluation).get_string_value()
             )
             stringtocodify = bytearray(stringtocodify, "utf8")
-        return String(base64.b64encode(stringcodify).decode("utf8"))
+        return String(base64.b64encode(stringtocodify).decode("utf8"))
 
 
 class B64Decode(Builtin):
