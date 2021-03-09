@@ -1,7 +1,8 @@
 from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
-import pytest
+import pathlib
+import sys
 
 
 definitions = Definitions(add_builtin=True)
@@ -18,16 +19,19 @@ def test_get_and_put():
     if len(temp_directory)<3:
         return
     temp_directory = temp_directory[1:-1]
-    temp_filename = f"{temp_directory}/testfile"
+    temp_filename = str(pathlib.Path(temp_directory, "testfile"))
     print(temp_filename)
     result = _evaluate(f"40! >> {temp_filename}").to_python()
-    assert result is None
 
-    result = _evaluate(f"<< {temp_filename}")
-    assert result == _evaluate("40!")
+    # This needs going over in Windows
+    if sys.platform not in {"win32",}:
+        assert result is None
 
-    result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
-    assert result is None
+        result = _evaluate(f"<< {temp_filename}")
+        assert result == _evaluate("40!")
+
+        result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
+        assert result is None
 
 
 # TODO: add these Unix-specific test. Be sure not to test

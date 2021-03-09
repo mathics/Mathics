@@ -90,7 +90,7 @@ def urlsave_tmp(url, location=None, **kwargs):
         except Exception:
             result = None
     return result
-    
+
 
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
@@ -4987,7 +4987,7 @@ class CreateFile(Builtin):
     options = {'CreateIntermediateDirectories': 'True',
                'OverwriteTarget': 'True',
     }
-    
+
     def apply_1(self, filename, evaluation, **options):
         'CreateFile[filename_String, OptionsPattern[CreateFile]]'
         try:
@@ -5000,7 +5000,7 @@ class CreateFile(Builtin):
             else:
                 return filename
         except:
-            return SymbolFailed    
+            return SymbolFailed
 
 class CreateTemporary(Builtin):
     """
@@ -5017,9 +5017,9 @@ class CreateTemporary(Builtin):
             return SymbolFailed
         return String(res)
 
-    
+
 class FileNames(Builtin):
-    """
+    r"""
     <dl>
     <dt>'FileNames[]'
         <dd>Returns a list with the filenames in the current working folder.
@@ -5052,14 +5052,14 @@ class FileNames(Builtin):
         "nofmtstr" : "`1` is not a format or a list of formats.",
         "nodirstr" : "`1` is not a directory name  or a list of directory names.",
         "badn" : "`1` is not an integer number.",
-    } 
+    }
 
     def apply_0(self, evaluation, **options):
-        '''FileNames[OptionsPattern[FileNames]]'''        
+        '''FileNames[OptionsPattern[FileNames]]'''
         return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
 
     def apply_1(self, forms, evaluation, **options):
-        '''FileNames[forms_, OptionsPattern[FileNames]]'''        
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''
         return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
 
     def apply_2(self, forms, paths, evaluation, **options):
@@ -5068,7 +5068,7 @@ class FileNames(Builtin):
 
     def apply_3(self, forms, paths, n, evaluation, **options):
         '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
-        filenames = set()        
+        filenames = set()
         # Building a list of forms
         if forms.get_head_name() == "System`List":
             str_forms = []
@@ -5145,6 +5145,6 @@ class FileNames(Builtin):
                             if pattern.match(fn):
                                 filenames.add(osp.join(root,fn))
                                 break
-                    
+
 
         return Expression("List", *[String(s) for s in filenames])
