@@ -1,9 +1,9 @@
 import ctypes
 
 from mathics.builtin.base import Builtin, BoxConstruct
+from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
     Atom,
-    Evaluation,
     Expression,
     Symbol,
     String,
@@ -14,7 +14,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 
 class Compile(Builtin):
-    '''
+    """
     <dl>
     <dt>'Compile[{x1, x2, ...}, expr_]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
@@ -61,8 +61,7 @@ class Compile(Builtin):
     Loops and variable assignments are supported as python (not llvmlite)
     functions
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
-     : Expression While[b != 0, {a, b} = {b, Mod[a, b]}] ; a could not be compiled.
-     = Function[{Global`a, Global`b}, While[b != 0, {a, b} = {b, Mod[a, b]}] ; a]
+     = CompiledFunction[{a, b}, a, -CompiledCode-]
     """
 
     requires = ("llvmlite",)
@@ -128,20 +127,22 @@ class Compile(Builtin):
 
         if cfunc is None:
             try:
+
                 def _pythonized_mathics_expr(*x):
                     inner_evaluation = Evaluation(definitions=evaluation.definitions)
-                    vars = dict(list(zip(names, x[:len(names)])))
+                    vars = dict(list(zip(names, x[: len(names)])))
                     pyexpr = expr.replace_vars(vars)
                     pyexpr = Expression("N", pyexpr).evaluate(inner_evaluation)
                     res = pyexpr.to_python(n_evaluation=inner_evaluation)
                     return res
-                #TODO: check if we can use numba to compile this...
+
+                # TODO: check if we can use numba to compile this...
                 cfunc = _pythonized_mathics_expr
             except Exception as e:
                 cfunc = None
 
         if cfunc is None:
-            evaluation.message('Compile', 'comperr', expr)
+            evaluation.message("Compile", "comperr", expr)
             args = Expression("List", *names)
             return Expression("Function", args, expr)
 

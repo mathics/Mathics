@@ -21,8 +21,12 @@ Enhancements
 Miscellanea
 +++++++++++
 
-A pass was made to improve Microsoft Windows compatability and testing
+* A pass was made to improve Microsoft Windows compatability and testing
 Windows under MSYS.
+
+* Mathics functions are accepted by ``Compile[]``. The return value or type will be
+  ``CompiledFunction``
+
 
 2.0.0
 -----
