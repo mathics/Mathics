@@ -182,13 +182,13 @@ class Normal(Builtin):
     """
         <dl>
     <dt>'Normal[expr_]'
-       <dd> Brings especial expressions to a normal expression from 
+       <dd> Brings especial expressions to a normal expression from
        different especial forms.
     </dl>
     """
 
 class ByteArray(Builtin):
-    """
+    r"""
     <dl>
     <dt>'ByteArray[{$b_1$, $b_2$, $\ldots$}]'
        <dd> Represents a sequence of Bytes $b_1$, $b_2$, $\ldots$
@@ -219,7 +219,7 @@ class ByteArray(Builtin):
         'ByteArray[string_String]'
         try:
             atom = ByteArrayAtom(string.value)
-        except Exception as e:
+        except Exception:
             evaluation.message("ByteArray", 'lend', string)
             return SymbolFailed
         return Expression("ByteArray", atom)
@@ -1124,7 +1124,7 @@ class Part(Builtin):
             # TODO: handling ranges and lists...
             evaluation.message("Part", "notimplemented")
             return
-            
+
 
         # Otherwise...
         result = walk_parts([list], indices, evaluation)

@@ -18,6 +18,12 @@ Enhancements
 
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 
+Miscellanea
++++++++++++
+
+A pass was made to improve Microsof Windows compatability and testin
+Windows under MSYS.
+
 2.0.0
 -----
 
@@ -96,7 +102,7 @@ Numerous bugs were fixed while working on Combinatorica V0.9 and CellsToTeX.
 Document updates
 ++++++++++++++++
 
-- Start a readthedocs `Developer Guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_
+- Start a readthedocs `Developer Guide <https://mathics-development-guide.reandthedocs.io/en/latest/>`_
 
 Enhancements and bug fixes:
 +++++++++++++++++++++++++++
