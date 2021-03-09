@@ -8,11 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2016
+    runs-on: windows-latest
     strategy:
       matrix:
         os: [windows]
-        python-version: [3.7]
+        python-version: [3.7, 3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -41,5 +41,5 @@ jobs:
         python setup.py install
     - name: Test Mathics
       run: |
-        pip install pytest pexpect
-        make check
+        pip install pytest
+        py.test test
