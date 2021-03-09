@@ -16,8 +16,10 @@ def _evaluate(str_expression):
     expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
-# A better test has to do with handling unicode
-if sys.platform not in {"win32",} and not os.environ.get("CI"):
+# FIXME: see if we can refine this better such as
+# by running some Python code and looking for a failure.
+limited_characterset = sys.platform not in {"win32",} and not os.environ.get("CI")
+if limited_characterset:
     def test_non_win32_compress():
         for str_expr, str_expected, message in (
             (

@@ -2105,10 +2105,11 @@ class B64Encode(Builtin):
      = SW50ZWdyYXRlW2ZbeF0sIHt4LCAwLCAyfV0=
     >> System`Convert`B64Dump`B64Decode[%]
      = Integrate[f[x], {x, 0, 2}]
-    >> System`Convert`B64Dump`B64Encode["∫ f  x"]
-     = 4oirIGYg752MIHg=
-    >> System`Convert`B64Dump`B64Decode[%]
-     = ∫ f  x
+    ## Assumes unicode
+    ## >> System`Convert`B64Dump`B64Encode["∫ f  x"]
+    ##  = 4oirIGYg752MIHg=
+    ## >> System`Convert`B64Dump`B64Decode[%]
+    ## = ∫ f  x
     """
 
     context = "System`Convert`B64Dump`"
