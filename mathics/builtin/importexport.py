@@ -8,7 +8,6 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.core.expression import Expression, from_python, strip_context, Symbol, SymbolFailed
 from mathics.builtin.base import Builtin, Predefined, String, ByteArrayAtom, Integer, get_option
-from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
 import mimetypes
@@ -864,7 +863,7 @@ FORMATMAPPINGS = {
     "ZZ-APPLICATION/ZZ-WINASSOC-PCX" : "PCX",
     "ZZ-APPLICATION/ZZ-WINASSOC-WMF" : "WMF",
     "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLS",
-    "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX",
+    # "ZZ-APPLICATION/ZZ-WINASSOC-XLS" : "XLSX",
     "vCard" : "VCF",
     }
 
