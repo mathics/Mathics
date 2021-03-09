@@ -248,7 +248,7 @@ def main() -> int:
         "multiple times)",
     )
 
-    argparser.add_argument("--colors", nargs="?", help="interactive shell colors")
+    argparser.add_argument("--colors", nargs="?", help="interactive shell colors. Use value 'NoColor' to disable ANSI color decoration")
 
     argparser.add_argument(
         "--no-completion", help="disable tab completion", action="store_true"
@@ -288,7 +288,7 @@ def main() -> int:
     )
 
     if args.initfile:
-        feeder = FileLineFeeder(args.initfile)
+        feeder = MathicsFileLineFeeder(args.initfile)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(

@@ -90,7 +90,7 @@ def urlsave_tmp(url, location=None, **kwargs):
         except Exception:
             result = None
     return result
-    
+
 
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
@@ -1927,7 +1927,6 @@ class WriteString(Builtin):
     #> FilePrint[%]
      | abc
 
-    #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
     """
 
     messages = {
@@ -2124,9 +2123,11 @@ class OpenAppend(_OpenAction):
      = OutputStream[...]
     #> Close[%];
 
-    #> OpenAppend["MathicsNonExampleFile"]
+    #> appendFile = OpenAppend["MathicsNonExampleFile"]
      = OutputStream[MathicsNonExampleFile, ...]
 
+    #> Close[appendFile]
+     = MathicsNonExampleFile
     #> DeleteFile["MathicsNonExampleFile"]
     """
 
@@ -2137,7 +2138,7 @@ class OpenAppend(_OpenAction):
 class Get(PrefixOperator):
     r"""
     <dl>
-    <dt>'<<$name$'
+      <dt>'<<$name$'
       <dd>reads a file and evaluates each expression, returning only the last one.
     </dl>
 
@@ -2148,7 +2149,7 @@ class Get(PrefixOperator):
 
     S> filename = $TemporaryDirectory <> "/example_file";
     S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
-    S> Get["/tmp/example_file"]
+    S> Get[filename]
      = Cos[x] + I Sin[x]
     S> DeleteFile[filename]
 
@@ -2276,20 +2277,6 @@ class Put(BinaryOperator):
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
     S> DeleteFile[filename]
-
-    ## writing to dir
-    S> x >> /var/
-     : Cannot open /var/.
-     = x >> /var/
-
-    ## writing to read only file
-    S> x >> /proc/uptime
-     : Cannot open /proc/uptime.
-     = x >> /proc/uptime
-
-    ## writing to full file
-    S> x >> /dev/full
-     : No space left on device.
     """
 
     operator = ">>"
@@ -2531,21 +2518,19 @@ class ToFileName(Builtin):
     """
     <dl>
     <dt>'ToFileName[{"$dir_1$", "$dir_2$", ...}]'
-      <dd>joins the $dir_i$ togeather into one path.
+      <dd>joins the $dir_i$ together into one path.
     </dl>
 
     'ToFileName' has been superseded by 'FileNameJoin'.
 
-    #> Unprotect[$PathnameSeparator]; $PathnameSeparator = "/"; Protect[$PathnameSeparator];
-
     >> ToFileName[{"dir1", "dir2"}, "file"]
-     = dir1/dir2/file
+     = dir1...dir2...file
 
     >> ToFileName["dir1", "file"]
-     = dir1/file
+     = dir1...file
 
     >> ToFileName[{"dir1", "dir2", "dir3"}]
-     = dir1/dir2/dir3
+     = dir1...dir2...dir3
     """
 
     rules = {
@@ -2568,9 +2553,8 @@ class FileNameJoin(Builtin):
     >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
      = dir1/dir2/dir3
 
-    ## TODO
-    ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\\dir2\\dir3
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+     = dir1\\dir2\\dir3
     """
 
     attributes = "Protected"
@@ -2595,10 +2579,10 @@ class FileNameJoin(Builtin):
         py_pathlist = [p[1:-1] for p in py_pathlist]
 
         operating_system = (
-            options["System`OperatingSystem"].evaluate(evaluation).to_python()
+            options["System`OperatingSystem"].evaluate(evaluation).get_string_value()
         )
 
-        if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
+        if operating_system not in ["MacOSX", "Windows", "Unix"]:
             evaluation.message(
                 "FileNameSplit", "ostype", options["System`OperatingSystem"]
             )
@@ -2611,9 +2595,14 @@ class FileNameJoin(Builtin):
             else:
                 return
 
-        # TODO Implement OperatingSystem Option
-
-        result = osp.join(*py_pathlist)
+        if operating_system in ("Unix", "MacOSX"):
+            import posixpath
+            result = posixpath.join(*py_pathlist)
+        elif operating_system in ("Windows",):
+            import ntpath
+            result = ntpath.join(*py_pathlist)
+        else:
+            result = osp.join(*py_pathlist)
 
         return from_python(result)
 
@@ -3063,14 +3052,6 @@ class FilePrint(Builtin):
     #> FilePrint[exp]
      : File specification Sin[1] is not a string of one or more characters.
      = FilePrint[Sin[1]]
-
-    ## Return $Failed on special files
-    #> FilePrint["/dev/zero"]
-     = $Failed
-    #> FilePrint["/dev/random"]
-     = $Failed
-    #> FilePrint["/dev/null"]
-     = $Failed
 
     #> FilePrint["somenonexistantpath_h47sdmk^&h4"]
      : Cannot open somenonexistantpath_h47sdmk^&h4.
@@ -3722,11 +3703,6 @@ class Compress(Builtin):
     >> Compress[N[Pi, 10]]
      = eJwz1jM0MTS1NDIzNQEADRsCNw==
 
-    ## Unicode char
-    #> Compress["―"]
-     = eJxTetQwVQkABwMCPA==
-    #> Uncompress[eJxTUlACAADLAGU=%]
-     = ―
     """
 
     attributes = "Protected"
@@ -4302,6 +4278,7 @@ class DeleteFile(Builtin):
 
             if path is None:
                 evaluation.message(
+
                     "DeleteFile", "nffil", Expression("DeleteFile", filename)
                 )
                 return SymbolFailed
@@ -5005,7 +4982,7 @@ class CreateFile(Builtin):
     options = {'CreateIntermediateDirectories': 'True',
                'OverwriteTarget': 'True',
     }
-    
+
     def apply_1(self, filename, evaluation, **options):
         'CreateFile[filename_String, OptionsPattern[CreateFile]]'
         try:
@@ -5018,7 +4995,7 @@ class CreateFile(Builtin):
             else:
                 return filename
         except:
-            return SymbolFailed    
+            return SymbolFailed
 
 class CreateTemporary(Builtin):
     """
@@ -5035,9 +5012,9 @@ class CreateTemporary(Builtin):
             return SymbolFailed
         return String(res)
 
-    
+
 class FileNames(Builtin):
-    """
+    r"""
     <dl>
     <dt>'FileNames[]'
         <dd>Returns a list with the filenames in the current working folder.
@@ -5070,14 +5047,14 @@ class FileNames(Builtin):
         "nofmtstr" : "`1` is not a format or a list of formats.",
         "nodirstr" : "`1` is not a directory name  or a list of directory names.",
         "badn" : "`1` is not an integer number.",
-    } 
+    }
 
     def apply_0(self, evaluation, **options):
-        '''FileNames[OptionsPattern[FileNames]]'''        
+        '''FileNames[OptionsPattern[FileNames]]'''
         return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
 
     def apply_1(self, forms, evaluation, **options):
-        '''FileNames[forms_, OptionsPattern[FileNames]]'''        
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''
         return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
 
     def apply_2(self, forms, paths, evaluation, **options):
@@ -5086,7 +5063,7 @@ class FileNames(Builtin):
 
     def apply_3(self, forms, paths, n, evaluation, **options):
         '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
-        filenames = set()        
+        filenames = set()
         # Building a list of forms
         if forms.get_head_name() == "System`List":
             str_forms = []
@@ -5163,6 +5140,6 @@ class FileNames(Builtin):
                             if pattern.match(fn):
                                 filenames.add(osp.join(root,fn))
                                 break
-                    
+
 
         return Expression("List", *[String(s) for s in filenames])
