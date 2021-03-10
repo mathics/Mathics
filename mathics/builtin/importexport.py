@@ -2225,7 +2225,6 @@ class B64Encode(Builtin):
 
     def apply(self, expr, evaluation):
         "System`Convert`B64Dump`B64Encode[expr_]"
-        print(expr)
         if isinstance(expr, String):
             stringtocodify = expr.get_string_value()
         elif expr.get_head_name() == "System`ByteArray":
