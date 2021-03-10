@@ -2006,6 +2006,7 @@ class ExportString(Builtin):
             evaluation,
         )
 
+        is_binary = exporter_options["System`BinaryFormat"].is_true()
         if function_channels is None:
             evaluation.message("ExportString", "emptyfch")
             evaluation.predetermined_out = current_predetermined_out
@@ -2025,25 +2026,36 @@ class ExportString(Builtin):
                 expr,
                 *list(chain(stream_options, custom_options))
             )
-            if exporter_function.evaluate(evaluation) != Symbol("Null"):
+            exportres = exporter_function.evaluate(evaluation)
+            if exportres != Symbol("Null"):
                 evaluation.predetermined_out = current_predetermined_out
                 return SymbolFailed
             else:
                 try:
-                    tmpstream = open(filename.value, "rb")
-                    res = tmpstream.read().decode("utf-8")
+                    if is_binary:
+                        tmpstream = open(filename.value, "rb")
+                    else:
+                        tmpstream = open(filename.value, "r")
+                    res = tmpstream.read()
                     tmpstream.close()
                 except Exception as e:
                     print("something went wrong")
                     print(e)
                     evaluation.predetermined_out = current_predetermined_out
                     return SymbolFailed
-                res = String(str(res))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(res))
+                else:
+                    res = String(str(res))
         elif function_channels == Expression("List", String("Streams")):
-            from io import StringIO
+            from io import StringIO, BytesIO
             from mathics.builtin.files import STREAMS, NSTREAMS
 
-            pystream = StringIO()
+            if is_binary:
+                pystream = BytesIO()
+            else:
+                pystream = StringIO()
+
             n = next(NSTREAMS)
             STREAMS.append(pystream)
             stream = Expression("OutputStream", String("String"), Integer(n))
@@ -2055,7 +2067,10 @@ class ExportString(Builtin):
             )
             res = exporter_function.evaluate(evaluation)
             if res == Symbol("Null"):
-                res = String(str(pystream.getvalue()))
+                if is_binary:
+                    res = Expression("ByteArray", ByteArrayAtom(pystream.getvalue()))
+                else:
+                    res = String(str(pystream.getvalue()))
             else:
                 res = Symbol("$Failed")
             Expression("Close", stream).evaluate(evaluation)
