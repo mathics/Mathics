@@ -43,3 +43,4 @@ jobs:
       run: |
         pip install pytest
         py.test test
+        python mathics/test.py
