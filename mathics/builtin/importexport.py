@@ -13,7 +13,14 @@ from mathics.core.expression import (
     Symbol,
     SymbolFailed,
 )
-from mathics.builtin.base import Builtin, Predefined, String, Integer, get_option
+from mathics.builtin.base import (
+    Builtin,
+    ByteArrayAtom,
+    Predefined,
+    String,
+    Integer,
+    get_option,
+)
 
 from .pymimesniffer import magic
 import mimetypes
@@ -2218,8 +2225,11 @@ class B64Encode(Builtin):
 
     def apply(self, expr, evaluation):
         "System`Convert`B64Dump`B64Encode[expr_]"
+        print(expr)
         if isinstance(expr, String):
             stringtocodify = expr.get_string_value()
+        elif expr.get_head_name() == "System`ByteArray":
+            return String(expr._leaves[0].__str__())
         else:
             stringtocodify = (
                 Expression("ToString", expr).evaluate(evaluation).get_string_value()
