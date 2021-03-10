@@ -841,6 +841,9 @@ class ImportString(Import):
     rules = {
             }
 
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
 
     def apply(self, data, evaluation, options={}):
         'ImportString[data_, OptionsPattern[]]'
@@ -1013,8 +1016,8 @@ class Export(Builtin):
         '$OptionSyntax': 'System`Ignore',
     }
 
-    def apply(self, filename, expr, evaluation, options={}):
-        "Export[filename_, expr_, OptionsPattern[]]"
+    def apply(self, filename, expr, evaluation, **options):
+        "Export[filename_, expr_, OptionsPattern[Export]]"
 
         # Check filename
         if not self._check_filename(filename, evaluation):
@@ -1082,7 +1085,6 @@ class Export(Builtin):
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-
         stream_options, custom_options = _importer_exporter_options(
             exporter_options.get("System`Options"), options, 'System`Export', evaluation)
 
@@ -1147,6 +1149,9 @@ class ExportString(Builtin):
     >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
      = ...
     """
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
 
     messages = {
         'noelem': "`1` is not a valid set of export elements for the `2` format.",
@@ -1159,15 +1164,14 @@ class ExportString(Builtin):
     }
 
 
-    def apply_element(self, expr, element, evaluation, options={}):
-        'ExportString[expr_, element_String, OptionsPattern[]]'
-        return self.apply_elements(expr, Expression('List', element), evaluation, options)
+    def apply_element(self, expr, element, evaluation, **options):
+        'ExportString[expr_, element_String, OptionsPattern[ExportString]]'
+        return self.apply_elements(expr, Expression('List', element), evaluation, **options)
 
-    def apply_elements(self, expr, elems, evaluation, options={}):
-        "ExportString[expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
-        # Process elems {comp* format?, elem1*}
+    def apply_elements(self, expr, elems, evaluation, **options):
+        "ExportString[expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[ExportString]]"
+        # Process elems {comp* format?, elem1*}        
         leaves = elems.get_leaves()
-
         format_spec, elems_spec = [], []
         found_form = False
         for leaf in leaves[::-1]:
@@ -1217,7 +1221,7 @@ class ExportString(Builtin):
         elif function_channels == Expression('List', String('FileNames')):
             # Generates a temporary file
             import tempfile
-            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir())
+            tmpfile =  tempfile.NamedTemporaryFile(dir=tempfile.gettempdir(),suffix="."+format_spec[0].lower())
             filename = String(tmpfile.name)
             tmpfile.close()
             exporter_function = Expression(
