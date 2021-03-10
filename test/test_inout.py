@@ -10,8 +10,9 @@ if limited_characterset:
     def test_non_win32_print():
         for str_expr, str_expected, message in (
             (
-             'Print["\\[Mu]"]',
-             "μ"
+                'Print["\\[Mu]"]',
+                "System`Null",
+                "μ"
             ),
         ):
             check_evaluation(str_expr, str_expected, message)

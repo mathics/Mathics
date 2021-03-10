@@ -23,11 +23,13 @@ if limited_characterset:
     def test_non_win32_compress():
         for str_expr, str_expected, message in (
             (
-             'Compress["―"]',
-             "= eJxTetQwVQkABwMCPA=="
+             r'Compress["―"]',
+                '"eJxTetQwVQkABwMCPA=="',
+                ""
              ),
-            ("Uncompress[eJxTUlACAADLAGU=%]",
-             "―"
+            (r'Uncompress["eJxTetQwVQkABwMCPA=="]',
+             r'"―"',
+             ""
              ),
         ):
             check_evaluation(str_expr, str_expected, message)

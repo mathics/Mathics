@@ -3705,7 +3705,7 @@ class Compress(Builtin):
 
     """
 
-    attributes = "Protected"
+    attributes = ("Protected",)
 
     options = {
         "Method": "{}",
@@ -3720,9 +3720,9 @@ class Compress(Builtin):
         string = string.encode("utf-8")
 
         # TODO Implement other Methods
+        # Shouldn't be this a ByteArray?
         result = zlib.compress(string)
-        result = base64.encodebytes(result).decode("utf8")
-
+        result = base64.b64encode(result).decode("utf8")
         return String(result)
 
 
@@ -3744,12 +3744,12 @@ class Uncompress(Builtin):
      = x ^ 2 + y Sin[x] + 10 Log[15]
     """
 
-    attributes = "Protected"
+    attributes = ("Protected",)
 
     def apply(self, string, evaluation):
         "Uncompress[string_String]"
-        string = string.get_string_value().encode("utf-8")
-        string = base64.decodebytes(string)
+        string = string.get_string_value() #.encode("utf-8")
+        string = base64.b64decode(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode("utf-8")
         return evaluation.parse(tmp)
