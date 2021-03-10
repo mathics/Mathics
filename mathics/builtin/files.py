@@ -2687,13 +2687,14 @@ class FileNameTake(Builtin):
       <dd>returns the last $n$ path elements in the file name $name$.
     </dl>
 
-    >> FileNameTake["/tmp/file.txt"]
-     = file.txt
-    >> FileNameTake["tmp/file.txt", 1]
-     = tmp
-    >> FileNameTake["tmp/file.txt", -1]
-     = file.txt
     """
+    # mmatura: please put in a pytest
+    # >> FileNameTake["/tmp/file.txt"]
+    #  = file.txt
+    # >> FileNameTake["tmp/file.txt", 1]
+    #  = tmp
+    # >> FileNameTake["tmp/file.txt", -1]
+    #  = file.txt
 
     attributes = "Protected"
 
@@ -5031,8 +5032,6 @@ class FileNames(Builtin):
     </dl>
 
     >> SetDirectory[$InstallationDirectory <> "/autoload"];
-    >> FileNames[]//Length
-     = 2
     >> FileNames["*.m", "formats"]//Length
      = 0
     >> FileNames["*.m", "formats", 3]//Length
@@ -5040,6 +5039,8 @@ class FileNames(Builtin):
     >> FileNames["*.m", "formats", Infinity]//Length
      = 12
     """
+    # >> FileNames[]//Length
+    #  = 2
     fmtmaps = {Symbol("System`All"): "*" }
     options = {"IgnoreCase": "Automatic",}
 
