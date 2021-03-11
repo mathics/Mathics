@@ -23,6 +23,10 @@ from mathics import settings
 
 MAX_TESTS = 100000  # Number than the total number of tests
 
+from mathics_scanner.character import replace_wl_with_plain_text
+
+use_utf8 = sys.getdefaultencoding() == "utf-8"
+
 
 class TestOutput(Output):
     def max_stored_size(self, settings):
@@ -64,16 +68,35 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
 
     def fail(why):
         part, chapter, section = tests.part, tests.chapter, tests.section
-        print(
-            "%sTest failed: %s in %s / %s\n%s\n%s\n"
-            % (sep, section, part, chapter, test, why)
-        )
+        if use_utf8:
+            print(
+                "%sTest failed: %s in %s / %s\n%s\n%s\n"
+                % (sep, section, part, chapter, test, why)
+            )
+        else:
+            print(
+                "%sTest failed: %s in %s / %s\n%s\n%s\n"
+                % (
+                    sep,
+                    section,
+                    part,
+                    chapter,
+                    replace_wl_with_plain_text(test, False),
+                    replace_wl_with_plain_text(why, False),
+                )
+            )
         return False
 
     if not quiet:
         if section:
             print("%s %s / %s %s" % (stars, tests.chapter, section, stars))
-        print("%4d (%2d): TEST %s" % (index, subindex, test))
+        if use_utf8:
+            print("%4d (%2d): TEST %s" % (index, subindex, test))
+        else:
+            print(
+                "%4d (%2d): TEST %s"
+                % (index, subindex, replace_wl_with_plain_text(test, False))
+            )
 
     feeder = MathicsSingleLineFeeder(test, "<test>")
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
@@ -92,31 +115,20 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-    if False:
-        print("out=-----------------")
-        for rr in out:
-            for line in rr.text.splitlines():
-                print("  <",line,">")
-        print("wanted_out=-------------------")
-        for rr in wanted_out:
-            for line in rr.text.splitlines():
-                print("  <",line,">")
-        print("---------------------------------")
-    
+
     if not compare(result, wanted):
-        print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
+        if not use_utf8:
+            fail_msg = replace_wl_with_plain_text(fail_msg, False)
         if out:
             fail_msg += "\nAdditional output:\n"
-            fail_msg += "\n".join(str(o) for o in out)
+            fail_msg += "\n".join(replace_wl_with_plain_text(str(o), False) for o in out)
         return fail(fail_msg)
     output_ok = True
     if len(out) != len(wanted_out):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
-            if False:
-                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break
@@ -352,8 +364,12 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
-        "You can list multiple sections by adding a comma (and no space) in between section names."
+        "--sections",
+        "-s",
+        dest="section",
+        metavar="SECTION",
+        help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names.",
     )
     parser.add_argument(
         "--pymathics",
@@ -427,9 +443,7 @@ def main():
             print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
         elif args.doc_only:
-            make_doc(
-                quiet=args.quiet,
-            )
+            make_doc(quiet=args.quiet,)
         else:
             start_at = args.skip + 1
             start_time = datetime.now()
