@@ -23,7 +23,7 @@ from mathics import settings
 
 MAX_TESTS = 100000  # Number than the total number of tests
 
-from mathics_scanner.character import replace_wl_with_plain_text
+from mathics_scanner.characters import replace_wl_with_plain_text
 
 use_utf8 = sys.getdefaultencoding() == "utf-8"
 
