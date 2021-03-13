@@ -2291,7 +2291,7 @@ class PrecisionReal(Real):
     def to_python(self, *args, **kwargs):
         return float(self.value)
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return self.value
 
     def to_mpmath(self):
