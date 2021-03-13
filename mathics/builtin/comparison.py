@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
+
 import itertools
 from typing import Optional, Union
 
 import sympy
-from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import (
     BinaryOperator,
@@ -21,6 +22,7 @@ from mathics.core.expression import (
     Expression,
     Integer,
     Number,
+    Real,
     String,
     Symbol,
     SymbolFalse,
@@ -31,6 +33,9 @@ from mathics.core.numbers import dps
 def cmp(a, b) -> int:
     "Returns 0 if a == b, -1 if a < b and 1 if a > b"
     return (a > b) - (a < b)
+
+def is_number(sympy_value) -> bool:
+    return hasattr(sympy_value, "is_number") or isinstance(sympy_value, sympy.Float)
 
 class SameQ(BinaryOperator):
     """
@@ -231,16 +236,29 @@ class _EqualityOperator(_InequalityOperator):
                     return result
             return True
 
+        # Use Mathics' built-in comparisons for Real and Integer. These use
+        # WL's interpretation of Equal[] which allows for slop in Reals
+        # in the least significant digit of precision, while for Integers, comparison
+        # has to be exact.
+
+        if ((isinstance(l1, Real) and isinstance(l2, Real)) or
+            (isinstance(l1, Integer) and isinstance(l2, Integer))):
+                return l1 == l2
+
+        # For everything else, use sympy.
+
         l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
         l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
 
         if l1_sympy is None or l2_sympy is None:
             return None
 
-        if not hasattr(l1_sympy, "is_number"):
+
+        if not is_number(l1_sympy):
             l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
-        if not hasattr(l2_sympy, "is_number"):
+        if not is_number(l2_sympy):
             l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
+
 
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
@@ -360,7 +378,6 @@ class Inequality(Builtin):
             ]
             return Expression("And", *groups)
 
-
 def do_cmp(x1, x2) -> Optional[int]:
 
     # don't attempt to compare complex numbers
@@ -374,8 +391,10 @@ def do_cmp(x1, x2) -> Optional[int]:
     s1 = x1.to_sympy()
     s2 = x2.to_sympy()
 
-    # use internal comparisons only for Reals
-    # and use sympy for everything else
+    # Use internal comparisons only for Real which is uses
+    # WL's interpretation of equal (which allows for slop
+    # in the least significant digit of precision), and use
+    # use sympy for everything else
     if s1.is_Float and s2.is_Float:
         if x1 == x2:
             return 0
@@ -455,8 +474,9 @@ class Equal(_EqualityOperator, SympyComparison):
     ## TODO Needs power precision tracking
     ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10012
     ##  = False
-    ## >> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10013
-    ##  = True
+
+    #> 0.1 ^ 10000 == 0.1 ^ 10000 + 0.1 ^ 10013
+      = True
 
     #> 0.1111111111111111 ==  0.1111111111111126
      = True
