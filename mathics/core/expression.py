@@ -17,6 +17,7 @@ from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precisio
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import base64
 
+from mathics_scanner.characters import replace_wl_with_plain_text
 
 def fully_qualified_symbol_name(name) -> bool:
     return (
@@ -1906,7 +1907,9 @@ class Symbol(Atom):
         return Symbol(self.name)
 
     def boxes_to_text(self, **options) -> str:
-        return str(self.name)
+        if options.get("encoding", "UTF-8") in ("UTF-8", "UTF8"):
+            return str(self.name)
+        return replace_wl_with_plain_text(str(self.name), False)
 
     def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
@@ -2725,7 +2728,9 @@ class String(Atom):
         ):
             value = value[1:-1]
 
-        return value
+        if options.get("encoding", "UTF-8") in ("UTF-8", "UTF8"):
+            return value
+        return replace_wl_with_plain_text(value, False)
 
     def boxes_to_xml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name
