@@ -22,7 +22,6 @@ from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain, product
 
-from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.core.numbers import (
@@ -45,7 +44,6 @@ from mathics.core.expression import (
     Symbol,
     SymbolFalse,
     SymbolTrue,
-    SymbolFailed,
     from_python,
 )
 from mathics.core.convert import from_sympy

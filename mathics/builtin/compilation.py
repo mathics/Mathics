@@ -10,9 +10,7 @@ from mathics.core.expression import (
     String,
     from_python,
     Integer,
-    Real,
 )
-from mathics.core.evaluation import Evaluation
 from types import FunctionType
 
 
