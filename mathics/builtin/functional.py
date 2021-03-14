@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Functional programming
+Functional Programming
 """
 
+from itertools import chain
 
-
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
 
@@ -19,14 +19,16 @@ class Function(PostfixOperator):
         <dd>represents a pure function with parameters '#1', '#2', etc.
     <dt>'Function[{$x1$, $x2$, ...}, $body$]'
         <dd>represents a pure function with parameters $x1$, $x2$, etc.
+    <dt>'Function[{$x1$, $x2$, ...}, $body$, $attr$]'
+        <dd>assume that the function has the attributes $attr$.
     </dl>
 
     >> f := # ^ 2 &
-    >> f[3]
+    X> f[3]
      = 9
-    >> #^3& /@ {1, 2, 3}
+    X> #^3& /@ {1, 2, 3}
      = {1, 8, 27}
-    >> #1+#2&[4, 5]
+    X> #1+#2&[4, 5]
      = 9
 
     You can use 'Function' with named parameters:
@@ -54,39 +56,66 @@ class Function(PostfixOperator):
      = 3
     """
 
-    operator = '&'
+    operator = "&"
     precedence = 90
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     messages = {
-        'slot': "`1` should contain a positive integer.",
-        'slotn': "Slot number `1` cannot be filled.",
-        'fpct': "Too many parameters to be filled.",
-        'iassoc': "Invalid association item `1`"
+        "slot": "`1` should contain a positive integer.",
+        "slotn": "Slot number `1` cannot be filled.",
+        "fpct": "Too many parameters to be filled.",
+        "iassoc": "Invalid association item `1`",
     }
 
     def apply_slots(self, body, args, evaluation):
-        'Function[body_][args___]'
+        "Function[body_][args___]"
 
-        args = args.get_sequence()
-        args.insert(0, Expression('Function', body))
+        args = list(chain([Expression("Function", body)], args.get_sequence()))
         return body.replace_slots(args, evaluation)
 
     def apply_named(self, vars, body, args, evaluation):
-        'Function[vars_, body_][args___]'
+        "Function[vars_, body_][args___]"
 
-        if vars.has_form('List', None):
+        if vars.has_form("List", None):
+            vars = vars.leaves
+        else:
+            vars = [vars]
+
+        # print([v.get_head_name()=="System`Pattern" or v.is_symbol() for v in vars])
+        args = args.get_sequence()
+        if len(vars) > len(args):
+            evaluation.message("Function", "fpct")
+        else:
+            # Allows to use both symbols or Blank patterns (z_Complex) to state the symbol.
+            # this is not included in WL, and here does not have any impact, but it is needed for
+            # translating the function to a compiled version.
+            var_names = (
+                var.get_name() if var.is_symbol() else var.leaves[0].get_name()
+                for var in vars
+            )
+            vars = dict(list(zip(var_names, args[: len(vars)])))
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
+
+    # Not sure if DRY is possible here...
+    def apply_named_attr(self, vars, body, attr, args, evaluation):
+        "Function[vars_, body_, attr_][args___]"
+        if vars.has_form("List", None):
             vars = vars.leaves
         else:
             vars = [vars]
 
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message("Function", "fpct")
         else:
-            vars = dict(list(zip((
-                var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            vars = dict(list(zip((var.get_name() for var in vars), args[: len(vars)])))
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
 
 class Slot(Builtin):
@@ -94,13 +123,13 @@ class Slot(Builtin):
     <dl>
     <dt>'#$n$'
         <dd>represents the $n$th argument to a pure function.
-    <dt>'#'
+        <dt>'#'
         <dd>is short-hand for '#1'.
-    <dt>'#0'
+        <dt>'#0'
         <dd>represents the pure function itself.
     </dl>
 
-    >> #
+    X> #
      = #1
 
     Unused arguments are simply ignored:
@@ -118,13 +147,14 @@ class Slot(Builtin):
      = #0
     """
 
-    attributes = ('NHoldAll',)
+    attributes = ("NHoldAll",)
 
     rules = {
-        'Slot[]': 'Slot[1]',
-        'MakeBoxes[Slot[n_Integer?NonNegative],'
-        '  f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
-            '"#" <> ToString[n]'),
+        "Slot[]": "Slot[1]",
+        "MakeBoxes[Slot[n_Integer?NonNegative],"
+        "  f:StandardForm|TraditionalForm|InputForm|OutputForm]": (
+            '"#" <> ToString[n]'
+        ),
     }
 
 
@@ -149,13 +179,12 @@ class SlotSequence(Builtin):
      = ##1
     """
 
-    attributes = ('NHoldAll',)
+    attributes = ("NHoldAll",)
 
     rules = {
-        'SlotSequence[]': 'SlotSequence[1]',
-        'MakeBoxes[SlotSequence[n_Integer?Positive],'
-        'f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
-            '"##" <> ToString[n]'),
+        "SlotSequence[]": "SlotSequence[1]",
+        "MakeBoxes[SlotSequence[n_Integer?Positive],"
+        "f:StandardForm|TraditionalForm|InputForm|OutputForm]": ('"##" <> ToString[n]'),
     }
 
 
@@ -180,14 +209,14 @@ class Composition(Builtin):
      = Composition[f, g, h]
     """
 
-    attributes = ('Flat', 'OneIdentity')
+    attributes = ("Flat", "OneIdentity")
 
     rules = {
-        'Composition[]': 'Identity',
+        "Composition[]": "Identity",
     }
 
     def apply(self, functions, args, evaluation):
-        'Composition[functions__][args___]'
+        "Composition[functions__][args___]"
 
         functions = functions.get_sequence()
         args = args.get_sequence()
@@ -200,15 +229,15 @@ class Composition(Builtin):
 class Identity(Builtin):
     """
     <dl>
-    <dt>'Identity[$x$]'
-        <dd>is the identity function, which returns $x$ unchanged.
+      <dt>'Identity[$x$]'
+      <dd>is the identity function, which returns $x$ unchanged.
     </dl>
-    >> Identity[x]
+    X> Identity[x]
      = x
-    >> Identity[x, y]
+    X> Identity[x, y]
      = Identity[x, y]
     """
 
     rules = {
-        'Identity[x_]': 'x',
+        "Identity[x_]": "x",
     }

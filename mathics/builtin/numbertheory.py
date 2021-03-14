@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,6 +7,7 @@ Number theoretic functions
 import sympy
 from itertools import combinations
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, SympyFunction
 from mathics.core.expression import (
     Expression, Integer, Rational, Symbol, from_python)
@@ -294,7 +294,7 @@ class Divisors(Builtin):
 
     # TODO: support GaussianIntegers
     # e.g. Divisors[2, GaussianIntegers -> True]
-    
+
     attributes = ('Listable',)
 
     def apply(self, n, evaluation):
@@ -369,102 +369,102 @@ class MantissaExponent(Builtin):
 
     >> MantissaExponent[125., 2]
      = {0.976563, 7}
-      
+
     >> MantissaExponent[10, b]
      = MantissaExponent[10, b]
-     
+
     #> MantissaExponent[E, Pi]
      = {E / Pi, 1}
-     
+
     #> MantissaExponent[Pi, Pi]
      = {1 / Pi, 2}
-     
+
     #> MantissaExponent[5/2 + 3, Pi]
      = {11 / (2 Pi ^ 2), 2}
-     
+
     #> MantissaExponent[b]
      = MantissaExponent[b]
-     
+
     #> MantissaExponent[17, E]
      = {17 / E ^ 3, 3}
-     
+
     #> MantissaExponent[17., E]
      = {0.84638, 3}
-     
+
     #> MantissaExponent[Exp[Pi], 2]
      = {E ^ Pi / 32, 5}
-     
+
     #> MantissaExponent[3 + 2 I, 2]
      : The value 3 + 2 I is not a real number
      = MantissaExponent[3 + 2 I, 2]
-     
+
     #> MantissaExponent[25, 0.4]
      : Base 0.4 is not a real number greater than 1.
      = MantissaExponent[25, 0.4]
-     
+
     #> MantissaExponent[0.0000124]
      = {0.124, -4}
-    
+
     #> MantissaExponent[0.0000124, 2]
      = {0.812646, -16}
-    
+
     #> MantissaExponent[0]
      = {0, 0}
-     
+
     #> MantissaExponent[0, 2]
      = {0, 0}
     """
-    
+
     attributes = ('Listable',)
-    
+
     rules = {
         'MantissaExponent[0]': '{0, 0}',
         'MantissaExponent[0, n_]': '{0, 0}',
         }
-    
+
     messages = {
         'realx': 'The value `1` is not a real number',
         'rbase': 'Base `1` is not a real number greater than 1.',
     }
-    
+
     def apply(self, n, b, evaluation):
         'MantissaExponent[n_, b_]'
         # Handle Input with special cases such as PI and E
         n_sympy, b_sympy = n.to_sympy(), b.to_sympy()
-        
+
         expr = Expression('MantissaExponent', n, b)
-        
+
         if isinstance(n.to_python(), complex):
             evaluation.message('MantissaExponent', 'realx', n)
             return expr
-         
+
         if n_sympy.is_constant():
             temp_n = Expression('N', n).evaluate(evaluation)
             py_n = temp_n.to_python()
         else:
             return expr
-              
+
         if b_sympy.is_constant():
             temp_b = Expression('N', b).evaluate(evaluation)
             py_b = temp_b.to_python()
         else:
             return expr
-        
+
         if not py_b > 1:
             evaluation.message('MantissaExponent', 'rbase', b)
             return expr
-            
+
         base_exp = int(mpmath.log(py_n, py_b))
-        
+
         exp = (base_exp + 1) if base_exp >= 0 else base_exp
 
         return Expression('List', Expression('Divide', n , b ** exp), exp)
-                                 
+
     def apply_2(self, n, evaluation):
         'MantissaExponent[n_]'
         n_sympy = n.to_sympy()
         expr = Expression('MantissaExponent', n)
-        
+
         if isinstance(n.to_python(), complex):
             evaluation.message('MantissaExponent', 'realx', n)
             return expr
@@ -474,12 +474,12 @@ class MantissaExponent(Builtin):
             py_n = temp_n.to_python()
         else:
             return expr
-        
-        base_exp = int(mpmath.log10(py_n))    
+
+        base_exp = int(mpmath.log10(py_n))
         exp = (base_exp + 1) if base_exp >= 0 else base_exp
-         
+
         return Expression('List', Expression('Divide', n , (10 ** exp)), exp)
-    
+
 def _fractional_part(self, n, expr, evaluation):
     n_sympy = n.to_sympy()
     if n_sympy.is_constant():
@@ -491,9 +491,9 @@ def _fractional_part(self, n, expr, evaluation):
             result = n - negative_integer_part
     else:
         return expr
-        
+
     return from_python(result)
-    
+
 class FractionalPart(Builtin):
     """
     <dl>
@@ -509,34 +509,34 @@ class FractionalPart(Builtin):
 
     #> FractionalPart[b]
      = FractionalPart[b]
-    
+
     #> FractionalPart[{-2.4, -2.5, -3.0}]
      = {-0.4, -0.5, 0.}
-    
+
     #> FractionalPart[14/32]
      = 7 / 16
-      
+
     #> FractionalPart[4/(1 + 3 I)]
      = 2 / 5 - I / 5
-     
+
     #> FractionalPart[Pi^20]
      = -8769956796 + Pi ^ 20
     """
-    
+
     attributes = ('Listable', 'NumericFunction', 'ReadProtected')
-  
+
     def apply(self, n, evaluation):
         'FractionalPart[n_]'
         expr = Expression('FractionalPart', n)
         return _fractional_part(self.__class__.__name__, n, expr, evaluation)
-        
+
     def apply_2(self, n, evaluation):
         'FractionalPart[n_Complex]'
         expr = Expression('FractionalPart', n)
         n_real  = Expression("Re", n).evaluate(evaluation)
         n_image  = Expression("Im", n).evaluate(evaluation)
-        
-        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation) 
+
+        real_fractional_part = _fractional_part(self.__class__.__name__, n_real, expr, evaluation)
         image_fractional_part = _fractional_part(self.__class__.__name__, n_image, expr, evaluation)
         return Expression('Complex', real_fractional_part, image_fractional_part)
 
@@ -634,7 +634,7 @@ class CoprimeQ(Builtin):
      = True
 
     >> CoprimeQ[4+2I, 6+3I]
-     = False
+     = True
 
     >> CoprimeQ[2, 3, 5]
      = True
@@ -965,3 +965,61 @@ class QuotientRemainder(Builtin):
         else:
             return Expression('QuotientRemainder', m, n)
 
+class ContinuedFraction(SympyFunction):
+    """
+    <dl>
+      <dt>'ContinuedFraction[$x$, $n$]'
+      <dd>generate the first $n$ terms in the continued fraction reprentation of $x$.
+      <dt>'ContinuedFraction[$x$]'
+      <dd>the complete continued fraction representation for a rational or quadradic irrational number.
+    </dl>
+
+    >> ContinuedFraction[Pi, 10]
+     = {3, 7, 15, 1, 292, 1, 1, 1, 2, 1}
+
+    >> ContinuedFraction[(1 + 2 Sqrt[3])/5]
+     = {0, 1, {8, 3, 34, 3}}
+
+    >> ContinuedFraction[Sqrt[70]]
+     = {8, {2, 1, 2, 1, 2, 16}}
+    """
+
+    sympy_name = "continued_fraction"
+
+    attributes = ("Listable", "NumericFunction")
+
+    def apply_1(self, x, evaluation):
+        "%(name)s[x_]"
+        return from_python(sympy.continued_fraction(x.to_sympy()))
+
+    def apply_2(self, x, n, evaluation):
+        "%(name)s[x_, n_Integer]"
+        py_n = n.to_python()
+        sympy_x = x.to_sympy()
+        it = sympy.continued_fraction_iterator(sympy_x)
+        return from_sympy([next(it) for _ in range(py_n)])
+
+
+class FromContinuedFraction(SympyFunction):
+    """
+    <dl>
+      <dt>'FromContinuedFraction[$list$]'
+      <dd>reconstructs a number from the list of its continued fraction terms.
+    </dl>
+
+    >> FromContinuedFraction[{3, 7, 15, 1, 292, 1, 1, 1, 2, 1}]
+     = 1146408 / 364913
+
+    >> FromContinuedFraction[Range[5]]
+     = 225 / 157
+    """
+
+    sympy_name = "continued_fraction_reduce"
+
+    attributes = ("NumericFunction",)
+
+    def apply_1(self, expr, evaluation):
+        "%(name)s[expr_?ListQ]"
+        nums = expr.to_python()
+        if all(isinstance(i, int) for i in nums):
+            return from_sympy(sympy.continued_fraction_reduce(nums))

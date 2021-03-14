@@ -2,17 +2,28 @@
 # -*- coding: utf-8 -*-
 
 """
-System functions
+Global System Information
 """
 
 
 import os
 import platform
 import sys
+import re
+import subprocess
 
-from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
+from mathics.version import __version__
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Real,
+    String,
+    SymbolFailed,
+    strip_context,
+)
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
+from mathics.builtin.strings import to_regex
 
 
 class Aborted(Predefined):
@@ -29,11 +40,14 @@ class Aborted(Predefined):
 class ByteOrdering(Predefined):
     """
     <dl>
-    <dt>'$ByteOrdering'
-        <dd>returns the native ordering of bytes in binary data on your computer system.
+      <dt>'$ByteOrdering'
+      <dd>returns the native ordering of bytes in binary data on your computer system.
     </dl>
 
-    >> $ByteOrdering == -1 || $ByteOrdering == 1
+    X> $ByteOrdering
+     = 1
+
+    #> $ByteOrdering == -1 || $ByteOrdering == 1
      = True
     """
 
@@ -62,24 +76,18 @@ class CommandLine(Predefined):
 class Environment(Builtin):
     """
     <dl>
-    <dt>'Environment[$var$]'
-        <dd>returns the value of an operating system environment variable.
+      <dt>'Environment[$var$]'
+      <dd>gives the value of an operating system environment variable.
     </dl>
-
-    Example:
-    <pre>
-    In[1] = Environment["HOME"]
-    Out[1] = rocky
-    </pre>
+    X> Environment["HOME"]
+     = ...
     """
 
     def apply(self, var, evaluation):
-        "Environment[var_]"
-        if not isinstance(var, String):
-            return
+        "Environment[var_?StringQ]"
         env_var = var.get_string_value()
         if env_var not in os.environ:
-            return Symbol("$Failed")
+            return SymbolFailed
         else:
             return String(os.environ[env_var])
 
@@ -91,12 +99,44 @@ class Failed(Predefined):
         <dd>is returned by some functions in the event of an error.
     </dl>
 
-    >> Get["nonexistent_file.m"]
+    #> Get["nonexistent_file.m"]
      : Cannot open nonexistent_file.m.
      = $Failed
     """
 
     name = "$Failed"
+
+
+class GetEnvironment(Builtin):
+    """
+    <dl>
+    <dt>'GetEnvironment["$var$"]'
+        <dd>gives the setting corresponding to the variable "var" in the operating system environment.
+    </dl>
+
+    X> GetEnvironment["HOME"]
+    = ...
+    """
+
+    def apply(self, var, evaluation):
+        "GetEnvironment[var___]"
+        if isinstance(var, String):
+            env_var = var.get_string_value()
+            tup = (
+                env_var,
+                "System`None"
+                if env_var not in os.environ
+                else String(os.environ[env_var]),
+            )
+
+            return Expression("Rule", *tup)
+
+        env_vars = var.get_sequence()
+        if len(env_vars) == 0:
+            rules = [
+                Expression("Rule", name, value) for name, value in os.environ.items()
+            ]
+            return Expression("List", *rules)
 
 
 class Machine(Predefined):
@@ -105,12 +145,8 @@ class Machine(Predefined):
     <dt>'$Machine'
         <dd>returns a string describing the type of computer system on which the Mathics is being run.
     </dl>
-
-    Example:
-    <pre>
-    In[1] = $Machine
-    Out[1] = linux
-    </pre>
+    X> $Machine
+     = linux
     """
 
     name = "$Machine"
@@ -122,28 +158,39 @@ class Machine(Predefined):
 class MachineName(Predefined):
     """
     <dl>
-    <dt>'$MachineName'
-        <dd>returns a string that gives the assigned name of the computer on which Mathics is being run, if such a name is defined.
+      <dt>'$MachineName'
+      <dd>is a string that gives the assigned name of the computer on which Mathics is being run, if such a name is defined.
     </dl>
-
-    Example:
-    <pre>
-    In[1] = $MachineName
-    Out[1] = buster
-    </pre>
+    X> $MachineName
+     = buster
     """
 
     name = "$MachineName"
 
-    def evaluate(self, evaluation):
-        return String(os.uname().nodename)
+    def evaluate(self, evaluation) -> String:
+        return String(platform.uname().node)
+
+
+class MathicsVersion(Predefined):
+    r"""
+    <dl>
+      <dt>'MathicsVersion'
+      <dd>this string is the version of Mathics we are running.
+    </dl>
+
+    >> MathicsVersion
+    = ...
+    """
+
+    def evaluate(self, evaluation) -> String:
+        return String(__version__)
 
 
 class Names(Builtin):
     """
     <dl>
-    <dt>'Names["$pattern$"]'
-        <dd>returns the list of names matching $pattern$.
+      <dt>'Names["$pattern$"]'
+      <dd>returns the list of names matching $pattern$.
     </dl>
 
     >> Names["List"]
@@ -171,8 +218,12 @@ class Names(Builtin):
 
     def apply(self, pattern, evaluation):
         "Names[pattern_]"
+        headname = pattern.get_head_name()
+        if headname == "System`StringExpression":
+            pattern = re.compile(to_regex(pattern, evaluation))
+        else:
+            pattern = pattern.get_string_value()
 
-        pattern = pattern.get_string_value()
         if pattern is None:
             return
 
@@ -189,70 +240,70 @@ class Names(Builtin):
 class Packages(Predefined):
     """
     <dl>
-    <dt>'$Packages'
-        <dd>returns a list of the contexts corresponding to all packages which have been loaded into Mathics.
+      <dt>'$Packages'
+      <dd>returns a list of the contexts corresponding to all packages which have been loaded into Mathics.
     </dl>
 
-    >>> MemberQ[$Packages, "System`"]
+    X> $Packages
+    = {ImportExport`,XML`,Internal`,System`,Global`}
+    #> MemberQ[$Packages, "System`"]
     = True
     """
 
     name = "$Packages"
-
-    def evaluate(self, evaluation):
-        return Expression(
-            "List",
-            *(
-                String(name)
-                for name in evaluation.definitions.get_package_names()
-            ),
-        )
+    rules = {
+        "$Packages": '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}'
+    }
 
 
 class ParentProcessID(Predefined):
-    """
+    r"""
     <dl>
-    <dt>'$ParentProcesID'
-        <dd>gives the ID assigned to the process which invokes the Mathics by the operating system under which it is run.
+      <dt>'$ParentProcesID'
+      <dd>gives the ID assigned to the process which invokes the \Mathics by the operating system under which it is run.
     </dl>
 
-    >>> Head[$ParentProcessID] == Integer
+    >> $ParentProcessID
+     = ...
+
+    #> Head[$ParentProcessID] == Integer
      = True
     """
 
     name = "$ParentProcessID"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         return Integer(os.getppid())
 
+
 class ProcessID(Predefined):
-    """
+    r"""
     <dl>
-    <dt>'$ProcessID'
-        <dd>gives the ID assigned to the Mathics process by the operating system under which it is run.
+      <dt>'$ProcessID'
+      <dd>gives the ID assigned to the \Mathics process by the operating system under which it is run.
     </dl>
 
-    >>> Head[$ProcessID] == Integer
+    >> $ProcessID
+     = ...
+
+    #> Head[$ProcessID] == Integer
      = True
     """
 
     name = "$ProcessID"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         return Integer(os.getpid())
 
+
 class ProcessorType(Predefined):
-    """
+    r"""
     <dl>
     <dt>'$ProcessorType'
-        <dd>gives a string giving the architecture of the processor on which the Mathics is being run.
+        <dd>gives a string giving the architecture of the processor on which the \Mathics is being run.
     </dl>
-
-    Example:
-    <pre>
-    In[1] = $ProcessorType
-    Out[1] = x86_64
-    </pre>
+    X> $ProcessorType
+    = x86_64
     """
 
     name = "$ProcessorType"
@@ -283,18 +334,30 @@ class ScriptCommandLine(Predefined):
         return Expression("List", *(String(arg) for arg in sys.argv[dash_index + 1 :]))
 
 
-class SystemID(Predefined):
+class Run(Builtin):
     """
     <dl>
-    <dt>'$SystemID'
-        <dd>returns a short string that identifies the type of computer system on which the Mathics is being run.
+      <dt>'Run[$command$]'
+      <dd>runs command as an external operating system command, returning the exit code obtained.
     </dl>
+    X> Run["date"]
+     = ...
+    """
 
-    Example:
-    <pre>
-    In[1] = $SystemID
-    Out[1] = linux
-    </pre>
+    def apply(self, command, evaluation):
+        "Run[command_?StringQ]"
+        command_str = command.to_python()
+        return Integer(subprocess.call(command_str, shell=True))
+
+
+class SystemID(Predefined):
+    r"""
+    <dl>
+       <dt>'$SystemID'
+       <dd>is a short string that identifies the type of computer system on which the \Mathics is being run.
+    </dl>
+    X> $SystemID
+     = linux
     """
 
     name = "$SystemID"
@@ -304,25 +367,21 @@ class SystemID(Predefined):
 
 
 class SystemWordLength(Predefined):
-    """
+    r"""
     <dl>
-    <dt>'$SystemWordLength'
-        <dd>gives the effective number of bits in raw machine words on the computer system where Mathics is running.
+      <dt>'$SystemWordLength'
+      <dd>gives the effective number of bits in raw machine words on the computer system where \Mathics is running.
     </dl>
+    X> $SystemWordLength
+    = 64
 
-    Example:
-    <pre>
-    In[1] = $SystemWordLength
-    Out[1] = 64
-    </pre>
-
-    >> Head[$SystemWordLength] == Integer
+    #> Head[$SystemWordLength] == Integer
      = True
     """
 
     name = "$SystemWordLength"
 
-    def evaluate(self, evaluation):
+    def evaluate(self, evaluation) -> Integer:
         # https://docs.python.org/3/library/platform.html#module-platform
         # says it is more reliable to get bits using sys.maxsize
         # than platform.architecture()[0]
@@ -332,11 +391,35 @@ class SystemWordLength(Predefined):
         return Integer(size << 1)
 
 
+class UserName(Predefined):
+    r"""
+    <dl>
+      <dt>$UserName
+      <dd>returns a string describing the type of computer system on which
+      \Mathics is being run.
+    </dl>
+
+    X> $UserName
+     = ...
+    """
+
+    name = "$UserName"
+
+    def evaluate(self, evaluation) -> String:
+        try:
+            user = os.getlogin()
+        except:
+            import pwd
+
+            user = pwd.getpwuid(os.getuid())[0]
+        return String(user)
+
+
 class Version(Predefined):
     """
     <dl>
-    <dt>'$Version'
-        <dd>returns a string with the current Mathics version and the versions of relevant libraries.
+      <dt>'$Version'
+      <dd>returns a string with the current Mathics version and the versions of relevant libraries.
     </dl>
 
     >> $Version
@@ -347,3 +430,23 @@ class Version(Predefined):
 
     def evaluate(self, evaluation) -> String:
         return String(version_string.replace("\n", " "))
+
+
+class VersionNumber(Predefined):
+    r"""
+    <dl>
+      <dt>'$VersionNumber'
+      <dd>is a real number which gives the current Wolfram Language version that \Mathics tries to be compatible with.
+    </dl>
+
+    >> $VersionNumber
+    = ...
+    """
+
+    name = "$VersionNumber"
+    value = 6.0
+
+    def evaluate(self, evaluation) -> Real:
+        # Make this be whatever the latest Mathematica release is,
+        # assuming we are trying to be compatible with this.
+        return Real(self.value)

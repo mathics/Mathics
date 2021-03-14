@@ -1,20 +1,32 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import re
 import sympy
+
 from functools import total_ordering
 import pkgutil
 from itertools import chain
-
 import typing
 from typing import Any, cast
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.core.definitions import Definition
+from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions
 from mathics.core.rules import Rule, BuiltinRule, Pattern
-from mathics.core.expression import (BaseExpression, Expression, Symbol,
-                                     String, Integer, ensure_context,
-                                     strip_context)
+from mathics.core.expression import (
+    BaseExpression,
+    Expression,
+    Integer,
+    MachineReal,
+    PrecisionReal,
+    String,
+    ByteArrayAtom,
+    Symbol,
+    ensure_context,
+    strip_context,
+)
+from mathics.core.numbers import get_precision, PrecisionValueError
 
 
 def get_option(options, name, evaluation, pop=False, evaluate=True):
@@ -23,21 +35,17 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
     # matter. Also, the quoted string form "X" is ok. all these
     # variants name the same option. this matches Wolfram Language
     # behaviour.
-
-    contexts = (s + '%s' for s in
-                evaluation.definitions.get_context_path())
+    name = strip_context(name)
+    contexts = (s + "%s" for s in evaluation.definitions.get_context_path())
 
     for variant in chain(contexts, ('"%s"',)):
         resolved_name = variant % name
-
         if pop:
             value = options.pop(resolved_name, None)
         else:
             value = options.get(resolved_name)
-
         if value is not None:
             return value.evaluate(evaluation) if evaluate else value
-
     return None
 
 
@@ -55,9 +63,12 @@ def _is_package_available(name):
     return available
 
 
+mathics_to_python = {}
+
+
 class Builtin(object):
     name: typing.Optional[str] = None
-    context = 'System`'
+    context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
     rules: typing.Dict[str, Any] = {}
@@ -67,10 +78,10 @@ class Builtin(object):
     defaults = {}
 
     def __new__(cls, *args, **kwargs):
-        if kwargs.get('expression', None) is not False:
+        if kwargs.get("expression", None) is not False:
             return Expression(cls.get_name(), *args)
         else:
-            instance = super(Builtin, cls).__new__(cls)
+            instance = super().__new__(cls)
             if not instance.formats:
                 # Reset formats so that not every instance shares the same
                 # empty dict {}
@@ -78,28 +89,35 @@ class Builtin(object):
             return instance
 
     def __init__(self, *args, **kwargs):
-        super(Builtin, self).__init__()
+        super().__init__()
+        if hasattr(self, "python_equivalent"):
+            mathics_to_python[self.get_name()] = self.python_equivalent
 
-    def contribute(self, definitions, pymodule=False):
+    def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
-        name = self.get_name()
+        # Set the default context
+        if not self.context:
+            self.context = "Pymathics`" if is_pymodule else "System`"
 
+        name = self.get_name()
         options = {}
-        option_syntax = 'Warn'
+        option_syntax = "Warn"
+
         for option, value in self.options.items():
-            if option == '$OptionSyntax':
+            if option == "$OptionSyntax":
                 option_syntax = value
                 continue
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
-            if option.startswith('System`'):
+            if option.startswith("System`"):
                 # Create a definition for the option's symbol.
                 # Otherwise it'll be created in Global` when it's
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set())
+                        name=name, attributes=set()
+                    )
 
         # Check if the given options are actually supported by the Builtin.
         # If not, we might issue an optx error and abort. Using '$OptionSyntax'
@@ -110,7 +128,8 @@ class Builtin(object):
         # - 'Warn': warn about unsupported options, but continue
         # - 'Ignore': allow unsupported options, do not warn
 
-        if option_syntax in ('Strict', 'Warn'):
+        if option_syntax in ("Strict", "Warn", "System`Strict", "System`Warn"):
+
             def check_options(options_to_check, evaluation):
                 name = self.get_name()
                 for key, value in options_to_check.items():
@@ -118,32 +137,43 @@ class Builtin(object):
                     if not has_option(options, short_key, evaluation):
                         evaluation.message(
                             name,
-                            'optx',
-                            Expression('Rule', short_key, value),
-                            strip_context(name))
-                        if option_syntax == 'Strict':
+                            "optx",
+                            Expression("Rule", short_key, value),
+                            strip_context(name),
+                        )
+                        if option_syntax in ("Strict", "System`Strict"):
                             return False
                 return True
-        elif option_syntax == 'Ignore':
+
+        elif option_syntax in ("Ignore", "System`Ignore"):
             check_options = None
         else:
-            raise ValueError('illegal option mode %s; check $OptionSyntax.' % option_syntax)
+            raise ValueError(
+                "illegal option mode %s; check $OptionSyntax." % option_syntax
+            )
 
         rules = []
-        for pattern, function in self.get_functions():
-            rules.append(BuiltinRule(name, pattern, function, check_options, system=True))
+        definition_class = (
+            PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
+        )
+
+        for pattern, function in self.get_functions(is_pymodule=is_pymodule):
+            rules.append(
+                BuiltinRule(name, pattern, function, check_options, system=True)
+            )
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
-                pattern = pattern % {'name': name}
-                pattern = parse_builtin_rule(pattern)
-            replace = replace % {'name': name}
+                pattern = pattern % {"name": name}
+                pattern = parse_builtin_rule(pattern, definition_class)
+            replace = replace % {"name": name}
+            # FIXME: Should system=True be system=not is_pymodule ?
             rules.append(Rule(pattern, parse_builtin_rule(replace), system=True))
 
         box_rules = []
-        if name != 'System`MakeBoxes':
+        if name != "System`MakeBoxes":
             new_rules = []
             for rule in rules:
-                if rule.pattern.get_head_name() == 'System`MakeBoxes':
+                if rule.pattern.get_head_name() == "System`MakeBoxes":
                     box_rules.append(rule)
                 else:
                     new_rules.append(rule)
@@ -158,7 +188,8 @@ class Builtin(object):
             def contextify_form_name(f):
                 # Handle adding 'System`' to a form name, unless it's
                 # '' (meaning the rule applies to all forms).
-                return '' if f == '' else ensure_context(f)
+                return "" if f == "" else ensure_context(f)
+
             if isinstance(pattern, tuple):
                 forms, pattern = pattern
                 if isinstance(forms, str):
@@ -166,74 +197,97 @@ class Builtin(object):
                 else:
                     forms = [contextify_form_name(f) for f in forms]
             else:
-                forms = ['']
+                forms = [""]
             return forms, pattern
 
-        formatvalues = {'': []}
-        for pattern, function in self.get_functions('format_'):
+        formatvalues = {"": []}
+        for pattern, function in self.get_functions("format_"):
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if form not in formatvalues:
                     formatvalues[form] = []
-                formatvalues[form].append(BuiltinRule(
-                    name, pattern, function, None, system=True))
+                formatvalues[form].append(
+                    BuiltinRule(name, pattern, function, None, system=True)
+                )
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
                 if form not in formatvalues:
                     formatvalues[form] = []
                 if not isinstance(pattern, BaseExpression):
-                    pattern = pattern % {'name': name}
+                    pattern = pattern % {"name": name}
                     pattern = parse_builtin_rule(pattern)
-                replace = replace % {'name': name}
-                formatvalues[form].append(Rule(
-                    pattern, parse_builtin_rule(replace), system=True))
+                replace = replace % {"name": name}
+                formatvalues[form].append(
+                    Rule(pattern, parse_builtin_rule(replace), system=True)
+                )
         for form, formatrules in formatvalues.items():
             formatrules.sort()
 
-        messages = [Rule(Expression('MessageName', Symbol(name), String(msg)),
-                         String(value), system=True)
-                    for msg, value in self.messages.items()]
+        messages = [
+            Rule(
+                Expression("MessageName", Symbol(name), String(msg)),
+                String(value),
+                system=True,
+            )
+            for msg, value in self.messages.items()
+        ]
 
-        messages.append(Rule(Expression('MessageName', Symbol(name), String('optx')),
-            String('`1` is not a supported option for `2`[].'), system=True))
+        messages.append(
+            Rule(
+                Expression("MessageName", Symbol(name), String("optx")),
+                String("`1` is not a supported option for `2`[]."),
+                system=True,
+            )
+        )
 
-        if name == 'System`MakeBoxes':
+        if "Unprotected" in self.attributes:
             attributes = []
+            self.attributes = list(self.attributes)
+            self.attributes.remove("Unprotected")
         else:
-            attributes = ['System`Protected']
+            attributes = ["System`Protected"]
+
         attributes += list(ensure_context(a) for a in self.attributes)
         options = {}
         for option, value in self.options.items():
             option = ensure_context(option)
             options[option] = parse_builtin_rule(value)
-            if option.startswith('System`'):
+            if option.startswith("System`"):
                 # Create a definition for the option's symbol.
                 # Otherwise it'll be created in Global` when it's
                 # used, so it won't work.
                 if option not in definitions.builtin:
                     definitions.builtin[option] = Definition(
-                        name=name, attributes=set())
+                        name=name, attributes=set()
+                    )
         defaults = []
         for spec, value in self.defaults.items():
             value = parse_builtin_rule(value)
             pattern = None
             if spec is None:
-                pattern = Expression('Default', Symbol(name))
+                pattern = Expression("Default", Symbol(name))
             elif isinstance(spec, int):
-                pattern = Expression('Default', Symbol(name), Integer(spec))
+                pattern = Expression("Default", Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
+
         definition = Definition(
-            name=name, rules=rules, formatvalues=formatvalues,
-            messages=messages, attributes=attributes, options=options,
-            defaultvalues=defaults)
-        if pymodule:
+            name=name,
+            rules=rules,
+            formatvalues=formatvalues,
+            messages=messages,
+            attributes=attributes,
+            options=options,
+            defaultvalues=defaults,
+            builtin=self,
+        )
+        if is_pymodule:
             definitions.pymathics[name] = definition
         else:
             definitions.builtin[name] = definition
 
-        makeboxes_def = definitions.builtin['System`MakeBoxes']
+        makeboxes_def = definitions.builtin["System`MakeBoxes"]
         for rule in box_rules:
             makeboxes_def.add_rule(rule)
 
@@ -253,7 +307,7 @@ class Builtin(object):
     def get_operator_display(self) -> typing.Optional[str]:
         return None
 
-    def get_functions(self, prefix='apply'):
+    def get_functions(self, prefix="apply", is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
         unavailable_function = self._get_unavailable_function()
@@ -265,14 +319,21 @@ class Builtin(object):
                 if pattern is None:  # Fixes PyPy bug
                     continue
                 else:
-                    m = re.match(r'([\w,]+)\:\s*(.*)', pattern)
+                    m = re.match(r"([\w,]+)\:\s*(.*)", pattern)
                 if m is not None:
-                    attrs = m.group(1).split(',')
+                    attrs = m.group(1).split(",")
                     pattern = m.group(2)
                 else:
                     attrs = []
-                pattern = pattern % {'name': self.get_name()}
-                pattern = parse_builtin_rule(pattern)
+                # if is_pymodule:
+                #    name = ensure_context(self.get_name(short=True), "Pymathics")
+                # else:
+                name = self.get_name()
+                pattern = pattern % {"name": name}
+                definition_class = (
+                    PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
+                )
+                pattern = parse_builtin_rule(pattern, definition_class)
                 if unavailable_function:
                     function = unavailable_function
                 if attrs:
@@ -285,15 +346,19 @@ class Builtin(object):
         return get_option(options, name, evaluation, pop)
 
     def _get_unavailable_function(self):
-        requires = getattr(self, 'requires', [])
+        requires = getattr(self, "requires", [])
 
         for package in requires:
-            if not _is_package_available(package):
+            try:
+                importlib.import_module(package)
+            except ImportError:
                 def apply(**kwargs):  # will override apply method
-                    kwargs['evaluation'].message(
-                        'General', 'pyimport',  # see inout.py
-                        strip_context(self.get_name()), package)
-
+                    kwargs["evaluation"].message(
+                        "General",
+                        "pyimport",  # see inout.py
+                        strip_context(self.get_name()),
+                        package,
+                    )
                 return apply
 
         return None
@@ -303,27 +368,26 @@ class Builtin(object):
         if isinstance(s, String):
             return s.get_string_value(), s
         elif isinstance(s, Symbol):
-            for prefix in ('Global`', 'System`'):
+            for prefix in ("Global`", "System`"):
                 if s.get_name().startswith(prefix):
-                    return s.get_name()[len(prefix):], s
+                    return s.get_name()[len(prefix) :], s
         return None, s
 
 
-class InstancableBuiltin(Builtin):
+class InstanceableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
-        new_kwargs['expression'] = False
-        instance = super(InstancableBuiltin, cls).__new__(
-            cls, *args, **new_kwargs)
+        new_kwargs["expression"] = False
+        instance = super().__new__(cls, *args, **new_kwargs)
         if not instance.formats:
             # Reset formats so that not every instance shares the same empty
             # dict {}
             instance.formats = {}
-        if kwargs.get('expression', None) is not False:
+        if kwargs.get("expression", None) is not False:
             try:
                 instance.init(*args, **kwargs)
             except TypeError:
-                # TypeError occurs when unpickling instance, e.g. PatterObject,
+                # TypeError occurs when unpickling instance, e.g. PatternObject,
                 # because parameter expr is not given. This should no be a
                 # problem, as pickled objects need their init-method not
                 # being called.
@@ -339,8 +403,8 @@ class AtomBuiltin(Builtin):
     # which are by default not in the definitions' contribution pipeline.
     # see Image[] for an example of this.
 
-    def get_name(self) -> str:
-        name = super(AtomBuiltin, self).get_name()
+    def get_name(self, short=False) -> str:
+        name = super().get_name(short=short)
         return re.sub(r"Atom$", "", name)
 
 
@@ -356,100 +420,30 @@ class Operator(Builtin):
         return self.operator
 
     def get_operator_display(self) -> typing.Optional[str]:
-        if hasattr(self, 'operator_display'):
+        if hasattr(self, "operator_display"):
             return self.operator_display
         else:
             return self.operator
 
 
 class Predefined(Builtin):
-    def get_functions(self, prefix='apply'):
-        functions = list(super(Predefined, self).get_functions(prefix))
-        if prefix == 'apply' and hasattr(self, 'evaluate'):
+    def get_functions(self, prefix="apply", is_pymodule=False):
+        functions = list(super().get_functions(prefix))
+        if prefix == "apply" and hasattr(self, "evaluate"):
             functions.append((Symbol(self.get_name()), self.evaluate))
         return functions
-
-
-class UnaryOperator(Operator):
-    def __init__(self, format_function, *args, **kwargs):
-        super(UnaryOperator, self).__init__(*args, **kwargs)
-        name = self.get_name()
-        if self.needs_verbatim:
-            name = 'Verbatim[%s]' % name
-        if self.default_formats:
-            op_pattern = '%s[item_]' % name
-            if op_pattern not in self.formats:
-                operator = self.get_operator_display()
-                if operator is not None:
-                    form = '%s[{HoldForm[item]},"%s",%d]' % (
-                        format_function, operator, self.precedence)
-                    self.formats[op_pattern] = form
-
-
-class PrefixOperator(UnaryOperator):
-    def __init__(self, *args, **kwargs):
-        super(PrefixOperator, self).__init__('Prefix', *args, **kwargs)
-
-
-class PostfixOperator(UnaryOperator):
-    def __init__(self, *args, **kwargs):
-        super(PostfixOperator, self).__init__('Postfix', *args, **kwargs)
-
-
-class BinaryOperator(Operator):
-    grouping = 'System`None'  # NonAssociative, None, Left, Right
-
-    def __init__(self, *args, **kwargs):
-        super(BinaryOperator, self).__init__(*args, **kwargs)
-        name = self.get_name()
-        # Prevent pattern matching symbols from gaining meaning here using
-        # Verbatim
-        name = 'Verbatim[%s]' % name
-
-        # For compatibility, allow grouping symbols in builtins to be
-        # specified without System`.
-        self.grouping = ensure_context(self.grouping)
-
-        if self.grouping in ('System`None', 'System`NonAssociative'):
-            op_pattern = '%s[items__]' % name
-            replace_items = 'items'
-        else:
-            op_pattern = '%s[x_, y_]' % name
-            replace_items = 'x, y'
-
-        if self.default_formats:
-            operator = self.get_operator_display()
-            formatted = 'MakeBoxes[Infix[{%s},"%s",%d,%s], form]' % (
-                replace_items, operator, self.precedence, self.grouping)
-            formatted_output = 'MakeBoxes[Infix[{%s}," %s ",%d,%s], form]' % (
-                replace_items, operator, self.precedence, self.grouping)
-            default_rules = {
-                'MakeBoxes[{0}, form:StandardForm|TraditionalForm]'.format(
-                    op_pattern): formatted,
-                'MakeBoxes[{0}, form:InputForm|OutputForm]'.format(
-                    op_pattern): formatted_output,
-            }
-            default_rules.update(self.rules)
-            self.rules = default_rules
-
-
-class Test(Builtin):
-    def apply(self, expr, evaluation) -> Symbol:
-        '%(name)s[expr_]'
-
-        if self.test(expr):
-            return Symbol('True')
-        else:
-            return Symbol('False')
 
 
 class SympyObject(Builtin):
     sympy_name: typing.Optional[str] = None
 
+    mathics_to_sympy = {}
+
     def __init__(self, *args, **kwargs):
-        super(SympyObject, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.sympy_name is None:
             self.sympy_name = strip_context(self.get_name()).lower()
+        self.mathics_to_sympy[self.__class__.__name__] = self.sympy_name
 
     def is_constant(self) -> bool:
         return False
@@ -460,14 +454,113 @@ class SympyObject(Builtin):
         return []
 
 
-class SympyFunction(SympyObject):
-    def prepare_sympy(self, leaves):
-        return leaves
+class UnaryOperator(Operator):
+    def __init__(self, format_function, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        name = self.get_name()
+        if self.needs_verbatim:
+            name = "Verbatim[%s]" % name
+        if self.default_formats:
+            op_pattern = "%s[item_]" % name
+            if op_pattern not in self.formats:
+                operator = self.get_operator_display()
+                if operator is not None:
+                    form = '%s[{HoldForm[item]},"%s",%d]' % (
+                        format_function,
+                        operator,
+                        self.precedence,
+                    )
+                    self.formats[op_pattern] = form
 
-    def get_sympy_function(self, leaves):
+
+class PrefixOperator(UnaryOperator):
+    def __init__(self, *args, **kwargs):
+        super().__init__("Prefix", *args, **kwargs)
+
+
+class PostfixOperator(UnaryOperator):
+    def __init__(self, *args, **kwargs):
+        super().__init__("Postfix", *args, **kwargs)
+
+
+class BinaryOperator(Operator):
+    grouping = "System`None"  # NonAssociative, None, Left, Right
+
+    def __init__(self, *args, **kwargs):
+        super(BinaryOperator, self).__init__(*args, **kwargs)
+        name = self.get_name()
+        # Prevent pattern matching symbols from gaining meaning here using
+        # Verbatim
+        name = "Verbatim[%s]" % name
+
+        # For compatibility, allow grouping symbols in builtins to be
+        # specified without System`.
+        self.grouping = ensure_context(self.grouping)
+
+        if self.grouping in ("System`None", "System`NonAssociative"):
+            op_pattern = "%s[items__]" % name
+            replace_items = "items"
+        else:
+            op_pattern = "%s[x_, y_]" % name
+            replace_items = "x, y"
+
+        if self.default_formats:
+            operator = self.get_operator_display()
+            formatted = 'MakeBoxes[Infix[{%s},"%s",%d,%s], form]' % (
+                replace_items,
+                operator,
+                self.precedence,
+                self.grouping,
+            )
+            formatted_output = 'MakeBoxes[Infix[{%s}," %s ",%d,%s], form]' % (
+                replace_items,
+                operator,
+                self.precedence,
+                self.grouping,
+            )
+            default_rules = {
+                "MakeBoxes[{0}, form:StandardForm|TraditionalForm]".format(
+                    op_pattern
+                ): formatted,
+                "MakeBoxes[{0}, form:InputForm|OutputForm]".format(
+                    op_pattern
+                ): formatted_output,
+            }
+            default_rules.update(self.rules)
+            self.rules = default_rules
+
+
+class Test(Builtin):
+    def apply(self, expr, evaluation) -> Symbol:
+        "%(name)s[expr_]"
+
+        if self.test(expr):
+            return Symbol("True")
+        else:
+            return Symbol("False")
+
+
+class SympyFunction(SympyObject):
+    def get_constant(self, precision, evaluation, have_mpmath=False):
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
+
+        sympy_fn = self.to_sympy()
+        if d is None:
+            result = self.get_mpmath_function() if have_mpmath else sympy_fn()
+            return MachineReal(result)
+        else:
+            return PrecisionReal(sympy_fn.n(d))
+
+    def get_sympy_function(self, leaves=None):
         if self.sympy_name:
             return getattr(sympy, self.sympy_name)
         return None
+
+    def prepare_sympy(self, leaves):
+        return leaves
 
     def to_sympy(self, expr, **kwargs):
         try:
@@ -486,21 +579,6 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
-
-
-class SympyConstant(SympyObject, Predefined):
-    attributes = ('Constant', 'ReadProtected')
-
-    def is_constant(self) -> bool:
-        # free Symbol will be converted to corresponding SymPy symbol
-        return True
-
-    def to_sympy(self, expr, **kwargs):
-        if expr.is_atom():
-            return getattr(sympy, self.sympy_name)
-        else:
-            # there is no "native" SymPy expression for e.g. E[x]
-            return None
 
 
 class InvalidLevelspecError(Exception):
@@ -524,11 +602,105 @@ class BoxConstructError(Exception):
     pass
 
 
-class BoxConstruct(Builtin):
-    def get_option_values(self, leaves, evaluation=None, **options):
-        default = evaluation.definitions.get_options(self.get_name()).copy()
-        options = Expression('List', *leaves).get_option_values(evaluation)
-        default.update(options)
+class BoxConstruct(InstanceableBuiltin):
+    def __new__(cls, *leaves, **kwargs):
+        instance = super().__new__(cls, *leaves, **kwargs)
+        instance._leaves = leaves
+        return instance
+
+    def evaluate(self, evaluation):
+        # THINK about: Should we evaluate the leaves here?
+        return
+
+    def get_head_name(self):
+        return self.get_name()
+
+    def get_lookup_name(self):
+        return self.get_name()
+
+    def get_string_value(self):
+        return "-@" + self.get_head_name() + "@-"
+
+    def same(self, expr):
+        return expr.same(self)
+
+    def is_atom(self):
+        return False
+
+    def do_format(self, evaluation, format):
+        return self
+
+    def format(self, evaluation, fmt):
+        return self
+
+    def get_head(self):
+        return Symbol(self.get_name())
+
+    @property
+    def head(self):
+        return self.get_head()
+
+    @head.setter
+    def head(self, value):
+        raise ValueError("BoxConstruct.head is write protected.")
+
+    @property
+    def leaves(self):
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+        raise ValueError("BoxConstruct.leaves is write protected.")
+
+    # I need to repeat this, because this is not
+    # an expression...
+    def has_form(self, heads, *leaf_counts):
+        """
+        leaf_counts:
+            (,):        no leaves allowed
+            (None,):    no constraint on number of leaves
+            (n, None):  leaf count >= n
+            (n1, n2, ...):    leaf count in {n1, n2, ...}
+        """
+
+        head_name = self.get_name()
+        if isinstance(heads, (tuple, list, set)):
+            if head_name not in [ensure_context(h) for h in heads]:
+                return False
+        else:
+            if head_name != ensure_context(heads):
+                return False
+        if not leaf_counts:
+            return False
+        if leaf_counts and leaf_counts[0] is not None:
+            count = len(self._leaves)
+            if count not in leaf_counts:
+                if (
+                    len(leaf_counts) == 2
+                    and leaf_counts[1] is None  # noqa
+                    and count >= leaf_counts[0]
+                ):
+                    return True
+                else:
+                    return False
+        return True
+
+    def flatten_pattern_sequence(self, evaluation) -> "BoxConstruct":
+        return self
+
+    def get_option_values(self, leaves, **options):
+        evaluation = options.get("evaluation", None)
+        if evaluation:
+            default = evaluation.definitions.get_options(self.get_name()).copy()
+            options = Expression("List", *leaves).get_option_values(evaluation)
+            default.update(options)
+        else:
+            from mathics.core.parser import parse_builtin_rule
+
+            default = {}
+            for option, value in self.options.items():
+                option = ensure_context(option)
+                default[option] = parse_builtin_rule(value)
         return default
 
     def boxes_to_text(self, leaves, **options) -> str:
@@ -543,21 +715,21 @@ class BoxConstruct(Builtin):
 
 class PatternError(Exception):
     def __init__(self, name, tag, *args):
-        super(PatternError).__init__()
+        super().__init__()
 
 
 class PatternArgumentError(PatternError):
     def __init__(self, name, count, expected):
-        super(PatternArgumentError, self).__init__(None, None)
+        super().__init__(None, None)
 
 
-class PatternObject(InstancableBuiltin, Pattern):
+class PatternObject(InstanceableBuiltin, Pattern):
     needs_verbatim = True
 
     arg_counts: typing.List[int] = []
 
     def init(self, expr):
-        super(PatternObject, self).init(expr)
+        super().init(expr)
         if self.arg_counts is not None:
             if len(expr.leaves) not in self.arg_counts:
                 self.error_args(len(expr.leaves), *self.arg_counts)
@@ -583,8 +755,7 @@ class PatternObject(InstancableBuiltin, Pattern):
     def get_match_count(self, vars={}):
         return (1, 1)
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation,
-                             vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         return leaves
 
     def get_attributes(self, definitions):
@@ -619,8 +790,8 @@ class CountableInteger:
     _integer: typing.Union[str, int]
     _support_infinity = False
 
-    def __init__(self, value='Infinity', upper_limit=True):
-        self._finite = (value != 'Infinity')
+    def __init__(self, value="Infinity", upper_limit=True):
+        self._finite = value != "Infinity"
         if self._finite:
             assert isinstance(value, int) and value >= 0
             self._integer = value
@@ -650,7 +821,9 @@ class CountableInteger:
     def __lt__(self, other) -> bool:
         if isinstance(other, CountableInteger):
             if self._finite:
-                return other._finite and cast(int, self._integer) < cast(int, other._integer)
+                return other._finite and cast(int, self._integer) < cast(
+                    int, other._integer
+                )
             else:
                 return False
         elif isinstance(other, int):
@@ -673,21 +846,24 @@ class CountableInteger:
                 return CountableInteger(py_n, upper_limit=False)
             else:
                 raise NegativeIntegerException()
-        elif expr.get_head_name() == 'System`UpTo':
+        elif expr.get_head_name() == "System`UpTo":
             if len(expr.leaves) != 1:
-                raise MessageException('UpTo', 'argx', len(expr.leaves))
+                raise MessageException("UpTo", "argx", len(expr.leaves))
             else:
                 n = expr.leaves[0]
                 if isinstance(n, Integer):
                     py_n = n.get_int_value()
                     if py_n < 0:
-                        raise MessageException('UpTo', 'innf', expr)
+                        raise MessageException("UpTo", "innf", expr)
                     else:
                         return CountableInteger(py_n, upper_limit=True)
                 elif CountableInteger._support_infinity:
-                    if n.get_head_name() == 'System`DirectedInfinity' and len(n.leaves) == 1:
+                    if (
+                        n.get_head_name() == "System`DirectedInfinity"
+                        and len(n.leaves) == 1
+                    ):
                         if n.leaves[0].get_int_value() > 0:
-                            return CountableInteger('Infinity', upper_limit=True)
+                            return CountableInteger("Infinity", upper_limit=True)
                         else:
                             return CountableInteger(0, upper_limit=True)
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -6,10 +5,11 @@ XML
 """
 
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
 from mathics.builtin.files import mathics_open
-from mathics.core.expression import Expression, String, Symbol, from_python
+from mathics.core.expression import Expression, String, Symbol, SymbolFailed, from_python
 from mathics.builtin.base import MessageException
 
 from io import BytesIO
@@ -63,7 +63,7 @@ def node_to_xml_element(node, parent_namespace=None, strip_whitespace=True):
             namespace = None
             localname = tag
         else:
-            m = re.match('\{(.*)\}(.*)', node.tag)
+            m = re.match(r'\{(.*)\}(.*)', node.tag)
             namespace = m.group(1)
             localname = m.group(2)
 
@@ -151,7 +151,7 @@ def parse_xml_stream(f):
             msg = str(e)
 
             # Different versions of lxml include different suffixes so trim.
-            m = re.search('line \d+, column \d+', msg)
+            m = re.search(r'line \d+, column \d+', msg)
             if m is not None:
                 msg = msg[:m.end()]
 
@@ -179,13 +179,13 @@ def parse_xml(parse, text, evaluation):
         return parse(text.get_string_value())
     except ParseError as e:
         evaluation.message('XML`Parser`XMLGet', 'prserr', str(e))
-        return Symbol('$Failed')
+        return SymbolFailed
     except IOError:
         evaluation.message('General', 'noopen', text.get_string_value())
-        return Symbol('$Failed')
+        return SymbolFailed
     except MessageException as e:
         e.message(evaluation)
-        return Symbol('$Failed')
+        return SymbolFailed
 
 
 class XMLObject(Builtin):
@@ -299,4 +299,3 @@ class XMLObjectImport(Builtin):
         '''%(name)s[text_String]'''
         xml = Expression('XML`Parser`XMLGet', text).evaluate(evaluation)
         return Expression('List', Expression('Rule', 'XMLObject', xml))
-

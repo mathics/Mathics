@@ -1,24 +1,33 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
     Builtin,
     Predefined,
     BinaryOperator,
     Test,
     MessageException,
+    PartRangeError,
 )
 from mathics.core.expression import (
     Expression,
     String,
     Symbol,
+    SymbolNull,
+    SymbolFalse,
+    SymbolTrue,
     Integer,
     Rational,
     strip_context,
 )
-from mathics.core.rules import Pattern
+from mathics.core.rules import Pattern, Rule
 
-from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError
+from mathics.builtin.lists import (
+    python_levelspec,
+    walk_levels,
+    InvalidLevelspecError,
+    List,
+)
 from mathics.builtin.functional import Identity
 
 import platform
@@ -82,7 +91,7 @@ class Sort(Builtin):
             evaluation.message("Sort", "normal")
         else:
             new_leaves = sorted(list.leaves)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
     def apply_predicate(self, list, p, evaluation):
         "Sort[list_, p_]"
@@ -103,7 +112,7 @@ class Sort(Builtin):
                     )
 
             new_leaves = sorted(list.leaves, key=Key)
-            return Expression(list.head, *new_leaves)
+            return list.restructure(list.head, new_leaves, evaluation)
 
 
 class SortBy(Builtin):
@@ -173,50 +182,50 @@ class SortBy(Builtin):
             # we sort a list of indices. after sorting, we reorder the leaves.
             new_indices = sorted(list(range(len(raw_keys))), key=Key)
             new_leaves = [raw_keys[i] for i in new_indices]  # reorder leaves
-            return Expression(l.head, *new_leaves)
+            return l.restructure(l.head, new_leaves, evaluation)
 
 
 class BinarySearch(Builtin):
     """
     <dl>
-    <dt>'Combinatorica`BinarySearch[$l$, $k$]'
+    <dt>'CombinatoricaOld`BinarySearch[$l$, $k$]'
         <dd>searches the list $l$, which has to be sorted, for key $k$ and returns its index in $l$. If $k$ does not
         exist in $l$, 'BinarySearch' returns (a + b) / 2, where a and b are the indices between which $k$ would have
         to be inserted in order to maintain the sorting order in $l$. Please note that $k$ and the elements in $l$
         need to be comparable under a strict total order (see https://en.wikipedia.org/wiki/Total_order).
 
-    <dt>'Combinatorica`BinarySearch[$l$, $k$, $f$]'
+    <dt>'CombinatoricaOld`BinarySearch[$l$, $k$, $f$]'
         <dd>the index of $k in the elements of $l$ if $f$ is applied to the latter prior to comparison. Note that $f$
         needs to yield a sorted sequence if applied to the elements of $l.
     </dl>
 
-    >> Combinatorica`BinarySearch[{3, 4, 10, 100, 123}, 100]
+    >> CombinatoricaOld`BinarySearch[{3, 4, 10, 100, 123}, 100]
      = 4
 
-    >> Combinatorica`BinarySearch[{2, 3, 9}, 7] // N
+    >> CombinatoricaOld`BinarySearch[{2, 3, 9}, 7] // N
      = 2.5
 
-    >> Combinatorica`BinarySearch[{2, 7, 9, 10}, 3] // N
+    >> CombinatoricaOld`BinarySearch[{2, 7, 9, 10}, 3] // N
      = 1.5
 
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, -100] // N
+    >> CombinatoricaOld`BinarySearch[{-10, 5, 8, 10}, -100] // N
      = 0.5
 
-    >> Combinatorica`BinarySearch[{-10, 5, 8, 10}, 20] // N
+    >> CombinatoricaOld`BinarySearch[{-10, 5, 8, 10}, 20] // N
      = 4.5
 
-    >> Combinatorica`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
+    >> CombinatoricaOld`BinarySearch[{{a, 1}, {b, 7}}, 7, #[[2]]&]
      = 2
     """
 
-    context = "Combinatorica`"
+    context = "CombinatoricaOld`"
 
     rules = {
-        "Combinatorica`BinarySearch[l_List, k_] /; Length[l] > 0": "Combinatorica`BinarySearch[l, k, Identity]"
+        "CombinatoricaOld`BinarySearch[l_List, k_] /; Length[l] > 0": "CombinatoricaOld`BinarySearch[l, k, Identity]"
     }
 
     def apply(self, l, k, f, evaluation):
-        "Combinatorica`BinarySearch[l_List, k_, f_] /; Length[l] > 0"
+        "CombinatoricaOld`BinarySearch[l_List, k_, f_] /; Length[l] > 0"
 
         leaves = l.leaves
 
@@ -283,9 +292,9 @@ class PatternsOrderedQ(Builtin):
         "PatternsOrderedQ[p1_, p2_]"
 
         if p1.get_sort_key(True) <= p2.get_sort_key(True):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class OrderedQ(Builtin):
@@ -306,9 +315,9 @@ class OrderedQ(Builtin):
         "OrderedQ[e1_, e2_]"
 
         if e1 <= e2:
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Order(Builtin):
@@ -517,6 +526,82 @@ class Map(BinaryOperator):
         return result
 
 
+class MapAt(Builtin):
+    """
+    <dl>
+      <dt>'MapAt[$f$, $expr$, $n$]'
+      <dd>applies $f$ to the element at position $n$ in $expr$. If $n$ is negative, the position is counted from the end.
+      <dt>'MapAt[f, $exp$r, {$i$, $j$ ...}]'
+      <dd>applies $f$ to the part of $expr$ at position {$i$, $j$, ...}.
+      <dt>'MapAt[$f$,$pos$]'
+      <dd>represents an operator form of MapAt that can be applied to an expression.
+    </dl>
+
+    Map $f$ onto the part at position 2:
+    >> MapAt[f, {a, b, c, d}, 2]
+     = {a, f[b], c, d}
+
+    Map $f$ onto multiple parts:
+    >> MapAt[f, {a, b, c, d}, {{1}, {4}}]
+     = {f[a], b, c, f[d]}
+
+    Map $f$ onto the at the end:
+    >> MapAt[f, {a, b, c, d}, -1]
+     = {a, b, c, f[d]}
+
+     Map $f$ onto an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5|>, 3]
+     = {a -> 1, b -> 2, c -> f[3], d -> 4, e -> 5}
+
+    Use negative position in an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4|>, -3]
+     = {a -> 1, b -> f[2], c -> 3, d -> 4}
+
+    Use the operator form of MapAt:
+    >> MapAt[f, 1][{a, b, c, d}]
+     = {f[a], b, c, d}
+    """
+
+    rules = {
+        "MapAt[f_, pos_][expr_]": "MapAt[f, expr, pos]",
+    }
+
+    def apply(self, f, expr, args, evaluation, options={}):
+        "MapAt[f_, expr_, args_]"
+
+        m = len(expr.leaves)
+
+        def map_at_one(i, leaves):
+            if 1 <= i <= m:
+                j = i - 1
+            elif -m <= i <= -1:
+                j = m + i
+            else:
+                raise PartRangeError
+            replace_leaf = new_leaves[j]
+            if hasattr(replace_leaf, "head") and replace_leaf.head == Symbol("System`Rule"):
+                new_leaves[j] = Expression(
+                    "System`Rule",
+                    replace_leaf.leaves[0],
+                    Expression(f, replace_leaf.leaves[1]),
+                )
+            else:
+                new_leaves[j] = Expression(f, replace_leaf)
+            return new_leaves
+
+        a = args.to_python()
+        if isinstance(a, int):
+            new_leaves = list(expr.leaves)
+            new_leaves = map_at_one(a, new_leaves)
+            return List(*new_leaves)
+        elif isinstance(a, list):
+            new_leaves = list(expr.leaves)
+            for l in a:
+                if len(l) == 1 and isinstance(l[0], int):
+                    new_leaves = map_at_one(l[0], new_leaves)
+            return List(*new_leaves)
+
+
 class Scan(Builtin):
     """
     <dl>
@@ -573,7 +658,7 @@ class Scan(Builtin):
         heads = self.get_option(options, "Heads", evaluation).is_true()
         result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
-        return Symbol("Null")
+        return SymbolNull
 
 
 class MapIndexed(Builtin):
@@ -825,9 +910,9 @@ class FreeQ(Builtin):
 
         form = Pattern.create(form)
         if expr.is_free(form, evaluation):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Flatten(Builtin):
@@ -1006,10 +1091,9 @@ class Flatten(Builtin):
         expr, depth = walk_levels(expr, callback=callback, include_pos=True)
 
         # build new tree inserting nodes as needed
-        result = Expression(h)
         leaves = sorted(new_indices.items())
 
-        def insert_leaf(expr, leaves):
+        def insert_leaf(leaves):
             # gather leaves into groups with the same leading index
             # e.g. [((0, 0), a), ((0, 1), b), ((1, 0), c), ((1, 1), d)]
             # -> [[(0, a), (1, b)], [(0, c), (1, d)]]
@@ -1023,16 +1107,17 @@ class Flatten(Builtin):
                     grouped_leaves.append([(index[1:], leaf)])
             # for each group of leaves we either insert them into the current level
             # or make a new level and recurse
+            new_leaves = []
             for group in grouped_leaves:
                 if len(group[0][0]) == 0:  # bottom level leaf
                     assert len(group) == 1
-                    expr.leaves.append(group[0][1])
+                    new_leaves.append(group[0][1])
                 else:
-                    expr.leaves.append(Expression(h))
-                    insert_leaf(expr.leaves[-1], group)
+                    new_leaves.append(Expression(h, *insert_leaf(group)))
 
-        insert_leaf(result, leaves)
-        return result
+            return new_leaves
+
+        return Expression(h, *insert_leaf(leaves))
 
     def apply(self, expr, n, h, evaluation):
         "Flatten[expr_, n_, h_]"
@@ -1062,8 +1147,7 @@ class Null(Predefined):
     >> a:=b
     in contrast to the empty string:
     >> ""
-     = 
-    (watch the empty line).
+     = #<--#
     """
 
 
@@ -1279,7 +1363,7 @@ class Operate(Builtin):
         # Otherwise, if we get here, e.head points to the head we need
         # to apply p to. Python's reference semantics mean that this
         # assignment modifies expr as well.
-        e.head = Expression(p, e.head)
+        e.set_head(Expression(p, e.head))
 
         return expr
 

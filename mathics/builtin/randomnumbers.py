@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -14,6 +13,7 @@ import hashlib
 from operator import mul as operator_mul
 from functools import reduce
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
 from mathics.builtin.numpy_utils import instantiate_elements, stack
 from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
@@ -116,7 +116,8 @@ class NoNumPyRandomEnv(_RandomEnvBase):
 
 class NumPyRandomEnv(_RandomEnvBase):
     def randint(self, a, b, size=None):
-        return numpy.random.random_integers(a, b, size)
+        # return numpy.random.random_integers(a, b, size)
+        return numpy.random.randint(a, b+1, size)
 
     def randreal(self, a, b, size=None):
         # numpy gives us [a, b). we want [a, b].

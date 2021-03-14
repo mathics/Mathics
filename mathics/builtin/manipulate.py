@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.core.expression import String, strip_context
 from mathics import settings
 from mathics.core.evaluation import Output

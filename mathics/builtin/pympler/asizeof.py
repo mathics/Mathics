@@ -1502,8 +1502,7 @@ try:  # MCCABE 14
     _all_lens += (_len_numpy,)
 
     _numpy_types = ()
-    for d in (numpy.array(range(0)), numpy.arange(0),
-              numpy.matrix(range(0)), numpy.ma.masked_array([])):
+    for d in (numpy.array(range(0)), numpy.arange(0)):
         t = type(d)
         if t not in _numpy_types:
             _numpy_types += (t,)

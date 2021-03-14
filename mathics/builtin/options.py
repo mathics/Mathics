@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Options and default arguments
+Options and Default Arguments
 """
 
-from mathics.builtin.base import Builtin, Test
-from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
+from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.builtin.base import Builtin, Test, get_option
+from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
 from mathics.builtin.image import Image
 from mathics.core.expression import strip_context
 
@@ -99,6 +99,13 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$name$]'
         <dd>gives the value of the option $name$ as specified in a
         call to a function with 'OptionsPattern'.
+    <dt>'OptionValue[$f$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$.
+    <dt>'OptionValue[$f$, $optvals$, $name$]'
+        <dd>recover the value of the option $name$ associated to the symbol $f$,
+            extracting the values from $optvals$ if available.
+    <dt>'OptionValue[$\\ldots$, $list$]'
+        <dd>recover the value of the options in $list$ .
     </dl>
 
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a]}
@@ -107,7 +114,7 @@ class OptionValue(Builtin):
     Unavailable options generate a message:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[b]}
      : Option name b not found.
-     = {OptionValue[b]}
+     = {b}
 
     The argument of 'OptionValue' must be a symbol:
     >> f[a->3] /. f[OptionsPattern[{}]] -> {OptionValue[a+b]}
@@ -122,24 +129,86 @@ class OptionValue(Builtin):
         'optnf': "Option name `1` not found.",
     }
 
-    def apply(self, symbol, evaluation):
-        'OptionValue[symbol_]'
 
+    rules = {
+        'OptionValue[optnames_List]': 'OptionValue/@optnames',
+        'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
+        'OptionValue[f_, opts_, optnames_List]':'OptionValue[f,opts, #1]&/@optnames',
+    }
+
+    def apply_1(self, optname, evaluation):
+        'OptionValue[optname_]'
         if evaluation.options is None:
             return
-        name = symbol.get_name()
+
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
+        name = optname.get_name()
         if not name:
-            name = symbol.get_string_value()
+            name = optname.get_string_value()
             if name:
                 name = ensure_context(name)
         if not name:
-            evaluation.message('OptionValue', 'sym', symbol, 1)
+            evaluation.message('OptionValue', 'sym', optname, 1)
             return
-        value = evaluation.options.get(name)
-        if value is None:
-            evaluation.message('OptionValue', 'optnf', symbol)
+
+        val = get_option(evaluation.options, name, evaluation)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Symbol(name)
+        return val
+
+    def apply_2(self, f, optname, evaluation):
+        'OptionValue[f_, optname_]'
+        return self.apply_3(f, None, optname, evaluation)
+
+    def apply_3(self, f, optvals, optname, evaluation):
+        'OptionValue[f_, optvals_, optname_]'
+        if type(optname) is String:
+            name = optname.to_python()[1:-1]
+        else:
+            name = optname.get_name()
+
+        if not name:
+            name = optname.get_string_value()
+            if name:
+                name = ensure_context(name)
+        if not name:
+            evaluation.message('OptionValue', 'sym', optname, 1)
             return
-        return value
+        # Look first in the explicit list
+        if optvals:
+            val = get_option(optvals.get_option_values(evaluation), name, evaluation)
+        else:
+            val = None
+        # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...
+        if val is None:
+            if f.is_symbol():
+                val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
+            else:
+                if f.get_head_name() in ('System`Rule', 'System`RuleDelayed'):
+                    f = Expression("List", f)
+                if f.get_head_name() == 'System`List':
+                    for leave in f.get_leaves():
+                        if leave.is_symbol():
+                            val = get_option(evaluation.definitions.get_options(leave.get_name()), name, evaluation)
+                            if val:
+                                break
+                        else:
+                            values = leave.get_option_values(evaluation)
+                            val = get_option(values, name, evaluation)
+                            if val:
+                                break
+
+        if val is None and evaluation.options:
+            val = get_option(evaluation.options, name, evaluation)
+        if val is None:
+            evaluation.message('OptionValue', 'optnf', optname)
+            return Symbol(name)
+        return val
 
 
 class Default(Builtin):
@@ -210,6 +279,14 @@ class OptionQ(Test):
     >> OptionQ[{a :> True}]
      = True
 
+    Options lists are flattened when are applyied, so
+    >> OptionQ[{a -> True, {b->1, "c"->2}}]
+     = True
+    >> OptionQ[{a -> True, {b->1, c}}]
+     = False
+    >> OptionQ[{a -> True, F[b->1,c->2]}]
+     = False
+
     'OptionQ' returns 'False' if its argument is not a valid option
     specification:
     >> OptionQ[x]
@@ -217,6 +294,7 @@ class OptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:
@@ -245,6 +323,7 @@ class NotOptionQ(Test):
     """
 
     def test(self, expr):
+        expr = expr.flatten(Symbol('List'))
         if not expr.has_form('List', None):
             expr = [expr]
         else:

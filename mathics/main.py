@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-import os
 import argparse
-import re
 import locale
+import os
+import re
+import subprocess
+import sys
 
-from mathics.core.definitions import Definitions
+from mathics.core.parser import MathicsFileLineFeeder, MathicsLineFeeder
+
+from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
 from mathics.core.evaluation import Evaluation, Output
-from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
 
-class TerminalShell(LineFeeder):
+class TerminalShell(MathicsLineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
         super(TerminalShell, self).__init__("<stdin>")
         self.input_encoding = locale.getpreferredencoding()
@@ -60,6 +62,7 @@ class TerminalShell(LineFeeder):
 
         color_schemes = {
             "NOCOLOR": (["", "", "", ""], ["", "", "", ""]),
+            "NONE": (["", "", "", ""], ["", "", "", ""]),
             "LINUX": (
                 ["\033[32m", "\033[1m", "\033[22m", "\033[39m"],
                 ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
@@ -107,10 +110,11 @@ class TerminalShell(LineFeeder):
             return self.rl_read_line(prompt)
         return input(prompt)
 
-    def print_result(self, result):
+    def print_result(self, result, no_out_prompt=False):
         if result is not None and result.result is not None:
             output = self.to_output(str(result.result))
-            print(self.get_out_prompt() + output + "\n")
+            mess = self.get_out_prompt() if not no_out_prompt else ""
+            print(mess + output + "\n")
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
@@ -171,7 +175,13 @@ class TerminalOutput(Output):
         return self.shell.out_callback(out)
 
 
-def main():
+def main() -> int:
+    """
+    Command-line entry.
+
+    Return exit code we want to give status of
+    """
+    exit_rc = 0
     argparser = argparse.ArgumentParser(
         prog="mathics",
         usage="%(prog)s [options] [FILE]",
@@ -239,7 +249,7 @@ def main():
         "multiple times)",
     )
 
-    argparser.add_argument("--colors", nargs="?", help="interactive shell colors")
+    argparser.add_argument("--colors", nargs="?", help="interactive shell colors. Use value 'NoColor' or 'None' to disable ANSI color decoration")
 
     argparser.add_argument(
         "--no-completion", help="disable tab completion", action="store_true"
@@ -279,7 +289,7 @@ def main():
     )
 
     if args.initfile:
-        feeder = FileLineFeeder(args.initfile)
+        feeder = MathicsFileLineFeeder(args.initfile)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
@@ -298,16 +308,23 @@ def main():
 
     if args.execute:
         for expr in args.execute:
-            print(shell.get_in_prompt() + expr)
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(result)
+            shell.print_result(result, no_out_prompt=True)
+            if evaluation.exc_result == Symbol("Null"):
+                exit_rc = 0
+            elif evaluation.exc_result == Symbol("$Aborted"):
+                exit_rc = -1
+            elif evaluation.exc_result == Symbol("Overflow"):
+                exit_rc = -2
+            else:
+                exit_rc = -3
 
         if not args.persist:
-            return
+            return exit_rc
 
     if args.FILE is not None:
-        feeder = FileLineFeeder(args.FILE)
+        feeder = MathicsFileLineFeeder(args.FILE)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
@@ -325,18 +342,22 @@ def main():
         if args.persist:
             definitions.set_line_no(0)
         else:
-            return
+            return exit_rc
 
     if not args.quiet:
         print()
         print(version_string + "\n")
         print(license_string + "\n")
-        print("Quit by pressing {0}\n".format(quit_command))
+        print(f"Quit by evaluating Quit[] or by pressing {quit_command}.\n")
 
     while True:
         try:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
-            query = evaluation.parse_feeder(shell)
+            query, source_code = evaluation.parse_feeder_returning_code(shell)
+            if len(source_code) and source_code[0] == "!":
+                subprocess.run(source_code[1:], shell=True)
+                shell.definitions.increment_line_no(1)
+                continue
             if query is None:
                 continue
             if args.full_form:
@@ -355,7 +376,7 @@ def main():
             raise
         finally:
             shell.reset_lineno()
-
+    return exit_rc
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

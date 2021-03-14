@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -18,37 +17,86 @@ import mpmath
 import math
 import sympy
 import requests
-import tempfile
+import pathlib
 
- 
-from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
-                                     from_python, Integer, BoxError,
-                                     MachineReal, Number, valid_context_name)
+from io import BytesIO, StringIO
+import os.path as osp
+from itertools import chain
+
+from mathics.version import __version__  # noqa used in loading to check consistency.
+
+from mathics_scanner import TranslateError
+from mathics.core.parser import MathicsFileLineFeeder
+
+from mathics.core.expression import (
+    Expression,
+    Real,
+    Complex,
+    String,
+    Symbol,
+    SymbolFailed,
+    SymbolFalse,
+    SymbolNull,
+    SymbolTrue,
+    SymbolInfinity,
+    from_python,
+    Integer,
+    BoxError,
+    MachineReal,
+    Number,
+    valid_context_name,
+)
 from mathics.core.numbers import dps
-from mathics.builtin.base import (Builtin, Predefined, BinaryOperator,
-                                  PrefixOperator)
+from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
-from mathics.builtin.strings import to_python_encoding
+from mathics.builtin.strings import to_python_encoding, to_regex
 from mathics.builtin.base import MessageException
 from mathics.settings import ROOT_DIR
-
+import re
 
 INITIAL_DIR = os.getcwd()
-HOME_DIR = os.path.expanduser('~')
-SYS_ROOT_DIR = '/' if os.name == 'posix' else '\\'
+HOME_DIR = osp.expanduser("~")
+SYS_ROOT_DIR = "/" if os.name == "posix" else "\\"
 TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = ['.', HOME_DIR, os.path.join(ROOT_DIR, 'data'),
-            os.path.join(ROOT_DIR, 'packages')]
+PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
+
+
+def create_temporary_file(suffix=None, delete=False):
+    if suffix=="":
+        suffix = None
+
+    fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
+    result = fp.name
+    fp.close()
+    return result
+
+def urlsave_tmp(url, location=None, **kwargs):
+    suffix = ""
+    strip_url = url.split("/")
+    if len(strip_url) > 3:
+        strip_url = strip_url[-1]
+        if strip_url != "":
+            suffix = strip_url[len(strip_url.split(".")[0]) :]
+        try:
+            r = requests.get(url, allow_redirects=True)
+            if location is None:
+                location = create_temporary_file(suffix=suffix)
+            with open(location, "wb") as fp:
+                fp.write(r.content)
+                result = fp.name
+        except Exception:
+            result = None
+    return result
 
 
 def path_search(filename):
     # For names of the form "name`", search for name.mx and name.m
-    if filename[-1] == '`':
-        filename = filename[:-1].replace('`', os.path.sep)
-        for ext in ['.mx', '.m']:
+    if filename[-1] == "`":
+        filename = filename[:-1].replace("`", osp.sep)
+        for ext in [".mx", ".m"]:
             result = path_search(filename + ext)
             if result is not None:
                 filename = None
@@ -58,29 +106,24 @@ def path_search(filename):
         # If filename is an internet address, download the file
         # and store it in a temporal location
         lenfn = len(filename)
-        if (lenfn>7 and filename[:7]=="http://") or \
-           (lenfn>8 and filename[:8]=="https://") or \
-           (lenfn>6 and filename[:6]=="ftp://"):
-            try:
-                r = requests.get(filename, allow_redirects=True)
-                fp = tempfile.NamedTemporaryFile(delete=False)
-                fp.write(r.content)
-                result = fp.name
-                fp.close()
-            except Exception:
-                result = None
+        if (
+            (lenfn > 7 and filename[:7] == "http://")
+            or (lenfn > 8 and filename[:8] == "https://")
+            or (lenfn > 6 and filename[:6] == "ftp://")
+        ):
+            result = urlsave_tmp(filename)
         else:
-            for p in PATH_VAR + ['']:
-                path = os.path.join(p, filename)
-                if os.path.exists(path):
+            for p in PATH_VAR + [""]:
+                path = osp.join(p, filename)
+                if osp.exists(path):
                     result = path
                     break
 
             # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-            if result is not None and os.path.isdir(result):
-                for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
-                    tmp = os.path.join(result, ext)
-                    if os.path.isfile(tmp):
+            if result is not None and osp.isdir(result):
+                for ext in [osp.join("Kernel", "init.m"), "init.m"]:
+                    tmp = osp.join(result, ext)
+                    if osp.isfile(tmp):
                         return tmp
     return result
 
@@ -91,29 +134,30 @@ def count():
         yield n
         n += 1
 
-NSTREAMS = count()      # use next(NSTREAMS)
+
+NSTREAMS = count()  # use next(NSTREAMS)
 STREAMS = [sys.stdin, sys.stdout, sys.stderr]
 next(NSTREAMS)
 next(NSTREAMS)
 next(NSTREAMS)
 
 
-def _channel_to_stream(channel, mode='r'):
+def _channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
         name = channel.get_string_value()
         opener = mathics_open(name, mode)
         opener.__enter__()
         n = opener.n
-        if mode in ['r', 'rb']:
-            head = 'InputStream'
-        elif mode in ['w', 'a', 'wb', 'ab']:
-            head = 'OutputStream'
+        if mode in ["r", "rb"]:
+            head = "InputStream"
+        elif mode in ["w", "a", "wb", "ab"]:
+            head = "OutputStream"
         else:
             raise ValueError("Unknown format {0}".format(mode))
         return Expression(head, channel, Integer(n))
-    elif channel.has_form('InputStream', 2):
+    elif channel.has_form("InputStream", 2):
         return channel
-    elif channel.has_form('OutputStream', 2):
+    elif channel.has_form("OutputStream", 2):
         return channel
     else:
         return None
@@ -130,45 +174,47 @@ def _lookup_stream(n=None):
 
 
 class mathics_open:
-    def __init__(self, name, mode='r', encoding=None):
+    def __init__(self, name, mode="r", encoding=None):
         self.name = name
         self.mode = mode
         self.encoding = encoding
+        self.old_inputfile_var = None  # Set in __enter__ and __exit__
 
-        if mode not in ['r', 'w', 'a', 'rb', 'wb', 'ab']:
+        if mode not in ["r", "w", "a", "rb", "wb", "ab"]:
             raise ValueError("Can't handle mode {0}".format(mode))
 
     def __enter__(self):
         # find path
         path = path_search(self.name)
-        if path is None and self.mode in ['w', 'a', 'wb', 'ab']:
+        if path is None and self.mode in ["w", "a", "wb", "ab"]:
             path = self.name
         if path is None:
             raise IOError
 
         # determine encoding
-        if 'b' not in self.mode:
+        if "b" not in self.mode:
             encoding = self.encoding
             if encoding is None:
                 python_encoding = None
             else:
                 python_encoding = to_python_encoding(encoding)
                 if python_encoding is None:
-                    raise MessageException('General', 'charcode', encoding)
+                    raise MessageException("General", "charcode", encoding)
         else:
             python_encoding = None
 
         # open the stream
         stream = io.open(path, self.mode, encoding=python_encoding)
+        global INPUTFILE_VAR
+        self.old_inputfile_var = INPUTFILE_VAR
+        INPUTFILE_VAR = osp.abspath(path)
 
         # build the Expression
         n = next(NSTREAMS)
-        if self.mode in ['r', 'rb']:
-            self.expr = Expression(
-                'InputStream', String(path), Integer(n))
-        elif self.mode in ['w', 'a', 'wb', 'ab']:
-            self.expr = Expression(
-                'OutputStream', String(path), Integer(n))
+        if self.mode in ["r", "rb"]:
+            self.expr = Expression("InputStream", String(path), Integer(n))
+        elif self.mode in ["w", "a", "wb", "ab"]:
+            self.expr = Expression("OutputStream", String(path), Integer(n))
         else:
             raise IOError
 
@@ -180,6 +226,9 @@ class mathics_open:
 
     def __exit__(self, type, value, traceback):
         strm = STREAMS[self.n]
+        global INPUTFILE_VAR
+        INPUTFILE_VAR = self.old_inputfile_var or ""
+        self.oldinputfile_var = None
         if strm is not None:
             strm.close()
             STREAMS[self.n] = None
@@ -196,7 +245,7 @@ class InitialDirectory(Predefined):
      = ...
     """
 
-    name = '$InitialDirectory'
+    name = "$InitialDirectory"
 
     def evaluate(self, evaluation):
         global INITIAL_DIR
@@ -214,7 +263,7 @@ class InstallationDirectory(Predefined):
      = ...
     """
 
-    name = '$InstallationDirectory'
+    name = "$InstallationDirectory"
 
     def evaluate(self, evaluation):
         global ROOT_DIR
@@ -232,9 +281,9 @@ class HomeDirectory(Predefined):
      = ...
     """
 
-    name = '$HomeDirectory'
+    name = "$HomeDirectory"
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def evaluate(self, evaluation):
         global HOME_DIR
@@ -252,9 +301,9 @@ class RootDirectory(Predefined):
      = ...
     """
 
-    name = '$RootDirectory'
+    name = "$RootDirectory"
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def evaluate(self, evaluation):
         global SYS_ROOT_DIR
@@ -272,7 +321,7 @@ class TemporaryDirectory(Predefined):
      = ...
     """
 
-    name = '$TemporaryDirectory'
+    name = "$TemporaryDirectory"
 
     def evaluate(self, evaluation):
         return String(TMP_DIR)
@@ -286,11 +335,11 @@ class Input(Predefined):
     </dl>
 
     >> $Input
-     = 
+     = #<--#
     """
 
-    attributes = ('Protected', 'ReadProtected')
-    name = '$Input'
+    attributes = ("Protected", "ReadProtected")
+    name = "$Input"
 
     def evaluate(self, evaluation):
         global INPUT_VAR
@@ -305,11 +354,10 @@ class InputFileName(Predefined):
     </dl>
 
     While in interactive mode, '$InputFileName' is "".
-    >> $InputFileName
-     = 
+    X> $InputFileName
     """
 
-    name = '$InputFileName'
+    name = "$InputFileName"
 
     def evaluate(self, evaluation):
         global INPUTFILE_VAR
@@ -327,7 +375,7 @@ class PathnameSeparator(Predefined):
      = ...
     """
 
-    name = '$PathnameSeparator'
+    name = "$PathnameSeparator"
 
     def evaluate(self, evaluation):
         return String(os.sep)
@@ -344,11 +392,11 @@ class Path(Predefined):
      = ...
     """
 
-    attributes = ('Protected')
-    name = '$Path'
+    attributes = "Protected"
+    name = "$Path"
 
     def evaluate(self, evaluation):
-        return Expression('List', *[String(p) for p in PATH_VAR])
+        return Expression("List", *[String(p) for p in PATH_VAR])
 
 
 class OperatingSystem(Predefined):
@@ -362,18 +410,18 @@ class OperatingSystem(Predefined):
      = ...
     """
 
-    attributes = ('Locked', 'Protected')
-    name = '$OperatingSystem'
+    attributes = ("Locked", "Protected")
+    name = "$OperatingSystem"
 
     def evaluate(self, evaluation):
-        if os.name == 'posix':
-            return String('Unix')
-        elif os.name == 'nt':
-            return String('Windows')
-        elif os.name == 'os2':
-            return String('MacOSX')
+        if os.name == "posix":
+            return String("Unix")
+        elif os.name == "nt":
+            return String("Windows")
+        elif os.name == "os2":
+            return String("MacOSX")
         else:
-            return String('Unknown')
+            return String("Unknown")
 
 
 class EndOfFile(Builtin):
@@ -411,7 +459,8 @@ class Expression_(Builtin):
       <dd>is a data type for 'Read'.
     </dl>
     """
-    name = 'Expression'
+
+    name = "Expression"
 
 
 class Number_(Builtin):
@@ -421,7 +470,8 @@ class Number_(Builtin):
       <dd>is a data type for 'Read'.
     </dl>
     """
-    name = 'Number'
+
+    name = "Number"
 
 
 class Record(Builtin):
@@ -445,9 +495,10 @@ class Word(Builtin):
 class Read(Builtin):
     """
     <dl>
-    <dt>'Read[stream]'
+      <dt>'Read[stream]'
       <dd>reads the input stream and returns one expression.
-    <dt>'Read[stream, type]'
+
+      <dt>'Read[stream, type]'
       <dd>reads the input stream and returns an object of the given type.
     </dl>
 
@@ -551,27 +602,28 @@ class Read(Builtin):
     """
 
     messages = {
-        'openx': '`1` is not open.',
-        'readf': '`1` is not a valid format specification.',
-        'readn': 'Invalid real number found when reading from `1`.',
-        'readt': 'Invalid input found when reading `1` from `2`.',
-        'intnm': ('Non-negative machine-sized integer expected at '
-                  'position 3 in `1`.'),
+        "openx": "`1` is not open.",
+        "readf": "`1` is not a valid format specification.",
+        "readn": "Invalid real number found when reading from `1`.",
+        "readt": "Invalid input found when reading `1` from `2`.",
+        "intnm": (
+            "Non-negative machine-sized integer expected at " "position 3 in `1`."
+        ),
     }
 
     rules = {
-        'Read[stream_]': 'Read[stream, Expression]',
+        "Read[stream_]": "Read[stream, Expression]",
     }
 
     options = {
-        'NullRecords': 'False',
-        'NullWords': 'False',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'TokenWords': '{}',
-        'WordSeparators': '{" ", "\t"}',
+        "NullRecords": "False",
+        "NullWords": "False",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "TokenWords": "{}",
+        "WordSeparators": '{" ", "\t"}',
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def check_options(self, options):
         # Options
@@ -581,69 +633,71 @@ class Read(Builtin):
         keys = list(options.keys())
 
         # AnchoredSearch
-        if 'System`AnchoredSearch' in keys:
-            anchored_search = options['System`AnchoredSearch'].to_python()
+        if "System`AnchoredSearch" in keys:
+            anchored_search = options["System`AnchoredSearch"].to_python()
             assert anchored_search in [True, False]
-            result['AnchoredSearch'] = anchored_search
+            result["AnchoredSearch"] = anchored_search
 
         # IgnoreCase
-        if 'System`IgnoreCase' in keys:
-            ignore_case = options['System`IgnoreCase'].to_python()
+        if "System`IgnoreCase" in keys:
+            ignore_case = options["System`IgnoreCase"].to_python()
             assert ignore_case in [True, False]
-            result['IgnoreCase'] = ignore_case
+            result["IgnoreCase"] = ignore_case
 
         # WordSearch
-        if 'System`WordSearch' in keys:
-            word_search = options['System`WordSearch'].to_python()
+        if "System`WordSearch" in keys:
+            word_search = options["System`WordSearch"].to_python()
             assert word_search in [True, False]
-            result['WordSearch'] = word_search
+            result["WordSearch"] = word_search
 
         # RecordSeparators
-        if 'System`RecordSeparators' in keys:
-            record_separators = options['System`RecordSeparators'].to_python()
+        if "System`RecordSeparators" in keys:
+            record_separators = options["System`RecordSeparators"].to_python()
             assert isinstance(record_separators, list)
-            assert all(isinstance(s, str) and
-                       s[0] == s[-1] == '"' for s in record_separators)
+            assert all(
+                isinstance(s, str) and s[0] == s[-1] == '"' for s in record_separators
+            )
             record_separators = [s[1:-1] for s in record_separators]
-            result['RecordSeparators'] = record_separators
+            result["RecordSeparators"] = record_separators
 
         # WordSeparators
-        if 'System`WordSeparators' in keys:
-            word_separators = options['System`WordSeparators'].to_python()
+        if "System`WordSeparators" in keys:
+            word_separators = options["System`WordSeparators"].to_python()
             assert isinstance(word_separators, list)
-            assert all(isinstance(s, str) and
-                       s[0] == s[-1] == '"' for s in word_separators)
+            assert all(
+                isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators
+            )
             word_separators = [s[1:-1] for s in word_separators]
-            result['WordSeparators'] = word_separators
+            result["WordSeparators"] = word_separators
 
         # NullRecords
-        if 'System`NullRecords' in keys:
-            null_records = options['System`NullRecords'].to_python()
+        if "System`NullRecords" in keys:
+            null_records = options["System`NullRecords"].to_python()
             assert null_records in [True, False]
-            result['NullRecords'] = null_records
+            result["NullRecords"] = null_records
 
         # NullWords
-        if 'System`NullWords' in keys:
-            null_words = options['System`NullWords'].to_python()
+        if "System`NullWords" in keys:
+            null_words = options["System`NullWords"].to_python()
             assert null_words in [True, False]
-            result['NullWords'] = null_words
+            result["NullWords"] = null_words
 
         # TokenWords
-        if 'System`TokenWords' in keys:
-            token_words = options['System`TokenWords'].to_python()
+        if "System`TokenWords" in keys:
+            token_words = options["System`TokenWords"].to_python()
             assert token_words == []
-            result['TokenWords'] = token_words
+            result["TokenWords"] = token_words
 
         return result
 
     def apply(self, channel, types, evaluation, options):
-        'Read[channel_, types_, OptionsPattern[Read]]'
+        "Read[channel_, types_, OptionsPattern[Read]]"
 
-        if channel.has_form('OutputStream', 2):
-            evaluation.message('General', 'openw', channel)
+        if channel.has_form("OutputStream", 2):
+            evaluation.message("General", "openw", channel)
             return
 
-        strm = _channel_to_stream(channel, 'r')
+        strm = _channel_to_stream(channel, "r")
 
         if strm is None:
             return
@@ -653,30 +707,40 @@ class Read(Builtin):
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('Read', 'openx', strm)
+            evaluation.message("Read", "openx", strm)
             return
 
         # Wrap types in a list (if it isn't already one)
-        if not types.has_form('List', None):
-            types = Expression('List', types)
+        if not types.has_form("List", None):
+            types = Expression("List", types)
 
-        READ_TYPES = [Symbol(k) for k in
-                      ['Byte', 'Character', 'Expression',
-                       'Number', 'Real', 'Record', 'String', 'Word']]
+        READ_TYPES = [
+            Symbol(k)
+            for k in [
+                "Byte",
+                "Character",
+                "Expression",
+                "Number",
+                "Real",
+                "Record",
+                "String",
+                "Word",
+            ]
+        ]
 
         for typ in types.leaves:
             if typ not in READ_TYPES:
-                evaluation.message('Read', 'readf', typ)
-                return Symbol('$Failed')
+                evaluation.message("Read", "readf", typ)
+                return SymbolFailed
 
         # Options
         # TODO Implement extra options
         py_options = self.check_options(options)
         # null_records = py_options['NullRecords']
         # null_words = py_options['NullWords']
-        record_separators = py_options['RecordSeparators']
+        record_separators = py_options["RecordSeparators"]
         # token_words = py_options['TokenWords']
-        word_separators = py_options['WordSeparators']
+        word_separators = py_options["WordSeparators"]
 
         name = name.to_python()
 
@@ -684,21 +748,21 @@ class Read(Builtin):
 
         def reader(stream, word_separators, accepted=None):
             while True:
-                word = ''
+                word = ""
                 while True:
                     try:
                         tmp = stream.read(1)
                     except UnicodeDecodeError:
-                        tmp = ' '  # ignore
-                        evaluation.message('General', 'ucdec')
+                        tmp = " "  # ignore
+                        evaluation.message("General", "ucdec")
 
-                    if tmp == '':
-                        if word == '':
+                    if tmp == "":
+                        if word == "":
                             raise EOFError
                         yield word
 
                     if tmp in word_separators:
-                        if word == '':
+                        if word == "":
                             break
                         if stream.seekable():
                             # stream.seek(-1, 1) #Python3
@@ -712,32 +776,38 @@ class Read(Builtin):
 
         read_word = reader(stream, word_separators)
         read_record = reader(stream, record_separators)
-        read_number = reader(stream, word_separators + record_separators,
-                             ['+', '-', '.'] + [str(i) for i in range(10)])
+        read_number = reader(
+            stream,
+            word_separators + record_separators,
+            ["+", "-", "."] + [str(i) for i in range(10)],
+        )
         read_real = reader(
-            stream, word_separators + record_separators,
-            ['+', '-', '.', 'e', 'E', '^', '*'] + [str(i) for i in range(10)])
+            stream,
+            word_separators + record_separators,
+            ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
+        )
         for typ in types.leaves:
             try:
-                if typ == Symbol('Byte'):
+                if typ == Symbol("Byte"):
                     tmp = stream.read(1)
-                    if tmp == '':
+                    if tmp == "":
                         raise EOFError
                     result.append(ord(tmp))
-                elif typ == Symbol('Character'):
+                elif typ == Symbol("Character"):
                     tmp = stream.read(1)
-                    if tmp == '':
+                    if tmp == "":
                         raise EOFError
                     result.append(tmp)
-                elif typ == Symbol('Expression'):
+                elif typ == Symbol("Expression"):
                     tmp = next(read_record)
                     expr = evaluation.parse(tmp)
                     if expr is None:
-                        evaluation.message('Read', 'readt', tmp, Expression(
-                            'InputSteam', name, n))
-                        return Symbol('$Failed')
+                        evaluation.message(
+                            "Read", "readt", tmp, Expression("InputSteam", name, n)
+                        )
+                        return SymbolFailed
                     result.append(tmp)
-                elif typ == Symbol('Number'):
+                elif typ == Symbol("Number"):
                     tmp = next(read_number)
                     try:
                         tmp = int(tmp)
@@ -745,35 +815,37 @@ class Read(Builtin):
                         try:
                             tmp = float(tmp)
                         except ValueError:
-                            evaluation.message('Read', 'readn', Expression(
-                                'InputSteam', name, n))
-                            return Symbol('$Failed')
+                            evaluation.message(
+                                "Read", "readn", Expression("InputSteam", name, n)
+                            )
+                            return SymbolFailed
                     result.append(tmp)
 
-                elif typ == Symbol('Real'):
+                elif typ == Symbol("Real"):
                     tmp = next(read_real)
-                    tmp = tmp.replace('*^', 'E')
+                    tmp = tmp.replace("*^", "E")
                     try:
                         tmp = float(tmp)
                     except ValueError:
-                        evaluation.message('Read', 'readn', Expression(
-                            'InputSteam', name, n))
-                        return Symbol('$Failed')
+                        evaluation.message(
+                            "Read", "readn", Expression("InputSteam", name, n)
+                        )
+                        return SymbolFailed
                     result.append(tmp)
-                elif typ == Symbol('Record'):
+                elif typ == Symbol("Record"):
                     result.append(next(read_record))
-                elif typ == Symbol('String'):
+                elif typ == Symbol("String"):
                     tmp = stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
-                    result.append(tmp.rstrip('\n'))
-                elif typ == Symbol('Word'):
+                    result.append(tmp.rstrip("\n"))
+                elif typ == Symbol("Word"):
                     result.append(next(read_word))
 
             except EOFError:
-                return Symbol('EndOfFile')
+                return Symbol("EndOfFile")
             except UnicodeDecodeError:
-                evaluation.message('General', 'ucdec')
+                evaluation.message("General", "ucdec")
 
         if len(result) == 1:
             return from_python(*result)
@@ -781,8 +853,8 @@ class Read(Builtin):
         return from_python(result)
 
     def apply_nostream(self, arg1, arg2, evaluation):
-        'Read[arg1_, arg2_]'
-        evaluation.message('General', 'stream', arg1)
+        "Read[arg1_, arg2_]"
+        evaluation.message("General", "stream", arg1)
         return
 
 
@@ -805,10 +877,10 @@ class Write(Builtin):
     #> Close[str];
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, channel, expr, evaluation):
-        'Write[channel_, expr___]'
+        "Write[channel_, expr___]"
 
         strm = _channel_to_stream(channel)
 
@@ -819,16 +891,16 @@ class Write(Builtin):
         stream = _lookup_stream(n)
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', channel)
-            return Symbol('Null')
+            evaluation.message("General", "openx", channel)
+            return SymbolNull
 
         expr = expr.get_sequence()
-        expr = Expression('Row', Expression('List', *expr))
+        expr = Expression("Row", Expression("List", *expr))
 
-        evaluation.format = 'text'
+        evaluation.format = "text"
         text = evaluation.format_output(from_python(expr))
-        stream.write(str(text) + '\n')
-        return Symbol('Null')
+        stream.write(str(text) + "\n")
+        return SymbolNull
 
 
 class _BinaryFormat(object):
@@ -839,23 +911,27 @@ class _BinaryFormat(object):
     @staticmethod
     def _IEEE_real(real):
         if math.isnan(real):
-            return Symbol('Indeterminate')
+            return Symbol("Indeterminate")
         elif math.isinf(real):
-            return Expression('DirectedInfinity', Integer((-1) ** (real < 0)))
+            return Expression("DirectedInfinity", Integer((-1) ** (real < 0)))
         else:
             return Real(real)
 
     @staticmethod
     def _IEEE_cmplx(real, imag):
         if math.isnan(real) or math.isnan(imag):
-            return Symbol('Indeterminate')
+            return Symbol("Indeterminate")
         elif math.isinf(real) or math.isinf(imag):
             if math.isinf(real) and math.isinf(imag):
-                return Symbol('Indeterminate')
-            return Expression('DirectedInfinity', Expression(
-                'Complex',
-                (-1) ** (real < 0) if math.isinf(real) else 0,
-                (-1) ** (imag < 0) if math.isinf(imag) else 0))
+                return Symbol("Indeterminate")
+            return Expression(
+                "DirectedInfinity",
+                Expression(
+                    "Complex",
+                    (-1) ** (real < 0) if math.isinf(real) else 0,
+                    (-1) ** (imag < 0) if math.isinf(imag) else 0,
+                ),
+            )
         else:
             return Complex(MachineReal(real), MachineReal(imag))
 
@@ -863,7 +939,7 @@ class _BinaryFormat(object):
     def get_readers(cls):
         readers = {}
         for funcname in dir(cls):
-            if funcname.startswith('_') and funcname.endswith('_reader'):
+            if funcname.startswith("_") and funcname.endswith("_reader"):
                 readers[funcname[1:-7]] = getattr(cls, funcname)
         return readers
 
@@ -871,7 +947,7 @@ class _BinaryFormat(object):
     def get_writers(cls):
         writers = {}
         for funcname in dir(cls):
-            if funcname.startswith('_') and funcname.endswith('_writer'):
+            if funcname.startswith("_") and funcname.endswith("_writer"):
                 writers[funcname[1:-7]] = getattr(cls, funcname)
         return writers
 
@@ -880,27 +956,27 @@ class _BinaryFormat(object):
     @staticmethod
     def _Byte_reader(s):
         "8-bit unsigned integer"
-        return Integer(*struct.unpack('B', s.read(1)))
+        return Integer(*struct.unpack("B", s.read(1)))
 
     @staticmethod
     def _Character8_reader(s):
         "8-bit character"
-        return String(struct.unpack('c', s.read(1))[0].decode('ascii'))
+        return String(struct.unpack("c", s.read(1))[0].decode("ascii"))
 
     @staticmethod
     def _Character16_reader(s):
         "16-bit character"
-        return String(chr(*struct.unpack('H', s.read(2))))
+        return String(chr(*struct.unpack("H", s.read(2))))
 
     @staticmethod
     def _Complex64_reader(s):
         "IEEE single-precision complex number"
-        return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack("ff", s.read(8)))
 
     @staticmethod
     def _Complex128_reader(s):
         "IEEE double-precision complex number"
-        return _BinaryFormat._IEEE_cmplx(*struct.unpack('dd', s.read(16)))
+        return _BinaryFormat._IEEE_cmplx(*struct.unpack("dd", s.read(16)))
 
     def _Complex256_reader(self, s):
         "IEEE quad-precision complex number"
@@ -909,44 +985,44 @@ class _BinaryFormat(object):
     @staticmethod
     def _Integer8_reader(s):
         "8-bit signed integer"
-        return Integer(*struct.unpack('b', s.read(1)))
+        return Integer(*struct.unpack("b", s.read(1)))
 
     @staticmethod
     def _Integer16_reader(s):
         "16-bit signed integer"
-        return Integer(*struct.unpack('h', s.read(2)))
+        return Integer(*struct.unpack("h", s.read(2)))
 
     @staticmethod
     def _Integer24_reader(s):
         "24-bit signed integer"
         b = s.read(3)
-        return Integer(struct.unpack('<i', b'\x00' + b)[0] >> 8)
+        return Integer(struct.unpack("<i", b"\x00" + b)[0] >> 8)
 
     @staticmethod
     def _Integer32_reader(s):
         "32-bit signed integer"
-        return Integer(*struct.unpack('i', s.read(4)))
+        return Integer(*struct.unpack("i", s.read(4)))
 
     @staticmethod
     def _Integer64_reader(s):
         "64-bit signed integer"
-        return Integer(*struct.unpack('q', s.read(8)))
+        return Integer(*struct.unpack("q", s.read(8)))
 
     @staticmethod
     def _Integer128_reader(s):
         "128-bit signed integer"
-        a, b = struct.unpack('Qq', s.read(16))
+        a, b = struct.unpack("Qq", s.read(16))
         return Integer((b << 64) + a)
 
     @staticmethod
     def _Real32_reader(s):
         "IEEE single-precision real number"
-        return _BinaryFormat._IEEE_real(*struct.unpack('f', s.read(4)))
+        return _BinaryFormat._IEEE_real(*struct.unpack("f", s.read(4)))
 
     @staticmethod
     def _Real64_reader(s):
         "IEEE double-precision real number"
-        return _BinaryFormat._IEEE_real(*struct.unpack('d', s.read(8)))
+        return _BinaryFormat._IEEE_real(*struct.unpack("d", s.read(8)))
 
     @staticmethod
     def _Real128_reader(s):
@@ -957,23 +1033,23 @@ class _BinaryFormat(object):
         sig, sexp = b[:14], b[14:]
 
         # Sign / Exponent
-        sexp, = struct.unpack('H', sexp)
+        (sexp,) = struct.unpack("H", sexp)
         signbit = sexp // 0x8000
         expbits = sexp % 0x8000
 
         # Signifand
         try:
-            fracbits = int.from_bytes(sig, byteorder='little')
+            fracbits = int.from_bytes(sig, byteorder="little")
         except AttributeError:  # Py2
-            fracbits = int(sig[::-1].encode('hex'), 16)
+            fracbits = int(sig[::-1].encode("hex"), 16)
 
         if expbits == 0x0000 and fracbits == 0:
             return Real(sympy.Float(0, 4965))
         elif expbits == 0x7FFF:
             if fracbits == 0:
-                return Expression('DirectedInfinity', Integer((-1) ** signbit))
+                return Expression("DirectedInfinity", Integer((-1) ** signbit))
             else:
-                return Symbol('Indeterminate')
+                return Symbol("Indeterminate")
 
         with mpmath.workprec(112):
             core = mpmath.fdiv(fracbits, 2 ** 112)
@@ -997,43 +1073,43 @@ class _BinaryFormat(object):
     def _TerminatedString_reader(s):
         "null-terminated string of 8-bit characters"
         b = s.read(1)
-        contents = b''
-        while b != b'\x00':
-            if b == b'':
+        contents = b""
+        while b != b"\x00":
+            if b == b"":
                 raise struct.error
             contents += b
             b = s.read(1)
-        return String(contents.decode('ascii'))
+        return String(contents.decode("ascii"))
 
     @staticmethod
     def _UnsignedInteger8_reader(s):
         "8-bit unsigned integer"
-        return Integer(*struct.unpack('B', s.read(1)))
+        return Integer(*struct.unpack("B", s.read(1)))
 
     @staticmethod
     def _UnsignedInteger16_reader(s):
         "16-bit unsigned integer"
-        return Integer(*struct.unpack('H', s.read(2)))
+        return Integer(*struct.unpack("H", s.read(2)))
 
     @staticmethod
     def _UnsignedInteger24_reader(s):
         "24-bit unsigned integer"
-        return Integer(*struct.unpack('I', s.read(3) + b'\0'))
+        return Integer(*struct.unpack("I", s.read(3) + b"\0"))
 
     @staticmethod
     def _UnsignedInteger32_reader(s):
         "32-bit unsigned integer"
-        return Integer(*struct.unpack('I', s.read(4)))
+        return Integer(*struct.unpack("I", s.read(4)))
 
     @staticmethod
     def _UnsignedInteger64_reader(s):
         "64-bit unsigned integer"
-        return Integer(*struct.unpack('Q', s.read(8)))
+        return Integer(*struct.unpack("Q", s.read(8)))
 
     @staticmethod
     def _UnsignedInteger128_reader(s):
         "128-bit unsigned integer"
-        a, b = struct.unpack('QQ', s.read(16))
+        a, b = struct.unpack("QQ", s.read(16))
         return Integer((b << 64) + a)
 
     # Writer Functions
@@ -1041,12 +1117,12 @@ class _BinaryFormat(object):
     @staticmethod
     def _Byte_writer(s, x):
         "8-bit unsigned integer"
-        s.write(struct.pack('B', x))
+        s.write(struct.pack("B", x))
 
     @staticmethod
     def _Character8_writer(s, x):
         "8-bit character"
-        s.write(struct.pack('c', x.encode('ascii')))
+        s.write(struct.pack("c", x.encode("ascii")))
 
     # TODO
     # @staticmethod
@@ -1057,13 +1133,13 @@ class _BinaryFormat(object):
     @staticmethod
     def _Complex64_writer(s, x):
         "IEEE single-precision complex number"
-        s.write(struct.pack('ff', x.real, x.imag))
+        s.write(struct.pack("ff", x.real, x.imag))
         # return _BinaryFormat._IEEE_cmplx(*struct.unpack('ff', s.read(8)))
 
     @staticmethod
     def _Complex128_writer(s, x):
         "IEEE double-precision complex number"
-        s.write(struct.pack('dd', x.real, x.imag))
+        s.write(struct.pack("dd", x.real, x.imag))
 
     # TODO
     # @staticmethod
@@ -1074,12 +1150,12 @@ class _BinaryFormat(object):
     @staticmethod
     def _Integer8_writer(s, x):
         "8-bit signed integer"
-        s.write(struct.pack('b', x))
+        s.write(struct.pack("b", x))
 
     @staticmethod
     def _Integer16_writer(s, x):
         "16-bit signed integer"
-        s.write(struct.pack('h', x))
+        s.write(struct.pack("h", x))
 
     @staticmethod
     def _Integer24_writer(s, x):
@@ -1089,28 +1165,28 @@ class _BinaryFormat(object):
     @staticmethod
     def _Integer32_writer(s, x):
         "32-bit signed integer"
-        s.write(struct.pack('i', x))
+        s.write(struct.pack("i", x))
 
     @staticmethod
     def _Integer64_writer(s, x):
         "64-bit signed integer"
-        s.write(struct.pack('q', x))
+        s.write(struct.pack("q", x))
 
     @staticmethod
     def _Integer128_writer(s, x):
         "128-bit signed integer"
         a, b = x & 0xFFFFFFFFFFFFFFFF, x >> 64
-        s.write(struct.pack('Qq', a, b))
+        s.write(struct.pack("Qq", a, b))
 
     @staticmethod
     def _Real32_writer(s, x):
         "IEEE single-precision real number"
-        s.write(struct.pack('f', x))
+        s.write(struct.pack("f", x))
 
     @staticmethod
     def _Real64_writer(s, x):
         "IEEE double-precision real number"
-        s.write(struct.pack('d', x))
+        s.write(struct.pack("d", x))
 
     # TODO
     # @staticmethod
@@ -1121,17 +1197,17 @@ class _BinaryFormat(object):
     @staticmethod
     def _TerminatedString_writer(s, x):
         "null-terminated string of 8-bit characters"
-        s.write(x.encode('utf-8'))
+        s.write(x.encode("utf-8"))
 
     @staticmethod
     def _UnsignedInteger8_writer(s, x):
         "8-bit unsigned integer"
-        s.write(struct.pack('B', x))
+        s.write(struct.pack("B", x))
 
     @staticmethod
     def _UnsignedInteger16_writer(s, x):
         "16-bit unsigned integer"
-        s.write(struct.pack('H', x))
+        s.write(struct.pack("H", x))
 
     @staticmethod
     def _UnsignedInteger24_writer(s, x):
@@ -1141,18 +1217,18 @@ class _BinaryFormat(object):
     @staticmethod
     def _UnsignedInteger32_writer(s, x):
         "32-bit unsigned integer"
-        s.write(struct.pack('I', x))
+        s.write(struct.pack("I", x))
 
     @staticmethod
     def _UnsignedInteger64_writer(s, x):
         "64-bit unsigned integer"
-        s.write(struct.pack('Q', x))
+        s.write(struct.pack("Q", x))
 
     @staticmethod
     def _UnsignedInteger128_writer(s, x):
         "128-bit unsigned integer"
         a, b = x & 0xFFFFFFFFFFFFFFFF, x >> 64
-        s.write(struct.pack('QQ', a, b))
+        s.write(struct.pack("QQ", a, b))
 
 
 class BinaryWrite(Builtin):
@@ -1383,81 +1459,59 @@ class BinaryWrite(Builtin):
      = {213, 143, 98, 112, 141, 183, 203, 247}
     #> WRb[{384206740, 1676316040}, Table["UnsignedInteger32", {2}]]
      = {148, 135, 230, 22, 136, 141, 234, 99}
-
-    ## UnsignedInteger64
-    #> WRb[7079445437368829279, "UnsignedInteger64"]
-     = {95, 5, 33, 229, 29, 62, 63, 98}
-    #> WRb[5381171935514265990, "UnsignedInteger64"]
-     = {134, 9, 161, 91, 93, 195, 173, 74}
-
-    ## UnsignedInteger128
-    #> WRb[293382001665435747348222619884289871468, "UnsignedInteger128"]
-     = {108, 78, 217, 150, 88, 126, 152, 101, 231, 134, 176, 140, 118, 81, 183, 220}
-    #> WRb[253033302833692126095975097811212718901, "UnsignedInteger128"]
-     = {53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}
-
-    ## Full File
-    >> strm = OpenWrite["/dev/full", BinaryFormat -> True]
-     = OutputStream[...]
-    >> BinaryWrite[strm, {39, 4, 122}]
-     : No space left on device.
-     = OutputStream[...]
-    >> Close[strm]
-     : No space left on device.
-     = ...
     """
 
     messages = {
-        'writex': '`1`.',
+        "writex": "`1`.",
     }
 
     writers = _BinaryFormat.get_writers()
 
     def apply_notype(self, name, n, b, evaluation):
-        'BinaryWrite[OutputStream[name_, n_], b_]'
+        "BinaryWrite[OutputStream[name_, n_], b_]"
         return self.apply(name, n, b, None, evaluation)
 
     def apply(self, name, n, b, typ, evaluation):
-        'BinaryWrite[OutputStream[name_, n_], b_, typ_]'
+        "BinaryWrite[OutputStream[name_, n_], b_, typ_]"
 
-        channel = Expression('OutputStream', name, n)
+        channel = Expression("OutputStream", name, n)
 
         # Check Empty Type
         if typ is None:
-            expr = Expression('BinaryWrite', channel, b)
-            typ = Expression('List')
+            expr = Expression("BinaryWrite", channel, b)
+            typ = Expression("List")
         else:
-            expr = Expression('BinaryWrite', channel, b, typ)
+            expr = Expression("BinaryWrite", channel, b, typ)
 
         # Check channel
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message("General", "openx", name)
             return expr
 
-        if stream.mode not in ['wb', 'ab']:
-            evaluation.message('BinaryWrite', 'openr', channel)
+        if stream.mode not in ["wb", "ab"]:
+            evaluation.message("BinaryWrite", "openr", channel)
             return expr
 
         # Check b
-        if b.has_form('List', None):
+        if b.has_form("List", None):
             pyb = b.leaves
         else:
             pyb = [b]
 
         # Check Type
-        if typ.has_form('List', None):
+        if typ.has_form("List", None):
             types = typ.get_leaves()
         else:
             types = [typ]
 
-        if len(types) == 0:     # Default type is "Bytes"
+        if len(types) == 0:  # Default type is "Bytes"
             types = [String("Byte")]
 
         types = [t.get_string_value() for t in types]
         if not all(t in self.writers for t in types):
-            evaluation.message('BinaryRead', 'format', typ)
+            evaluation.message("BinaryRead", "format", typ)
             return expr
 
         # Write to stream
@@ -1468,68 +1522,70 @@ class BinaryWrite(Builtin):
             t = types[i % len(types)]
 
             # Coerce x
-            if t == 'TerminatedString':
-                x = x.get_string_value() + '\x00'
-            elif t.startswith('Real'):
+            if t == "TerminatedString":
+                x = x.get_string_value() + "\x00"
+            elif t.startswith("Real"):
                 if isinstance(x, Real):
                     x = x.to_python()
-                elif x.has_form('DirectedInfinity', 1):
+                elif x.has_form("DirectedInfinity", 1):
                     if x.leaves[0].get_int_value() == 1:
-                        x = float('+inf')
+                        x = float("+inf")
                     elif x.leaves[0].get_int_value() == -1:
-                        x = float('-inf')
+                        x = float("-inf")
                     else:
                         x = None
-                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
-                    x = float('nan')
+                elif isinstance(x, Symbol) and x.get_name() == "System`Indeterminate":
+                    x = float("nan")
                 else:
                     x = None
                 assert x is None or isinstance(x, float)
-            elif t.startswith('Complex'):
+            elif t.startswith("Complex"):
                 if isinstance(x, (Complex, Real, Integer)):
                     x = x.to_python()
-                elif x.has_form('DirectedInfinity', 1):
+                elif x.has_form("DirectedInfinity", 1):
                     x = x.leaves[0].to_python(n_evaluation=evaluation)
 
                     # x*float('+inf') creates nan if x.real or x.imag are zero
-                    x = complex(x.real * float('+inf') if x.real != 0 else 0,
-                                x.imag * float('+inf') if x.imag != 0 else 0)
-                elif (isinstance(x, Symbol) and x.get_name() == 'System`Indeterminate'):
-                    x = complex(float('nan'), float('nan'))
+                    x = complex(
+                        x.real * float("+inf") if x.real != 0 else 0,
+                        x.imag * float("+inf") if x.imag != 0 else 0,
+                    )
+                elif isinstance(x, Symbol) and x.get_name() == "System`Indeterminate":
+                    x = complex(float("nan"), float("nan"))
                 else:
                     x = None
-            elif t.startswith('Character'):
+            elif t.startswith("Character"):
                 if isinstance(x, Integer):
                     x = [String(char) for char in str(x.get_int_value())]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1 :]))
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1 :]))
                     x = pyb[i]
                 x = x.get_string_value()
-            elif t == 'Byte' and isinstance(x, String):
+            elif t == "Byte" and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1 :]))
                     x = pyb[i]
                 x = ord(x.get_string_value())
             else:
                 x = x.get_int_value()
 
             if x is None:
-                return evaluation.message('BinaryWrite', 'nocoerce', b)
+                return evaluation.message("BinaryWrite", "nocoerce", b)
 
             try:
                 self.writers[t](stream, x)
             except struct.error:
-                return evaluation.message('BinaryWrite', "nocoerce", b)
+                return evaluation.message("BinaryWrite", "nocoerce", b)
             i += 1
 
         try:
             stream.flush()
         except IOError as err:
-            evaluation.message('BinaryWrite', 'writex', err.strerror)
+            evaluation.message("BinaryWrite", "writex", err.strerror)
         return channel
 
 
@@ -1771,46 +1827,46 @@ class BinaryRead(Builtin):
     readers = _BinaryFormat.get_readers()
 
     messages = {
-        'format': '`1` is not a recognized binary format.',
-        'openw': '`1` is open for output.',
-        'bfmt': 'The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.',
+        "format": "`1` is not a recognized binary format.",
+        "openw": "`1` is open for output.",
+        "bfmt": "The stream `1` has been opened with BinaryFormat -> False and cannot be used with binary data.",
     }
 
     def apply_empty(self, name, n, evaluation):
-        'BinaryRead[InputStream[name_, n_]]'
+        "BinaryRead[InputStream[name_, n_]]"
         return self.apply(name, n, None, evaluation)
 
     def apply(self, name, n, typ, evaluation):
-        'BinaryRead[InputStream[name_, n_], typ_]'
+        "BinaryRead[InputStream[name_, n_], typ_]"
 
-        channel = Expression('InputStream', name, n)
+        channel = Expression("InputStream", name, n)
 
         # Check typ
         if typ is None:
-            expr = Expression('BinaryRead', channel)
-            typ = String('Byte')
+            expr = Expression("BinaryRead", channel)
+            typ = String("Byte")
         else:
-            expr = Expression('BinaryRead', channel, typ)
+            expr = Expression("BinaryRead", channel, typ)
 
         # Check channel
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message("General", "openx", name)
             return expr
 
-        if stream.mode not in ['rb']:
-            evaluation.message('BinaryRead', 'bfmt', channel)
+        if stream.mode not in ["rb"]:
+            evaluation.message("BinaryRead", "bfmt", channel)
             return expr
 
-        if typ.has_form('List', None):
+        if typ.has_form("List", None):
             types = typ.get_leaves()
         else:
             types = [typ]
 
         types = [t.get_string_value() for t in types]
         if not all(t in self.readers for t in types):
-            evaluation.message('BinaryRead', 'format', typ)
+            evaluation.message("BinaryRead", "format", typ)
             return expr
 
         # Read from stream
@@ -1819,10 +1875,10 @@ class BinaryRead(Builtin):
             try:
                 result.append(self.readers[t](stream))
             except struct.error:
-                result.append(Symbol('EndOfFile'))
+                result.append(Symbol("EndOfFile"))
 
-        if typ.has_form('List', None):
-            return Expression('List', *result)
+        if typ.has_form("List", None):
+            return Expression("List", *result)
         else:
             if len(result) == 1:
                 return result[0]
@@ -1871,27 +1927,18 @@ class WriteString(Builtin):
     #> FilePrint[%]
      | abc
 
-    #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
-
-    #> str = OpenWrite["/dev/full"];
-    #> WriteString[str, "123"]
-     : No space left on device.
-    #> Close[str]
-     : No space left on device.
-     = /dev/full
     """
 
     messages = {
-        'strml': ('`1` is not a string, stream, '
-                  'or list of strings and streams.'),
-        'writex': '`1`.',
+        "strml": ("`1` is not a string, stream, " "or list of strings and streams."),
+        "writex": "`1`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, channel, expr, evaluation):
-        'WriteString[channel_, expr___]'
-        strm = _channel_to_stream(channel, 'w')
+        "WriteString[channel_, expr___]"
+        strm = _channel_to_stream(channel, "w")
 
         if strm is None:
             return
@@ -1908,21 +1955,25 @@ class WriteString(Builtin):
                 result = result.boxes_to_text(evaluation=evaluation)
             except BoxError:
                 return evaluation.message(
-                    'General', 'notboxes',
-                    Expression('FullForm', result).evaluate(evaluation))
+                    "General",
+                    "notboxes",
+                    Expression("FullForm", result).evaluate(evaluation),
+                )
             exprs.append(result)
-
-        stream.write(''.join(exprs))
+        line = "".join(exprs)
+        if type(stream) is BytesIO:
+            line = line.encode('utf8')
+        stream.write(line)
         try:
             stream.flush()
         except IOError as err:
-            evaluation.message('WriteString', 'writex', err.strerror)
-        return Symbol('Null')
+            evaluation.message("WriteString", "writex", err.strerror)
+        return SymbolNull
 
 
 class _OpenAction(Builtin):
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     # BinaryFormat: 'False',
     # CharacterEncoding :> Automatic,
@@ -1934,18 +1985,19 @@ class _OpenAction(Builtin):
     # TotalWidth -> Infinity
 
     options = {
-        'BinaryFormat': 'False',
-        'CharacterEncoding': '$CharacterEncoding',
+        "BinaryFormat": "False",
+        "CharacterEncoding": "$CharacterEncoding",
     }
 
     messages = {
-        'argx': 'OpenRead called with 0 arguments; 1 argument is expected.',
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "argx": "OpenRead called with 0 arguments; 1 argument is expected.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
     def apply_empty(self, evaluation, options):
-        '%(name)s[OptionsPattern[]]'
+        "%(name)s[OptionsPattern[]]"
 
         if isinstance(self, (OpenWrite, OpenAppend)):
             tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
@@ -1953,43 +2005,45 @@ class _OpenAction(Builtin):
             tmpf.close()
             return self.apply_path(path, evaluation, options)
         else:
-            evaluation.message('OpenRead', 'argx')
+            evaluation.message("OpenRead", "argx")
             return
 
     def apply_path(self, path, evaluation, options):
-        '%(name)s[path_?NotOptionQ, OptionsPattern[]]'
+        "%(name)s[path_?NotOptionQ, OptionsPattern[]]"
 
         # Options
         # BinaryFormat
         mode = self.mode
-        if options['System`BinaryFormat'].is_true():
-            if not self.mode.endswith('b'):
-                mode += 'b'
+        if options["System`BinaryFormat"].is_true():
+            if not self.mode.endswith("b"):
+                mode += "b"
 
         if not (isinstance(path, String) and len(path.to_python()) > 2):
-            evaluation.message(self.__class__.__name__, 'fstr', path)
+            evaluation.message(self.__class__.__name__, "fstr", path)
             return
 
         path_string = path.get_string_value()
 
         tmp = path_search(path_string)
         if tmp is None:
-            if mode in ['r', 'rb']:
-                evaluation.message('General', 'noopen', path)
+            if mode in ["r", "rb"]:
+                evaluation.message("General", "noopen", path)
                 return
         else:
             path_string = tmp
 
         try:
-            encoding = self.get_option(options, 'CharacterEncoding', evaluation)
+            encoding = self.get_option(options, "CharacterEncoding", evaluation)
             if not isinstance(encoding, String):
                 return
 
-            opener = mathics_open(path_string, mode=mode, encoding=encoding.get_string_value())
+            opener = mathics_open(
+                path_string, mode=mode, encoding=encoding.get_string_value()
+            )
             opener.__enter__()
             n = opener.n
         except IOError:
-            evaluation.message('General', 'noopen', path)
+            evaluation.message("General", "noopen", path)
             return
         except MessageException as e:
             e.message(evaluation)
@@ -2009,9 +2063,9 @@ class OpenRead(_OpenAction):
      = InputStream[...]
     #> Close[%];
 
-    >> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
+    S> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
      = InputStream[...]
-    #> Close[%];
+    S> Close[%];
 
     #> OpenRead[]
      : OpenRead called with 0 arguments; 1 argument is expected.
@@ -2034,8 +2088,8 @@ class OpenRead(_OpenAction):
     #> Close[%];
     """
 
-    mode = 'r'
-    stream_type = 'InputStream'
+    mode = "r"
+    stream_type = "InputStream"
 
 
 class OpenWrite(_OpenAction):
@@ -2054,8 +2108,8 @@ class OpenWrite(_OpenAction):
     #> Close[%];
     """
 
-    mode = 'w'
-    stream_type = 'OutputStream'
+    mode = "w"
+    stream_type = "OutputStream"
 
 
 class OpenAppend(_OpenAction):
@@ -2069,38 +2123,35 @@ class OpenAppend(_OpenAction):
      = OutputStream[...]
     #> Close[%];
 
-    #> OpenAppend["MathicsNonExampleFile"]
+    #> appendFile = OpenAppend["MathicsNonExampleFile"]
      = OutputStream[MathicsNonExampleFile, ...]
 
+    #> Close[appendFile]
+     = MathicsNonExampleFile
     #> DeleteFile["MathicsNonExampleFile"]
     """
 
-    mode = 'a'
-    stream_type = 'OutputStream'
+    mode = "a"
+    stream_type = "OutputStream"
 
 
 class Get(PrefixOperator):
     r"""
     <dl>
-    <dt>'<<name'
+      <dt>'<<$name$'
       <dd>reads a file and evaluates each expression, returning only the last one.
     </dl>
 
-    >> Put[x + y, "example_file"]
-    >> <<"example_file"
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, filename]
+    S> Get[filename]
      = x + y
 
-    >> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
-    >> <<"example_file"
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
+    S> Get[filename]
      = Cos[x] + I Sin[x]
-    #> DeleteFile["example_file"]
-
-    >> 40! >> "fourtyfactorial"
-    >> FilePrint["fourtyfactorial"]
-     | 815915283247897734345611269596115894272000000000
-    >> <<"fourtyfactorial"
-     = 815915283247897734345611269596115894272000000000
-    #> DeleteFile["fourtyfactorial"]
+    S> DeleteFile[filename]
 
     ## TODO: Requires EndPackage implemented
     ## 'Get' can also load packages:
@@ -2117,41 +2168,63 @@ class Get(PrefixOperator):
      = Hold[Get["`/.\\\\-_:$*~?"]]
     """
 
-    operator = '<<'
+    operator = "<<"
     precedence = 720
-    attributes = ('Protected')
+    attributes = "Protected"
 
-    def apply(self, path, evaluation):
-        'Get[path_String]'
-        from mathics.core.parser import parse, TranslateError, FileLineFeeder
+    options = {
+        "Trace": "False",
+    }
 
+    def apply(self, path, evaluation, options):
+        "Get[path_String, OptionsPattern[Get]]"
+        from mathics.core.parser import parse
+
+        def check_options(options):
+            # Options
+            # TODO Proper error messages
+
+            result = {}
+            trace_get = evaluation.parse('Settings`$TraceGet')
+            if options["System`Trace"].to_python() or trace_get.evaluate(evaluation) == SymbolTrue:
+                result["TraceFn"] = print
+            else:
+                result["TraceFn"] = None
+
+            return result
+
+        py_options = check_options(options)
+        trace_fn = py_options["TraceFn"]
         result = None
         pypath = path.get_string_value()
+        definitions = evaluation.definitions
         try:
-            with mathics_open(pypath, 'r') as f:
-                feeder = FileLineFeeder(f)
+            if trace_fn:
+                trace_fn(pypath)
+            with mathics_open(pypath, "r") as f:
+                feeder = MathicsFileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
-                        query = parse(evaluation.definitions, feeder)
+                        query = parse(definitions, feeder)
                     except TranslateError:
-                        return Symbol('Null')
+                        return SymbolNull
                     finally:
                         feeder.send_messages(evaluation)
-                    if query is None:   # blank line / comment
+                    if query is None:  # blank line / comment
                         continue
                     result = query.evaluate(evaluation)
         except IOError:
-            evaluation.message('General', 'noopen', path)
-            return Symbol('$Failed')
+            evaluation.message("General", "noopen", path)
+            return SymbolFailed
         except MessageException as e:
             e.message(evaluation)
-            return Symbol('$Failed')
+            return SymbolFailed
         return result
 
     def apply_default(self, filename, evaluation):
-        'Get[filename_]'
-        expr = Expression('Get', filename)
-        evaluation.message('General', 'stream', filename)
+        "Get[filename_]"
+        expr = Expression("Get", filename)
+        evaluation.message("General", "stream", filename)
         return expr
 
 
@@ -2160,96 +2233,89 @@ class Put(BinaryOperator):
     <dl>
     <dt>'$expr$ >> $filename$'
       <dd>write $expr$ to a file.
-    <dt>'Put[$expr1$, $expr2$, ..., $"filename"$]'
+    <dt>'Put[$expr1$, $expr2$, ..., $filename$]'
       <dd>write a sequence of expressions to a file.
     </dl>
 
-    >> 40! >> "fourtyfactorial"
-    >> FilePrint["fourtyfactorial"]
-     | 815915283247897734345611269596115894272000000000
-    #> 40! >> fourtyfactorial
-    #> FilePrint["fourtyfactorial"]
-     | 815915283247897734345611269596115894272000000000
+    ## Note a lot of these tests are:
+    ## * a bit fragile, somewhat
+    ## * somewhat OS dependent,
+    ## * can leave crap in the filesystem
+    ## * put in a pytest
+    ##
+    ## For these reasons this should be done a a pure test
+    ## rather than intermingled with the doc system.
 
-    #> Put[40!, fourtyfactorial]
-     : fourtyfactorial is not string, InputStream[], or OutputStream[]
-     = 815915283247897734345611269596115894272000000000 >> fourtyfactorial
+    S> Put[40!, fortyfactorial]
+     : fortyfactorial is not string, InputStream[], or OutputStream[]
+     = 815915283247897734345611269596115894272000000000 >> fortyfactorial
     ## FIXME: final line should be
-    ## = Put[815915283247897734345611269596115894272000000000, fourtyfactorial]
-    #> DeleteFile["fourtyfactorial"]
+    ## = Put[815915283247897734345611269596115894272000000000, fortyfactorial]
 
-    >> Put[50!, "fiftyfactorial"]
-    >> FilePrint["fiftyfactorial"]
-     | 30414093201713378043612608166064768844377641568960512000000000000
-    #> DeleteFile["fiftyfactorial"]
+    S> filename = $TemporaryDirectory <> "/fortyfactorial";
+    S> Put[40!, filename]
+    S> FilePrint[filename]
+     | 815915283247897734345611269596115894272000000000
+    S> Get[filename]
+     = 815915283247897734345611269596115894272000000000
+    S> DeleteFile[filename]
 
-    >> Put[10!, 20!, 30!, "factorials"]
-    >> FilePrint["factorials"]
+    S> filename = $TemporaryDirectory <> "/fiftyfactorial";
+    S> Put[10!, 20!, 30!, filename]
+    S> FilePrint[filename]
      | 3628800
      | 2432902008176640000
      | 265252859812191058636308480000000
 
-    #> DeleteFile["factorials"]
+    S> DeleteFile[filename]
      =
 
-    #> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], "example_file"]
-    #> FilePrint["example_file"]
+    S> filename = $TemporaryDirectory <> "/example_file";
+    S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
+    S> FilePrint[filename]
      | x + y
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
-    #> DeleteFile["example_file"]
-
-    ## writing to dir
-    #> x >> /var/
-     : Cannot open /var/.
-     = x >> /var/
-
-    ## writing to read only file
-    #> x >> /proc/uptime
-     : Cannot open /proc/uptime.
-     = x >> /proc/uptime
-
-    ## writing to full file
-    #> x >> /dev/full
-     : No space left on device.
+    S> DeleteFile[filename]
     """
 
-    operator = '>>'
+    operator = ">>"
     precedence = 30
 
     def apply(self, exprs, filename, evaluation):
-        'Put[exprs___, filename_String]'
-        instream = Expression('OpenWrite', filename).evaluate(evaluation)
+        "Put[exprs___, filename_String]"
+        instream = Expression("OpenWrite", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
         else:
             return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
-        Expression('Close', instream).evaluate(evaluation)
+        Expression("Close", instream).evaluate(evaluation)
         return result
 
     def apply_input(self, exprs, name, n, evaluation):
-        'Put[exprs___, OutputStream[name_, n_]]'
+        "Put[exprs___, OutputStream[name_, n_]]"
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('Put', 'openx', Expression(
-                'OutputSteam', name, n))
+            evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
             return
 
-        text = [evaluation.format_output(Expression(
-            'InputForm', expr)) for expr in exprs.get_sequence()]
-        text = '\n'.join(text) + '\n'
-        text.encode('utf-8')
+        text = [
+            evaluation.format_output(Expression("InputForm", expr))
+            for expr in exprs.get_sequence()
+        ]
+        text = "\n".join(text) + "\n"
+        text.encode("utf-8")
 
         stream.write(text)
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_default(self, exprs, filename, evaluation):
-        'Put[exprs___, filename_]'
-        expr = Expression('Put', exprs, filename)
-        evaluation.message('General', 'stream', filename)
+        "Put[exprs___, filename_]"
+        expr = Expression("Put", exprs, filename)
+        evaluation.message("General", "stream", filename)
         return expr
 
 
@@ -2302,43 +2368,44 @@ class PutAppend(BinaryOperator):
      = x >>> /proc/uptime
     """
 
-    operator = '>>>'
+    operator = ">>>"
     precedence = 30
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, exprs, filename, evaluation):
-        'PutAppend[exprs___, filename_String]'
-        instream = Expression('OpenAppend', filename).evaluate(evaluation)
+        "PutAppend[exprs___, filename_String]"
+        instream = Expression("OpenAppend", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
         else:
             return  # opening failed
         result = self.apply_input(exprs, name, n, evaluation)
-        Expression('Close', instream).evaluate(evaluation)
+        Expression("Close", instream).evaluate(evaluation)
         return result
 
     def apply_input(self, exprs, name, n, evaluation):
-        'PutAppend[exprs___, OutputStream[name_, n_]]'
+        "PutAppend[exprs___, OutputStream[name_, n_]]"
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('Put', 'openx', Expression(
-                'OutputSteam', name, n))
+            evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
             return
 
-        text = [str(e.do_format(evaluation, 'System`OutputForm').__str__())
-                for e in exprs.get_sequence()]
-        text = '\n'.join(text) + '\n'
-        text.encode('ascii')
+        text = [
+            str(e.do_format(evaluation, "System`OutputForm").__str__())
+            for e in exprs.get_sequence()
+        ]
+        text = "\n".join(text) + "\n"
+        text.encode("ascii")
 
         stream.write(text)
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_default(self, exprs, filename, evaluation):
-        'PutAppend[exprs___, filename_]'
-        expr = Expression('PutAppend', exprs, filename)
-        evaluation.message('General', 'stream', filename)
+        "PutAppend[exprs___, filename_]"
+        expr = Expression("PutAppend", exprs, filename)
+        evaluation.message("General", "stream", filename)
         return expr
 
 
@@ -2362,30 +2429,28 @@ class FindFile(Builtin):
      = $Failed
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'string': 'String expected at position 1 in `1`.',
+        "string": "String expected at position 1 in `1`.",
     }
 
     def apply(self, name, evaluation):
-        'FindFile[name_]'
+        "FindFile[name_]"
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, str) and
-                py_name[0] == py_name[-1] == '"'):
-            evaluation.message(
-                'FindFile', 'string', Expression('FindFile', name))
+        if not (isinstance(py_name, str) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message("FindFile", "string", Expression("FindFile", name))
             return
         py_name = py_name[1:-1]
 
         result = path_search(py_name)
 
         if result is None:
-            return Symbol('$Failed')
+            return SymbolFailed
 
-        return String(os.path.abspath(result))
+        return String(osp.abspath(result))
 
 
 class FileNameSplit(Builtin):
@@ -2403,43 +2468,47 @@ class FileNameSplit(Builtin):
      = {example, path}
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     messages = {
-        'ostype': ('The value of option OperatingSystem -> `1` '
-                   'must be one of "MacOSX", "Windows", or "Unix".'),
+        "ostype": (
+            "The value of option OperatingSystem -> `1` "
+            'must be one of "MacOSX", "Windows", or "Unix".'
+        ),
     }
 
     def apply(self, filename, evaluation, options):
-        'FileNameSplit[filename_String, OptionsPattern[FileNameSplit]]'
+        "FileNameSplit[filename_String, OptionsPattern[FileNameSplit]]"
 
         path = filename.to_python()[1:-1]
 
-        operating_system = options[
-            'System`OperatingSystem'].evaluate(evaluation).to_python()
+        operating_system = (
+            options["System`OperatingSystem"].evaluate(evaluation).to_python()
+        )
 
         if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
-            evaluation.message('FileNameSplit', 'ostype', options[
-                               'System`OperatingSystem'])
-            if os.name == 'posix':
-                operating_system = 'Unix'
-            elif os.name == 'nt':
-                operating_system = 'Windows'
-            elif os.name == 'os2':
-                operating_system = 'MacOSX'
+            evaluation.message(
+                "FileNameSplit", "ostype", options["System`OperatingSystem"]
+            )
+            if os.name == "posix":
+                operating_system = "Unix"
+            elif os.name == "nt":
+                operating_system = "Windows"
+            elif os.name == "os2":
+                operating_system = "MacOSX"
             else:
                 return
 
         # TODO Implement OperatingSystem Option
 
         result = []
-        while path not in ['', SYS_ROOT_DIR]:
-            path, ext = os.path.split(path)
-            if ext != '':
+        while path not in ["", SYS_ROOT_DIR]:
+            path, ext = osp.split(path)
+            if ext != "":
                 result.insert(0, ext)
 
         return from_python(result)
@@ -2449,27 +2518,25 @@ class ToFileName(Builtin):
     """
     <dl>
     <dt>'ToFileName[{"$dir_1$", "$dir_2$", ...}]'
-      <dd>joins the $dir_i$ togeather into one path.
+      <dd>joins the $dir_i$ together into one path.
     </dl>
 
     'ToFileName' has been superseded by 'FileNameJoin'.
 
-    #> Unprotect[$PathnameSeparator]; $PathnameSeparator = "/"; Protect[$PathnameSeparator];
-
     >> ToFileName[{"dir1", "dir2"}, "file"]
-     = dir1/dir2/file
+     = dir1...dir2...file
 
     >> ToFileName["dir1", "file"]
-     = dir1/file
+     = dir1...file
 
     >> ToFileName[{"dir1", "dir2", "dir3"}]
-     = dir1/dir2/dir3
+     = dir1...dir2...dir3
     """
 
     rules = {
-        'ToFileName[dir_String, name_String]': 'FileNameJoin[{dir, name}]',
-        'ToFileName[dirs_?ListQ, name_String]': 'FileNameJoin[Append[dirs, name]]',
-        'ToFileName[dirs_?ListQ]': 'FileNameJoin[dirs]',
+        "ToFileName[dir_String, name_String]": "FileNameJoin[{dir, name}]",
+        "ToFileName[dirs_?ListQ, name_String]": "FileNameJoin[Append[dirs, name]]",
+        "ToFileName[dirs_?ListQ]": "FileNameJoin[dirs]",
     }
 
 
@@ -2486,49 +2553,56 @@ class FileNameJoin(Builtin):
     >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
      = dir1/dir2/dir3
 
-    ## TODO
-    ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\\dir2\\dir3
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+     = dir1\\dir2\\dir3
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     messages = {
-        'ostype': ('The value of option OperatingSystem -> `1` '
-                   'must be one of "MacOSX", "Windows", or "Unix".'),
+        "ostype": (
+            "The value of option OperatingSystem -> `1` "
+            'must be one of "MacOSX", "Windows", or "Unix".'
+        ),
     }
 
     def apply(self, pathlist, evaluation, options):
-        'FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]'
+        "FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]"
 
         py_pathlist = pathlist.to_python()
-        if not all(isinstance(p, str) and p[0] == p[-1] == '"'
-                   for p in py_pathlist):
+        if not all(isinstance(p, str) and p[0] == p[-1] == '"' for p in py_pathlist):
             return
         py_pathlist = [p[1:-1] for p in py_pathlist]
 
-        operating_system = options[
-            'System`OperatingSystem'].evaluate(evaluation).to_python()
+        operating_system = (
+            options["System`OperatingSystem"].evaluate(evaluation).get_string_value()
+        )
 
-        if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
-            evaluation.message('FileNameSplit', 'ostype', options[
-                               'System`OperatingSystem'])
-            if os.name == 'posix':
-                operating_system = 'Unix'
-            elif os.name == 'nt':
-                operating_system = 'Windows'
-            elif os.name == 'os2':
-                operating_system = 'MacOSX'
+        if operating_system not in ["MacOSX", "Windows", "Unix"]:
+            evaluation.message(
+                "FileNameSplit", "ostype", options["System`OperatingSystem"]
+            )
+            if os.name == "posix":
+                operating_system = "Unix"
+            elif os.name == "nt":
+                operating_system = "Windows"
+            elif os.name == "os2":
+                operating_system = "MacOSX"
             else:
                 return
 
-        # TODO Implement OperatingSystem Option
-
-        result = os.path.join(*py_pathlist)
+        if operating_system in ("Unix", "MacOSX"):
+            import posixpath
+            result = posixpath.join(*py_pathlist)
+        elif operating_system in ("Windows",):
+            import ntpath
+            result = ntpath.join(*py_pathlist)
+        else:
+            result = osp.join(*py_pathlist)
 
         return from_python(result)
 
@@ -2547,22 +2621,22 @@ class FileExtension(Builtin):
      = gz
 
     #> FileExtension["file."]
-     = 
+     = #<--#
     #> FileExtension["file"]
-     = 
+     = #<--#
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     def apply(self, filename, evaluation, options):
-        'FileExtension[filename_String, OptionsPattern[FileExtension]]'
+        "FileExtension[filename_String, OptionsPattern[FileExtension]]"
         path = filename.to_python()[1:-1]
-        filename_base, filename_ext = os.path.splitext(path)
-        filename_ext = filename_ext.lstrip('.')
+        filename_base, filename_ext = osp.splitext(path)
+        filename_ext = filename_ext.lstrip(".")
         return from_python(filename_ext)
 
 
@@ -2586,18 +2660,62 @@ class FileBaseName(Builtin):
      = file
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     def apply(self, filename, evaluation, options):
-        'FileBaseName[filename_String, OptionsPattern[FileBaseName]]'
+        "FileBaseName[filename_String, OptionsPattern[FileBaseName]]"
         path = filename.to_python()[1:-1]
 
-        filename_base, filename_ext = os.path.splitext(path)
+        filename_base, filename_ext = osp.splitext(path)
         return from_python(filename_base)
+
+
+class FileNameTake(Builtin):
+    """
+    <dl>
+      <dt>'FileNameTake["$file$"]'
+      <dd>returns the last path element in the file name $name$.
+
+      <dt>'FileNameTake["$file$", $n$]'
+      <dd>returns the first $n$ path elements in the file name $name$.
+
+      <dt>'FileNameTake["$file$", $-n$]'
+      <dd>returns the last $n$ path elements in the file name $name$.
+    </dl>
+
+    """
+    # mmatura: please put in a pytest
+    # >> FileNameTake["/tmp/file.txt"]
+    #  = file.txt
+    # >> FileNameTake["tmp/file.txt", 1]
+    #  = tmp
+    # >> FileNameTake["tmp/file.txt", -1]
+    #  = file.txt
+
+    attributes = "Protected"
+
+    options = {
+        "OperatingSystem": "$OperatingSystem",
+    }
+
+    def apply(self, filename, evaluation, options):
+        "FileNameTake[filename_String, OptionsPattern[FileBaseName]]"
+        path = pathlib.Path(filename.to_python()[1:-1])
+        return from_python(path.name)
+
+    def apply_n(self, filename, n, evaluation, options):
+        "FileNameTake[filename_String, n_Integer, OptionsPattern[FileBaseName]]"
+        n_int = n.get_int_value()
+        parts = pathlib.Path(filename.to_python()[1:-1]).parts
+        if n_int >= 0:
+            subparts = parts[:n_int]
+        else:
+            subparts = parts[n_int:]
+        return from_python(str(pathlib.PurePath(*subparts)))
 
 
 class DirectoryName(Builtin):
@@ -2631,47 +2749,45 @@ class DirectoryName(Builtin):
      = DirectoryName[x]
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     messages = {
-        'string': 'String expected at position 1 in `1`.',
-        'intpm': ('Positive machine-sized integer expected at '
-                  'position 2 in `1`.'),
+        "string": "String expected at position 1 in `1`.",
+        "intpm": ("Positive machine-sized integer expected at " "position 2 in `1`."),
     }
 
     def apply(self, name, n, evaluation, options):
-        'DirectoryName[name_, n_, OptionsPattern[DirectoryName]]'
+        "DirectoryName[name_, n_, OptionsPattern[DirectoryName]]"
 
         if n is None:
-            expr = Expression('DirectoryName', name)
+            expr = Expression("DirectoryName", name)
             py_n = 1
         else:
-            expr = Expression('DirectoryName', name, n)
+            expr = Expression("DirectoryName", name, n)
             py_n = n.to_python()
 
         if not (isinstance(py_n, int) and py_n > 0):
-            evaluation.message('DirectoryName', 'intpm', expr)
+            evaluation.message("DirectoryName", "intpm", expr)
             return
 
         py_name = name.to_python()
-        if not (isinstance(py_name, str) and
-                py_name[0] == py_name[-1] == '"'):
-            evaluation.message('DirectoryName', 'string', expr)
+        if not (isinstance(py_name, str) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message("DirectoryName", "string", expr)
             return
         py_name = py_name[1:-1]
 
         result = py_name
         for i in range(py_n):
-            (result, tmp) = os.path.split(result)
+            (result, tmp) = osp.split(result)
 
         return String(result)
 
     def apply1(self, name, evaluation, options):
-        'DirectoryName[name_, OptionsPattern[DirectoryName]]'
+        "DirectoryName[name_, OptionsPattern[DirectoryName]]"
         return self.apply(name, None, evaluation, options)
 
 
@@ -2695,14 +2811,14 @@ class FileNameDepth(Builtin):
      = 0
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'OperatingSystem': '$OperatingSystem',
+        "OperatingSystem": "$OperatingSystem",
     }
 
     rules = {
-        'FileNameDepth[name_String]': 'Length[FileNameSplit[name]]',
+        "FileNameDepth[name_String]": "Length[FileNameSplit[name]]",
     }
 
 
@@ -2721,33 +2837,32 @@ class AbsoluteFileName(Builtin):
      = $Failed
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'fstr': (
-            'File specification x is not a string of one or more characters.'),
-        'nffil': 'File not found during `1`.',
+        "fstr": ("File specification x is not a string of one or more characters."),
+        "nffil": "File not found during `1`.",
     }
 
     def apply(self, name, evaluation):
-        'AbsoluteFileName[name_]'
+        "AbsoluteFileName[name_]"
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, str) and
-                py_name[0] == py_name[-1] == '"'):
-            evaluation.message('AbsoluteFileName', 'fstr', name)
+        if not (isinstance(py_name, str) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message("AbsoluteFileName", "fstr", name)
             return
         py_name = py_name[1:-1]
 
         result = path_search(py_name)
 
         if result is None:
-            evaluation.message('AbsoluteFileName', 'nffil',
-                               Expression('AbsoluteFileName', name))
-            return Symbol('$Failed')
+            evaluation.message(
+                "AbsoluteFileName", "nffil", Expression("AbsoluteFileName", name)
+            )
+            return SymbolFailed
 
-        return String(os.path.abspath(result))
+        return String(osp.abspath(result))
 
 
 class ExpandFileName(Builtin):
@@ -2761,25 +2876,25 @@ class ExpandFileName(Builtin):
      = ...
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'string': 'String expected at position 1 in `1`.',
+        "string": "String expected at position 1 in `1`.",
     }
 
     def apply(self, name, evaluation):
-        'ExpandFileName[name_]'
+        "ExpandFileName[name_]"
 
         py_name = name.to_python()
 
-        if not (isinstance(py_name, str) and
-                py_name[0] == py_name[-1] == '"'):
-            evaluation.message('ExpandFileName', 'string',
-                               Expression('ExpandFileName', name))
+        if not (isinstance(py_name, str) and py_name[0] == py_name[-1] == '"'):
+            evaluation.message(
+                "ExpandFileName", "string", Expression("ExpandFileName", name)
+            )
             return
         py_name = py_name[1:-1]
 
-        return String(os.path.abspath(py_name))
+        return String(osp.abspath(py_name))
 
 
 class FileInformation(Builtin):
@@ -2799,7 +2914,7 @@ class FileInformation(Builtin):
     """
 
     rules = {
-        'FileInformation[name_String]': 'If[FileExistsQ[name], {File -> ExpandFileName[name], FileType -> FileType[name], ByteCount -> FileByteCount[name], Date -> AbsoluteTime[FileDate[name]]}, {}]',
+        "FileInformation[name_String]": "If[FileExistsQ[name], {File -> ExpandFileName[name], FileType -> FileType[name], ByteCount -> FileByteCount[name], Date -> AbsoluteTime[FileDate[name]]}, {}]",
     }
 
 
@@ -2855,21 +2970,21 @@ class ReadList(Read):
     """
 
     rules = {
-        'ReadList[stream_]': 'ReadList[stream, Expression]',
+        "ReadList[stream_]": "ReadList[stream, Expression]",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'NullRecords': 'False',
-        'NullWords': 'False',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'TokenWords': '{}',
-        'WordSeparators': '{" ", "\t"}',
+        "NullRecords": "False",
+        "NullWords": "False",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "TokenWords": "{}",
+        "WordSeparators": '{" ", "\t"}',
     }
 
     def apply(self, channel, types, evaluation, options):
-        'ReadList[channel_, types_, OptionsPattern[ReadList]]'
+        "ReadList[channel_, types_, OptionsPattern[ReadList]]"
 
         # Options
         # TODO: Implement extra options
@@ -2882,22 +2997,21 @@ class ReadList(Read):
 
         result = []
         while True:
-            tmp = super(ReadList, self).apply(
-                channel, types, evaluation, options)
+            tmp = super(ReadList, self).apply(channel, types, evaluation, options)
 
             if tmp is None:
                 return
 
-            if tmp == Symbol('$Failed'):
+            if tmp == SymbolFailed:
                 return
 
-            if tmp == Symbol('EndOfFile'):
+            if tmp == Symbol("EndOfFile"):
                 break
             result.append(tmp)
         return from_python(result)
 
     def apply_m(self, channel, types, m, evaluation, options):
-        'ReadList[channel_, types_, m_, OptionsPattern[ReadList]]'
+        "ReadList[channel_, types_, m_, OptionsPattern[ReadList]]"
 
         # Options
         # TODO: Implement extra options
@@ -2911,18 +3025,18 @@ class ReadList(Read):
         py_m = m.get_int_value()
         if py_m < 0:
             evaluation.message(
-                'ReadList', 'intnm', Expression('ReadList', channel, types, m))
+                "ReadList", "intnm", Expression("ReadList", channel, types, m)
+            )
             return
 
         result = []
         for i in range(py_m):
-            tmp = super(ReadList, self).apply(
-                channel, types, evaluation, options)
+            tmp = super(ReadList, self).apply(channel, types, evaluation, options)
 
-            if tmp == Symbol('$Failed'):
+            if tmp == SymbolFailed:
                 return
 
-            if tmp.to_python() == 'EndOfFile':
+            if tmp.to_python() == "EndOfFile":
                 break
             result.append(tmp)
         return from_python(result)
@@ -2940,14 +3054,6 @@ class FilePrint(Builtin):
      : File specification Sin[1] is not a string of one or more characters.
      = FilePrint[Sin[1]]
 
-    ## Return $Failed on special files
-    #> FilePrint["/dev/zero"]
-     = $Failed
-    #> FilePrint["/dev/random"]
-     = $Failed
-    #> FilePrint["/dev/null"]
-     = $Failed
-
     #> FilePrint["somenonexistantpath_h47sdmk^&h4"]
      : Cannot open somenonexistantpath_h47sdmk^&h4.
      = FilePrint[somenonexistantpath_h47sdmk^&h4]
@@ -2958,46 +3064,51 @@ class FilePrint(Builtin):
     """
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
     options = {
-        'CharacterEncoding': '$CharacterEncoding',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'WordSeparators': '{" ", "\t"}',
+        "CharacterEncoding": "$CharacterEncoding",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "WordSeparators": '{" ", "\t"}',
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, path, evaluation, options):
-        'FilePrint[path_ OptionsPattern[FilePrint]]'
+        "FilePrint[path_ OptionsPattern[FilePrint]]"
         pypath = path.to_python()
-        if not (isinstance(pypath, str) and
-                pypath[0] == pypath[-1] == '"' and len(pypath) > 2):
-            evaluation.message('FilePrint', 'fstr', path)
+        if not (
+            isinstance(pypath, str)
+            and pypath[0] == pypath[-1] == '"'
+            and len(pypath) > 2
+        ):
+            evaluation.message("FilePrint", "fstr", path)
             return
         pypath = path_search(pypath[1:-1])
 
         # Options
-        record_separators = options['System`RecordSeparators'].to_python()
+        record_separators = options["System`RecordSeparators"].to_python()
         assert isinstance(record_separators, list)
-        assert all(isinstance(s, str) and
-                   s[0] == s[-1] == '"' for s in record_separators)
+        assert all(
+            isinstance(s, str) and s[0] == s[-1] == '"' for s in record_separators
+        )
         record_separators = [s[1:-1] for s in record_separators]
 
         if pypath is None:
-            evaluation.message('General', 'noopen', path)
+            evaluation.message("General", "noopen", path)
             return
 
-        if not os.path.isfile(pypath):
-            return Symbol("$Failed")
+        if not osp.isfile(pypath):
+            return SymbolFailed
 
         try:
-            with mathics_open(pypath, 'r') as f:
+            with mathics_open(pypath, "r") as f:
                 result = f.read()
         except IOError:
-            evaluation.message('General', 'noopen', path)
+            evaluation.message("General", "noopen", path)
             return
         except MessageException as e:
             e.message(evaluation)
@@ -3007,13 +3118,13 @@ class FilePrint(Builtin):
         for sep in record_separators:
             result = [item for res in result for item in res.split(sep)]
 
-        if result[-1] == '':
+        if result[-1] == "":
             result = result[:-1]
 
         for res in result:
             evaluation.print_out(from_python(res))
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Close(Builtin):
@@ -3042,30 +3153,31 @@ class Close(Builtin):
      = Close[OutputStream[...]]
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'closex': '`1`.',
+        "closex": "`1`.",
     }
 
     def apply(self, channel, evaluation):
-        'Close[channel_]'
+        "Close[channel_]"
 
-        if (channel.has_form('InputStream', 2) or       # noqa
-            channel.has_form('OutputStream', 2)):
+        if channel.has_form("InputStream", 2) or channel.has_form(  # noqa
+            "OutputStream", 2
+        ):
             [name, n] = channel.get_leaves()
             stream = _lookup_stream(n.get_int_value())
         else:
             stream = None
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', channel)
+            evaluation.message("General", "openx", channel)
             return
 
         try:
             stream.close()
         except IOError as err:
-            evaluation.message('Close', 'closex', err.strerror)
+            evaluation.message("Close", "closex", err.strerror)
         return name
 
 
@@ -3086,31 +3198,31 @@ class StreamPosition(Builtin):
      = 7
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply_input(self, name, n, evaluation):
-        'StreamPosition[InputStream[name_, n_]]'
+        "StreamPosition[InputStream[name_, n_]]"
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message("General", "openx", name)
             return
 
         return from_python(stream.tell())
 
     def apply_output(self, name, n, evaluation):
-        'StreamPosition[OutputStream[name_, n_]]'
+        "StreamPosition[OutputStream[name_, n_]]"
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message("General", "openx", name)
             return
 
         return from_python(stream.tell())
 
     def apply_default(self, stream, evaluation):
-        'StreamPosition[stream_]'
-        evaluation.message('General', 'stream', stream)
+        "StreamPosition[stream_]"
+        evaluation.message("General", "stream", stream)
         return
 
 
@@ -3145,34 +3257,36 @@ class SetStreamPosition(Builtin):
     """
 
     messages = {
-        'int': 'Integer expected at position 2 in `1`.',
-        'stmrng': (
-            'Cannot set the current point in stream `1` to position `2`. The '
-            'requested position exceeds the number of characters in the file'),
-        'python2': 'Python2 cannot handle negative seeks.',  # FIXME: Python3?
+        "int": "Integer expected at position 2 in `1`.",
+        "stmrng": (
+            "Cannot set the current point in stream `1` to position `2`. The "
+            "requested position exceeds the number of characters in the file"
+        ),
+        "python2": "Python2 cannot handle negative seeks.",  # FIXME: Python3?
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply_input(self, name, n, m, evaluation):
-        'SetStreamPosition[InputStream[name_, n_], m_]'
+        "SetStreamPosition[InputStream[name_, n_], m_]"
         stream = _lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
-            evaluation.message('General', 'openx', name)
+            evaluation.message("General", "openx", name)
             return
 
         if not stream.seekable:
             raise NotImplementedError
 
         seekpos = m.to_python()
-        if not (isinstance(seekpos, int) or seekpos == float('inf')):
-            evaluation.message('SetStreamPosition', 'stmrng',
-                               Expression('InputStream', name, n), m)
+        if not (isinstance(seekpos, int) or seekpos == float("inf")):
+            evaluation.message(
+                "SetStreamPosition", "stmrng", Expression("InputStream", name, n), m
+            )
             return
 
         try:
-            if seekpos == float('inf'):
+            if seekpos == float("inf"):
                 stream.seek(0, 2)
             else:
                 if seekpos < 0:
@@ -3180,17 +3294,17 @@ class SetStreamPosition(Builtin):
                 else:
                     stream.seek(seekpos)
         except IOError:
-            evaluation.message('SetStreamPosition', 'python2')
+            evaluation.message("SetStreamPosition", "python2")
 
         return from_python(stream.tell())
 
     def apply_output(self, name, n, m, evaluation):
-        'SetStreamPosition[OutputStream[name_, n_], m_]'
+        "SetStreamPosition[OutputStream[name_, n_], m_]"
         return self.apply_input(name, n, m, evaluation)
 
     def apply_default(self, stream, evaluation):
-        'SetStreamPosition[stream_]'
-        evaluation.message('General', 'stream', stream)
+        "SetStreamPosition[stream_]"
+        evaluation.message("General", "stream", stream)
         return
 
 
@@ -3223,29 +3337,27 @@ class Skip(Read):
     """
 
     rules = {
-        'Skip[InputStream[name_, n_], types_]':
-        'Skip[InputStream[name, n], types, 1]',
+        "Skip[InputStream[name_, n_], types_]": "Skip[InputStream[name, n], types, 1]",
     }
 
     messages = {
-        'intm':
-        'Non-negative machine-sized integer expected at position 3 in `1`',
+        "intm": "Non-negative machine-sized integer expected at position 3 in `1`",
     }
 
     options = {
-        'AnchoredSearch': 'False',
-        'IgnoreCase': 'False',
-        'WordSearch': 'False',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'WordSeparators': '{" ", "\t"}',
+        "AnchoredSearch": "False",
+        "IgnoreCase": "False",
+        "WordSearch": "False",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "WordSeparators": '{" ", "\t"}',
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, name, n, types, m, evaluation, options):
-        'Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]'
+        "Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]"
 
-        channel = Expression('InputStream', name, n)
+        channel = Expression("InputStream", name, n)
 
         # Options
         # TODO Implement extra options
@@ -3258,15 +3370,17 @@ class Skip(Read):
 
         py_m = m.to_python()
         if not (isinstance(py_m, int) and py_m > 0):
-            evaluation.message('Skip', 'intm', Expression(
-                'Skip', Expression('InputStream', name, n), types, m))
+            evaluation.message(
+                "Skip",
+                "intm",
+                Expression("Skip", Expression("InputStream", name, n), types, m),
+            )
             return
         for i in range(py_m):
-            result = super(Skip, self).apply(
-                channel, types, evaluation, options)
-            if result == Symbol('EndOfFile'):
+            result = super(Skip, self).apply(channel, types, evaluation, options)
+            if result == Symbol("EndOfFile"):
                 return result
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Find(Read):
@@ -3293,18 +3407,18 @@ class Find(Read):
      = ...
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'AnchoredSearch': 'False',
-        'IgnoreCase': 'False',
-        'WordSearch': 'False',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'WordSeparators': '{" ", "\t"}',
+        "AnchoredSearch": "False",
+        "IgnoreCase": "False",
+        "WordSearch": "False",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "WordSeparators": '{" ", "\t"}',
     }
 
     def apply(self, name, n, text, evaluation, options):
-        'Find[InputStream[name_, n_], text_, OptionsPattern[Find]]'
+        "Find[InputStream[name_, n_], text_, OptionsPattern[Find]]"
 
         # Options
         # TODO Implement extra options
@@ -3317,28 +3431,28 @@ class Find(Read):
 
         py_text = text.to_python()
 
-        channel = Expression('InputStream', name, n)
+        channel = Expression("InputStream", name, n)
 
         if not isinstance(py_text, list):
             py_text = [py_text]
 
-        if not all(isinstance(t, str) and
-                   t[0] == t[-1] == '"' for t in py_text):
-            evaluation.message(
-                'Find', 'unknown', Expression('Find', channel, text))
+        if not all(isinstance(t, str) and t[0] == t[-1] == '"' for t in py_text):
+            evaluation.message("Find", "unknown", Expression("Find", channel, text))
             return
 
         py_text = [t[1:-1] for t in py_text]
 
         while True:
             tmp = super(Find, self).apply(
-                channel, Symbol('Record'), evaluation, options)
+                channel, Symbol("Record"), evaluation, options
+            )
             py_tmp = tmp.to_python()[1:-1]
 
-            if py_tmp == 'System`EndOfFile':
+            if py_tmp == "System`EndOfFile":
                 evaluation.message(
-                    'Find', 'notfound', Expression('Find', channel, text))
-                return Symbol("$Failed")
+                    "Find", "notfound", Expression("Find", channel, text)
+                )
+                return SymbolFailed
 
             for t in py_text:
                 if py_tmp.find(t) != -1:
@@ -3371,39 +3485,37 @@ class FindList(Builtin):
     """
 
     messages = {
-        'strs':
-        'String or non-empty list of strings expected at position `1` in `2`.',
-        'intnm':
-        'Non-negative machine-sized integer expected at position `1` in `2`.',
+        "strs": "String or non-empty list of strings expected at position `1` in `2`.",
+        "intnm": "Non-negative machine-sized integer expected at position `1` in `2`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'AnchoredSearch': 'False',
-        'IgnoreCase': 'False',
-        'RecordSeparators': '{"\r\n", "\n", "\r"}',
-        'WordSearch': 'False',
-        'WordSeparators': '{" ", "\t"}',
+        "AnchoredSearch": "False",
+        "IgnoreCase": "False",
+        "RecordSeparators": '{"\r\n", "\n", "\r"}',
+        "WordSearch": "False",
+        "WordSeparators": '{" ", "\t"}',
     }
 
     # TODO: Extra options AnchoredSearch, IgnoreCase RecordSeparators,
     # WordSearch, WordSeparators this is probably best done with a regex
 
     def apply_without_n(self, filename, text, evaluation, options):
-        'FindList[filename_, text_, OptionsPattern[FindList]]'
+        "FindList[filename_, text_, OptionsPattern[FindList]]"
         return self.apply(filename, text, None, evaluation, options)
 
     def apply(self, filename, text, n, evaluation, options):
-        'FindList[filename_, text_, n_, OptionsPattern[FindList]]'
+        "FindList[filename_, text_, n_, OptionsPattern[FindList]]"
         py_text = text.to_python()
         py_name = filename.to_python()
         if n is None:
             py_n = None
-            expr = Expression('FindList', filename, text)
+            expr = Expression("FindList", filename, text)
         else:
             py_n = n.to_python()
-            expr = Expression('FindList', filename, text, n)
+            expr = Expression("FindList", filename, text, n)
 
         if not isinstance(py_text, list):
             py_text = [py_text]
@@ -3411,22 +3523,20 @@ class FindList(Builtin):
         if not isinstance(py_name, list):
             py_name = [py_name]
 
-        if not all(isinstance(t, str) and
-                   t[0] == t[-1] == '"' for t in py_name):
-            evaluation.message('FindList', 'strs', '1', expr)
-            return Symbol('$Failed')
+        if not all(isinstance(t, str) and t[0] == t[-1] == '"' for t in py_name):
+            evaluation.message("FindList", "strs", "1", expr)
+            return SymbolFailed
 
-        if not all(isinstance(t, str) and
-                   t[0] == t[-1] == '"' for t in py_text):
-            evaluation.message('FindList', 'strs', '2', expr)
-            return Symbol('$Failed')
+        if not all(isinstance(t, str) and t[0] == t[-1] == '"' for t in py_text):
+            evaluation.message("FindList", "strs", "2", expr)
+            return SymbolFailed
 
         if not ((isinstance(py_n, int) and py_n >= 0) or py_n is None):
-            evaluation.message('FindList', 'intnm', '3', expr)
-            return Symbol('$Failed')
+            evaluation.message("FindList", "intnm", "3", expr)
+            return SymbolFailed
 
         if py_n == 0:
-            return Symbol('$Failed')
+            return SymbolFailed
 
         py_text = [t[1:-1] for t in py_text]
         py_name = [t[1:-1] for t in py_name]
@@ -3434,10 +3544,10 @@ class FindList(Builtin):
         results = []
         for path in py_name:
             try:
-                with mathics_open(path, 'r') as f:
+                with mathics_open(path, "r") as f:
                     lines = f.readlines()
             except IOError:
-                evaluation.message('General', 'noopen', path)
+                evaluation.message("General", "noopen", path)
                 return
             except MessageException as e:
                 e.message(evaluation)
@@ -3453,7 +3563,7 @@ class FindList(Builtin):
         results = [r for result in results for r in result]
 
         if isinstance(py_n, int):
-            results = results[:min(py_n, len(results))]
+            results = results[: min(py_n, len(results))]
 
         return from_python(results)
 
@@ -3471,10 +3581,10 @@ class InputStream(Builtin):
      = String
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, name, n, evaluation):
-        'InputStream[name_, n_]'
+        "InputStream[name_, n_]"
         return
 
 
@@ -3491,10 +3601,10 @@ class OutputStream(Builtin):
      = ...
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, name, n, evaluation):
-        'OutputStream[name_, n_]'
+        "OutputStream[name_, n_]"
         return
 
 
@@ -3518,17 +3628,17 @@ class StringToStream(Builtin):
      = String
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, string, evaluation):
-        'StringToStream[string_]'
+        "StringToStream[string_]"
         pystring = string.to_python()[1:-1]
         stream = io.StringIO(str(pystring))
 
-        name = Symbol('String')
+        name = Symbol("String")
         n = next(NSTREAMS)
 
-        result = Expression('InputStream', name, Integer(n))
+        result = Expression("InputStream", name, Integer(n))
 
         STREAMS.append(stream)
         return result
@@ -3553,39 +3663,39 @@ class Streams(Builtin):
      = {}
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, evaluation):
-        'Streams[]'
+        "Streams[]"
         return self.apply_name(None, evaluation)
 
     def apply_name(self, name, evaluation):
-        'Streams[name_String]'
+        "Streams[name_String]"
         result = []
         for n in range(len(STREAMS)):
             stream = _lookup_stream(n)
             if stream is None or stream.closed:
                 continue
             if isinstance(stream, io.StringIO):
-                head = 'InputStream'
-                _name = Symbol('String')
+                head = "InputStream"
+                _name = Symbol("String")
             else:
                 mode = stream.mode
-                if mode in ['r', 'rb']:
-                    head = 'InputStream'
-                elif mode in ['w', 'a', 'wb', 'ab']:
-                    head = 'OutputStream'
+                if mode in ["r", "rb"]:
+                    head = "InputStream"
+                elif mode in ["w", "a", "wb", "ab"]:
+                    head = "OutputStream"
                 else:
                     raise ValueError("Unknown mode {0}".format(mode))
                 _name = String(stream.name)
             expr = Expression(head, _name, Integer(n))
             if name is None or _name == name:
                 result.append(expr)
-        return Expression('List', *result)
+        return Expression("List", *result)
 
 
 class Compress(Builtin):
-    """
+    u"""
     <dl>
     <dt>'Compress[$expr$]'
       <dd>gives a compressed string representation of $expr$.
@@ -3594,30 +3704,26 @@ class Compress(Builtin):
     >> Compress[N[Pi, 10]]
      = eJwz1jM0MTS1NDIzNQEADRsCNw==
 
-    ## Unicode char
-    #> Compress["―"]
-     = eJxTetQwVQkABwMCPA==
-    #> Uncompress[%]
-     = ―
     """
 
-    attributes = ('Protected')
+    attributes = ("Protected",)
 
     options = {
-        'Method': '{}',
+        "Method": "{}",
     }
 
     def apply(self, expr, evaluation, options):
-        'Compress[expr_, OptionsPattern[Compress]]'
-        string = expr.format(evaluation, 'System`FullForm')
+        "Compress[expr_, OptionsPattern[Compress]]"
+        string = expr.format(evaluation, "System`FullForm")
         string = string.boxes_to_text(
-            evaluation=evaluation, show_string_characters=True)
-        string = string.encode('utf-8')
+            evaluation=evaluation, show_string_characters=True
+        )
+        string = string.encode("utf-8")
 
         # TODO Implement other Methods
+        # Shouldn't be this a ByteArray?
         result = zlib.compress(string)
-        result = base64.encodebytes(result).decode('utf8')
-
+        result = base64.b64encode(result).decode("utf8")
         return String(result)
 
 
@@ -3639,14 +3745,14 @@ class Uncompress(Builtin):
      = x ^ 2 + y Sin[x] + 10 Log[15]
     """
 
-    attributes = ('Protected')
+    attributes = ("Protected",)
 
     def apply(self, string, evaluation):
-        'Uncompress[string_String]'
-        string = string.get_string_value().encode('utf-8')
-        string = base64.decodebytes(string)
+        "Uncompress[string_String]"
+        string = string.get_string_value() #.encode("utf-8")
+        string = base64.b64decode(string)
         tmp = zlib.decompress(string)
-        tmp = tmp.decode('utf-8')
+        tmp = tmp.decode("utf-8")
         return evaluation.parse(tmp)
 
 
@@ -3662,29 +3768,29 @@ class FileByteCount(Builtin):
     """
 
     messages = {
-        'fstr':
-        'File specification `1` is not a string of one or more characters.',
+        "fstr": "File specification `1` is not a string of one or more characters.",
     }
 
     def apply(self, filename, evaluation):
-        'FileByteCount[filename_]'
+        "FileByteCount[filename_]"
         py_filename = filename.to_python()
-        if not (isinstance(py_filename, str) and
-                py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('FileByteCount', 'fstr', filename)
+        if not (
+            isinstance(py_filename, str) and py_filename[0] == py_filename[-1] == '"'
+        ):
+            evaluation.message("FileByteCount", "fstr", filename)
             return
         py_filename = py_filename[1:-1]
 
         try:
-            with mathics_open(py_filename, 'rb') as f:
+            with mathics_open(py_filename, "rb") as f:
                 count = 0
                 tmp = f.read(1)
-                while tmp != b'':
+                while tmp != b"":
                     count += 1
                     tmp = f.read(1)
 
         except IOError:
-            evaluation.message('General', 'noopen', filename)
+            evaluation.message("General", "noopen", filename)
             return
         except MessageException as e:
             e.message(evaluation)
@@ -3701,6 +3807,8 @@ class FileHash(Builtin):
     <dt>'FileHash[$file$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $file$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'FileHash[$file$, $type$, $format$]'
+      <dd>gives a hash code in the specified format.</dd>
     </dl>
 
     >> FileHash["ExampleData/sunflowers.jpg"]
@@ -3729,32 +3837,33 @@ class FileHash(Builtin):
     #> FileHash["ExampleData/sunflowers.jpg", xyzsymbol]
      = FileHash[ExampleData/sunflowers.jpg, xyzsymbol]
     #> FileHash["ExampleData/sunflowers.jpg", "xyzstr"]
-     = FileHash[ExampleData/sunflowers.jpg, xyzstr]
+     = FileHash[ExampleData/sunflowers.jpg, xyzstr, Integer]
     #> FileHash[xyzsymbol]
      = FileHash[xyzsymbol]
     """
 
     rules = {
-        'FileHash[filename_String]': 'FileHash[filename, "MD5"]',
+        "FileHash[filename_String]": 'FileHash[filename, "MD5", "Integer"]',
+        "FileHash[filename_String, hashtype_String]": 'FileHash[filename, hashtype, "Integer"]',
     }
 
-    attributes = ('Protected', 'ReadProtected')
+    attributes = ("Protected", "ReadProtected")
 
-    def apply(self, filename, hashtype, evaluation):
-        'FileHash[filename_String, hashtype_String]'
+    def apply(self, filename, hashtype, format, evaluation):
+        "FileHash[filename_String, hashtype_String, format_String]"
         py_filename = filename.get_string_value()
 
         try:
-            with mathics_open(py_filename, 'rb') as f:
+            with mathics_open(py_filename, "rb") as f:
                 dump = f.read()
         except IOError:
-            evaluation.message('General', 'noopen', filename)
+            evaluation.message("General", "noopen", filename)
             return
         except MessageException as e:
             e.message(evaluation)
             return
 
-        return Hash.compute(lambda update: update(dump), hashtype.get_string_value())
+        return Hash.compute(lambda update: update(dump), hashtype.get_string_value(), format.get_string_value())
 
 
 class FileDate(Builtin):
@@ -3795,66 +3904,67 @@ class FileDate(Builtin):
     """
 
     messages = {
-        'nffil': 'File not found during `1`.',
-        'datetype': ('Date type Fail should be "Access", "Modification", '
-                     '"Creation" (Windows only), '
-                     '"Change" (Macintosh and Unix only), or "Rules".'),
+        "nffil": "File not found during `1`.",
+        "datetype": (
+            'Date type Fail should be "Access", "Modification", '
+            '"Creation" (Windows only), '
+            '"Change" (Macintosh and Unix only), or "Rules".'
+        ),
     }
 
     rules = {
-        'FileDate[filepath_String, "Rules"]':
-        '''{"Access" -> FileDate[filepath, "Access"],
+        'FileDate[filepath_String, "Rules"]': """{"Access" -> FileDate[filepath, "Access"],
             "Creation" -> FileDate[filepath, "Creation"],
             "Change" -> FileDate[filepath, "Change"],
-            "Modification" -> FileDate[filepath, "Modification"]}''',
+            "Modification" -> FileDate[filepath, "Modification"]}""",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, path, timetype, evaluation):
-        'FileDate[path_, timetype_]'
+        "FileDate[path_, timetype_]"
         py_path = path_search(path.to_python()[1:-1])
 
         if py_path is None:
             if timetype is None:
-                evaluation.message(
-                    'FileDate', 'nffil', Expression('FileDate', path))
+                evaluation.message("FileDate", "nffil", Expression("FileDate", path))
             else:
-                evaluation.message('FileDate', 'nffil', Expression(
-                    'FileDate', path, timetype))
+                evaluation.message(
+                    "FileDate", "nffil", Expression("FileDate", path, timetype)
+                )
             return
 
         if timetype is None:
-            time_type = 'Modification'
+            time_type = "Modification"
         else:
             time_type = timetype.to_python()[1:-1]
 
-        if time_type == 'Access':
-            result = os.path.getatime(py_path)
-        elif time_type == 'Creation':
-            if os.name == 'posix':
-                return Expression('Missing', 'NotApplicable')
-            result = os.path.getctime(py_path)
-        elif time_type == 'Change':
-            if os.name != 'posix':
-                return Expression('Missing', 'NotApplicable')
-            result = os.path.getctime(py_path)
-        elif time_type == 'Modification':
-            result = os.path.getmtime(py_path)
+        if time_type == "Access":
+            result = osp.getatime(py_path)
+        elif time_type == "Creation":
+            if os.name == "posix":
+                return Expression("Missing", "NotApplicable")
+            result = osp.getctime(py_path)
+        elif time_type == "Change":
+            if os.name != "posix":
+                return Expression("Missing", "NotApplicable")
+            result = osp.getctime(py_path)
+        elif time_type == "Modification":
+            result = osp.getmtime(py_path)
         else:
-            evaluation.message('FileDate', 'datetype')
+            evaluation.message("FileDate", "datetype")
             return
 
         # Offset for system epoch
-        epochtime = Expression('AbsoluteTime', time.strftime(
-            "%Y-%m-%d %H:%M",
-            time.gmtime(0))).to_python(n_evaluation=evaluation)
+        epochtime = Expression(
+            "AbsoluteTime", time.strftime("%Y-%m-%d %H:%M", time.gmtime(0))
+        ).to_python(n_evaluation=evaluation)
         result += epochtime
 
-        return Expression('DateList', from_python(result))
+        return Expression("DateList", from_python(result))
 
     def apply_default(self, path, evaluation):
-        'FileDate[path_]'
+        "FileDate[path_]"
         return self.apply(path, None, evaluation)
 
 
@@ -3874,14 +3984,14 @@ class SetFileDate(Builtin):
     >> tmpfilename = $TemporaryDirectory <> "/tmp0";
     >> Close[OpenWrite[tmpfilename]];
 
-    >> SetFileDate[tmpfilename, {2000, 1, 1, 0, 0, 0.}, "Access"];
+    >> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}, "Access"];
 
     >> FileDate[tmpfilename, "Access"]
-     = {2000, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
-    #> SetFileDate[tmpfilename, {2001, 1, 1, 0, 0, 0.}];
+    #> SetFileDate[tmpfilename, {2002, 1, 1, 0, 0, 0.}];
     #> FileDate[tmpfilename, "Access"]
-     = {2001, 1, 1, 0, 0, 0.}
+     = {2002, 1, 1, 0, 0, 0.}
 
     #> SetFileDate[tmpfilename]
     #> FileDate[tmpfilename, "Access"]
@@ -3895,65 +4005,77 @@ class SetFileDate(Builtin):
     """
 
     messages = {
-        'fstr': ('File specification `1` is not a string of one or '
-                 'more characters.'),
-        'nffil': 'File not found during `1`.',
-        'fdate': ('Date specification should be either the number of seconds '
-                  'since January 1, 1900 or a {y, m, d, h, m, s} list.'),
-        'datetype': ('Date type a should be "Access", "Modification", '
-                     '"Creation" (Windows only), or All.'),
-        'nocreationunix': ('The Creation date of a file cannot be set on '
-                           'Macintosh or Unix.'),
+        "fstr": (
+            "File specification `1` is not a string of one or " "more characters."
+        ),
+        "nffil": "File not found during `1`.",
+        "fdate": (
+            "Date specification should be either the number of seconds "
+            "since January 1, 1900 or a {y, m, d, h, m, s} list."
+        ),
+        "datetype": (
+            'Date type a should be "Access", "Modification", '
+            '"Creation" (Windows only), or All.'
+        ),
+        "nocreationunix": (
+            "The Creation date of a file cannot be set on " "Macintosh or Unix."
+        ),
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, filename, datelist, attribute, evaluation):
-        'SetFileDate[filename_, datelist_, attribute_]'
+        "SetFileDate[filename_, datelist_, attribute_]"
 
         py_filename = filename.to_python()
 
         if datelist is None:
-            py_datelist = Expression(
-                'DateList').evaluate(evaluation).to_python()
-            expr = Expression('SetFileDate', filename)
+            py_datelist = Expression("DateList").evaluate(evaluation).to_python()
+            expr = Expression("SetFileDate", filename)
         else:
             py_datelist = datelist.to_python()
 
         if attribute is None:
-            py_attr = 'All'
+            py_attr = "All"
             if datelist is not None:
-                expr = Expression('SetFileDate', filename, datelist)
+                expr = Expression("SetFileDate", filename, datelist)
         else:
             py_attr = attribute.to_python()
-            expr = Expression('SetFileDate', filename, datelist, attribute)
+            expr = Expression("SetFileDate", filename, datelist, attribute)
 
         # Check filename
-        if not (isinstance(py_filename, str) and
-                py_filename[0] == py_filename[-1] == '"'):
-            evaluation.message('SetFileDate', 'fstr', filename)
+        if not (
+            isinstance(py_filename, str) and py_filename[0] == py_filename[-1] == '"'
+        ):
+            evaluation.message("SetFileDate", "fstr", filename)
             return
         py_filename = path_search(py_filename[1:-1])
 
         if py_filename is None:
-            evaluation.message('SetFileDate', 'nffil', expr)
-            return Symbol('$Failed')
+            evaluation.message("SetFileDate", "nffil", expr)
+            return SymbolFailed
 
         # Check datelist
-        if not (isinstance(py_datelist, list) and len(py_datelist) == 6 and
-                all(isinstance(d, int) for d in py_datelist[:-1]) and
-                isinstance(py_datelist[-1], float)):
-            evaluation.message('SetFileDate', 'fdate', expr)
+        if not (
+            isinstance(py_datelist, list)
+            and len(py_datelist) == 6
+            and all(isinstance(d, int) for d in py_datelist[:-1])
+            and isinstance(py_datelist[-1], float)
+        ):
+            evaluation.message("SetFileDate", "fdate", expr)
 
         # Check attribute
-        if py_attr not in ['"Access"', '"Creation"', '"Modification"', 'All']:
-            evaluation.message('SetFileDate', 'datetype')
+        if py_attr not in ['"Access"', '"Creation"', '"Modification"', "All"]:
+            evaluation.message("SetFileDate", "datetype")
             return
 
-        epochtime = Expression('AbsoluteTime', time.strftime(
-            "%Y-%m-%d %H:%M", time.gmtime(0))).evaluate(evaluation).to_python()
+        epochtime = (
+            Expression("AbsoluteTime", time.strftime("%Y-%m-%d %H:%M", time.gmtime(0)))
+            .evaluate(evaluation)
+            .to_python()
+        )
 
-        stattime = Expression('AbsoluteTime', from_python(py_datelist))
+        stattime = Expression("AbsoluteTime", from_python(py_datelist))
         stattime = stattime.to_python(n_evaluation=evaluation)
 
         stattime -= epochtime
@@ -3961,33 +4083,31 @@ class SetFileDate(Builtin):
         try:
             os.stat(py_filename)
             if py_attr == '"Access"':
-                os.utime(py_filename, (
-                    stattime, os.path.getatime(py_filename)))
+                os.utime(py_filename, (stattime, osp.getatime(py_filename)))
             if py_attr == '"Creation"':
-                if os.name == 'posix':
-                    evaluation.message('SetFileDate', 'nocreationunix')
-                    return Symbol('$Failed')
+                if os.name == "posix":
+                    evaluation.message("SetFileDate", "nocreationunix")
+                    return SymbolFailed
                 else:
                     # TODO: Note: This is windows only
-                    return Symbol('$Failed')
+                    return SymbolFailed
             if py_attr == '"Modification"':
-                os.utime(py_filename, (os.path.getatime(
-                    py_filename), stattime))
-            if py_attr == 'All':
+                os.utime(py_filename, (osp.getatime(py_filename), stattime))
+            if py_attr == "All":
                 os.utime(py_filename, (stattime, stattime))
         except OSError as e:
             print(e)
             # evaluation.message(...)
-            return Symbol('$Failed')
+            return SymbolFailed
 
-        return Symbol('Null')
+        return SymbolNull
 
     def apply_1arg(self, filename, evaluation):
-        'SetFileDate[filename_]'
+        "SetFileDate[filename_]"
         return self.apply(filename, None, None, evaluation)
 
     def apply_2arg(self, filename, datelist, evaluation):
-        'SetFileDate[filename_, datelist_]'
+        "SetFileDate[filename_, datelist_]"
         return self.apply(filename, datelist, None, evaluation)
 
 
@@ -3998,34 +4118,33 @@ class CopyFile(Builtin):
       <dd>copies $file1$ to $file2$.
     </dl>
 
-    >> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
+    X> CopyFile["ExampleData/sunflowers.jpg", "MathicsSunflowers.jpg"]
      = MathicsSunflowers.jpg
-    >> DeleteFile["MathicsSunflowers.jpg"]
+    X> DeleteFile["MathicsSunflowers.jpg"]
     """
 
     messages = {
-        'filex': 'Cannot overwrite existing file `1`.',
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'nffil': 'File not found during `1`.',
+        "filex": "Cannot overwrite existing file `1`.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "nffil": "File not found during `1`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, source, dest, evaluation):
-        'CopyFile[source_, dest_]'
+        "CopyFile[source_, dest_]"
 
         py_source = source.to_python()
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, str) and
-                py_source[0] == py_source[-1] == '"'):
-            evaluation.message('CopyFile', 'fstr', source)
+        if not (isinstance(py_source, str) and py_source[0] == py_source[-1] == '"'):
+            evaluation.message("CopyFile", "fstr", source)
             return
-        if not (isinstance(py_dest, str) and
-                py_dest[0] == py_dest[-1] == '"'):
-            evaluation.message('CopyFile', 'fstr', dest)
+        if not (isinstance(py_dest, str) and py_dest[0] == py_dest[-1] == '"'):
+            evaluation.message("CopyFile", "fstr", dest)
             return
 
         py_source = py_source[1:-1]
@@ -4034,19 +4153,20 @@ class CopyFile(Builtin):
         py_source = path_search(py_source)
 
         if py_source is None:
-            evaluation.message('CopyFile', 'filex', source)
-            return Symbol('$Failed')
+            evaluation.message("CopyFile", "filex", source)
+            return SymbolFailed
 
-        if os.path.exists(py_dest):
-            evaluation.message('CopyFile', 'filex', dest)
-            return Symbol('$Failed')
+        if osp.exists(py_dest):
+            evaluation.message("CopyFile", "filex", dest)
+            return SymbolFailed
 
         try:
             shutil.copy(py_source, py_dest)
         except IOError:
-            evaluation.message('CopyFile', 'nffil', Expression(
-                'CopyFile', source, dest))
-            return Symbol('$Failed')
+            evaluation.message(
+                "CopyFile", "nffil", Expression("CopyFile", source, dest)
+            )
+            return SymbolFailed
 
         return dest
 
@@ -4066,28 +4186,27 @@ class RenameFile(Builtin):
     """
 
     messages = {
-        'filex': 'Cannot overwrite existing file `1`.',
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'nffil': 'File not found during `1`.',
+        "filex": "Cannot overwrite existing file `1`.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "nffil": "File not found during `1`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, source, dest, evaluation):
-        'RenameFile[source_, dest_]'
+        "RenameFile[source_, dest_]"
 
         py_source = source.to_python()
         py_dest = dest.to_python()
 
         # Check filenames
-        if not (isinstance(py_source, str) and
-                py_source[0] == py_source[-1] == '"'):
-            evaluation.message('RenameFile', 'fstr', source)
+        if not (isinstance(py_source, str) and py_source[0] == py_source[-1] == '"'):
+            evaluation.message("RenameFile", "fstr", source)
             return
-        if not (isinstance(py_dest, str) and
-                py_dest[0] == py_dest[-1] == '"'):
-            evaluation.message('RenameFile', 'fstr', dest)
+        if not (isinstance(py_dest, str) and py_dest[0] == py_dest[-1] == '"'):
+            evaluation.message("RenameFile", "fstr", dest)
             return
 
         py_source = py_source[1:-1]
@@ -4096,18 +4215,18 @@ class RenameFile(Builtin):
         py_source = path_search(py_source)
 
         if py_source is None:
-            evaluation.message('RenameFile', 'filex', source)
-            return Symbol('$Failed')
+            evaluation.message("RenameFile", "filex", source)
+            return SymbolFailed
 
-        if os.path.exists(py_dest):
-            evaluation.message('RenameFile', 'filex', dest)
-            return Symbol('$Failed')
+        if osp.exists(py_dest):
+            evaluation.message("RenameFile", "filex", dest)
+            return SymbolFailed
 
         try:
             shutil.move(py_source, py_dest)
         except IOError:
-            evaluation.message('RenameFile', 'nffil', dest)
-            return Symbol('$Failed')
+            evaluation.message("RenameFile", "nffil", dest)
+            return SymbolFailed
 
         return dest
 
@@ -4130,16 +4249,17 @@ class DeleteFile(Builtin):
     """
 
     messages = {
-        'filex': 'Cannot overwrite existing file `1`.',
-        'strs': ('String or non-empty list of strings expected at '
-                 'position `1` in `2`.'),
-        'nffil': 'File not found during `1`.',
+        "filex": "Cannot overwrite existing file `1`.",
+        "strs": (
+            "String or non-empty list of strings expected at " "position `1` in `2`."
+        ),
+        "nffil": "File not found during `1`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, filename, evaluation):
-        'DeleteFile[filename_]'
+        "DeleteFile[filename_]"
 
         py_path = filename.to_python()
         if not isinstance(py_path, list):
@@ -4148,28 +4268,30 @@ class DeleteFile(Builtin):
         py_paths = []
         for path in py_path:
             # Check filenames
-            if not (isinstance(path, str) and
-                    path[0] == path[-1] == '"'):
-                evaluation.message('DeleteFile', 'strs', filename,
-                                   Expression('DeleteFile', filename))
+            if not (isinstance(path, str) and path[0] == path[-1] == '"'):
+                evaluation.message(
+                    "DeleteFile", "strs", filename, Expression("DeleteFile", filename)
+                )
                 return
 
             path = path[1:-1]
             path = path_search(path)
 
             if path is None:
-                evaluation.message('DeleteFile', 'nffil', Expression(
-                    'DeleteFile', filename))
-                return Symbol('$Failed')
+                evaluation.message(
+
+                    "DeleteFile", "nffil", Expression("DeleteFile", filename)
+                )
+                return SymbolFailed
             py_paths.append(path)
 
         for path in py_paths:
             try:
                 os.remove(path)
             except OSError:
-                return Symbol('$Failed')
+                return SymbolFailed
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class DirectoryStack(Builtin):
@@ -4183,10 +4305,10 @@ class DirectoryStack(Builtin):
     = ...
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, evaluation):
-        'DirectoryStack[]'
+        "DirectoryStack[]"
         global DIRECTORY_STACK
         return from_python(DIRECTORY_STACK)
 
@@ -4202,10 +4324,10 @@ class Directory(Builtin):
     = ...
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, evaluation):
-        'Directory[]'
+        "Directory[]"
         result = os.getcwd()
         return String(result)
 
@@ -4224,31 +4346,32 @@ class ParentDirectory(Builtin):
     """
 
     rules = {
-        'ParentDirectory[]': 'ParentDirectory[Directory[]]',
+        "ParentDirectory[]": "ParentDirectory[Directory[]]",
     }
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, path, evaluation):
-        'ParentDirectory[path_]'
+        "ParentDirectory[path_]"
 
         if not isinstance(path, String):
-            evaluation.message('ParentDirectory', 'fstr', path)
+            evaluation.message("ParentDirectory", "fstr", path)
             return
 
         pypath = path.to_python()[1:-1]
 
-        result = os.path.abspath(os.path.join(pypath, os.path.pardir))
+        result = osp.abspath(osp.join(pypath, osp.pardir))
         return String(result)
 
 
 class File(Builtin):
-    attributes = ('Protected')
+    attributes = "Protected"
 
 
 class SetDirectory(Builtin):
@@ -4258,7 +4381,7 @@ class SetDirectory(Builtin):
       <dd>sets the current working directory to $dir$.
     </dl>
 
-    >> SetDirectory[]
+    S> SetDirectory[]
     = ...
 
     #> SetDirectory["MathicsNonExample"]
@@ -4267,32 +4390,36 @@ class SetDirectory(Builtin):
     """
 
     rules = {
-        'SetDirectory[]': 'SetDirectory[$HomeDirectory]',
+        "SetDirectory[]": "SetDirectory[$HomeDirectory]",
     }
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'cdir': 'Cannot set current directory to `1`.',
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "cdir": "Cannot set current directory to `1`.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, path, evaluation):
-        'SetDirectory[path_]'
+        "SetDirectory[path_]"
 
         if not isinstance(path, String):
-            evaluation.message('SetDirectory', 'fstr', path)
+            evaluation.message("SetDirectory", "fstr", path)
             return
 
         py_path = path.__str__()[1:-1]
-        py_path = path_search(py_path)
 
-        if py_path is None:
-            evaluation.message('SetDirectory', 'cdir', path)
-            return Symbol('$Failed')
+        if py_path is None or not osp.isdir(py_path):
+            evaluation.message("SetDirectory", "cdir", path)
+            return SymbolFailed
 
-        os.chdir(py_path)
+        try:
+            os.chdir(py_path)
+        except:
+            return SymbolFailed
+
         DIRECTORY_STACK.append(os.getcwd())
         return String(os.getcwd())
 
@@ -4309,20 +4436,18 @@ class ResetDirectory(Builtin):
     """
 
     messages = {
-        'dtop': 'Directory stack is empty.',
+        "dtop": "Directory stack is empty.",
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, evaluation):
-        'ResetDirectory[]'
-        global DIRECTORY_STACK
-
+        "ResetDirectory[]"
         try:
             tmp = DIRECTORY_STACK.pop()
         except IndexError:
             tmp = os.getcwd()
-            evaluation.message('ResetDirectory', 'dtop')
+            evaluation.message("ResetDirectory", "dtop")
         else:
             os.chdir(tmp)
         return String(tmp)
@@ -4344,48 +4469,47 @@ class CreateDirectory(Builtin):
     #> DeleteDirectory[dir]
     """
 
-    attributes = ('Listable', 'Protected')
+    attributes = ("Listable", "Protected")
 
     options = {
-        'CreateIntermediateDirectories': 'True',
+        "CreateIntermediateDirectories": "True",
     }
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'nffil': "File not found during `1`.",
-        'filex': "`1` already exists.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "nffil": "File not found during `1`.",
+        "filex": "`1` already exists.",
     }
 
     def apply(self, dirname, evaluation, options):
-        'CreateDirectory[dirname_, OptionsPattern[CreateDirectory]]'
+        "CreateDirectory[dirname_, OptionsPattern[CreateDirectory]]"
 
-        expr = Expression('CreateDirectory', dirname)
+        expr = Expression("CreateDirectory", dirname)
         py_dirname = dirname.to_python()
 
-        if not (isinstance(py_dirname, str) and
-                py_dirname[0] == py_dirname[-1] == '"'):
-            evaluation.message('CreateDirectory', 'fstr', dirname)
+        if not (isinstance(py_dirname, str) and py_dirname[0] == py_dirname[-1] == '"'):
+            evaluation.message("CreateDirectory", "fstr", dirname)
             return
 
         py_dirname = py_dirname[1:-1]
 
-        if os.path.isdir(py_dirname):
-            evaluation.message(
-                'CreateDirectory', 'filex', os.path.abspath(py_dirname))
+        if osp.isdir(py_dirname):
+            evaluation.message("CreateDirectory", "filex", osp.abspath(py_dirname))
             return
 
         os.mkdir(py_dirname)
 
-        if not os.path.isdir(py_dirname):
-            evaluation.message('CreateDirectory', 'nffil', expr)
+        if not osp.isdir(py_dirname):
+            evaluation.message("CreateDirectory", "nffil", expr)
             return
 
-        return String(os.path.abspath(py_dirname))
+        return String(osp.abspath(py_dirname))
 
     def apply_empty(self, evaluation, options):
-        'CreateDirectory[OptionsPattern[CreateDirectory]]'
-        dirname = tempfile.mkdtemp(prefix='m', dir=TMP_DIR)
+        "CreateDirectory[OptionsPattern[CreateDirectory]]"
+        dirname = tempfile.mkdtemp(prefix="m", dir=TMP_DIR)
         return String(dirname)
 
 
@@ -4405,52 +4529,52 @@ class DeleteDirectory(Builtin):
      = $Failed
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'DeleteContents': 'False',
+        "DeleteContents": "False",
     }
 
     messages = {
-        'strs': ('String or non-empty list of strings expected at '
-                 'position 1 in `1`.'),
-        'nodir': 'Directory `1` not found.',
-        'dirne': 'Directory `1` not empty.',
-        'optx': 'Unknown option `1` in `2`',
-        'idcts': 'DeleteContents expects either True or False.',   # MMA Bug
+        "strs": (
+            "String or non-empty list of strings expected at " "position 1 in `1`."
+        ),
+        "nodir": "Directory `1` not found.",
+        "dirne": "Directory `1` not empty.",
+        "optx": "Unknown option `1` in `2`",
+        "idcts": "DeleteContents expects either True or False.",  # MMA Bug
     }
 
     def apply(self, dirname, evaluation, options):
-        'DeleteDirectory[dirname_, OptionsPattern[DeleteDirectory]]'
+        "DeleteDirectory[dirname_, OptionsPattern[DeleteDirectory]]"
 
-        expr = Expression('DeleteDirectory', dirname)
+        expr = Expression("DeleteDirectory", dirname)
         py_dirname = dirname.to_python()
 
-        delete_contents = options['System`DeleteContents'].to_python()
+        delete_contents = options["System`DeleteContents"].to_python()
         if delete_contents not in [True, False]:
-            evaluation.message('DeleteDirectory', 'idcts')
+            evaluation.message("DeleteDirectory", "idcts")
             return
 
-        if not (isinstance(py_dirname, str) and
-                py_dirname[0] == py_dirname[-1] == '"'):
-            evaluation.message('DeleteDirectory', 'strs', expr)
+        if not (isinstance(py_dirname, str) and py_dirname[0] == py_dirname[-1] == '"'):
+            evaluation.message("DeleteDirectory", "strs", expr)
             return
 
         py_dirname = py_dirname[1:-1]
 
-        if not os.path.isdir(py_dirname):
-            evaluation.message('DeleteDirectory', 'nodir', dirname)
-            return Symbol('$Failed')
+        if not osp.isdir(py_dirname):
+            evaluation.message("DeleteDirectory", "nodir", dirname)
+            return SymbolFailed
 
         if delete_contents:
             shutil.rmtree(py_dirname)
         else:
             if os.listdir(py_dirname) != []:
-                evaluation.message('DeleteDirectory', 'dirne', dirname)
-                return Symbol('$Failed')
+                evaluation.message("DeleteDirectory", "dirne", dirname)
+                return SymbolFailed
             os.rmdir(py_dirname)
 
-        return Symbol('Null')
+        return SymbolNull
 
 
 class CopyDirectory(Builtin):
@@ -4461,45 +4585,46 @@ class CopyDirectory(Builtin):
     </dl>
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'argr': 'called with `1` argument; 2 arguments are expected.',
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'filex': 'Cannot overwrite existing file `1`.',
-        'nodir': 'Directory `1` not found.',
+        "argr": "called with `1` argument; 2 arguments are expected.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "filex": "Cannot overwrite existing file `1`.",
+        "nodir": "Directory `1` not found.",
     }
 
     def apply(self, dirs, evaluation):
-        'CopyDirectory[dirs__]'
+        "CopyDirectory[dirs__]"
 
         seq = dirs.get_sequence()
         if len(seq) != 2:
-            evaluation.message('CopyDirectory', 'argr', len(seq))
+            evaluation.message("CopyDirectory", "argr", len(seq))
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
         if not (isinstance(dir1, str) and dir1[0] == dir1[-1] == '"'):
-            evaluation.message('CopyDirectory', 'fstr', seq[0])
+            evaluation.message("CopyDirectory", "fstr", seq[0])
             return
         dir1 = dir1[1:-1]
 
         if not (isinstance(dir2, str) and dir2[0] == dir2[-1] == '"'):
-            evaluation.message('CopyDirectory', 'fstr', seq[1])
+            evaluation.message("CopyDirectory", "fstr", seq[1])
             return
         dir2 = dir2[1:-1]
 
-        if not os.path.isdir(dir1):
-            evaluation.message('CopyDirectory', 'nodir', seq[0])
-            return Symbol('$Failed')
-        if os.path.isdir(dir2):
-            evaluation.message('CopyDirectory', 'filex', seq[1])
-            return Symbol('$Failed')
+        if not osp.isdir(dir1):
+            evaluation.message("CopyDirectory", "nodir", seq[0])
+            return SymbolFailed
+        if osp.isdir(dir2):
+            evaluation.message("CopyDirectory", "filex", seq[1])
+            return SymbolFailed
 
         shutil.copytree(dir1, dir2)
 
-        return String(os.path.abspath(dir2))
+        return String(osp.abspath(dir2))
 
 
 class RenameDirectory(Builtin):
@@ -4510,52 +4635,53 @@ class RenameDirectory(Builtin):
     </dl>
     """
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     messages = {
-        'argr': 'called with `1` argument; 2 arguments are expected.',
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
-        'filex': 'Cannot overwrite existing file `1`.',
-        'nodir': 'Directory `1` not found.',
+        "argr": "called with `1` argument; 2 arguments are expected.",
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
+        "filex": "Cannot overwrite existing file `1`.",
+        "nodir": "Directory `1` not found.",
     }
 
     def apply(self, dirs, evaluation):
-        'RenameDirectory[dirs__]'
+        "RenameDirectory[dirs__]"
 
         seq = dirs.get_sequence()
         if len(seq) != 2:
-            evaluation.message('RenameDirectory', 'argr', len(seq))
+            evaluation.message("RenameDirectory", "argr", len(seq))
             return
         (dir1, dir2) = (s.to_python() for s in seq)
 
         if not (isinstance(dir1, str) and dir1[0] == dir1[-1] == '"'):
-            evaluation.message('RenameDirectory', 'fstr', seq[0])
+            evaluation.message("RenameDirectory", "fstr", seq[0])
             return
         dir1 = dir1[1:-1]
 
         if not (isinstance(dir2, str) and dir2[0] == dir2[-1] == '"'):
-            evaluation.message('RenameDirectory', 'fstr', seq[1])
+            evaluation.message("RenameDirectory", "fstr", seq[1])
             return
         dir2 = dir2[1:-1]
 
-        if not os.path.isdir(dir1):
-            evaluation.message('RenameDirectory', 'nodir', seq[0])
-            return Symbol('$Failed')
-        if os.path.isdir(dir2):
-            evaluation.message('RenameDirectory', 'filex', seq[1])
-            return Symbol('$Failed')
+        if not osp.isdir(dir1):
+            evaluation.message("RenameDirectory", "nodir", seq[0])
+            return SymbolFailed
+        if osp.isdir(dir2):
+            evaluation.message("RenameDirectory", "filex", seq[1])
+            return SymbolFailed
 
         shutil.move(dir1, dir2)
 
-        return String(os.path.abspath(dir2))
+        return String(osp.abspath(dir2))
 
 
 class FileType(Builtin):
     """
     <dl>
     <dt>'FileType["$file$"]'
-      <dd>returns the type of a file, from 'File', 'Directory' or 'None'.
+      <dd>gives the type of a file, a string. This is typically 'File', 'Directory' or 'None'.
     </dl>
 
     >> FileType["ExampleData/sunflowers.jpg"]
@@ -4571,28 +4697,29 @@ class FileType(Builtin):
     """
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, filename, evaluation):
-        'FileType[filename_]'
+        "FileType[filename_]"
         if not isinstance(filename, String):
-            evaluation.message('FileType', 'fstr', filename)
+            evaluation.message("FileType", "fstr", filename)
             return
         path = filename.to_python()[1:-1]
 
         path = path_search(path)
 
         if path is None:
-            return Symbol('None')
+            return Symbol("None")
 
-        if os.path.isfile(path):
-            return Symbol('File')
+        if osp.isfile(path):
+            return Symbol("File")
         else:
-            return Symbol('Directory')
+            return Symbol("Directory")
 
 
 class FileExistsQ(Builtin):
@@ -4609,25 +4736,26 @@ class FileExistsQ(Builtin):
     """
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, filename, evaluation):
-        'FileExistsQ[filename_]'
+        "FileExistsQ[filename_]"
         path = filename.to_python()
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
-            evaluation.message('FileExistsQ', 'fstr', filename)
+            evaluation.message("FileExistsQ", "fstr", filename)
             return
         path = path[1:-1]
 
         path = path_search(path)
 
         if path is None:
-            return Symbol('False')
-        return Symbol('True')
+            return SymbolFalse
+        return SymbolTrue
 
 
 class DirectoryQ(Builtin):
@@ -4650,26 +4778,27 @@ class DirectoryQ(Builtin):
     """
 
     messages = {
-        'fstr': ('File specification `1` is not a string of '
-                 'one or more characters.'),
+        "fstr": (
+            "File specification `1` is not a string of " "one or more characters."
+        ),
     }
 
-    attributes = ('Protected')
+    attributes = "Protected"
 
     def apply(self, pathname, evaluation):
-        'DirectoryQ[pathname_]'
+        "DirectoryQ[pathname_]"
         path = pathname.to_python()
 
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
-            evaluation.message('DirectoryQ', 'fstr', pathname)
+            evaluation.message("DirectoryQ", "fstr", pathname)
             return
         path = path[1:-1]
 
         path = path_search(path)
 
-        if path is not None and os.path.isdir(path):
-            return Symbol('True')
-        return Symbol('False')
+        if path is not None and osp.isdir(path):
+            return SymbolTrue
+        return SymbolFalse
 
 
 class Needs(Builtin):
@@ -4774,29 +4903,244 @@ class Needs(Builtin):
     """
 
     messages = {
-        'ctx': ('Invalid context specified at position `2` in `1`. '
-                'A context must consist of valid symbol names separated by '
-                'and ending with `3`.'),
-        'nocont': 'Context `1` was not created when Needs was evaluated.',
+        "ctx": (
+            "Invalid context specified at position `2` in `1`. "
+            "A context must consist of valid symbol names separated by "
+            "and ending with `3`."
+        ),
+        "nocont": "Context `1` was not created when Needs was evaluated.",
     }
 
     def apply(self, context, evaluation):
         'Needs[context_String]'
-
-        if not valid_context_name(context.get_string_value()):
+        contextstr = context.get_string_value()
+        if contextstr == "":
+            return SymbolNull
+        if contextstr[0]=="`":
+            curr_ctxt = evaluation.definitions.get_current_context()
+            contextstr = curr_ctxt + contextstr[1:]
+            context = String(contextstr)
+        if not valid_context_name(contextstr):
             evaluation.message('Needs', 'ctx', Expression(
                 'Needs', context), 1, '`')
             return
-
-        # TODO
-        # if Expression('MemberQ', context, Symbol('$Packages')).is_true():
-        #    # Already loaded
-        #    return Symbol('Null')
-
+        test_loaded = Expression("MemberQ", Symbol("$Packages"), context)
+        test_loaded = test_loaded.evaluate(evaluation)
+        if test_loaded.is_true():
+            # Already loaded
+            return SymbolNull
         result = Expression('Get', context).evaluate(evaluation)
 
-        if result == Symbol('$Failed'):
-            evaluation.message('Needs', 'nocont', context)
-            return Symbol('$Failed')
+        if result == SymbolFailed:
+            evaluation.message("Needs", "nocont", context)
+            return SymbolFailed
 
-        return Symbol('Null')
+        return SymbolNull
+
+
+class URLSave(Builtin):
+    """
+    <dl>
+    <dt>'URLSave["url"]'
+        <dd>Save "url" in a temporary file.
+    <dt>'URLSave["url", $filename$]'
+        <dd>Save "url" in $filename$.
+    </dl>
+    """
+    messages = {"invfile": '`1` is not a valid Filename',
+                "invhttp": '`1` is not a valid URL'
+                }
+    def apply_1(self, url, evaluation, **options):
+        'URLSave[url_String, OptionsPattern[URLSave]]'
+        return self.apply_2(url, None, evaluation, **options)
+
+    def apply_2(self, url, filename, evaluation, **options):
+        'URLSave[url_String, filename_, OptionsPattern[URLSave]]'
+        url = url.value
+        if filename is None:
+            result = urlsave_tmp(url, None, **options)
+        elif filename.get_head_name()=="String":
+            filename = filename.value
+            result = urlsave_tmp(url, filename, **options)
+        else:
+            evaluation.message("URLSave", "invfile", filename)
+            return SymbolFailed
+        if result is None:
+            return SymbolFailed
+        return String(result)
+
+
+class CreateFile(Builtin):
+    """
+    <dl>
+    <dt>'CreateFile["filename"]'
+        <dd>Creates a file named "filename" temporary file, but do not open it.
+    <dt>'CreateFile[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    rules = {'CreateFile[]':'CreateTemporary[]',}
+    options = {'CreateIntermediateDirectories': 'True',
+               'OverwriteTarget': 'True',
+    }
+
+    def apply_1(self, filename, evaluation, **options):
+        'CreateFile[filename_String, OptionsPattern[CreateFile]]'
+        try:
+            # TODO: Implement options
+            if not osp.isfile(filename.value):
+                f = open(filename.value, "w")
+                res = f.name
+                f.close()
+                return String(res)
+            else:
+                return filename
+        except:
+            return SymbolFailed
+
+class CreateTemporary(Builtin):
+    """
+    <dl>
+    <dt>'CreateTemporary[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    def apply_0(self, evaluation):
+        'CreateTemporary[]'
+        try:
+            res = create_temporary_file()
+        except:
+            return SymbolFailed
+        return String(res)
+
+
+class FileNames(Builtin):
+    r"""
+    <dl>
+    <dt>'FileNames[]'
+        <dd>Returns a list with the filenames in the current working folder.
+    <dt>'FileNames[$form$]'
+        <dd>Returns a list with the filenames in the current working folder that matches with $form$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$}]'
+        <dd>Returns a list with the filenames in the current working folder that matches with one of $form_1$, $form_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$forms$, $dirs$, $n$]'
+        <dd>Look for files up to the level $n$.
+    </dl>
+
+    >> SetDirectory[$InstallationDirectory <> "/autoload"];
+    >> FileNames["*.m", "formats"]//Length
+     = 0
+    >> FileNames["*.m", "formats", 3]//Length
+     = 12
+    >> FileNames["*.m", "formats", Infinity]//Length
+     = 12
+    """
+    # >> FileNames[]//Length
+    #  = 2
+    fmtmaps = {Symbol("System`All"): "*" }
+    options = {"IgnoreCase": "Automatic",}
+
+    messages = {
+        "nofmtstr" : "`1` is not a format or a list of formats.",
+        "nodirstr" : "`1` is not a directory name  or a list of directory names.",
+        "badn" : "`1` is not an integer number.",
+    }
+
+    def apply_0(self, evaluation, **options):
+        '''FileNames[OptionsPattern[FileNames]]'''
+        return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_1(self, forms, evaluation, **options):
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_2(self, forms, paths, evaluation, **options):
+        '''FileNames[forms_, paths_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, paths, None,  evaluation, **options)
+
+    def apply_3(self, forms, paths, n, evaluation, **options):
+        '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
+        filenames = set()
+        # Building a list of forms
+        if forms.get_head_name() == "System`List":
+            str_forms = []
+            for p in forms._leaves:
+                if self.fmtmaps.get(p, None):
+                    str_forms.append(self.fmtmaps[p])
+                else:
+                    str_forms.append(p)
+        else:
+            str_forms = [self.fmtmaps[forms]
+                         if self.fmtmaps.get(forms, None)
+                         else forms]
+        # Building a list of directories
+        if paths.get_head_name() == "System`String":
+            str_paths = [paths.value]
+        elif paths.get_head_name() == "System`List":
+            str_paths = []
+            for p in paths._leaves:
+                if p.get_head_name() == "System`String":
+                    str_paths.append(p.value)
+                else:
+                    evaluation.message("FileNames", "nodirstr", paths)
+                    return
+        else:
+            evaluation.message("FileNames", "nodirstr", paths)
+            return
+
+        if n is not None:
+            if n.get_head_name() == "System`Integer":
+                n = n.get_int_value()
+            elif n.get_head_name() == "System`DirectedInfinity":
+                n = None
+            else:
+                print(n)
+                evaluation.message("FileNames", "badn",  n)
+                return
+        else:
+            n = 1
+
+        # list the files
+        if options.get('System`IgnoreCase', None) == SymbolTrue:
+            patterns = [re.compile("^" +
+                                   to_regex(p, evaluation,
+                                            abbreviated_patterns=True),
+                                   re.IGNORECASE)+"$"
+                        for p in str_forms]
+        else:
+            patterns = [re.compile("^" +
+                                   to_regex(p,
+                                            evaluation,
+                                            abbreviated_patterns=True) +
+                                   "$") for p in str_forms]
+
+        for path in str_paths:
+            if not osp.isdir(path):
+                continue
+            if n == 1:
+                for fn in os.listdir(path):
+                    fullname = osp.join(path, fn)
+                    for pattern in patterns:
+                        if pattern.match(fn):
+                            filenames.add(fullname)
+                            break
+            else:
+                pathlen = len(path)
+                for root, dirs, files in os.walk(path):
+                    # FIXME: This is an ugly and inefficient way
+                    # to avoid looking deeper than the level n, but I do not realize
+                    # how to do this better without a lot of code...
+                    if n is not None and len(root[pathlen:].split(osp.sep))>n:
+                        continue
+                    for fn in files+dirs:
+                        for pattern in patterns:
+                            if pattern.match(fn):
+                                filenames.add(osp.join(root,fn))
+                                break
+
+
+        return Expression("List", *[String(s) for s in filenames])

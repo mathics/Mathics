@@ -48,24 +48,6 @@ DOC_TEX_DATA = os.path.join(ROOT_DIR, 'doc/tex/data')
 DOC_XML_DATA = os.path.join(ROOT_DIR, 'doc/xml/data')
 DOC_LATEX_FILE = os.path.join(ROOT_DIR, 'doc/tex/documentation.tex')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': DATA_DIR + 'mathics.sqlite'
-    }
-}
-
-REQUIRE_LOGIN = False
-
-
-# if REQUIRE_LOGIN is True be sure to set up an email sender:
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'mathics'
-EMAIL_HOST_PASSWORD = ''
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-
-
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
@@ -108,34 +90,4 @@ SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 #    'django.template.loaders.app_directories.load_template_source',
 # )
 
-MIDDLEWARE_CLASSES = (
-    'django.middleware.common.CommonMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-)
 
-ROOT_URLCONF = 'mathics.urls'
-
-default_pymathics_modules = ["pymathics.natlang",]
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [ os.path.join(ROOT_DIR, 'web/templates/') ],
-        'OPTIONS': {
-            'debug': DEBUG,
-        }
-    }
-]
-
-AUTHENTICATION_BACKENDS = (
-    'mathics.web.authentication.EmailModelBackend',
-)
-
-INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.sites',
-    'mathics.web',
-)

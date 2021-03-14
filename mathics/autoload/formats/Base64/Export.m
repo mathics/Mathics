@@ -11,7 +11,7 @@ B64Export[filename_, expr_, OptionsPattern[]] :=
     strm = OpenWrite[filename];
     If[strm === $Failed, Return[$Failed]];
     data = B64Encode[expr];
-    WriteString[strm, data];    
+    WriteString[strm, data];
     Close[strm];
   ]
 
@@ -21,7 +21,7 @@ ImportExport`RegisterExport[
 	FunctionChannels -> {"FileNames"},
 	Options -> {"CharacterEncoding", "ByteOrderMark"},
 	DefaultElement -> "Plaintext",
-	BinaryFormat -> True
+	BinaryFormat -> False
 ]
 
 

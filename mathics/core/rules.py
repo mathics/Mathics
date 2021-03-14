@@ -7,6 +7,8 @@ from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
 from mathics.core.util import function_arguments
 
+from itertools import chain
+
 class StopGenerator_BaseRule(StopGenerator):
     pass
 
@@ -39,13 +41,13 @@ class BaseRule(KeyComparable):
             if new_expression is None:
                 new_expression = expression
             if rest[0] or rest[1]:
-                result = Expression(expression.get_head(), *(
-                    rest[0] + [new_expression] + rest[1]))
+                result = Expression(expression.get_head(), *list(
+                    chain(rest[0], [new_expression], rest[1])))
             else:
                 result = new_expression
 
             # Flatten out sequences (important for Rule itself!)
-            result = result.flatten_pattern_sequence()
+            result = result.flatten_pattern_sequence(evaluation)
             if return_list:
                 result_list.append(result)
                 # count += 1
@@ -86,16 +88,15 @@ class Rule(BaseRule):
         # options' values. this is achieved through Expression.evaluate(), which then triggers OptionValue.apply,
         # which in turn consults evaluation.options to return an option value.
 
-        # in order to get there, our expression 'new' (or parts of it) must have last_evaluated None, since this
-        # would make Expression.evaluate() quit early. doing a clean deep copy here, will reset
-        # Expression.last_evaluated for all nodes in the tree.
+        # in order to get there, we copy 'new' using copy(reevaluate=True), as this will ensure that the whole thing
+        # will get reevaluated.
 
         # if the expression contains OptionValue[] patterns, but options is empty here, we don't need to act, as the
         # expression won't change in that case. the Expression.options would be None anyway, so OptionValue.apply
         # would just return the unchanged expression (which is what we have already).
 
         if options:
-            new = new.copy()
+            new = new.copy(reevaluate=True)
 
         return new
 

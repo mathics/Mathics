@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 r"""
@@ -8,9 +7,10 @@ There are several builtin-attributes which have a predefined meaning in \Mathics
 However, you can set any symbol as an attribute, in contrast to \Mathematica.
 """
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Predefined, Builtin
-from mathics.core.expression import Symbol, Expression
+from mathics.core.expression import Expression, Symbol, SymbolNull, String
 from mathics.builtin.assignment import get_symbol_list
 
 
@@ -45,23 +45,23 @@ class Attributes(Builtin):
      = {Listable}
     """
 
-    attributes = ('HoldAll', 'Listable')
+    attributes = ("HoldAll", "Listable")
 
     def apply(self, expr, evaluation):
-        'Attributes[expr_]'
+        "Attributes[expr_]"
 
         name = expr.get_lookup_name()
         attributes = list(evaluation.definitions.get_attributes(name))
         attributes.sort()
         attr = [Symbol(attribute) for attribute in attributes]
-        return Expression('List', *attr)
+        return Expression("List", *attr)
 
 
 class SetAttributes(Builtin):
     """
     <dl>
     <dt>'SetAttributes'[$symbol$, $attrib$]
-        <dd>adds $attrib$ to $symbol$'s attributes.
+        <dd>adds $attrib$ to the list of $symbol$'s attributes.
     </dl>
 
     >> SetAttributes[f, Flat]
@@ -74,26 +74,28 @@ class SetAttributes(Builtin):
      = {Flat, Orderless}
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     def apply(self, symbols, attributes, evaluation):
-        'SetAttributes[symbols_, attributes_]'
+        "SetAttributes[symbols_, attributes_]"
 
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
-            'SetAttributes', 'sym', item, 1))
+        symbols = get_symbol_list(
+            symbols, lambda item: evaluation.message("SetAttributes", "sym", item, 1)
+        )
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message(
-            'SetAttributes', 'sym', item, 2))
+        values = get_symbol_list(
+            attributes, lambda item: evaluation.message("SetAttributes", "sym", item, 2)
+        )
         if values is None:
             return
         for symbol in symbols:
-            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('SetAttributes', 'locked', Symbol(symbol))
+            if "System`Locked" in evaluation.definitions.get_attributes(symbol):
+                evaluation.message("SetAttributes", "locked", Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.set_attribute(symbol, value)
-        return Symbol('Null')
+        return SymbolNull
 
 
 class ClearAttributes(Builtin):
@@ -115,33 +117,39 @@ class ClearAttributes(Builtin):
      = {}
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     def apply(self, symbols, attributes, evaluation):
-        'ClearAttributes[symbols_, attributes_]'
+        "ClearAttributes[symbols_, attributes_]"
 
-        symbols = get_symbol_list(symbols, lambda item: evaluation.message(
-            'ClearAttributes', 'sym', item, 1))
+        symbols = get_symbol_list(
+            symbols, lambda item: evaluation.message("ClearAttributes", "sym", item, 1)
+        )
         if symbols is None:
             return
-        values = get_symbol_list(attributes, lambda item: evaluation.message(
-            'ClearAttributes', 'sym', item, 2))
+        values = get_symbol_list(
+            attributes,
+            lambda item: evaluation.message("ClearAttributes", "sym", item, 2),
+        )
         if values is None:
             return
         for symbol in symbols:
-            if 'System`Locked' in evaluation.definitions.get_attributes(symbol):
-                evaluation.message('ClearAttributes', 'locked', Symbol(symbol))
+            if "System`Locked" in evaluation.definitions.get_attributes(symbol):
+                evaluation.message("ClearAttributes", "locked", Symbol(symbol))
             else:
                 for value in values:
                     evaluation.definitions.clear_attribute(symbol, value)
-        return Symbol('Null')
+        return SymbolNull
 
 
 class Protect(Builtin):
     """
     <dl>
-    <dt>'Protect'[$symbol$]
-        <dd>gives $symbol$ the attribute 'Protected'.
+      <dt>'Protect'[$s1$, $s2$, ...]
+      <dd>sets the attribute 'Protected' for the symbols $si$.
+
+      <dt>'Protect'[$str1$, $str2$, ...]
+      <dd>protects all symbols whose names textually match $stri$.
     </dl>
 
     >> A = {1, 2, 3};
@@ -152,26 +160,104 @@ class Protect(Builtin):
      = {1, 2, 3}
     """
 
-    attributes = ('HoldAll',)
-
-    rules = {
-        'Protect[symbols__]': 'SetAttributes[{symbols}, Protected]',
+    attributes = ("HoldAll",)
+    messages = {
+        "ssym": "`1` is not a symbol or a string.",
     }
+
+    def apply(self, symbols, evaluation):
+        "Protect[symbols___]"
+        protected = Symbol("System`Protected")
+        items = []
+
+        if isinstance(symbols, Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, String):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            if symbols.get_head_name() in ("System`Sequence", "System`List"):
+                symbols = symbols.get_leaves()
+            else:
+                evaluation.message("Protect", "ssym", symbols)
+                return SymbolNull
+
+        for symbol in symbols:
+            if isinstance(symbol, Symbol):
+                items.append(symbol)
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern or pattern == "":
+                    evaluation.message("Protect", "ssym", symbol)
+                    continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                names = evaluation.definitions.get_matching_names(pattern)
+                for defn in names:
+                    symbol = Symbol(defn)
+                    if not "System`Locked" in evaluation.definitions.get_attributes(
+                        defn
+                    ):
+                        items.append(symbol)
+
+        Expression("SetAttributes", Expression("List", *items), protected).evaluate(
+            evaluation
+        )
+        return SymbolNull
 
 
 class Unprotect(Builtin):
     """
     <dl>
-    <dt>'Unprotect'[$symbol$]
-        <dd>removes the 'Protected' attribute from $symbol$.
+      <dt>'Unprotect'[$s1$, $s2$, ...]
+      <dd>removes the attribute 'Protected' for the symbols $si$.
+
+      <dt>'Unprotect'[$str$]
+      <dd>unprotects symbols whose names textually match $str$.
     </dl>
     """
 
-    attributes = ('HoldAll',)
-
-    rules = {
-        'Unprotect[symbols__]': 'ClearAttributes[{symbols}, Protected]',
+    attributes = ("HoldAll",)
+    messages = {
+        "ssym": "`1` is not a symbol or a string.",
     }
+
+    def apply(self, symbols, evaluation):
+        "Unprotect[symbols___]"
+        protected = Symbol("System`Protected")
+        items = []
+        if isinstance(symbols, Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            symbols = symbols.get_leaves()
+        elif isinstance(symbols, String):
+            symbols = [symbols]
+        else:
+            symbols = symbols.get_sequence()
+
+        for symbol in symbols:
+            if isinstance(symbol, Symbol):
+                items.append(symbol)
+            else:
+                pattern = symbol.get_string_value()
+                if not pattern or pattern == "":
+                    evaluation.message("Unprotect", "ssym", symbol)
+                    continue
+
+                if pattern[0] == "`":
+                    pattern = evaluation.definitions.get_current_context() + pattern[1:]
+                names = evaluation.definitions.get_matching_names(pattern)
+                for defn in names:
+                    symbol = Symbol(defn)
+                    if not "System`Locked" in evaluation.definitions.get_attributes(
+                        defn
+                    ):
+                        items.append(symbol)
+
+        Expression("ClearAttributes", Expression("List", *items), protected).evaluate(
+            evaluation
+        )
+        return SymbolNull
 
 
 class Protected(Predefined):
@@ -305,11 +391,13 @@ class Flat(Predefined):
 
 
 class Orderless(Predefined):
-    """
-    <dl>
-    <dt>'Orderless'
-        <dd>is an attribute indicating that the leaves in an
-        expression 'f[a, b, c]' can be placed in any order.
+    """<dl>
+        <dt>'Orderless'
+        <dd>is an attribute that can be assigned to a symbol $f$ to
+        indicate that the elements $ei$ in expressions of the form
+        $f$[$e1$, $e2$, ...] should automatically be sorted into
+        canonical order. This property is accounted for in pattern
+        matching.
     </dl>
 
     The leaves of an 'Orderless' function are automatically sorted:
@@ -326,6 +414,7 @@ class Orderless(Predefined):
     >> SetAttributes[f, Flat]
     >> f[a, b, c] /. f[a, c] -> d
      = f[b, d]
+
     """
 
 
@@ -379,6 +468,9 @@ class HoldFirst(Predefined):
         <dd>is an attribute specifying that the first argument of a
         function should be left unevaluated.
     </dl>
+
+    >> Attributes[Set]
+     = {HoldFirst, Protected, SequenceHold}
     """
 
 
@@ -389,6 +481,9 @@ class HoldRest(Predefined):
         <dd>is an attribute specifying that all but the first argument
         of a function should be left unevaluated.
     </dl>
+
+    >> Attributes[If]
+     = {HoldRest, Protected}
     """
 
 
@@ -399,6 +494,9 @@ class HoldAll(Predefined):
         <dd>is an attribute specifying that all arguments of a
         function should be left unevaluated.
     </dl>
+
+    >> Attributes[Function]
+     = {HoldAll, Protected}
     """
 
 
