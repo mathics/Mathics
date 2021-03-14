@@ -162,8 +162,8 @@ class CompiledCode(Atom):
 
     def __str__(self):
         if type(self.cfunc) is FunctionType:
-            return '-PythonizedCode-'
-        return '-CompiledCode-'
+            return "-PythonizedCode-"
+        return "-CompiledCode-"
 
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
@@ -250,6 +250,6 @@ class CompiledFunction(Builtin):
         try:
             result = code.cfunc(*py_args)
         except (TypeError, ctypes.ArgumentError):
-            evaluation.message('CompiledFunction', 'argerr', args)
+            evaluation.message("CompiledFunction", "argerr", args)
             return
         return from_python(result)
