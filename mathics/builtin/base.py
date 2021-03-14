@@ -2,6 +2,7 @@
 
 import re
 import sympy
+import importlib
 
 from functools import total_ordering
 import pkgutil

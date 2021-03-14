@@ -90,7 +90,7 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "llvmlite",
     "requests",
-    'demandimport'
+    'demandimport',
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
     "PyYAML",  # Used in mathics.core.characters

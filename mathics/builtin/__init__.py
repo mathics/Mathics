@@ -208,8 +208,8 @@ def get_module_doc(module):
 def contribute(definitions):
     with Loader('contribute') as loader:
         # let MakeBoxes contribute first
-        builtins['System`MakeBoxes'].contribute(definitions)
-        for name, item in builtins.items():
+        _builtins['System`MakeBoxes'].contribute(definitions)
+        for name, item in _builtins.items():
             if name != 'System`MakeBoxes':
                 with loader(name):
                     item.contribute(definitions)
