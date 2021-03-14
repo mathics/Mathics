@@ -21,7 +21,7 @@ Enhancements
 * Automatic detection for the best strategy to numeric evaluation of constants.
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 * Mathics functions are accepted by ``Compile[]``. The return value or type will be
-  ``Compiled[]``  every expression ca have has a compiled form,
+  ``Compiled[] and CompiledFunction[]``  every expression can have a compiled form,
   as a Python function.
 * ``EqualQ[]`` now compares complex against other numbers properly.
 

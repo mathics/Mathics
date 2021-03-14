@@ -1,6 +1,5 @@
 import ctypes
 
-from llvmlite import ir
 from mathics.builtin.base import Builtin, BoxConstruct
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
@@ -43,7 +42,7 @@ class Compile(Builtin):
      : Duplicate parameter x found in {{x, _Real}, {x, _Integer}}.
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
-     = CompiledFunction[{x, y}, Sin[x + z], -PythonizedCode-]
+     = CompiledFunction[{x, y}, Sin[x + z], -CompiledCode-]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
     #> cf[1, 2]
@@ -62,7 +61,7 @@ class Compile(Builtin):
     Loops and variable assignments are supported as python (not llvmlite)
     functions
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
-     = CompiledFunction[{a, b}, a, -PythonizedCode-]
+     = CompiledFunction[{a, b}, a, -CompiledCode-]
     """
 
     requires = ("llvmlite",)
@@ -160,9 +159,6 @@ class CompiledCode(Atom):
 
     def __str__(self):
         return "-CompiledCode-"
-        if type(self.cfunc) is ir.FunctionType:
-            return "-PythonizedCode-"
-        return "-CompiledCode-"
 
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
@@ -195,19 +191,19 @@ class CompiledCodeBox(BoxConstruct):
     """
 
     def boxes_to_text(self, leaves=None, **options):
-        if leaves is None:
+        if not leaves:
             leaves = self._leaves
-        return leaves[0].value
+        return "-CompiledCode-"
 
     def boxes_to_xml(self, leaves=None, **options):
-        if leaves is None:
+        if not leaves:
             leaves = self._leaves
-        return leaves[0].value
+        return "-CompiledCode-"
 
     def boxes_to_tex(self, leaves=None, **options):
-        if leaves is None:
+        if not leaves:
             leaves = self._leaves
-        return leaves[0].value
+        return "-CompiledCode-"
 
 
 class CompiledFunction(Builtin):
