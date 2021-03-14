@@ -4,12 +4,10 @@ import glob
 import importlib
 import re
 import os.path as osp
-from mathics.settings import ENABLE_FILES_MODULE
+from mathics.settings import ENABLE_FILES_MODULE, BENCHMARK_STARTUP
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 
-
-import importlib
 from contextlib import contextmanager
 from demandimport import _demandmod as lazy_module
 
@@ -32,8 +30,6 @@ exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [
     f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
 ]
-
-from mathics.settings import ENABLE_FILES_MODULE, BENCHMARK_STARTUP
 
 if ENABLE_FILES_MODULE:
     module_names += ["files", "importexport"]
@@ -60,6 +56,7 @@ _builtins = []
 builtins_by_module = {}
 
 if BENCHMARK_STARTUP:
+
     class Loader:
         def __init__(self, section):
             self._benchmarks = []
@@ -69,21 +66,26 @@ if BENCHMARK_STARTUP:
             @contextmanager
             def load(name):
                 from time import time
+
                 t0 = time()
                 yield
                 t1 = time()
                 self._benchmarks.append((name, t1 - t0))
+
             return load
 
         def __exit__(self, type, value, tb):
             duration = sum(map(lambda rec: rec[1], self._benchmarks))
-            print('%s took %.1f s:' % (self._section, duration))
+            print("%s took %.1f s:" % (self._section, duration))
             self._benchmarks.sort(key=lambda rec: rec[1], reverse=True)
             for name, dt in self._benchmarks[:10]:
-                print('    %s %f' % (name, dt))
-            print('    ...')
+                print("    %s %f" % (name, dt))
+            print("    ...")
             print()
+
+
 else:
+
     @contextmanager
     def _load(name):
         yield
@@ -107,13 +109,12 @@ def is_builtin(var):
     return False
 
 
-
 def load_module(name):
     module = importlib.import_module("mathics.builtin.%s" % name)
     builtins_by_module[module.__name__] = []
     vars = dir(module)
     for name in vars:
-        if name.startswith('_'):
+        if name.startswith("_"):
             continue
 
         var = getattr(module, name)
@@ -140,10 +141,11 @@ def load_module(name):
 
 
 def load_modules():
-    with Loader('import') as loader:
+    with Loader("import") as loader:
         for name in module_names:
             with loader(name):
                 yield load_module(name)
+
 
 modules = list(load_modules())
 
@@ -206,11 +208,11 @@ def get_module_doc(module):
 
 
 def contribute(definitions):
-    with Loader('contribute') as loader:
+    with Loader("contribute") as loader:
         # let MakeBoxes contribute first
-        _builtins['System`MakeBoxes'].contribute(definitions)
+        _builtins["System`MakeBoxes"].contribute(definitions)
         for name, item in _builtins.items():
-            if name != 'System`MakeBoxes':
+            if name != "System`MakeBoxes":
                 with loader(name):
                     item.contribute(definitions)
 

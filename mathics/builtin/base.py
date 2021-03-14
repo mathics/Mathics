@@ -53,6 +53,7 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
 def has_option(options, name, evaluation):
     return get_option(options, name, evaluation, evaluate=False) is not None
 
+
 _package_available = {}
 
 
@@ -353,6 +354,7 @@ class Builtin(object):
             try:
                 importlib.import_module(package)
             except ImportError:
+
                 def apply(**kwargs):  # will override apply method
                     kwargs["evaluation"].message(
                         "General",
@@ -360,6 +362,7 @@ class Builtin(object):
                         strip_context(self.get_name()),
                         package,
                     )
+
                 return apply
 
         return None

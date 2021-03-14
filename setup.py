@@ -90,7 +90,7 @@ INSTALL_REQUIRES += [
     "python-dateutil",
     "llvmlite",
     "requests",
-    'demandimport',
+    "demandimport",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
     "PyYAML",  # Used in mathics.core.characters
@@ -140,11 +140,7 @@ setup(
         "mathics.builtin.pymimesniffer": ["mimetypes.xml"],
         "pymathics": ["doc/documentation/*.mdoc", "doc/xml/data"],
     },
-    entry_points={
-        "console_scripts": [
-            "mathics = mathics.main:main",
-        ],
-    },
+    entry_points={"console_scripts": ["mathics = mathics.main:main",],},
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # don't pack Mathics in egg because of media files, etc.
