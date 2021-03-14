@@ -18,7 +18,6 @@ from mathics.core.expression import (
     Integer,
     Real,
     String,
-    Symbol,
     SymbolFailed,
     strip_context,
 )
@@ -169,7 +168,7 @@ class MachineName(Predefined):
     name = "$MachineName"
 
     def evaluate(self, evaluation) -> String:
-        return String(os.uname().nodename)
+        return String(platform.uname().node)
 
 
 class MathicsVersion(Predefined):

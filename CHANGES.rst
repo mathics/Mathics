@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+<<<<<<< HEAD
 
 2.0.1
 -----
@@ -34,6 +35,35 @@ Pymathics Modules
 
 
 
+=======
+2.1.0
+-----
+
+  New builtins
+++++++++++++++
+
+* ``ByteArray``
+* ``FileNames``
+* ``CreateFile``
+* ``CreateTemporary``
+
+
+Enhancements
+++++++++++++
+
+* ``FileNameJoin`` - implement ``OperatingSystem`` option
+* Mathics functions are accepted by ``Compile[]``. The return value or type will be
+  ``CompiledFunction``
+* ``EqualQ[]`` now compares complex against other numbers properly.
+
+Miscellanea
++++++++++++
+
+* A pass was made to improve Microsoft Windows compatability and testing
+Windows under MSYS.
+* Include numpy version in version string. Show in CLI
+* Small CLI tweaks ``--colors=None`` added to match mathicsscript.
+>>>>>>> upstream/master
 
 2.0.0
 -----
@@ -113,7 +143,7 @@ Numerous bugs were fixed while working on Combinatorica V0.9 and CellsToTeX.
 Document updates
 ++++++++++++++++
 
-- Start a readthedocs `Developer Guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_
+- Start a readthedocs `Developer Guide <https://mathics-development-guide.reandthedocs.io/en/latest/>`_
 
 Enhancements and bug fixes:
 +++++++++++++++++++++++++++

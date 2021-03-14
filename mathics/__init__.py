@@ -5,6 +5,7 @@ import sys
 import platform
 import sympy
 import mpmath
+import numpy
 
 from mathics.version import __version__
 from mathics.core.expression import (
@@ -27,6 +28,7 @@ version_info = {
     "mathics": __version__,
     "sympy": sympy.__version__,
     "mpmath": mpmath.__version__,
+    "numpy": numpy.__version__,
     "python": platform.python_implementation() + " " + sys.version.split("\n")[0],
 }
 
@@ -40,7 +42,7 @@ else:
 
 version_string = """Mathics {mathics}
 on {python}
-using SymPy {sympy}, mpmath {mpmath}""".format(
+using SymPy {sympy}, mpmath {mpmath}, numpy {numpy}""".format(
     **version_info
 )
 
