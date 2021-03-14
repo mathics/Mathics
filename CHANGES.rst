@@ -17,16 +17,17 @@ Enhancements
 ++++++++++++
 
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
+* Mathics functions are accepted by ``Compile[]``. The return value or type will be
+  ``CompiledFunction``
+* ``EqualQ[]`` now compares complex against other numbers properly.
 
 Miscellanea
 +++++++++++
 
 * A pass was made to improve Microsoft Windows compatability and testing
 Windows under MSYS.
-
-* Mathics functions are accepted by ``Compile[]``. The return value or type will be
-  ``CompiledFunction``
-
+* Include numpy version in version string. Show in CLI
+* Small CLI tweaks ``--colors=None`` added to match mathicsscript.
 
 2.0.0
 -----
