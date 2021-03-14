@@ -83,11 +83,14 @@ class Function(PostfixOperator):
 
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message('Function', 'fpct')
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
     # Not sure if DRY is possible here...
     def apply_named_attr(self, vars, body, attr, args, evaluation):
@@ -99,12 +102,14 @@ class Function(PostfixOperator):
 
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message('Function', 'fpct')
         else:
             vars = dict(list(zip((
                 var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
-
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
 class Slot(Builtin):
     """
