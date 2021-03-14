@@ -1,5 +1,6 @@
 import ctypes
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, BoxConstruct
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
@@ -10,7 +11,7 @@ from mathics.core.expression import (
     from_python,
     Integer,
 )
-from mathics.version import __version__  # noqa used in loading to check consistency.
+from types import FunctionType
 
 
 class Compile(Builtin):
@@ -42,7 +43,7 @@ class Compile(Builtin):
      : Duplicate parameter x found in {{x, _Real}, {x, _Integer}}.
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
-     = CompiledFunction[{x, y}, Sin[x + z], -CompiledCode-]
+     = CompiledFunction[{x, y}, Sin[x + z], -PythonizedCode-]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
     #> cf[1, 2]
@@ -61,7 +62,7 @@ class Compile(Builtin):
     Loops and variable assignments are supported as python (not llvmlite)
     functions
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
-     = CompiledFunction[{a, b}, a, -CompiledCode-]
+     =  CompiledFunction[{a, b}, a, -PythonizedCode-]
     """
 
     requires = ("llvmlite",)
@@ -138,7 +139,7 @@ class Compile(Builtin):
 
                 # TODO: check if we can use numba to compile this...
                 cfunc = _pythonized_mathics_expr
-            except Exception as e:
+            except Exception:
                 cfunc = None
 
         if cfunc is None:
@@ -158,6 +159,8 @@ class CompiledCode(Atom):
         self.args = args
 
     def __str__(self):
+        if type(self.cfunc) is FunctionType:
+            return "-PythonizedCode-"
         return "-CompiledCode-"
 
     def do_copy(self):
@@ -182,7 +185,7 @@ class CompiledCode(Atom):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
-        return CompiledCodeBox(String("Nocode"), evaluation=evaluation)
+        return CompiledCodeBox(String(self.__str__()), evaluation=evaluation)
 
 
 class CompiledCodeBox(BoxConstruct):
@@ -191,19 +194,19 @@ class CompiledCodeBox(BoxConstruct):
     """
 
     def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_xml(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_tex(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
 
 class CompiledFunction(Builtin):
