@@ -16,6 +16,8 @@ from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolFalse, SymbolTrue, String, Integer,
                                      from_python, string_list)
 from mathics.builtin.lists import python_seq, convert_seq
+from mathics_scanner.characters import replace_wl_with_plain_text
+from mathics.settings import SYSTEM_CHARACTER_ENCODING
 
 
 _regex_longest = {
@@ -252,6 +254,20 @@ else:
 
     def unpack_bytes(codes):
         return unpack('B' * len(codes), codes)
+
+
+class SystemCharacterEncoding(Predefined):
+    """
+    <dl>
+    <dt>$SystemCharacterEncoding
+
+    </dl>
+    """
+    name = "$SystemCharacterEncoding"
+
+    rules = {
+        '$CharacterEncoding': SYSTEM_CHARACTER_ENCODING,
+    }
 
 
 class CharacterEncoding(Predefined):
@@ -1576,7 +1592,7 @@ class ToString(Builtin):
      = U2
     """
 
-    options = {'CharacterEncoding' : '"Unicode"',
+    options = { 'CharacterEncoding' : '"Unicode"',
                 'FormatType' : 'OutputForm',
                 'NumberMarks': '$NumberMarks',
                 'PageHeight' : 'Infinity',
@@ -1584,11 +1600,11 @@ class ToString(Builtin):
                 'TotalHeight' : 'Infinity',
                 'TotalWidth' : 'Infinity'}
 
-    def apply(self, value, evaluation):
-        'ToString[value_]'
-
+    def apply(self, value, evaluation, **options):
+        'ToString[value_, OptionsPattern[ToString]]'
+        encoding = options['options']["System`CharacterEncoding"]
         text = value.format(evaluation, 'System`OutputForm').boxes_to_text(
-            evaluation=evaluation)
+            evaluation=evaluation, encoding=encoding)
         return String(text)
 
 
