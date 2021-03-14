@@ -141,7 +141,7 @@ class Compile(Builtin):
 
                 # TODO: check if we can use numba to compile this...
                 cfunc = _pythonized_mathics_expr
-            except Exception as e:
+            except Exception:
                 cfunc = None
 
         if cfunc is None:
@@ -250,6 +250,5 @@ class CompiledFunction(Builtin):
         try:
             result = code.cfunc(*py_args)
         except (TypeError, ctypes.ArgumentError):
-            evaluation.message("CompiledFunction", "argerr", args)
-            return
+            return evaluation.message("CompiledFunction", "argerr", args)
         return from_python(result)
