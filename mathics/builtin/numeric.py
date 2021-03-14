@@ -467,7 +467,6 @@ class NIntegrate(Builtin):
         self.methods["Internal"] = (_internal_adaptative_simpsons_rule, False)
         try:
             from scipy.integrate import (romberg, quad, nquad)
-            print("Using scipy.integrate for numeric integration")
             self.methods["NQuadrature"] = (
                 _scipy_interface(nquad,
                                  {},
@@ -491,7 +490,6 @@ class NIntegrate(Builtin):
             )
             self.methods["Automatic"] = self.methods["Quadrature"]
         except Exception:
-            print("Scipy not available. Using internal integrator")
             self.methods["Automatic"] = self.methods["Internal"]
             self.methods["Simpson"] = self.methods["Internal"]
 
@@ -1841,9 +1839,7 @@ class Hash(Builtin):
         if py_format == "DecimalString":
             return from_python(str(res))
         elif py_format == "ByteArray":
-            print("Not implemented. Return a string")
-            return from_python(str(res))
-        # Default: Integer
+            return from_python(bytearray(res))
         return from_python(res)
 
     def apply(self, expr, hashtype, outformat, evaluation):
