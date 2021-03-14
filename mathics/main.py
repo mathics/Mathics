@@ -273,10 +273,6 @@ def main() -> int:
     if args.pyextensions:
         for ext in args.pyextensions:
             extension_modules.append(ext)
-    else:
-        from mathics.settings import default_pymathics_modules
-
-        extension_modules = default_pymathics_modules
 
     definitions = Definitions(add_builtin=True, extension_modules=extension_modules)
     definitions.set_line_no(0)
