@@ -5,26 +5,23 @@ from mathics import settings
 
 
 class MathicsSession:
-    def __init__(self, add_builtin=True, catch_interrupt=False, form="InputForm"):
+    def __init__(self, add_builtin=True, catch_interrupt=False, format="InputForm"):
         self.definitions = Definitions(add_builtin)
         self.evaluation = Evaluation(definitions=self.definitions, catch_interrupt=catch_interrupt)
-        self.form = form
+        self.format = format
         self.last_result = None
 
-    def evaluate(self, str_expression, timeout = None, form=None):
+    def raw_evaluation(self, str_expression, timeout = None, form=None):
         expr = parse(self.definitions, MathicsSingleLineFeeder(str_expression))
         if form is None:
             form = self.form
-        self.last_result = expr.evaluate(self.evaluation)
-        return self.last_result
+        return expr.evaluate(evaluation)
 
-    def format_result(self, str_expression=None, timeout=None, form=None):
-        if str_expression:
-            self.evaluate(str_expression, timeout = None, form=None)
-
-        res = self.last_result
-        if form is None:
-            form = self.form
-        return self.last_result.do_format(self.evaluation, form)
+    def evaluate(self, str_expression, timeout = None, format=None):
+        expr = parse(self.definitions, MathicsSingleLineFeeder(str_expression))
+        if format is None:
+            format = self.format
+        self.last_result = self.evaluation.evaluate(expr, timeout=timeout, format=format)
+        return self.last_result.result
 
 
