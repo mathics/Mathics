@@ -266,7 +266,7 @@ class SystemCharacterEncoding(Predefined):
     name = "$SystemCharacterEncoding"
 
     rules = {
-        '$CharacterEncoding': SYSTEM_CHARACTER_ENCODING,
+        '$SystemCharacterEncoding': '"' + SYSTEM_CHARACTER_ENCODING + '"',
     }
 
 
