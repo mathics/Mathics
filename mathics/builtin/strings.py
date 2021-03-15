@@ -1604,7 +1604,7 @@ class ToString(Builtin):
         'ToString[value_, OptionsPattern[ToString]]'
         encoding = options['options']["System`CharacterEncoding"]
         text = value.format(evaluation, 'System`OutputForm').boxes_to_text(
-            evaluation=evaluation, encoding=encoding)
+            evaluation=evaluation, encoding=encoding.value)
         return String(text)
 
 
