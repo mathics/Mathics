@@ -91,7 +91,6 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
-    "PyYAML",  # Used in mathics.core.characters
 ]
 
 
