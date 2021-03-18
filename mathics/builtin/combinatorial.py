@@ -5,9 +5,10 @@ Combinatorial Functions
 """
 
 
+import math
+from functools import lru_cache
 import sympy
 from sympy.functions.combinatorial.numbers import stirling
-from sympy.utilities.iterables import partitions
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
@@ -81,11 +82,11 @@ class Multinomial(Builtin):
         return Expression("Times", *leaves)
 
 
-class Fibonacci(Builtin):
+class Fibonacci(_MPMathFunction):
     """
     <dl>
-    <dt>'Fibonacci[$n$]'
-        <dd>computes the $n$th Fibonacci number.
+      <dt>'Fibonacci[$n$]'
+      <dd>computes the $n$th Fibonacci number.
     </dl>
 
     >> Fibonacci[0]
@@ -98,12 +99,10 @@ class Fibonacci(Builtin):
      = 280571172992510140037611932413038677189525
     """
 
+    nargs = 1
     attributes = ("Listable", "NumericFunction", "ReadProtected")
-
-    def apply(self, n, evaluation):
-        "Fibonacci[n_Integer]"
-
-        return Integer(sympy.fibonacci(n.get_int_value()))
+    sympy_name = "fibonacci"
+    mpmath_name = "fibonacci"
 
 
 class PartitionsP(Builtin):
@@ -121,7 +120,31 @@ class PartitionsP(Builtin):
 
     def apply(self, n, evaluation):
         "PartitionsP[n_Integer]"
-        return Integer(len(list(partitions(n.get_int_value()))))
+
+        @lru_cache
+        def number_of_partitions(n: int) -> int:
+            """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
+            Discrete Mathematics, using Euler's recurrence"""
+            if n < 0:
+                return 0
+            elif n == 0:
+                return 1
+            sum = 0
+            for m in range(math.ceil((1 + math.sqrt(1.0 + 24 * n)) / 6), 0, -1):
+                mx3 = m * 3
+                j = n - m * (mx3 - 1) / 2
+                k = n - m * (mx3 + 1) / 2
+                if m % 2:
+                    sum += number_of_partitions(j) + number_of_partitions(k)
+                else:
+                    sum += -number_of_partitions(j) - number_of_partitions(k)
+            return sum
+
+        return Integer(number_of_partitions(n.get_int_value()))
+
+        # Simpler but inefficient.
+        # from sympy.utilities.iterables import partitions
+        # return Integer(len(list(partitions(n.get_int_value()))))
 
 
 class _NoBoolVector(Exception):
@@ -291,12 +314,13 @@ class RogersTanimotoDissimilarity(_BooleanDissimilarity):
         r = 2 * (c_tf + c_ft)
         return Expression("Divide", r, c_tt + c_ff + r)
 
+
 # Note: WL allows StirlingS1[{2, 4, 6}, 2], but we don't (yet).
 class StirlingS1(Builtin):
     """
     <dl>
       <dt>'StirlingS1[$n$, $m$]'
-      <dd>gives the Stirling number of the first kind $𝒮_n^m$.
+      <dd>gives the Stirling number of the first kind $ _n^m$.
     </dl>
 
     Integer mathematical function, suitable for both symbolic and numerical manipulation.
@@ -321,10 +345,10 @@ class StirlingS2(Builtin):
     """
     <dl>
       <dt>'StirlingS2[$n$, $m$]'
-      <dd>gives the Stirling number of the second kind 𝒮_n^m.
+      <dd>gives the Stirling number of the second kind  _n^m.
     </dl>
 
-    returns the number of ways of partitioning a set of $n$ elements into $m$ non‐empty subsets.
+    returns the number of ways of partitioning a set of $n$ elements into $m$ non empty subsets.
 
     >> Table[StirlingS2[10, m], {m, 10}]
     = {1, 511, 9330, 34105, 42525, 22827, 5880, 750, 45, 1}
