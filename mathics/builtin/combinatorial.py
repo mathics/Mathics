@@ -7,7 +7,6 @@ Combinatorial Functions
 
 import math
 from functools import lru_cache
-import sympy
 from sympy.functions.combinatorial.numbers import stirling
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -121,7 +120,7 @@ class PartitionsP(Builtin):
     def apply(self, n, evaluation):
         "PartitionsP[n_Integer]"
 
-        @lru_cache
+        @lru_cache()
         def number_of_partitions(n: int) -> int:
             """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
             Discrete Mathematics, using Euler's recurrence"""
