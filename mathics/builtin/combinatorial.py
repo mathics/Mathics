@@ -7,6 +7,7 @@ Combinatorial Functions
 
 import sympy
 from sympy.functions.combinatorial.numbers import stirling
+from sympy.utilities.iterables import partitions
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
@@ -103,6 +104,24 @@ class Fibonacci(Builtin):
         "Fibonacci[n_Integer]"
 
         return Integer(sympy.fibonacci(n.get_int_value()))
+
+
+class PartitionsP(Builtin):
+    """
+    <dl>
+      <dt>'PartitionsP[$n$]'
+      <dd>return the number p(n) of unrestricted partitions of the integer $n$.
+    </dl>
+
+    >> Table[PartitionsP[k], {k, 0, 12}]
+     = {1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77}
+    """
+
+    attributes = ("Listable", "NumericFunction", "Orderless")
+
+    def apply(self, n, evaluation):
+        "PartitionsP[n_Integer]"
+        return Integer(len(list(partitions(n.get_int_value()))))
 
 
 class _NoBoolVector(Exception):
