@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Combinatorial Functions
@@ -104,12 +103,13 @@ class Fibonacci(_MPMathFunction):
     mpmath_name = "fibonacci"
 
 # Note: memoizing functions is a big win. For a value of n, more than
-# 1.3 n different values (positive and negative) occur.
-# Also for this function to be effective across top-level calls,
+# n different values (positive and negative) occur.
+# For this function to be effective across top-level calls,
 # it needs to be at the module level rather than inside the class.
 # Finally, docs say that `maxsize` is best at a power of 2.
-# With 1024 we can handle reasonably values of n=900:
-# PartitionsP[900] = 415873681190459054784114365430
+# With 1024 we can handle reasonably values of slightly greater than 1024
+# values without trouble:
+# PartitionsP[1070] = 366665450770488753893927654278831
 @lru_cache(maxsize=1024)
 def number_of_partitions(n: int) -> int:
     """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
@@ -123,10 +123,16 @@ def number_of_partitions(n: int) -> int:
         mx3 = m * 3
         j = n - m * (mx3 - 1) / 2
         k = n - m * (mx3 + 1) / 2
+        # Cut down on memoization by filtering negative numbers here.
+        # In contrast to the multitude of negative numbers, the n==0
+        # case isn't worth saving memoization checking since that is
+        # one single entry.
+        part_j = 0 if j < 0 else number_of_partitions(j)
+        part_k = 0 if k < 0 else number_of_partitions(k)
         if m % 2:
-            sum += number_of_partitions(j) + number_of_partitions(k)
+            sum += part_j + part_k
         else:
-            sum += -number_of_partitions(j) - number_of_partitions(k)
+            sum += -part_j - part_k
     return sum
 
 class PartitionsP(Builtin):
@@ -136,8 +142,8 @@ class PartitionsP(Builtin):
       <dd>return the number p(n) of unrestricted partitions of the integer $n$.
     </dl>
 
-    >> Table[PartitionsP[k], {k, 0, 12}]
-     = {1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77}
+    >> Table[PartitionsP[k], {k, -2, 12}]
+     = {0, 0, 1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77}
     """
 
     attributes = ("Listable", "NumericFunction", "Orderless")
