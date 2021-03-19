@@ -472,7 +472,33 @@ def test_combinations_1_5():
             "{Range[5]} ",
             "KSubsets[l, k] == Length(l)",
         ),
-        # Start here in section 2.1 ...
+    ):
+        check_evaluation(str_expr, str_expected, message)
+
+def test_2_1_to_2_3():
+
+    for str_expr, str_expected, message in (
+        (
+            # 2.1.1 - 2.1.3 are broken
+            "PartitionsP[10]",
+            "NumberOfPartitions[10]",
+            "Counting Partitions 2.1.4, Page 57",
+        ),
+        (
+            "NumberOfCompositions[6,3]",
+            "28",
+            "Random Compositions 2.2.1, Page 60",
+        ),
+        (
+            "TableauQ[{{1,2,5}, {3,4,5}, {6}}]",
+            "True",
+            "Young Tableau 2.3, Page 63",
+        ),
+        (
+            "TableauQ[{{1,2,5,9,10}, {5,4,7,13}, {4,8,12},{11}}]",
+            "False",
+            "Young Tableau 2.3, Page 63",
+        ),
     ):
         check_evaluation(str_expr, str_expected, message)
 

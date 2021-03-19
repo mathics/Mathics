@@ -13,6 +13,7 @@ New builtins
 * ``CreateTemporary``
 * ``FileNames``
 * ``NIntegrate``
+* ``PartitionsP``
 
 Enhancements
 ++++++++++++

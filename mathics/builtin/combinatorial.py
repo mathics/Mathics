@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Combinatorial Functions
 """
 
 
-import sympy
+import math
+from functools import lru_cache
 from sympy.functions.combinatorial.numbers import stirling
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -80,11 +80,11 @@ class Multinomial(Builtin):
         return Expression("Times", *leaves)
 
 
-class Fibonacci(Builtin):
+class Fibonacci(_MPMathFunction):
     """
     <dl>
-    <dt>'Fibonacci[$n$]'
-        <dd>computes the $n$th Fibonacci number.
+      <dt>'Fibonacci[$n$]'
+      <dd>computes the $n$th Fibonacci number.
     </dl>
 
     >> Fibonacci[0]
@@ -97,12 +97,65 @@ class Fibonacci(Builtin):
      = 280571172992510140037611932413038677189525
     """
 
+    nargs = 1
     attributes = ("Listable", "NumericFunction", "ReadProtected")
+    sympy_name = "fibonacci"
+    mpmath_name = "fibonacci"
+
+# Note: memoizing functions is a big win. For a value of n, more than
+# n different values (positive and negative) occur.
+# For this function to be effective across top-level calls,
+# it needs to be at the module level rather than inside the class.
+# Finally, docs say that `maxsize` is best at a power of 2.
+# With 1024 we can handle reasonably values of slightly greater than 1024
+# values without trouble:
+# PartitionsP[1070] = 366665450770488753893927654278831
+@lru_cache(maxsize=1024)
+def number_of_partitions(n: int) -> int:
+    """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
+    Discrete Mathematics, using Euler's recurrence"""
+    if n < 0:
+        return 0
+    elif n == 0:
+        return 1
+    sum = 0
+    for m in range(math.ceil((1 + math.sqrt(1.0 + 24 * n)) / 6), 0, -1):
+        mx3 = m * 3
+        j = n - m * (mx3 - 1) / 2
+        k = n - m * (mx3 + 1) / 2
+        # Cut down on memoization by filtering negative numbers here.
+        # In contrast to the multitude of negative numbers, the n==0
+        # case isn't worth saving memoization checking since that is
+        # one single entry.
+        part_j = 0 if j < 0 else number_of_partitions(j)
+        part_k = 0 if k < 0 else number_of_partitions(k)
+        if m % 2:
+            sum += part_j + part_k
+        else:
+            sum += -part_j - part_k
+    return sum
+
+class PartitionsP(Builtin):
+    """
+    <dl>
+      <dt>'PartitionsP[$n$]'
+      <dd>return the number p(n) of unrestricted partitions of the integer $n$.
+    </dl>
+
+    >> Table[PartitionsP[k], {k, -2, 12}]
+     = {0, 0, 1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77}
+    """
+
+    attributes = ("Listable", "NumericFunction", "Orderless")
 
     def apply(self, n, evaluation):
-        "Fibonacci[n_Integer]"
+        "PartitionsP[n_Integer]"
 
-        return Integer(sympy.fibonacci(n.get_int_value()))
+        return Integer(number_of_partitions(n.get_int_value()))
+
+        # Simpler but inefficient.
+        # from sympy.utilities.iterables import partitions
+        # return Integer(len(list(partitions(n.get_int_value()))))
 
 
 class _NoBoolVector(Exception):
@@ -272,12 +325,13 @@ class RogersTanimotoDissimilarity(_BooleanDissimilarity):
         r = 2 * (c_tf + c_ft)
         return Expression("Divide", r, c_tt + c_ff + r)
 
+
 # Note: WL allows StirlingS1[{2, 4, 6}, 2], but we don't (yet).
 class StirlingS1(Builtin):
     """
     <dl>
       <dt>'StirlingS1[$n$, $m$]'
-      <dd>gives the Stirling number of the first kind $𝒮_n^m$.
+      <dd>gives the Stirling number of the first kind $ _n^m$.
     </dl>
 
     Integer mathematical function, suitable for both symbolic and numerical manipulation.
@@ -302,10 +356,10 @@ class StirlingS2(Builtin):
     """
     <dl>
       <dt>'StirlingS2[$n$, $m$]'
-      <dd>gives the Stirling number of the second kind 𝒮_n^m.
+      <dd>gives the Stirling number of the second kind  _n^m.
     </dl>
 
-    returns the number of ways of partitioning a set of $n$ elements into $m$ non‐empty subsets.
+    returns the number of ways of partitioning a set of $n$ elements into $m$ non empty subsets.
 
     >> Table[StirlingS2[10, m], {m, 10}]
     = {1, 511, 9330, 34105, 42525, 22827, 5880, 750, 45, 1}
