@@ -103,6 +103,31 @@ class Fibonacci(_MPMathFunction):
     sympy_name = "fibonacci"
     mpmath_name = "fibonacci"
 
+# Note: memoizing functions is a big win. For a value of n, more than
+# 1.3 n different values (positive and negative) occur.
+# Also for this function to be effective across top-level calls,
+# it needs to be at the module level rather than inside the class.
+# Finally, docs say that `maxsize` is best at a power of 2.
+# With 1024 we can handle reasonably values of n=900:
+# PartitionsP[900] = 415873681190459054784114365430
+@lru_cache(maxsize=1024)
+def number_of_partitions(n: int) -> int:
+    """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
+    Discrete Mathematics, using Euler's recurrence"""
+    if n < 0:
+        return 0
+    elif n == 0:
+        return 1
+    sum = 0
+    for m in range(math.ceil((1 + math.sqrt(1.0 + 24 * n)) / 6), 0, -1):
+        mx3 = m * 3
+        j = n - m * (mx3 - 1) / 2
+        k = n - m * (mx3 + 1) / 2
+        if m % 2:
+            sum += number_of_partitions(j) + number_of_partitions(k)
+        else:
+            sum += -number_of_partitions(j) - number_of_partitions(k)
+    return sum
 
 class PartitionsP(Builtin):
     """
@@ -119,25 +144,6 @@ class PartitionsP(Builtin):
 
     def apply(self, n, evaluation):
         "PartitionsP[n_Integer]"
-
-        @lru_cache
-        def number_of_partitions(n: int) -> int:
-            """Algorithm NumberOfPartitions from Page 67 of Skiena: Implementing
-            Discrete Mathematics, using Euler's recurrence"""
-            if n < 0:
-                return 0
-            elif n == 0:
-                return 1
-            sum = 0
-            for m in range(math.ceil((1 + math.sqrt(1.0 + 24 * n)) / 6), 0, -1):
-                mx3 = m * 3
-                j = n - m * (mx3 - 1) / 2
-                k = n - m * (mx3 + 1) / 2
-                if m % 2:
-                    sum += number_of_partitions(j) + number_of_partitions(k)
-                else:
-                    sum += -number_of_partitions(j) - number_of_partitions(k)
-            return sum
 
         return Integer(number_of_partitions(n.get_int_value()))
 
