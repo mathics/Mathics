@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# cython: language_level=3
 
 """
 File Operations
@@ -2186,7 +2187,8 @@ class Get(PrefixOperator):
             result = {}
             trace_get = evaluation.parse('Settings`$TraceGet')
             if options["System`Trace"].to_python() or trace_get.evaluate(evaluation) == SymbolTrue:
-                result["TraceFn"] = print
+                import builtins
+                result["TraceFn"] = builtins.print
             else:
                 result["TraceFn"] = None
 
