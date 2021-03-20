@@ -4,7 +4,6 @@ Combinatorial Functions
 """
 
 
-import math
 from sympy.functions.combinatorial.numbers import stirling
 from mathics.version import __version__  # noqa used in loading to check consistency.
 

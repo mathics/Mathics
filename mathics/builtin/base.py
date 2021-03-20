@@ -21,7 +21,6 @@ from mathics.core.expression import (
     MachineReal,
     PrecisionReal,
     String,
-    ByteArrayAtom,
     Symbol,
     ensure_context,
     strip_context,
