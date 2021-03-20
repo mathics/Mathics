@@ -533,8 +533,8 @@ class NIntegrate(Builtin):
         evaluation.message("ilim", interval)
         return None
 
-    def apply_2(self, func, domain, evaluation, options):
-        "NIntegrate[func_, domain__, OptionsPattern[%(name)s]]"
+    def apply_with_func_domain(self, func, domain, evaluation, options):
+        "%(name)s[func_, domain__, OptionsPattern[%(name)s]]"
         method = options['System`Method'].evaluate(evaluation)
         method_options = {}
         if method.has_form("System`List", 2):
@@ -1589,18 +1589,18 @@ class RealDigits(Builtin):
     }
 
     def apply_complex(self, n, var, evaluation):
-        "RealDigits[n_Complex, var___]"
+        "%(name)s[n_Complex, var___]"
         return evaluation.message("RealDigits", "realx", n)
 
     def apply_rational_with_base(self, n, b, evaluation):
-        "RealDigits[n_Rational, b_Integer]"
+        "%(name)s[n_Rational, b_Integer]"
         # expr = Expression("RealDigits", n)
         py_n = abs(n.value)
         py_b = b.get_int_value()
         if check_finite_decimal(
                 n.denominator().get_int_value()
         ) and not py_b % 2:
-            return self.apply_2(n, b, evaluation)
+            return self.apply_with_base(n, b, evaluation)
         else:
             exp = int(mpmath.ceil(mpmath.log(py_n, py_b)))
             (head, tails) = convert_repeating_decimal(
@@ -1616,22 +1616,22 @@ class RealDigits(Builtin):
         return Expression("List", list_str, exp)
 
     def apply_rational_without_base(self, n, evaluation):
-        "RealDigits[n_Rational]"
+        "%(name)s[n_Rational]"
 
         return self.apply_rational_with_base(n, from_python(10), evaluation)
 
     def apply(self, n, evaluation):
-        "RealDigits[n_]"
+        "%(name)s[n_]"
 
         # Handling the testcases that throw the error message and return the ouput that doesn't include `base` argument
         if isinstance(n, Symbol) and n.name.startswith("System`"):
             return evaluation.message("RealDigits", "ndig", n)
 
         if n.is_numeric():
-            return self.apply_2(n, from_python(10), evaluation)
+            return self.apply_with_base(n, from_python(10), evaluation)
 
-    def apply_2(self, n, b, evaluation, nr_elements=None, pos=None):
-        "RealDigits[n_?NumericQ, b_Integer]"
+    def apply_with_base(self, n, b, evaluation, nr_elements=None, pos=None):
+        "%(name)s[n_?NumericQ, b_Integer]"
 
         expr = Expression("RealDigits", n)
         rational_no = (
@@ -1740,8 +1740,8 @@ class RealDigits(Builtin):
         list_str = Expression("List", *leaves)
         return Expression("List", list_str, exp)
 
-    def apply_3(self, n, b, length, evaluation, pos=None):
-        "RealDigits[n_?NumericQ, b_Integer, length_]"
+    def apply_with_base_and_length(self, n, b, length, evaluation, pos=None):
+        "%(name)s[n_?NumericQ, b_Integer, length_]"
         leaves = []
         if pos is not None:
             leaves.append(from_python(pos))
@@ -1749,18 +1749,18 @@ class RealDigits(Builtin):
         if not (isinstance(length, Integer) and length.get_int_value() >= 0):
             return evaluation.message("RealDigits", "intnm", expr)
 
-        return self.apply_2(
+        return self.apply_with_base(
             n, b, evaluation, nr_elements=length.get_int_value(), pos=pos
         )
 
-    def apply_4(self, n, b, length, p, evaluation):
-        "RealDigits[n_?NumericQ, b_Integer, length_, p_]"
+    def apply_with_base_length_and_precision(self, n, b, length, p, evaluation):
+        "%(name)s[n_?NumericQ, b_Integer, length_, p_]"
         if not isinstance(p, Integer):
             return evaluation.message(
                 "RealDigits", "intm", Expression("RealDigits", n, b, length, p)
             )
 
-        return self.apply_3(n, b, length, evaluation, pos=p.get_int_value())
+        return self.apply_with_base_and_length(n, b, length, evaluation, pos=p.get_int_value())
 
 
 class _ZLibHash:  # make zlib hashes behave as if they were from hashlib
