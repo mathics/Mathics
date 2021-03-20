@@ -21,6 +21,7 @@ import zlib
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain, product
+from functools import lru_cache
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -47,6 +48,10 @@ from mathics.core.expression import (
     from_python,
 )
 from mathics.core.convert import from_sympy
+
+@lru_cache(maxsize=1024)
+def log_n_b(py_n, py_b) -> int:
+    return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
 
 
 class N(Builtin):
@@ -205,7 +210,7 @@ class N(Builtin):
         "N[expr_]": "N[expr, MachinePrecision]",
     }
 
-    def apply_other(self, expr, prec, evaluation):
+    def apply_with_prec(self, expr, prec, evaluation):
         "N[expr_, prec_]"
 
         try:
@@ -1693,7 +1698,7 @@ class RealDigits(Builtin):
                 .to_python()
             )
 
-        exp = int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
+        exp = log_n_b(py_n, py_b)
 
         if py_n == 0 and nr_elements is not None:
             exp = 0

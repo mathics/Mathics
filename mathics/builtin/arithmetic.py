@@ -10,6 +10,7 @@ Basic arithmetic functions, including complex number arithmetic.
 from mathics.version import __version__  # noqa used in loading to check consistency.
 import sympy
 import mpmath
+from functools import lru_cache
 
 from mathics.builtin.base import (
     Builtin,
@@ -39,6 +40,22 @@ from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression
+
+@lru_cache(maxsize=1024)
+def call_mpmath(mpmath_function, mpmath_args):
+    try:
+        return mpmath_function(*mpmath_args)
+    except ValueError as exc:
+        text = str(exc)
+        if text == "gamma function pole":
+            return Symbol("ComplexInfinity")
+        else:
+            raise
+    except ZeroDivisionError:
+        return
+    except SpecialValueError as exc:
+        return Symbol(exc.name)
+
 
 class _MPMathFunction(SympyFunction):
 
@@ -82,7 +99,7 @@ class _MPMathFunction(SympyFunction):
             if None in float_args:
                 return
 
-            result = self.call_mpmath(mpmath_function, float_args)
+            result = call_mpmath(mpmath_function, tuple(float_args))
             if isinstance(result, (mpmath.mpc, mpmath.mpf)):
                 if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
                     result = Symbol("ComplexInfinity")
@@ -104,7 +121,7 @@ class _MPMathFunction(SympyFunction):
                 mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
                     return
-                result = self.call_mpmath(mpmath_function, mpmath_args)
+                result = call_mpmath(mpmath_function, tuple(mpmath_args))
                 if isinstance(result, (mpmath.mpc, mpmath.mpf)):
                     result = Number.from_mpmath(result, d)
         return result

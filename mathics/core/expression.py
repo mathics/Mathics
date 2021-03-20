@@ -1455,7 +1455,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
-        head = self._head.get_name()
         if self.has_form("RowBox", 1) and self._leaves[0].has_form(  # nopep8
             "List", None
         ):
