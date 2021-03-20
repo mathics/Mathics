@@ -10,7 +10,7 @@ import mpmath
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
-from mathics.core.expression import Integer, Number
+from mathics.core.expression import Integer, from_mpmath
 from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError
 from mathics.core.numbers import prec as _prec
 
@@ -153,7 +153,7 @@ class LerchPhi(_MPMathFunction):
         py_s = s.to_python()
         py_a = a.to_python()
         try:
-            return Number.from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
+            return from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
         except:
             pass
             # return sympy.expand_func(sympy.lerchphi(py_z, py_s, py_a))
@@ -752,7 +752,7 @@ class AiryAiZero(Builtin):
 
         with mpmath.workprec(p):
             result = mpmath.airyaizero(k_int)
-            return Number.from_mpmath(result, d)
+            return from_mpmath(result, d)
 
 
 class AiryBiZero(Builtin):
@@ -804,7 +804,7 @@ class AiryBiZero(Builtin):
 
         with mpmath.workprec(p):
             result = mpmath.airybizero(k_int)
-            return Number.from_mpmath(result, d)
+            return from_mpmath(result, d)
 
 # Orthogonal Polynomials
 

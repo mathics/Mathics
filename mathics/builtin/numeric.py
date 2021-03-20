@@ -221,7 +221,7 @@ class N(Builtin):
         if expr.get_head_name() in ("System`List", "System`Rule"):
             return Expression(
                 expr.head,
-                *[self.apply_other(leaf, prec, evaluation) for leaf in expr.leaves],
+                *[self.apply_with_prec(leaf, prec, evaluation) for leaf in expr.leaves],
             )
 
         # Special case for the Root builtin

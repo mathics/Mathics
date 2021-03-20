@@ -19,7 +19,7 @@ import sympy
 import requests
 import pathlib
 
-from io import BytesIO, StringIO
+from io import BytesIO
 import os.path as osp
 from itertools import chain
 
@@ -29,21 +29,20 @@ from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder
 
 from mathics.core.expression import (
-    Expression,
-    Real,
+    BoxError,
     Complex,
+    Expression,
+    Integer,
+    MachineReal,
+    Real,
     String,
     Symbol,
     SymbolFailed,
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
-    SymbolInfinity,
+    from_mpmath,
     from_python,
-    Integer,
-    BoxError,
-    MachineReal,
-    Number,
     valid_context_name,
 )
 from mathics.core.numbers import dps
@@ -1067,7 +1066,7 @@ class _BinaryFormat(object):
             else:
                 result = mpmath.fdiv(core, 2 ** -exp)
 
-            return Number.from_mpmath(result, dps(112))
+            return from_mpmath(result, dps(112))
 
     @staticmethod
     def _TerminatedString_reader(s):
