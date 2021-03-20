@@ -1238,7 +1238,7 @@ class Sign(SympyFunction):
      = Sign[20]
     """
 
-    sympy_name = 'sign'
+    sympy_name = "sign"
     # mpmath_name = 'sign'
 
     attributes = ("Listable", "NumericFunction")
@@ -1248,7 +1248,7 @@ class Sign(SympyFunction):
     }
 
     def apply(self, x, evaluation):
-        "Sign[x_]"
+        "%(name)s[x_]"
         # Sympy and mpmath do not give the desired form of complex number
         if isinstance(x, Complex):
             return Expression("Times", x, Expression("Power", Expression("Abs", x), -1))
@@ -1592,7 +1592,7 @@ class Rational_(Builtin):
     name = "Rational"
 
     def apply(self, n, m, evaluation):
-        "Rational[n_Integer, m_Integer]"
+        "%(name)s[n_Integer, m_Integer]"
 
         if m.to_sympy() == 1:
             return Integer(n.to_sympy())
@@ -1659,7 +1659,7 @@ class Complex_(Builtin):
     name = "Complex"
 
     def apply(self, r, i, evaluation):
-        "Complex[r_?NumberQ, i_?NumberQ]"
+        "%(name)s[r_?NumberQ, i_?NumberQ]"
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
@@ -2064,7 +2064,7 @@ class Piecewise(SympyFunction):
     attributes = ("HoldAll",)
 
     def apply(self, items, evaluation):
-        "Piecewise[items__]"
+        "%(name)s[items__]"
         result = self.to_sympy(Expression("Piecewise", *items.get_sequence()))
         if result is None:
             return
@@ -2130,7 +2130,7 @@ class Boole(Builtin):
     attributes = ("Listable",)
 
     def apply(self, expr, evaluation):
-        "Boole[expr_]"
+        "%(name)s[expr_]"
         if isinstance(expr, Symbol):
             if expr == SymbolTrue:
                 return Integer(1)
