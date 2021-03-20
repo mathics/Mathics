@@ -66,6 +66,7 @@ class _MPMathFunction(SympyFunction):
 
     nargs = 1
 
+    @lru_cache(maxsize=1024)
     def get_mpmath_function(self, args):
         if self.mpmath_name is None or len(args) != self.nargs:
             return None
@@ -75,7 +76,7 @@ class _MPMathFunction(SympyFunction):
         "%(name)s[z__]"
 
         args = z.numerify(evaluation).get_sequence()
-        mpmath_function = self.get_mpmath_function(args)
+        mpmath_function = self.get_mpmath_function(tuple(args))
         result = None
 
         # if no arguments are inexact attempt to use sympy
