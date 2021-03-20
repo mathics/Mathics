@@ -2,7 +2,6 @@
 
 import re
 import sympy
-
 from functools import total_ordering
 import importlib
 from itertools import chain
@@ -11,6 +10,7 @@ from typing import Any, cast
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+from mathics.core.convert import from_sympy
 from mathics.core.definitions import Definition
 from mathics.core.parser.util import SystemDefinitions, PyMathicsDefinitions
 from mathics.core.rules import Rule, BuiltinRule, Pattern
@@ -444,7 +444,6 @@ class SympyObject(Builtin):
             return [self.sympy_name]
         return []
 
-
 class UnaryOperator(Operator):
     def __init__(self, format_function, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -532,6 +531,17 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
+
+    def apply(self, *args):
+        """
+        Generic apply method that uses the class sympy_name.
+        to call the corresponding sympy function. Arguments are
+        converted to python and the result is converted from sympy
+        """
+        sympy_args = [a.to_sympy() for a in args]
+        sympy_fn = getattr(sympy, self.sympy_name)
+        return from_sympy(sympy_fn(*sympy_args))
+
     def get_constant(self, precision, evaluation, have_mpmath=False):
         try:
             d = get_precision(precision, evaluation)
@@ -570,6 +580,8 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
+
+
 
 
 class InvalidLevelspecError(Exception):

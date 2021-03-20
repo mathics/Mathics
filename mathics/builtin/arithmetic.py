@@ -1095,6 +1095,7 @@ class Re(SympyFunction):
     """
 
     attributes = ("Listable", "NumericFunction")
+    sympy_name = "re"
 
     def apply_complex(self, number, evaluation):
         "Re[number_Complex]"
@@ -1209,7 +1210,7 @@ class Abs(_MPMathFunction):
     mpmath_name = "fabs"  # mpmath actually uses python abs(x) / x.__abs__()
 
 
-class Sign(Builtin):
+class Sign(SympyFunction):
     """
     <dl>
     <dt>'Sign[$x$]'
@@ -1237,8 +1238,7 @@ class Sign(Builtin):
      = Sign[20]
     """
 
-    # Sympy and mpmath do not give the desired form of complex number
-    # sympy_name = 'sign'
+    sympy_name = 'sign'
     # mpmath_name = 'sign'
 
     attributes = ("Listable", "NumericFunction")
@@ -1249,13 +1249,14 @@ class Sign(Builtin):
 
     def apply(self, x, evaluation):
         "Sign[x_]"
+        # Sympy and mpmath do not give the desired form of complex number
         if isinstance(x, Complex):
             return Expression("Times", x, Expression("Power", Expression("Abs", x), -1))
 
         sympy_x = x.to_sympy()
         if sympy_x is None:
             return None
-        return from_sympy(sympy.sign(sympy_x))
+        return super().apply(x)
 
     def apply_error(self, x, seqs, evaluation):
         "Sign[x_, seqs__]"

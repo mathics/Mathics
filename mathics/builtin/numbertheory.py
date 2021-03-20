@@ -39,7 +39,7 @@ class ContinuedFraction(SympyFunction):
 
     def apply_1(self, x, evaluation):
         "%(name)s[x_]"
-        return from_python(sympy.continued_fraction(x.to_sympy()))
+        return super().apply(x)
 
     def apply_2(self, x, n, evaluation):
         "%(name)s[x_, n_Integer]"
@@ -686,7 +686,7 @@ class PartitionsP(SympyFunction):
 
     def apply(self, n, evaluation):
         "PartitionsP[n_Integer]"
-        return from_sympy(sympy.npartitions(n.to_sympy()))
+        return super().apply(n)
 
 
 class PowerMod(Builtin):
