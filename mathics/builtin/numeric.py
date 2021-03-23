@@ -1,4 +1,4 @@
-#cython: language_level=3
+# cython: language_level=3
 # -*- coding: utf-8 -*-
 
 
@@ -21,6 +21,7 @@ import zlib
 from collections import namedtuple
 from contextlib import contextmanager
 from itertools import chain, product
+from functools import lru_cache
 
 
 from mathics.builtin.base import Builtin, Predefined
@@ -47,6 +48,10 @@ from mathics.core.expression import (
     from_python,
 )
 from mathics.core.convert import from_sympy
+
+@lru_cache(maxsize=1024)
+def log_n_b(py_n, py_b) -> int:
+    return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
 
 
 class N(Builtin):
@@ -187,24 +192,25 @@ class N(Builtin):
     """
 
     messages = {
-        "precbd": ("Requested precision `1` is not a " +
-                   "machine-sized real number."),
+        "precbd": ("Requested precision `1` is not a " + "machine-sized real number."),
         "preclg": (
-            "Requested precision `1` is larger than $MaxPrecision. " +
-            "Using current $MaxPrecision of `2` instead. " +
-            "$MaxPrecision = Infinity specifies that any precision " +
-            "should be allowed."
+            "Requested precision `1` is larger than $MaxPrecision. "
+            + "Using current $MaxPrecision of `2` instead. "
+            + "$MaxPrecision = Infinity specifies that any precision "
+            + "should be allowed."
         ),
-        "precsm": ("Requested precision `1` is smaller than " +
-                   "$MinPrecision. Using current $MinPrecision of " +
-                   "`2` instead."),
+        "precsm": (
+            "Requested precision `1` is smaller than "
+            + "$MinPrecision. Using current $MinPrecision of "
+            + "`2` instead."
+        ),
     }
 
     rules = {
         "N[expr_]": "N[expr, MachinePrecision]",
     }
 
-    def apply_other(self, expr, prec, evaluation):
+    def apply_with_prec(self, expr, prec, evaluation):
         "N[expr_, prec_]"
 
         try:
@@ -215,8 +221,7 @@ class N(Builtin):
         if expr.get_head_name() in ("System`List", "System`Rule"):
             return Expression(
                 expr.head,
-                *[self.apply_other(leaf, prec, evaluation)
-                  for leaf in expr.leaves]
+                *[self.apply_with_prec(leaf, prec, evaluation) for leaf in expr.leaves],
             )
 
         # Special case for the Root builtin
@@ -252,7 +257,7 @@ class N(Builtin):
                     eval_range = ()
             else:
                 eval_range = range(len(expr.leaves))
-            head = Expression('N', expr.head, prec).evaluate(evaluation)
+            head = Expression("N", expr.head, prec).evaluate(evaluation)
             leaves = expr.get_mutable_leaves()
             for index in eval_range:
                 leaves[index] = Expression("N", leaves[index], prec).evaluate(
@@ -266,6 +271,7 @@ def _scipy_interface(integrator, options_map, mandatory=None, adapt_func=None):
     This function provides a proxy for scipy.integrate
     functions, adapting the parameters.
     """
+
     def _scipy_proxy_func_filter(fun, a, b, **opts):
         native_opts = {}
         if mandatory:
@@ -301,11 +307,11 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
 
     TODO: handle weak divergences
     """
-    wsr = 1. / 6.
+    wsr = 1.0 / 6.0
 
     tol = opts.get("tol")
     if not tol:
-        tol = 1.e-10
+        tol = 1.0e-10
 
     maxrec = opts.get("maxrec")
     if not maxrec:
@@ -313,7 +319,7 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
 
     def _quad_simpsons_mem(f, a, fa, b, fb):
         """Evaluates the Simpson's Rule, also returning m and f(m) to reuse"""
-        m = .5 * (a + b)
+        m = 0.5 * (a + b)
         try:
             fm = f(m)
         except ZeroDivisionError:
@@ -322,7 +328,7 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
         if fm is None or np.isinf(fm):
             m = m + 1e-10
             fm = f(m)
-        return (m, fm, wsr * abs(b - a) * (fa + 4. * fm + fb))
+        return (m, fm, wsr * abs(b - a) * (fa + 4.0 * fm + fb))
 
     def _quad_asr(f, a, fa, b, fb, eps, whole, m, fm, maxrec):
         """
@@ -341,10 +347,8 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
             err = abs(delta)
             if err <= 15 * eps or maxrec == 0:
                 return (left + right + delta / 15, err)
-            left = _quad_asr(f, a, fa, m, fm, .5 * eps,
-                             left, lm, flm, maxrec)
-            right = _quad_asr(f, m, fm, b, fb, .5 * eps,
-                              right, rm, frm, maxrec)
+            left = _quad_asr(f, a, fa, m, fm, 0.5 * eps, left, lm, flm, maxrec)
+            right = _quad_asr(f, m, fm, b, fb, 0.5 * eps, right, rm, frm, maxrec)
             return (left[0] + right[0], left[1] + right[1])
         except Exception:
             raise
@@ -364,14 +368,12 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
 
     fa, fb = ensure_evaluation(f, a), ensure_evaluation(f, b)
     if fa is None:
-        x = (10. * machine_epsilon if a == 0
-             else a * (1. + 10. * machine_epsilon))
+        x = 10.0 * machine_epsilon if a == 0 else a * (1.0 + 10.0 * machine_epsilon)
         fa = ensure_evaluation(f, x)
         if fa is None:
             raise Exception(f"Function undefined around {a}. Cannot integrate")
     if fb is None:
-        x = (-10. * machine_epsilon if b == 0
-             else b * (1. - 10. * machine_epsilon))
+        x = -10.0 * machine_epsilon if b == 0 else b * (1.0 - 10.0 * machine_epsilon)
         fb = ensure_evaluation(f, x)
         if fb is None:
             raise Exception(f"Function undefined around {b}. Cannot integrate")
@@ -385,15 +387,16 @@ def _internal_adaptative_simpsons_rule(f, a, b, **opts):
 
 def _fubini(func, ranges, **opts):
     if not ranges:
-        return 0.
+        return 0.0
     a, b = ranges[0]
     integrator = opts["integrator"]
     tol = opts.get("tol")
     if tol is None:
-        opts["tol"] = 1.e-10
-        tol = 1.e-10
+        opts["tol"] = 1.0e-10
+        tol = 1.0e-10
 
     if len(ranges) > 1:
+
         def subintegral(*u):
             def ff(*z):
                 return func(*(u + z))
@@ -401,7 +404,7 @@ def _fubini(func, ranges, **opts):
             val = _fubini(ff, ranges[1:], **opts)[0]
             return val
 
-        opts["tol"] = 4. * tol
+        opts["tol"] = 4.0 * tol
         val = integrator(subintegral, a, b, **opts)
         return val
     else:
@@ -441,62 +444,78 @@ class NIntegrate(Builtin):
      = 0.25
     """
 
-    messages = {'bdmtd': "The Method option should be a built-in method name.",
-                'inumr': ("The integrand `1` has evaluated to non-numerical " +
-                          "values for all sampling points in the region " +
-                          "with boundaries `2`"),
-                'nlim': '`1` = `2` is not a valid limit of integration.',
-                'ilim': 'Invalid integration variable or limit(s) in `1`.',
-                'mtdfail': ("The especified method failed to return a " +
-                            "number. Falling back into the internal " +
-                            "evaluator."),
-                'cmpint': ("Integration over a complex domain is not " +
-                           "implemented yet"),
+    messages = {
+        "bdmtd": "The Method option should be a built-in method name.",
+        "inumr": (
+            "The integrand `1` has evaluated to non-numerical "
+            + "values for all sampling points in the region "
+            + "with boundaries `2`"
+        ),
+        "nlim": "`1` = `2` is not a valid limit of integration.",
+        "ilim": "Invalid integration variable or limit(s) in `1`.",
+        "mtdfail": (
+            "The especified method failed to return a "
+            + "number. Falling back into the internal "
+            + "evaluator."
+        ),
+        "cmpint": ("Integration over a complex domain is not " + "implemented yet"),
     }
 
-    options = {'Method': '"Automatic"',
-               'Tolerance': '1*^-10',
-               'Accuracy': '1*^-10',
-               'MaxRecursion': '10',
+    options = {
+        "Method": '"Automatic"',
+        "Tolerance": "1*^-10",
+        "Accuracy": "1*^-10",
+        "MaxRecursion": "10",
     }
 
-    methods = {'Automatic': (None, False), }
+    methods = {
+        "Automatic": (None, False),
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.methods["Internal"] = (_internal_adaptative_simpsons_rule, False)
         try:
-            from scipy.integrate import (romberg, quad, nquad)
+            from scipy.integrate import romberg, quad, nquad
+
             self.methods["NQuadrature"] = (
-                _scipy_interface(nquad,
-                                 {},
-                                 {"full_output": 1},
-                                 lambda res: (res[0], res[1])),
-                True)
+                _scipy_interface(
+                    nquad, {}, {"full_output": 1}, lambda res: (res[0], res[1])
+                ),
+                True,
+            )
             self.methods["Quadrature"] = (
-                _scipy_interface(quad,
-                                 {"tol": ("epsabs", None),
-                                  "maxrec": ("limit",
-                                             lambda maxrec: int(2**maxrec))
-                                 },
-                                 {"full_output": 1},
-                                 lambda res: (res[0], res[1])), False
+                _scipy_interface(
+                    quad,
+                    {
+                        "tol": ("epsabs", None),
+                        "maxrec": ("limit", lambda maxrec: int(2 ** maxrec)),
+                    },
+                    {"full_output": 1},
+                    lambda res: (res[0], res[1]),
+                ),
+                False,
             )
             self.methods["Romberg"] = (
-                _scipy_interface(romberg,
-                                 {"tol": ("tol", None),
-                                  "maxrec": ("divmax", None)
-                                 }, None, lambda x: (x, np.nan)), False
+                _scipy_interface(
+                    romberg,
+                    {"tol": ("tol", None), "maxrec": ("divmax", None)},
+                    None,
+                    lambda x: (x, np.nan),
+                ),
+                False,
             )
             self.methods["Automatic"] = self.methods["Quadrature"]
         except Exception:
             self.methods["Automatic"] = self.methods["Internal"]
             self.methods["Simpson"] = self.methods["Internal"]
 
-        self.messages["bdmtd"] = ("The Method option should be a " +
-                                  "built-in method name in {`" +
-                                  "`, `".join(list(self.methods)) +
-                                  "`}. Using `Automatic`")
+        self.messages["bdmtd"] = (
+            "The Method option should be a "
+            + "built-in method name in {`"
+            + "`, `".join(list(self.methods))
+            + "`}. Using `Automatic`"
+        )
 
     @staticmethod
     def decompose_domain(interval, evaluation):
@@ -511,19 +530,16 @@ class NIntegrate(Builtin):
                     return None
             return intervals
 
-        if interval.has_form('System`List', 3, None):
+        if interval.has_form("System`List", 3, None):
             intervals = []
             intvar = interval.leaves[0]
             if not isinstance(intvar, Symbol):
                 evaluation.message("ilim", interval)
                 return None
             boundaries = [a for a in interval.leaves[1:]]
-            if any([b.get_head_name() == "System`Complex"
-                    for b in boundaries]):
+            if any([b.get_head_name() == "System`Complex" for b in boundaries]):
                 intvar = Expression(
-                    "List",
-                    intvar,
-                    Expression("Blank", Symbol("Complex"))
+                    "List", intvar, Expression("Blank", Symbol("Complex"))
                 )
             for i in range(len(boundaries) - 1):
                 intervals.append((boundaries[i], boundaries[i + 1]))
@@ -533,9 +549,9 @@ class NIntegrate(Builtin):
         evaluation.message("ilim", interval)
         return None
 
-    def apply_2(self, func, domain, evaluation, options):
-        "NIntegrate[func_, domain__, OptionsPattern[%(name)s]]"
-        method = options['System`Method'].evaluate(evaluation)
+    def apply_with_func_domain(self, func, domain, evaluation, options):
+        "%(name)s[func_, domain__, OptionsPattern[%(name)s]]"
+        method = options["System`Method"].evaluate(evaluation)
         method_options = {}
         if method.has_form("System`List", 2):
             method = method.leaves[0]
@@ -547,11 +563,11 @@ class NIntegrate(Builtin):
         else:
             evaluation.message("NIntegrate", "bdmtd", method)
             return
-        tolerance = options['System`Tolerance'].evaluate(evaluation)
+        tolerance = options["System`Tolerance"].evaluate(evaluation)
         tolerance = float(tolerance.value)
-        accuracy = options['System`Accuracy'].evaluate(evaluation)
+        accuracy = options["System`Accuracy"].evaluate(evaluation)
         accuracy = accuracy.value
-        maxrecursion = options['System`MaxRecursion'].evaluate(evaluation)
+        maxrecursion = options["System`MaxRecursion"].evaluate(evaluation)
         maxrecursion = maxrecursion.value
         nintegrate_method = self.methods.get(method, None)
         if nintegrate_method is None:
@@ -597,8 +613,8 @@ class NIntegrate(Builtin):
                 if a == b:
                     nulldomain = True
                     break
-                elif a.get_head_name() == 'System`DirectedInfinity':
-                    if b.get_head_name() == 'System`DirectedInfinity':
+                elif a.get_head_name() == "System`DirectedInfinity":
+                    if b.get_head_name() == "System`DirectedInfinity":
                         a = a.to_python()
                         b = b.to_python()
                         le = 1 - machine_epsilon
@@ -609,26 +625,29 @@ class NIntegrate(Builtin):
                             subdomain2.append([-le, le])
                         else:
                             subdomain2.append([le, -le])
-                        coordtransform.append((np.arctanh,
-                                               lambda u: 1. / (1. - u**2)))
+                        coordtransform.append(
+                            (np.arctanh, lambda u: 1.0 / (1.0 - u ** 2))
+                        )
                     else:
                         if not b.is_numeric():
                             evaluation.message("nlim", coords[i], b)
                             return
                         z = a.leaves[0].value
                         b = b.value
-                        subdomain2.append([machine_epsilon, 1.])
-                        coordtransform.append((lambda u: b - z + z / u,
-                                               lambda u: -z * u ** (-2.)))
-                elif b.get_head_name() == 'System`DirectedInfinity':
+                        subdomain2.append([machine_epsilon, 1.0])
+                        coordtransform.append(
+                            (lambda u: b - z + z / u, lambda u: -z * u ** (-2.0))
+                        )
+                elif b.get_head_name() == "System`DirectedInfinity":
                     if not a.is_numeric():
                         evaluation.message("nlim", coords[i], a)
                         return
                     a = a.value
                     z = b.leaves[0].value
-                    subdomain2.append([machine_epsilon, 1.])
-                    coordtransform.append((lambda u: a - z + z / u,
-                                           lambda u: z * u ** (-2.)))
+                    subdomain2.append([machine_epsilon, 1.0])
+                    coordtransform.append(
+                        (lambda u: a - z + z / u, lambda u: z * u ** (-2.0))
+                    )
                 elif a.is_numeric() and b.is_numeric():
                     a = Expression("N", a).evaluate(evaluation).value
                     b = Expression("N", b).evaluate(evaluation).value
@@ -644,17 +663,21 @@ class NIntegrate(Builtin):
                 continue
 
             if any(coordtransform):
-                func2 = (lambda *u: (
-                    integrand(*[x[0](u[i])
-                                if x else u[i]
-                                for i, x in enumerate(coordtransform)])
-                    * np.prod([
-                        jac[1](u[i])
-                        for i, jac in enumerate(coordtransform)
-                        if jac])))
-            opts = {"acur": accuracy,
-                    "tol": tolerance,
-                    "maxrec": maxrecursion,
+                func2 = lambda *u: (
+                    integrand(
+                        *[
+                            x[0](u[i]) if x else u[i]
+                            for i, x in enumerate(coordtransform)
+                        ]
+                    )
+                    * np.prod(
+                        [jac[1](u[i]) for i, jac in enumerate(coordtransform) if jac]
+                    )
+                )
+            opts = {
+                "acur": accuracy,
+                "tol": tolerance,
+                "maxrec": maxrecursion,
             }
             opts.update(method_options)
             try:
@@ -663,10 +686,8 @@ class NIntegrate(Builtin):
                         nintegrate_method(func2, subdomain2, **opts)
                     else:
                         val = _fubini(
-                            func2,
-                            subdomain2,
-                            integrator=nintegrate_method,
-                            **opts)
+                            func2, subdomain2, integrator=nintegrate_method, **opts
+                        )
                 else:
                     val = nintegrate_method(func2, *(subdomain2[0]), **opts)
             except Exception:
@@ -679,12 +700,12 @@ class NIntegrate(Builtin):
                         func2,
                         subdomain2,
                         integrator=_internal_adaptative_simpsons_rule,
-                        **opts)
+                        **opts,
+                    )
                 else:
                     val = _internal_adaptative_simpsons_rule(
-                        func2,
-                        *(subdomain2[0]),
-                        **opts)
+                        func2, *(subdomain2[0]), **opts
+                    )
             results.append(val)
 
         result = sum([r[0] for r in results])
@@ -713,8 +734,7 @@ class MachinePrecision(Predefined):
     """
 
     rules = {
-        "N[MachinePrecision, prec_]": ("N[Log[10, 2] * %i, prec]" %
-                                       machine_precision),
+        "N[MachinePrecision, prec_]": ("N[Log[10, 2] * %i, prec]" % machine_precision),
     }
 
 
@@ -1589,18 +1609,16 @@ class RealDigits(Builtin):
     }
 
     def apply_complex(self, n, var, evaluation):
-        "RealDigits[n_Complex, var___]"
+        "%(name)s[n_Complex, var___]"
         return evaluation.message("RealDigits", "realx", n)
 
     def apply_rational_with_base(self, n, b, evaluation):
-        "RealDigits[n_Rational, b_Integer]"
+        "%(name)s[n_Rational, b_Integer]"
         # expr = Expression("RealDigits", n)
         py_n = abs(n.value)
         py_b = b.get_int_value()
-        if check_finite_decimal(
-                n.denominator().get_int_value()
-        ) and not py_b % 2:
-            return self.apply_2(n, b, evaluation)
+        if check_finite_decimal(n.denominator().get_int_value()) and not py_b % 2:
+            return self.apply_with_base(n, b, evaluation)
         else:
             exp = int(mpmath.ceil(mpmath.log(py_n, py_b)))
             (head, tails) = convert_repeating_decimal(
@@ -1616,22 +1634,22 @@ class RealDigits(Builtin):
         return Expression("List", list_str, exp)
 
     def apply_rational_without_base(self, n, evaluation):
-        "RealDigits[n_Rational]"
+        "%(name)s[n_Rational]"
 
         return self.apply_rational_with_base(n, from_python(10), evaluation)
 
     def apply(self, n, evaluation):
-        "RealDigits[n_]"
+        "%(name)s[n_]"
 
         # Handling the testcases that throw the error message and return the ouput that doesn't include `base` argument
         if isinstance(n, Symbol) and n.name.startswith("System`"):
             return evaluation.message("RealDigits", "ndig", n)
 
         if n.is_numeric():
-            return self.apply_2(n, from_python(10), evaluation)
+            return self.apply_with_base(n, from_python(10), evaluation)
 
-    def apply_2(self, n, b, evaluation, nr_elements=None, pos=None):
-        "RealDigits[n_?NumericQ, b_Integer]"
+    def apply_with_base(self, n, b, evaluation, nr_elements=None, pos=None):
+        "%(name)s[n_?NumericQ, b_Integer]"
 
         expr = Expression("RealDigits", n)
         rational_no = (
@@ -1680,7 +1698,7 @@ class RealDigits(Builtin):
                 .to_python()
             )
 
-        exp = int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
+        exp = log_n_b(py_n, py_b)
 
         if py_n == 0 and nr_elements is not None:
             exp = 0
@@ -1710,7 +1728,7 @@ class RealDigits(Builtin):
             if move <= 0:
                 digits = [0] * abs(move) + digits
             else:
-                digits = digits[abs(move):]
+                digits = digits[abs(move) :]
                 display_len = display_len - move
 
         leaves = []
@@ -1740,8 +1758,8 @@ class RealDigits(Builtin):
         list_str = Expression("List", *leaves)
         return Expression("List", list_str, exp)
 
-    def apply_3(self, n, b, length, evaluation, pos=None):
-        "RealDigits[n_?NumericQ, b_Integer, length_]"
+    def apply_with_base_and_length(self, n, b, length, evaluation, pos=None):
+        "%(name)s[n_?NumericQ, b_Integer, length_]"
         leaves = []
         if pos is not None:
             leaves.append(from_python(pos))
@@ -1749,18 +1767,20 @@ class RealDigits(Builtin):
         if not (isinstance(length, Integer) and length.get_int_value() >= 0):
             return evaluation.message("RealDigits", "intnm", expr)
 
-        return self.apply_2(
+        return self.apply_with_base(
             n, b, evaluation, nr_elements=length.get_int_value(), pos=pos
         )
 
-    def apply_4(self, n, b, length, p, evaluation):
-        "RealDigits[n_?NumericQ, b_Integer, length_, p_]"
+    def apply_with_base_length_and_precision(self, n, b, length, p, evaluation):
+        "%(name)s[n_?NumericQ, b_Integer, length_, p_]"
         if not isinstance(p, Integer):
             return evaluation.message(
                 "RealDigits", "intm", Expression("RealDigits", n, b, length, p)
             )
 
-        return self.apply_3(n, b, length, evaluation, pos=p.get_int_value())
+        return self.apply_with_base_and_length(
+            n, b, length, evaluation, pos=p.get_int_value()
+        )
 
 
 class _ZLibHash:  # make zlib hashes behave as if they were from hashlib
@@ -1833,7 +1853,7 @@ class Hash(Builtin):
         h = hash_func()
         user_hash(h.update)
         res = h.hexdigest()
-        if py_format in ('HexString', "HexStringLittleEndian"):
+        if py_format in ("HexString", "HexStringLittleEndian"):
             return from_python(res)
         res = int(res, 16)
         if py_format == "DecimalString":
@@ -1844,9 +1864,9 @@ class Hash(Builtin):
 
     def apply(self, expr, hashtype, outformat, evaluation):
         "Hash[expr_, hashtype_String, outformat_String]"
-        return Hash.compute(expr.user_hash,
-                           hashtype.get_string_value(),
-                           outformat.get_string_value())
+        return Hash.compute(
+            expr.user_hash, hashtype.get_string_value(), outformat.get_string_value()
+        )
 
 
 class TypeEscalation(Exception):

@@ -10,6 +10,7 @@ Basic arithmetic functions, including complex number arithmetic.
 from mathics.version import __version__  # noqa used in loading to check consistency.
 import sympy
 import mpmath
+from functools import lru_cache
 
 from mathics.builtin.base import (
     Builtin,
@@ -34,11 +35,28 @@ from mathics.core.expression import (
     SymbolNull,
     SymbolTrue,
     from_python,
+    from_mpmath,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression
+
+@lru_cache(maxsize=1024)
+def call_mpmath(mpmath_function, mpmath_args):
+    try:
+        return mpmath_function(*mpmath_args)
+    except ValueError as exc:
+        text = str(exc)
+        if text == "gamma function pole":
+            return Symbol("ComplexInfinity")
+        else:
+            raise
+    except ZeroDivisionError:
+        return
+    except SpecialValueError as exc:
+        return Symbol(exc.name)
+
 
 class _MPMathFunction(SympyFunction):
 
@@ -48,6 +66,7 @@ class _MPMathFunction(SympyFunction):
 
     nargs = 1
 
+    @lru_cache(maxsize=1024)
     def get_mpmath_function(self, args):
         if self.mpmath_name is None or len(args) != self.nargs:
             return None
@@ -57,7 +76,7 @@ class _MPMathFunction(SympyFunction):
         "%(name)s[z__]"
 
         args = z.numerify(evaluation).get_sequence()
-        mpmath_function = self.get_mpmath_function(args)
+        mpmath_function = self.get_mpmath_function(tuple(args))
         result = None
 
         # if no arguments are inexact attempt to use sympy
@@ -82,7 +101,7 @@ class _MPMathFunction(SympyFunction):
             if None in float_args:
                 return
 
-            result = self.call_mpmath(mpmath_function, float_args)
+            result = call_mpmath(mpmath_function, tuple(float_args))
             if isinstance(result, (mpmath.mpc, mpmath.mpf)):
                 if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
                     result = Symbol("ComplexInfinity")
@@ -93,7 +112,7 @@ class _MPMathFunction(SympyFunction):
                 elif mpmath.isnan(result):
                     result = Symbol("Indeterminate")
                 else:
-                    result = Number.from_mpmath(result)
+                    result = from_mpmath(result)
         else:
             prec = min_prec(*args)
             d = dps(prec)
@@ -104,9 +123,9 @@ class _MPMathFunction(SympyFunction):
                 mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
                     return
-                result = self.call_mpmath(mpmath_function, mpmath_args)
+                result = call_mpmath(mpmath_function, tuple(mpmath_args))
                 if isinstance(result, (mpmath.mpc, mpmath.mpf)):
-                    result = Number.from_mpmath(result, d)
+                    result = from_mpmath(result, d)
         return result
 
     def call_mpmath(self, mpmath_function, mpmath_args):
@@ -338,12 +357,12 @@ class Plus(BinaryOperator, SympyFunction):
                 if is_machine_precision:
                     numbers = [item.to_mpmath() for item in numbers]
                     number = mpmath.fsum(numbers)
-                    number = Number.from_mpmath(number)
+                    number = from_mpmath(number)
                 else:
                     with mpmath.workprec(prec):
                         numbers = [item.to_mpmath() for item in numbers]
                         number = mpmath.fsum(numbers)
-                        number = Number.from_mpmath(number, dps(prec))
+                        number = from_mpmath(number, dps(prec))
             else:
                 number = from_sympy(sum(item.to_sympy() for item in numbers))
         else:
@@ -670,12 +689,12 @@ class Times(BinaryOperator, SympyFunction):
                 if is_machine_precision:
                     numbers = [item.to_mpmath() for item in numbers]
                     number = mpmath.fprod(numbers)
-                    number = Number.from_mpmath(number)
+                    number = from_mpmath(number)
                 else:
                     with mpmath.workprec(prec):
                         numbers = [item.to_mpmath() for item in numbers]
                         number = mpmath.fprod(numbers)
-                        number = Number.from_mpmath(number, dps(prec))
+                        number = from_mpmath(number, dps(prec))
             else:
                 number = sympy.Mul(*[item.to_sympy() for item in numbers])
                 number = from_sympy(number)

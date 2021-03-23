@@ -10,6 +10,7 @@ import typing
 from typing import Any
 from itertools import chain
 from bisect import bisect_left
+from functools import lru_cache
 
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
@@ -1455,7 +1456,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
-        head = self._head.get_name()
         if self.has_form("RowBox", 1) and self._leaves[0].has_form(  # nopep8
             "List", None
         ):
@@ -2015,27 +2015,28 @@ SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
 SymbolInfinity = Symbol("Infinity")
 
+@lru_cache(maxsize=1024)
+def from_mpmath(value, prec=None):
+    "Converts mpf or mpc to Number."
+    if isinstance(value, mpmath.mpf):
+        if prec is None:
+            return MachineReal(float(value))
+        else:
+            # HACK: use str here to prevent loss of precision
+            return PrecisionReal(sympy.Float(str(value), prec))
+    elif isinstance(value, mpmath.mpc):
+        if value.imag == 0.0:
+            return from_mpmath(value.real, prec)
+        real = from_mpmath(value.real, prec)
+        imag = from_mpmath(value.imag, prec)
+        return Complex(real, imag)
+    else:
+        raise TypeError(type(value))
+
 
 class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
-
-    def from_mpmath(value, prec=None):
-        "Converts mpf or mpc to Number."
-        if isinstance(value, mpmath.mpf):
-            if prec is None:
-                return MachineReal(float(value))
-            else:
-                # HACK: use str here to prevent loss of precision
-                return PrecisionReal(sympy.Float(str(value), prec))
-        elif isinstance(value, mpmath.mpc):
-            if value.imag == 0.0:
-                return Number.from_mpmath(value.real, prec)
-            real = Number.from_mpmath(value.real, prec)
-            imag = Number.from_mpmath(value.imag, prec)
-            return Complex(real, imag)
-        else:
-            raise TypeError(type(value))
 
     def is_numeric(self) -> bool:
         return True
