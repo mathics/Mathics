@@ -15,15 +15,15 @@ def check_evaluation(str_expr: str, str_expected: str, message=""):
     except NotImplementedError as e: 
         print(str_expr, " raised a not implemented exception:", e)
         return
-    print("    result=",result)
+    # print("    result=",result)
     try:
         expected = session.evaluate(str_expected)
     except NotImplementedError as e: 
         print(str_expected, " raised a not implemented exception:", e)
         return        
-    print("    expected=",expected)
+    # print("    expected=",expected)
     print(time.asctime())
-    print(message)
+    #print(message)
     if message:
         assert result == expected, message
     else:
