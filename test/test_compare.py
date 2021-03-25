@@ -36,9 +36,9 @@ import pytest
                     '2 + 3*a == StringStream["Tengo una vaca lechera"]',
                 ),
                  ("-Infinity==I", "False"),
-                             (
+        (
             "Infinity==Compile[{x},Sqrt[x]]",
-            "Infinity == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "Infinity==Compile[{x},Sqrt[x]]",
          ),
          ("Sqrt[I] Infinity==I", "False"),
          ("Sqrt[I] Infinity==0", "False"),
@@ -90,7 +90,7 @@ import pytest
         ("2 + 3*a==3+2 I", "2 + 3*a == 3 + 2*I"),
         (
             "2 + 3*a==Compile[{x},Sqrt[x]]",
-            "2 + 3*a == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "2 + 3*a==Compile[{x},Sqrt[x]]",
         ),
         (
             "2 + 3*a==Graphics[{Disk[{0,0},1]}]",
@@ -153,7 +153,7 @@ import pytest
         ),
         (
             "Sqrt[I] Infinity==Compile[{x},Sqrt[x]]",
-            "Times[Power[I,1/2],DirectedInfinity[1]] == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "Sqrt[I] Infinity==Compile[{x},Sqrt[x]]",
         ),
         (
             "Sqrt[I] Infinity==Graphics[{Disk[{0,0},1]}]",
@@ -181,7 +181,7 @@ import pytest
         ),
         (
             "a==Compile[{x},Sqrt[x]]",
-            "a == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "a==Compile[{x},Sqrt[x]]",
         ),
         ("a==Graphics[{Disk[{0,0},1]}]", "a == Graphics[{Disk[{0, 0}, 1]}]"),
         ('"a"==2 + 3*a', '"a" == 2 + 3*a'),
@@ -204,7 +204,7 @@ import pytest
         ),
         (
             '"a"==Compile[{x},Sqrt[x]]',
-            '"a" == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]',
+            '"a"==Compile[{x},Sqrt[x]]',
         ),
         ('"a"==Graphics[{Disk[{0,0},1]}]', '"a" == Graphics[{Disk[{0, 0}, 1]}]'),
         ('"1/4"==2 + 3*a', '"1/4" == 2 + 3*a'),
@@ -227,7 +227,7 @@ import pytest
         ),
         (
             '"1/4"==Compile[{x},Sqrt[x]]',
-            '"1/4" == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]',
+            '"1/4"==Compile[{x},Sqrt[x]]',
         ),
         ('"1/4"==Graphics[{Disk[{0,0},1]}]', '"1/4" == Graphics[{Disk[{0, 0}, 1]}]'),
         ("I==2 + 3*a", "I == 2 + 3*a"),
@@ -255,7 +255,7 @@ import pytest
         ("0==BesselJ[0,2]", "False"),
         (
             "0==Compile[{x},Sqrt[x]]",
-            "0 == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "0==Compile[{x},Sqrt[x]]",
         ),
         ("0==Graphics[{Disk[{0,0},1]}]", "0 == Graphics[{Disk[{0, 0}, 1]}]"),
         ("1/4==2 + 3*a", "1/4 == 2 + 3*a"),
@@ -273,7 +273,7 @@ import pytest
         ("1/4==3+2 I", "False"),
         (
             "1/4==Compile[{x},Sqrt[x]]",
-            "1/4 == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "1/4==Compile[{x},Sqrt[x]]",
         ),
         ("1/4==Graphics[{Disk[{0,0},1]}]", "1/4 == Graphics[{Disk[{0, 0}, 1]}]"),
         (".25==2 + 3*a", "0.25 == 2 + 3*a"),
@@ -298,7 +298,7 @@ import pytest
         ),
         (
             ".25==Compile[{x},Sqrt[x]]",
-            "0.25 == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            ".25==Compile[{x},Sqrt[x]]",
         ),
         (".25==Graphics[{Disk[{0,0},1]}]", "0.25 == Graphics[{Disk[{0, 0}, 1]}]"),
         ("Sqrt[2]==2 + 3*a", "Sqrt[2] == 2 + 3*a"),
@@ -323,7 +323,7 @@ import pytest
         ),
         (
             "Sqrt[2]==Compile[{x},Sqrt[x]]",
-            "Sqrt[2] == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "Sqrt[2]==Compile[{x},Sqrt[x]]",
         ),
         (
             "Sqrt[2]==Graphics[{Disk[{0,0},1]}]",
@@ -351,7 +351,7 @@ import pytest
         ),
         (
             "BesselJ[0,2]==Compile[{x},Sqrt[x]]",
-            "BesselJ[0, 2] == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "BesselJ[0,2]==Compile[{x},Sqrt[x]]",
         ),
         (
             "BesselJ[0,2]==Graphics[{Disk[{0,0},1]}]",
@@ -379,7 +379,7 @@ import pytest
         ),
         (
             "3+2 I==Compile[{x},Sqrt[x]]",
-            "3 + 2*I == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "3+2 I==Compile[{x},Sqrt[x]]",
         ),
         ("3+2 I==Graphics[{Disk[{0,0},1]}]", "3 + 2*I == Graphics[{Disk[{0, 0}, 1]}]"),
         ("2.+ Pi I==2 + 3*a", "2. + 3.141592653589793*I == 2 + 3*a"),
@@ -404,7 +404,7 @@ import pytest
         ),
         (
             "2.+ Pi I==Compile[{x},Sqrt[x]]",
-            "2. + 3.141592653589793*I == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "2. + 3.141592653589793*I == Compile[{x},Sqrt[x]]",
         ),
         (
             "2.+ Pi I==Graphics[{Disk[{0,0},1]}]",
@@ -432,7 +432,7 @@ import pytest
         ),
         (
             "3+Pi I==Compile[{x},Sqrt[x]]",
-            "3 + I*Pi == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]",
+            "3 + I*Pi == Compile[{x},Sqrt[x]]",
         ),
         (
             "3+Pi I==Graphics[{Disk[{0,0},1]}]",
@@ -508,7 +508,7 @@ import pytest
         ),
         (
             'StringStream["Tengo una vaca lechera"]==Compile[{x},Sqrt[x]]',
-            'StringStream["Tengo una vaca lechera"] == CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate]',
+            'StringStream["Tengo una vaca lechera"] == Compile[{x},Sqrt[x]]',
         ),
         (
             'StringStream["Tengo una vaca lechera"]==Graphics[{Disk[{0,0},1]}]',
@@ -516,23 +516,23 @@ import pytest
         ),
         (
             "Compile[{x},Sqrt[x]]==2 + 3*a",
-            "CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate] == 2 + 3*a",
+            "Compile[{x},Sqrt[x]] == 2 + 3*a",
         ),
         (
             "Compile[{x},Sqrt[x]]==Infinity",
-            "CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate] == Infinity",
+            "Compile[{x},Sqrt[x]] == Infinity",
         ),
         (
             "Compile[{x},Sqrt[x]]==-Infinity",
-            "CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate] == -Infinity",
+            "Compile[{x},Sqrt[x]] == -Infinity",
         ),
         (
             "Compile[{x},Sqrt[x]]==Sqrt[I] Infinity",
-            "CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate] == Times[Power[I,1/2],DirectedInfinity[1]]",
+            "Compile[{x},Sqrt[x]] == Times[Power[I,1/2],DirectedInfinity[1]]",
         ),
         (
             "Compile[{x},Sqrt[x]]==a",
-            "CompiledFunction[{10, 11.3, 5468}, {_Real}, {{3, 0, 0}, {3, 0, 1}}, {}, {0, 0, 2, 0, 0}, {{40, 57, 3, 0, 0, 3, 0, 1}, {1}}, Function[{x}, Sqrt[x]], Evaluate] == a",
+            "Compile[{x},Sqrt[x]] == a",
         ),
         (
             'Compile[{x},Sqrt[x]]=="a"',
