@@ -433,13 +433,13 @@ class NIntegrate(Builtin):
     >> NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance->1.*^-4]
      : Integration over a complex domain is not implemented yet
      = NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance -> 0.0001]
-     # = 6.2832 I
+     ## = 6.2832 I
 
-    Integrate singularities with weak divergences
+    Integrate singularities with weak divergences:
     >> Table[NIntegrate[x^(1./k-1.),{x,0,1.},Tolerance->1*^-6], {k,1,7.}]
      = {1., 2., 3., 4., 5., 6., 7.}
 
-    Iterated Integral
+    Iterated Integral:
     >> NIntegrate[x * y,{x, 0, 1},{y, 0, 1}]
      = 0.25
     """

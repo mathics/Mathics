@@ -17,9 +17,9 @@ from types import FunctionType
 class Compile(Builtin):
     """
     <dl>
-    <dt>'Compile[{x1, x2, ...}, expr_]'
+    <dt>'Compile[{$x1$, $x2$, ...}, $expr$]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
-    <dt>'Compile[{{x1, t1} {x2, t1} ...}, expr_]'
+    <dt>'Compile[{{$x1$, $t1$} {$x2$, $t1$} ...}, $expr$]'
       <dd>Compiles assuming each $xi$ matches type $ti$.
     </dl>
 
@@ -51,7 +51,7 @@ class Compile(Builtin):
     #> cf[x + y]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-][x + y]
 
-    Compile supports basic flow control
+    Compile supports basic flow control:
     >> cf = Compile[{{x, _Real}, {y, _Integer}}, If[x == 0.0 && y <= 0, 0.0, Sin[x ^ y] + 1 / Min[x, 0.5]] + 0.5]
      = CompiledFunction[{x, y}, ..., -CompiledCode-]
     >> cf[3.5, 2]

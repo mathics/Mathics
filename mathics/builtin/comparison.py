@@ -448,14 +448,16 @@ class Equal(_EqualityOperator, SympyComparison):
      = True
 
     Strings are allowed:
-    Equal["11", "11"]
+
+    >> Equal["11", "11"]
      = True
 
-    Equal["121", "11"]
+    >> Equal["121", "11"]
      = False
 
     Comparision to mismatched types is False:
-    Equal[11, "11"]
+
+    >> Equal[11, "11"]
      = False
 
     Lists are compared based on their elements:
