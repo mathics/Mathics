@@ -14,6 +14,7 @@ New builtins
 * ``FileNames``
 * ``NIntegrate``
 * ``PartitionsP``
+* ``$Notebooks``
 
 Enhancements
 ++++++++++++
