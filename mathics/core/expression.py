@@ -476,7 +476,6 @@ class BaseExpression(KeyComparable):
             ):
                 # print("Not inside graphics or numberform, and not is atom")
                 new_leaves = [leaf.do_format(evaluation, form) for leaf in expr.leaves]
-                formathead = expr.head.do_format(evaluation, form)
                 expr = Expression(expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
@@ -1736,7 +1735,7 @@ class Expression(BaseExpression):
                 slot = self._leaves[0].get_int_value()
                 if slot is None or slot < 1:
                     evaluation.error("Function", "slot", self._leaves[0])
-            return Expression("Sequence", *slots[slot:])
+            return Expression(SymbolSequence, *slots[slot:])
         elif self._head.get_name() == "System`Function" and len(self._leaves) == 1:
             # do not replace Slots in nested Functions
             return self
@@ -2020,10 +2019,9 @@ SymbolList = Symbol("List")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolRule = Symbol("Rule")
+SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
-
-
->>>>>>> 3ebfa623 (Singletonize N)
 
 
 @lru_cache(maxsize=1024)

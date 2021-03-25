@@ -6,7 +6,7 @@ Calculus
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList, SymbolN
+from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList, SymbolN, SymbolRule
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
@@ -842,7 +842,7 @@ class Solve(Builtin):
                     Expression(
                         "List",
                         *(
-                            Expression("Rule", var, from_sympy(sol[var_sympy]))
+                            Expression(SymbolRule, var, from_sympy(sol[var_sympy]))
                             for var, var_sympy in zip(vars, vars_sympy)
                             if var_sympy in sol
                         )
@@ -1141,4 +1141,4 @@ class FindRoot(Builtin):
         else:
             evaluation.message("FindRoot", "maxiter")
 
-        return Expression(SymbolList, Expression("Rule", x, x0))
+        return Expression(SymbolList, Expression(SymbolRule, x, x0))

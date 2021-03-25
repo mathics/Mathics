@@ -35,6 +35,9 @@ from mathics.core.expression import (
     from_python,
     MachineReal,
     PrecisionReal,
+    SymbolList,
+    SymbolMakeBoxes,
+    SymbolRule
 )
 from mathics.core.numbers import (
     dps,
@@ -122,7 +125,7 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
     if precedence is not None and leaf_prec is not None:
         if precedence > leaf_prec or (precedence == leaf_prec and when_equal):
             return Expression(
-                "RowBox", Expression("List", String("("), leaf_boxes, String(")"))
+                "RowBox", Expression(SymbolList, String("("), leaf_boxes, String(")"))
             )
     return leaf_boxes
 
@@ -144,7 +147,7 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         leaf = parenthesize(precedence, leaf, leaf_boxes, parenthesized)
 
         result.append(leaf)
-    return Expression("RowBox", Expression("List", *result))
+    return Expression("RowBox", Expression(SymbolList, *result))
 
 
 def real_to_s_exp(expr, n):
@@ -535,11 +538,11 @@ class MakeBoxes(Builtin):
                     if index > 0:
                         row.append(String(sep))
                     row.append(MakeBoxes(leaf, f))
-                result.append(RowBox(Expression("List", *row)))
+                result.append(RowBox(Expression(SymbolList, *row)))
             elif len(leaves) == 1:
                 result.append(MakeBoxes(leaves[0], f))
             result.append(String(right))
-            return RowBox(Expression("List", *result))
+            return RowBox(Expression(SymbolList, *result))
 
     def _apply_atom(self, x, f, evaluation):
         """MakeBoxes[x_?AtomQ,
@@ -574,7 +577,7 @@ class MakeBoxes(Builtin):
             else:
                 args = (h, leaf)
 
-            return Expression("RowBox", Expression("List", *args))
+            return Expression("RowBox", Expression(SymbolList, *args))
         else:
             return MakeBoxes(expr, f)
 
@@ -764,7 +767,7 @@ class Row(Builtin):
                 if index > 0 and not sep.same(String("")):
                     result.append(sep)
                 result.append(MakeBoxes(item, f))
-            return RowBox(Expression("List", *result))
+            return RowBox(Expression(SymbolList, *result))
 
 
 def is_constant(list):
@@ -947,7 +950,7 @@ class Grid(Builtin):
                 *(
                     Expression(
                         "List",
-                        *(Expression("MakeBoxes", item, f) for item in row.leaves)
+                        *(Expression(SymbolMakeBoxes, item, f) for item in row.leaves)
                     )
                     for row in array.leaves
                 )
@@ -1012,13 +1015,13 @@ class TableForm(Builtin):
             return
 
         if depth <= 0:
-            return Expression("MakeBoxes", table, f)
+            return Expression(SymbolMakeBoxes, table, f)
         elif depth == 1:
             return GridBox(
                 Expression(
                     "List",
                     *(
-                        Expression("List", Expression("MakeBoxes", item, f))
+                        Expression(SymbolList, Expression(SymbolMakeBoxes, item, f))
                         for item in table.leaves
                     )
                 )
@@ -1028,7 +1031,7 @@ class TableForm(Builtin):
             #        Expression('List', Expression('MakeBoxes', item, f))
             #        for item in table.leaves)))
         else:
-            new_depth = Expression("Rule", Symbol("TableDepth"), depth - 2)
+            new_depth = Expression(SymbolRule, Symbol("TableDepth"), depth - 2)
 
             def transform_item(item):
                 if depth > 2:
@@ -1043,7 +1046,7 @@ class TableForm(Builtin):
                         Expression(
                             "List",
                             *(
-                                Expression("MakeBoxes", transform_item(item), f)
+                                Expression(SymbolMakeBoxes, transform_item(item), f)
                                 for item in row.leaves
                             )
                         )
@@ -1084,7 +1087,7 @@ class MatrixForm(TableForm):
         result = super(MatrixForm, self).apply_makeboxes(table, f, evaluation, options)
         if result.get_head_name() == "System`GridBox":
             return Expression(
-                "RowBox", Expression("List", String("("), result, String(")"))
+                "RowBox", Expression(SymbolList, String("("), result, String(")"))
             )
         return result
 
@@ -1127,7 +1130,7 @@ class Subscript(Builtin):
 
         y = y.get_sequence()
         return Expression(
-            "SubscriptBox", Expression("MakeBoxes", x, f), *list_boxes(y, f)
+            "SubscriptBox", Expression(SymbolMakeBoxes, x, f), *list_boxes(y, f)
         )
 
 
@@ -1326,7 +1329,7 @@ class StringForm(Builtin):
                 result.append(MakeBoxes(arg, f))
         if pos < len(s):
             result.append(String(s[pos:]))
-        return RowBox(Expression("List", *result))
+        return RowBox(Expression(SymbolList, *result))
 
 
 class Message(Builtin):
@@ -1556,7 +1559,7 @@ class Quiet(Builtin):
 
         def get_msg_list(expr):
             if check_message(expr):
-                expr = Expression("List", expr)
+                expr = Expression(SymbolList, expr)
             if expr.get_name() == "System`All":
                 all = True
                 messages = []
@@ -1601,7 +1604,7 @@ class Quiet(Builtin):
                     break
             if conflict:
                 evaluation.message(
-                    "Quiet", "conflict", quiet_expr, Expression("List", *conflict)
+                    "Quiet", "conflict", quiet_expr, Expression(SymbolList, *conflict)
                 )
                 return
             for off in off_messages:
@@ -1973,7 +1976,7 @@ class Print(Builtin):
         "Print[expr__]"
 
         expr = expr.get_sequence()
-        expr = Expression("Row", Expression("List", *expr))
+        expr = Expression("Row", Expression(SymbolList, *expr))
         evaluation.print_out(expr)
         return Symbol("Null")
 
@@ -2097,7 +2100,7 @@ class MathMLForm(Builtin):
             xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
-        return Expression("RowBox", Expression("List", String(mathml)))
+        return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
 
 class PythonForm(Builtin):
@@ -2202,7 +2205,7 @@ class TeXForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             tex = ""
-        return Expression("RowBox", Expression("List", String(tex)))
+        return Expression("RowBox", Expression(SymbolList, String(tex)))
 
 
 class Style(Builtin):
@@ -2627,7 +2630,7 @@ class NumberForm(_NumberForm):
             mul = String(options["NumberMultiplier"])
             return Expression(
                 "RowBox",
-                Expression("List", man, mul, Expression("SuperscriptBox", base, exp)),
+                Expression(SymbolList, man, mul, Expression("SuperscriptBox", base, exp)),
             )
         else:
             return man
@@ -2652,7 +2655,7 @@ class NumberForm(_NumberForm):
         return Expression(
             "List",
             *[
-                Expression("NumberForm", leaf, Expression("List", n, f), *options)
+                Expression("NumberForm", leaf, Expression(SymbolList, n, f), *options)
                 for leaf in expr.leaves
             ]
         )
@@ -2661,7 +2664,7 @@ class NumberForm(_NumberForm):
         """MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression("MakeBoxes", expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
         py_options = self.check_options(options, evaluation)
         if py_options is None:
@@ -2679,13 +2682,13 @@ class NumberForm(_NumberForm):
 
         if py_n is not None:
             return number_form(expr, py_n, None, evaluation, py_options)
-        return Expression("MakeBoxes", expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         """MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression("MakeBoxes", expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
         py_n = n.get_int_value()
         if py_n is None or py_n <= 0:
@@ -2698,15 +2701,15 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, None, evaluation, py_options)
-        return Expression("MakeBoxes", expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         """MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
             form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression("MakeBoxes", expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
-        nf = Expression("List", n, f)
+        nf = Expression(SymbolList, n, f)
         py_n = n.get_int_value()
         py_f = f.get_int_value()
         if py_n is None or py_n <= 0 or py_f is None or py_f < 0:
@@ -2719,7 +2722,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, py_f, evaluation, py_options)
-        return Expression("MakeBoxes", expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
 
 class BaseForm(Builtin):
@@ -2792,7 +2795,7 @@ class BaseForm(Builtin):
             x = expr.get_int_value()
             p = 0
         else:
-            return Expression("MakeBoxes", expr, f)
+            return Expression(SymbolMakeBoxes, expr, f)
 
         try:
             val = convert_base(x, base, p)

@@ -21,6 +21,7 @@ from mathics.core.expression import (
     from_python,
     SymbolList,
     SymbolN,
+    SymbolRule,
 )
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
@@ -919,7 +920,7 @@ class _Chart(Builtin):
                     Expression(
                         "List", Expression("FaceForm", color), Expression("Rectangle")
                     ),
-                    Expression("Rule", Symbol("ImageSize"), Expression(SymbolList, 50, 50)),
+                    Expression(SymbolRule, Symbol("ImageSize"), Expression(SymbolList, 50, 50)),
                 )
 
             rows_per_col = 5

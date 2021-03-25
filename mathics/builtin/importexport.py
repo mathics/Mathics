@@ -9,6 +9,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics.core.expression import (
     ByteArrayAtom,
     SymbolList,
+    SymbolRule,
     Expression,
     from_python,
     strip_context,
@@ -904,7 +905,7 @@ def _importer_exporter_options(
             if py_name:
                 value = get_option(remaining_options, py_name, evaluation, pop=True)
                 if value is not None:
-                    expr = Expression("Rule", String(py_name), value)
+                    expr = Expression(SymbolRule, String(py_name), value)
                     if py_name == "CharacterEncoding":
                         stream_options.append(expr)
                     else:
@@ -917,7 +918,7 @@ def _importer_exporter_options(
             evaluation.message(
                 builtin_name,
                 "optx",
-                Expression("Rule", strip_context(name), value),
+                Expression(SymbolRule, strip_context(name), value),
                 strip_context(builtin_name),
             )
 
@@ -1478,7 +1479,7 @@ class Import(Builtin):
                 return Expression(
                     "List",
                     *(
-                        Expression("Rule", String(key), defaults[key])
+                        Expression(SymbolRule, String(key), defaults[key])
                         for key in defaults.keys()
                     )
                 )

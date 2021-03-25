@@ -31,16 +31,16 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
-    SymbolN,
-    SymbolFalse,
-    SymbolNull,
-    SymbolTrue,
-    SymbolList,
-    SymbolInfinity,
-    SymbolDirectedInfinity,
     SymbolComplexInfinity,
-    from_python,
+    SymbolDirectedInfinity,
+    SymbolFalse,
+    SymbolInfinity,
+    SymbolN,
+    SymbolNull,
+    SymbolSequence,
+    SymbolTrue,
     from_mpmath,
+    from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
@@ -964,7 +964,7 @@ class Power(BinaryOperator, _MPMathFunction):
             factor = self.apply(Expression("Sequence", x.imag, y), evaluation)
             return Expression("Times", factor, Expression("Power", Integer(-1), yhalf))
 
-        result = self.apply(Expression("Sequence", x, y), evaluation)
+        result = self.apply(Expression(SymbolSequence, x, y), evaluation)
         if result is None or result != SymbolNull:
             return result
 

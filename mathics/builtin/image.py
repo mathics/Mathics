@@ -15,6 +15,8 @@ from mathics.core.expression import (
     MachineReal,
     Symbol,
     SymbolNull,
+    SymbolList,
+    SymbolRule,
     from_python,
 )
 from mathics.builtin.colors import (
@@ -194,7 +196,7 @@ class _Exif:
                 else:
                     continue
 
-                yield Expression("Rule", String(_Exif._names.get(k, name)), value)
+                yield Expression(SymbolRule, String(_Exif._names.get(k, name)), value)
 
 
 class ImageImport(_ImageBuiltin):
@@ -217,15 +219,15 @@ class ImageImport(_ImageBuiltin):
         pillow = PIL.Image.open(path.get_string_value())
         pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-        exif = Expression("List", *list(_Exif.extract(pillow, evaluation)))
+        exif = Expression(SymbolList, *list(_Exif.extract(pillow, evaluation)))
 
         image = Image(pixels, "RGB" if is_rgb else "Grayscale")
         return Expression(
             "List",
-            Expression("Rule", String("Image"), image),
-            Expression("Rule", String("ColorSpace"), String(image.color_space)),
-            Expression("Rule", String("ImageSize"), from_python(image.dimensions())),
-            Expression("Rule", String("RawExif"), exif),
+            Expression(SymbolRule, String("Image"), image),
+            Expression(SymbolRule, String("ColorSpace"), String(image.color_space)),
+            Expression(SymbolRule, String("ImageSize"), from_python(image.dimensions())),
+            Expression(SymbolRule, String("RawExif"), exif),
         )
 
 
@@ -569,7 +571,7 @@ class ImageResize(_ImageBuiltin):
         h = self._get_image_size_spec(old_h, height)
         if h is None or w is None:
             return evaluation.message(
-                "ImageResize", "imgrssz", Expression("List", width, height)
+                "ImageResize", "imgrssz", Expression(SymbolList, width, height)
             )
 
         # handle Automatic
@@ -696,7 +698,7 @@ class ImageReflect(_ImageBuiltin):
 
         if method is None:
             return evaluation.message(
-                "ImageReflect", "bdrfl2", Expression("Rule", orig, dest)
+                "ImageReflect", "bdrfl2", Expression(SymbolRule, orig, dest)
             )
 
         return Image(method(image.pixels), image.color_space)
@@ -1041,7 +1043,7 @@ class EdgeDetect(_SkimageBuiltin):
 
 
 def _matrix(rows):
-    return Expression("List", *[Expression("List", *r) for r in rows])
+    return Expression(SymbolList, *[Expression(SymbolList, *r) for r in rows])
 
 
 class BoxMatrix(_ImageBuiltin):
@@ -1467,7 +1469,7 @@ class ColorSeparate(_ImageBuiltin):
         else:
             for i in range(pixels.shape[2]):
                 images.append(Image(pixels[:, :, i], "Grayscale"))
-        return Expression("List", *images)
+        return Expression(SymbolList, *images)
 
 
 class ColorCombine(_ImageBuiltin):
@@ -1755,7 +1757,7 @@ class DominantColors(_ImageBuiltin):
                     else:
                         yield Expression(out_palette_head, *prototype)
 
-        return Expression("List", *itertools.islice(result(), 0, at_most))
+        return Expression(SymbolList, *itertools.islice(result(), 0, at_most))
 
 
 # pixel access
@@ -1893,7 +1895,7 @@ class PixelValue(_ImageBuiltin):
             return evaluation.message("PixelValue", "nopad")
         pixel = pixels_as_float(image.pixels)[height - y, x - 1]
         if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
-            return Expression("List", *[MachineReal(float(x)) for x in list(pixel)])
+            return Expression(SymbolList, *[MachineReal(float(x)) for x in list(pixel)])
         else:
             return MachineReal(float(pixel))
 
@@ -1940,7 +1942,7 @@ class PixelValuePositions(_ImageBuiltin):
             result = sorted(
                 (j + 1, height - i, k + 1) for i, j, k in positions.tolist()
             )
-        return Expression("List", *(Expression("List", *arg) for arg in result))
+        return Expression(SymbolList, *(Expression(SymbolList, *arg) for arg in result))
 
 
 # image attribute queries
@@ -1968,7 +1970,7 @@ class ImageDimensions(_ImageBuiltin):
 
     def apply(self, image, evaluation):
         "ImageDimensions[image_Image]"
-        return Expression("List", *image.dimensions())
+        return Expression(SymbolList, *image.dimensions())
 
 
 class ImageAspectRatio(_ImageBuiltin):
@@ -2297,8 +2299,8 @@ class Image(Atom):
     def options(self):
         return Expression(
             "List",
-            Expression("Rule", String("ColorSpace"), String(self.color_space)),
-            Expression("Rule", String("MetaInformation"), self.metadata),
+            Expression(SymbolRule, String("ColorSpace"), String(self.color_space)),
+            Expression(SymbolRule, String("MetaInformation"), self.metadata),
         )
 
 

@@ -28,6 +28,7 @@ from mathics.core.expression import (
     Symbol,
     SymbolList,
     SymbolN,
+    SymbolMakeBoxes,
     strip_context,
     system_symbols,
     system_symbols_dict,
@@ -292,7 +293,7 @@ def _CMC_distance(lab1, lab2, l, c):
 
 
 def _extract_graphics(graphics, format, evaluation):
-    graphics_box = Expression("MakeBoxes", graphics).evaluate(evaluation)
+    graphics_box = Expression(SymbolMakeBoxes, graphics).evaluate(evaluation)
     builtin = GraphicsBox(expression=False)
     elements, calc_dimensions = builtin._prepare_elements(
         graphics_box.leaves, {"evaluation": evaluation}, neg_y=True

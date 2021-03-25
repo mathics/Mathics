@@ -33,6 +33,10 @@ from mathics.core.expression import (
     SymbolFailed,
     SymbolNull,
     SymbolN,
+    SymbolRule,
+    SymbolMakeBoxes,
+    SymbolAssociation,
+    SymbolSequence,
     Integer,
     Number,
     Real,
@@ -306,7 +310,7 @@ class NotListQ(Test):
 
 
 def list_boxes(items, f, open=None, close=None):
-    result = [Expression("MakeBoxes", item, f) for item in items]
+    result = [Expression(SymbolMakeBoxes, item, f) for item in items]
     if f.get_name() in ("System`OutputForm", "System`InputForm"):
         sep = ", "
     else:
@@ -1084,7 +1088,7 @@ class Part(Builtin):
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         i = i.get_sequence()
-        list = Expression("MakeBoxes", list, f)
+        list = Expression(SymbolMakeBoxes, list, f)
         if f.get_name() in ("System`OutputForm", "System`InputForm"):
             open, close = "[[", "]]"
         else:
@@ -1936,7 +1940,7 @@ class Pick(Builtin):
 
         r = list(pick([items0], [sel0]))
         if not r:
-            return Expression("Sequence")
+            return Expression(SymbolSequence)
         else:
             return r[0]
 
@@ -2357,7 +2361,7 @@ class _IterationFunction(Builtin):
                 return self.apply_max(expr, *leaves, evaluation)
             elif len(leaves) == 2:
                 if leaves[1].has_form(["List", "Sequence"], None):
-                    seq = Expression("Sequence", *(leaves[1].leaves))
+                    seq = Expression(SymbolSequence, *(leaves[1].leaves))
                     return self.apply_list(expr, leaves[0], seq, evaluation)
                 else:
                     return self.apply_range(expr, *leaves, evaluation)
@@ -2376,10 +2380,10 @@ class _IterationFunction(Builtin):
         if imax.has_form("Range", None):
             # Fixme: this should work as an iterator in python3, not
             # building the sequence explicitly...
-            seq = Expression("Sequence", *(imax.evaluate(evaluation).leaves))
+            seq = Expression(SymbolSequence, *(imax.evaluate(evaluation).leaves))
             return self.apply_list(expr, i, seq, evaluation)
         elif imax.has_form("List", None):
-            seq = Expression("Sequence", *(imax.leaves))
+            seq = Expression(SymbolSequence, *(imax.leaves))
             return self.apply_list(expr, i, seq, evaluation)
         else:
             return self.apply_iter(expr, i, Integer(1), imax, Integer(1), evaluation)
@@ -5002,7 +5006,7 @@ class _Cluster(Builtin):
         method_string, method = self.get_option_string(options, "Method", evaluation)
         if method_string not in ("Optimize", "Agglomerate", "KMeans"):
             evaluation.message(
-                self.get_name(), "bdmtd", Expression("Rule", "Method", method)
+                self.get_name(), "bdmtd", Expression(SymbolRule, "Method", method)
             )
             return
 
@@ -5043,7 +5047,7 @@ class _Cluster(Builtin):
             py_seed = seed.get_int_value()
         else:
             evaluation.message(
-                self.get_name(), "rseed", Expression("Rule", "RandomSeed", seed)
+                self.get_name(), "rseed", Expression(SymbolRule, "RandomSeed", seed)
             )
             return
 
@@ -5833,7 +5837,7 @@ class Association(Builtin):
             )
         else:
             self.error_idx += 1
-            symbol = Expression("MakeBoxes", Symbol("Association"), f)
+            symbol = Expression(SymbolMakeBoxes, Symbol(SymbolAssociation), f)
             expr = Expression(
                 "RowBox", Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]"))
             )
@@ -5861,7 +5865,7 @@ class Association(Builtin):
             return [dic[key] for key in keys]
 
         try:
-            return Expression("Association", *make_flatten(rules.get_sequence()))
+            return Expression(SymbolAssociation, *make_flatten(rules.get_sequence()))
         except:
             return None
 

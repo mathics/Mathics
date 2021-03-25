@@ -20,6 +20,7 @@ from mathics.core.expression import (
     String,
     SymbolFailed,
     SymbolList,
+    SymbolRule,
     strip_context,
 )
 from mathics.builtin.base import Builtin, Predefined
@@ -130,12 +131,12 @@ class GetEnvironment(Builtin):
                 else String(os.environ[env_var]),
             )
 
-            return Expression("Rule", *tup)
+            return Expression(SymbolRule, *tup)
 
         env_vars = var.get_sequence()
         if len(env_vars) == 0:
             rules = [
-                Expression("Rule", name, value) for name, value in os.environ.items()
+                Expression(SymbolRule, name, value) for name, value in os.environ.items()
             ]
             return Expression(SymbolList, *rules)
 
