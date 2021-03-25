@@ -4,10 +4,11 @@
 Date and Time
 """
 
-import time
 from datetime import datetime, timedelta
 import dateutil.parser
 import re
+import sys
+import time
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -126,62 +127,63 @@ class TimeRemaining(Builtin):
             return SymbolInfinity
 
 
-class TimeConstrained(Builtin):
-    """
-    <dl>
-    <dt>'TimeConstrained[$expr$, $t$]'
-        <dd>'evaluates $expr$, stopping after $t$ seconds.'
-    <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
-        <dd>'returns $failexpr$ if the time constraint is not met.'
-    </dl>
-    >> TimeConstrained[Integrate[Sin[x]^1000000,x],1]
-    = $Aborted
+if sys.platform != "win32":
+    class TimeConstrained(Builtin):
+        """
+        <dl>
+        <dt>'TimeConstrained[$expr$, $t$]'
+            <dd>'evaluates $expr$, stopping after $t$ seconds.'
+        <dt>'TimeConstrained[$expr$, $t$, $failexpr$]'
+            <dd>'returns $failexpr$ if the time constraint is not met.'
+        </dl>
+        >> TimeConstrained[Integrate[Sin[x]^1000000,x],1]
+        = $Aborted
 
-    >> TimeConstrained[Integrate[Sin[x]^1000000,x], 1, Integrate[Cos[x],x]]
-    = Sin[x]
+        >> TimeConstrained[Integrate[Sin[x]^1000000,x], 1, Integrate[Cos[x],x]]
+        = Sin[x]
 
-    >> s=TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
-     : Number of seconds a is not a positive machine-sized number or Infinity.
-     = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+        >> s=TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
+         : Number of seconds a is not a positive machine-sized number or Infinity.
+         = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
 
-    >> a=1; s
-    = -Cos[x] + Cos[x] ^ 3 / 3
+        >> a=1; s
+        = -Cos[x] + Cos[x] ^ 3 / 3
 
-    Possible issues: for certain time-consuming functions (like simplify)
-    which are based on sympy or other libraries, it is possible that
-    the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\\$Aborted$ and the results will not affect
-    the state of the mathics kernel.
+        Possible issues: for certain time-consuming functions (like simplify)
+        which are based on sympy or other libraries, it is possible that
+        the evaluation continues after the timeout. However, at the end of the evaluation, the function will return $\\$Aborted$ and the results will not affect
+        the state of the mathics kernel.
 
-    """
+        """
 
-    attributes = ('HoldAll',)
-    messages = {
-        'timc': 'Number of seconds `1` is not a positive machine-sized number or Infinity.',
-    }
+        attributes = ('HoldAll',)
+        messages = {
+            'timc': 'Number of seconds `1` is not a positive machine-sized number or Infinity.',
+        }
 
-    def apply_2(self, expr, t, evaluation):
-        'TimeConstrained[expr_, t_]'
-        return self.apply_3(expr, t, SymbolAborted, evaluation)
+        def apply_2(self, expr, t, evaluation):
+            'TimeConstrained[expr_, t_]'
+            return self.apply_3(expr, t, SymbolAborted, evaluation)
 
-    def apply_3(self, expr, t, failexpr, evaluation):
-        'TimeConstrained[expr_, t_, failexpr_]'
-        t = t.evaluate(evaluation)
-        if not t.is_numeric():
-            evaluation.message('TimeConstrained', 'timc', t)
-            return
-        try:
-            t = float(t.to_python())
-            evaluation.timeout_queue.append((t, datetime.now().timestamp()))
-            request = lambda : expr.evaluate(evaluation)
-            res = run_with_timeout_and_stack(request, t, evaluation)
-        except TimeoutInterrupt:
+        def apply_3(self, expr, t, failexpr, evaluation):
+            'TimeConstrained[expr_, t_, failexpr_]'
+            t = t.evaluate(evaluation)
+            if not t.is_numeric():
+                evaluation.message('TimeConstrained', 'timc', t)
+                return
+            try:
+                t = float(t.to_python())
+                evaluation.timeout_queue.append((t, datetime.now().timestamp()))
+                request = lambda : expr.evaluate(evaluation)
+                res = run_with_timeout_and_stack(request, t, evaluation)
+            except TimeoutInterrupt:
+                evaluation.timeout_queue.pop()
+                return failexpr.evaluate(evaluation)
+            except:
+                evaluation.timeout_queue.pop()
+                raise
             evaluation.timeout_queue.pop()
-            return failexpr.evaluate(evaluation)
-        except:
-            evaluation.timeout_queue.pop()
-            raise
-        evaluation.timeout_queue.pop()
-        return res
+            return res
 
 
 class Timing(Builtin):

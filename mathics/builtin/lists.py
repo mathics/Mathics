@@ -178,8 +178,17 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation, levelspec=1,
     return found
 
 
-class ByteArray(Builtin):
+class Normal(Builtin):
     """
+        <dl>
+    <dt>'Normal[expr_]'
+       <dd> Brings especial expressions to a normal expression from
+       different especial forms.
+    </dl>
+    """
+
+class ByteArray(Builtin):
+    r"""
     <dl>
     <dt>'ByteArray[{$b_1$, $b_2$, $\ldots$}]'
        <dd> Represents a sequence of Bytes $b_1$, $b_2$, $\ldots$
@@ -187,21 +196,41 @@ class ByteArray(Builtin):
        <dd> Constructs a byte array where bytes comes from decode a b64 encoded String
     </dl>
 
-    >> A=ByteArray[{1,25,3}]
+    >> A=ByteArray[{1, 25, 3}]
      = ByteArray["ARkD"]
     >> A[[2]]
      = 25
+    >> Normal[A]
+     = {1, 25, 3}
+    >> ToString[A]
+     = ByteArray["ARkD"]
+    >> ByteArray["ARkD"]
+     = ByteArray["ARkD"]
     >> B=ByteArray["asy"]
-     = ByteArray["WVhONQ=="]
+     : The first argument in Bytearray[asy] should be a B64 enconded string or a vector of integers.
+     = $Failed
     """
 
     messages = {'aotd': 'Elements in `1` are inconsistent with type Byte',
                 'lend': 'The first argument in Bytearray[`1`] should ' + \
-                         'be a B64 enconded string or a vector of integers',}
+                         'be a B64 enconded string or a vector of integers.',}
 
     def apply_str(self, string, evaluation):
         'ByteArray[string_String]'
-        return Expression("ByteArray", ByteArrayAtom(string.value))
+        try:
+            atom = ByteArrayAtom(string.value)
+        except Exception:
+            evaluation.message("ByteArray", 'lend', string)
+            return SymbolFailed
+        return Expression("ByteArray", atom)
+
+    def apply_to_str(self, baa, evaluation):
+        'ToString[ByteArray[baa_ByteArrayAtom]]'
+        return String('ByteArray["' + baa.__str__() + '"]')
+
+    def apply_normal(self, baa, evaluation):
+        'System`Normal[ByteArray[baa_ByteArrayAtom]]'
+        return Expression("List", *[Integer(x) for x in baa.value])
 
     def apply_list(self, values, evaluation):
         'ByteArray[values_List]'
@@ -1067,6 +1096,7 @@ class Part(Builtin):
         indices = i.get_sequence()
         # How to deal with ByteArrays
         if list.get_head_name() == "System`ByteArray":
+            list = list.evaluate(evaluation)
             if len(indices) > 1:
                 print("Part::partd1: Depth of object ByteArray[<3>] " +
                       "is not sufficient for the given part specification.")
@@ -1094,7 +1124,7 @@ class Part(Builtin):
             # TODO: handling ranges and lists...
             evaluation.message("Part", "notimplemented")
             return
-            
+
 
         # Otherwise...
         result = walk_parts([list], indices, evaluation)

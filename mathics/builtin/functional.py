@@ -56,54 +56,66 @@ class Function(PostfixOperator):
      = 3
     """
 
-    operator = '&'
+    operator = "&"
     precedence = 90
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     messages = {
-        'slot': "`1` should contain a positive integer.",
-        'slotn': "Slot number `1` cannot be filled.",
-        'fpct': "Too many parameters to be filled.",
-        'iassoc': "Invalid association item `1`"
+        "slot": "`1` should contain a positive integer.",
+        "slotn": "Slot number `1` cannot be filled.",
+        "fpct": "Too many parameters to be filled.",
+        "iassoc": "Invalid association item `1`",
     }
 
     def apply_slots(self, body, args, evaluation):
-        'Function[body_][args___]'
+        "Function[body_][args___]"
 
-        args = list(chain([Expression('Function', body)], args.get_sequence()))
+        args = list(chain([Expression("Function", body)], args.get_sequence()))
         return body.replace_slots(args, evaluation)
 
     def apply_named(self, vars, body, args, evaluation):
-        'Function[vars_, body_][args___]'
+        "Function[vars_, body_][args___]"
 
-        if vars.has_form('List', None):
+        if vars.has_form("List", None):
             vars = vars.leaves
         else:
             vars = [vars]
 
+        # print([v.get_head_name()=="System`Pattern" or v.is_symbol() for v in vars])
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message("Function", "fpct")
         else:
-            vars = dict(list(zip((
-                var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            # Allows to use both symbols or Blank patterns (z_Complex) to state the symbol.
+            # this is not included in WL, and here does not have any impact, but it is needed for
+            # translating the function to a compiled version.
+            var_names = (
+                var.get_name() if var.is_symbol() else var.leaves[0].get_name()
+                for var in vars
+            )
+            vars = dict(list(zip(var_names, args[: len(vars)])))
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
     # Not sure if DRY is possible here...
     def apply_named_attr(self, vars, body, attr, args, evaluation):
-        'Function[vars_, body_, attr_][args___]'
-        if vars.has_form('List', None):
+        "Function[vars_, body_, attr_][args___]"
+        if vars.has_form("List", None):
             vars = vars.leaves
         else:
             vars = [vars]
 
         args = args.get_sequence()
         if len(vars) > len(args):
-            evaluation.message('Function', 'fpct', )
+            evaluation.message("Function", "fpct")
         else:
-            vars = dict(list(zip((
-                var.get_name() for var in vars), args[:len(vars)])))
-            return body.replace_vars(vars)
+            vars = dict(list(zip((var.get_name() for var in vars), args[: len(vars)])))
+            try:
+                return body.replace_vars(vars)
+            except:
+                return
 
 
 class Slot(Builtin):
@@ -135,13 +147,14 @@ class Slot(Builtin):
      = #0
     """
 
-    attributes = ('NHoldAll',)
+    attributes = ("NHoldAll",)
 
     rules = {
-        'Slot[]': 'Slot[1]',
-        'MakeBoxes[Slot[n_Integer?NonNegative],'
-        '  f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
-            '"#" <> ToString[n]'),
+        "Slot[]": "Slot[1]",
+        "MakeBoxes[Slot[n_Integer?NonNegative],"
+        "  f:StandardForm|TraditionalForm|InputForm|OutputForm]": (
+            '"#" <> ToString[n]'
+        ),
     }
 
 
@@ -166,13 +179,12 @@ class SlotSequence(Builtin):
      = ##1
     """
 
-    attributes = ('NHoldAll',)
+    attributes = ("NHoldAll",)
 
     rules = {
-        'SlotSequence[]': 'SlotSequence[1]',
-        'MakeBoxes[SlotSequence[n_Integer?Positive],'
-        'f:StandardForm|TraditionalForm|InputForm|OutputForm]': (
-            '"##" <> ToString[n]'),
+        "SlotSequence[]": "SlotSequence[1]",
+        "MakeBoxes[SlotSequence[n_Integer?Positive],"
+        "f:StandardForm|TraditionalForm|InputForm|OutputForm]": ('"##" <> ToString[n]'),
     }
 
 
@@ -197,14 +209,14 @@ class Composition(Builtin):
      = Composition[f, g, h]
     """
 
-    attributes = ('Flat', 'OneIdentity')
+    attributes = ("Flat", "OneIdentity")
 
     rules = {
-        'Composition[]': 'Identity',
+        "Composition[]": "Identity",
     }
 
     def apply(self, functions, args, evaluation):
-        'Composition[functions__][args___]'
+        "Composition[functions__][args___]"
 
         functions = functions.get_sequence()
         args = args.get_sequence()
@@ -227,5 +239,5 @@ class Identity(Builtin):
     """
 
     rules = {
-        'Identity[x_]': 'x',
+        "Identity[x_]": "x",
     }
