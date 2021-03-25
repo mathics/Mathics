@@ -46,6 +46,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolTrue,
     SymbolList,
+    SymbolN,
     from_python,
 )
 from mathics.core.convert import from_sympy
@@ -234,13 +235,13 @@ class N(Builtin):
 
         name = expr.get_lookup_name()
         if name != "":
-            nexpr = Expression("N", expr, prec)
+            nexpr = Expression(SymbolN, expr, prec)
             result = evaluation.definitions.get_value(
                 name, "System`NValues", nexpr, evaluation
             )
             if result is not None:
                 if not result.same(nexpr):
-                    result = Expression("N", result, prec).evaluate(evaluation)
+                    result = Expression(SymbolN, result, prec).evaluate(evaluation)
                 return result
 
         if expr.is_atom():
@@ -258,10 +259,10 @@ class N(Builtin):
                     eval_range = ()
             else:
                 eval_range = range(len(expr.leaves))
-            head = Expression("N", expr.head, prec).evaluate(evaluation)
+            head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
             leaves = expr.get_mutable_leaves()
             for index in eval_range:
-                leaves[index] = Expression("N", leaves[index], prec).evaluate(
+                leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
                     evaluation
                 )
             return Expression(head, *leaves)
@@ -650,8 +651,8 @@ class NIntegrate(Builtin):
                         (lambda u: a - z + z / u, lambda u: z * u ** (-2.0))
                     )
                 elif a.is_numeric() and b.is_numeric():
-                    a = Expression("N", a).evaluate(evaluation).value
-                    b = Expression("N", b).evaluate(evaluation).value
+                    a = Expression(SymbolN, a).evaluate(evaluation).value
+                    b = Expression(SymbolN, b).evaluate(evaluation).value
                     subdomain2.append([a, b])
                     coordtransform.append(None)
                 else:
@@ -1665,7 +1666,7 @@ class RealDigits(Builtin):
                 ).evaluate(evaluation)
             else:
                 if rational_no:
-                    n = Expression("N", n).evaluate(evaluation)
+                    n = Expression(SymbolN, n).evaluate(evaluation)
                 else:
                     return evaluation.message("RealDigits", "ndig", expr)
         py_n = abs(n.value)

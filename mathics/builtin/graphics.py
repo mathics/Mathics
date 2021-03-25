@@ -27,6 +27,7 @@ from mathics.core.expression import (
     String,
     Symbol,
     SymbolList,
+    SymbolN,
     strip_context,
     system_symbols,
     system_symbols_dict,
@@ -399,7 +400,7 @@ class Show(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression("N", options[option]).evaluate(evaluation)
+                options[option] = Expression(SymbolN, options[option]).evaluate(evaluation)
 
         # The below could probably be done with graphics.filter..
         new_leaves = []
@@ -493,12 +494,12 @@ class Graphics(Builtin):
                 ):
                     if head == "System`Inset":
                         n_leaves = [content.leaves[0]] + [
-                            Expression("N", leaf).evaluate(evaluation)
+                            Expression(SymbolN, leaf).evaluate(evaluation)
                             for leaf in content.leaves[1:]
                         ]
                     else:
                         n_leaves = (
-                            Expression("N", leaf).evaluate(evaluation)
+                            Expression(SymbolN, leaf).evaluate(evaluation)
                             for leaf in content.leaves
                         )
                 else:
@@ -508,7 +509,7 @@ class Graphics(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression("N", options[option]).evaluate(evaluation)
+                options[option] = Expression(SymbolN, options[option]).evaluate(evaluation)
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
 
         if type(self) is Graphics:

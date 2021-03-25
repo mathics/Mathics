@@ -20,6 +20,7 @@ from mathics.core.expression import (
     Integer,
     from_python,
     SymbolList,
+    SymbolN,
 )
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
@@ -383,7 +384,7 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
 
             return quiet_f
 
-    expr = Expression("N", expr)
+    expr = Expression(SymbolN, expr)
     quiet_expr = Expression(
         "Quiet",
         expr,
@@ -1005,7 +1006,7 @@ class PieChart(_Chart):
         sector_origin = self.get_option(options, "SectorOrigin", evaluation)
         if not sector_origin.has_form("List", 2):
             return
-        sector_origin = Expression("N", sector_origin).evaluate(evaluation)
+        sector_origin = Expression(SymbolN, sector_origin).evaluate(evaluation)
 
         orientation = sector_origin.leaves[0]
         if (

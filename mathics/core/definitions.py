@@ -171,7 +171,7 @@ class Definitions(object):
         for key in list(builtins_by_module.keys()):
             if not key.startswith("mathics."):
                 del builtins_by_module[key]
-        for key in pymathics:
+        for key in self.pymathics:
             del self.pymathics[key]
 
         self.pymathics = {}

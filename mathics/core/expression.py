@@ -136,7 +136,7 @@ def from_python(arg):
     elif isinstance(arg, list) or isinstance(arg, tuple):
         return Expression(SymbolList, *[from_python(leaf) for leaf in arg])
     elif isinstance(arg, bytearray) or isinstance(arg, bytes):
-        return Expression("ByteArray", ByteArrayAtom(arg))
+        return Expression(SymbolByteArray, ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
@@ -565,7 +565,7 @@ class BaseExpression(KeyComparable):
         if evaluation is None:
             value = self
         else:
-            value = Expression("N", self).evaluate(evaluation)
+            value = Expression(SymbolN, self).evaluate(evaluation)
         if isinstance(value, Number):
             value = value.round()
             return value.get_float_value(permit_complex=permit_complex)
@@ -1026,7 +1026,7 @@ class Expression(BaseExpression):
                 compiled = compiled.evaluate(n_evaluation)
                 if compiled.get_head_name() == "System`CompiledFunction":
                     return compiled.leaves[2].cfunc
-            value = Expression("N", self).evaluate(n_evaluation)
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
             return value.to_python()
 
         if head_name == "System`DirectedInfinity" and len(self._leaves) == 1:
@@ -1804,7 +1804,7 @@ class Expression(BaseExpression):
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression("N", leaf, Integer(dps(_prec)))
+                    n_expr = Expression(SymbolN, leaf, Integer(dps(_prec)))
                     n_result = n_expr.evaluate(evaluation)
                     if isinstance(n_result, Number):
                         new_leaves[index] = n_result
@@ -1934,7 +1934,7 @@ class Symbol(Atom):
             return None
         n_evaluation = kwargs.get("n_evaluation")
         if n_evaluation is not None:
-            value = Expression("N", self).evaluate(n_evaluation)
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
             return value.to_python()
 
         if kwargs.get("python_form", False):
@@ -2018,8 +2018,12 @@ SymbolFalse = Symbol("False")
 SymbolInfinity = Symbol("Infinity")
 SymbolList = Symbol("List")
 SymbolMakeBoxes = Symbol("MakeBoxes")
+SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
 SymbolTrue = Symbol("True")
+
+
+>>>>>>> 3ebfa623 (Singletonize N)
 
 
 @lru_cache(maxsize=1024)

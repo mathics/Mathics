@@ -31,6 +31,7 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolN,
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
@@ -122,7 +123,7 @@ class _MPMathFunction(SympyFunction):
             prec = min_prec(*args)
             d = dps(prec)
             args = [
-                Expression("N", arg, Integer(d)).evaluate(evaluation) for arg in args
+                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation) for arg in args
             ]
             with mpmath.workprec(prec):
                 mpmath_args = [x.to_mpmath() for x in args]
@@ -947,7 +948,7 @@ class Power(BinaryOperator, _MPMathFunction):
             if isinstance(y, Number):
                 y_err = y
             else:
-                y_err = Expression("N", y).evaluate(evaluation)
+                y_err = Expression(SymbolN, y).evaluate(evaluation)
             if isinstance(y_err, Number):
                 py_y = y_err.round_to_float(permit_complex=True).real
                 if py_y > 0:
@@ -1418,7 +1419,7 @@ class PossibleZeroQ(SympyFunction):
             result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
-            numeric_val = Expression("N", expr).evaluate(evaluation)
+            numeric_val = Expression(SymbolN, expr).evaluate(evaluation)
             if numeric_val and hasattr(numeric_val, "is_approx_zero"):
                 result = numeric_val.is_approx_zero
             elif (

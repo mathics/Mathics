@@ -32,6 +32,7 @@ from mathics.core.expression import (
     Symbol,
     SymbolFailed,
     SymbolNull,
+    SymbolN,
     Integer,
     Number,
     Real,
@@ -4932,7 +4933,7 @@ class _PrecomputedDistances(PrecomputedDistances):
 
     def __init__(self, df, p, evaluation):
         distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
-        distances = Expression("N", Expression(SymbolList, *distances_form)).evaluate(
+        distances = Expression(SymbolN, Expression(SymbolList, *distances_form)).evaluate(
             evaluation
         )
         mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
@@ -4950,7 +4951,7 @@ class _LazyDistances(LazyDistances):
 
     def _compute_distance(self, i, j):
         p = self._p
-        d = Expression("N", self._df(p[i], p[j])).evaluate(self._evaluation)
+        d = Expression(SymbolN, self._df(p[i], p[j])).evaluate(self._evaluation)
         return _to_real_distance(d)
 
 

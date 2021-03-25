@@ -6,7 +6,7 @@ Calculus
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList
+from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList, SymbolN
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
@@ -1098,7 +1098,7 @@ class FindRoot(Builtin):
     def apply(self, f, x, x0, evaluation):
         "FindRoot[f_, {x_, x0_}]"
 
-        x0 = Expression("N", x0).evaluate(evaluation)
+        x0 = Expression(SymbolN, x0).evaluate(evaluation)
         if not isinstance(x0, Number):
             evaluation.message("FindRoot", "snum", x0)
             return
@@ -1134,7 +1134,7 @@ class FindRoot(Builtin):
                 return
             if x1 == x0:
                 break
-            x0 = Expression("N", x1).evaluate(
+            x0 = Expression(SymbolN, x1).evaluate(
                 evaluation
             )  # N required due to bug in sympy arithmetic
             count += 1
