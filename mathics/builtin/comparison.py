@@ -3,7 +3,6 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-import itertools
 from typing import Optional, Union
 
 import sympy
@@ -218,6 +217,7 @@ class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
     def do_compare(self, l1, l2) -> Union[bool, None]:
+        print("do_compare:", (l1,l2))
         if l1.same(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
@@ -279,7 +279,9 @@ class _EqualityOperator(_InequalityOperator):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
-        for x, y in itertools.combinations(args, 2):
+        pairs = zip(args[:-1],args[1:])
+        print("apply:", args)
+        for x, y in pairs:
             if isinstance(x, String) or isinstance(y, String):
                 if not (isinstance(x, String) and isinstance(y, String)):
                     c = 1
@@ -297,7 +299,9 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
-        for x, y in itertools.combinations(args, 2):
+        pairs = zip(args[:-1],args[1:])
+        print("apply_other:", args)
+        for x, y in pairs:
             c = self.do_compare(x, y)
             if c is None:
                 return

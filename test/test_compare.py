@@ -28,7 +28,7 @@ from .helper import check_evaluation
 def test_compare():
     for str_expr, str_expected in (
         # Tests that do not passes
-        #("Infinity==I", "False"),
+        ("Infinity==I", "False"),
         #        ("Infinity==3+2 I", "False"),            
         #        (
         #            '2 + 3*a==StringStream["Tengo una vaca lechera"]',
