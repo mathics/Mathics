@@ -10,3 +10,7 @@ Unprotect[Settings`$TraceGet]
 Settings`$PreferredBackendMethod::usage = "Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is s choice";
 Settings`$PreferredBackendMethod = "sympy"
 Unprotect[Settings`$PreferredBackendMethod]
+
+(*Needed for Feyncalc*)
+System`$Notebooks = False;
+Unprotect[System`Notebooks];
