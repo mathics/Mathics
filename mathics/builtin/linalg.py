@@ -11,7 +11,7 @@ from mpmath import mp
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Expression, Integer, Symbol, Real, Number
+from mathics.core.expression import Expression, Integer, Symbol, Real, from_mpmath
 
 
 def matrix_data(m):
@@ -385,7 +385,7 @@ class LeastSquares(Builtin):
 
         try:
             solution = matrix.solve_least_squares(b_vector)  # default method = Cholesky
-        except NotImplementedError as e:
+        except NotImplementedError:
             return evaluation.message("LeastSquares", "underdetermined")
 
         return from_sympy(solution)
@@ -729,7 +729,7 @@ class Eigenvalues(Builtin):
         eigenvalues.sort(
             key=lambda v: (abs(v[0]), -v[0].real, -(v[0].imag)), reverse=True
         )
-        eigenvalues = [[Number.from_mpmath(c) for c in row] for row in eigenvalues]
+        eigenvalues = [[from_mpmath(c) for c in row] for row in eigenvalues]
         return Expression("List", *eigenvalues)
 
     options = {"Method": "sympy"}
@@ -831,7 +831,7 @@ class MatrixPower(Builtin):
             res = sympy_m ** sympy_power
         except NotImplementedError:
             return evaluation.message("MatrixPower", "matrixpowernotimplemented", m)
-        except ValueError as e:
+        except ValueError:
             return evaluation.message("MatrixPower", "matrixpowernotinvertible", m)
         return from_sympy(res)
 

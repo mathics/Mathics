@@ -10,8 +10,9 @@ def check_evaluation(str_expr: str, str_expected: str, message=""):
     """Helper function to test that a WL expression against
     its results"""
     result = session.evaluate(str_expr)
+    print("result=",result)
     expected = session.evaluate(str_expected)
-
+    print("expected=",expected)
     print(time.asctime())
     print(message)
     if message:

@@ -1,6 +1,8 @@
 import ctypes
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, BoxConstruct
+from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
     Atom,
     Expression,
@@ -9,15 +11,15 @@ from mathics.core.expression import (
     from_python,
     Integer,
 )
-from mathics.version import __version__  # noqa used in loading to check consistency.
+from types import FunctionType
 
 
 class Compile(Builtin):
     """
     <dl>
-    <dt>'Compile[{x1, x2, ...}, expr_]'
+    <dt>'Compile[{$x1$, $x2$, ...}, $expr$]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
-    <dt>'Compile[{{x1, t1} {x2, t1} ...}, expr_]'
+    <dt>'Compile[{{$x1$, $t1$} {$x2$, $t1$} ...}, $expr$]'
       <dd>Compiles assuming each $xi$ matches type $ti$.
     </dl>
 
@@ -41,8 +43,7 @@ class Compile(Builtin):
      : Duplicate parameter x found in {{x, _Real}, {x, _Integer}}.
      = Compile[{{x, _Real}, {x, _Integer}}, Sin[x + y]]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + z]]
-     : Expression Sin[x + z] could not be compiled.
-     = Function[{Global`x, Global`y}, Sin[x + z]]
+     = CompiledFunction[{x, y}, Sin[x + z], -PythonizedCode-]
     #> cf = Compile[{{x, _Real}, {y, _Integer}}, Sin[x + y]]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-]
     #> cf[1, 2]
@@ -50,7 +51,7 @@ class Compile(Builtin):
     #> cf[x + y]
      = CompiledFunction[{x, y}, Sin[x + y], -CompiledCode-][x + y]
 
-    Compile supports basic flow control
+    Compile supports basic flow control:
     >> cf = Compile[{{x, _Real}, {y, _Integer}}, If[x == 0.0 && y <= 0, 0.0, Sin[x ^ y] + 1 / Min[x, 0.5]] + 0.5]
      = CompiledFunction[{x, y}, ..., -CompiledCode-]
     >> cf[3.5, 2]
@@ -58,10 +59,10 @@ class Compile(Builtin):
     #> cf[0, -2]
      = 0.5
 
-    Loops and variable assignments are not yet supported
+    Loops and variable assignments are supported as python (not llvmlite)
+    functions
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
-     : Expression While[b != 0, {a, b} = {b, Mod[a, b]}] ; a could not be compiled.
-     = Function[{Global`a, Global`b}, While[b != 0, {a, b} = {b, Mod[a, b]}] ; a]
+     =  CompiledFunction[{a, b}, a, -PythonizedCode-]
     """
 
     requires = ("llvmlite",)
@@ -123,9 +124,29 @@ class Compile(Builtin):
         try:
             cfunc = _compile(expr, args)
         except CompileError:
+            cfunc = None
+
+        if cfunc is None:
+            try:
+
+                def _pythonized_mathics_expr(*x):
+                    inner_evaluation = Evaluation(definitions=evaluation.definitions)
+                    vars = dict(list(zip(names, x[: len(names)])))
+                    pyexpr = expr.replace_vars(vars)
+                    pyexpr = Expression("N", pyexpr).evaluate(inner_evaluation)
+                    res = pyexpr.to_python(n_evaluation=inner_evaluation)
+                    return res
+
+                # TODO: check if we can use numba to compile this...
+                cfunc = _pythonized_mathics_expr
+            except Exception:
+                cfunc = None
+
+        if cfunc is None:
             evaluation.message("Compile", "comperr", expr)
             args = Expression("List", *names)
             return Expression("Function", args, expr)
+
         code = CompiledCode(cfunc, args)
         arg_names = Expression("List", *(Symbol(arg.name) for arg in args))
         return Expression("CompiledFunction", arg_names, expr, code)
@@ -138,6 +159,8 @@ class CompiledCode(Atom):
         self.args = args
 
     def __str__(self):
+        if type(self.cfunc) is FunctionType:
+            return "-PythonizedCode-"
         return "-CompiledCode-"
 
     def do_copy(self):
@@ -162,7 +185,7 @@ class CompiledCode(Atom):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
-        return CompiledCodeBox(String("Nocode"), evaluation=evaluation)
+        return CompiledCodeBox(String(self.__str__()), evaluation=evaluation)
 
 
 class CompiledCodeBox(BoxConstruct):
@@ -171,19 +194,19 @@ class CompiledCodeBox(BoxConstruct):
     """
 
     def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_xml(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
     def boxes_to_tex(self, leaves=None, **options):
-        if not leaves:
+        if leaves is None:
             leaves = self._leaves
-        return "-CompiledCode-"
+        return leaves[0].value
 
 
 class CompiledFunction(Builtin):

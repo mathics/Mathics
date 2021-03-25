@@ -82,7 +82,7 @@ else:
 INSTALL_REQUIRES += [
     "Mathics_Scanner>=1.0.0,<1.1.0",
     "sympy>=1.7, <= 1.8dev",
-    "mpmath>=1.1.0",
+    "mpmath>=1.2.0",
     "numpy",
     "palettable",
     "pint",
@@ -91,7 +91,6 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
-    "PyYAML",  # Used in mathics.core.characters
 ]
 
 

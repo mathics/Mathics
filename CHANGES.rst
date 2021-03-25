@@ -1,6 +1,58 @@
 CHANGES
 =======
 
+2.1.0
+-----
+
+New builtins
+++++++++++++
+
+* ``ArcTanh``
+* ``ByteArray``
+* ``CreateFile``
+* ``CreateTemporary``
+* ``FileNames``
+* ``NIntegrate``
+* ``PartitionsP``
+* ``$Notebooks``
+
+Enhancements
+++++++++++++
+
+* the Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
+* Automatic detection for the best strategy to numeric evaluation of constants.
+* ``FileNameJoin`` - implement ``OperatingSystem`` option
+* Mathics functions are accepted by ``Compile[]``. The return value or type will be
+  ``Compile[] and CompiledFunction[]``  every expression can have a compiled form,
+  as a Python function.
+* ``Equal[]`` now compares complex against other numbers properly.
+
+
+Bug fixes
++++++++++
+
+* TeXForm for integrals are now properly formatted.
+
+
+Pymathics Modules
++++++++++++++++++
+
+* Pymathics modules now can run initialization code when are loaded.
+* The ``builtins`` list is not hardliked to the library anymore. This simplifies
+  the loading and reloading of pymathics modules.
+* Decoupling of BoxConstructors from the library. Now are defined at the
+  level of the definition objects. This is useful for customizing the
+  Graphics output if it is available.
+
+
+Miscellanea
++++++++++++
+
+* A pass was made to improve Microsoft Windows compatability and testing
+Windows under MSYS.
+* Include numpy version in version string. Show in CLI
+* Small CLI tweaks ``--colors=None`` added to match mathicsscript.
+
 2.0.0
 -----
 
@@ -79,7 +131,7 @@ Numerous bugs were fixed while working on Combinatorica V0.9 and CellsToTeX.
 Document updates
 ++++++++++++++++
 
-- Start a readthedocs `Developer Guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_
+- Start a readthedocs `Developer Guide <https://mathics-development-guide.reandthedocs.io/en/latest/>`_
 
 Enhancements and bug fixes:
 +++++++++++++++++++++++++++

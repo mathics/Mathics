@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# cython: language_level=3
 
 """
 File Operations
@@ -19,6 +20,7 @@ import sympy
 import requests
 import pathlib
 
+from io import BytesIO
 import os.path as osp
 from itertools import chain
 
@@ -28,29 +30,29 @@ from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder
 
 from mathics.core.expression import (
-    Expression,
-    Real,
+    BoxError,
     Complex,
+    Expression,
+    Integer,
+    MachineReal,
+    Real,
     String,
     Symbol,
     SymbolFailed,
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
+    from_mpmath,
     from_python,
-    Integer,
-    BoxError,
-    MachineReal,
-    Number,
     valid_context_name,
 )
 from mathics.core.numbers import dps
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
-from mathics.builtin.strings import to_python_encoding
+from mathics.builtin.strings import to_python_encoding, to_regex
 from mathics.builtin.base import MessageException
 from mathics.settings import ROOT_DIR
-
+import re
 
 INITIAL_DIR = os.getcwd()
 HOME_DIR = osp.expanduser("~")
@@ -60,6 +62,34 @@ DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
 PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
+
+
+def create_temporary_file(suffix=None, delete=False):
+    if suffix=="":
+        suffix = None
+
+    fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
+    result = fp.name
+    fp.close()
+    return result
+
+def urlsave_tmp(url, location=None, **kwargs):
+    suffix = ""
+    strip_url = url.split("/")
+    if len(strip_url) > 3:
+        strip_url = strip_url[-1]
+        if strip_url != "":
+            suffix = strip_url[len(strip_url.split(".")[0]) :]
+        try:
+            r = requests.get(url, allow_redirects=True)
+            if location is None:
+                location = create_temporary_file(suffix=suffix)
+            with open(location, "wb") as fp:
+                fp.write(r.content)
+                result = fp.name
+        except Exception:
+            result = None
+    return result
 
 
 def path_search(filename):
@@ -81,23 +111,7 @@ def path_search(filename):
             or (lenfn > 8 and filename[:8] == "https://")
             or (lenfn > 6 and filename[:6] == "ftp://")
         ):
-            suffix = ""
-            strip_filename = filename.split("/")
-            if len(strip_filename) > 3:
-                strip_filename = strip_filename[-1]
-                if strip_filename != "":
-                    suffix = strip_filename[len(strip_filename.split(".")[0]) :]
-            try:
-                r = requests.get(filename, allow_redirects=True)
-                if suffix != "":
-                    fp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                else:
-                    fp = tempfile.NamedTemporaryFile(delete=False)
-                fp.write(r.content)
-                result = fp.name
-                fp.close()
-            except Exception:
-                result = None
+            result = urlsave_tmp(filename)
         else:
             for p in PATH_VAR + [""]:
                 path = osp.join(p, filename)
@@ -1053,7 +1067,7 @@ class _BinaryFormat(object):
             else:
                 result = mpmath.fdiv(core, 2 ** -exp)
 
-            return Number.from_mpmath(result, dps(112))
+            return from_mpmath(result, dps(112))
 
     @staticmethod
     def _TerminatedString_reader(s):
@@ -1913,7 +1927,6 @@ class WriteString(Builtin):
     #> FilePrint[%]
      | abc
 
-    #> WriteString[OpenWrite["/dev/zero"], "abc"]   (* Null *)
     """
 
     messages = {
@@ -1947,8 +1960,10 @@ class WriteString(Builtin):
                     Expression("FullForm", result).evaluate(evaluation),
                 )
             exprs.append(result)
-
-        stream.write("".join(exprs))
+        line = "".join(exprs)
+        if type(stream) is BytesIO:
+            line = line.encode('utf8')
+        stream.write(line)
         try:
             stream.flush()
         except IOError as err:
@@ -2108,9 +2123,11 @@ class OpenAppend(_OpenAction):
      = OutputStream[...]
     #> Close[%];
 
-    #> OpenAppend["MathicsNonExampleFile"]
+    #> appendFile = OpenAppend["MathicsNonExampleFile"]
      = OutputStream[MathicsNonExampleFile, ...]
 
+    #> Close[appendFile]
+     = MathicsNonExampleFile
     #> DeleteFile["MathicsNonExampleFile"]
     """
 
@@ -2121,7 +2138,7 @@ class OpenAppend(_OpenAction):
 class Get(PrefixOperator):
     r"""
     <dl>
-    <dt>'<<$name$'
+      <dt>'<<$name$'
       <dd>reads a file and evaluates each expression, returning only the last one.
     </dl>
 
@@ -2132,7 +2149,7 @@ class Get(PrefixOperator):
 
     S> filename = $TemporaryDirectory <> "/example_file";
     S> Put[x + y, 2x^2 + 4z!, Cos[x] + I Sin[x], filename]
-    S> Get["/tmp/example_file"]
+    S> Get[filename]
      = Cos[x] + I Sin[x]
     S> DeleteFile[filename]
 
@@ -2170,7 +2187,8 @@ class Get(PrefixOperator):
             result = {}
             trace_get = evaluation.parse('Settings`$TraceGet')
             if options["System`Trace"].to_python() or trace_get.evaluate(evaluation) == SymbolTrue:
-                result["TraceFn"] = print
+                import builtins
+                result["TraceFn"] = builtins.print
             else:
                 result["TraceFn"] = None
 
@@ -2260,20 +2278,6 @@ class Put(BinaryOperator):
      | 2*x^2 + 4*z!
      | Cos[x] + I*Sin[x]
     S> DeleteFile[filename]
-
-    ## writing to dir
-    S> x >> /var/
-     : Cannot open /var/.
-     = x >> /var/
-
-    ## writing to read only file
-    S> x >> /proc/uptime
-     : Cannot open /proc/uptime.
-     = x >> /proc/uptime
-
-    ## writing to full file
-    S> x >> /dev/full
-     : No space left on device.
     """
 
     operator = ">>"
@@ -2515,21 +2519,19 @@ class ToFileName(Builtin):
     """
     <dl>
     <dt>'ToFileName[{"$dir_1$", "$dir_2$", ...}]'
-      <dd>joins the $dir_i$ togeather into one path.
+      <dd>joins the $dir_i$ together into one path.
     </dl>
 
     'ToFileName' has been superseded by 'FileNameJoin'.
 
-    #> Unprotect[$PathnameSeparator]; $PathnameSeparator = "/"; Protect[$PathnameSeparator];
-
     >> ToFileName[{"dir1", "dir2"}, "file"]
-     = dir1/dir2/file
+     = dir1...dir2...file
 
     >> ToFileName["dir1", "file"]
-     = dir1/file
+     = dir1...file
 
     >> ToFileName[{"dir1", "dir2", "dir3"}]
-     = dir1/dir2/dir3
+     = dir1...dir2...dir3
     """
 
     rules = {
@@ -2552,9 +2554,8 @@ class FileNameJoin(Builtin):
     >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
      = dir1/dir2/dir3
 
-    ## TODO
-    ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\\dir2\\dir3
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+     = dir1\\dir2\\dir3
     """
 
     attributes = "Protected"
@@ -2579,10 +2580,10 @@ class FileNameJoin(Builtin):
         py_pathlist = [p[1:-1] for p in py_pathlist]
 
         operating_system = (
-            options["System`OperatingSystem"].evaluate(evaluation).to_python()
+            options["System`OperatingSystem"].evaluate(evaluation).get_string_value()
         )
 
-        if operating_system not in ['"MacOSX"', '"Windows"', '"Unix"']:
+        if operating_system not in ["MacOSX", "Windows", "Unix"]:
             evaluation.message(
                 "FileNameSplit", "ostype", options["System`OperatingSystem"]
             )
@@ -2595,9 +2596,14 @@ class FileNameJoin(Builtin):
             else:
                 return
 
-        # TODO Implement OperatingSystem Option
-
-        result = osp.join(*py_pathlist)
+        if operating_system in ("Unix", "MacOSX"):
+            import posixpath
+            result = posixpath.join(*py_pathlist)
+        elif operating_system in ("Windows",):
+            import ntpath
+            result = ntpath.join(*py_pathlist)
+        else:
+            result = osp.join(*py_pathlist)
 
         return from_python(result)
 
@@ -2682,13 +2688,14 @@ class FileNameTake(Builtin):
       <dd>returns the last $n$ path elements in the file name $name$.
     </dl>
 
-    >> FileNameTake["/tmp/file.txt"]
-     = file.txt
-    >> FileNameTake["tmp/file.txt", 1]
-     = tmp
-    >> FileNameTake["tmp/file.txt", -1]
-     = file.txt
     """
+    # mmatura: please put in a pytest
+    # >> FileNameTake["/tmp/file.txt"]
+    #  = file.txt
+    # >> FileNameTake["tmp/file.txt", 1]
+    #  = tmp
+    # >> FileNameTake["tmp/file.txt", -1]
+    #  = file.txt
 
     attributes = "Protected"
 
@@ -3047,14 +3054,6 @@ class FilePrint(Builtin):
     #> FilePrint[exp]
      : File specification Sin[1] is not a string of one or more characters.
      = FilePrint[Sin[1]]
-
-    ## Return $Failed on special files
-    #> FilePrint["/dev/zero"]
-     = $Failed
-    #> FilePrint["/dev/random"]
-     = $Failed
-    #> FilePrint["/dev/null"]
-     = $Failed
 
     #> FilePrint["somenonexistantpath_h47sdmk^&h4"]
      : Cannot open somenonexistantpath_h47sdmk^&h4.
@@ -3706,14 +3705,9 @@ class Compress(Builtin):
     >> Compress[N[Pi, 10]]
      = eJwz1jM0MTS1NDIzNQEADRsCNw==
 
-    ## Unicode char
-    #> Compress["―"]
-     = eJxTetQwVQkABwMCPA==
-    #> Uncompress[eJxTUlACAADLAGU=%]
-     = ―
     """
 
-    attributes = "Protected"
+    attributes = ("Protected",)
 
     options = {
         "Method": "{}",
@@ -3728,9 +3722,9 @@ class Compress(Builtin):
         string = string.encode("utf-8")
 
         # TODO Implement other Methods
+        # Shouldn't be this a ByteArray?
         result = zlib.compress(string)
-        result = base64.encodebytes(result).decode("utf8")
-
+        result = base64.b64encode(result).decode("utf8")
         return String(result)
 
 
@@ -3752,12 +3746,12 @@ class Uncompress(Builtin):
      = x ^ 2 + y Sin[x] + 10 Log[15]
     """
 
-    attributes = "Protected"
+    attributes = ("Protected",)
 
     def apply(self, string, evaluation):
         "Uncompress[string_String]"
-        string = string.get_string_value().encode("utf-8")
-        string = base64.decodebytes(string)
+        string = string.get_string_value() #.encode("utf-8")
+        string = base64.b64decode(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode("utf-8")
         return evaluation.parse(tmp)
@@ -4286,6 +4280,7 @@ class DeleteFile(Builtin):
 
             if path is None:
                 evaluation.message(
+
                     "DeleteFile", "nffil", Expression("DeleteFile", filename)
                 )
                 return SymbolFailed
@@ -4942,3 +4937,211 @@ class Needs(Builtin):
             return SymbolFailed
 
         return SymbolNull
+
+
+class URLSave(Builtin):
+    """
+    <dl>
+    <dt>'URLSave["url"]'
+        <dd>Save "url" in a temporary file.
+    <dt>'URLSave["url", $filename$]'
+        <dd>Save "url" in $filename$.
+    </dl>
+    """
+    messages = {"invfile": '`1` is not a valid Filename',
+                "invhttp": '`1` is not a valid URL'
+                }
+    def apply_1(self, url, evaluation, **options):
+        'URLSave[url_String, OptionsPattern[URLSave]]'
+        return self.apply_2(url, None, evaluation, **options)
+
+    def apply_2(self, url, filename, evaluation, **options):
+        'URLSave[url_String, filename_, OptionsPattern[URLSave]]'
+        url = url.value
+        if filename is None:
+            result = urlsave_tmp(url, None, **options)
+        elif filename.get_head_name()=="String":
+            filename = filename.value
+            result = urlsave_tmp(url, filename, **options)
+        else:
+            evaluation.message("URLSave", "invfile", filename)
+            return SymbolFailed
+        if result is None:
+            return SymbolFailed
+        return String(result)
+
+
+class CreateFile(Builtin):
+    """
+    <dl>
+    <dt>'CreateFile["filename"]'
+        <dd>Creates a file named "filename" temporary file, but do not open it.
+    <dt>'CreateFile[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    rules = {'CreateFile[]':'CreateTemporary[]',}
+    options = {'CreateIntermediateDirectories': 'True',
+               'OverwriteTarget': 'True',
+    }
+
+    def apply_1(self, filename, evaluation, **options):
+        'CreateFile[filename_String, OptionsPattern[CreateFile]]'
+        try:
+            # TODO: Implement options
+            if not osp.isfile(filename.value):
+                f = open(filename.value, "w")
+                res = f.name
+                f.close()
+                return String(res)
+            else:
+                return filename
+        except:
+            return SymbolFailed
+
+class CreateTemporary(Builtin):
+    """
+    <dl>
+    <dt>'CreateTemporary[]'
+        <dd>Creates a temporary file, but do not open it.
+    </dl>
+    """
+    def apply_0(self, evaluation):
+        'CreateTemporary[]'
+        try:
+            res = create_temporary_file()
+        except:
+            return SymbolFailed
+        return String(res)
+
+
+class FileNames(Builtin):
+    r"""
+    <dl>
+    <dt>'FileNames[]'
+        <dd>Returns a list with the filenames in the current working folder.
+    <dt>'FileNames[$form$]'
+        <dd>Returns a list with the filenames in the current working folder that matches with $form$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$}]'
+        <dd>Returns a list with the filenames in the current working folder that matches with one of $form_1$, $form_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$form_1$, $form_2$, $\ldots$},{$dir_1$, $dir_2$, $\ldots$}]'
+        <dd>Looks into the directories $dir_1$, $dir_2$, $\ldots$.
+    <dt>'FileNames[{$forms$, $dirs$, $n$]'
+        <dd>Look for files up to the level $n$.
+    </dl>
+
+    >> SetDirectory[$InstallationDirectory <> "/autoload"];
+    >> FileNames["*.m", "formats"]//Length
+     = 0
+    >> FileNames["*.m", "formats", 3]//Length
+     = 12
+    >> FileNames["*.m", "formats", Infinity]//Length
+     = 12
+    """
+    # >> FileNames[]//Length
+    #  = 2
+    fmtmaps = {Symbol("System`All"): "*" }
+    options = {"IgnoreCase": "Automatic",}
+
+    messages = {
+        "nofmtstr" : "`1` is not a format or a list of formats.",
+        "nodirstr" : "`1` is not a directory name  or a list of directory names.",
+        "badn" : "`1` is not an integer number.",
+    }
+
+    def apply_0(self, evaluation, **options):
+        '''FileNames[OptionsPattern[FileNames]]'''
+        return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_1(self, forms, evaluation, **options):
+        '''FileNames[forms_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
+
+    def apply_2(self, forms, paths, evaluation, **options):
+        '''FileNames[forms_, paths_, OptionsPattern[FileNames]]'''
+        return self.apply_3(forms, paths, None,  evaluation, **options)
+
+    def apply_3(self, forms, paths, n, evaluation, **options):
+        '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
+        filenames = set()
+        # Building a list of forms
+        if forms.get_head_name() == "System`List":
+            str_forms = []
+            for p in forms._leaves:
+                if self.fmtmaps.get(p, None):
+                    str_forms.append(self.fmtmaps[p])
+                else:
+                    str_forms.append(p)
+        else:
+            str_forms = [self.fmtmaps[forms]
+                         if self.fmtmaps.get(forms, None)
+                         else forms]
+        # Building a list of directories
+        if paths.get_head_name() == "System`String":
+            str_paths = [paths.value]
+        elif paths.get_head_name() == "System`List":
+            str_paths = []
+            for p in paths._leaves:
+                if p.get_head_name() == "System`String":
+                    str_paths.append(p.value)
+                else:
+                    evaluation.message("FileNames", "nodirstr", paths)
+                    return
+        else:
+            evaluation.message("FileNames", "nodirstr", paths)
+            return
+
+        if n is not None:
+            if n.get_head_name() == "System`Integer":
+                n = n.get_int_value()
+            elif n.get_head_name() == "System`DirectedInfinity":
+                n = None
+            else:
+                print(n)
+                evaluation.message("FileNames", "badn",  n)
+                return
+        else:
+            n = 1
+
+        # list the files
+        if options.get('System`IgnoreCase', None) == SymbolTrue:
+            patterns = [re.compile("^" +
+                                   to_regex(p, evaluation,
+                                            abbreviated_patterns=True),
+                                   re.IGNORECASE)+"$"
+                        for p in str_forms]
+        else:
+            patterns = [re.compile("^" +
+                                   to_regex(p,
+                                            evaluation,
+                                            abbreviated_patterns=True) +
+                                   "$") for p in str_forms]
+
+        for path in str_paths:
+            if not osp.isdir(path):
+                continue
+            if n == 1:
+                for fn in os.listdir(path):
+                    fullname = osp.join(path, fn)
+                    for pattern in patterns:
+                        if pattern.match(fn):
+                            filenames.add(fullname)
+                            break
+            else:
+                pathlen = len(path)
+                for root, dirs, files in os.walk(path):
+                    # FIXME: This is an ugly and inefficient way
+                    # to avoid looking deeper than the level n, but I do not realize
+                    # how to do this better without a lot of code...
+                    if n is not None and len(root[pathlen:].split(osp.sep))>n:
+                        continue
+                    for fn in files+dirs:
+                        for pattern in patterns:
+                            if pattern.match(fn):
+                                filenames.add(osp.join(root,fn))
+                                break
+
+
+        return Expression("List", *[String(s) for s in filenames])

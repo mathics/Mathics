@@ -1964,10 +1964,6 @@ class Print(Builtin):
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
 
-    #> Print["\\[Mu]"]
-     | μ
-    #> Print["μ"]
-     | μ
     #> Print["-Hola\\n-Qué tal?"]
      | -Hola
      . -Qué tal?
