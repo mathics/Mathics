@@ -674,7 +674,7 @@ class PartitionsP(SympyFunction):
     """
     <dl>
       <dt>'PartitionsP[$n$]'
-      <dd>return the number p(n) of unrestricted partitions of the integer $n$.
+      <dd>return the number $p$($n$) of unrestricted partitions of the integer $n$.
     </dl>
 
     >> Table[PartitionsP[k], {k, -2, 12}]

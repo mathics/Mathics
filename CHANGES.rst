@@ -14,6 +14,7 @@ New builtins
 * ``FileNames``
 * ``NIntegrate``
 * ``PartitionsP``
+* ``$Notebooks``
 
 Enhancements
 ++++++++++++
@@ -22,9 +23,9 @@ Enhancements
 * Automatic detection for the best strategy to numeric evaluation of constants.
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 * Mathics functions are accepted by ``Compile[]``. The return value or type will be
-  ``Compiled[] and CompiledFunction[]``  every expression can have a compiled form,
+  ``Compile[] and CompiledFunction[]``  every expression can have a compiled form,
   as a Python function.
-* ``EqualQ[]`` now compares complex against other numbers properly.
+* ``Equal[]`` now compares complex against other numbers properly.
 
 
 Bug fixes
