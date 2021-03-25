@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
@@ -11,6 +10,7 @@ import typing
 from typing import Any
 from itertools import chain
 from bisect import bisect_left
+from functools import lru_cache
 
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
@@ -19,24 +19,28 @@ import base64
 
 
 def fully_qualified_symbol_name(name) -> bool:
-    return (isinstance(name, str) and
-            '`' in name and
-            not name.startswith('`') and
-            not name.endswith('`') and
-            '``' not in name)
+    return (
+        isinstance(name, str)
+        and "`" in name
+        and not name.startswith("`")
+        and not name.endswith("`")
+        and "``" not in name
+    )
 
 
 def valid_context_name(ctx, allow_initial_backquote=False) -> bool:
-    return (isinstance(ctx, str) and
-            ctx.endswith('`') and
-            '``' not in ctx and
-            (allow_initial_backquote or not ctx.startswith('`')))
+    return (
+        isinstance(ctx, str)
+        and ctx.endswith("`")
+        and "``" not in ctx
+        and (allow_initial_backquote or not ctx.startswith("`"))
+    )
 
 
 def ensure_context(name, context="System`") -> str:
     assert isinstance(name, str)
-    assert name != ''
-    if '`' in name:
+    assert name != ""
+    if "`" in name:
         # Symbol has a context mark -> it came from the parser
         assert fully_qualified_symbol_name(name)
         return name
@@ -47,8 +51,8 @@ def ensure_context(name, context="System`") -> str:
 
 
 def strip_context(name) -> str:
-    if '`' in name:
-        return name[name.rindex('`') + 1:]
+    if "`" in name:
+        return name[name.rindex("`") + 1 :]
     return name
 
 
@@ -64,8 +68,7 @@ def system_symbols_dict(d):
 
 class BoxError(Exception):
     def __init__(self, box, form) -> None:
-        super(BoxError, self).__init__(
-            'Box %s cannot be formatted as %s' % (box, form))
+        super(BoxError, self).__init__("Box %s cannot be formatted as %s" % (box, form))
         self.box = box
         self.form = form
 
@@ -82,7 +85,7 @@ class ExpressionPointer(object):
             self.parent.set_leaf(self.position - 1, new)
 
     def __str__(self) -> str:
-        return '%s[[%s]]' % (self.parent, self.position)
+        return "%s[[%s]]" % (self.parent, self.position)
 
 
 def from_python(arg):
@@ -99,6 +102,7 @@ def from_python(arg):
     symbol like underscore.
     """
     from mathics.builtin.base import BoxConstruct
+
     number_type = get_type(arg)
     if arg is None:
         return SymbolNull
@@ -122,12 +126,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression("List", *entries)
     elif isinstance(arg, BaseExpression):
@@ -135,9 +134,9 @@ def from_python(arg):
     elif isinstance(arg, BoxConstruct):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
-        return Expression('List', *[from_python(leaf) for leaf in arg])
+        return Expression("List", *[from_python(leaf) for leaf in arg])
     elif isinstance(arg, bytearray) or isinstance(arg, bytes):
-        return Expression('ByteArray', ByteArrayAtom(arg))
+        return Expression("ByteArray", ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
@@ -159,10 +158,15 @@ class KeyComparable(object):
         return self.get_sort_key() >= other.get_sort_key()
 
     def __eq__(self, other) -> bool:
-        return hasattr(other, "get_sort_key") and self.get_sort_key() == other.get_sort_key()
+        return (
+            hasattr(other, "get_sort_key")
+            and self.get_sort_key() == other.get_sort_key()
+        )
 
     def __ne__(self, other) -> bool:
-        return (not hasattr(other, "get_sort_key")) or self.get_sort_key() != other.get_sort_key()
+        return (
+            not hasattr(other, "get_sort_key")
+        ) or self.get_sort_key() != other.get_sort_key()
 
 
 # ExpressionCache keeps track of the following attributes for one Expression instance:
@@ -177,6 +181,7 @@ class KeyComparable(object):
 # sequences: (1) a list of leaf indices that indicate the position of all Sequence
 #   heads that are either in the leaf's head or any of the indicated leaf's sub
 #   expressions' heads, or (2) None, if no information is available.
+
 
 class ExpressionCache:
     def __init__(self, time=None, symbols=None, sequences=None, copy=None):
@@ -230,13 +235,11 @@ class ExpressionCache:
             if expr.has_changed(definitions):
                 return None
 
-        symbols = set.union(
-            *[expr._cache.symbols for expr in expressions])
+        symbols = set.union(*[expr._cache.symbols for expr in expressions])
 
         return ExpressionCache(
-            definitions.now,
-            symbols,
-            None if 'System`Sequence' in symbols else tuple())
+            definitions.now, symbols, None if "System`Sequence" in symbols else tuple()
+        )
 
 
 class BaseExpression(KeyComparable):
@@ -262,10 +265,10 @@ class BaseExpression(KeyComparable):
     def sequences(self):
         return None
 
-    def flatten_sequence(self, evaluation) -> 'BaseExpression':
+    def flatten_sequence(self, evaluation) -> "BaseExpression":
         return self
 
-    def flatten_pattern_sequence(self, evaluation)  -> 'BaseExpression':
+    def flatten_pattern_sequence(self, evaluation) -> "BaseExpression":
         return self
 
     def get_attributes(self, definitions):
@@ -274,7 +277,7 @@ class BaseExpression(KeyComparable):
     def evaluate_next(self, evaluation):
         return self.evaluate(evaluation), False
 
-    def evaluate(self, evaluation) -> 'BaseExpression':
+    def evaluate(self, evaluation) -> "BaseExpression":
         evaluation.check_stopped()
         return self
 
@@ -284,7 +287,7 @@ class BaseExpression(KeyComparable):
     def get_name(self):
         " Returns symbol's name if Symbol instance "
 
-        return ''
+        return ""
 
     def is_symbol(self) -> bool:
         return False
@@ -325,7 +328,7 @@ class BaseExpression(KeyComparable):
         # used by NumericQ and expression ordering
         return False
 
-    def flatten(self, head, pattern_only=False, callback=None) -> 'BaseExpression':
+    def flatten(self, head, pattern_only=False, callback=None) -> "BaseExpression":
         return self
 
     def __hash__(self):
@@ -346,17 +349,19 @@ class BaseExpression(KeyComparable):
         pass
 
     def get_sequence(self):
-        if self.get_head().get_name() == 'System`Sequence':
+        if self.get_head().get_name() == "System`Sequence":
             return self.leaves
         else:
             return [self]
 
-    def evaluate_leaves(self, evaluation) -> 'BaseExpression':
+    def evaluate_leaves(self, evaluation) -> "BaseExpression":
         return self
 
-    def apply_rules(self, rules, evaluation, level=0, options=None) -> typing.Tuple['BaseExpression', bool]:
+    def apply_rules(
+        self, rules, evaluation, level=0, options=None
+    ) -> typing.Tuple["BaseExpression", bool]:
         if options:
-            l1, l2 = options['levelspec']
+            l1, l2 = options["levelspec"]
             if level < l1:
                 return self, False
             elif l2 is not None and level > l2:
@@ -374,8 +379,14 @@ class BaseExpression(KeyComparable):
         superfluous enclosing formats.
         """
         formats = system_symbols(
-            'InputForm', 'OutputForm', 'StandardForm',
-            'FullForm', 'TraditionalForm', 'TeXForm', 'MathMLForm')
+            "InputForm",
+            "OutputForm",
+            "StandardForm",
+            "FullForm",
+            "TraditionalForm",
+            "TeXForm",
+            "MathMLForm",
+        )
 
         evaluation.inc_recursion_depth()
         try:
@@ -388,12 +399,12 @@ class BaseExpression(KeyComparable):
             # removes the format from the expression.
             if head in formats and len(leaves) == 1:
                 expr = leaves[0]
-                if not (form == 'System`OutputForm' and head == 'System`StandardForm'):
+                if not (form == "System`OutputForm" and head == "System`StandardForm"):
                     form = head
                     include_form = True
             unformatted = expr
             # If form is Fullform, return it without changes
-            if form == 'System`FullForm':
+            if form == "System`FullForm":
                 if include_form:
                     expr = Expression(form, expr)
                     expr.unformatted = unformatted
@@ -402,30 +413,36 @@ class BaseExpression(KeyComparable):
             # Repeated and RepeatedNull confuse the formatter,
             # so we need to hardlink their format rules:
             if head == "System`Repeated":
-                if len(leaves)==1:
-                    return Expression("System`HoldForm",
-                                  Expression("System`Postfix",
-                                  Expression(
-                                      "System`List",
-                                      leaves[0]
-                                  ),"..",170))
+                if len(leaves) == 1:
+                    return Expression(
+                        "System`HoldForm",
+                        Expression(
+                            "System`Postfix",
+                            Expression("System`List", leaves[0]),
+                            "..",
+                            170,
+                        ),
+                    )
                 else:
-                    return Expression("System`HoldForm",expr)
+                    return Expression("System`HoldForm", expr)
             elif head == "System`RepeatedNull":
-                if len(leaves)==1:
-                    return Expression("System`HoldForm",
-                                  Expression("System`Postfix",
-                                  Expression(
-                                      "System`List",
-                                      leaves[0]
-                                  ),"...",170))
+                if len(leaves) == 1:
+                    return Expression(
+                        "System`HoldForm",
+                        Expression(
+                            "System`Postfix",
+                            Expression("System`List", leaves[0]),
+                            "...",
+                            170,
+                        ),
+                    )
                 else:
-                    return Expression("System`HoldForm",expr)
+                    return Expression("System`HoldForm", expr)
 
             # If expr is not an atom, looks for formats in its definition
             # and apply them.
             def format_expr(expr):
-                if not(expr.is_atom()) and not(expr.head.is_atom()):
+                if not (expr.is_atom()) and not (expr.head.is_atom()):
                     # expr is of the form f[...][...]
                     return None
                 name = expr.get_lookup_name()
@@ -451,15 +468,16 @@ class BaseExpression(KeyComparable):
             head = expr.get_head_name()
             if head in formats:
                 expr = expr.do_format(evaluation, form)
-            elif (head != 'System`NumberForm' and not expr.is_atom() and
-                  head != 'System`Graphics' and
-                  head != 'System`Graphics3D'):
+            elif (
+                head != "System`NumberForm"
+                and not expr.is_atom()
+                and head != "System`Graphics"
+                and head != "System`Graphics3D"
+            ):
                 # print("Not inside graphics or numberform, and not is atom")
-                new_leaves = [leaf.do_format(evaluation, form)
-                              for leaf in expr.leaves]
+                new_leaves = [leaf.do_format(evaluation, form) for leaf in expr.leaves]
                 formathead = expr.head.do_format(evaluation, form)
-                expr = Expression(
-                    expr.head.do_format(evaluation, form), *new_leaves)
+                expr = Expression(expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
                 expr = Expression(form, expr)
@@ -468,16 +486,17 @@ class BaseExpression(KeyComparable):
         finally:
             evaluation.dec_recursion_depth()
 
-    def format(self, evaluation, form) -> typing.Union['Expression', 'Symbol']:
+    def format(self, evaluation, form) -> typing.Union["Expression", "Symbol"]:
         """
         Applies formats associated to the expression, and then calls Makeboxes
         """
         expr = self.do_format(evaluation, form)
-        result = Expression('MakeBoxes', expr, Symbol(form)).evaluate(evaluation)
+        result = Expression("MakeBoxes", expr, Symbol(form)).evaluate(evaluation)
         return result
 
     def is_free(self, form, evaluation) -> bool:
         from mathics.builtin.patterns import item_is_free
+
         return item_is_free(self, form, evaluation)
 
     def is_inexact(self) -> bool:
@@ -486,11 +505,10 @@ class BaseExpression(KeyComparable):
     def get_precision(self):
         return None
 
-    def get_option_values(self, evaluation, allow_symbols=False,
-                          stop_on_error=True):
+    def get_option_values(self, evaluation, allow_symbols=False, stop_on_error=True):
         options = self
-        if options.has_form('List', None):
-            options = options.flatten(Symbol('List'))
+        if options.has_form("List", None):
+            options = options.flatten(Symbol("List"))
             values = options.leaves
         else:
             values = [options]
@@ -501,7 +519,7 @@ class BaseExpression(KeyComparable):
                 options = evaluation.definitions.get_options(symbol_name)
                 option_values.update(options)
             else:
-                if not option.has_form(('Rule', 'RuleDelayed'), 2):
+                if not option.has_form(("Rule", "RuleDelayed"), 2):
                     if stop_on_error:
                         return None
                     else:
@@ -520,15 +538,15 @@ class BaseExpression(KeyComparable):
     def get_rules_list(self):
         from mathics.core.rules import Rule
 
-        list_expr = self.flatten(Symbol('List'))
+        list_expr = self.flatten(Symbol("List"))
         list = []
-        if list_expr.has_form('List', None):
+        if list_expr.has_form("List", None):
             list.extend(list_expr.leaves)
         else:
             list.append(list_expr)
         rules = []
         for item in list:
-            if not item.has_form(('Rule', 'RuleDelayed'), 2):
+            if not item.has_form(("Rule", "RuleDelayed"), 2):
                 return None
             rule = Rule(item.leaves[0], item.leaves[1])
             rules.append(rule)
@@ -541,43 +559,43 @@ class BaseExpression(KeyComparable):
         return None
 
     def round_to_float(self, evaluation=None, permit_complex=False):
-        '''
+        """
         Try to round to python float. Return None if not possible.
-        '''
+        """
         if evaluation is None:
             value = self
         else:
-            value = Expression('N', self).evaluate(evaluation)
+            value = Expression("N", self).evaluate(evaluation)
         if isinstance(value, Number):
             value = value.round()
             return value.get_float_value(permit_complex=permit_complex)
 
-    def __abs__(self) -> 'Expression':
-        return Expression('Abs', self)
+    def __abs__(self) -> "Expression":
+        return Expression("Abs", self)
 
     def __pos__(self):
         return self
 
     def __neg__(self):
-        return Expression('Times', self, -1)
+        return Expression("Times", self, -1)
 
-    def __add__(self, other) -> 'Expression':
-        return Expression('Plus', self, other)
+    def __add__(self, other) -> "Expression":
+        return Expression("Plus", self, other)
 
-    def __sub__(self, other) -> 'Expression':
-        return Expression('Plus', self, Expression('Times', other, -1))
+    def __sub__(self, other) -> "Expression":
+        return Expression("Plus", self, Expression("Times", other, -1))
 
-    def __mul__(self, other) -> 'Expression':
-        return Expression('Times', self, other)
+    def __mul__(self, other) -> "Expression":
+        return Expression("Times", self, other)
 
-    def __truediv__(self, other) -> 'Expression':
-        return Expression('Divide', self, other)
+    def __truediv__(self, other) -> "Expression":
+        return Expression("Divide", self, other)
 
-    def __floordiv__(self, other) -> 'Expression':
-        return Expression('Floor', Expression('Divide', self, other))
+    def __floordiv__(self, other) -> "Expression":
+        return Expression("Floor", Expression("Divide", self, other))
 
-    def __pow__(self, other) -> 'Expression':
-        return Expression('Power', self, other)
+    def __pow__(self, other) -> "Expression":
+        return Expression("Power", self, other)
 
 
 class Monomial(object):
@@ -629,9 +647,9 @@ class Monomial(object):
             if index >= self_len and index >= other_len:
                 return 0
             if index >= self_len:
-                return -1   # self < other
+                return -1  # self < other
             if index >= other_len:
-                return 1    # self > other
+                return 1  # self > other
             self_var, self_exp = self_exps[index]
             other_var, other_exp = other_exps[index]
             if self_var < other_var:
@@ -660,11 +678,11 @@ class Monomial(object):
 
 
 class Expression(BaseExpression):
-    head: 'Symbol'
+    head: "Symbol"
     leaves: typing.List[Any]
     _sequences: Any
 
-    def __new__(cls, head, *leaves, **kwargs) -> 'Expression':
+    def __new__(cls, head, *leaves, **kwargs) -> "Expression":
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
@@ -680,7 +698,7 @@ class Expression(BaseExpression):
 
     @head.setter
     def head(self, value):
-        raise ValueError('Expression.head is write protected.')
+        raise ValueError("Expression.head is write protected.")
 
     @property
     def leaves(self):
@@ -688,7 +706,7 @@ class Expression(BaseExpression):
 
     @leaves.setter
     def leaves(self, value):
-        raise ValueError('Expression.leaves is write protected.')
+        raise ValueError("Expression.leaves is write protected.")
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
@@ -759,7 +777,7 @@ class Expression(BaseExpression):
 
     def flatten_sequence(self, evaluation):
         def sequence(leaf):
-            if leaf.get_head_name() == 'System`Sequence':
+            if leaf.get_head_name() == "System`Sequence":
                 return leaf._leaves
             else:
                 return [leaf]
@@ -769,13 +787,13 @@ class Expression(BaseExpression):
     def flatten_pattern_sequence(self, evaluation):
         def sequence(leaf):
             flattened = leaf.flatten_pattern_sequence(evaluation)
-            if leaf.get_head_name() == 'System`Sequence' and leaf.pattern_sequence:
+            if leaf.get_head_name() == "System`Sequence" and leaf.pattern_sequence:
                 return flattened._leaves
             else:
                 return [flattened]
 
         expr = self._flatten_sequence(sequence, evaluation)
-        if hasattr(self, 'options'):
+        if hasattr(self, "options"):
             expr.options = self.options
         return expr
 
@@ -798,7 +816,7 @@ class Expression(BaseExpression):
             if isinstance(leaf, Expression):
                 leaf_symbols = leaf._rebuild_cache().symbols
                 sym.update(leaf_symbols)
-                if 'System`Sequence' in leaf_symbols:
+                if "System`Sequence" in leaf_symbols:
                     seq.append(i)
             elif isinstance(leaf, Symbol):
                 sym.add(leaf.get_name())
@@ -826,8 +844,7 @@ class Expression(BaseExpression):
     def _timestamp_cache(self, evaluation):
         self._cache = ExpressionCache(evaluation.definitions.now, copy=self._cache)
 
-
-    def copy(self, reevaluate=False) -> 'Expression':
+    def copy(self, reevaluate=False) -> "Expression":
         expr = Expression(self._head.copy(reevaluate))
         expr._leaves = tuple(leaf.copy(reevaluate) for leaf in self._leaves)
         if not reevaluate:
@@ -847,14 +864,16 @@ class Expression(BaseExpression):
         last_evaluated, expr = self._format_cache.get(form, (None, None))
         if last_evaluated is not None and expr is not None:
             symbolname = expr.get_name()
-            if  symbolname != "" :
-                if not evaluation.definitions.has_changed(last_evaluated, (symbolname,)):
+            if symbolname != "":
+                if not evaluation.definitions.has_changed(
+                    last_evaluated, (symbolname,)
+                ):
                     return expr
         expr = super(Expression, self).do_format(evaluation, form)
         self._format_cache[form] = (evaluation.definitions.now, expr)
         return expr
 
-    def shallow_copy(self) -> 'Expression':
+    def shallow_copy(self) -> "Expression":
         # this is a minimal, shallow copy: head, leaves are shared with
         # the original, only the Expression instance is new.
         expr = Expression(self._head)
@@ -897,16 +916,15 @@ class Expression(BaseExpression):
             self._cache = self._cache.reordered()
 
     def get_attributes(self, definitions):
-        if self.get_head_name() == "System`Function" and \
-            len(self._leaves) > 2:
+        if self.get_head_name() == "System`Function" and len(self._leaves) > 2:
             res = self._leaves[2]
             if res.is_symbol():
                 return (str(res),)
-            elif res.has_form('List', None):
-                return set( str(a) for a in res._leaves )
+            elif res.has_form("List", None):
+                return set(str(a) for a in res._leaves)
         return set()
 
-    def get_lookup_name(self)-> bool:
+    def get_lookup_name(self) -> bool:
         return self._head.get_lookup_name()
 
     def has_form(self, heads, *leaf_counts):
@@ -930,18 +948,22 @@ class Expression(BaseExpression):
         if leaf_counts and leaf_counts[0] is not None:
             count = len(self._leaves)
             if count not in leaf_counts:
-                if (len(leaf_counts) == 2 and   # noqa
-                    leaf_counts[1] is None and count >= leaf_counts[0]):
+                if (
+                    len(leaf_counts) == 2
+                    and leaf_counts[1] is None  # noqa
+                    and count >= leaf_counts[0]
+                ):
                     return True
                 else:
                     return False
         return True
 
-    def has_symbol(self, symbol_name)-> bool:
+    def has_symbol(self, symbol_name) -> bool:
         if self._no_symbol(symbol_name):
             return False
         return self._head.has_symbol(symbol_name) or any(
-            leaf.has_symbol(symbol_name) for leaf in self._leaves)
+            leaf.has_symbol(symbol_name) for leaf in self._leaves
+        )
 
     def _as_sympy_function(self, **kwargs) -> sympy.Function:
         sym_args = [leaf.to_sympy(**kwargs) for leaf in self.leaves]
@@ -955,21 +977,21 @@ class Expression(BaseExpression):
     def to_sympy(self, **kwargs):
         from mathics.builtin import mathics_to_sympy
 
-        if 'convert_all_global_functions' in kwargs:
-            if len(self.leaves) > 0 and kwargs['convert_all_global_functions']:
-                if self.get_head_name().startswith('Global`'):
+        if "convert_all_global_functions" in kwargs:
+            if len(self.leaves) > 0 and kwargs["convert_all_global_functions"]:
+                if self.get_head_name().startswith("Global`"):
                     return self._as_sympy_function(**kwargs)
 
-        if 'converted_functions' in kwargs:
-            functions = kwargs['converted_functions']
+        if "converted_functions" in kwargs:
+            functions = kwargs["converted_functions"]
             if len(self._leaves) > 0 and self.get_head_name() in functions:
                 sym_args = [leaf.to_sympy() for leaf in self._leaves]
                 if None in sym_args:
                     return None
-                func = sympy.Function(str(
-                    sympy_symbol_prefix + self.get_head_name()))(*sym_args)
+                func = sympy.Function(str(sympy_symbol_prefix + self.get_head_name()))(
+                    *sym_args
+                )
                 return func
-
 
         lookup_name = self.get_lookup_name()
         builtin = mathics_to_sympy.get(lookup_name)
@@ -990,24 +1012,32 @@ class Expression(BaseExpression):
         Null       -> None
         Symbol     -> '...'
         String     -> '"..."'
+        Function   -> python function
         numbers    -> Python number
         If kwarg n_evaluation is given, apply N first to the expression.
         """
         from mathics.builtin.base import mathics_to_python
 
-        n_evaluation = kwargs.get('n_evaluation')
-        if n_evaluation is not None:
-            value = Expression('N', self).evaluate(n_evaluation)
-            return value.to_python()
+        n_evaluation = kwargs.get("n_evaluation")
         head_name = self._head.get_name()
-        if head_name == 'System`DirectedInfinity' and len(self._leaves) == 1:
+        if n_evaluation is not None:
+            if head_name == "System`Function":
+                compiled = Expression("System`Compile", *(self._leaves))
+                compiled = compiled.evaluate(n_evaluation)
+                if compiled.get_head_name() == "System`CompiledFunction":
+                    return compiled.leaves[2].cfunc
+            value = Expression("N", self).evaluate(n_evaluation)
+            return value.to_python()
+
+        if head_name == "System`DirectedInfinity" and len(self._leaves) == 1:
             direction = self._leaves[0].get_int_value()
             if direction == 1:
                 return math.inf
             if direction == -1:
                 return -math.inf
-        elif head_name == 'System`List':
+        elif head_name == "System`List":
             return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+
         if head_name in mathics_to_python:
             py_obj = mathics_to_python[head_name]
             # Start here
@@ -1039,11 +1069,11 @@ class Expression(BaseExpression):
 
             name = self._head.get_name()
             pattern = 0
-            if name == 'System`Blank':
+            if name == "System`Blank":
                 pattern = 1
-            elif name == 'System`BlankSequence':
+            elif name == "System`BlankSequence":
                 pattern = 2
-            elif name == 'System`BlankNullSequence':
+            elif name == "System`BlankNullSequence":
                 pattern = 3
             if pattern > 0:
                 if self._leaves:
@@ -1051,34 +1081,42 @@ class Expression(BaseExpression):
                 else:
                     pattern += 20
             if pattern > 0:
-                return [2, pattern, 1, 1, 0, self._head.get_sort_key(True),
-                        tuple(leaf.get_sort_key(True) for leaf in self._leaves), 1]
+                return [
+                    2,
+                    pattern,
+                    1,
+                    1,
+                    0,
+                    self._head.get_sort_key(True),
+                    tuple(leaf.get_sort_key(True) for leaf in self._leaves),
+                    1,
+                ]
 
-            if name == 'System`PatternTest':
+            if name == "System`PatternTest":
                 if len(self._leaves) != 2:
                     return [3, 0, 0, 0, 0, self._head, self._leaves, 1]
                 sub = self._leaves[0].get_sort_key(True)
                 sub[2] = 0
                 return sub
-            elif name == 'System`Condition':
+            elif name == "System`Condition":
                 if len(self._leaves) != 2:
                     return [3, 0, 0, 0, 0, self._head, self._leaves, 1]
                 sub = self._leaves[0].get_sort_key(True)
                 sub[7] = 0
                 return sub
-            elif name == 'System`Pattern':
+            elif name == "System`Pattern":
                 if len(self._leaves) != 2:
                     return [3, 0, 0, 0, 0, self._head, self._leaves, 1]
                 sub = self._leaves[1].get_sort_key(True)
                 sub[3] = 0
                 return sub
-            elif name == 'System`Optional':
+            elif name == "System`Optional":
                 if len(self._leaves) not in (1, 2):
                     return [3, 0, 0, 0, 0, self._head, self._leaves, 1]
                 sub = self._leaves[0].get_sort_key(True)
                 sub[4] = 1
                 return sub
-            elif name == 'System`Alternatives':
+            elif name == "System`Alternatives":
                 min_key = [4]
                 min = None
                 for leaf in self._leaves:
@@ -1090,43 +1128,59 @@ class Expression(BaseExpression):
                     # empty alternatives -> very restrictive pattern
                     return [2, 1]
                 return min_key
-            elif name == 'System`Verbatim':
+            elif name == "System`Verbatim":
                 if len(self._leaves) != 1:
                     return [3, 0, 0, 0, 0, self._head, self._leaves, 1]
                 return self._leaves[0].get_sort_key(True)
-            elif name == 'System`OptionsPattern':
+            elif name == "System`OptionsPattern":
                 return [2, 40, 0, 1, 1, 0, self._head, self._leaves, 1]
             else:
                 # Append [4] to leaves so that longer expressions have higher
                 # precedence
                 return [
-                    2, 0, 1, 1, 0, self._head.get_sort_key(True),
-                    tuple(chain((leaf.get_sort_key(True) for leaf in self._leaves), ([4],))),
-                    1]
+                    2,
+                    0,
+                    1,
+                    1,
+                    0,
+                    self._head.get_sort_key(True),
+                    tuple(
+                        chain(
+                            (leaf.get_sort_key(True) for leaf in self._leaves), ([4],)
+                        )
+                    ),
+                    1,
+                ]
         else:
             exps = {}
             head = self._head.get_name()
-            if head == 'System`Times':
+            if head == "System`Times":
                 for leaf in self._leaves:
                     name = leaf.get_name()
-                    if leaf.has_form('Power', 2):
+                    if leaf.has_form("Power", 2):
                         var = leaf._leaves[0].get_name()
                         exp = leaf._leaves[1].round_to_float()
                         if var and exp is not None:
                             exps[var] = exps.get(var, 0) + exp
                     elif name:
                         exps[name] = exps.get(name, 0) + 1
-            elif self.has_form('Power', 2):
+            elif self.has_form("Power", 2):
                 var = self._leaves[0].get_name()
                 exp = self._leaves[1].round_to_float()
                 if var and exp is not None:
                     exps[var] = exps.get(var, 0) + exp
             if exps:
-                return [1 if self.is_numeric() else 2, 2, Monomial(exps), 1,
-                        self._head, self._leaves, 1]
+                return [
+                    1 if self.is_numeric() else 2,
+                    2,
+                    Monomial(exps),
+                    1,
+                    self._head,
+                    self._leaves,
+                    1,
+                ]
             else:
-                return [1 if self.is_numeric() else 2, 3, self._head,
-                        self._leaves, 1]
+                return [1 if self.is_numeric() else 2, 3, self._head, self._leaves, 1]
 
     def same(self, other) -> bool:
         if id(self) == id(other):
@@ -1142,7 +1196,9 @@ class Expression(BaseExpression):
                 return False
         return True
 
-    def flatten(self, head, pattern_only=False, callback=None, level=None) -> 'Expression':
+    def flatten(
+        self, head, pattern_only=False, callback=None, level=None
+    ) -> "Expression":
         if level is not None and level <= 0:
             return self
         if self._no_symbol(head.get_name()):
@@ -1150,14 +1206,20 @@ class Expression(BaseExpression):
         sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self._leaves:
-            if leaf.get_head().same(head) and (not pattern_only or leaf.pattern_sequence):
+            if leaf.get_head().same(head) and (
+                not pattern_only or leaf.pattern_sequence
+            ):
                 do_flatten = True
                 break
         if do_flatten:
             new_leaves = []
             for leaf in self._leaves:
-                if leaf.get_head().same(head) and (not pattern_only or leaf.pattern_sequence):
-                    new_leaf = leaf.flatten(head, pattern_only, callback, level=sub_level)
+                if leaf.get_head().same(head) and (
+                    not pattern_only or leaf.pattern_sequence
+                ):
+                    new_leaf = leaf.flatten(
+                        head, pattern_only, callback, level=sub_level
+                    )
                     if callback is not None:
                         callback(new_leaf._leaves, leaf)
                     new_leaves.extend(new_leaf._leaves)
@@ -1167,8 +1229,9 @@ class Expression(BaseExpression):
         else:
             return self
 
-    def evaluate(self, evaluation) -> typing.Union['Expression', 'Symbol']:
+    def evaluate(self, evaluation) -> typing.Union["Expression", "Symbol"]:
         from mathics.core.evaluation import ReturnInterrupt
+
         if evaluation.timeout:
             return
 
@@ -1189,7 +1252,7 @@ class Expression(BaseExpression):
 
                 names.add(expr.get_lookup_name())
 
-                if hasattr(expr, 'options') and expr.options:
+                if hasattr(expr, "options") and expr.options:
                     evaluation.options = expr.options
 
                 expr, reevaluate = expr.evaluate_next(evaluation)
@@ -1199,12 +1262,12 @@ class Expression(BaseExpression):
                 iteration += 1
 
                 if limit is None:
-                    limit = definitions.get_config_value('$IterationLimit')
+                    limit = definitions.get_config_value("$IterationLimit")
                     if limit is None:
-                        limit = 'inf'
-                if limit != 'inf' and iteration > limit:
-                    evaluation.error('$IterationLimit', 'itlim', limit)
-                    return Symbol('$Aborted')
+                        limit = "inf"
+                if limit != "inf" and iteration > limit:
+                    evaluation.error("$IterationLimit", "itlim", limit)
+                    return Symbol("$Aborted")
 
         # "Return gets discarded only if it was called from within the r.h.s.
         # of a user-defined rule."
@@ -1222,36 +1285,37 @@ class Expression(BaseExpression):
 
         return expr
 
-    def evaluate_next(self, evaluation) -> typing.Tuple['Expression', bool]:
+    def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
         from mathics.builtin import BoxConstruct
+
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
 
         def rest_range(indices):
-            if 'System`HoldAllComplete' not in attributes:
-                if self._no_symbol('System`Evaluate'):
+            if "System`HoldAllComplete" not in attributes:
+                if self._no_symbol("System`Evaluate"):
                     return
                 for index in indices:
                     leaf = leaves[index]
-                    if leaf.has_form('Evaluate', 1):
+                    if leaf.has_form("Evaluate", 1):
                         leaves[index] = leaf.evaluate(evaluation)
 
         def eval_range(indices):
             for index in indices:
                 leaf = leaves[index]
-                if not leaf.has_form('Unevaluated', 1):
+                if not leaf.has_form("Unevaluated", 1):
                     leaf = leaf.evaluate(evaluation)
                     if leaf:
                         leaves[index] = leaf
 
-        if 'System`HoldAll' in attributes or 'System`HoldAllComplete' in attributes:
+        if "System`HoldAll" in attributes or "System`HoldAllComplete" in attributes:
             # eval_range(range(0, 0))
             rest_range(range(len(leaves)))
-        elif 'System`HoldFirst' in attributes:
+        elif "System`HoldFirst" in attributes:
             rest_range(range(0, min(1, len(leaves))))
             eval_range(range(1, len(leaves)))
-        elif 'System`HoldRest' in attributes:
+        elif "System`HoldRest" in attributes:
             eval_range(range(0, min(1, len(leaves))))
             rest_range(range(1, len(leaves)))
         else:
@@ -1261,19 +1325,21 @@ class Expression(BaseExpression):
         new = Expression(head)
         new._leaves = tuple(leaves)
 
-        if ('System`SequenceHold' not in attributes and    # noqa
-            'System`HoldAllComplete' not in attributes):
+        if (
+            "System`SequenceHold" not in attributes
+            and "System`HoldAllComplete" not in attributes  # noqa
+        ):
             new = new.flatten_sequence(evaluation)
             leaves = new._leaves
 
         for leaf in leaves:
             leaf.unevaluated = False
 
-        if 'System`HoldAllComplete' not in attributes:
+        if "System`HoldAllComplete" not in attributes:
             dirty_leaves = None
 
             for index, leaf in enumerate(leaves):
-                if leaf.has_form('Unevaluated', 1):
+                if leaf.has_form("Unevaluated", 1):
                     if dirty_leaves is None:
                         dirty_leaves = list(leaves)
                     dirty_leaves[index] = leaf._leaves[0]
@@ -1288,14 +1354,14 @@ class Expression(BaseExpression):
             for leaf in new_leaves:
                 leaf.unevaluated = old.unevaluated
 
-        if 'System`Flat' in attributes:
+        if "System`Flat" in attributes:
             new = new.flatten(new._head, callback=flatten_callback)
-        if 'System`Orderless' in attributes:
+        if "System`Orderless" in attributes:
             new.sort()
 
         new._timestamp_cache(evaluation)
 
-        if 'System`Listable' in attributes:
+        if "System`Listable" in attributes:
             done, threaded = new.thread(evaluation)
             if done:
                 if threaded.same(new):
@@ -1306,7 +1372,7 @@ class Expression(BaseExpression):
 
         def rules():
             rules_names = set()
-            if 'System`HoldAllComplete' not in attributes:
+            if "System`HoldAllComplete" not in attributes:
                 for leaf in leaves:
                     name = leaf.get_lookup_name()
                     if len(name) > 0:  # only lookup rules if this is a symbol
@@ -1340,7 +1406,7 @@ class Expression(BaseExpression):
             if leaf.unevaluated:
                 if dirty_leaves is None:
                     dirty_leaves = list(new._leaves)
-                dirty_leaves[index] = Expression('Unevaluated', leaf)
+                dirty_leaves[index] = Expression("Unevaluated", leaf)
 
         if dirty_leaves:
             new = Expression(head)
@@ -1350,37 +1416,38 @@ class Expression(BaseExpression):
         new._timestamp_cache(evaluation)
         return new, False
 
-
-    def evaluate_leaves(self, evaluation)-> 'Expression':
+    def evaluate_leaves(self, evaluation) -> "Expression":
         leaves = [leaf.evaluate(evaluation) for leaf in self._leaves]
         head = self._head.evaluate_leaves(evaluation)
         return Expression(head, *leaves)
 
     def __str__(self) -> str:
-        return '%s[%s]' % (
-            self._head, ', '.join([leaf.__str__() for leaf in self._leaves]))
+        return "%s[%s]" % (
+            self._head,
+            ", ".join([leaf.__str__() for leaf in self._leaves]),
+        )
 
     def __repr__(self) -> str:
-        return '<Expression: %s>' % self
+        return "<Expression: %s>" % self
 
     def process_style_box(self, options):
-        if self.has_form('StyleBox', 1, None):
+        if self.has_form("StyleBox", 1, None):
             rules = self._leaves[1:]
             for rule in rules:
-                if rule.has_form('Rule', 2):
+                if rule.has_form("Rule", 2):
                     name = rule._leaves[0].get_name()
                     value = rule._leaves[1]
-                    if name == 'System`ShowStringCharacters':
+                    if name == "System`ShowStringCharacters":
                         value = value.is_true()
                         options = options.copy()
-                        options['show_string_characters'] = value
-                    elif name == 'System`ImageSizeMultipliers':
-                        if value.has_form('List', 2):
+                        options["show_string_characters"] = value
+                    elif name == "System`ImageSizeMultipliers":
+                        if value.has_form("List", 2):
                             m1 = value._leaves[0].round_to_float()
                             m2 = value._leaves[1].round_to_float()
                             if m1 is not None and m2 is not None:
                                 options = options.copy()
-                                options['image_size_multipliers'] = (m1, m2)
+                                options["image_size_multipliers"] = (m1, m2)
             return True, options
         else:
             return False, options
@@ -1389,42 +1456,46 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
-        head = self._head.get_name()
-        if (self.has_form('RowBox', 1) and  # nopep8
-            self._leaves[0].has_form('List', None)):
-            return ''.join([leaf.boxes_to_text(**options)
-                            for leaf in self._leaves[0]._leaves])
-        elif self.has_form('SuperscriptBox', 2):
-            return '^'.join([leaf.boxes_to_text(**options)
-                               for leaf in self._leaves])
+        if self.has_form("RowBox", 1) and self._leaves[0].has_form(  # nopep8
+            "List", None
+        ):
+            return "".join(
+                [leaf.boxes_to_text(**options) for leaf in self._leaves[0]._leaves]
+            )
+        elif self.has_form("SuperscriptBox", 2):
+            return "^".join([leaf.boxes_to_text(**options) for leaf in self._leaves])
         else:
-            raise BoxError(self, 'text')
+            raise BoxError(self, "text")
 
     def boxes_to_xml(self, **options) -> str:
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_xml(**options)
-        head = self._head
         name = self._head.get_name()
-        if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
-            self._leaves[0].get_head_name() == 'System`List'):
+        if (
+            name == "System`RowBox"
+            and len(self._leaves) == 1
+            and self._leaves[0].get_head_name() == "System`List"  # nopep8
+        ):
             result = []
-            inside_row = options.get('inside_row')
+            inside_row = options.get("inside_row")
             # inside_list = options.get('inside_list')
             options = options.copy()
 
             def is_list_interior(content):
-                if (content.has_form('List', None) and
-                    all(leaf.get_string_value() == ','
-                        for leaf in content._leaves[1::2])):
+                if content.has_form("List", None) and all(
+                    leaf.get_string_value() == "," for leaf in content._leaves[1::2]
+                ):
                     return True
                 return False
 
             is_list_row = False
-            if (len(self._leaves[0]._leaves) == 3 and     # nopep8
-                self._leaves[0]._leaves[0].get_string_value() == '{' and
-                self._leaves[0]._leaves[2].get_string_value() == '}' and
-                self._leaves[0]._leaves[1].has_form('RowBox', 1)):
+            if (
+                len(self._leaves[0]._leaves) == 3
+                and self._leaves[0]._leaves[0].get_string_value() == "{"  # nopep8
+                and self._leaves[0]._leaves[2].get_string_value() == "}"
+                and self._leaves[0]._leaves[1].has_form("RowBox", 1)
+            ):
                 content = self._leaves[0]._leaves[1]._leaves[0]
                 if is_list_interior(content):
                     is_list_row = True
@@ -1433,49 +1504,51 @@ class Expression(BaseExpression):
                 is_list_row = True
 
             if is_list_row:
-                options['inside_list'] = True
+                options["inside_list"] = True
             else:
-                options['inside_row'] = True
+                options["inside_row"] = True
 
             for leaf in self._leaves[0].get_leaves():
                 result.append(leaf.boxes_to_xml(**options))
-            return '<mrow>%s</mrow>' % ' '.join(result)
+            return "<mrow>%s</mrow>" % " ".join(result)
         else:
             options = options.copy()
-            options['inside_row'] = True
-            if name == 'System`SuperscriptBox' and len(self._leaves) == 2:
-                return '<msup>%s %s</msup>' % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options))
-            if name == 'System`SubscriptBox' and len(self._leaves) == 2:
-                return '<msub>%s %s</msub>' % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options))
-            if name == 'System`SubsuperscriptBox' and len(self._leaves) == 3:
-                return '<msubsup>%s %s %s</msubsup>' % (
+            options["inside_row"] = True
+            if name == "System`SuperscriptBox" and len(self._leaves) == 2:
+                return "<msup>%s %s</msup>" % (
                     self._leaves[0].boxes_to_xml(**options),
                     self._leaves[1].boxes_to_xml(**options),
-                    self._leaves[2].boxes_to_xml(**options))
-            elif name == 'System`FractionBox' and len(self._leaves) == 2:
-                return '<mfrac>%s %s</mfrac>' % (
+                )
+            if name == "System`SubscriptBox" and len(self._leaves) == 2:
+                return "<msub>%s %s</msub>" % (
                     self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options))
-            elif name == 'System`SqrtBox' and len(self._leaves) == 1:
-                return '<msqrt>%s</msqrt>' % (
-                    self._leaves[0].boxes_to_xml(**options))
-            elif name == 'System`GraphBox':
-                return '<mi>%s</mi>' % (
-                    self._leaves[0].boxes_to_xml(**options))
+                    self._leaves[1].boxes_to_xml(**options),
+                )
+            if name == "System`SubsuperscriptBox" and len(self._leaves) == 3:
+                return "<msubsup>%s %s %s</msubsup>" % (
+                    self._leaves[0].boxes_to_xml(**options),
+                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[2].boxes_to_xml(**options),
+                )
+            elif name == "System`FractionBox" and len(self._leaves) == 2:
+                return "<mfrac>%s %s</mfrac>" % (
+                    self._leaves[0].boxes_to_xml(**options),
+                    self._leaves[1].boxes_to_xml(**options),
+                )
+            elif name == "System`SqrtBox" and len(self._leaves) == 1:
+                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_xml(**options))
+            elif name == "System`GraphBox":
+                return "<mi>%s</mi>" % (self._leaves[0].boxes_to_xml(**options))
             else:
-                raise BoxError(self, 'xml')
+                raise BoxError(self, "xml")
 
     def boxes_to_tex(self, **options) -> str:
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
             else:
-                if not only_subsup or '_' in tex or '^' in tex:
-                    return '{%s}' % tex
+                if not only_subsup or "_" in tex or "^" in tex:
+                    return "{%s}" % tex
                 else:
                     return tex
 
@@ -1483,43 +1556,52 @@ class Expression(BaseExpression):
         if is_style:
             return self._leaves[0].boxes_to_tex(**options)
         name = self._head.get_name()
-        if (name == 'System`RowBox' and len(self._leaves) == 1 and  # nopep8
-            self._leaves[0].get_head_name() == 'System`List'):
-            return ''.join([leaf.boxes_to_tex(**options)
-                            for leaf in self._leaves[0].get_leaves()])
-        elif name == 'System`SuperscriptBox' and len(self._leaves) == 2:
+        if (
+            name == "System`RowBox"
+            and len(self._leaves) == 1
+            and self._leaves[0].get_head_name() == "System`List"  # nopep8
+        ):
+            return "".join(
+                [leaf.boxes_to_tex(**options) for leaf in self._leaves[0].get_leaves()]
+            )
+        elif name == "System`SuperscriptBox" and len(self._leaves) == 2:
             tex1 = self._leaves[0].boxes_to_tex(**options)
             sup_string = self._leaves[1].get_string_value()
-            if sup_string == '\u2032':
+            if sup_string == "\u2032":
                 return "%s'" % tex1
-            elif sup_string == '\u2032\u2032':
+            elif sup_string == "\u2032\u2032":
                 return "%s''" % tex1
             else:
-                return '%s^%s' % (
+                return "%s^%s" % (
                     block(tex1, True),
-                    block(self._leaves[1].boxes_to_tex(**options)))
-        elif name == 'System`SubscriptBox' and len(self._leaves) == 2:
-            return '%s_%s' % (
-                block(self._leaves[0].boxes_to_tex(**options), True),
-                block(self._leaves[1].boxes_to_tex(**options)))
-        elif name == 'System`SubsuperscriptBox' and len(self._leaves) == 3:
-            return '%s_%s^%s' % (
+                    block(self._leaves[1].boxes_to_tex(**options)),
+                )
+        elif name == "System`SubscriptBox" and len(self._leaves) == 2:
+            return "%s_%s" % (
                 block(self._leaves[0].boxes_to_tex(**options), True),
                 block(self._leaves[1].boxes_to_tex(**options)),
-                block(self._leaves[2].boxes_to_tex(**options)))
-        elif name == 'System`FractionBox' and len(self._leaves) == 2:
-            return '\\frac{%s}{%s}' % (
+            )
+        elif name == "System`SubsuperscriptBox" and len(self._leaves) == 3:
+            return "%s_%s^%s" % (
+                block(self._leaves[0].boxes_to_tex(**options), True),
+                block(self._leaves[1].boxes_to_tex(**options)),
+                block(self._leaves[2].boxes_to_tex(**options)),
+            )
+        elif name == "System`FractionBox" and len(self._leaves) == 2:
+            return "\\frac{%s}{%s}" % (
                 self._leaves[0].boxes_to_tex(**options),
-                self._leaves[1].boxes_to_tex(**options))
-        elif name == 'System`SqrtBox' and len(self._leaves) == 1:
-            return '\\sqrt{%s}' % self._leaves[0].boxes_to_tex(**options)
+                self._leaves[1].boxes_to_tex(**options),
+            )
+        elif name == "System`SqrtBox" and len(self._leaves) == 1:
+            return "\\sqrt{%s}" % self._leaves[0].boxes_to_tex(**options)
         else:
-            raise BoxError(self, 'tex')
+            raise BoxError(self, "tex")
 
     def default_format(self, evaluation, form) -> str:
-        return '%s[%s]' % (self._head.default_format(evaluation, form),
-                           ', '.join([leaf.default_format(evaluation, form)
-                                      for leaf in self._leaves]))
+        return "%s[%s]" % (
+            self._head.default_format(evaluation, form),
+            ", ".join([leaf.default_format(evaluation, form) for leaf in self._leaves]),
+        )
 
     def sort(self, pattern=False):
         " Sort the leaves according to internal ordering. "
@@ -1549,8 +1631,7 @@ class Expression(BaseExpression):
         new_applied = [False]
 
         def apply_leaf(leaf):
-            new, sub_applied = leaf.apply_rules(
-                rules, evaluation, level + 1, options)
+            new, sub_applied = leaf.apply_rules(rules, evaluation, level + 1, options)
             new_applied[0] = new_applied[0] or sub_applied
             return new
 
@@ -1558,8 +1639,9 @@ class Expression(BaseExpression):
             return Expression(expr._head, *[apply_leaf(leaf) for leaf in expr._leaves])
 
         if options is None:  # default ReplaceAll mode; replace breadth first
-            result, applied = super(
-                Expression, self).apply_rules(rules, evaluation, level, options)
+            result, applied = super(Expression, self).apply_rules(
+                rules, evaluation, level, options
+            )
             if applied:
                 return result, True
             head, applied = self._head.apply_rules(rules, evaluation, level, options)
@@ -1567,89 +1649,105 @@ class Expression(BaseExpression):
             return descend(Expression(head, *self._leaves)), new_applied[0]
         else:  # Replace mode; replace depth first
             expr = descend(self)
-            expr, applied = super(
-                Expression, expr).apply_rules(rules, evaluation, level, options)
+            expr, applied = super(Expression, expr).apply_rules(
+                rules, evaluation, level, options
+            )
             new_applied[0] = new_applied[0] or applied
-            if not applied and options['heads']:
+            if not applied and options["heads"]:
                 # heads in Replace are treated at the level of the arguments, i.e. level + 1
-                head, applied = expr._head.apply_rules(rules, evaluation, level + 1, options)
+                head, applied = expr._head.apply_rules(
+                    rules, evaluation, level + 1, options
+                )
                 new_applied[0] = new_applied[0] or applied
                 expr = Expression(head, *expr._leaves)
             return expr, new_applied[0]
 
-    def replace_vars(self, vars, options=None,
-                     in_scoping=True, in_function=True) -> 'Expression':
+    def replace_vars(
+        self, vars, options=None, in_scoping=True, in_function=True
+    ) -> "Expression":
         from mathics.builtin.scoping import get_scoping_vars
 
         if not in_scoping:
-            if (self._head.get_name() in ('System`Module', 'System`Block', 'System`With') and
-                len(self._leaves) > 0):  # nopep8
+            if (
+                self._head.get_name()
+                in ("System`Module", "System`Block", "System`With")
+                and len(self._leaves) > 0
+            ):  # nopep8
 
-                scoping_vars = set(name for name, new_def in get_scoping_vars(self._leaves[0]))
+                scoping_vars = set(
+                    name for name, new_def in get_scoping_vars(self._leaves[0])
+                )
                 """for var in new_vars:
                     if var in scoping_vars:
                         del new_vars[var]"""
-                vars = {var: value for var, value in vars.items()
-                        if var not in scoping_vars}
+                vars = {
+                    var: value for var, value in vars.items() if var not in scoping_vars
+                }
 
         leaves = self._leaves
         if in_function:
-            if (self._head.get_name() == 'System`Function' and
-                len(self._leaves) > 1 and
-                (self._leaves[0].has_form('List', None) or
-                 self._leaves[0].get_name())):
+            if (
+                self._head.get_name() == "System`Function"
+                and len(self._leaves) > 1
+                and (
+                    self._leaves[0].has_form("List", None) or self._leaves[0].get_name()
+                )
+            ):
                 if self._leaves[0].get_name():
                     func_params = [self._leaves[0].get_name()]
                 else:
-                    func_params = [leaf.get_name()
-                                   for leaf in self._leaves[0]._leaves]
-                if '' not in func_params:
+                    func_params = [leaf.get_name() for leaf in self._leaves[0]._leaves]
+                if "" not in func_params:
                     body = self._leaves[1]
-                    replacement = {name: Symbol(name + '$') for name in func_params}
-                    func_params = [Symbol(name + '$') for name in func_params]
+                    replacement = {name: Symbol(name + "$") for name in func_params}
+                    func_params = [Symbol(name + "$") for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
-                    leaves = chain([Expression('List', *func_params), body], self._leaves[2:])
+                    leaves = chain(
+                        [Expression("List", *func_params), body], self._leaves[2:]
+                    )
 
         if not vars:  # might just be a symbol set via Set[] we looked up here
             return self.shallow_copy()
 
         return Expression(
-            self._head.replace_vars(
-                vars, options=options, in_scoping=in_scoping),
-            *[leaf.replace_vars(vars, options=options, in_scoping=in_scoping)
-              for leaf in leaves])
+            self._head.replace_vars(vars, options=options, in_scoping=in_scoping),
+            *[
+                leaf.replace_vars(vars, options=options, in_scoping=in_scoping)
+                for leaf in leaves
+            ]
+        )
 
     def replace_slots(self, slots, evaluation):
-        if self._head.get_name() == 'System`Slot':
+        if self._head.get_name() == "System`Slot":
             if len(self._leaves) != 1:
-                evaluation.message_args('Slot', len(self._leaves), 1)
+                evaluation.message_args("Slot", len(self._leaves), 1)
             else:
                 slot = self._leaves[0].get_int_value()
                 if slot is None or slot < 0:
-                    evaluation.message('Function', 'slot', self._leaves[0])
+                    evaluation.message("Function", "slot", self._leaves[0])
                 elif slot > len(slots) - 1:
-                    evaluation.message('Function', 'slotn', slot)
+                    evaluation.message("Function", "slotn", slot)
                 else:
                     return slots[int(slot)]
-        elif self._head.get_name() == 'System`SlotSequence':
+        elif self._head.get_name() == "System`SlotSequence":
             if len(self._leaves) != 1:
-                evaluation.message_args('SlotSequence', len(self._leaves), 1)
+                evaluation.message_args("SlotSequence", len(self._leaves), 1)
             else:
                 slot = self._leaves[0].get_int_value()
                 if slot is None or slot < 1:
-                    evaluation.error('Function', 'slot', self._leaves[0])
-            return Expression('Sequence', *slots[slot:])
-        elif (self._head.get_name() == 'System`Function' and
-              len(self._leaves) == 1):
+                    evaluation.error("Function", "slot", self._leaves[0])
+            return Expression("Sequence", *slots[slot:])
+        elif self._head.get_name() == "System`Function" and len(self._leaves) == 1:
             # do not replace Slots in nested Functions
             return self
-        return Expression(self._head.replace_slots(slots, evaluation),
-                          *[leaf.replace_slots(slots, evaluation)
-                            for leaf in self._leaves])
+        return Expression(
+            self._head.replace_slots(slots, evaluation),
+            *[leaf.replace_slots(slots, evaluation) for leaf in self._leaves]
+        )
 
-    def thread(self, evaluation, head=None) -> typing.Tuple[bool, 'Expression']:
+    def thread(self, evaluation, head=None) -> typing.Tuple[bool, "Expression"]:
         if head is None:
-            head = Symbol('List')
+            head = Symbol("List")
 
         items = []
         dim = None
@@ -1659,7 +1757,7 @@ class Expression(BaseExpression):
                     dim = len(leaf._leaves)
                     items = [(items + [innerleaf]) for innerleaf in leaf._leaves]
                 elif len(leaf._leaves) != dim:
-                    evaluation.message('Thread', 'tdlen')
+                    evaluation.message("Thread", "tdlen")
                     return True, self
                 else:
                     for index in range(dim):
@@ -1677,14 +1775,21 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return (self._head.get_name() in system_symbols(
-            'Sqrt', 'Times', 'Plus', 'Subtract', 'Minus', 'Power', 'Abs',
-            'Divide', 'Sin') and
-            all(leaf.is_numeric() for leaf in self._leaves))
+        return self._head.get_name() in system_symbols(
+            "Sqrt",
+            "Times",
+            "Plus",
+            "Subtract",
+            "Minus",
+            "Power",
+            "Abs",
+            "Divide",
+            "Sin",
+        ) and all(leaf.is_numeric() for leaf in self._leaves)
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
-    def numerify(self, evaluation) -> 'Expression':
+    def numerify(self, evaluation) -> "Expression":
         _prec = None
         for leaf in self._leaves:
             if leaf.is_inexact():
@@ -1699,7 +1804,7 @@ class Expression(BaseExpression):
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression('N', leaf, Integer(dps(_prec)))
+                    n_expr = Expression("N", leaf, Integer(dps(_prec)))
                     n_result = n_expr.evaluate(evaluation)
                     if isinstance(n_result, Number):
                         new_leaves[index] = n_result
@@ -1717,10 +1822,10 @@ class Expression(BaseExpression):
         return atoms
 
     def __hash__(self):
-        return hash(('Expression', self._head) + tuple(self._leaves))
+        return hash(("Expression", self._head) + tuple(self._leaves))
 
     def user_hash(self, update):
-        update(("%s>%d>" % (self.get_head_name(), len(self._leaves))).encode('utf8'))
+        update(("%s>%d>" % (self.get_head_name(), len(self._leaves))).encode("utf8"))
         for leaf in self._leaves:
             leaf.user_hash(update)
 
@@ -1729,7 +1834,6 @@ class Expression(BaseExpression):
 
 
 class Atom(BaseExpression):
-
     def is_atom(self) -> bool:
         return True
 
@@ -1745,26 +1849,25 @@ class Atom(BaseExpression):
     def has_symbol(self, symbol_name) -> bool:
         return False
 
-    def get_head(self) -> 'Symbol':
+    def get_head(self) -> "Symbol":
         return Symbol(self.get_atom_name())
 
     def get_atom_name(self) -> str:
         return self.__class__.__name__
 
     def __repr__(self) -> str:
-        return '<%s: %s>' % (self.get_atom_name(), self)
+        return "<%s: %s>" % (self.get_atom_name(), self)
 
-    def replace_vars(self, vars, options=None, in_scoping=True) -> 'Atom':
+    def replace_vars(self, vars, options=None, in_scoping=True) -> "Atom":
         return self
 
-    def replace_slots(self, slots, evaluation) -> 'Atom':
+    def replace_slots(self, slots, evaluation) -> "Atom":
         return self
 
-    def numerify(self, evaluation) -> 'Atom':
+    def numerify(self, evaluation) -> "Atom":
         return self
 
-
-    def copy(self, reevaluate=False) -> 'Atom':
+    def copy(self, reevaluate=False) -> "Atom":
         result = self.do_copy()
         result.original = self
         return result
@@ -1778,7 +1881,7 @@ class Atom(BaseExpression):
         else:
             raise NotImplementedError
 
-    def get_atoms(self, include_heads=True) -> typing.List['Atom']:
+    def get_atoms(self, include_heads=True) -> typing.List["Atom"]:
         return [self]
 
     def atom_to_boxes(self, f, evaluation):
@@ -1798,13 +1901,13 @@ class Symbol(Atom):
     def __str__(self) -> str:
         return self.name
 
-    def do_copy(self) -> 'Symbol':
+    def do_copy(self) -> "Symbol":
         return Symbol(self.name)
 
     def boxes_to_text(self, **options) -> str:
         return str(self.name)
 
-    def atom_to_boxes(self, f, evaluation) -> 'String':
+    def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
 
     def to_sympy(self, **kwargs):
@@ -1814,8 +1917,11 @@ class Symbol(Atom):
             return self.sympy_dummy
 
         builtin = mathics_to_sympy.get(self.name)
-        if (builtin is None or not builtin.sympy_name or    # nopep8
-            not builtin.is_constant()):
+        if (
+            builtin is None
+            or not builtin.sympy_name
+            or not builtin.is_constant()  # nopep8
+        ):
             return sympy.Symbol(sympy_symbol_prefix + self.name)
         return builtin.to_sympy(self, **kwargs)
 
@@ -1826,9 +1932,9 @@ class Symbol(Atom):
             return False
         if self == SymbolNull:
             return None
-        n_evaluation = kwargs.get('n_evaluation')
+        n_evaluation = kwargs.get("n_evaluation")
         if n_evaluation is not None:
-            value = Expression('N', self).evaluate(n_evaluation)
+            value = Expression("N", self).evaluate(n_evaluation)
             return value.to_python()
 
         if kwargs.get("python_form", False):
@@ -1852,8 +1958,14 @@ class Symbol(Atom):
         if pattern_sort:
             return super(Symbol, self).get_sort_key(True)
         else:
-            return [1 if self.is_numeric() else 2,
-                    2, Monomial({self.name: 1}), 0, self.name, 1]
+            return [
+                1 if self.is_numeric() else 2,
+                2,
+                Monomial({self.name: 1}),
+                0,
+                self.name,
+                1,
+            ]
 
     def same(self, other) -> bool:
         return isinstance(other, Symbol) and self.name == other.name
@@ -1882,17 +1994,18 @@ class Symbol(Atom):
 
     def is_numeric(self) -> bool:
         return self.name in system_symbols(
-            'Pi', 'E', 'EulerGamma', 'GoldenRatio',
-            'MachinePrecision', 'Catalan')
+            "Pi", "E", "EulerGamma", "GoldenRatio", "MachinePrecision", "Catalan"
+        )
 
     def __hash__(self):
-        return hash(('Symbol', self.name))  # to distinguish from String
+        return hash(("Symbol", self.name))  # to distinguish from String
 
     def user_hash(self, update) -> None:
-        update(b'System`Symbol>' + self.name.encode('utf8'))
+        update(b"System`Symbol>" + self.name.encode("utf8"))
 
     def __getnewargs__(self):
         return (self.name, self.sympy_dummy)
+
 
 # Some common Symbols
 SymbolFalse = Symbol("False")
@@ -1902,26 +2015,28 @@ SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
 SymbolInfinity = Symbol("Infinity")
 
+@lru_cache(maxsize=1024)
+def from_mpmath(value, prec=None):
+    "Converts mpf or mpc to Number."
+    if isinstance(value, mpmath.mpf):
+        if prec is None:
+            return MachineReal(float(value))
+        else:
+            # HACK: use str here to prevent loss of precision
+            return PrecisionReal(sympy.Float(str(value), prec))
+    elif isinstance(value, mpmath.mpc):
+        if value.imag == 0.0:
+            return from_mpmath(value.real, prec)
+        real = from_mpmath(value.real, prec)
+        imag = from_mpmath(value.imag, prec)
+        return Complex(real, imag)
+    else:
+        raise TypeError(type(value))
+
+
 class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
-
-    def from_mpmath(value, prec=None):
-        'Converts mpf or mpc to Number.'
-        if isinstance(value, mpmath.mpf):
-            if prec is None:
-                return MachineReal(float(value))
-            else:
-                # HACK: use str here to prevent loss of precision
-                return PrecisionReal(sympy.Float(str(value), prec))
-        elif isinstance(value, mpmath.mpc):
-            if value.imag == 0.0:
-                return Number.from_mpmath(value.real, prec)
-            real = Number.from_mpmath(value.real, prec)
-            imag = Number.from_mpmath(value.imag, prec)
-            return Complex(real, imag)
-        else:
-            raise TypeError(type(value))
 
     def is_numeric(self) -> bool:
         return True
@@ -1930,39 +2045,50 @@ class Number(Atom):
 def _ExponentFunction(value):
     n = value.get_int_value()
     if -5 <= n <= 5:
-        return Symbol('Null')
+        return Symbol("Null")
     else:
         return value
 
 
 def _NumberFormat(man, base, exp, options):
     if exp.get_string_value():
-        if options['_Form'] in ('System`InputForm', 'System`OutputForm', 'System`FullForm'):
-            return Expression('RowBox', Expression('List', man, String('*^'), exp))
+        if options["_Form"] in (
+            "System`InputForm",
+            "System`OutputForm",
+            "System`FullForm",
+        ):
+            return Expression("RowBox", Expression("List", man, String("*^"), exp))
         else:
-            return Expression('RowBox', Expression('List', man, String(options['NumberMultiplier']),
-                                                   Expression('SuperscriptBox', base, exp)))
+            return Expression(
+                "RowBox",
+                Expression(
+                    "List",
+                    man,
+                    String(options["NumberMultiplier"]),
+                    Expression("SuperscriptBox", base, exp),
+                ),
+            )
     else:
         return man
 
 
 _number_form_options = {
-    'DigitBlock': [0, 0],
-    'ExponentFunction': _ExponentFunction,
-    'ExponentStep': 1,
-    'NumberFormat': _NumberFormat,
-    'NumberPadding': ['', '0'],
-    'NumberPoint': '.',
-    'NumberSigns': ['-', ''],
-    'SignPadding': False,
-    'NumberMultiplier': '\u00d7',
+    "DigitBlock": [0, 0],
+    "ExponentFunction": _ExponentFunction,
+    "ExponentStep": 1,
+    "NumberFormat": _NumberFormat,
+    "NumberPadding": ["", "0"],
+    "NumberPoint": ".",
+    "NumberSigns": ["-", ""],
+    "SignPadding": False,
+    "NumberMultiplier": "\u00d7",
 }
 
 
 class Integer(Number):
     value: int
 
-    def __new__(cls, value) -> 'Integer':
+    def __new__(cls, value) -> "Integer":
         n = int(value)
         self = super(Integer, cls).__new__(cls)
         self.value = n
@@ -1972,12 +2098,12 @@ class Integer(Number):
         return str(self.value)
 
     def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes('MathMLForm').boxes_to_xml(**options)
+        return self.make_boxes("MathMLForm").boxes_to_xml(**options)
 
     def boxes_to_tex(self, **options) -> str:
         return str(self.value)
 
-    def make_boxes(self, form) -> 'String':
+    def make_boxes(self, form) -> "String":
         return String(str(self.value))
 
     def atom_to_boxes(self, f, evaluation):
@@ -1995,7 +2121,7 @@ class Integer(Number):
     def to_python(self, *args, **kwargs):
         return self.value
 
-    def round(self, d=None) -> typing.Union['MachineReal', 'PrecisionReal']:
+    def round(self, d=None) -> typing.Union["MachineReal", "PrecisionReal"]:
         if d is None:
             return MachineReal(float(self.value))
         else:
@@ -2017,19 +2143,19 @@ class Integer(Number):
         else:
             return [0, 0, self.value, 0, 1]
 
-    def do_copy(self) -> 'Integer':
+    def do_copy(self) -> "Integer":
         return Integer(self.value)
 
     def __hash__(self):
-        return hash(('Integer', self.value))
+        return hash(("Integer", self.value))
 
     def user_hash(self, update):
-        update(b'System`Integer>' + str(self.value).encode('utf8'))
+        update(b"System`Integer>" + str(self.value).encode("utf8"))
 
     def __getnewargs__(self):
         return (self.value,)
 
-    def __neg__(self) -> 'Integer':
+    def __neg__(self) -> "Integer":
         return Integer(-self.value)
 
     @property
@@ -2038,7 +2164,7 @@ class Integer(Number):
 
 
 class Rational(Number):
-    def __new__(cls, numerator, denominator=1) -> 'Rational':
+    def __new__(cls, numerator, denominator=1) -> "Rational":
         self = super(Rational, cls).__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
@@ -2055,7 +2181,7 @@ class Rational(Number):
     def to_python(self, *args, **kwargs) -> float:
         return float(self.value)
 
-    def round(self, d=None) -> typing.Union['MachineReal', 'PrecisionReal']:
+    def round(self, d=None) -> typing.Union["MachineReal", "PrecisionReal"]:
         if d is None:
             return MachineReal(float(self.value))
         else:
@@ -2064,33 +2190,35 @@ class Rational(Number):
     def same(self, other) -> bool:
         return isinstance(other, Rational) and self.value == other.value
 
-    def numerator(self) -> 'Integer':
+    def numerator(self) -> "Integer":
         return Integer(self.value.as_numer_denom()[0])
 
-    def denominator(self) -> 'Integer':
+    def denominator(self) -> "Integer":
         return Integer(self.value.as_numer_denom()[1])
 
-    def do_format(self, evaluation, form) -> 'Expression':
+    def do_format(self, evaluation, form) -> "Expression":
         assert fully_qualified_symbol_name(form)
-        if form == 'System`FullForm':
+        if form == "System`FullForm":
             return Expression(
-                Expression('HoldForm', Symbol('Rational')), self.numerator(),
-                self.denominator()).do_format(evaluation, form)
+                Expression("HoldForm", Symbol("Rational")),
+                self.numerator(),
+                self.denominator(),
+            ).do_format(evaluation, form)
         else:
             numerator = self.numerator()
             minus = numerator.value < 0
             if minus:
                 numerator = Integer(-numerator.value)
-            result = Expression('Divide', numerator, self.denominator())
+            result = Expression("Divide", numerator, self.denominator())
             if minus:
-                result = Expression('Minus', result)
-            result = Expression('HoldForm', result)
+                result = Expression("Minus", result)
+            result = Expression("HoldForm", result)
             return result.do_format(evaluation, form)
 
     def default_format(self, evaluation, form) -> str:
-        return 'Rational[%s, %s]' % self.value.as_numer_denom()
+        return "Rational[%s, %s]" % self.value.as_numer_denom()
 
-    def evaluate(self, evaluation) -> 'Rational':
+    def evaluate(self, evaluation) -> "Rational":
         evaluation.check_stopped()
         return self
 
@@ -2101,48 +2229,50 @@ class Rational(Number):
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
 
-    def do_copy(self) -> 'Rational':
+    def do_copy(self) -> "Rational":
         return Rational(self.value)
 
     def __hash__(self):
         return hash(("Rational", self.value))
 
     def user_hash(self, update) -> None:
-        update(b'System`Rational>' + ('%s>%s' % self.value.as_numer_denom()).encode('utf8'))
+        update(
+            b"System`Rational>" + ("%s>%s" % self.value.as_numer_denom()).encode("utf8")
+        )
 
     def __getnewargs__(self):
         return (self.numerator().get_int_value(), self.denominator().get_int_value())
 
-    def __neg__(self) -> 'Rational':
-        return Rational(-self.numerator().get_int_value(), self.denominator().get_int_value())
+    def __neg__(self) -> "Rational":
+        return Rational(
+            -self.numerator().get_int_value(), self.denominator().get_int_value()
+        )
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero # (implicit) and not (self.denominator().is_zero)
-
+        return (
+            self.numerator().is_zero
+        )  # (implicit) and not (self.denominator().is_zero)
 
 
 class Real(Number):
-    def __new__(cls, value, p=None) -> 'Real':
+    def __new__(cls, value, p=None) -> "Real":
         if isinstance(value, str):
             value = str(value)
             if p is None:
-                digits = (''.join(re.findall('[0-9]+', value))).lstrip('0')
-                if digits == '':     # Handle weird Mathematica zero case
-                    p = max(prec(len(value.replace('0.', ''))),
-                            machine_precision)
+                digits = ("".join(re.findall("[0-9]+", value))).lstrip("0")
+                if digits == "":  # Handle weird Mathematica zero case
+                    p = max(prec(len(value.replace("0.", ""))), machine_precision)
                 else:
                     p = prec(len(digits.zfill(dps(machine_precision))))
         elif isinstance(value, sympy.Float):
             if p is None:
                 p = value._prec + 1
-        elif isinstance(value,
-                        (Integer, sympy.Number, mpmath.mpf, float, int)):
+        elif isinstance(value, (Integer, sympy.Number, mpmath.mpf, float, int)):
             if p is not None and p > machine_precision:
                 value = str(value)
         else:
-            raise TypeError('Unknown number type: %s (type %s)' % (
-                value, type(value)))
+            raise TypeError("Unknown number type: %s (type %s)" % (value, type(value)))
 
         # return either machine precision or arbitrary precision real
         if p is None or p == machine_precision:
@@ -2151,18 +2281,18 @@ class Real(Number):
             return PrecisionReal.__new__(PrecisionReal, value)
 
     def boxes_to_text(self, **options) -> str:
-        return self.make_boxes('System`OutputForm').boxes_to_text(**options)
+        return self.make_boxes("System`OutputForm").boxes_to_text(**options)
 
     def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes('System`MathMLForm').boxes_to_xml(**options)
+        return self.make_boxes("System`MathMLForm").boxes_to_xml(**options)
 
     def boxes_to_tex(self, **options) -> str:
-        return self.make_boxes('System`TeXForm').boxes_to_tex(**options)
+        return self.make_boxes("System`TeXForm").boxes_to_tex(**options)
 
     def atom_to_boxes(self, f, evaluation):
         return self.make_boxes(f.get_name())
 
-    def evaluate(self, evaluation) -> 'Real':
+    def evaluate(self, evaluation) -> "Real":
         evaluation.check_stopped()
         return self
 
@@ -2178,7 +2308,9 @@ class Real(Number):
             _prec = min_prec(self, other)
             with mpmath.workprec(_prec):
                 rel_eps = 0.5 ** (_prec - 7)
-                return mpmath.almosteq(self.to_mpmath(), other.to_mpmath(), abs_eps=0, rel_eps=rel_eps)
+                return mpmath.almosteq(
+                    self.to_mpmath(), other.to_mpmath(), abs_eps=0, rel_eps=rel_eps
+                )
         else:
             return self.get_sort_key() == other.get_sort_key()
 
@@ -2194,21 +2326,22 @@ class Real(Number):
     def user_hash(self, update):
         # ignore last 7 binary digits when hashing
         _prec = self.get_precision()
-        update(b'System`Real>' + str(self.to_sympy().n(dps(_prec))).encode('utf8'))
+        update(b"System`Real>" + str(self.to_sympy().n(dps(_prec))).encode("utf8"))
 
     def get_atom_name(self) -> str:
-        return 'Real'
+        return "Real"
 
 
 class MachineReal(Real):
-    '''
+    """
     Machine precision real number.
 
     Stored internally as a python float.
-    '''
+    """
+
     value: float
 
-    def __new__(cls, value) -> 'MachineReal':
+    def __new__(cls, value) -> "MachineReal":
         self = Number.__new__(cls)
         self.value = float(value)
         if math.isinf(self.value) or math.isnan(self.value):
@@ -2218,13 +2351,13 @@ class MachineReal(Real):
     def to_python(self, *args, **kwargs) -> float:
         return self.value
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return sympy.Float(self.value)
 
     def to_mpmath(self):
         return mpmath.mpf(self.value)
 
-    def round(self, d=None) -> 'MachineReal':
+    def round(self, d=None) -> "MachineReal":
         return self
 
     def same(self, other) -> bool:
@@ -2245,8 +2378,9 @@ class MachineReal(Real):
 
     def make_boxes(self, form):
         from mathics.builtin.inout import number_form
-        _number_form_options['_Form'] = form    # passed to _NumberFormat
-        if form in ('System`InputForm', 'System`FullForm'):
+
+        _number_form_options["_Form"] = form  # passed to _NumberFormat
+        if form in ("System`InputForm", "System`FullForm"):
             n = None
         else:
             n = 6
@@ -2255,10 +2389,10 @@ class MachineReal(Real):
     def __getnewargs__(self):
         return (self.value,)
 
-    def do_copy(self) -> 'MachineReal':
+    def do_copy(self) -> "MachineReal":
         return MachineReal(self.value)
 
-    def __neg__(self) -> 'MachineReal':
+    def __neg__(self) -> "MachineReal":
         return MachineReal(-self.value)
 
     @property
@@ -2281,9 +2415,10 @@ class PrecisionReal(Real):
 
     Note: Plays nicely with the mpmath.mpf (float) type.
     """
+
     value: sympy.Float
 
-    def __new__(cls, value) -> 'PrecisionReal':
+    def __new__(cls, value) -> "PrecisionReal":
         self = Number.__new__(cls)
         self.value = sympy.Float(value)
         return self
@@ -2291,13 +2426,13 @@ class PrecisionReal(Real):
     def to_python(self, *args, **kwargs):
         return float(self.value)
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return self.value
 
     def to_mpmath(self):
         return mpmath.mpf(self.value)
 
-    def round(self, d=None) -> typing.Union['MachineReal', 'PrecisionReal']:
+    def round(self, d=None) -> typing.Union["MachineReal", "PrecisionReal"]:
         if d is None:
             return MachineReal(float(self.value))
         else:
@@ -2316,16 +2451,19 @@ class PrecisionReal(Real):
 
     def make_boxes(self, form):
         from mathics.builtin.inout import number_form
-        _number_form_options['_Form'] = form    # passed to _NumberFormat
-        return number_form(self, dps(self.get_precision()), None, None, _number_form_options)
+
+        _number_form_options["_Form"] = form  # passed to _NumberFormat
+        return number_form(
+            self, dps(self.get_precision()), None, None, _number_form_options
+        )
 
     def __getnewargs__(self):
         return (self.value,)
 
-    def do_copy(self) -> 'PrecisionReal':
+    def do_copy(self) -> "PrecisionReal":
         return PrecisionReal(self.value)
 
-    def __neg__(self) -> 'PrecisionReal':
+    def __neg__(self) -> "PrecisionReal":
         return PrecisionReal(-self.value)
 
     @property
@@ -2334,9 +2472,10 @@ class PrecisionReal(Real):
 
 
 class Complex(Number):
-    '''
+    """
     Complex wraps two real-valued Numbers.
-    '''
+    """
+
     real: Any
     imag: Any
 
@@ -2374,46 +2513,51 @@ class Complex(Number):
     def to_mpmath(self):
         return mpmath.mpc(self.real.to_mpmath(), self.imag.to_mpmath())
 
-    def do_format(self, evaluation, form) -> 'Expression':
-        if form == 'System`FullForm':
-            return Expression(Expression('HoldForm', Symbol('Complex')),
-                              self.real, self.imag).do_format(evaluation, form)
+    def do_format(self, evaluation, form) -> "Expression":
+        if form == "System`FullForm":
+            return Expression(
+                Expression("HoldForm", Symbol("Complex")), self.real, self.imag
+            ).do_format(evaluation, form)
 
         parts: typing.List[Any] = []
         if self.is_machine_precision() or not self.real.is_zero:
             parts.append(self.real)
         if self.imag.same(Integer(1)):
-            parts.append(Symbol('I'))
+            parts.append(Symbol("I"))
         else:
-            parts.append(Expression('Times', self.imag, Symbol('I')))
+            parts.append(Expression("Times", self.imag, Symbol("I")))
 
         if len(parts) == 1:
             result = parts[0]
         else:
-            result = Expression('Plus', *parts)
+            result = Expression("Plus", *parts)
 
-        return Expression('HoldForm', result).do_format(evaluation, form)
+        return Expression("HoldForm", result).do_format(evaluation, form)
 
     def default_format(self, evaluation, form) -> str:
-        return 'Complex[%s, %s]' % (self.real.default_format(evaluation, form),
-                                    self.imag.default_format(evaluation, form))
+        return "Complex[%s, %s]" % (
+            self.real.default_format(evaluation, form),
+            self.imag.default_format(evaluation, form),
+        )
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
             return super(Complex, self).get_sort_key(True)
         else:
-            return [0, 0, self.real.get_sort_key()[2],
-                    self.imag.get_sort_key()[2], 1]
+            return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
 
     def same(self, other) -> bool:
-        return (isinstance(other, Complex) and self.real == other.real and
-                self.imag == other.imag)
+        return (
+            isinstance(other, Complex)
+            and self.real == other.real
+            and self.imag == other.imag
+        )
 
-    def evaluate(self, evaluation) -> 'Complex':
+    def evaluate(self, evaluation) -> "Complex":
         evaluation.check_stopped()
         return self
 
-    def round(self, d=None) -> 'Complex':
+    def round(self, d=None) -> "Complex":
         real = self.real.round(d)
         imag = self.imag.round(d)
         return Complex(real, imag)
@@ -2439,14 +2583,14 @@ class Complex(Number):
             return None
         return min(real_prec, imag_prec)
 
-    def do_copy(self) -> 'Complex':
+    def do_copy(self) -> "Complex":
         return Complex(self.real.do_copy(), self.imag.do_copy())
 
     def __hash__(self):
-        return hash(('Complex', self.real, self.imag))
+        return hash(("Complex", self.real, self.imag))
 
     def user_hash(self, update) -> None:
-        update(b'System`Complex>')
+        update(b"System`Complex>")
         update(self.real)
         update(self.imag)
 
@@ -2468,41 +2612,51 @@ class Complex(Number):
 
     @property
     def is_approx_zero(self) -> bool:
-        real_zero = self.real.is_approx_zero if hasattr(self.real, "is_approx_zero") else self.real.is_zero
-        imag_zero = self.imag.is_approx_zero if hasattr(self.imag, "is_approx_zero") else self.imag.is_zero
+        real_zero = (
+            self.real.is_approx_zero
+            if hasattr(self.real, "is_approx_zero")
+            else self.real.is_zero
+        )
+        imag_zero = (
+            self.imag.is_approx_zero
+            if hasattr(self.imag, "is_approx_zero")
+            else self.imag.is_zero
+        )
         return real_zero and imag_zero
 
 
 def encode_mathml(text: str) -> str:
-    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
-    text = text.replace('\n', '<mspace linebreak="newline" />')
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    text = text.replace('"', "&quot;").replace(" ", "&nbsp;")
+    text = text.replace("\n", '<mspace linebreak="newline" />')
     return text
 
+
 TEX_REPLACE = {
-    '{': r'\{',
-    '}': r'\}',
-    '_': r'\_',
-    '$': r'\$',
-    '%': r'\%',
-    '#': r'\#',
-    '&': r'\&',
-    '\\': r'\backslash{}',
-    '^': r'{}^{\wedge}',
-    '~': r'\sim{}',
-    '|': r'\vert{}',
+    "{": r"\{",
+    "}": r"\}",
+    "_": r"\_",
+    "$": r"\$",
+    "%": r"\%",
+    "#": r"\#",
+    "&": r"\&",
+    "\\": r"\backslash{}",
+    "^": r"{}^{\wedge}",
+    "~": r"\sim{}",
+    "|": r"\vert{}",
 }
 TEX_TEXT_REPLACE = TEX_REPLACE.copy()
-TEX_TEXT_REPLACE.update({
-    '<': r'$<$',
-    '>': r'$>$',
-    '~': r'$\sim$',
-    '|': r'$\vert$',
-    '\\': r'$\backslash$',
-    '^': r'${}^{\wedge}$',
-})
-TEX_REPLACE_RE = re.compile('([' + ''.join(
-    [re.escape(c) for c in TEX_REPLACE]) + '])')
+TEX_TEXT_REPLACE.update(
+    {
+        "<": r"$<$",
+        ">": r"$>$",
+        "~": r"$\sim$",
+        "|": r"$\vert$",
+        "\\": r"$\backslash$",
+        "^": r"${}^{\wedge}$",
+    }
+)
+TEX_REPLACE_RE = re.compile("([" + "".join([re.escape(c) for c in TEX_REPLACE]) + "])")
 
 
 def encode_tex(text: str, in_text=False) -> str:
@@ -2513,12 +2667,30 @@ def encode_tex(text: str, in_text=False) -> str:
         return repl.get(c, c)
 
     text = TEX_REPLACE_RE.sub(replace, text)
-    text = text.replace('\n', '\\newline\n')
+    text = text.replace("\n", "\\newline\n")
     return text
 
-extra_operators = set((',', '(', ')', '[', ']', '{', '}',
-                       '\u301a', '\u301b', '\u00d7', '\u2032',
-                       '\u2032\u2032', ' ', '\u2062', '\u222b', '\u2146'))
+
+extra_operators = set(
+    (
+        ",",
+        "(",
+        ")",
+        "[",
+        "]",
+        "{",
+        "}",
+        "\u301a",
+        "\u301b",
+        "\u00d7",
+        "\u2032",
+        "\u2032\u2032",
+        " ",
+        "\u2062",
+        "\u222b",
+        "\u2146",
+    )
+)
 
 
 class String(Atom):
@@ -2535,8 +2707,11 @@ class String(Atom):
     def boxes_to_text(self, show_string_characters=False, **options) -> str:
         value = self.value
 
-        if (not show_string_characters and      # nopep8
-            value.startswith('"') and value.endswith('"')):
+        if (
+            not show_string_characters
+            and value.startswith('"')  # nopep8
+            and value.endswith('"')
+        ):
             value = value[1:-1]
 
         return value
@@ -2561,29 +2736,31 @@ class String(Atom):
 
         if text.startswith('"') and text.endswith('"'):
             if show_string_characters:
-                return render('<ms>%s</ms>', text[1:-1])
+                return render("<ms>%s</ms>", text[1:-1])
             else:
                 outtext = ""
                 for line in text[1:-1].split("\n"):
-                    outtext +=  render('<mtext>%s</mtext>', line)
+                    outtext += render("<mtext>%s</mtext>", line)
                 return outtext
-        elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
-            return render('<mn>%s</mn>', text)
+        elif text and ("0" <= text[0] <= "9" or text[0] == "."):
+            return render("<mn>%s</mn>", text)
         else:
             if text in operators or text in extra_operators:
-                if text == '\u2146':
+                if text == "\u2146":
                     return render(
-                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text)
-                if text == '\u2062':
+                        '<mo form="prefix" lspace="0.2em" rspace="0">%s</mo>', text
+                    )
+                if text == "\u2062":
                     return render(
-                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text)
-                return render('<mo>%s</mo>', text)
+                        '<mo form="prefix" lspace="0" rspace="0.2em">%s</mo>', text
+                    )
+                return render("<mo>%s</mo>", text)
             elif is_symbol_name(text):
-                return render('<mi>%s</mi>', text)
+                return render("<mi>%s</mi>", text)
             else:
                 outtext = ""
                 for line in text.split("\n"):
-                    outtext +=  render('<mtext>%s</mtext>', line)
+                    outtext += render("<mtext>%s</mtext>", line)
                 return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
@@ -2606,56 +2783,56 @@ class String(Atom):
             if show_string_characters:
                 return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
-                return render(r'\text{%s}', text[1:-1], in_text=True)
-        elif text and text[0] in '0123456789-.':
-            return render('%s', text)
+                return render(r"\text{%s}", text[1:-1], in_text=True)
+        elif text and text[0] in "0123456789-.":
+            return render("%s", text)
         else:
-            if text == '\u2032':
+            if text == "\u2032":
                 return "'"
-            elif text == '\u2032\u2032':
+            elif text == "\u2032\u2032":
                 return "''"
-            elif text == '\u2062':
-                return ' '
-            elif text == '\u221e':
-                return r'\infty '
-            elif text == '\u00d7':
-                return r'\times '
-            elif text in ('(', '[', '{'):
-                return render(r'\left%s', text)
-            elif text in (')', ']', '}'):
-                return render(r'\right%s', text)
-            elif text == '\u301a':
-                return r'\left[\left['
-            elif text == '\u301b':
-                return r'\right]\right]'
-            elif text == ',' or text == ', ':
+            elif text == "\u2062":
+                return " "
+            elif text == "\u221e":
+                return r"\infty "
+            elif text == "\u00d7":
+                return r"\times "
+            elif text in ("(", "[", "{"):
+                return render(r"\left%s", text)
+            elif text in (")", "]", "}"):
+                return render(r"\right%s", text)
+            elif text == "\u301a":
+                return r"\left[\left["
+            elif text == "\u301b":
+                return r"\right]\right]"
+            elif text == "," or text == ", ":
                 return text
-            elif text == '\u222b':
-                return r'\int'
-            elif text == '\u2146':
-                return r'\, d'
-            elif text == '\u2211':
-                return r'\sum'
-            elif text == '\u220f':
-                return r'\prod'
+            elif text == "\u222b":
+                return r"\int"
+            elif text == "\u2146":
+                return r"\, d"
+            elif text == "\u2211":
+                return r"\sum"
+            elif text == "\u220f":
+                return r"\prod"
             elif len(text) > 1:
-                return render(r'\text{%s}', text, in_text=True)
+                return render(r"\text{%s}", text, in_text=True)
             else:
-                return render('%s', text)
+                return render("%s", text)
 
     def atom_to_boxes(self, f, evaluation):
         inner = str(self.value)
 
-        if f.get_name() in system_symbols('InputForm', 'FullForm'):
-            inner = inner.replace('\\', '\\\\')
+        if f.get_name() in system_symbols("InputForm", "FullForm"):
+            inner = inner.replace("\\", "\\\\")
 
         return String('"' + inner + '"')
 
-    def do_copy(self) -> 'String':
+    def do_copy(self) -> "String":
         return String(self.value)
 
     def default_format(self, evaluation, form) -> str:
-        value = self.value.replace('\\', '\\\\').replace('"', '\\"')
+        value = self.value.replace("\\", "\\\\").replace('"', '\\"')
         return '"%s"' % value
 
     def get_sort_key(self, pattern_sort=False):
@@ -2682,14 +2859,15 @@ class String(Atom):
     def user_hash(self, update):
         # hashing a String is the one case where the user gets the untampered
         # hash value of the string's text. this corresponds to MMA behavior.
-        update(self.value.encode('utf8'))
+        update(self.value.encode("utf8"))
 
     def __getnewargs__(self):
         return (self.value,)
 
+
 class ByteArrayAtom(Atom):
     value: str
-    
+
     def __new__(cls, value):
         self = super().__new__(cls)
         if type(value) in (bytes, bytearray):
@@ -2703,27 +2881,27 @@ class ByteArrayAtom(Atom):
         return self
 
     def __str__(self) -> str:
-        return base64.b64encode(self.value).decode('utf8')
+        return base64.b64encode(self.value).decode("utf8")
 
     def boxes_to_text(self, **options) -> str:
         return '"' + self.__str__() + '"'
 
     def boxes_to_xml(self, **options) -> str:
-        return encode_mathml(String('"'+self.__str__()+'"'))
+        return encode_mathml(String('"' + self.__str__() + '"'))
 
     def boxes_to_tex(self, **options) -> str:
-        return encode_tex(String('"'+self.__str__()+'"'))
+        return encode_tex(String('"' + self.__str__() + '"'))
 
     def atom_to_boxes(self, f, evaluation):
         res = String('""' + self.__str__() + '""')
         return res
 
-    def do_copy(self) -> 'ByteArray':
+    def do_copy(self) -> "ByteArray":
         return ByteArrayAtom(self.value)
 
     def default_format(self, evaluation, form) -> str:
         value = self.value
-        return '"' +  value.__str__() + '"'
+        return '"' + value.__str__() + '"'
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
@@ -2739,7 +2917,7 @@ class ByteArrayAtom(Atom):
 
     def get_string_value(self) -> str:
         try:
-            return self.value.decode('utf-8')
+            return self.value.decode("utf-8")
         except:
             return None
 
@@ -2782,10 +2960,12 @@ def get_default_value(name, evaluation, k=None, n=None):
         pos.append(n)
     for pos_len in reversed(list(range(len(pos) + 1))):
         # Try patterns from specific to general
-        defaultexpr = Expression('Default', Symbol(name),
-                                 *[Integer(index) for index in pos[:pos_len]])
+        defaultexpr = Expression(
+            "Default", Symbol(name), *[Integer(index) for index in pos[:pos_len]]
+        )
         result = evaluation.definitions.get_value(
-            name, 'System`DefaultValues', defaultexpr, evaluation)
+            name, "System`DefaultValues", defaultexpr, evaluation
+        )
         if result is not None:
             if result.same(defaultexpr):
                 result = result.evaluate(evaluation)
@@ -2793,11 +2973,13 @@ def get_default_value(name, evaluation, k=None, n=None):
     return None
 
 
-def print_parenthesizes(precedence, outer_precedence=None,
-                        parenthesize_when_equal=False) -> bool:
-    return (outer_precedence is not None and (
-        outer_precedence > precedence or (
-            outer_precedence == precedence and parenthesize_when_equal)))
+def print_parenthesizes(
+    precedence, outer_precedence=None, parenthesize_when_equal=False
+) -> bool:
+    return outer_precedence is not None and (
+        outer_precedence > precedence
+        or (outer_precedence == precedence and parenthesize_when_equal)
+    )
 
 
 def _is_neutral_symbol(symbol_name, cache, evaluation):
@@ -2816,7 +2998,10 @@ def _is_neutral_symbol(symbol_name, cache, evaluation):
     if definition is None:
         r = True
     else:
-        r = all(len(definition.get_values_list(x)) == 0 for x in ('up', 'sub', 'down', 'own'))
+        r = all(
+            len(definition.get_values_list(x)) == 0
+            for x in ("up", "sub", "down", "own")
+        )
 
     if cache:
         cache[symbol_name] = r
@@ -2858,6 +3043,7 @@ class Structure(object):
 # UnlinkedStructure produces Expressions that are not linked to "origins" in terms of cache.
 # This produces the same thing as doing Expression(head, *leaves).
 
+
 class UnlinkedStructure(Structure):
     def __init__(self, head):
         self._head = head
@@ -2875,13 +3061,14 @@ class UnlinkedStructure(Structure):
         leaves = expr._leaves
         lower, upper, step = py_slice.indices(len(leaves))
         if step != 1:
-            raise ValueError('Structure.slice only supports slice steps of 1')
+            raise ValueError("Structure.slice only supports slice steps of 1")
         return self(leaves[lower:upper])
 
 
 # LinkedStructure produces Expressions that are linked to "origins" in terms of cache. This
 # carries over information from the cache of the originating Expressions into the Expressions
 # that are newly created.
+
 
 class LinkedStructure(Structure):
     def __init__(self, head, cache):
@@ -2901,7 +3088,7 @@ class LinkedStructure(Structure):
         leaves = expr._leaves
         lower, upper, step = py_slice.indices(len(leaves))
         if step != 1:
-            raise ValueError('Structure.slice only supports slice steps of 1')
+            raise ValueError("Structure.slice only supports slice steps of 1")
 
         new = Expression(self._head)
         new._leaves = tuple(leaves[lower:upper])
@@ -2926,7 +3113,9 @@ def structure(head, origins, evaluation, structure_cache=None):
 
     if isinstance(origins, (Expression, Structure)):
         cache = origins._cache
-        if cache is not None and not _is_neutral_head(head, structure_cache, evaluation):
+        if cache is not None and not _is_neutral_head(
+            head, structure_cache, evaluation
+        ):
             cache = None
     elif isinstance(origins, (list, tuple)):
         if _is_neutral_head(head, structure_cache, evaluation):
@@ -2934,7 +3123,7 @@ def structure(head, origins, evaluation, structure_cache=None):
         else:
             cache = None
     else:
-        raise ValueError('expected Expression, Structure, tuple or list as orig param')
+        raise ValueError("expected Expression, Structure, tuple or list as orig param")
 
     if cache is None:
         return UnlinkedStructure(head)
@@ -2949,24 +3138,31 @@ def atom_list_constructor(evaluation, head, *atom_names):
     # note that you may use a constructor constructed via atom_list_constructor() only as
     # long as the evaluation's Definitions are guaranteed to not change.
 
-    if not _is_neutral_head(head, None, evaluation) or any(not atom for atom in atom_names):
+    if not _is_neutral_head(head, None, evaluation) or any(
+        not atom for atom in atom_names
+    ):
         optimize = False
     else:
         full_atom_names = [ensure_context(atom) for atom in atom_names]
 
-        if not all(_is_neutral_symbol(atom, None, evaluation) for atom in full_atom_names):
+        if not all(
+            _is_neutral_symbol(atom, None, evaluation) for atom in full_atom_names
+        ):
             optimize = False
         else:
             optimize = True
 
     if optimize:
+
         def construct(leaves):
             expr = Expression(head)
             expr._leaves = list(leaves)
             sym = set(chain([head.get_name()], full_atom_names))
             expr._cache = ExpressionCache(evaluation.definitions.now, sym, None)
             return expr
+
     else:
+
         def construct(leaves):
             expr = Expression(head)
             expr._leaves = list(leaves)
@@ -2976,4 +3172,4 @@ def atom_list_constructor(evaluation, head, *atom_names):
 
 
 def string_list(head, leaves, evaluation):
-    return atom_list_constructor(evaluation, head, 'String')(leaves)
+    return atom_list_constructor(evaluation, head, "String")(leaves)

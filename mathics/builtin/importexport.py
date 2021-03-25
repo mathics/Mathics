@@ -7,6 +7,7 @@ Importing and Exporting
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.expression import (
+    ByteArrayAtom,
     Expression,
     from_python,
     strip_context,
@@ -15,7 +16,6 @@ from mathics.core.expression import (
 )
 from mathics.builtin.base import (
     Builtin,
-    ByteArrayAtom,
     Predefined,
     String,
     Integer,
