@@ -37,7 +37,7 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule,
+    SymbolRule
 )
 from mathics.core.numbers import (
     dps,
