@@ -128,13 +128,13 @@ def from_python(arg):
         entries = [
             Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
-        return Expression("List", *entries)
+        return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, BoxConstruct):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
-        return Expression("List", *[from_python(leaf) for leaf in arg])
+        return Expression(SymbolList, *[from_python(leaf) for leaf in arg])
     elif isinstance(arg, bytearray) or isinstance(arg, bytes):
         return Expression("ByteArray", ByteArrayAtom(arg))
     else:
@@ -1703,7 +1703,7 @@ class Expression(BaseExpression):
                     func_params = [Symbol(name + "$") for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
                     leaves = chain(
-                        [Expression("List", *func_params), body], self._leaves[2:]
+                        [Expression(SymbolList, *func_params), body], self._leaves[2:]
                     )
 
         if not vars:  # might just be a symbol set via Set[] we looked up here
@@ -2008,15 +2008,18 @@ class Symbol(Atom):
 
 
 # Some common Symbols
-SymbolFalse = Symbol("False")
-SymbolFailed = Symbol("$Failed")
-SymbolNull = Symbol("Null")
-SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
-SymbolInfinity = Symbol("Infinity")
+SymbolAssociation = Symbol("Association")
+SymbolByteArray = Symbol("ByteArray")
 SymbolComplexInfinity = Symbol("ComplexInfinity")
 SymbolDirectedInfinity = Symbol("DirectedInfinity")
+SymbolFailed = Symbol("$Failed")
+SymbolFalse = Symbol("False")
+SymbolInfinity = Symbol("Infinity")
 SymbolList = Symbol("List")
+SymbolMakeBoxes = Symbol("MakeBoxes")
+SymbolNull = Symbol("Null")
+SymbolTrue = Symbol("True")
 
 
 @lru_cache(maxsize=1024)
@@ -2061,7 +2064,7 @@ def _NumberFormat(man, base, exp, options):
             "System`OutputForm",
             "System`FullForm",
         ):
-            return Expression("RowBox", Expression("List", man, String("*^"), exp))
+            return Expression("RowBox", Expression(SymbolList, man, String("*^"), exp))
         else:
             return Expression(
                 "RowBox",

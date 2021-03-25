@@ -6,7 +6,7 @@ Calculus
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse
+from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
@@ -190,7 +190,7 @@ class D(SympyFunction):
     def apply_wrong(self, expr, x, other, evaluation):
         "D[expr_, {x_, other___}]"
 
-        arg = Expression("List", x, *other.get_sequence())
+        arg = Expression(SymbolList, x, *other.get_sequence())
         evaluation.message("D", "dvar", arg)
         return Expression("D", expr, arg)
 
@@ -743,7 +743,7 @@ class Solve(Builtin):
             if eq == SymbolTrue:
                 pass
             elif eq == SymbolFalse:
-                return Expression("List")
+                return Expression(SymbolList)
             elif not eq.has_form("Equal", 2):
                 return evaluation.message("Solve", "eqf", eqs_original)
             else:
@@ -816,9 +816,9 @@ class Solve(Builtin):
             if not isinstance(result, list):
                 result = [result]
             if isinstance(result, list) and len(result) == 1 and result[0] is True:
-                return Expression("List", Expression("List"))
+                return Expression(SymbolList, Expression(SymbolList))
             if result == [None]:
-                return Expression("List")
+                return Expression(SymbolList)
             results = []
             for sol in result:
                 results.extend(transform_solution(sol))
@@ -1141,4 +1141,4 @@ class FindRoot(Builtin):
         else:
             evaluation.message("FindRoot", "maxiter")
 
-        return Expression("List", Expression("Rule", x, x0))
+        return Expression(SymbolList, Expression("Rule", x, x0))

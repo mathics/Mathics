@@ -8,6 +8,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.core.expression import (
     ByteArrayAtom,
+    SymbolList,
     Expression,
     from_python,
     strip_context,
@@ -937,7 +938,7 @@ class ImportFormats(Predefined):
     name = "$ImportFormats"
 
     def evaluate(self, evaluation):
-        return Expression("List", *sorted(IMPORTERS.keys()))
+        return Expression(SymbolList, *sorted(IMPORTERS.keys()))
 
 
 class ExportFormats(Predefined):
@@ -954,7 +955,7 @@ class ExportFormats(Predefined):
     name = "$ExportFormats"
 
     def evaluate(self, evaluation):
-        return Expression("List", *sorted(EXPORTERS.keys()))
+        return Expression(SymbolList, *sorted(EXPORTERS.keys()))
 
 
 class ConverterDumpsExtensionMappings(Predefined):
@@ -1326,12 +1327,12 @@ class Import(Builtin):
 
     def apply(self, filename, evaluation, options={}):
         "Import[filename_, OptionsPattern[]]"
-        return self.apply_elements(filename, Expression("List"), evaluation, options)
+        return self.apply_elements(filename, Expression(SymbolList), evaluation, options)
 
     def apply_element(self, filename, element, evaluation, options={}):
         "Import[filename_, element_String, OptionsPattern[]]"
         return self.apply_elements(
-            filename, Expression("List", element), evaluation, options
+            filename, Expression(SymbolList, element), evaluation, options
         )
 
     def apply_elements(self, filename, elements, evaluation, options={}):
@@ -1415,7 +1416,7 @@ class Import(Builtin):
             return SymbolFailed
 
         def get_results(tmp_function, findfile):
-            if function_channels == Expression("List", String("FileNames")):
+            if function_channels == Expression(SymbolList, String("FileNames")):
                 joined_options = list(chain(stream_options, custom_options))
                 tmpfile = False
                 if findfile is None:
@@ -1433,7 +1434,7 @@ class Import(Builtin):
                 )
                 if tmpfile:
                     Expression("DeleteFile", findfile).evaluate(evaluation)
-            elif function_channels == Expression("List", String("Streams")):
+            elif function_channels == Expression(SymbolList, String("Streams")):
                 if findfile is None:
                     stream = Expression("StringToStream", data).evaluate(evaluation)
                 else:
@@ -1595,13 +1596,13 @@ class ImportString(Import):
 
     def apply(self, data, evaluation, options={}):
         "ImportString[data_, OptionsPattern[]]"
-        return self.apply_elements(data, Expression("List"), evaluation, options)
+        return self.apply_elements(data, Expression(SymbolList), evaluation, options)
 
     def apply_element(self, data, element, evaluation, options={}):
         "ImportString[data_, element_String, OptionsPattern[]]"
 
         return self.apply_elements(
-            data, Expression("List", element), evaluation, options
+            data, Expression(SymbolList, element), evaluation, options
         )
 
     def apply_elements(self, data, elements, evaluation, options={}):
@@ -1791,7 +1792,7 @@ class Export(Builtin):
     def apply_element(self, filename, expr, element, evaluation, options={}):
         "Export[filename_, expr_, element_String, OptionsPattern[]]"
         return self.apply_elements(
-            filename, expr, Expression("List", element), evaluation, options
+            filename, expr, Expression(SymbolList, element), evaluation, options
         )
 
     def apply_elements(self, filename, expr, elems, evaluation, options={}):
@@ -1850,7 +1851,7 @@ class Export(Builtin):
             evaluation.message("Export", "emptyfch")
             evaluation.predetermined_out = current_predetermined_out
             return SymbolFailed
-        elif function_channels == Expression("List", String("FileNames")):
+        elif function_channels == Expression(SymbolList, String("FileNames")):
             exporter_function = Expression(
                 exporter_symbol,
                 filename,
@@ -1858,7 +1859,7 @@ class Export(Builtin):
                 *list(chain(stream_options, custom_options))
             )
             res = exporter_function.evaluate(evaluation)
-        elif function_channels == Expression("List", String("Streams")):
+        elif function_channels == Expression(SymbolList, String("Streams")):
             stream = Expression("OpenWrite", filename, *stream_options).evaluate(
                 evaluation
             )
@@ -1933,7 +1934,7 @@ class ExportString(Builtin):
     def apply_element(self, expr, element, evaluation, **options):
         "ExportString[expr_, element_String, OptionsPattern[ExportString]]"
         return self.apply_elements(
-            expr, Expression("List", element), evaluation, **options
+            expr, Expression(SymbolList, element), evaluation, **options
         )
 
     def apply_elements(self, expr, elems, evaluation, **options):
@@ -1991,7 +1992,7 @@ class ExportString(Builtin):
             evaluation.message("ExportString", "emptyfch")
             evaluation.predetermined_out = current_predetermined_out
             return SymbolFailed
-        elif function_channels == Expression("List", String("FileNames")):
+        elif function_channels == Expression(SymbolList, String("FileNames")):
             # Generates a temporary file
             import tempfile
 
@@ -2027,7 +2028,7 @@ class ExportString(Builtin):
                     res = Expression("ByteArray", ByteArrayAtom(res))
                 else:
                     res = String(str(res))
-        elif function_channels == Expression("List", String("Streams")):
+        elif function_channels == Expression(SymbolList, String("Streams")):
             from io import StringIO, BytesIO
             from mathics.builtin.files import STREAMS, NSTREAMS
 

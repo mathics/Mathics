@@ -19,6 +19,7 @@ from mathics.core.expression import (
     Real,
     String,
     SymbolFailed,
+    SymbolList,
     strip_context,
 )
 from mathics.builtin.base import Builtin, Predefined
@@ -70,7 +71,7 @@ class CommandLine(Predefined):
     name = "$CommandLine"
 
     def evaluate(self, evaluation) -> Expression:
-        return Expression("List", *(String(arg) for arg in sys.argv))
+        return Expression(SymbolList, *(String(arg) for arg in sys.argv))
 
 
 class Environment(Builtin):
@@ -136,7 +137,7 @@ class GetEnvironment(Builtin):
             rules = [
                 Expression("Rule", name, value) for name, value in os.environ.items()
             ]
-            return Expression("List", *rules)
+            return Expression(SymbolList, *rules)
 
 
 class Machine(Predefined):
@@ -234,7 +235,7 @@ class Names(Builtin):
 
         # TODO: Mathematica ignores contexts when it sorts the list of
         # names.
-        return Expression("List", *[String(name) for name in sorted(names)])
+        return Expression(SymbolList, *[String(name) for name in sorted(names)])
 
 
 class Packages(Predefined):
@@ -329,9 +330,9 @@ class ScriptCommandLine(Predefined):
             dash_index = sys.argv.index("--")
         except ValueError:
             # not run in script mode
-            return Expression("List")
+            return Expression(SymbolList)
 
-        return Expression("List", *(String(arg) for arg in sys.argv[dash_index + 1 :]))
+        return Expression(SymbolList, *(String(arg) for arg in sys.argv[dash_index + 1 :]))
 
 
 class Run(Builtin):

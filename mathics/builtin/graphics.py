@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolList,
     strip_context,
     system_symbols,
     system_symbols_dict,
@@ -475,7 +476,7 @@ class Graphics(Builtin):
             head = content.get_head_name()
 
             if head == "System`List":
-                return Expression("List", *[convert(item) for item in content.leaves])
+                return Expression(SymbolList, *[convert(item) for item in content.leaves])
             elif head == "System`Style":
                 return Expression(
                     "StyleBox", *[convert(item) for item in content.leaves]
@@ -986,9 +987,9 @@ class ColorDistance(Builtin):
                             *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)]
                         )
                 else:
-                    return Expression("List", *[distance(c, c2) for c in c1.leaves])
+                    return Expression(SymbolList, *[distance(c, c2) for c in c1.leaves])
             elif c2.get_head_name() == "System`List":
-                return Expression("List", *[distance(c1, c) for c in c2.leaves])
+                return Expression(SymbolList, *[distance(c1, c) for c in c2.leaves])
             else:
                 return distance(c1, c2)
         except ColorError:
@@ -1436,7 +1437,7 @@ class _Polyline(_GraphicsElement):
             leaves = points.leaves
             self.multi_parts = True
         else:
-            leaves = [Expression("List", *points.leaves)]
+            leaves = [Expression(SymbolList, *points.leaves)]
             self.multi_parts = False
         lines = []
         for leaf in leaves:
@@ -1492,7 +1493,7 @@ class PointBox(_Polyline):
             points = item.leaves[0]
             if points.has_form("List", None) and len(points.leaves) != 0:
                 if all(not leaf.has_form("List", None) for leaf in points.leaves):
-                    points = Expression("List", points)
+                    points = Expression(SymbolList, points)
             self.do_init(graphics, points)
         else:
             raise BoxConstructError
@@ -1890,7 +1891,7 @@ class PolygonBox(_Polyline):
             self.vertex_colors = [[black] * len(line) for line in self.lines]
             colors = value.leaves
             if not self.multi_parts:
-                colors = [Expression("List", *colors)]
+                colors = [Expression(SymbolList, *colors)]
             for line_index, line in enumerate(self.lines):
                 if line_index >= len(colors):
                     break
@@ -2046,7 +2047,7 @@ class RegularPolygonBox(PolygonBox):
                     )
 
             new_item = Expression(
-                "RegularPolygonBox", Expression("List", *list(vertices()))
+                "RegularPolygonBox", Expression(SymbolList, *list(vertices()))
             )
         else:
             raise BoxConstructError
@@ -3525,7 +3526,7 @@ class Blend(Builtin):
             if not colors:
                 raise ColorError
         except ColorError:
-            evaluation.message("Blend", "arg", Expression("List", colors_orig))
+            evaluation.message("Blend", "arg", Expression(SymbolList, colors_orig))
             return
 
         if u.has_form("List", None):
@@ -3546,7 +3547,7 @@ class Blend(Builtin):
             use_list = False
         if values is None:
             return evaluation.message(
-                "Blend", "argl", u, Expression("List", colors_orig)
+                "Blend", "argl", u, Expression(SymbolList, colors_orig)
             )
 
         if use_list:

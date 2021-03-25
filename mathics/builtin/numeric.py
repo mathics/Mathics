@@ -45,6 +45,7 @@ from mathics.core.expression import (
     Symbol,
     SymbolFalse,
     SymbolTrue,
+    SymbolList,
     from_python,
 )
 from mathics.core.convert import from_sympy
@@ -591,7 +592,7 @@ class NIntegrate(Builtin):
             evaluation.message("NIntegrate", "cmpint")
             return
 
-        intvars = Expression("List", *coords)
+        intvars = Expression(SymbolList, *coords)
         integrand = Expression("Compile", intvars, func).evaluate(evaluation)
 
         if len(integrand.leaves) >= 3:
@@ -1310,7 +1311,7 @@ class IntegerDigits(Builtin):
 
         if nr_elements == 0:
             # trivial case: we don't want any digits
-            return Expression("List")
+            return Expression(SymbolList)
 
         digits = convert_int_to_digit_list(n.get_int_value(), base.get_int_value())
 
@@ -1322,7 +1323,7 @@ class IntegerDigits(Builtin):
                 # Pad with zeroes
                 digits = [0] * (nr_elements - len(digits)) + digits
 
-        return Expression("List", *digits)
+        return Expression(SymbolList, *digits)
 
 
 def check_finite_decimal(denominator):
@@ -1630,8 +1631,8 @@ class RealDigits(Builtin):
                 if not x == "0":
                     leaves.append(from_python(int(x)))
             leaves.append(from_python(tails))
-            list_str = Expression("List", *leaves)
-        return Expression("List", list_str, exp)
+            list_str = Expression(SymbolList, *leaves)
+        return Expression(SymbolList, list_str, exp)
 
     def apply_rational_without_base(self, n, evaluation):
         "%(name)s[n_Rational]"
@@ -1755,8 +1756,8 @@ class RealDigits(Builtin):
                     # Adding Indeterminate if the length is greater than the precision
                     while len(leaves) < nr_elements:
                         leaves.append(from_python(Symbol("Indeterminate")))
-        list_str = Expression("List", *leaves)
-        return Expression("List", list_str, exp)
+        list_str = Expression(SymbolList, *leaves)
+        return Expression(SymbolList, list_str, exp)
 
     def apply_with_base_and_length(self, n, b, length, evaluation, pos=None):
         "%(name)s[n_?NumericQ, b_Integer, length_]"

@@ -37,6 +37,8 @@ from mathics.core.expression import (
     Real,
     strip_context,
     from_python,
+    SymbolList,
+    SymbolByteArray,
 )
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
@@ -230,7 +232,7 @@ class ByteArray(Builtin):
 
     def apply_normal(self, baa, evaluation):
         'System`Normal[ByteArray[baa_ByteArrayAtom]]'
-        return Expression("List", *[Integer(x) for x in baa.value])
+        return Expression(SymbolList, *[Integer(x) for x in baa.value])
 
     def apply_list(self, values, evaluation):
         'ByteArray[values_List]'
@@ -241,7 +243,7 @@ class ByteArray(Builtin):
         except:
             evaluation.message("ByteArray", 'aotd' , values)
             return
-        return Expression("ByteArray", ByteArrayAtom(ba))
+        return Expression(SymbolByteArray, ByteArrayAtom(ba))
 
 
 class List(Builtin):
@@ -268,7 +270,7 @@ class List(Builtin):
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         items = items.get_sequence()
-        return Expression("RowBox", Expression("List", *list_boxes(items, f, "{", "}")))
+        return Expression("RowBox", Expression(SymbolList, *list_boxes(items, f, "{", "}")))
 
 
 class ListQ(Test):
@@ -310,7 +312,7 @@ def list_boxes(items, f, open=None, close=None):
         sep = ","
     result = riffle(result, String(sep))
     if len(items) > 1:
-        result = Expression("RowBox", Expression("List", *result))
+        result = Expression("RowBox", Expression(SymbolList, *result))
     elif items:
         result = result[0]
     if result:
@@ -844,7 +846,7 @@ class Level(Builtin):
 
         heads = self.get_option(options, "Heads", evaluation).is_true()
         walk_levels(expr, start, stop, heads=heads, callback=callback)
-        return Expression("List", *result)
+        return Expression(SymbolList, *result)
 
 
 class LevelQ(Test):
@@ -1087,7 +1089,7 @@ class Part(Builtin):
         else:
             open, close = "\u301a", "\u301b"
         indices = list_boxes(i, f, open, close)
-        result = Expression("RowBox", Expression("List", list, *indices))
+        result = Expression("RowBox", Expression(SymbolList, list, *indices))
         return result
 
     def apply(self, list, i, evaluation):
@@ -1391,7 +1393,7 @@ class ReplacePart(Builtin):
                 "RuleDelayed", 2
             ):
                 evaluation.message(
-                    "ReplacePart", "reps", Expression("List", *replacements)
+                    "ReplacePart", "reps", Expression(SymbolList, *replacements)
                 )
                 return
             position = replacement.leaves[0]
@@ -1499,7 +1501,7 @@ class FirstPosition(Builtin):
         "FirstPosition[expr_, pattern_]"
 
         if expr == pattern:
-            return Expression("List")
+            return Expression(SymbolList)
 
         result = []
 
@@ -1529,7 +1531,7 @@ class FirstPosition(Builtin):
         if isinstance(expr, Expression) and (maxLevel is None or maxLevel > 0):
             is_found = check_pattern(expr, pattern, result, 1)
         if is_found:
-            return Expression("List", *result)
+            return Expression(SymbolList, *result)
         else:
             return Expression("Missing", "NotFound") if default is None else default
 
@@ -1995,7 +1997,7 @@ class Cases(Builtin):
     def apply(self, items, pattern, ls, evaluation):
         "Cases[items_, pattern_, ls_:{1}]"
         if items.is_atom():
-            return Expression("List")
+            return Expression(SymbolList)
 
         try:
             start, stop = python_levelspec(ls)
@@ -2033,7 +2035,7 @@ class Cases(Builtin):
 
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
-        return Expression("List", *results)
+        return Expression(SymbolList, *results)
 
 
 class DeleteCases(Builtin):
@@ -2329,7 +2331,7 @@ class Range(Builtin):
             evaluation.check_stopped()
             result.append(from_sympy(index))
             index += di
-        return Expression("List", *result)
+        return Expression(SymbolList, *result)
 
 
 class _IterationFunction(Builtin):
@@ -2426,7 +2428,7 @@ class _IterationFunction(Builtin):
 
         if isinstance(self, SympyFunction) and di.get_int_value() == 1:
             whole_expr = Expression(
-                self.get_name(), expr, Expression("List", i, imin, imax)
+                self.get_name(), expr, Expression(SymbolList, i, imin, imax)
             )
             sympy_expr = whole_expr.to_sympy(evaluation=evaluation)
             if sympy_expr is None:
@@ -2659,7 +2661,7 @@ class Table(_IterationFunction):
     """
 
     def get_result(self, items):
-        return Expression("List", *items)
+        return Expression(SymbolList, *items)
 
 
 class Join(Builtin):
@@ -2716,7 +2718,7 @@ class Join(Builtin):
         if result:
             return sequence[0].restructure(head, result, evaluation, deps=sequence)
         else:
-            return Expression("List")
+            return Expression(SymbolList)
 
 
 class Catenate(Builtin):
@@ -2750,7 +2752,7 @@ class Catenate(Builtin):
                     "List", result, evaluation, deps=lists.leaves
                 )
             else:
-                return Expression("List")
+                return Expression(SymbolList)
         except MessageException as e:
             e.message(evaluation)
 
@@ -3037,7 +3039,7 @@ class Tuples(Builtin):
             items.append(expr.leaves)
 
         return Expression(
-            "List", *(Expression("List", *leaves) for leaves in get_tuples(items))
+            "List", *(Expression(SymbolList, *leaves) for leaves in get_tuples(items))
         )
 
 
@@ -3114,9 +3116,9 @@ class Reap(Builtin):
             for pattern, tags in sown:
                 leaves = []
                 for tag, elements in tags:
-                    leaves.append(Expression(f, tag, Expression("List", *elements)))
-                items.append(Expression("List", *leaves))
-            return Expression("List", result, Expression("List", *items))
+                    leaves.append(Expression(f, tag, Expression(SymbolList, *elements)))
+                items.append(Expression(SymbolList, *leaves))
+            return Expression(SymbolList, result, Expression(SymbolList, *items))
         finally:
             evaluation.remove_listener("sow", listener)
 
@@ -3186,7 +3188,7 @@ class UnitVector(Builtin):
             else:
                 return Integer(0)
 
-        return Expression("List", *(item(i) for i in range(1, n + 1)))
+        return Expression(SymbolList, *(item(i) for i in range(1, n + 1)))
 
 
 def riffle(items, sep):
@@ -3199,7 +3201,7 @@ def riffle(items, sep):
 
 def riffle_lists(items, seps):
     if len(seps) == 0:  # special case
-        seps = [Expression("List")]
+        seps = [Expression(SymbolList)]
 
     i = 0
     while i < len(items):
@@ -3321,7 +3323,7 @@ class _GatherBin:
         self.add_to = self._items.append
 
     def from_python(self):
-        return Expression("List", *self._items)
+        return Expression(SymbolList, *self._items)
 
 
 class _TallyBin:
@@ -3333,7 +3335,7 @@ class _TallyBin:
         self._count += 1
 
     def from_python(self):
-        return Expression("List", self._item, Integer(self._count))
+        return Expression(SymbolList, self._item, Integer(self._count))
 
 
 class _DeleteDuplicatesBin:
@@ -3398,7 +3400,7 @@ class _GatherOperation(Builtin):
                 selection.append((key, new_bin.add_to))
                 bins.append(new_bin)
 
-        return Expression("List", *[b.from_python() for b in bins])
+        return Expression(SymbolList, *[b.from_python() for b in bins])
 
 
 class Gather(_GatherOperation):
@@ -3986,7 +3988,7 @@ class _Rectangular(Builtin):
         return Expression(
             "List",
             *[
-                Expression(self.get_name(), Expression("List", *items))
+                Expression(self.get_name(), Expression(SymbolList, *items))
                 for items in transposed
             ],
         )
@@ -4436,7 +4438,7 @@ class Quantile(Builtin):
         if len(results) == 1:
             return results[0]
         else:
-            return Expression("List", *results)
+            return Expression(SymbolList, *results)
 
 
 class Quartiles(Builtin):
@@ -4483,7 +4485,7 @@ class _RankedTake(Builtin):
             return
 
         if limit == 0:
-            return Expression("List")
+            return Expression(SymbolList)
         else:
             excluded = self.get_option(options, "ExcludedForms", evaluation)
             if excluded:
@@ -4530,7 +4532,7 @@ class _RankedTake(Builtin):
                 py_n = limit.get_int_value()
 
             if py_n < 1:
-                return Expression("List")
+                return Expression(SymbolList)
 
             if f:
                 heap = [
@@ -4714,7 +4716,7 @@ class _Pad(Builtin):
                 return []
             elif len(n) > 1:
                 return [
-                    _Pad._build(Expression("List"), n[1:], x, next_m, level + 1, mode)
+                    _Pad._build(Expression(SymbolList), n[1:], x, next_m, level + 1, mode)
                 ] * amount
             else:
                 return clip(x * (1 + amount // len(x)), amount, sign)
@@ -4930,7 +4932,7 @@ class _PrecomputedDistances(PrecomputedDistances):
 
     def __init__(self, df, p, evaluation):
         distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
-        distances = Expression("N", Expression("List", *distances_form)).evaluate(
+        distances = Expression("N", Expression(SymbolList, *distances_form)).evaluate(
             evaluation
         )
         mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
@@ -5010,7 +5012,7 @@ class _Cluster(Builtin):
             return
 
         if not dist_p:
-            return Expression("List")
+            return Expression(SymbolList)
 
         if k is not None:  # the number of clusters k is specified as an integer.
             if not isinstance(k, Integer):
@@ -5024,12 +5026,12 @@ class _Cluster(Builtin):
                 evaluation.message(self.get_name(), "nclst", py_k, len(dist_p))
                 return
             elif py_k == 1:
-                return Expression("List", *repr_p)
+                return Expression(SymbolList, *repr_p)
             elif py_k == len(dist_p):
-                return Expression("List", [Expression("List", q) for q in repr_p])
+                return Expression(SymbolList, [Expression(SymbolList, q) for q in repr_p])
         else:  # automatic detection of k. choose a suitable method here.
             if len(dist_p) <= 2:
-                return Expression("List", *repr_p)
+                return Expression(SymbolList, *repr_p)
             constructor = self._criteria.get(method_string)
             py_k = (constructor, {}) if constructor else None
 
@@ -5057,7 +5059,7 @@ class _Cluster(Builtin):
                     self.get_name(),
                     "amtd",
                     name_of_builtin,
-                    Expression("List", *dist_p),
+                    Expression(SymbolList, *dist_p),
                 )
                 return
 
@@ -5086,14 +5088,14 @@ class _Cluster(Builtin):
         except _IllegalDataPoint:
             name_of_builtin = strip_context(self.get_name())
             evaluation.message(
-                self.get_name(), "amtd", name_of_builtin, Expression("List", *dist_p)
+                self.get_name(), "amtd", name_of_builtin, Expression(SymbolList, *dist_p)
             )
             return
 
         if mode == "clusters":
-            return Expression("List", *[Expression("List", *c) for c in clusters])
+            return Expression(SymbolList, *[Expression(SymbolList, *c) for c in clusters])
         elif mode == "components":
-            return Expression("List", *clusters)
+            return Expression(SymbolList, *clusters)
         else:
             raise ValueError("illegal mode %s" % mode)
 
@@ -5345,7 +5347,7 @@ class Nearest(Builtin):
             return
 
         if not dist_p or (py_n is not None and py_n < 1):
-            return Expression("List")
+            return Expression(SymbolList)
 
         multiple_x = False
 
@@ -5358,7 +5360,7 @@ class Nearest(Builtin):
             distance_function = get_default_distance(dist_p)
             if distance_function is None:
                 evaluation.message(
-                    self.get_name(), "amtd", "Nearest", Expression("List", *dist_p)
+                    self.get_name(), "amtd", "Nearest", Expression(SymbolList, *dist_p)
                 )
                 return
 
@@ -5371,7 +5373,7 @@ class Nearest(Builtin):
 
         def nearest(x):
             calls = [Expression(distance_function, x, y) for y in dist_p]
-            distances = Expression("List", *calls).evaluate(evaluation)
+            distances = Expression(SymbolList, *calls).evaluate(evaluation)
 
             if not distances.has_form("List", len(dist_p)):
                 raise ValueError()
@@ -5392,13 +5394,13 @@ class Nearest(Builtin):
                 for d, i in candidates:
                     yield repr_p[i]
 
-            return Expression("List", *list(pick()))
+            return Expression(SymbolList, *list(pick()))
 
         try:
             if not multiple_x:
                 return nearest(pivot)
             else:
-                return Expression("List", *[nearest(t) for t in pivot.leaves])
+                return Expression(SymbolList, *[nearest(t) for t in pivot.leaves])
         except _IllegalDistance:
             return SymbolFailed
         except ValueError:
@@ -5444,7 +5446,7 @@ class Permutations(Builtin):
         "Permutations[l_List]"
         return Expression(
             "List",
-            *[Expression("List", *p) for p in permutations(l.leaves, len(l.leaves))],
+            *[Expression(SymbolList, *p) for p in permutations(l.leaves, len(l.leaves))],
         )
 
     def apply_n(self, l, n, evaluation):
@@ -5700,7 +5702,7 @@ class Delete(Builtin):
         try:
             return delete_one(expr, pos)
         except PartRangeError:
-            evaluation.message("Part", "partw", Expression("List", pos), expr)
+            evaluation.message("Part", "partw", Expression(SymbolList, pos), expr)
 
     def apply(self, expr, positions, evaluation):
         "Delete[expr_, positions___]"
@@ -5733,7 +5735,7 @@ class Delete(Builtin):
                 )
             if len(pos) == 0:
                 return evaluation.message(
-                    "Delete", "psl", Expression("List", *positions), expr
+                    "Delete", "psl", Expression(SymbolList, *positions), expr
                 )
             try:
                 newexpr = delete_rec(newexpr, pos)
@@ -5741,7 +5743,7 @@ class Delete(Builtin):
                 return evaluation.message("Part", "partw", Integer(exc.index), expr)
             except PartError:
                 return evaluation.message(
-                    "Part", "partw", Expression("List", *pos), expr
+                    "Part", "partw", Expression(SymbolList, *pos), expr
                 )
         return newexpr
 
@@ -5826,13 +5828,13 @@ class Association(Builtin):
         rules = rules.get_sequence()
         if self.error_idx == 0 and validate(rules) is True:
             expr = Expression(
-                "RowBox", Expression("List", *list_boxes(rules, f, "<|", "|>"))
+                "RowBox", Expression(SymbolList, *list_boxes(rules, f, "<|", "|>"))
             )
         else:
             self.error_idx += 1
             symbol = Expression("MakeBoxes", Symbol("Association"), f)
             expr = Expression(
-                "RowBox", Expression("List", symbol, *list_boxes(rules, f, "[", "]"))
+                "RowBox", Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]"))
             )
 
         expr = expr.evaluate(evaluation)
@@ -5991,7 +5993,7 @@ class Keys(Builtin):
                 expr.has_form("Association", None)
                 and AssociationQ(expr).evaluate(evaluation) == Symbol("True")
             ):
-                return Expression("List", *[get_keys(leaf) for leaf in expr.leaves])
+                return Expression(SymbolList, *[get_keys(leaf) for leaf in expr.leaves])
             else:
                 evaluation.message("Keys", "invrl", expr)
                 raise
@@ -6082,7 +6084,7 @@ class Values(Builtin):
                 expr.has_form("Association", None)
                 and AssociationQ(expr).evaluate(evaluation) == Symbol("True")
             ):
-                return Expression("List", *[get_values(leaf) for leaf in expr.leaves])
+                return Expression(SymbolList, *[get_values(leaf) for leaf in expr.leaves])
             else:
                 raise
 
@@ -6173,7 +6175,7 @@ class ContainsOnly(Builtin):
         opts = (
             options_to_rules(options)
             if len(options) <= 1
-            else [Expression("List", *options_to_rules(options))]
+            else [Expression(SymbolList, *options_to_rules(options))]
         )
         expr = Expression("ContainsOnly", e1, e2, *opts)
 
