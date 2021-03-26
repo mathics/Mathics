@@ -176,13 +176,18 @@ class CompiledCode(Atom):
             return hash(self)
 
     def same(self, other):
-        return self is other
+        # return self is other
+        return isinstance(other, CompiledCode)
 
     def to_python(self, *args, **kwargs):
         return None
 
     def __hash__(self):
-        return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
+        if type(self.cfunc) is FunctionType:
+            cfunc_address = self.cfunc.__hash__()
+        else:
+            cfunc_address = ctypes.addressof(self.cfunc)            
+        return hash(("CompiledCode", cfunc_address))  # XXX hack
 
     def atom_to_boxes(self, f, evaluation):
         return CompiledCodeBox(String(self.__str__()), evaluation=evaluation)
