@@ -222,7 +222,7 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2) -> Union[bool, None]:
+    def do_compare(self, l1, l2, max_extra_prec=50) -> Union[bool, None]:
         if l1.same(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
@@ -304,11 +304,16 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
+        max_extra_prec = (
+            Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
+        )
+        if type(max_extra_prec) is not int:
+            max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y)
             if c is None:
                 return
-            if self._op(c) is False:
+            if not self._op(c):
                 return SymbolFalse
         return SymbolTrue
 
