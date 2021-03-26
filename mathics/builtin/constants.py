@@ -23,7 +23,7 @@ from mathics.core.expression import (
 from mathics.core.numbers import get_precision, PrecisionValueError, machine_precision
 
 
-def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
+def mp_constant(fn: str, d=None) -> mpmath.mpf:
     """
     Return the mpmath constant _fn_ with integer precision _d_.
     """
