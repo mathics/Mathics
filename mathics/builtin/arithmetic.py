@@ -853,7 +853,7 @@ class Power(BinaryOperator, _MPMathFunction):
 
     #> 1/0
      : Infinite expression 1 / 0 encountered.
-     = Infinity
+     = ComplexInfinity
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
