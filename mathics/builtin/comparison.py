@@ -3,6 +3,7 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+import itertools
 from typing import Optional, Union
 
 import sympy
@@ -217,7 +218,6 @@ class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
     def do_compare(self, l1, l2) -> Union[bool, None]:
-        print("do_compare:", (l1,l2))
         if l1.same(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
@@ -275,13 +275,11 @@ class _EqualityOperator(_InequalityOperator):
         if n <= 1:
             return SymbolTrue
         is_exact_vals = [Expression("ExactNumberQ", arg).evaluate(evaluation) for arg in items_sequence]
-        if all(test is SymbolTrue for test in is_exact_vals):
+        if all(val == SymbolTrue for val in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
-        pairs = zip(args[:-1],args[1:])
-        print("Compare.apply:", args)
-        for x, y in pairs:
+        for x, y in itertools.combinations(args, 2):
             if isinstance(x, String) or isinstance(y, String):
                 if not (isinstance(x, String) and isinstance(y, String)):
                     c = 1
@@ -299,9 +297,7 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
-        pairs = zip(args[:-1],args[1:])
-        print("apply_other:", args)
-        for x, y in pairs:
+        for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y)
             if c is None:
                 return

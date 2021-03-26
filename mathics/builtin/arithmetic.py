@@ -46,6 +46,7 @@ from mathics.core.numbers import min_prec, dps, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression
 
+
 @lru_cache(maxsize=1024)
 def call_mpmath(mpmath_function, mpmath_args):
     try:
@@ -687,15 +688,14 @@ class Times(BinaryOperator, SympyFunction):
                 )
             elif item.get_head().same(SymbolDirectedInfinity):
                 infinity_factor = True
-                direction = item.leaves[0]
-                if isinstance(direction, Number):
-                    numbers.append(direction)
-                else:
-                    leaves.append(direction)
-                item.leaves[0]
-            elif (item.same(SymbolInfinity) or item.same(SymbolComplexInfinity)):
+                if len(item.leaves)>1:
+                    direction = item.leaves[0]
+                    if isinstance(direction, Number):
+                        numbers.append(direction)
+                    else:
+                        leaves.append(direction)
+            elif item.same(SymbolInfinity) or item.same(SymbolComplexInfinity):
                 infinity_factor = True
-                item.leaves[0]                
             else:
                 leaves.append(item)
 
@@ -720,7 +720,7 @@ class Times(BinaryOperator, SympyFunction):
             number = None
         elif number.is_zero:
             if infinity_factor:
-                return Symbol('Indeterminate')
+                return Symbol("Indeterminate")
             return number
         elif number.same(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
@@ -733,16 +733,14 @@ class Times(BinaryOperator, SympyFunction):
             leaf.clear_cache()
 
         if number is not None:
-            if infinity_factor:
-                number = Expression(SymbolDirectedInfinity,number/Expression("Abs",number))
             leaves.insert(0, number)
 
         if not leaves:
             if infinity_factor:
                 return SymbolInfinity
             return Integer(1)
-        
-        elif len(leaves) == 1:
+
+        if len(leaves) == 1:
             ret = leaves[0]
         else:
             ret = Expression("Times", *leaves)
@@ -855,7 +853,7 @@ class Power(BinaryOperator, _MPMathFunction):
 
     #> 1/0
      : Infinite expression 1 / 0 encountered.
-     = ComplexInfinity
+     = Infinity
     #> 0 ^ -2
      : Infinite expression 1 / 0 ^ 2 encountered.
      = ComplexInfinity
@@ -883,7 +881,7 @@ class Power(BinaryOperator, _MPMathFunction):
     #> (3/2+1/2I)^2
      = 2 + 3 I / 2
     #> I ^ I
-     = I ^ I
+     = -1 ^ (I / 2)
 
     #> 2 ^ 2.0
      = 4.
@@ -916,7 +914,6 @@ class Power(BinaryOperator, _MPMathFunction):
     }
 
     formats = {
-        
         Expression(
             "Power",
             Expression("Pattern", Symbol("x"), Expression("Blank")),
@@ -934,7 +931,7 @@ class Power(BinaryOperator, _MPMathFunction):
         ),
         ("", "x_?Negative ^ y_"): (
             'Infix[{HoldForm[(x)], HoldForm[y]},"^", 590, Right]'
-        ),        
+        ),
     }
 
     rules = {
@@ -963,8 +960,8 @@ class Power(BinaryOperator, _MPMathFunction):
                     return Symbol("ComplexInfinity")
         if isinstance(x, Complex) and x.real.is_zero:
             yhalf = Expression("Times", y, Rational(1, 2))
-            factor =  self.apply(Expression("Sequence", x.imag, y), evaluation)
-            return Expression("Times", factor , Expression("Power", Integer(-1), yhalf))
+            factor = self.apply(Expression("Sequence", x.imag, y), evaluation)
+            return Expression("Times", factor, Expression("Power", Integer(-1), yhalf))
 
         result = self.apply(Expression("Sequence", x, y), evaluation)
         if result is None or result != SymbolNull:
@@ -1083,6 +1080,10 @@ class DirectedInfinity(SympyFunction):
      : Indeterminate expression -Infinity + Infinity encountered.
      = Indeterminate
 
+    >> DirectedInfinity[0]
+     : Indeterminate expression 0 Infinity encountered.
+     = Indeterminate
+
     #> DirectedInfinity[1+I]+DirectedInfinity[2+I]
      = (2 / 5 + I / 5) Sqrt[5] Infinity + (1 / 2 + I / 2) Sqrt[2] Infinity
 
@@ -1091,15 +1092,16 @@ class DirectedInfinity(SympyFunction):
     """
 
     rules = {
+        "DirectedInfinity[Indeterminate]":"Indeterminate",
         "DirectedInfinity[args___] ^ -1": "0",
         "0 * DirectedInfinity[args___]": "Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate",
         "DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1": "DirectedInfinity[a / Abs[a]]",
         "DirectedInfinity[a_] * DirectedInfinity[b_]": "DirectedInfinity[a*b]",
         "DirectedInfinity[] * DirectedInfinity[args___]": "DirectedInfinity[]",
         "DirectedInfinity[0]": "DirectedInfinity[]",
-# Rules already implemented in Times.apply
-#        "z_?NumberQ * DirectedInfinity[]": "DirectedInfinity[]",
-#        "z_?NumberQ * DirectedInfinity[a_]": "DirectedInfinity[z * a]",
+        # Rules already implemented in Times.apply
+        #        "z_?NumberQ * DirectedInfinity[]": "DirectedInfinity[]",
+        #        "z_?NumberQ * DirectedInfinity[a_]": "DirectedInfinity[z * a]",
         "DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a": (
             "Message[Infinity::indet,"
             "  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];"
@@ -1111,12 +1113,23 @@ class DirectedInfinity(SympyFunction):
             "Indeterminate"
         ),
         "DirectedInfinity[args___] + _?NumberQ": "DirectedInfinity[args]",
+        "DirectedInfinity[0]": (
+            "Message[Infinity::indet,"
+            "  Unevaluated[DirectedInfinity[0]]];"
+            "Indeterminate"
+        ),
+        "DirectedInfinity[0.]": (
+            "Message[Infinity::indet,"
+            "  Unevaluated[DirectedInfinity[0.]]];"
+            "Indeterminate"
+        ),
     }
 
     formats = {
         "DirectedInfinity[1]": "HoldForm[Infinity]",
         "DirectedInfinity[-1]": "HoldForm[-Infinity]",
         "DirectedInfinity[]": "HoldForm[ComplexInfinity]",
+        "DirectedInfinity[DirectedInfinity[z_]]": "DirectedInfinity[z]",
         "DirectedInfinity[z_?NumericQ]": "HoldForm[z Infinity]",
     }
 
@@ -1304,19 +1317,12 @@ class Sign(SympyFunction):
     def apply(self, x, evaluation):
         "%(name)s[x_]"
         # Sympy and mpmath do not give the desired form of complex number
-        print(x)
         if isinstance(x, Complex):
             return Expression("Times", x, Expression("Power", Expression("Abs", x), -1))
 
         sympy_x = x.to_sympy()
         if sympy_x is None:
-            print(x, " does not have a sympy form")
-            if x.is_zero():
-                return Real(0)
-            return Expression("Times", x,
-                              Expression("Power",
-                                         Expression("Abs", x), -1)).evaluate(evaluation)
-        print(sympy_x)
+            return None
         return super().apply(x)
 
     def apply_error(self, x, seqs, evaluation):
@@ -1407,7 +1413,7 @@ class PossibleZeroQ(SympyFunction):
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
         if result is None:
-        # try expanding the expression
+            # try expanding the expression
             exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
             exprexp = exprexp.to_sympy()
             result = _iszero(exprexp)

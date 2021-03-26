@@ -1409,7 +1409,7 @@ class Check(Builtin):
 
     #> Check[1/0, err, Compile::cpbool]
      : Infinite expression 1 / 0 encountered.
-     = ComplexInfinity
+     = Infinity
 
     #> Check[{0^0, 1/0}, err]
      : Indeterminate expression 0 ^ 0 encountered.
@@ -1432,7 +1432,7 @@ class Check(Builtin):
 
     #> Off[Power::infy]
     #> Check[1 / 0, err]
-     = ComplexInfinity
+     = Infinity
 
     #> On[Power::infy]
     #> Check[1 / 0, err]
@@ -1627,7 +1627,7 @@ class Off(Builtin):
 
     >> Off[Power::infy]
     >> 1 / 0
-     = ComplexInfinity
+     = Infinity
 
     >> Off[Power::indet, Syntax::com]
     >> {0 ^ 0,}
@@ -1673,11 +1673,11 @@ class On(Builtin):
 
     >> Off[Power::infy]
     >> 1 / 0
-     = ComplexInfinity
+     = Infinity
     >> On[Power::infy]
     >> 1 / 0
      : Infinite expression 1 / 0 encountered.
-     = ComplexInfinity
+     = Infinity
     """
 
     # TODO

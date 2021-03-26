@@ -447,6 +447,7 @@ class SympyObject(Builtin):
             return [self.sympy_name]
         return []
 
+
 class UnaryOperator(Operator):
     def __init__(self, format_function, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -534,7 +535,6 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-
     def apply(self, *args):
         """
         Generic apply method that uses the class sympy_name.
@@ -583,8 +583,6 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
-
-
 
 
 class InvalidLevelspecError(Exception):

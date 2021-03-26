@@ -2018,6 +2018,7 @@ SymbolComplexInfinity = Symbol("ComplexInfinity")
 SymbolDirectedInfinity = Symbol("DirectedInfinity")
 SymbolList = Symbol("List")
 
+
 @lru_cache(maxsize=1024)
 def from_mpmath(value, prec=None):
     "Converts mpf or mpc to Number."
