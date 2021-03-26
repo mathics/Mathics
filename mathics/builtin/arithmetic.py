@@ -1098,7 +1098,6 @@ class DirectedInfinity(SympyFunction):
         "DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1": "DirectedInfinity[a / Abs[a]]",
         "DirectedInfinity[a_] * DirectedInfinity[b_]": "DirectedInfinity[a*b]",
         "DirectedInfinity[] * DirectedInfinity[args___]": "DirectedInfinity[]",
-        "DirectedInfinity[0]": "DirectedInfinity[]",
         # Rules already implemented in Times.apply
         #        "z_?NumberQ * DirectedInfinity[]": "DirectedInfinity[]",
         #        "z_?NumberQ * DirectedInfinity[a_]": "DirectedInfinity[z * a]",
