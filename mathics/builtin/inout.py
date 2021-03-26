@@ -1409,7 +1409,7 @@ class Check(Builtin):
 
     #> Check[1/0, err, Compile::cpbool]
      : Infinite expression 1 / 0 encountered.
-     = Infinity
+     = ComplexInfinity
 
     #> Check[{0^0, 1/0}, err]
      : Indeterminate expression 0 ^ 0 encountered.

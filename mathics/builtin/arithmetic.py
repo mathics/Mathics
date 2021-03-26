@@ -737,7 +737,7 @@ class Times(BinaryOperator, SympyFunction):
 
         if not leaves:
             if infinity_factor:
-                return SymbolInfinity
+                return SymbolComplexInfinity
             return Integer(1)
 
         if len(leaves) == 1:
