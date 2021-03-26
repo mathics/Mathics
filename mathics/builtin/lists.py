@@ -5837,7 +5837,7 @@ class Association(Builtin):
             )
         else:
             self.error_idx += 1
-            symbol = Expression(SymbolMakeBoxes, Symbol(SymbolAssociation), f)
+            symbol = Expression(SymbolMakeBoxes, SymbolAssociation, f)
             expr = Expression(
                 "RowBox", Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]"))
             )
