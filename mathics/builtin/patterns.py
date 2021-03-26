@@ -1451,7 +1451,7 @@ def item_is_free(item, form, evaluation):
 
 
 class Dispatch(Builtin):
-    '''
+    """
     <dl>
     <dt>'Dispatch[$rulelist$]'
         <dd>Introduced for compatibility. Currently, it just return $rulelist$.
@@ -1459,18 +1459,16 @@ class Dispatch(Builtin):
             containing an optimized set of rules.
     </dl>
 
-    >> a /. Dispatch[{a->5}]
-     = 5
-    '''
+    """
+
     def apply_stub(self, rules, evaluation):
-        '''DispatchRule[list_List]'''
+        """DispatchRule[list_List]"""
         # TODO:
         # The next step would be to enlarge this method, in order to
         # check that all the elements in x are rules, eliminate redundancies
-        # in the list, and sort the list in a way that increases efficiency. 
+        # in the list, and sort the list in a way that increases efficiency.
         # A second step would be to implement an ``Atom`` class containing the
         # compiled patters, and modify Replace and ReplaceAll to handle this
         # kind of objects.
         #
         return rules
-        

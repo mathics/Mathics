@@ -7,7 +7,7 @@ import math
 import re
 
 import typing
-from typing import Any
+from typing import Any, Optional
 from itertools import chain
 from bisect import bisect_left
 from functools import lru_cache
@@ -16,6 +16,10 @@ from functools import lru_cache
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import base64
+
+# Imperical number that seems to work.
+# We have to be able to match mpmath values with sympy values
+COMPARE_PREC = 50
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -126,12 +130,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -264,6 +263,21 @@ class BaseExpression(KeyComparable):
     def clear_cache(self):
         self._cache = None
 
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+
+        # If the types are the same then we'll use the classes definition of == (or __eq__).
+        # Superclasses which need to specialized this behavior should redefine equal2()
+        #
+        # I would use `is` instead `==` here, to compare classes.
+        if type(self) is type(rhs):
+            return self == rhs
+        return None
+
     def has_changed(self, definitions):
         return True
 
@@ -350,9 +364,9 @@ class BaseExpression(KeyComparable):
         # __hash__ might only hash a sample of the data available.
         raise NotImplementedError
 
-    def sameQ(self, other) -> bool:
+    def sameQ(self, rhs) -> bool:
         """Mathics SameQ"""
-        return id(self) == id(other)
+        return id(self) == id(rhs)
 
     def get_sequence(self):
         if self.get_head().get_name() == "System`Sequence":
@@ -714,6 +728,33 @@ class Expression(BaseExpression):
     @leaves.setter
     def leaves(self, value):
         raise ValueError("Expression.leaves is write protected.")
+
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+        # if rhs is an Atom, return None
+        elif isinstance(rhs, Atom):
+            return None
+
+        # Here we only need to deal with Expressions.
+        equal_heads = self._head.equal2(rhs._head)
+        if not equal_heads:
+            return equal_heads
+        # From here, we can assume that both heads are the same
+        if self.get_head_name() in ("System`List", "System`Sequence"):
+            if len(self._leaves) != len(rhs._leaves):
+                return False
+            for item1, item2 in zip(self._leaves, rhs._leaves):
+                result = item1.equal2(item2)
+                if not result:
+                    return result
+            return True
+        elif self.get_head_name() in ("System`DirectedInfinity",):
+            return self._leaves[0].equal2(rhs._leaves[0])
+        return None
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
@@ -1783,21 +1824,17 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return (
-            self._head.get_name()
-            in system_symbols(
-                "Sqrt",
-                "Times",
-                "Plus",
-                "Subtract",
-                "Minus",
-                "Power",
-                "Abs",
-                "Divide",
-                "Sin",
-            )
-            and all(leaf.is_numeric() for leaf in self._leaves)
-        )
+        return self._head.get_name() in system_symbols(
+            "Sqrt",
+            "Times",
+            "Plus",
+            "Subtract",
+            "Minus",
+            "Power",
+            "Abs",
+            "Divide",
+            "Sin",
+        ) and all(leaf.is_numeric() for leaf in self._leaves)
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
@@ -1848,6 +1885,16 @@ class Expression(BaseExpression):
 class Atom(BaseExpression):
     def is_atom(self) -> bool:
         return True
+
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+        if isinstance(rhs, Symbol) or not isinstance(rhs, Atom):
+            return None
+        return self == rhs
 
     def has_form(self, heads, *leaf_counts) -> bool:
         if leaf_counts:
@@ -1903,11 +1950,16 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     name: str
     sympy_dummy: Any
+    defined_symbols = {}
 
     def __new__(cls, name, sympy_dummy=None):
-        self = super(Symbol, cls).__new__(cls)
-        self.name = ensure_context(name)
-        self.sympy_dummy = sympy_dummy
+        name = ensure_context(name)
+        self = cls.defined_symbols.get(name, None)
+        if self is None:
+            self = super(Symbol, cls).__new__(cls)
+            self.name = name
+            self.sympy_dummy = sympy_dummy
+            # cls.defined_symbols[name] = self
         return self
 
     def __str__(self) -> str:
@@ -1979,9 +2031,22 @@ class Symbol(Atom):
                 1,
             ]
 
-    def sameQ(self, other) -> bool:
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==) """
+        if self.sameQ(rhs):
+            return True
+
+        # Booleans are treated like constants, but all other symbols
+        # are treated None. We could create a Bool class and
+        # define equal2 in that, but for just this doesn't
+        # seem to be worth it. If other things come up, this may change.
+        if self in (SymbolTrue, SymbolFalse) and rhs in (SymbolTrue, SymbolFalse):
+            return self == rhs
+        return None
+
+    def sameQ(self, rhs: Any) -> bool:
         """Mathics SameQ"""
-        return isinstance(other, Symbol) and self.name == other.name
+        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self.name == rhs.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
@@ -2033,6 +2098,7 @@ SymbolList = Symbol("List")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolUndefined = Symbol("Undefined")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
@@ -2198,6 +2264,9 @@ class Integer(Number):
     @property
     def is_zero(self) -> bool:
         return self.value == 0
+
+
+Integer1 = Integer(1)
 
 
 class Rational(Number):
@@ -2939,7 +3008,7 @@ class ByteArrayAtom(Atom):
         res = String('""' + self.__str__() + '""')
         return res
 
-    def do_copy(self) -> "ByteArray":
+    def do_copy(self) -> "ByteArrayAtom":
         return ByteArrayAtom(self.value)
 
     def default_format(self, evaluation, form) -> str:

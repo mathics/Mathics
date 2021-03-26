@@ -2252,6 +2252,9 @@ class Get(PrefixOperator):
     <dl>
       <dt>'<<$name$'
       <dd>reads a file and evaluates each expression, returning only the last one.
+
+      <dt>'Get[$name$, Trace->True]'
+      <dd>Runs Get tracing each line before it is evaluated.
     </dl>
 
     S> filename = $TemporaryDirectory <> "/example_file";
