@@ -12,7 +12,7 @@ from mathics.builtin.base import (
     BinaryOperator,
     Builtin,
     SympyFunction,
-    )
+)
 
 from mathics.builtin.constants import mp_convert_constant
 
@@ -26,15 +26,19 @@ from mathics.core.expression import (
     Symbol,
     SymbolFalse,
     SymbolTrue,
+    SymbolDirectedInfinity,
 )
 from mathics.core.numbers import dps
+
 
 def cmp(a, b) -> int:
     "Returns 0 if a == b, -1 if a < b and 1 if a > b"
     return (a > b) - (a < b)
 
+
 def is_number(sympy_value) -> bool:
     return hasattr(sympy_value, "is_number") or isinstance(sympy_value, sympy.Float)
+
 
 class SameQ(BinaryOperator):
     """
@@ -199,10 +203,14 @@ class _InequalityOperator(BinaryOperator):
             # so apply N and compare them.
             items = items_sequence
             n_items = []
+            max_extra_prec = (
+                Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
+            )
+            if type(max_extra_prec) is not int:
+                max_extra_prec = COMPARE_PREC
             for item in items:
                 if not isinstance(item, Number):
-                    # TODO: use $MaxExtraPrecision insterad of hard-coded 50
-                    n_expr = Expression("N", item, Integer(50))
+                    n_expr = Expression("N", item, Integer(max_extra_prec))
                     item = n_expr.evaluate(evaluation)
                 n_items.append(item)
             items = n_items
@@ -210,21 +218,39 @@ class _InequalityOperator(BinaryOperator):
             items = items.numerify(evaluation).get_sequence()
         return items
 
+
 # Imperical number that seems to work.
 # We have to be able to match mpmath values with sympy values
 COMPARE_PREC = 50
 
+
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
+    not_compare_further = (
+        #"System`CompiledFunction",
+        #"System`Graphics",
+        "System`Graphics3D",
+        #"System`Stream",
+        #"System`StringToStream",
+    )
 
-    def do_compare(self, l1, l2) -> Union[bool, None]:
+    def do_compare(self, l1, l2, max_extra_prec=50) -> Union[bool, None]:
+        print("EqualityOperator.do_compare",(l1,l2), " of types ", (type(l1),type(l2)))
         if l1.same(l2):
             return True
-        elif l1 == SymbolTrue and l2 == SymbolFalse:
+        else:
+            if isinstance(l1, String) and isinstance(l2, String):
+                return False
+            elif (isinstance(l1, String) and isinstance(l2, Number) or
+                  isinstance(l2, String) and isinstance(l1, Number)):
+                return False
+            elif (l1.get_head_name() in self.not_compare_further) and (
+                l2.get_head_name() in self.not_compare_further
+            ):
+                return None
+        if l1 == SymbolTrue and l2 == SymbolFalse:
             return False
         elif l1 == SymbolFalse and l2 == SymbolTrue:
-            return False
-        elif isinstance(l1, String) and isinstance(l2, String):
             return False
         elif l1.has_form("List", None) and l2.has_form("List", None):
             if len(l1.leaves) != len(l2.leaves):
@@ -240,28 +266,71 @@ class _EqualityOperator(_InequalityOperator):
         # in the least significant digit of precision, while for Integers, comparison
         # has to be exact.
 
-        if ((isinstance(l1, Real) and isinstance(l2, Real)) or
-            (isinstance(l1, Integer) and isinstance(l2, Integer))):
-                return l1 == l2
+        # If both members are numbers, just compare them
+        if isinstance(l1, Number) and isinstance(l2, Number):
+            return l1 == l2
+
+        # Check special cases that are comparable: DirectedInfinite and Complex numbers.
+        
+        if l1.get_head() == SymbolDirectedInfinity:
+            if isinstance(l2, Number):
+                return False
+            elif l2.get_head() == SymbolDirectedInfinity:
+                # If both are directed infinity quatities, compare phases...
+                l1 = Expression("Im", Expression("Times", l2._leaves[0],Expression("Power", l1._leaves[0],Integer(-1))))
+                l2 = Integer(0)
+        elif l2.get_head() == SymbolDirectedInfinity:
+            if isinstance(l1, Number):
+                return False
+        elif isinstance(l1, Complex):
+            if isinstance(l2, Complex):
+                result = self.do_compare(l1.real, l2.real)
+                if not result:
+                    return result
+                result = self.do_compare(l1.imag, l2.imag)
+                if not result:
+                    return result
+                return True
+            elif isinstance(l2, Number):
+                result = self.do_compare(l1.imag, Integer(0))
+                if not result:
+                    return result
+                result = self.do_compare(l1.real, l2)
+                if not result:
+                    return result
+                return True
+            elif l2.get_head_name() == "System`DirectedInfinity":
+                return False
+        elif isinstance(l2, Complex):
+            if isinstance(l1, Number):
+                result = self.do_compare(l2.imag, Integer(0))
+                if not result:
+                    return result
+                result = self.do_compare(l1, l2.real)
+                if not result:
+                    return result
+                return True
+            elif l1.get_head_name() == "System`DirectedInfinity":
+                return False
 
         # For everything else, use sympy.
-
-        l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
-        l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        try:
+            l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
+            l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        except:
+            return None
 
         if l1_sympy is None or l2_sympy is None:
             return None
-
 
         if not is_number(l1_sympy):
             l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
         if not is_number(l2_sympy):
             l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
 
-
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
-            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
+            prec = max_extra_prec
             if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
                 return True
             return False
@@ -270,41 +339,89 @@ class _EqualityOperator(_InequalityOperator):
 
     def apply(self, items, evaluation):
         "%(name)s[items___]"
+        print("EqualityOperator.apply",items)
         items_sequence = items.get_sequence()
+        items_sequence = tuple(item.evaluate(evaluation) for item in items_sequence)
         n = len(items_sequence)
         if n <= 1:
             return SymbolTrue
-        is_exact_vals = [Expression("ExactNumberQ", arg).evaluate(evaluation) for arg in items_sequence]
-        if all(val == SymbolTrue for val in is_exact_vals):
+        is_exact_vals = [
+            Expression("ExactNumberQ", arg).evaluate(evaluation)
+            for arg in items_sequence
+        ]
+        if any(val.same(SymbolFalse) for val in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
+        pairs = zip(args[:-1], args[1:])
         wanted = operators[self.get_name()]
-        for x, y in itertools.combinations(args, 2):
-            if isinstance(x, String) or isinstance(y, String):
-                if not (isinstance(x, String) and isinstance(y, String)):
-                    c = 1
+        # This is uggly. Would be nice to compact this...
+        for x, y in pairs:
+            if isinstance(x, Complex):
+                if isinstance(y, Complex):
+                    c = do_cmp(x.real, y.real)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    assert c in wanted
+                    c = do_cmp(x.imag, y.imag)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    assert c in wanted
                 else:
-                    c = cmp(x.get_string_value(), y.get_string_value())
+                    c = do_cmp(x.imag, Integer(0))
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    assert c in wanted
+                    c = do_cmp(x.real, y)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    assert c in wanted
+            elif isinstance(y, Complex):
+                c = do_cmp(y.imag, Integer(0))
+                if c is None:
+                    return
+                if c not in wanted:
+                    return SymbolFalse
+                assert c in wanted
+                c = do_cmp(y.real, x)
+                if c is None:
+                    return
+                if c not in wanted:
+                    return SymbolFalse
+                assert c in wanted
             else:
                 c = do_cmp(x, y)
-            if c is None:
-                return
-            elif c not in wanted:
-                return SymbolFalse
-            assert c in wanted
+                if c is None:
+                    return
+                elif c not in wanted:
+                    return SymbolFalse
+                assert c in wanted
         return SymbolTrue
 
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
-        for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y)
+        print("EqualityOperator.apply_other", args)
+        max_extra_prec = (
+            Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
+        )
+        if type(max_extra_prec) is not int:
+            max_extra_prec = COMPARE_PREC
+        pairs = zip(args[:-1], args[1:])
+        for x, y in pairs:
+            c = self.do_compare(x, y, max_extra_prec)
             if c is None:
                 return
             if self._op(c) is False:
                 return SymbolFalse
         return SymbolTrue
-
 
 
 class _ComparisonOperator(_InequalityOperator):
@@ -320,6 +437,9 @@ class _ComparisonOperator(_InequalityOperator):
         for i in range(len(items) - 1):
             x = items[i]
             y = items[i + 1]
+            if isinstance(x, Complex) or isinstance(y, Complex):
+                evaluation.message("General", "nord", x, y)
+                return
             c = do_cmp(x, y)
             if c is None:
                 return
@@ -376,6 +496,7 @@ class Inequality(Builtin):
                 for index in range(1, count - 1, 2)
             ]
             return Expression("And", *groups)
+
 
 def do_cmp(x1, x2) -> Optional[int]:
 
@@ -683,8 +804,8 @@ class Positive(Builtin):
     >> Positive[0]
      = False
     >> Positive[1 + 2 I]
+     : Invalid comparison with 1 + 2 I attempted.
      = False
-
     #> Positive[Pi]
      = True
     #> Positive[x]
@@ -713,6 +834,7 @@ class Negative(Builtin):
     >> Negative[10/7]
      = False
     >> Negative[1+2I]
+     : Invalid comparison with 1 + 2 I attempted.
      = False
     >> Negative[a + b]
      = Negative[a + b]
