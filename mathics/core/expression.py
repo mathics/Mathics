@@ -2014,6 +2014,9 @@ SymbolNull = Symbol("Null")
 SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
 SymbolInfinity = Symbol("Infinity")
+SymbolComplexInfinity = Symbol("ComplexInfinity")
+SymbolDirectedInfinity = Symbol("DirectedInfinity")
+SymbolList = Symbol("List")
 
 @lru_cache(maxsize=1024)
 def from_mpmath(value, prec=None):

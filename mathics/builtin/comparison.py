@@ -275,12 +275,12 @@ class _EqualityOperator(_InequalityOperator):
         if n <= 1:
             return SymbolTrue
         is_exact_vals = [Expression("ExactNumberQ", arg).evaluate(evaluation) for arg in items_sequence]
-        if all(val == SymbolTrue for val in is_exact_vals):
+        if all(test is SymbolTrue for test in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         pairs = zip(args[:-1],args[1:])
-        print("apply:", args)
+        print("Compare.apply:", args)
         for x, y in pairs:
             if isinstance(x, String) or isinstance(y, String):
                 if not (isinstance(x, String) and isinstance(y, String)):

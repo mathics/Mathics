@@ -23,6 +23,8 @@ from mathics.core.expression import (
     PrecisionReal,
     String,
     Symbol,
+    SymbolTrue,
+    SymbolFalse,
     ensure_context,
     strip_context,
 )
@@ -526,9 +528,9 @@ class Test(Builtin):
         "%(name)s[expr_]"
 
         if self.test(expr):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class SympyFunction(SympyObject):
