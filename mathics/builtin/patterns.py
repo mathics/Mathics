@@ -1274,8 +1274,13 @@ class Condition(BinaryOperator, PatternObject):
 
     def init(self, expr):
         super(Condition, self).init(expr)
-        self.pattern = Pattern.create(expr.leaves[0])
         self.test = expr.leaves[1]
+        # if (expr.leaves[0].get_head_name() == "System`Condition" and
+        #    len(expr.leaves[0].leaves) == 2):
+        #    self.test = Expression("And", self.test, expr.leaves[0].leaves[1])
+        #    self.pattern = Pattern.create(expr.leaves[0].leaves[0])
+        # else:
+        self.pattern = Pattern.create(expr.leaves[0])
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         # for new_vars, rest in self.pattern.match(expression, vars,
