@@ -235,7 +235,7 @@ class _EqualityOperator(_InequalityOperator):
     )
 
     def do_compare(self, l1, l2, max_extra_prec=50) -> Union[bool, None]:
-        print("EqualityOperator.do_compare",(l1,l2), " of types ", (type(l1),type(l2)))
+        # print("EqualityOperator.do_compare",(l1,l2), " of types ", (type(l1),type(l2)))
         if l1.same(l2):
             return True
         else:
@@ -339,7 +339,7 @@ class _EqualityOperator(_InequalityOperator):
 
     def apply(self, items, evaluation):
         "%(name)s[items___]"
-        print("EqualityOperator.apply",items)
+        # print("EqualityOperator.apply",items)
         items_sequence = items.get_sequence()
         items_sequence = tuple(item.evaluate(evaluation) for item in items_sequence)
         n = len(items_sequence)
@@ -408,7 +408,7 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
-        print("EqualityOperator.apply_other", args)
+        # print("EqualityOperator.apply_other", args)
         max_extra_prec = (
             Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
         )
