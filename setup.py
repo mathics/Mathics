@@ -128,6 +128,7 @@ setup(
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",
+            "autoload/*.m",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",

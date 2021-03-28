@@ -38,7 +38,7 @@ from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
-from mathics.core.expression import Symbol, Expression, Number, Integer, Rational, Real
+from mathics.core.expression import Symbol, Expression, Number, Integer, Rational, Real, SymbolList
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -403,7 +403,7 @@ class ReplaceList(Builtin):
             result = rule.apply(expr, evaluation, return_list=True, max_list=max_count)
             list.extend(result)
 
-        return Expression("List", *list)
+        return Expression(SymbolList, *list)
 
 
 class PatternTest(BinaryOperator, PatternObject):
@@ -1274,8 +1274,13 @@ class Condition(BinaryOperator, PatternObject):
 
     def init(self, expr):
         super(Condition, self).init(expr)
-        self.pattern = Pattern.create(expr.leaves[0])
         self.test = expr.leaves[1]
+        # if (expr.leaves[0].get_head_name() == "System`Condition" and
+        #    len(expr.leaves[0].leaves) == 2):
+        #    self.test = Expression("And", self.test, expr.leaves[0].leaves[1])
+        #    self.pattern = Pattern.create(expr.leaves[0].leaves[0])
+        # else:
+        self.pattern = Pattern.create(expr.leaves[0])
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         # for new_vars, rest in self.pattern.match(expression, vars,
@@ -1363,7 +1368,7 @@ class OptionsPattern(PatternObject):
                 # default options defined, e.g. with this code:
                 # f[x:OptionsPattern[]] := x; f["Test" -> 1]
                 # set self.defaults to an empty List, so we don't crash.
-                self.defaults = Expression("List")
+                self.defaults = Expression(SymbolList)
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False
         )
