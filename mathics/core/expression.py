@@ -486,7 +486,7 @@ class BaseExpression(KeyComparable):
         finally:
             evaluation.dec_recursion_depth()
 
-    def format(self, evaluation, form) -> typing.Union["Expression", "Symbol"]:
+    def format(self, evaluation, form, **kwargs) -> typing.Union["Expression", "Symbol"]:
         """
         Applies formats associated to the expression, and then calls Makeboxes
         """
