@@ -13,7 +13,7 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
+from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
 
 FORMATS = [
     "StandardForm",
@@ -250,7 +250,7 @@ class Evaluation(object):
         self.format = format
         self.catch_interrupt = catch_interrupt
 
-        self.SymbolNull = SymbolNull
+        self.SymbolNull = Symbol("Null")
 
         # status of last evaluate
         self.exc_result = self.SymbolNull
@@ -458,7 +458,7 @@ class Evaluation(object):
     def set_quiet_messages(self, messages) -> None:
         from mathics.core.expression import Expression
 
-        value = Expression(SymbolList, *messages)
+        value = Expression("List", *messages)
         self.definitions.set_ownvalue("Internal`$QuietMessages", value)
 
     def get_quiet_messages(self):

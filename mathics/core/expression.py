@@ -126,7 +126,12 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -485,7 +490,9 @@ class BaseExpression(KeyComparable):
         finally:
             evaluation.dec_recursion_depth()
 
-    def format(self, evaluation, form) -> typing.Union["Expression", "Symbol"]:
+    def format(
+        self, evaluation, form, **kwargs
+    ) -> typing.Union["Expression", "Symbol"]:
         """
         Applies formats associated to the expression, and then calls Makeboxes
         """
@@ -507,7 +514,7 @@ class BaseExpression(KeyComparable):
     def get_option_values(self, evaluation, allow_symbols=False, stop_on_error=True):
         options = self
         if options.has_form("List", None):
-            options = options.flatten(Symbol("List"))
+            options = options.flatten(SymbolList)
             values = options.leaves
         else:
             values = [options]
@@ -1622,9 +1629,9 @@ class Expression(BaseExpression):
 
     def apply_rules(self, rules, evaluation, level=0, options=None):
         """for rule in rules:
-            result = rule.apply(self, evaluation, fully=False)
-            if result is not None:
-                return result"""
+        result = rule.apply(self, evaluation, fully=False)
+        if result is not None:
+            return result"""
 
         # to be able to access it inside inner function
         new_applied = [False]
@@ -1774,17 +1781,21 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return self._head.get_name() in system_symbols(
-            "Sqrt",
-            "Times",
-            "Plus",
-            "Subtract",
-            "Minus",
-            "Power",
-            "Abs",
-            "Divide",
-            "Sin",
-        ) and all(leaf.is_numeric() for leaf in self._leaves)
+        return (
+            self._head.get_name()
+            in system_symbols(
+                "Sqrt",
+                "Times",
+                "Plus",
+                "Subtract",
+                "Minus",
+                "Power",
+                "Abs",
+                "Divide",
+                "Sin",
+            )
+            and all(leaf.is_numeric() for leaf in self._leaves)
+        )
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
@@ -2054,7 +2065,7 @@ class Number(Atom):
 def _ExponentFunction(value):
     n = value.get_int_value()
     if -5 <= n <= 5:
-        return Symbol("Null")
+        return SymbolNull
     else:
         return value
 

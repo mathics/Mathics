@@ -72,3 +72,4 @@ ENABLE_FILES_MODULE = True
 # whatever it is that setting this thing did.
 default_pymathics_modules = []
 
+SYSTEM_CHARACTER_ENCODING = "UTF-8" if sys.getdefaultencoding()=='utf-8' else 'ASCII'
