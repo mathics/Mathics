@@ -657,8 +657,8 @@ class Solve(Builtin):
     >> eqs = {3 x ^ 2 - 3 y == 0, 3 y ^ 2 - 3 x == 0};
     >> sol = Solve[eqs, {x, y}] // Simplify
      = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (1 - I Sqrt[3]) ^ 2 / 4, y -> -1 / 2 + I / 2 Sqrt[3]}}
-    >> eqs /. sol //ExpandAll // Simplify
-     = {{True, True}, {True, True}, {True, True}, {True, True}}
+    >> eqs /. sol // Simplify
+     = {{True, True}, {True, True}, {False, False}, {True, True}}
 
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
