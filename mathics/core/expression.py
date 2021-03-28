@@ -128,15 +128,15 @@ def from_python(arg):
         entries = [
             Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
-        return Expression("List", *entries)
+        return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
         return arg
     elif isinstance(arg, BoxConstruct):
         return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
-        return Expression("List", *[from_python(leaf) for leaf in arg])
+        return Expression(SymbolList, *[from_python(leaf) for leaf in arg])
     elif isinstance(arg, bytearray) or isinstance(arg, bytes):
-        return Expression("ByteArray", ByteArrayAtom(arg))
+        return Expression(SymbolByteArray, ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
@@ -476,7 +476,6 @@ class BaseExpression(KeyComparable):
             ):
                 # print("Not inside graphics or numberform, and not is atom")
                 new_leaves = [leaf.do_format(evaluation, form) for leaf in expr.leaves]
-                formathead = expr.head.do_format(evaluation, form)
                 expr = Expression(expr.head.do_format(evaluation, form), *new_leaves)
 
             if include_form:
@@ -565,7 +564,7 @@ class BaseExpression(KeyComparable):
         if evaluation is None:
             value = self
         else:
-            value = Expression("N", self).evaluate(evaluation)
+            value = Expression(SymbolN, self).evaluate(evaluation)
         if isinstance(value, Number):
             value = value.round()
             return value.get_float_value(permit_complex=permit_complex)
@@ -1026,7 +1025,7 @@ class Expression(BaseExpression):
                 compiled = compiled.evaluate(n_evaluation)
                 if compiled.get_head_name() == "System`CompiledFunction":
                     return compiled.leaves[2].cfunc
-            value = Expression("N", self).evaluate(n_evaluation)
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
             return value.to_python()
 
         if head_name == "System`DirectedInfinity" and len(self._leaves) == 1:
@@ -1703,7 +1702,7 @@ class Expression(BaseExpression):
                     func_params = [Symbol(name + "$") for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
                     leaves = chain(
-                        [Expression("List", *func_params), body], self._leaves[2:]
+                        [Expression(SymbolList, *func_params), body], self._leaves[2:]
                     )
 
         if not vars:  # might just be a symbol set via Set[] we looked up here
@@ -1736,7 +1735,7 @@ class Expression(BaseExpression):
                 slot = self._leaves[0].get_int_value()
                 if slot is None or slot < 1:
                     evaluation.error("Function", "slot", self._leaves[0])
-            return Expression("Sequence", *slots[slot:])
+            return Expression(SymbolSequence, *slots[slot:])
         elif self._head.get_name() == "System`Function" and len(self._leaves) == 1:
             # do not replace Slots in nested Functions
             return self
@@ -1804,7 +1803,7 @@ class Expression(BaseExpression):
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression("N", leaf, Integer(dps(_prec)))
+                    n_expr = Expression(SymbolN, leaf, Integer(dps(_prec)))
                     n_result = n_expr.evaluate(evaluation)
                     if isinstance(n_result, Number):
                         new_leaves[index] = n_result
@@ -1934,7 +1933,7 @@ class Symbol(Atom):
             return None
         n_evaluation = kwargs.get("n_evaluation")
         if n_evaluation is not None:
-            value = Expression("N", self).evaluate(n_evaluation)
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
             return value.to_python()
 
         if kwargs.get("python_form", False):
@@ -2008,15 +2007,21 @@ class Symbol(Atom):
 
 
 # Some common Symbols
-SymbolFalse = Symbol("False")
-SymbolFailed = Symbol("$Failed")
-SymbolNull = Symbol("Null")
-SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
-SymbolInfinity = Symbol("Infinity")
+SymbolAssociation = Symbol("Association")
+SymbolByteArray = Symbol("ByteArray")
 SymbolComplexInfinity = Symbol("ComplexInfinity")
 SymbolDirectedInfinity = Symbol("DirectedInfinity")
+SymbolFailed = Symbol("$Failed")
+SymbolFalse = Symbol("False")
+SymbolInfinity = Symbol("Infinity")
 SymbolList = Symbol("List")
+SymbolMakeBoxes = Symbol("MakeBoxes")
+SymbolN = Symbol("N")
+SymbolNull = Symbol("Null")
+SymbolRule = Symbol("Rule")
+SymbolSequence = Symbol("Sequence")
+SymbolTrue = Symbol("True")
 
 
 @lru_cache(maxsize=1024)
@@ -2061,7 +2066,7 @@ def _NumberFormat(man, base, exp, options):
             "System`OutputForm",
             "System`FullForm",
         ):
-            return Expression("RowBox", Expression("List", man, String("*^"), exp))
+            return Expression("RowBox", Expression(SymbolList, man, String("*^"), exp))
         else:
             return Expression(
                 "RowBox",

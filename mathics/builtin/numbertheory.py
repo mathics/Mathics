@@ -9,7 +9,7 @@ from itertools import combinations
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, SympyFunction
-from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python
+from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python, SymbolN
 from mathics.core.convert import from_sympy, SympyPrime
 import mpmath
 
@@ -528,13 +528,13 @@ class MantissaExponent(Builtin):
             return expr
 
         if n_sympy.is_constant():
-            temp_n = Expression("N", n).evaluate(evaluation)
+            temp_n = Expression(SymbolN, n).evaluate(evaluation)
             py_n = temp_n.to_python()
         else:
             return expr
 
         if b_sympy.is_constant():
-            temp_b = Expression("N", b).evaluate(evaluation)
+            temp_b = Expression(SymbolN, b).evaluate(evaluation)
             py_b = temp_b.to_python()
         else:
             return expr
@@ -559,7 +559,7 @@ class MantissaExponent(Builtin):
             return expr
         # Handle Input with special cases such as PI and E
         if n_sympy.is_constant():
-            temp_n = Expression("N", n).evaluate(evaluation)
+            temp_n = Expression(SymbolN, n).evaluate(evaluation)
             py_n = temp_n.to_python()
         else:
             return expr

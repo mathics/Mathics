@@ -6,7 +6,7 @@ Calculus
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
-from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse
+from mathics.core.expression import Expression, Integer, Number, SymbolTrue, SymbolFalse, SymbolList, SymbolN, SymbolRule
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
@@ -190,7 +190,7 @@ class D(SympyFunction):
     def apply_wrong(self, expr, x, other, evaluation):
         "D[expr_, {x_, other___}]"
 
-        arg = Expression("List", x, *other.get_sequence())
+        arg = Expression(SymbolList, x, *other.get_sequence())
         evaluation.message("D", "dvar", arg)
         return Expression("D", expr, arg)
 
@@ -743,7 +743,7 @@ class Solve(Builtin):
             if eq == SymbolTrue:
                 pass
             elif eq == SymbolFalse:
-                return Expression("List")
+                return Expression(SymbolList)
             elif not eq.has_form("Equal", 2):
                 return evaluation.message("Solve", "eqf", eqs_original)
             else:
@@ -816,9 +816,9 @@ class Solve(Builtin):
             if not isinstance(result, list):
                 result = [result]
             if isinstance(result, list) and len(result) == 1 and result[0] is True:
-                return Expression("List", Expression("List"))
+                return Expression(SymbolList, Expression(SymbolList))
             if result == [None]:
-                return Expression("List")
+                return Expression(SymbolList)
             results = []
             for sol in result:
                 results.extend(transform_solution(sol))
@@ -842,7 +842,7 @@ class Solve(Builtin):
                     Expression(
                         "List",
                         *(
-                            Expression("Rule", var, from_sympy(sol[var_sympy]))
+                            Expression(SymbolRule, var, from_sympy(sol[var_sympy]))
                             for var, var_sympy in zip(vars, vars_sympy)
                             if var_sympy in sol
                         )
@@ -1098,7 +1098,7 @@ class FindRoot(Builtin):
     def apply(self, f, x, x0, evaluation):
         "FindRoot[f_, {x_, x0_}]"
 
-        x0 = Expression("N", x0).evaluate(evaluation)
+        x0 = Expression(SymbolN, x0).evaluate(evaluation)
         if not isinstance(x0, Number):
             evaluation.message("FindRoot", "snum", x0)
             return
@@ -1134,11 +1134,11 @@ class FindRoot(Builtin):
                 return
             if x1 == x0:
                 break
-            x0 = Expression("N", x1).evaluate(
+            x0 = Expression(SymbolN, x1).evaluate(
                 evaluation
             )  # N required due to bug in sympy arithmetic
             count += 1
         else:
             evaluation.message("FindRoot", "maxiter")
 
-        return Expression("List", Expression("Rule", x, x0))
+        return Expression(SymbolList, Expression(SymbolRule, x, x0))

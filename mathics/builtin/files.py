@@ -42,6 +42,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
+    SymbolList,
     from_mpmath,
     from_python,
     valid_context_name,
@@ -396,7 +397,7 @@ class Path(Predefined):
     name = "$Path"
 
     def evaluate(self, evaluation):
-        return Expression("List", *[String(p) for p in PATH_VAR])
+        return Expression(SymbolList, *[String(p) for p in PATH_VAR])
 
 
 class OperatingSystem(Predefined):

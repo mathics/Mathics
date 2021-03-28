@@ -38,7 +38,7 @@ from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
-from mathics.core.expression import Symbol, Expression, Number, Integer, Rational, Real
+from mathics.core.expression import Symbol, Expression, Number, Integer, Rational, Real, SymbolList
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -403,7 +403,7 @@ class ReplaceList(Builtin):
             result = rule.apply(expr, evaluation, return_list=True, max_list=max_count)
             list.extend(result)
 
-        return Expression("List", *list)
+        return Expression(SymbolList, *list)
 
 
 class PatternTest(BinaryOperator, PatternObject):
@@ -1363,7 +1363,7 @@ class OptionsPattern(PatternObject):
                 # default options defined, e.g. with this code:
                 # f[x:OptionsPattern[]] := x; f["Test" -> 1]
                 # set self.defaults to an empty List, so we don't crash.
-                self.defaults = Expression("List")
+                self.defaults = Expression(SymbolList)
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False
         )
