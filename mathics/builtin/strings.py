@@ -16,7 +16,6 @@ from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolFalse, SymbolTrue, String, Integer,
                                      from_python, string_list)
 from mathics.builtin.lists import python_seq, convert_seq
-from mathics_scanner.characters import replace_wl_with_plain_text
 from mathics.settings import SYSTEM_CHARACTER_ENCODING
 
 
@@ -1603,8 +1602,8 @@ class ToString(Builtin):
     def apply(self, value, evaluation, **options):
         'ToString[value_, OptionsPattern[ToString]]'
         encoding = options['options']["System`CharacterEncoding"]
-        text = value.format(evaluation, 'System`OutputForm').boxes_to_text(
-            evaluation=evaluation, encoding=encoding.value)
+        text = value.format(evaluation, 'System`OutputForm', encoding=encoding)
+        text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
 
