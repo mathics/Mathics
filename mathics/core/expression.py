@@ -68,7 +68,7 @@ def system_symbols_dict(d):
 
 class BoxError(Exception):
     def __init__(self, box, form) -> None:
-        super(BoxError, self).__init__("Box %s cannot be formatted as %s" % (box, form))
+        super().__init__("Box %s cannot be formatted as %s" % (box, form))
         self.box = box
         self.form = form
 
@@ -684,7 +684,7 @@ class Expression(BaseExpression):
     _sequences: Any
 
     def __new__(cls, head, *leaves, **kwargs) -> "Expression":
-        self = super(Expression, cls).__new__(cls)
+        self = super().__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
         self._head = head
@@ -870,7 +870,7 @@ class Expression(BaseExpression):
                     last_evaluated, (symbolname,)
                 ):
                     return expr
-        expr = super(Expression, self).do_format(evaluation, form)
+        expr = super().do_format(evaluation, form)
         self._format_cache[form] = (evaluation.definitions.now, expr)
         return expr
 
@@ -1640,7 +1640,7 @@ class Expression(BaseExpression):
             return Expression(expr._head, *[apply_leaf(leaf) for leaf in expr._leaves])
 
         if options is None:  # default ReplaceAll mode; replace breadth first
-            result, applied = super(Expression, self).apply_rules(
+            result, applied = super().apply_rules(
                 rules, evaluation, level, options
             )
             if applied:
@@ -2114,6 +2114,10 @@ class Integer(Number):
         self.value = n
         return self
 
+    @lru_cache()
+    def __init__(self, value) -> "Integer":
+        super().__init__()
+
     def boxes_to_text(self, **options) -> str:
         return str(self.value)
 
@@ -2159,7 +2163,7 @@ class Integer(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Integer, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 0, self.value, 0, 1]
 
@@ -2184,8 +2188,9 @@ class Integer(Number):
 
 
 class Rational(Number):
+    @lru_cache()
     def __new__(cls, numerator, denominator=1) -> "Rational":
-        self = super(Rational, cls).__new__(cls)
+        self = super().__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
 
@@ -2244,7 +2249,7 @@ class Rational(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Rational, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
@@ -2318,7 +2323,7 @@ class Real(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Real, self).get_sort_key(True)
+            return super().get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
     def __eq__(self, other) -> bool:
@@ -2500,7 +2505,7 @@ class Complex(Number):
     imag: Any
 
     def __new__(cls, real, imag):
-        self = super(Complex, cls).__new__(cls)
+        self = super().__new__(cls)
         if isinstance(real, Complex) or not isinstance(real, Number):
             raise ValueError("Argument 'real' must be a real number.")
         if isinstance(imag, Complex) or not isinstance(imag, Number):
@@ -2562,7 +2567,7 @@ class Complex(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Complex, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
 
@@ -2717,7 +2722,7 @@ class String(Atom):
     value: str
 
     def __new__(cls, value):
-        self = super(String, cls).__new__(cls)
+        self = super().__new__(cls)
         self.value = str(value)
         return self
 
@@ -2857,7 +2862,7 @@ class String(Atom):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(String, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 1, self.value, 0, 1]
 
@@ -2961,7 +2966,7 @@ class ByteArrayAtom(Atom):
 
 class StringFromPython(String):
     def __new__(cls, value):
-        self = super(StringFromPython, cls).__new__(cls, value)
+        self = super().__new__(cls, value)
         if isinstance(value, sympy.NumberSymbol):
             self.value = "sympy." + str(value)
 
