@@ -335,14 +335,14 @@ class _EqualityOperator(_InequalityOperator):
                 prec = COMPARE_PREC
             lhs = l1_sympy.n(dps(prec))
             rhs = l2_sympy.n(dps(prec))
-            tol = 2 ** (-prec)
             if lhs == rhs:
-                return True
-            diff = lhs - rhs
-            if type(diff) is sympy.core.add.Add:
-                return abs(sympy.re(diff)) < tol and abs(sympy.im(diff)) < tol
+                return True            
+            tol = 10 ** (-prec)
+            diff = abs(lhs - rhs)
+            if isinstance(diff, sympy.core.add.Add):
+                return (sympy.re(diff) < tol)
             else:
-                return abs(diff) < tol
+                return (diff < tol)
         else:
             return None
 
@@ -413,7 +413,7 @@ class _EqualityOperator(_InequalityOperator):
             c = self.do_compare(x, y, max_extra_prec)
             if c is None:
                 return
-            if self._op(c) is False:
+            if not self._op(c):
                 return SymbolFalse
         return SymbolTrue
 
