@@ -226,7 +226,7 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2) -> Union[bool, None]:
+    def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
         if l1.same(l2):
             return True
         else:
@@ -314,7 +314,6 @@ class _EqualityOperator(_InequalityOperator):
         # in the least significant digit of precision, while for Integers, comparison
         # has to be exact.
 
-
         # For everything else, use sympy.
 
         l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
@@ -330,10 +329,20 @@ class _EqualityOperator(_InequalityOperator):
 
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
-            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
-            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
+            if max_extra_prec:
+                prec = max_extra_prec
+            else:
+                prec = COMPARE_PREC
+            lhs = l1_sympy.n(dps(prec))
+            rhs = l2_sympy.n(dps(prec))
+            tol = 2 ** (-prec)
+            if lhs == rhs:
                 return True
-            return False
+            diff = lhs - rhs
+            if type(diff) is sympy.core.add.Add:
+                return abs(sympy.re(diff)) < tol and abs(sympy.im(diff)) < tol
+            else:
+                return abs(diff) < tol
         else:
             return None
 
@@ -381,11 +390,11 @@ class _EqualityOperator(_InequalityOperator):
                         return SymbolFalse
                     else:
                         return SymbolTrue
-            #if isinstance(x, String) or isinstance(y, String):
-                #if not (isinstance(x, String) and isinstance(y, String)):
-                #    c = 1
-                #else:
-                #    c = cmp(x.get_string_value(), y.get_string_value())
+            # if isinstance(x, String) or isinstance(y, String):
+            # if not (isinstance(x, String) and isinstance(y, String)):
+            #    c = 1
+            # else:
+            #    c = cmp(x.get_string_value(), y.get_string_value())
             else:
                 c = do_cmp(x, y)
             if c is None:
@@ -398,8 +407,10 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
+        # Use $MaxExtraPrecision
+        max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y)
+            c = self.do_compare(x, y, max_extra_prec)
             if c is None:
                 return
             if self._op(c) is False:
