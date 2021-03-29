@@ -3226,14 +3226,15 @@ clip(%s);
             svg,
         )
 
-        return (
-            '<mtext><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
-            % (
+        # mglyph, which is what we have been using, is bad because MathML standard changed.
+        # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
+        # template = "<mtext><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>"
+        template = '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+        return template % (
                 int(width),
                 int(height),
                 base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
             )
-        )
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):
