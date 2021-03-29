@@ -19,6 +19,7 @@ from mathics.builtin.constants import mp_convert_constant
 from mathics.core.expression import (
     Complex,
     Expression,
+    Atom,
     Integer,
     Number,
     Real,
@@ -26,6 +27,9 @@ from mathics.core.expression import (
     Symbol,
     SymbolFalse,
     SymbolTrue,
+    SymbolList,
+    SymbolDirectedInfinity,
+    SymbolInfinity,
 )
 from mathics.core.numbers import dps
 
@@ -222,16 +226,20 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2, max_extra_prec=50) -> Union[bool, None]:
+    def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
         if l1.same(l2):
             return True
-        elif l1 == SymbolTrue and l2 == SymbolFalse:
-            return False
-        elif l1 == SymbolFalse and l2 == SymbolTrue:
-            return False
-        elif isinstance(l1, String) and isinstance(l2, String):
-            return False
-        elif l1.has_form("List", None) and l2.has_form("List", None):
+        else:
+            if not (isinstance(l1, Symbol) or isinstance(l2, Symbol)) and (
+                isinstance(l1, Atom) and isinstance(l2, Atom)
+            ):
+                return l1 == l2
+            elif l1 == SymbolTrue and l2 == SymbolFalse:
+                return False
+            elif l1 == SymbolFalse and l2 == SymbolTrue:
+                return False
+        # Comparing lists: compare leaves
+        if l1.has_form("List", None) and l2.has_form("List", None):
             if len(l1.leaves) != len(l2.leaves):
                 return False
             for item1, item2 in zip(l1.leaves, l2.leaves):
@@ -240,15 +248,71 @@ class _EqualityOperator(_InequalityOperator):
                     return result
             return True
 
+        if l1.is_atom():
+            l1, l2 = l2, l1
+        # Dealing with two non-atomic expressions:
+        if not l2.is_atom():
+            head_name_1 = l1.get_head_name()
+            head_name_2 = l2.get_head_name()
+            head1 = l1.get_head()
+            head2 = l2.get_head()
+            # Handling comparisons between CompiledFunction and expressions
+            if head_name_2 in ("System`CompiledFunction",):
+                l1, l2 == l2, l1
+                head_name_2, head_name_1 = head_name_1, head_name_2
+            if head_name_1 == "System`CompiledFunction":
+                # If l2 is not a CompiledFunction, can not be compared.
+                if head_name_2 != "System`CompiledFunction":
+                    return None
+                if not self.do_compare(l1._leaves[0], l2._leaves[0]):
+                    return None
+                if not self.do_compare(l1._leaves[1], l2._leaves[1]):
+                    return None
+                return True
+
+            # Handling comparisons with DirectedInfinity
+            if head2.same(SymbolDirectedInfinity):
+                l1, l2 = l2, l1
+                head1, head2 = head2, head1
+            if head1.same(SymbolDirectedInfinity):
+                if head2.same(SymbolDirectedInfinity):
+                    dir1 = dir2 = Integer(1)
+                    if len(l1._leaves) == 0:
+                        if len(l2._leaves) == 0:
+                            return True
+                        dir1 = Integer(1)
+                    else:
+                        dir1 = l1._leaves[0]
+                    if len(l2._leaves) == 0:
+                        if dir1.same(Integer(1)):
+                            return True
+                        dir2 = Integer(1)
+                    else:
+                        dir2 = l2._leaves[0]
+                    # If the directions are equal,
+                    # then both infinites are the same
+                    if self.do_compare(dir1, dir2):
+                        return True
+                    # Now, compare the signs:
+                    dir1 = Expression("Sign", dir1)
+                    dir2 = Expression("Sign", dir2)
+                    return self.do_compare(dir1, dir2)
+
+        # Dealing with one expression
+        elif not l1.is_atom():
+            if l1.get_head_name() == "System`CompiledFunction":
+                return None
+            if l1.get_head().same(SymbolDirectedInfinity):
+                if isinstance(l2, Number):
+                    return False
+                elif SymbolInfinity.same(l2):
+                    if len(l1._leaves) == 0 or do_compare(l1._leaves[0], Integer(1)):
+                        return True
+
         # Use Mathics' built-in comparisons for Real and Integer. These use
         # WL's interpretation of Equal[] which allows for slop in Reals
         # in the least significant digit of precision, while for Integers, comparison
         # has to be exact.
-
-        if (isinstance(l1, Real) and isinstance(l2, Real)) or (
-            isinstance(l1, Integer) and isinstance(l2, Integer)
-        ):
-            return l1 == l2
 
         # For everything else, use sympy.
 
@@ -265,10 +329,20 @@ class _EqualityOperator(_InequalityOperator):
 
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
-            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
-            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
-                return True
-            return False
+            if max_extra_prec:
+                prec = max_extra_prec
+            else:
+                prec = COMPARE_PREC
+            lhs = l1_sympy.n(dps(prec))
+            rhs = l2_sympy.n(dps(prec))
+            if lhs == rhs:
+                return True            
+            tol = 10 ** (-prec)
+            diff = abs(lhs - rhs)
+            if isinstance(diff, sympy.core.add.Add):
+                return (sympy.re(diff) < tol)
+            else:
+                return (diff < tol)
         else:
             return None
 
@@ -282,16 +356,45 @@ class _EqualityOperator(_InequalityOperator):
             Expression("ExactNumberQ", arg).evaluate(evaluation)
             for arg in items_sequence
         ]
-        if all(val == SymbolTrue for val in is_exact_vals):
+        if not all(val == SymbolTrue for val in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for x, y in itertools.combinations(args, 2):
-            if isinstance(x, String) or isinstance(y, String):
-                if not (isinstance(x, String) and isinstance(y, String)):
-                    c = 1
+            if isinstance(y, Complex):
+                x, y = y, x
+            if isinstance(x, Complex):
+                if isinstance(y, Complex):
+                    c = do_cmp(x.real, y.real)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    c = do_cmp(x.imag, y.imag)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    else:
+                        return SymbolTrue
                 else:
-                    c = cmp(x.get_string_value(), y.get_string_value())
+                    c = do_cmp(x.imag, Integer(0))
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    c = do_cmp(x.real, y.real)
+                    if c is None:
+                        return
+                    if c not in wanted:
+                        return SymbolFalse
+                    else:
+                        return SymbolTrue
+            # if isinstance(x, String) or isinstance(y, String):
+            # if not (isinstance(x, String) and isinstance(y, String)):
+            #    c = 1
+            # else:
+            #    c = cmp(x.get_string_value(), y.get_string_value())
             else:
                 c = do_cmp(x, y)
             if c is None:
@@ -310,7 +413,7 @@ class _EqualityOperator(_InequalityOperator):
         if type(max_extra_prec) is not int:
             max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y)
+            c = self.do_compare(x, y, max_extra_prec)
             if c is None:
                 return
             if not self._op(c):

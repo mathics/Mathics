@@ -409,12 +409,14 @@ import pytest
             "Compile[{x}, Sqrt[x]] == I",
             'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == I',
         ),
+                             ("2.+ I Pi == Sqrt[I] Infinity", "False"),
+        ('2.+ I Pi == "a"', "False"),
+        ('2.+ I Pi == "1 / 4"', "False"),
     ],
 )
 def test_cmp1_pass(str_expr, str_expected):
     check_evaluation(str_expr, str_expected)
 
-@pytest.mark.skip(reason="fixes in progress...")
 @pytest.mark.parametrize(
     ("str_expr", "str_expected"),
     [
@@ -599,13 +601,9 @@ def test_cmp1_no_pass(str_expr, str_expected):
     check_evaluation(str_expr, str_expected)
 
 
-@pytest.mark.skip(reason="fixes in progress...")
 @pytest.mark.parametrize(
     ("str_expr", "str_expected"),
     [
-                ("2.+ I Pi == Sqrt[I] Infinity", "False"),
-        ('2.+ I Pi == "a"', "False"),
-        ('2.+ I Pi == "1 / 4"', "False"),
         ("2.+ I Pi == I", "False"),
         ("2.+ I Pi == 0", "False"),
         ("2.+ I Pi == 1 / 4", "False"),
@@ -634,9 +632,9 @@ def test_cmp1_no_pass(str_expr, str_expected):
         ("Sqrt[I] Infinity == Sqrt[2]", "False"),
         ("Sqrt[I] Infinity == BesselJ[0, 2]", "False"),
         ("Sqrt[I] Infinity == 2.+ I Pi", "False"),
-        ('Infinity == "1 / 4"', "Infinity == 1 / 4"),
-        ("-Infinity == Compile[{x}, Sqrt[x]]", "False"),
-        ('-Infinity == "1 / 4"', "-Infinity == 1 / 4"),
+        ('Infinity == "1 / 4"', "\"Infinity == 1 / 4\""),
+        ("-Infinity == Compile[{x}, Sqrt[x]]", "-Infinity == Compile[{x}, Sqrt[x]]"),
+        ('-Infinity == "1 / 4"', "\"-Infinity == 1 / 4\""),
         ("BesselJ[0, 2] == Sqrt[I] Infinity", "False"),
         ("Sqrt[2] == Sqrt[I] Infinity", "False"),
         ("3+I Pi == Sqrt[I] Infinity", "False"),
