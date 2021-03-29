@@ -123,7 +123,8 @@ class _MPMathFunction(SympyFunction):
             prec = min_prec(*args)
             d = dps(prec)
             args = [
-                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation) for arg in args
+                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation)
+                for arg in args
             ]
             with mpmath.workprec(prec):
                 mpmath_args = [x.to_mpmath() for x in args]
@@ -689,7 +690,7 @@ class Times(BinaryOperator, SympyFunction):
                 )
             elif item.get_head().same(SymbolDirectedInfinity):
                 infinity_factor = True
-                if len(item.leaves)>1:
+                if len(item.leaves) > 1:
                     direction = item.leaves[0]
                     if isinstance(direction, Number):
                         numbers.append(direction)
@@ -1093,7 +1094,7 @@ class DirectedInfinity(SympyFunction):
     """
 
     rules = {
-        "DirectedInfinity[Indeterminate]":"Indeterminate",
+        "DirectedInfinity[Indeterminate]": "Indeterminate",
         "DirectedInfinity[args___] ^ -1": "0",
         "0 * DirectedInfinity[args___]": "Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate",
         "DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1": "DirectedInfinity[a / Abs[a]]",
@@ -1134,12 +1135,16 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
+        if len(expr._leaves) >= 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo
             elif dir == -1:
                 return -sympy.oo
+            else:
+                return sympy.Mul((expr._leaves[0].to_sympy()), sympy.zoo)
+        else:
+            return sympy.zoo
 
 
 class Re(SympyFunction):
