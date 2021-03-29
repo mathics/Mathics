@@ -1137,12 +1137,16 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
+        if len(expr._leaves) >= 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo
             elif dir == -1:
                 return -sympy.oo
+            else:
+                return sympy.Mul((expr._leaves[0].to_sympy()), sympy.zoo)
+        else:
+            return sympy.zoo
 
 
 class Re(SympyFunction):
