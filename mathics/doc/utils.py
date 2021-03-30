@@ -4,6 +4,7 @@
 import re
 import unicodedata
 
+
 def slugify(value):
     """
     Converts to lowercase, removes non-word characters apart from '$',
@@ -12,6 +13,8 @@ def slugify(value):
 
     Based on the Django version, but modified to preserve '$'.
     """
-    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub('[^$`\w\s-]', '', value).strip().lower()
-    return re.sub('[-\s`]+', '-', value)
+    value = (
+        unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    )
+    value = re.sub("[^$`\w\s-]", "", value).strip().lower()
+    return re.sub("[-\s`]+", "-", value)

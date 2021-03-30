@@ -148,7 +148,8 @@ def from_sympy(expr):
             )
         else:
             return Expression(
-                SymbolList, *[[from_sympy(item) for item in row] for row in expr.tolist()]
+                SymbolList,
+                *[[from_sympy(item) for item in row] for row in expr.tolist()]
             )
     if isinstance(expr, sympy.MatPow):
         return Expression("MatrixPower", from_sympy(expr.base), from_sympy(expr.exp))

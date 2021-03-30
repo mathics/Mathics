@@ -7,7 +7,12 @@ Graphics (3D)
 
 import numbers
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.core.expression import Expression, from_python, system_symbols_dict, SymbolList
+from mathics.core.expression import (
+    Expression,
+    from_python,
+    system_symbols_dict,
+    SymbolList,
+)
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from .graphics import (
     Graphics,

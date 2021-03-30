@@ -1328,7 +1328,9 @@ class Import(Builtin):
 
     def apply(self, filename, evaluation, options={}):
         "Import[filename_, OptionsPattern[]]"
-        return self.apply_elements(filename, Expression(SymbolList), evaluation, options)
+        return self.apply_elements(
+            filename, Expression(SymbolList), evaluation, options
+        )
 
     def apply_element(self, filename, element, evaluation, options={}):
         "Import[filename_, element_String, OptionsPattern[]]"
@@ -2190,6 +2192,7 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Decode[%]
      = Integrate[f[x], {x, 0, 2}]
     """
+
     # mmatera: please put in pytest conditionally
     # >> System`Convert`B64Dump`B64Encode["∫ f  x"]
     #  = 4oirIGYg752MIHg=

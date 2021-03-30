@@ -13,33 +13,44 @@ from heapq import heappush, heappop
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
-from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolFalse, SymbolTrue, String, Integer,
-                                     from_python, string_list)
+from mathics.core.expression import (
+    Expression,
+    Symbol,
+    SymbolFailed,
+    SymbolFalse,
+    SymbolTrue,
+    String,
+    Integer,
+    from_python,
+    string_list,
+)
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.settings import SYSTEM_CHARACTER_ENCODING
 
 
 _regex_longest = {
-    '+': '+',
-    '*': '*',
+    "+": "+",
+    "*": "*",
 }
 
 _regex_shortest = {
-    '+': '+?',
-    '*': '*?',
+    "+": "+?",
+    "*": "*?",
 }
 
 
 def _encode_pname(name):
-    return 'n' + hexlify(name.encode('utf8')).decode('utf8')
+    return "n" + hexlify(name.encode("utf8")).decode("utf8")
 
 
 def _decode_pname(name):
-    return unhexlify(name[1:]).decode('utf8')
+    return unhexlify(name[1:]).decode("utf8")
 
 
 def _evaluate_match(s, m, evaluation):
-    replace = dict((_decode_pname(name), String(value)) for name, value in m.groupdict().items())
+    replace = dict(
+        (_decode_pname(name), String(value)) for name, value in m.groupdict().items()
+    )
     return s.replace_vars(replace, in_scoping=False).evaluate(evaluation)
 
 
@@ -76,7 +87,9 @@ def _parallel_match(text, rules, flags, limit):
         push(i, iter, form)
 
 
-def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patterns=False):
+def to_regex(
+    expr, evaluation, q=_regex_longest, groups=None, abbreviated_patterns=False
+):
     if expr is None:
         return None
 
@@ -93,30 +106,30 @@ def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patter
             i, j = 0, 0
             while j < len(result):
                 c = result[j]
-                if c == '\\' and j + 1 < len(result):
+                if c == "\\" and j + 1 < len(result):
                     pieces.append(re.escape(result[i:j]))
-                    pieces.append(re.escape(result[j+1]))
+                    pieces.append(re.escape(result[j + 1]))
                     j += 2
                     i = j
-                elif c == '*':
+                elif c == "*":
                     pieces.append(re.escape(result[i:j]))
-                    pieces.append('(.*)')
+                    pieces.append("(.*)")
                     j += 1
                     i = j
-                elif c == '@':
+                elif c == "@":
                     pieces.append(re.escape(result[i:j]))
                     # one or more characters, excluding uppercase letters
-                    pieces.append('([^A-Z]+)')
+                    pieces.append("([^A-Z]+)")
                     j += 1
                     i = j
                 else:
                     j += 1
             pieces.append(re.escape(result[i:j]))
-            result = ''.join(pieces)
+            result = "".join(pieces)
         else:
             result = re.escape(result)
         return result
-    if expr.has_form('RegularExpression', 1):
+    if expr.has_form("RegularExpression", 1):
         regex = expr.leaves[0].get_string_value()
         if regex is None:
             return regex
@@ -126,99 +139,99 @@ def to_regex(expr, evaluation, q=_regex_longest, groups=None, abbreviated_patter
             # further e.g. StringExpression["abc", RegularExpression[regex2]].
             return regex
         except re.error:
-            return None     # invalid regex
+            return None  # invalid regex
 
     if isinstance(expr, Symbol):
         return {
-            'System`NumberString': r'[-|+]?(\d+(\.\d*)?|\.\d+)?',
-            'System`Whitespace': r'(?u)\s+',
-            'System`DigitCharacter': r'\d',
-            'System`WhitespaceCharacter': r'(?u)\s',
-            'System`WordCharacter': r'(?u)[^\W_]',
-            'System`StartOfLine': r'^',
-            'System`EndOfLine': r'$',
-            'System`StartOfString': r'\A',
-            'System`EndOfString': r'\Z',
-            'System`WordBoundary': r'\b',
-            'System`LetterCharacter': r'(?u)[^\W_0-9]',
-            'System`HexidecimalCharacter': r'[0-9a-fA-F]',
+            "System`NumberString": r"[-|+]?(\d+(\.\d*)?|\.\d+)?",
+            "System`Whitespace": r"(?u)\s+",
+            "System`DigitCharacter": r"\d",
+            "System`WhitespaceCharacter": r"(?u)\s",
+            "System`WordCharacter": r"(?u)[^\W_]",
+            "System`StartOfLine": r"^",
+            "System`EndOfLine": r"$",
+            "System`StartOfString": r"\A",
+            "System`EndOfString": r"\Z",
+            "System`WordBoundary": r"\b",
+            "System`LetterCharacter": r"(?u)[^\W_0-9]",
+            "System`HexidecimalCharacter": r"[0-9a-fA-F]",
         }.get(expr.get_name())
 
-    if expr.has_form('CharacterRange', 2):
+    if expr.has_form("CharacterRange", 2):
         (start, stop) = (leaf.get_string_value() for leaf in expr.leaves)
         if all(x is not None and len(x) == 1 for x in (start, stop)):
             return "[{0}-{1}]".format(re.escape(start), re.escape(stop))
 
-    if expr.has_form('Blank', 0):
-        return r'(.|\n)'
-    if expr.has_form('BlankSequence', 0):
-        return r'(.|\n)' + q['+']
-    if expr.has_form('BlankNullSequence', 0):
-        return r'(.|\n)' + q['*']
-    if expr.has_form('Except', 1, 2):
+    if expr.has_form("Blank", 0):
+        return r"(.|\n)"
+    if expr.has_form("BlankSequence", 0):
+        return r"(.|\n)" + q["+"]
+    if expr.has_form("BlankNullSequence", 0):
+        return r"(.|\n)" + q["*"]
+    if expr.has_form("Except", 1, 2):
         if len(expr.leaves) == 1:
-            leaves = [expr.leaves[0], Expression('Blank')]
+            leaves = [expr.leaves[0], Expression("Blank")]
         else:
             leaves = [expr.leaves[0], expr.leaves[1]]
         leaves = [recurse(leaf) for leaf in leaves]
         if all(leaf is not None for leaf in leaves):
-            return '(?!{0}){1}'.format(*leaves)
-    if expr.has_form('Characters', 1):
+            return "(?!{0}){1}".format(*leaves)
+    if expr.has_form("Characters", 1):
         leaf = expr.leaves[0].get_string_value()
         if leaf is not None:
-            return '[{0}]'.format(re.escape(leaf))
-    if expr.has_form('StringExpression', None):
+            return "[{0}]".format(re.escape(leaf))
+    if expr.has_form("StringExpression", None):
         leaves = [recurse(leaf) for leaf in expr.leaves]
         if None in leaves:
             return None
         return "".join(leaves)
-    if expr.has_form('Repeated', 1):
+    if expr.has_form("Repeated", 1):
         leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})'.format(leaf) + q['+']
-    if expr.has_form('RepeatedNull', 1):
+            return "({0})".format(leaf) + q["+"]
+    if expr.has_form("RepeatedNull", 1):
         leaf = recurse(expr.leaves[0])
         if leaf is not None:
-            return '({0})'.format(leaf) + q['*']
-    if expr.has_form('Alternatives', None):
+            return "({0})".format(leaf) + q["*"]
+    if expr.has_form("Alternatives", None):
         leaves = [recurse(leaf) for leaf in expr.leaves]
         if all(leaf is not None for leaf in leaves):
             return "|".join(leaves)
-    if expr.has_form('Shortest', 1):
+    if expr.has_form("Shortest", 1):
         return recurse(expr.leaves[0], quantifiers=_regex_shortest)
-    if expr.has_form('Longest', 1):
+    if expr.has_form("Longest", 1):
         return recurse(expr.leaves[0], quantifiers=_regex_longest)
-    if expr.has_form('Pattern', 2) and isinstance(expr.leaves[0], Symbol):
+    if expr.has_form("Pattern", 2) and isinstance(expr.leaves[0], Symbol):
         name = expr.leaves[0].get_name()
         patt = groups.get(name, None)
         if patt is not None:
-            if expr.leaves[1].has_form('Blank', 0):
+            if expr.leaves[1].has_form("Blank", 0):
                 pass  # ok, no warnings
             elif not expr.leaves[1].same(patt):
-                evaluation.message('StringExpression', 'cond', expr.leaves[0], expr, expr.leaves[0])
-            return '(?P=%s)' % _encode_pname(name)
+                evaluation.message(
+                    "StringExpression", "cond", expr.leaves[0], expr, expr.leaves[0]
+                )
+            return "(?P=%s)" % _encode_pname(name)
         else:
             groups[name] = expr.leaves[1]
-            return '(?P<%s>%s)' % (
-                _encode_pname(name),
-                recurse(expr.leaves[1]))
+            return "(?P<%s>%s)" % (_encode_pname(name), recurse(expr.leaves[1]))
 
     return None
 
 
 def anchor_pattern(patt):
-    '''
+    """
     anchors a regex in order to force matching against an entire string.
-    '''
-    if not patt.endswith(r'\Z'):
-        patt = patt + r'\Z'
-    if not patt.startswith(r'\A'):
-        patt = r'\A' + patt
+    """
+    if not patt.endswith(r"\Z"):
+        patt = patt + r"\Z"
+    if not patt.startswith(r"\A"):
+        patt = r"\A" + patt
     return patt
 
 
 def mathics_split(patt, string, flags):
-    '''
+    """
     Python's re.split includes the text of groups if they are capturing.
 
     Furthermore, you can't split on empty matches. Trying to do this returns
@@ -227,7 +240,7 @@ def mathics_split(patt, string, flags):
     some future version of Python (> 3.6).
 
     For these reasons we implement our own split.
-    '''
+    """
     # (start, end) indices of splits
     indices = list((m.start(), m.end()) for m in re.finditer(patt, string, flags))
 
@@ -240,19 +253,22 @@ def mathics_split(patt, string, flags):
 
 
 if version_info >= (3, 0):
+
     def pack_bytes(codes):
         return bytes(codes)
 
     def unpack_bytes(codes):
         return [int(code) for code in codes]
+
+
 else:
     from struct import pack, unpack
 
     def pack_bytes(codes):
-        return pack('B' * len(codes), *codes)
+        return pack("B" * len(codes), *codes)
 
     def unpack_bytes(codes):
-        return unpack('B' * len(codes), codes)
+        return unpack("B" * len(codes), codes)
 
 
 class SystemCharacterEncoding(Predefined):
@@ -262,10 +278,11 @@ class SystemCharacterEncoding(Predefined):
 
     </dl>
     """
+
     name = "$SystemCharacterEncoding"
 
     rules = {
-        '$SystemCharacterEncoding': '"' + SYSTEM_CHARACTER_ENCODING + '"',
+        "$SystemCharacterEncoding": '"' + SYSTEM_CHARACTER_ENCODING + '"',
     }
 
 
@@ -278,11 +295,11 @@ class CharacterEncoding(Predefined):
     </dl>
     """
 
-    name = '$CharacterEncoding'
+    name = "$CharacterEncoding"
     value = '"UTF-8"'
 
     rules = {
-        '$CharacterEncoding': value,
+        "$CharacterEncoding": value,
     }
 
 
@@ -336,11 +353,11 @@ def to_python_encoding(encoding):
 
 
 class CharacterEncodings(Predefined):
-    name = '$CharacterEncodings'
-    value = '{%s}' % ','.join(map(lambda s: '"%s"' % s, _encodings.keys()))
+    name = "$CharacterEncodings"
+    value = "{%s}" % ",".join(map(lambda s: '"%s"' % s, _encodings.keys()))
 
     rules = {
-        '$CharacterEncodings': value,
+        "$CharacterEncodings": value,
     }
 
 
@@ -361,22 +378,22 @@ class StringExpression(BinaryOperator):
      = a ~~ b
     """
 
-    operator = '~~'
+    operator = "~~"
     precedence = 135
-    attributes = ('Flat', 'OneIdentity', 'Protected')
+    attributes = ("Flat", "OneIdentity", "Protected")
 
     messages = {
-        'invld': 'Element `1` is not a valid string or pattern element in `2`.',
-        'cond': 'Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`.',
+        "invld": "Element `1` is not a valid string or pattern element in `2`.",
+        "cond": "Ignored restriction given for `1` in `2` as it does not match previous occurences of `1`.",
     }
 
     def apply(self, args, evaluation):
-        'StringExpression[args__String]'
+        "StringExpression[args__String]"
         args = args.get_sequence()
         args = [arg.get_string_value() for arg in args]
         if None in args:
             return
-        return String(''.join(args))
+        return String("".join(args))
 
 
 class RegularExpression(Builtin):
@@ -664,8 +681,9 @@ class DigitQ(Builtin):
     """
 
     rules = {
-        'DigitQ[string_]': (
-            'If[StringQ[string], StringMatchQ[string, DigitCharacter...], False, False]'),
+        "DigitQ[string_]": (
+            "If[StringQ[string], StringMatchQ[string, DigitCharacter...], False, False]"
+        ),
     }
 
 
@@ -696,8 +714,9 @@ class LetterQ(Builtin):
     """
 
     rules = {
-        'LetterQ[string_]': (
-            'If[StringQ[string], StringMatchQ[string, LetterCharacter...], False, False]'),
+        "LetterQ[string_]": (
+            "If[StringQ[string], StringMatchQ[string, LetterCharacter...], False, False]"
+        ),
     }
 
 
@@ -755,37 +774,42 @@ class StringMatchQ(Builtin):
      = False
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     options = {
-        'IgnoreCase': 'False',
-        'SpellingCorrections': 'None',
+        "IgnoreCase": "False",
+        "SpellingCorrections": "None",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
     }
 
     rules = {
-        'StringMatchQ[patt_][expr_]': 'StringMatchQ[expr, patt]',
+        "StringMatchQ[patt_][expr_]": "StringMatchQ[expr, patt]",
     }
 
     def apply(self, string, patt, evaluation, options):
-        'StringMatchQ[string_, patt_, OptionsPattern[%(name)s]]'
+        "StringMatchQ[string_, patt_, OptionsPattern[%(name)s]]"
         py_string = string.get_string_value()
         if py_string is None:
-            return evaluation.message('StringMatchQ', 'strse', Integer(1),
-                                      Expression('StringMatchQ', string, patt))
+            return evaluation.message(
+                "StringMatchQ",
+                "strse",
+                Integer(1),
+                Expression("StringMatchQ", string, patt),
+            )
 
         re_patt = to_regex(patt, evaluation, abbreviated_patterns=True)
         if re_patt is None:
-            return evaluation.message('StringExpression', 'invld', patt,
-                                      Expression('StringExpression', patt))
+            return evaluation.message(
+                "StringExpression", "invld", patt, Expression("StringExpression", patt)
+            )
 
         re_patt = anchor_pattern(re_patt)
 
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == SymbolTrue:
+        if options["System`IgnoreCase"] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         if re.match(re_patt, py_string, flags=flags) is None:
@@ -813,22 +837,22 @@ class StringJoin(BinaryOperator):
      | Hello world!
     """
 
-    operator = '<>'
+    operator = "<>"
     precedence = 600
-    attributes = ('Flat', 'OneIdentity')
+    attributes = ("Flat", "OneIdentity")
 
     def apply(self, items, evaluation):
-        'StringJoin[items___]'
+        "StringJoin[items___]"
 
-        result = ''
-        items = items.flatten(Symbol('List'))
-        if items.get_head_name() == 'System`List':
+        result = ""
+        items = items.flatten(Symbol("List"))
+        if items.get_head_name() == "System`List":
             items = items.leaves
         else:
             items = items.get_sequence()
         for item in items:
             if not isinstance(item, String):
-                evaluation.message('StringJoin', 'string')
+                evaluation.message("StringJoin", "string")
                 return
             result += item.value
         return String(result)
@@ -882,28 +906,29 @@ class StringSplit(Builtin):
     """
 
     rules = {
-        'StringSplit[s_]': 'StringSplit[s, Whitespace]',
+        "StringSplit[s_]": "StringSplit[s, Whitespace]",
     }
 
     options = {
-        'IgnoreCase': 'False',
-        'MetaCharacters': 'None',
+        "IgnoreCase": "False",
+        "MetaCharacters": "None",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
-        'pysplit': 'As of Python 3.5 re.split does not handle empty pattern matches.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
+        "pysplit": "As of Python 3.5 re.split does not handle empty pattern matches.",
     }
 
     def apply(self, string, patt, evaluation, options):
-        'StringSplit[string_, patt_, OptionsPattern[%(name)s]]'
+        "StringSplit[string_, patt_, OptionsPattern[%(name)s]]"
         py_string = string.get_string_value()
 
         if py_string is None:
-            return evaluation.message('StringSplit', 'strse', Integer(1),
-                                      Expression('StringSplit', string))
+            return evaluation.message(
+                "StringSplit", "strse", Integer(1), Expression("StringSplit", string)
+            )
 
-        if patt.has_form('List', None):
+        if patt.has_form("List", None):
             patts = patt.get_leaves()
         else:
             patts = [patt]
@@ -911,22 +936,22 @@ class StringSplit(Builtin):
         for p in patts:
             py_p = to_regex(p, evaluation)
             if py_p is None:
-                return evaluation.message('StringExpression', 'invld', p, patt)
+                return evaluation.message("StringExpression", "invld", p, patt)
             re_patts.append(py_p)
 
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == SymbolTrue:
+        if options["System`IgnoreCase"] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         result = [py_string]
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return string_list('List', [String(x) for x in result if x != ''], evaluation)
+        return string_list("List", [String(x) for x in result if x != ""], evaluation)
 
 
 class StringPosition(Builtin):
-    '''
+    """
     <dl>
     <dt>'StringPosition["$string$", $patt$]'
       <dd>gives a list of starting and ending positions where $patt$ matches "$string$".
@@ -977,56 +1002,62 @@ class StringPosition(Builtin):
 
     #> StringPosition["abc"]["123AabcDEabc"]
      = {{5, 7}, {10, 12}}
-    '''
+    """
 
     options = {
-        'IgnoreCase': 'False',
-        'MetaCharacters': 'None',
-        'Overlaps': 'True',
+        "IgnoreCase": "False",
+        "MetaCharacters": "None",
+        "Overlaps": "True",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
-        'overall': 'Overlaps -> All option is not currently implemented in Mathics.',
-        'innf': 'Non-negative integer or Infinity expected at position `2` in `1`.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
+        "overall": "Overlaps -> All option is not currently implemented in Mathics.",
+        "innf": "Non-negative integer or Infinity expected at position `2` in `1`.",
     }
 
     rules = {
-        'StringPosition[patt_][s_]': 'StringPosition[s, patt]',
+        "StringPosition[patt_][s_]": "StringPosition[s, patt]",
     }
 
     def apply(self, string, patt, evaluation, options):
-        'StringPosition[string_, patt_, OptionsPattern[StringPosition]]'
+        "StringPosition[string_, patt_, OptionsPattern[StringPosition]]"
 
-        return self.apply_n(string, patt, Expression('DirectedInfinity', Integer(1)), evaluation, options)
+        return self.apply_n(
+            string,
+            patt,
+            Expression("DirectedInfinity", Integer(1)),
+            evaluation,
+            options,
+        )
 
     def apply_n(self, string, patt, n, evaluation, options):
-        'StringPosition[string_, patt_, n:(_Integer|DirectedInfinity[1]), OptionsPattern[StringPosition]]'
+        "StringPosition[string_, patt_, n:(_Integer|DirectedInfinity[1]), OptionsPattern[StringPosition]]"
 
-        expr = Expression('StringPosition', string, patt, n)
+        expr = Expression("StringPosition", string, patt, n)
 
         # check n
-        if n.has_form('DirectedInfinity', 1):
-            py_n = float('inf')
+        if n.has_form("DirectedInfinity", 1):
+            py_n = float("inf")
         else:
             py_n = n.get_int_value()
             if py_n is None or py_n < 0:
-                return evaluation.message('StringPosition', 'innf', expr, Integer(3))
+                return evaluation.message("StringPosition", "innf", expr, Integer(3))
 
         # check options
-        if options['System`Overlaps'] == SymbolTrue:
+        if options["System`Overlaps"] == SymbolTrue:
             overlap = True
-        elif options['System`Overlaps'] == SymbolFalse:
+        elif options["System`Overlaps"] == SymbolFalse:
             overlap = False
-        elif options['System`Overlaps'] == Symbol('All'):
+        elif options["System`Overlaps"] == Symbol("All"):
             # TODO
-            evaluation.message('StringPosition', 'overall')
+            evaluation.message("StringPosition", "overall")
             overlap = True
         else:
-            overlap = False    # unknown options are teated as False
+            overlap = False  # unknown options are teated as False
 
         # convert patterns
-        if patt.has_form('List', None):
+        if patt.has_form("List", None):
             patts = patt.get_leaves()
         else:
             patts = [patt]
@@ -1034,17 +1065,20 @@ class StringPosition(Builtin):
         for p in patts:
             py_p = to_regex(p, evaluation)
             if py_p is None:
-                return evaluation.message('StringExpression', 'invld', p, patt)
+                return evaluation.message("StringExpression", "invld", p, patt)
             re_patts.append(py_p)
         compiled_patts = [re.compile(re_patt) for re_patt in re_patts]
 
         # string or list of strings
-        if string.has_form('List', None):
+        if string.has_form("List", None):
             py_strings = [s.get_string_value() for s in string.leaves]
             if None in py_strings:
                 return
-            results = [self.do_apply(py_string, compiled_patts, py_n, overlap) for py_string in py_strings]
-            return Expression('List', *results)
+            results = [
+                self.do_apply(py_string, compiled_patts, py_n, overlap)
+                for py_string in py_strings
+            ]
+            return Expression("List", *results)
         else:
             py_string = string.get_string_value()
             if py_string is None:
@@ -1062,7 +1096,7 @@ class StringPosition(Builtin):
                 if m is None:
                     continue
                 found_match = True
-                result.append([m.start() + 1, m.end()])    # 0 to 1 based indexing
+                result.append([m.start() + 1, m.end()])  # 0 to 1 based indexing
                 if len(result) == py_n:
                     return from_python(result)
                 if not overlap:
@@ -1090,72 +1124,72 @@ class StringLength(Builtin):
      = StringLength[x]
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     def apply(self, str, evaluation):
-        'StringLength[str_]'
+        "StringLength[str_]"
 
         if not isinstance(str, String):
-            evaluation.message('StringLength', 'string')
+            evaluation.message("StringLength", "string")
             return
         return Integer(len(str.value))
 
 
 class _StringFind(Builtin):
-    attributes = ('Protected')
+    attributes = "Protected"
 
     options = {
-        'IgnoreCase': 'False',
-        'MetaCharacters': 'None',
+        "IgnoreCase": "False",
+        "MetaCharacters": "None",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
-        'srep': '`1` is not a valid string replacement rule.',
-        'innf': ('Non-negative integer or Infinity expected at '
-                 'position `1` in `2`.'),
+        "strse": "String or list of strings expected at position `1` in `2`.",
+        "srep": "`1` is not a valid string replacement rule.",
+        "innf": (
+            "Non-negative integer or Infinity expected at " "position `1` in `2`."
+        ),
     }
 
     def _find(py_stri, py_rules, py_n, flags):
         raise NotImplementedError()
 
     def _apply(self, string, rule, n, evaluation, options, cases):
-        if n.same(Symbol('System`Private`Null')):
+        if n.same(Symbol("System`Private`Null")):
             expr = Expression(self.get_name(), string, rule)
             n = None
         else:
             expr = Expression(self.get_name(), string, rule, n)
 
         # convert string
-        if string.has_form('List', None):
+        if string.has_form("List", None):
             py_strings = [stri.get_string_value() for stri in string.leaves]
             if None in py_strings:
-                return evaluation.message(
-                    self.get_name(), 'strse', Integer(1), expr)
+                return evaluation.message(self.get_name(), "strse", Integer(1), expr)
         else:
             py_strings = string.get_string_value()
             if py_strings is None:
-                return evaluation.message(
-                    self.get_name(), 'strse', Integer(1), expr)
+                return evaluation.message(self.get_name(), "strse", Integer(1), expr)
 
         # convert rule
         def convert_rule(r):
-            if r.has_form('Rule', None) and len(r.leaves) == 2:
+            if r.has_form("Rule", None) and len(r.leaves) == 2:
                 py_s = to_regex(r.leaves[0], evaluation)
                 if py_s is None:
                     return evaluation.message(
-                        'StringExpression', 'invld', r.leaves[0], r.leaves[0])
+                        "StringExpression", "invld", r.leaves[0], r.leaves[0]
+                    )
                 py_sp = r.leaves[1]
                 return py_s, py_sp
             elif cases:
                 py_s = to_regex(r, evaluation)
                 if py_s is None:
-                    return evaluation.message('StringExpression', 'invld', r, r)
+                    return evaluation.message("StringExpression", "invld", r, r)
                 return py_s, None
 
-            return evaluation.message(self.get_name(), 'srep', r)
+            return evaluation.message(self.get_name(), "srep", r)
 
-        if rule.has_form('List', None):
+        if rule.has_form("List", None):
             py_rules = [convert_rule(r) for r in rule.leaves]
         else:
             py_rules = [convert_rule(rule)]
@@ -1165,21 +1199,26 @@ class _StringFind(Builtin):
         # convert n
         if n is None:
             py_n = 0
-        elif n == Expression('DirectedInfinity', Integer(1)):
+        elif n == Expression("DirectedInfinity", Integer(1)):
             py_n = 0
         else:
             py_n = n.get_int_value()
             if py_n is None or py_n < 0:
-                return evaluation.message(self.get_name(), 'innf', Integer(3), expr)
+                return evaluation.message(self.get_name(), "innf", Integer(3), expr)
 
         # flags
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == SymbolTrue:
+        if options["System`IgnoreCase"] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         if isinstance(py_strings, list):
             return Expression(
-                'List', *[self._find(py_stri, py_rules, py_n, flags, evaluation) for py_stri in py_strings])
+                "List",
+                *[
+                    self._find(py_stri, py_rules, py_n, flags, evaluation)
+                    for py_stri in py_strings
+                ]
+            )
         else:
             return self._find(py_strings, py_rules, py_n, flags, evaluation)
 
@@ -1276,7 +1315,7 @@ class StringReplace(_StringFind):
     """
 
     rules = {
-        'StringReplace[rule_][string_]': 'StringReplace[string, rule]',
+        "StringReplace[rule_][string_]": "StringReplace[string, rule]",
     }
 
     def _find(self, py_stri, py_rules, py_n, flags, evaluation):
@@ -1291,16 +1330,16 @@ class StringReplace(_StringFind):
             if k < len(py_stri):
                 yield String(py_stri[k:])
 
-        return Expression('StringJoin', *list(cases()))
+        return Expression("StringJoin", *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
-        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        "%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]"
         # this pattern is a slight hack to get around missing Shortest/Longest.
         return self._apply(string, rule, n, evaluation, options, False)
 
 
 class StringCases(_StringFind):
-    '''
+    """
     <dl>
     <dt>'StringCases["$string$", $pattern$]'
         <dd>gives all occurences of $pattern$ in $string$.
@@ -1344,10 +1383,10 @@ class StringCases(_StringFind):
 
     >> StringCases["a#ä_123", LetterCharacter]
      = {a, ä}
-    '''
+    """
 
     rules = {
-        'StringCases[rule_][string_]': 'StringCases[string, rule]',
+        "StringCases[rule_][string_]": "StringCases[string, rule]",
     }
 
     def _find(self, py_stri, py_rules, py_n, flags, evaluation):
@@ -1358,10 +1397,10 @@ class StringCases(_StringFind):
                 else:
                     yield _evaluate_match(form, match, evaluation)
 
-        return Expression('List', *list(cases()))
+        return Expression("List", *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
-        '%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]'
+        "%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]"
         # this pattern is a slight hack to get around missing Shortest/Longest.
         return self._apply(string, rule, n, evaluation, options, True)
 
@@ -1387,26 +1426,26 @@ class StringRepeat(Builtin):
     """
 
     messages = {
-        'intp': 'A positive integer is expected at position `1` in `2`.',
+        "intp": "A positive integer is expected at position `1` in `2`.",
     }
 
     def apply(self, s, n, expression, evaluation):
-        'StringRepeat[s_String, n_]'
+        "StringRepeat[s_String, n_]"
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, expression)
+            evaluation.message("StringRepeat", "intp", 2, expression)
         else:
             return String(s.get_string_value() * py_n)
 
     def apply_truncated(self, s, n, m, expression, evaluation):
-        'StringRepeat[s_String, n_Integer, m_Integer]'
+        "StringRepeat[s_String, n_Integer, m_Integer]"
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         py_m = m.get_int_value() if isinstance(m, Integer) else 0
 
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, expression)
+            evaluation.message("StringRepeat", "intp", 2, expression)
         elif py_m < 1:
-            evaluation.message('StringRepeat', 'intp', 3, expression)
+            evaluation.message("StringRepeat", "intp", 3, expression)
         else:
             py_s = s.get_string_value()
             py_n = min(1 + py_m // len(py_s), py_n)
@@ -1437,12 +1476,12 @@ class Characters(Builtin):
      = \u03B1\u03B2\u03B3
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     def apply(self, string, evaluation):
-        'Characters[string_String]'
+        "Characters[string_String]"
 
-        return Expression('List', *(String(c) for c in string.value))
+        return Expression("List", *(String(c) for c in string.value))
 
 
 class CharacterRange(Builtin):
@@ -1459,22 +1498,23 @@ class CharacterRange(Builtin):
      = {}
     """
 
-    attributes = ('ReadProtected',)
+    attributes = ("ReadProtected",)
 
     messages = {
-        'argtype': "Arguments `1` and `2` are not both strings of length 1.",
+        "argtype": "Arguments `1` and `2` are not both strings of length 1.",
     }
 
     def apply(self, start, stop, evaluation):
-        'CharacterRange[start_String, stop_String]'
+        "CharacterRange[start_String, stop_String]"
 
         if len(start.value) != 1 or len(stop.value) != 1:
-            evaluation.message('CharacterRange', 'argtype', start, stop)
+            evaluation.message("CharacterRange", "argtype", start, stop)
             return
         start = ord(start.value[0])
         stop = ord(stop.value[0])
-        return Expression('List', *[
-            String(chr(code)) for code in range(start, stop + 1)])
+        return Expression(
+            "List", *[String(chr(code)) for code in range(start, stop + 1)]
+        )
 
 
 class String_(Builtin):
@@ -1498,7 +1538,7 @@ class String_(Builtin):
      = Plus[2, "abc"]
     """
 
-    name = 'String'
+    name = "String"
 
 
 class LowerCaseQ(Test):
@@ -1532,7 +1572,7 @@ class ToLowerCase(Builtin):
     """
 
     def apply(self, s, evaluation):
-        'ToLowerCase[s_String]'
+        "ToLowerCase[s_String]"
         return String(s.get_string_value().lower())
 
 
@@ -1567,7 +1607,7 @@ class ToUpperCase(Builtin):
     """
 
     def apply(self, s, evaluation):
-        'ToUpperCase[s_String]'
+        "ToUpperCase[s_String]"
         return String(s.get_string_value().upper())
 
 
@@ -1591,18 +1631,20 @@ class ToString(Builtin):
      = U2
     """
 
-    options = { 'CharacterEncoding' : '"Unicode"',
-                'FormatType' : 'OutputForm',
-                'NumberMarks': '$NumberMarks',
-                'PageHeight' : 'Infinity',
-                'PageWidth' : 'Infinity',
-                'TotalHeight' : 'Infinity',
-                'TotalWidth' : 'Infinity'}
+    options = {
+        "CharacterEncoding": '"Unicode"',
+        "FormatType": "OutputForm",
+        "NumberMarks": "$NumberMarks",
+        "PageHeight": "Infinity",
+        "PageWidth": "Infinity",
+        "TotalHeight": "Infinity",
+        "TotalWidth": "Infinity",
+    }
 
     def apply(self, value, evaluation, **options):
-        'ToString[value_, OptionsPattern[ToString]]'
-        encoding = options['options']["System`CharacterEncoding"]
-        text = value.format(evaluation, 'System`OutputForm', encoding=encoding)
+        "ToString[value_, OptionsPattern[ToString]]"
+        encoding = options["options"]["System`CharacterEncoding"]
+        text = value.format(evaluation, "System`OutputForm", encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
@@ -1644,36 +1686,46 @@ class ToExpression(Builtin):
      = log x
     """
 
-    attributes = ('Listable', 'Protected')
+    attributes = ("Listable", "Protected")
 
     messages = {
-        'argb': ('`1` called with `2` arguments; '
-                 'between `3` and `4` arguments are expected.'),
-        'interpfmt': ('`1` is not a valid interpretation format. '
-                      'Valid interpretation formats include InputForm '
-                      'and any member of $BoxForms.'),
-        'notstr': 'The format type `1` is valid only for string input.',
+        "argb": (
+            "`1` called with `2` arguments; "
+            "between `3` and `4` arguments are expected."
+        ),
+        "interpfmt": (
+            "`1` is not a valid interpretation format. "
+            "Valid interpretation formats include InputForm "
+            "and any member of $BoxForms."
+        ),
+        "notstr": "The format type `1` is valid only for string input.",
     }
 
     def apply(self, seq, evaluation):
-        'ToExpression[seq__]'
+        "ToExpression[seq__]"
 
         # Organise Arguments
         py_seq = seq.get_sequence()
         if len(py_seq) == 1:
-            (inp, form, head) = (py_seq[0], Symbol('InputForm'), None)
+            (inp, form, head) = (py_seq[0], Symbol("InputForm"), None)
         elif len(py_seq) == 2:
             (inp, form, head) = (py_seq[0], py_seq[1], None)
         elif len(py_seq) == 3:
             (inp, form, head) = (py_seq[0], py_seq[1], py_seq[2])
         else:
             assert len(py_seq) > 3  # 0 case handled by apply_empty
-            evaluation.message('ToExpression', 'argb', 'ToExpression',
-                               Integer(len(py_seq)), Integer(1), Integer(3))
+            evaluation.message(
+                "ToExpression",
+                "argb",
+                "ToExpression",
+                Integer(len(py_seq)),
+                Integer(1),
+                Integer(3),
+            )
             return
 
         # Apply the differnet forms
-        if form == Symbol('InputForm'):
+        if form == Symbol("InputForm"):
             if isinstance(inp, String):
                 result = evaluation.parse(inp.get_string_value())
                 if result is None:
@@ -1681,7 +1733,7 @@ class ToExpression(Builtin):
             else:
                 result = inp
         else:
-            evaluation.message('ToExpression', 'interpfmt', form)
+            evaluation.message("ToExpression", "interpfmt", form)
             return
 
         # Apply head if present
@@ -1691,9 +1743,10 @@ class ToExpression(Builtin):
         return result
 
     def apply_empty(self, evaluation):
-        'ToExpression[]'
-        evaluation.message('ToExpression', 'argb', 'ToExpression',
-                           Integer(0), Integer(1), Integer(3))
+        "ToExpression[]"
+        evaluation.message(
+            "ToExpression", "argb", "ToExpression", Integer(0), Integer(1), Integer(3)
+        )
         return
 
 
@@ -1747,44 +1800,47 @@ class ToCharacterCode(Builtin):
     """
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
     }
 
     def _encode(self, string, encoding, evaluation):
-        exp = Expression('ToCharacterCode', string)
+        exp = Expression("ToCharacterCode", string)
 
-        if string.has_form('List', None):
-            string = [substring.get_string_value()
-                      for substring in string.leaves]
+        if string.has_form("List", None):
+            string = [substring.get_string_value() for substring in string.leaves]
             if any(substring is None for substring in string):
-                evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
+                evaluation.message("ToCharacterCode", "strse", Integer(1), exp)
                 return None
         else:
             string = string.get_string_value()
             if string is None:
-                evaluation.message('ToCharacterCode', 'strse', Integer(1), exp)
+                evaluation.message("ToCharacterCode", "strse", Integer(1), exp)
                 return None
 
-        if encoding == 'Unicode':
+        if encoding == "Unicode":
+
             def convert(s):
-                return Expression('List', *[Integer(ord(code)) for code in s])
+                return Expression("List", *[Integer(ord(code)) for code in s])
+
         else:
             py_encoding = to_python_encoding(encoding)
             if py_encoding is None:
-                evaluation.message('General', 'charcode', encoding)
+                evaluation.message("General", "charcode", encoding)
                 return
 
             def convert(s):
-                return Expression('List', *[Integer(x) for x in unpack_bytes(s.encode(py_encoding))])
+                return Expression(
+                    "List", *[Integer(x) for x in unpack_bytes(s.encode(py_encoding))]
+                )
 
         if isinstance(string, list):
-            return Expression('List', *[convert(substring) for substring in string])
+            return Expression("List", *[convert(substring) for substring in string])
         elif isinstance(string, str):
             return convert(string)
 
     def apply_default(self, string, evaluation):
         "ToCharacterCode[string_]"
-        return self._encode(string, 'Unicode', evaluation)
+        return self._encode(string, "Unicode", evaluation)
 
     def apply(self, string, encoding, evaluation):
         "ToCharacterCode[string_, encoding_String]"
@@ -1861,74 +1917,79 @@ class FromCharacterCode(Builtin):
     """
 
     messages = {
-        'notunicode': (
-            'A character code, which should be a non-negative integer less '
-            'than 65536, is expected at position `2` in `1`.'),
-        'intnm': (
-            'Non-negative machine-sized integer expected at '
-            'position `2` in `1`.'),
-        'utf8': 'The given codes could not be decoded as utf-8.',
+        "notunicode": (
+            "A character code, which should be a non-negative integer less "
+            "than 65536, is expected at position `2` in `1`."
+        ),
+        "intnm": (
+            "Non-negative machine-sized integer expected at " "position `2` in `1`."
+        ),
+        "utf8": "The given codes could not be decoded as utf-8.",
     }
 
     def _decode(self, n, encoding, evaluation):
-        exp = Expression('FromCharacterCode', n)
+        exp = Expression("FromCharacterCode", n)
 
         py_encoding = to_python_encoding(encoding)
         if py_encoding is None:
-            evaluation.message('General', 'charcode', encoding)
+            evaluation.message("General", "charcode", encoding)
             return
 
         def convert_codepoint_list(l):
-            if encoding == 'Unicode':
-                s = ''
+            if encoding == "Unicode":
+                s = ""
                 for i, ni in enumerate(l):
                     pyni = ni.get_int_value()
-                    if not(pyni is not None and 0 <= pyni <= 0xffff):
+                    if not (pyni is not None and 0 <= pyni <= 0xFFFF):
                         evaluation.message(
-                            'FromCharacterCode', 'notunicode',
-                            Expression('List', *l), Integer(i + 1))
+                            "FromCharacterCode",
+                            "notunicode",
+                            Expression("List", *l),
+                            Integer(i + 1),
+                        )
                         raise _InvalidCodepointError
                     s += chr(pyni)
                 return s
             else:
-                codes = [x.get_int_value() & 0xff for x in l]
+                codes = [x.get_int_value() & 0xFF for x in l]
                 return pack_bytes(codes).decode(py_encoding)
 
         try:
-            if n.has_form('List', None):
+            if n.has_form("List", None):
                 if not n.get_leaves():
-                    return String('')
+                    return String("")
                 # Mathematica accepts FromCharacterCode[{{100}, 101}],
                 # so to match this, just check the first leaf to see
                 # if we're dealing with nested lists.
-                elif n.get_leaves()[0].has_form('List', None):
+                elif n.get_leaves()[0].has_form("List", None):
                     list_of_strings = []
                     for leaf in n.get_leaves():
-                        if leaf.has_form('List', None):
+                        if leaf.has_form("List", None):
                             stringi = convert_codepoint_list(leaf.get_leaves())
                         else:
                             stringi = convert_codepoint_list([leaf])
                         list_of_strings.append(String(stringi))
-                    return Expression('List', *list_of_strings)
+                    return Expression("List", *list_of_strings)
                 else:
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
                 pyn = n.get_int_value()
                 if not (isinstance(pyn, int) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
-                        'FromCharacterCode', 'intnm', exp, Integer(1))
+                        "FromCharacterCode", "intnm", exp, Integer(1)
+                    )
                 return String(convert_codepoint_list([n]))
         except _InvalidCodepointError:
             return
         except UnicodeDecodeError:
-            evaluation.message(self.get_name(), 'utf8')
+            evaluation.message(self.get_name(), "utf8")
             return
 
         assert False, "can't get here"
 
     def apply_default(self, n, evaluation):
         "FromCharacterCode[n_]"
-        return self._decode(n, 'Unicode', evaluation)
+        return self._decode(n, "Unicode", evaluation)
 
     def apply(self, n, encoding, evaluation):
         "FromCharacterCode[n_, encoding_String]"
@@ -2003,17 +2064,17 @@ class StringTake(Builtin):
     """
 
     messages = {
-        'strse': 'String expected at position 1.',
-        'mseqs': 'Integer or list of two Intergers are expected at position 2.',
-        'take': 'Cannot take positions `1` through `2` in "`3`".',
+        "strse": "String expected at position 1.",
+        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "take": 'Cannot take positions `1` through `2` in "`3`".',
     }
 
     def apply(self, string, seqspec, evaluation):
-        'StringTake[string_, seqspec_]'
+        "StringTake[string_, seqspec_]"
 
         result = string.get_string_value()
         if result is None:
-            return evaluation.message('StringTake', 'strse')
+            return evaluation.message("StringTake", "strse")
 
         if isinstance(seqspec, Integer):
             pos = seqspec.get_int_value()
@@ -2025,13 +2086,13 @@ class StringTake(Builtin):
             seq = convert_seq(seqspec)
 
         if seq is None:
-            return evaluation.message('StringTake', 'mseqs')
+            return evaluation.message("StringTake", "mseqs")
 
         start, stop, step = seq
         py_slice = python_seq(start, stop, step, len(result))
 
         if py_slice is None:
-            return evaluation.message('StringTake', 'take', start, stop, string)
+            return evaluation.message("StringTake", "take", start, stop, string)
 
         return String(result[py_slice])
 
@@ -2062,37 +2123,38 @@ class StringDrop(Builtin):
     >> StringDrop["abcd",0]
     = abcd
     """
+
     messages = {
-        'strse': 'String expected at position 1.',
-        'mseqs': 'Integer or list of two Intergers are expected at position 2.',
-        'drop': 'Cannot drop positions `1` through `2` in "`3`".',
+        "strse": "String expected at position 1.",
+        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "drop": 'Cannot drop positions `1` through `2` in "`3`".',
     }
 
     def apply1_(self, string, n, evaluation):
-        'StringDrop[string_,n_Integer]'
+        "StringDrop[string_,n_Integer]"
         if not isinstance(string, String):
-            return evaluation.message('StringDrop', 'strse')
+            return evaluation.message("StringDrop", "strse")
         if isinstance(n, Integer):
             pos = n.value
             if pos > len(string.get_string_value()):
-                return evaluation.message('StringDrop', 'drop', 1, pos, string)
+                return evaluation.message("StringDrop", "drop", 1, pos, string)
             if pos < -len(string.get_string_value()):
-                return evaluation.message('StringDrop', 'drop', pos, -1, string)
+                return evaluation.message("StringDrop", "drop", pos, -1, string)
             if pos > 0:
                 return String(string.get_string_value()[pos:])
             if pos < 0:
                 return String(string.get_string_value()[:(pos)])
             if pos == 0:
                 return string
-        return evaluation.message('StringDrop', 'mseqs')
+        return evaluation.message("StringDrop", "mseqs")
 
     def apply2_(self, string, ni, nf, evaluation):
-        'StringDrop[string_,{ni_Integer,nf_Integer}]'
+        "StringDrop[string_,{ni_Integer,nf_Integer}]"
         if not isinstance(string, String):
-            return evaluation.message('StringDrop', 'strse', string)
+            return evaluation.message("StringDrop", "strse", string)
 
         if ni.value == 0 or nf.value == 0:
-            return evaluation.message('StringDrop', 'drop', ni, nf)
+            return evaluation.message("StringDrop", "drop", ni, nf)
         fullstring = string.get_string_value()
         lenfullstring = len(fullstring)
         posi = ni.value
@@ -2101,34 +2163,33 @@ class StringDrop(Builtin):
         posf = nf.value
         if posf < 0:
             posf = lenfullstring + posf + 1
-        if (posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0):
+        if posf > lenfullstring or posi > lenfullstring or posf <= 0 or posi <= 0:
             # positions out or range
-            return evaluation.message('StringDrop',
-                                      'drop', ni, nf, fullstring)
+            return evaluation.message("StringDrop", "drop", ni, nf, fullstring)
         if posf < posi:
-            return string           # this is what actually mma does
-        return String(fullstring[:(posi - 1)] + fullstring[posf:])
+            return string  # this is what actually mma does
+        return String(fullstring[: (posi - 1)] + fullstring[posf:])
 
     def apply3_(self, string, ni, evaluation):
-        'StringDrop[string_,{ni_Integer}]'
+        "StringDrop[string_,{ni_Integer}]"
         if not isinstance(string, String):
-            return evaluation.message('StringDrop', 'strse', string)
+            return evaluation.message("StringDrop", "strse", string)
         if ni.value == 0:
-            return evaluation.message('StringDrop', 'drop', ni, ni)
+            return evaluation.message("StringDrop", "drop", ni, ni)
         fullstring = string.get_string_value()
         lenfullstring = len(fullstring)
         posi = ni.value
         if posi < 0:
             posi = lenfullstring + posi + 1
         if posi > lenfullstring or posi <= 0:
-            return evaluation.message('StringDrop', 'drop', ni, ni, fullstring)
-        return String(fullstring[:(posi - 1)] + fullstring[posi:])
+            return evaluation.message("StringDrop", "drop", ni, ni, fullstring)
+        return String(fullstring[: (posi - 1)] + fullstring[posi:])
 
     def apply4_(self, string, something, evaluation):
-        'StringDrop[string_,something___]'
+        "StringDrop[string_,something___]"
         if not isinstance(string, String):
-            return evaluation.message('StringDrop', 'strse')
-        return evaluation.message('StringDrop', 'mseqs')
+            return evaluation.message("StringDrop", "strse")
+        return evaluation.message("StringDrop", "mseqs")
 
 
 class HammingDistance(Builtin):
@@ -2150,28 +2211,30 @@ class HammingDistance(Builtin):
     """
 
     messages = {
-        'idim': '`1` and `2` must be of same length.',
+        "idim": "`1` and `2` must be of same length.",
     }
 
     options = {
-        'IgnoreCase': 'False',
+        "IgnoreCase": "False",
     }
 
     @staticmethod
     def _compute(u, v, same, evaluation):
         if len(u) != len(v):
-            evaluation.message('HammingDistance', 'idim', u, v)
+            evaluation.message("HammingDistance", "idim", u, v)
             return None
         else:
             return Integer(sum(0 if same(x, y) else 1 for x, y in zip(u, v)))
 
     def apply_list(self, u, v, evaluation):
-        'HammingDistance[u_List, v_List]'
-        return HammingDistance._compute(u.leaves, v.leaves, lambda x, y: x.same(y), evaluation)
+        "HammingDistance[u_List, v_List]"
+        return HammingDistance._compute(
+            u.leaves, v.leaves, lambda x, y: x.same(y), evaluation
+        )
 
     def apply_string(self, u, v, evaluation, options):
-        'HammingDistance[u_String, v_String, OptionsPattern[HammingDistance]]'
-        ignore_case = self.get_option(options, 'IgnoreCase', evaluation)
+        "HammingDistance[u_String, v_String, OptionsPattern[HammingDistance]]"
+        ignore_case = self.get_option(options, "IgnoreCase", evaluation)
         py_u = u.get_string_value()
         py_v = v.get_string_value()
         if ignore_case and ignore_case.is_true():
@@ -2181,31 +2244,29 @@ class HammingDistance(Builtin):
 
 
 class _StringDistance(Builtin):
-    options = {
-        'IgnoreCase': 'False'
-    }
+    options = {"IgnoreCase": "False"}
 
     def apply(self, a, b, evaluation, options):
-        '%(name)s[a_, b_, OptionsPattern[%(name)s]]'
+        "%(name)s[a_, b_, OptionsPattern[%(name)s]]"
         if isinstance(a, String) and isinstance(b, String):
             py_a = a.get_string_value()
             py_b = b.get_string_value()
-            if options['System`IgnoreCase'] == SymbolTrue:
-                if hasattr(str, 'casefold'):
+            if options["System`IgnoreCase"] == SymbolTrue:
+                if hasattr(str, "casefold"):
+
                     def normalize(c):
                         return unicodedata.normalize("NFKD", c.casefold())
+
                     py_a = [normalize(c) for c in py_a]
                     py_b = [normalize(c) for c in py_b]
                 else:  # python2, PyPy
                     py_a = py_a.lower()
                     py_b = py_b.lower()
-            return Integer(self._distance(
-                py_a, py_b, lambda u, v: u == v))
-        elif a.get_head_name() == 'System`List' and b.get_head_name() == 'System`List':
-            return Integer(self._distance(
-                a.leaves, b.leaves, lambda u, v: u.same(v)))
+            return Integer(self._distance(py_a, py_b, lambda u, v: u == v))
+        elif a.get_head_name() == "System`List" and b.get_head_name() == "System`List":
+            return Integer(self._distance(a.leaves, b.leaves, lambda u, v: u.same(v)))
         else:
-            return Expression('EditDistance', a, b)
+            return Expression("EditDistance", a, b)
 
 
 # Levenshtein's algorithm is defined by the following construction:
@@ -2226,6 +2287,7 @@ class _StringDistance(Builtin):
 # The computed distance will be in D(len(s1) + 1, len(s2) + 1).
 #
 # note: double brackets indicate 1-based indices below, e.g. s1[[1]]
+
 
 def _one_based(l):  # makes an enumerated generator 1-based
     return ((i + 1, x) for i, x in l)
@@ -2249,12 +2311,13 @@ def _levenshtein_di(c1, s2, i, d_prev, same, cost):  # compute one new row
     d_curr_prev_j = i  # d_curr_prev_j stores D(i, j - 1)
 
     for j, c2 in _one_based(enumerate(s2)):  # c2 = s2[[j]]
-        cond = (0 if same(c1, c2) else cost)
+        cond = 0 if same(c1, c2) else cost
 
         d_curr_j = min(  # see (4)
             d_prev[j - 1] + cond,  # D(i - 1, j - 1) + cond; substitution
             d_curr_prev_j + 1,  # D(i, j - 1) + 1; insertion
-            d_prev[j] + 1)  # D(i - 1, j) + 1; deletion
+            d_prev[j] + 1,
+        )  # D(i - 1, j) + 1; deletion
 
         yield d_curr_j
         d_curr_prev_j = d_curr_j
@@ -2397,9 +2460,12 @@ class RemoveDiacritics(Builtin):
     """
 
     def apply(self, s, evaluation):
-        'RemoveDiacritics[s_String]'
-        return String(unicodedata.normalize(
-            'NFKD', s.get_string_value()).encode('ascii', 'ignore').decode('ascii'))
+        "RemoveDiacritics[s_String]"
+        return String(
+            unicodedata.normalize("NFKD", s.get_string_value())
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
 
 
 class Transliterate(Builtin):
@@ -2424,13 +2490,12 @@ class Transliterate(Builtin):
      = tsukau
     """
 
-    requires = (
-        'unidecode',
-    )
+    requires = ("unidecode",)
 
     def apply(self, s, evaluation):
-        'Transliterate[s_String]'
+        "Transliterate[s_String]"
         from unidecode import unidecode
+
         return String(unidecode(s.get_string_value()))
 
 
@@ -2449,26 +2514,26 @@ class StringTrim(Builtin):
     """
 
     def apply(self, s, evaluation):
-        'StringTrim[s_String]'
+        "StringTrim[s_String]"
         return String(s.get_string_value().strip(" \t\n"))
 
     def apply_pattern(self, s, patt, expression, evaluation):
-        'StringTrim[s_String, patt_]'
+        "StringTrim[s_String, patt_]"
         text = s.get_string_value()
         if not text:
             return s
 
         py_patt = to_regex(patt, evaluation)
         if py_patt is None:
-            return evaluation.message('StringExpression', 'invld', patt, expression)
+            return evaluation.message("StringExpression", "invld", patt, expression)
 
-        if not py_patt.startswith(r'\A'):
-            left_patt = r'\A' + py_patt
+        if not py_patt.startswith(r"\A"):
+            left_patt = r"\A" + py_patt
         else:
             left_patt = py_patt
 
-        if not py_patt.endswith(r'\Z'):
-            right_patt = py_patt + r'\Z'
+        if not py_patt.endswith(r"\Z"):
+            right_patt = py_patt + r"\Z"
         else:
             right_patt = py_patt
 
@@ -2586,46 +2651,50 @@ class StringInsert(Builtin):
      = 1.234.567.890.123.456    """
 
     messages = {
-        'strse':  'String or list of strings expected at position `1` in `2`.',
-        'string': 'String expected at position `1` in `2`.',
-        'ins':    'Cannot insert at position `1` in `2`.',
-        'psl':    'Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
+        "string": "String expected at position `1` in `2`.",
+        "ins": "Cannot insert at position `1` in `2`.",
+        "psl": "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
     }
 
     def _insert(self, str, add, lpos, evaluation):
         for pos in lpos:
-            if abs(pos) < 1 or abs(pos) > len(str)+1:
-                evaluation.message('StringInsert', 'ins', Integer(pos), String(str))
-                return evaluation.format_output(Expression('StringInsert', str, add, lpos[0] if len(lpos) == 1 else lpos))
+            if abs(pos) < 1 or abs(pos) > len(str) + 1:
+                evaluation.message("StringInsert", "ins", Integer(pos), String(str))
+                return evaluation.format_output(
+                    Expression(
+                        "StringInsert", str, add, lpos[0] if len(lpos) == 1 else lpos
+                    )
+                )
 
         # Create new list of position which are rearranged
         pos_limit = len(str) + 2
-        listpos = [p if p > 0 else pos_limit+p for p in lpos]
+        listpos = [p if p > 0 else pos_limit + p for p in lpos]
         listpos.sort()
 
-        result = ''
+        result = ""
         start = 0
         for pos in listpos:
             stop = pos - 1
             result += str[start:stop] + add
             start = stop
         else:
-            result += str[start:len(str)]
+            result += str[start : len(str)]
 
         return result
 
     def apply(self, strsource, strnew, pos, evaluation):
-        'StringInsert[strsource_, strnew_, pos_]'
+        "StringInsert[strsource_, strnew_, pos_]"
 
-        exp = Expression('StringInsert', strsource, strnew, pos)
+        exp = Expression("StringInsert", strsource, strnew, pos)
 
         py_strnew = strnew.get_string_value()
         if py_strnew is None:
-            return evaluation.message('StringInsert', 'string', Integer(2), exp)
+            return evaluation.message("StringInsert", "string", Integer(2), exp)
 
         # Check and create list of position
         listpos = []
-        if pos.has_form('List', None):
+        if pos.has_form("List", None):
             leaves = pos.get_leaves()
             if not leaves:
                 return strsource
@@ -2633,31 +2702,36 @@ class StringInsert(Builtin):
                 for i, posi in enumerate(leaves):
                     py_posi = posi.get_int_value()
                     if py_posi is None:
-                        return evaluation.message('StringInsert', 'psl', pos, exp)
+                        return evaluation.message("StringInsert", "psl", pos, exp)
                     listpos.append(py_posi)
         else:
             py_pos = pos.get_int_value()
             if py_pos is None:
-                return evaluation.message('StringInsert', 'psl', pos, exp)
+                return evaluation.message("StringInsert", "psl", pos, exp)
             listpos.append(py_pos)
 
         # Check and perform the insertion
-        if strsource.has_form('List', None):
-            py_strsource = [sub.get_string_value()
-                            for sub in strsource.leaves]
+        if strsource.has_form("List", None):
+            py_strsource = [sub.get_string_value() for sub in strsource.leaves]
             if any(sub is None for sub in py_strsource):
-                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
-            return Expression('List', *[String(self._insert(s, py_strnew, listpos, evaluation)) for s in py_strsource])
+                return evaluation.message("StringInsert", "strse", Integer(1), exp)
+            return Expression(
+                "List",
+                *[
+                    String(self._insert(s, py_strnew, listpos, evaluation))
+                    for s in py_strsource
+                ]
+            )
         else:
             py_strsource = strsource.get_string_value()
             if py_strsource is None:
-                return evaluation.message('StringInsert', 'strse', Integer(1), exp)
+                return evaluation.message("StringInsert", "strse", Integer(1), exp)
             return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
 
 
 def _pattern_search(name, string, patt, evaluation, options, matched):
     # Get the pattern list and check validity for each
-    if patt.has_form('List', None):
+    if patt.has_form("List", None):
         patts = patt.get_leaves()
     else:
         patts = [patt]
@@ -2665,11 +2739,11 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
     for p in patts:
         py_p = to_regex(p, evaluation)
         if py_p is None:
-            return evaluation.message('StringExpression', 'invld', p, patt)
+            return evaluation.message("StringExpression", "invld", p, patt)
         re_patts.append(py_p)
 
     flags = re.MULTILINE
-    if options['System`IgnoreCase'] == SymbolTrue:
+    if options["System`IgnoreCase"] == SymbolTrue:
         flags = flags | re.IGNORECASE
 
     def _search(patts, str, flags, matched):
@@ -2678,17 +2752,19 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
         return SymbolFalse if matched else SymbolTrue
 
     # Check string validity and perform regex searchhing
-    if string.has_form('List', None):
+    if string.has_form("List", None):
         py_s = [s.get_string_value() for s in string.leaves]
         if any(s is None for s in py_s):
-            return evaluation.message(name, 'strse', Integer(1),
-                                      Expression(name, string, patt))
-        return Expression('List', *[_search(re_patts, s, flags, matched) for s in py_s])
+            return evaluation.message(
+                name, "strse", Integer(1), Expression(name, string, patt)
+            )
+        return Expression("List", *[_search(re_patts, s, flags, matched) for s in py_s])
     else:
         py_s = string.get_string_value()
         if py_s is None:
-            return evaluation.message(name, 'strse', Integer(1),
-                                      Expression(name, string, patt))
+            return evaluation.message(
+                name, "strse", Integer(1), Expression(name, string, patt)
+            )
         return _search(re_patts, py_s, flags, matched)
 
 
@@ -2769,20 +2845,22 @@ class StringContainsQ(Builtin):
     """
 
     options = {
-        'IgnoreCase': 'False',
+        "IgnoreCase": "False",
     }
 
     rules = {
-        'StringContainsQ[patt_][expr_]': 'StringContainsQ[expr, patt]',
+        "StringContainsQ[patt_][expr_]": "StringContainsQ[expr, patt]",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
     }
 
     def apply(self, string, patt, evaluation, options):
-        'StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]'
-        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, True)
+        "StringContainsQ[string_, patt_, OptionsPattern[%(name)s]]"
+        return _pattern_search(
+            self.__class__.__name__, string, patt, evaluation, options, True
+        )
 
 
 class StringFreeQ(Builtin):
@@ -2863,20 +2941,22 @@ class StringFreeQ(Builtin):
     """
 
     options = {
-        'IgnoreCase': 'False',
+        "IgnoreCase": "False",
     }
 
     rules = {
-        'StringFreeQ[patt_][expr_]': 'StringFreeQ[expr, patt]',
+        "StringFreeQ[patt_][expr_]": "StringFreeQ[expr, patt]",
     }
 
     messages = {
-        'strse': 'String or list of strings expected at position `1` in `2`.',
+        "strse": "String or list of strings expected at position `1` in `2`.",
     }
 
     def apply(self, string, patt, evaluation, options):
-        'StringFreeQ[string_, patt_, OptionsPattern[%(name)s]]'
-        return _pattern_search(self.__class__.__name__, string, patt, evaluation, options, False)
+        "StringFreeQ[string_, patt_, OptionsPattern[%(name)s]]"
+        return _pattern_search(
+            self.__class__.__name__, string, patt, evaluation, options, False
+        )
 
 
 class StringRiffle(Builtin):
@@ -2940,55 +3020,65 @@ class StringRiffle(Builtin):
      = StringRiffle[{a, b, c}, +, -]
     """
 
-    attributes = ('ReadProtected', )
+    attributes = ("ReadProtected",)
 
     messages = {
-        'list': 'List expected at position `1` in `2`.',
-        'argmu': 'StringRiffle called with 1 argument; 2 or more arguments are expected.',
-        'argm':  'StringRiffle called with 0 arguments; 2 or more arguments are expected.',
-        'string': 'String expected at position `1` in `2`.',
-        'sublist': 'Sublist form in position 1 is is not implemented yet.',
-        'mulsep':  'Multiple separators form is not implemented yet.',
+        "list": "List expected at position `1` in `2`.",
+        "argmu": "StringRiffle called with 1 argument; 2 or more arguments are expected.",
+        "argm": "StringRiffle called with 0 arguments; 2 or more arguments are expected.",
+        "string": "String expected at position `1` in `2`.",
+        "sublist": "Sublist form in position 1 is is not implemented yet.",
+        "mulsep": "Multiple separators form is not implemented yet.",
     }
 
     def apply(self, liststr, seps, evaluation):
-        'StringRiffle[liststr_, seps___]'
+        "StringRiffle[liststr_, seps___]"
         separators = seps.get_sequence()
-        exp = Expression('StringRiffle', liststr, seps) if separators else Expression('StringRiffle', liststr)
+        exp = (
+            Expression("StringRiffle", liststr, seps)
+            if separators
+            else Expression("StringRiffle", liststr)
+        )
 
         # Validate separators
         if len(separators) > 1:
-            return evaluation.message('StringRiffle', 'mulsep')
+            return evaluation.message("StringRiffle", "mulsep")
         elif len(separators) == 1:
-            if separators[0].has_form('List', None):
-                if len(separators[0].leaves) != 3 or any(not isinstance(s, String) for s in separators[0].leaves):
-                    return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+            if separators[0].has_form("List", None):
+                if len(separators[0].leaves) != 3 or any(
+                    not isinstance(s, String) for s in separators[0].leaves
+                ):
+                    return evaluation.message("StringRiffle", "string", Integer(2), exp)
             elif not isinstance(separators[0], String):
-                return evaluation.message('StringRiffle', 'string', Integer(2), exp)
+                return evaluation.message("StringRiffle", "string", Integer(2), exp)
 
         # Validate list of string
-        if not liststr.has_form('List', None):
-            evaluation.message('StringRiffle', 'list', Integer(1), exp)
-            return evaluation.message('StringRiffle', 'argmu', exp)
-        elif any(leaf.has_form('List', None) for leaf in liststr.leaves):
-            return evaluation.message('StringRiffle', 'sublist')
+        if not liststr.has_form("List", None):
+            evaluation.message("StringRiffle", "list", Integer(1), exp)
+            return evaluation.message("StringRiffle", "argmu", exp)
+        elif any(leaf.has_form("List", None) for leaf in liststr.leaves):
+            return evaluation.message("StringRiffle", "sublist")
 
         # Determine the separation token
-        left, right = '', ''
+        left, right = "", ""
         if len(separators) == 0:
-            sep = ' '
+            sep = " "
         else:
-            if separators[0].has_form('List', None):
-                left  = separators[0].leaves[0].value
-                sep   = separators[0].leaves[1].value
+            if separators[0].has_form("List", None):
+                left = separators[0].leaves[0].value
+                sep = separators[0].leaves[1].value
                 right = separators[0].leaves[2].value
             else:
-                sep   = separators[0].get_string_value()
+                sep = separators[0].get_string_value()
 
         # Getting all together
         result = left
         for i in range(len(liststr.leaves)):
-            text = liststr.leaves[i].format(evaluation, 'System`OutputForm').boxes_to_text(evaluation=evaluation)
+            text = (
+                liststr.leaves[i]
+                .format(evaluation, "System`OutputForm")
+                .boxes_to_text(evaluation=evaluation)
+            )
             if i == len(liststr.leaves) - 1:
                 result += text + right
             else:

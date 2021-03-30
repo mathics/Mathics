@@ -57,7 +57,9 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
 
     xd = x1 - x0
     offsets = [MachineReal(x0 + float(xd * i) / float(n - 1)) for i in range(n)]
-    colors = Expression("Map", blend, Expression(SymbolList, *offsets)).evaluate(evaluation)
+    colors = Expression("Map", blend, Expression(SymbolList, *offsets)).evaluate(
+        evaluation
+    )
     if len(colors.leaves) != n:
         return
 
@@ -84,7 +86,12 @@ class _GradientColorScheme(object):
         blend = Expression(
             "Function", Expression("Blend", colors, Expression("Slot", 1))
         )
-        arguments = [String(name), String("Gradients"), Expression(SymbolList, 0, 1), blend]
+        arguments = [
+            String(name),
+            String("Gradients"),
+            Expression(SymbolList, 0, 1),
+            blend,
+        ]
         return Expression("ColorDataFunction", *arguments)
 
 
@@ -194,7 +201,9 @@ class ColorData(Builtin):
         "ColorData[name_String]"
         py_name = name.get_string_value()
         if py_name == "Gradients":
-            return Expression(SymbolList, *[String(name) for name in self.palettes.keys()])
+            return Expression(
+                SymbolList, *[String(name) for name in self.palettes.keys()]
+            )
         palette = ColorData.palettes.get(py_name, None)
         if palette is None:
             evaluation.message("ColorData", "notent", name)
@@ -389,7 +398,9 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
     quiet_expr = Expression(
         "Quiet",
         expr,
-        Expression(SymbolList, Expression("MessageName", Symbol("Power"), String("infy"))),
+        Expression(
+            SymbolList, Expression("MessageName", Symbol("Power"), String("infy"))
+        ),
     )
 
     def quiet_f(*args):
@@ -819,7 +830,9 @@ class _Plot(Builtin):
             for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression("Hue", hue, 0.6, 0.6))
                 meshpoints = [Expression(SymbolList, xx, yy) for xx, yy in points]
-                graphics.append(Expression("Point", Expression(SymbolList, *meshpoints)))
+                graphics.append(
+                    Expression("Point", Expression(SymbolList, *meshpoints))
+                )
 
         return Expression(
             "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
@@ -920,7 +933,9 @@ class _Chart(Builtin):
                     Expression(
                         "List", Expression("FaceForm", color), Expression("Rectangle")
                     ),
-                    Expression(SymbolRule, Symbol("ImageSize"), Expression(SymbolList, 50, 50)),
+                    Expression(
+                        SymbolRule, Symbol("ImageSize"), Expression(SymbolList, 50, 50)
+                    ),
                 )
 
             rows_per_col = 5
@@ -1149,10 +1164,7 @@ class BarChart(_Chart):
 
     options = _Chart.options.copy()
     options.update(
-        {
-            "Axes": "{False, True}",
-            "AspectRatio": "1 / GoldenRatio",
-        }
+        {"Axes": "{False, True}", "AspectRatio": "1 / GoldenRatio",}
     )
 
     def _draw(self, data, color, evaluation, options):
@@ -1445,7 +1457,9 @@ class Histogram(Builtin):
             options["System`PlotRange"] = from_python([x_range, y_range])
 
             return Expression(
-                "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
+                "Graphics",
+                Expression(SymbolList, *graphics),
+                *options_to_rules(options)
             )
 
         def manual_bins(bspec, hspec):
@@ -2296,9 +2310,7 @@ class PolarPlot(_Plot):
 
     options = _Plot.options.copy()
     options.update(
-        {
-            "AspectRatio": "1",
-        }
+        {"AspectRatio": "1",}
     )
 
     def get_functions_param(self, functions):
@@ -2638,7 +2650,9 @@ class DensityPlot(_Plot3D):
         vertex_colors = []
         graphics = []
         for p in triangles:
-            points.append(Expression(SymbolList, *(Expression(SymbolList, *x[:2]) for x in p)))
+            points.append(
+                Expression(SymbolList, *(Expression(SymbolList, *x[:2]) for x in p))
+            )
             vertex_colors.append(Expression(SymbolList, *(eval_color(*x) for x in p)))
 
         graphics.append(
@@ -2646,7 +2660,9 @@ class DensityPlot(_Plot3D):
                 "Polygon",
                 Expression(SymbolList, *points),
                 Expression(
-                    "Rule", Symbol("VertexColors"), Expression(SymbolList, *vertex_colors)
+                    "Rule",
+                    Symbol("VertexColors"),
+                    Expression(SymbolList, *vertex_colors),
                 ),
             )
         )
@@ -2656,7 +2672,9 @@ class DensityPlot(_Plot3D):
             line = []
             for yi in range(len(mesh_points[xi])):
                 line.append(
-                    Expression(SymbolList, mesh_points[xi][yi][0], mesh_points[xi][yi][1])
+                    Expression(
+                        SymbolList, mesh_points[xi][yi][0], mesh_points[xi][yi][1]
+                    )
                 )
             graphics.append(Expression("Line", Expression(SymbolList, *line)))
 

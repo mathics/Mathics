@@ -23,26 +23,26 @@ class GenericConverter(object):
         else:
             head = self.do_convert(node.head)
             children = [self.do_convert(child) for child in node.children]
-            return 'Expression', head, children
+            return "Expression", head, children
 
     @staticmethod
     def string_escape(s):
-        s = s.replace('\\\\', '\\').replace('\\"', '"')
-        s = s.replace('\\r\\n', '\r\n')
-        s = s.replace('\\r', '\r')
-        s = s.replace('\\n', '\n')
-        s = s.replace('\\t', '\t')
+        s = s.replace("\\\\", "\\").replace('\\"', '"')
+        s = s.replace("\\r\\n", "\r\n")
+        s = s.replace("\\r", "\r")
+        s = s.replace("\\n", "\n")
+        s = s.replace("\\t", "\t")
         return s
 
     def convert_Symbol(self, node):
         if node.context is not None:
-            return 'Symbol', node.context + '`' + node.value
+            return "Symbol", node.context + "`" + node.value
         else:
-            return 'Lookup', node.value
+            return "Lookup", node.value
 
     def convert_String(self, node):
         value = self.string_escape(node.value)
-        return 'String', value
+        return "String", value
 
     def convert_Filename(self, node):
         s = node.value
@@ -50,8 +50,8 @@ class GenericConverter(object):
             assert s.endswith('"')
             s = s[1:-1]
         s = self.string_escape(s)
-        s = s.replace('\\', '\\\\')
-        return 'String', s
+        s = s.replace("\\", "\\\\")
+        return "String", s
 
     def convert_Number(self, node):
         s = node.value
@@ -61,43 +61,55 @@ class GenericConverter(object):
         n = node.exp
 
         # Look for decimal point
-        if '.' not in s:
+        if "." not in s:
             if suffix is None:
                 if n < 0:
-                    return 'Rational', sign * int(s, base), base ** abs(n)
+                    return "Rational", sign * int(s, base), base ** abs(n)
                 else:
-                    return 'Integer', sign * int(s, base) * (base ** n)
+                    return "Integer", sign * int(s, base) * (base ** n)
             else:
-                s = s + '.'
+                s = s + "."
 
         if base == 10:
             man = s
             if n != 0:
-                s = s + 'E' + str(n)
+                s = s + "E" + str(n)
 
             if suffix is None:
                 # MachineReal/PrecisionReal is determined by number of digits
                 # in the mantissa
-                d = len(man) - 2    # one less for decimal point
+                d = len(man) - 2  # one less for decimal point
                 if d < reconstruct_digits(machine_precision):
-                    return 'MachineReal', sign * float(s)
+                    return "MachineReal", sign * float(s)
                 else:
-                    return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), d
-            elif suffix == '':
-                return 'MachineReal', sign * float(s)
-            elif suffix.startswith('`'):
+                    return (
+                        "PrecisionReal",
+                        ("DecimalString", str("-" + s if sign == -1 else s)),
+                        d,
+                    )
+            elif suffix == "":
+                return "MachineReal", sign * float(s)
+            elif suffix.startswith("`"):
                 acc = float(suffix[1:])
                 x = float(s)
                 if x == 0:
                     prec10 = acc
                 else:
                     prec10 = acc + log10(x)
-                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), prec10
+                return (
+                    "PrecisionReal",
+                    ("DecimalString", str("-" + s if sign == -1 else s)),
+                    prec10,
+                )
             else:
-                return 'PrecisionReal', ('DecimalString', str('-' + s if sign == -1 else s)), float(suffix)
+                return (
+                    "PrecisionReal",
+                    ("DecimalString", str("-" + s if sign == -1 else s)),
+                    float(suffix),
+                )
 
         # Put into standard form mantissa * base ^ n
-        s = s.split('.')
+        s = s.split(".")
         if len(s) == 1:
             man = s[0]
         else:
@@ -110,7 +122,7 @@ class GenericConverter(object):
         else:
             p = man
             q = base ** -n
-        result = 'Rational', p, q
+        result = "Rational", p, q
         x = float(sympy.Rational(p, q))
 
         # determine `prec10` the digits of precision in base 10
@@ -123,9 +135,9 @@ class GenericConverter(object):
                 prec10 = acc10 + log10(abs(x))
             if prec10 < reconstruct_digits(machine_precision):
                 prec10 = None
-        elif suffix == '':
+        elif suffix == "":
             prec10 = None
-        elif suffix.startswith('`'):
+        elif suffix.startswith("`"):
             acc = float(suffix[1:])
             acc10 = acc * log10(base)
             if x == 0:
@@ -137,9 +149,9 @@ class GenericConverter(object):
             prec10 = prec * log10(base)
 
         if prec10 is None:
-            return 'MachineReal', x
+            return "MachineReal", x
         else:
-            return 'PrecisionReal', result, prec10
+            return "PrecisionReal", result, prec10
 
 
 class Converter(GenericConverter):
@@ -154,7 +166,7 @@ class Converter(GenericConverter):
 
     def do_convert(self, node):
         result = GenericConverter.do_convert(self, node)
-        return getattr(self, '_make_' + result[0])(*result[1:])
+        return getattr(self, "_make_" + result[0])(*result[1:])
 
     def _make_Symbol(self, s):
         return ma.Symbol(s)
@@ -176,10 +188,10 @@ class Converter(GenericConverter):
         return ma.MachineReal(x)
 
     def _make_PrecisionReal(self, value, prec):
-        if value[0] == 'Rational':
+        if value[0] == "Rational":
             assert len(value) == 3
             x = sympy.Rational(*value[1:])
-        elif value[0] == 'DecimalString':
+        elif value[0] == "DecimalString":
             assert len(value) == 2
             x = value[1]
         else:

@@ -9,7 +9,14 @@ from itertools import combinations
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, SympyFunction
-from mathics.core.expression import Expression, Integer, Rational, Symbol, from_python, SymbolN
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Rational,
+    Symbol,
+    from_python,
+    SymbolN,
+)
 from mathics.core.convert import from_sympy, SympyPrime
 import mpmath
 

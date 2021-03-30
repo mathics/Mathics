@@ -20,12 +20,10 @@ from mathics.core.expression import (
     SymbolInfinity,
     String,
     Integer,
-    from_python)
-
-from mathics.core.evaluation import (
-    TimeoutInterrupt,
-    run_with_timeout_and_stack
+    from_python,
 )
+
+from mathics.core.evaluation import TimeoutInterrupt, run_with_timeout_and_stack
 
 from mathics.builtin.base import Builtin, Predefined
 from mathics.settings import TIME_12HOUR
@@ -87,6 +85,7 @@ DATE_STRING_FORMATS = {
 EPOCH_START = datetime(1900, 1, 1)
 
 if not hasattr(timedelta, "total_seconds"):
+
     def total_seconds(td):
         return (
             float(td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6)
@@ -128,6 +127,7 @@ class TimeRemaining(Builtin):
 
 
 if sys.platform != "win32":
+
     class TimeConstrained(Builtin):
         """
         <dl>
@@ -156,25 +156,25 @@ if sys.platform != "win32":
 
         """
 
-        attributes = ('HoldAll',)
+        attributes = ("HoldAll",)
         messages = {
-            'timc': 'Number of seconds `1` is not a positive machine-sized number or Infinity.',
+            "timc": "Number of seconds `1` is not a positive machine-sized number or Infinity.",
         }
 
         def apply_2(self, expr, t, evaluation):
-            'TimeConstrained[expr_, t_]'
+            "TimeConstrained[expr_, t_]"
             return self.apply_3(expr, t, SymbolAborted, evaluation)
 
         def apply_3(self, expr, t, failexpr, evaluation):
-            'TimeConstrained[expr_, t_, failexpr_]'
+            "TimeConstrained[expr_, t_, failexpr_]"
             t = t.evaluate(evaluation)
             if not t.is_numeric():
-                evaluation.message('TimeConstrained', 'timc', t)
+                evaluation.message("TimeConstrained", "timc", t)
                 return
             try:
                 t = float(t.to_python())
                 evaluation.timeout_queue.append((t, datetime.now().timestamp()))
-                request = lambda : expr.evaluate(evaluation)
+                request = lambda: expr.evaluate(evaluation)
                 res = run_with_timeout_and_stack(request, t, evaluation)
             except TimeoutInterrupt:
                 evaluation.timeout_queue.pop()
@@ -200,15 +200,15 @@ class Timing(Builtin):
      = {HoldAll, Protected}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     def apply(self, expr, evaluation):
-        'Timing[expr_]'
+        "Timing[expr_]"
 
         start = time.process_time()
         result = expr.evaluate(evaluation)
         stop = time.process_time()
-        return Expression('List', Real(stop - start), result)
+        return Expression("List", Real(stop - start), result)
 
 
 class AbsoluteTiming(Builtin):
@@ -224,15 +224,15 @@ class AbsoluteTiming(Builtin):
      = {HoldAll, Protected}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     def apply(self, expr, evaluation):
-        'AbsoluteTiming[expr_]'
+        "AbsoluteTiming[expr_]"
 
         start = time.time()
         result = expr.evaluate(evaluation)
         stop = time.time()
-        return Expression('List', Real(stop - start), result)
+        return Expression("List", Real(stop - start), result)
 
 
 class DateStringFormat(Predefined):
@@ -246,25 +246,27 @@ class DateStringFormat(Predefined):
      = {DateTimeShort}
     """
 
-    name = '$DateStringFormat'
+    name = "$DateStringFormat"
 
-    value = 'DateTimeShort'
+    value = "DateTimeShort"
 
     # TODO: Methods to change this
 
     def evaluate(self, evaluation):
-        return Expression('List', String(self.value))
+        return Expression("List", String(self.value))
 
 
 class _DateFormat(Builtin):
     messages = {
-        'arg': 'Argument `1` cannot be interpreted as a date or time input.',
-        'str': 'String `1` cannot be interpreted as a date in format `2`.',
-        'ambig': 'The interpretation of `1` is ambiguous.',
-        'fmt': '`1` is not a valid date format.',
+        "arg": "Argument `1` cannot be interpreted as a date or time input.",
+        "str": "String `1` cannot be interpreted as a date in format `2`.",
+        "ambig": "The interpretation of `1` is ambiguous.",
+        "fmt": "`1` is not a valid date format.",
     }
 
-    automatic = re.compile(r'^([0-9]{1,4})\s*([^0-9]*)\s*([0-9]{1,2})\s*\2\s*([0-9]{1,4})\s*')
+    automatic = re.compile(
+        r"^([0-9]{1,4})\s*([^0-9]*)\s*([0-9]{1,2})\s*\2\s*([0-9]{1,4})\s*"
+    )
 
     def parse_date_automatic(self, epochtime, etime, evaluation):
         m = _DateFormat.automatic.search(etime)
@@ -276,26 +278,32 @@ class _DateFormat(Builtin):
 
         if len(x1) <= 2:
             if i1 > 12:
-                month_day = '%d %m'
+                month_day = "%d %m"
                 is_ambiguous = False
             else:
-                month_day = '%m %d'
-                is_ambiguous = not(i2 > 12 or i1 == i2)  # is i2 not clearly a day?
+                month_day = "%m %d"
+                is_ambiguous = not (i2 > 12 or i1 == i2)  # is i2 not clearly a day?
 
             if len(x3) <= 2:
-                date = datetime.strptime('%02d %02d %02d' % (i1, i2, i3), month_day + ' %y')
+                date = datetime.strptime(
+                    "%02d %02d %02d" % (i1, i2, i3), month_day + " %y"
+                )
             else:
-                date = datetime.strptime('%02d %02d %04d' % (i1, i2, i3), month_day + ' %Y')
+                date = datetime.strptime(
+                    "%02d %02d %04d" % (i1, i2, i3), month_day + " %Y"
+                )
         elif len(x1) == 4:
             is_ambiguous = False
-            date = datetime.strptime('%04d %02d %02d' % (i1, i2, i3), '%Y %m %d')
+            date = datetime.strptime("%04d %02d %02d" % (i1, i2, i3), "%Y %m %d")
         else:
             raise ValueError()
 
-        date = dateutil.parser.parse(datetime.strftime(date, '%x') + ' ' + etime[len(m.group(0)):])
+        date = dateutil.parser.parse(
+            datetime.strftime(date, "%x") + " " + etime[len(m.group(0)) :]
+        )
 
         if is_ambiguous:
-            evaluation.message(self.get_name(), 'ambig', epochtime)
+            evaluation.message(self.get_name(), "ambig", epochtime)
 
         return date
 
@@ -307,30 +315,45 @@ class _DateFormat(Builtin):
 
         if isinstance(etime, float) or isinstance(etime, int):
             date = EPOCH_START + timedelta(seconds=etime)
-            datelist = [date.year, date.month, date.day, date.hour,
-                        date.minute, date.second + 1e-06 * date.microsecond]
+            datelist = [
+                date.year,
+                date.month,
+                date.day,
+                date.hour,
+                date.minute,
+                date.second + 1e-06 * date.microsecond,
+            ]
             return datelist
 
         if isinstance(etime, str):
             try:
-                date = self.parse_date_automatic(epochtime, etime.strip('"'), evaluation)
+                date = self.parse_date_automatic(
+                    epochtime, etime.strip('"'), evaluation
+                )
             except ValueError:
-                evaluation.message(form_name, 'str', epochtime, 'Automatic')
+                evaluation.message(form_name, "str", epochtime, "Automatic")
                 return
-            datelist = [date.year, date.month, date.day, date.hour,
-                        date.minute, date.second + 1e-06 * date.microsecond]
+            datelist = [
+                date.year,
+                date.month,
+                date.day,
+                date.hour,
+                date.minute,
+                date.second + 1e-06 * date.microsecond,
+            ]
             return datelist
 
         if not isinstance(etime, list):
-            evaluation.message(form_name, 'arg', etime)
+            evaluation.message(form_name, "arg", etime)
             return
 
-        if 1 <= len(etime) <= 6 and all(    # noqa
-            (isinstance(val, float) and i > 1) or
-            isinstance(val, int) for i, val in enumerate(etime)):
+        if 1 <= len(etime) <= 6 and all(  # noqa
+            (isinstance(val, float) and i > 1) or isinstance(val, int)
+            for i, val in enumerate(etime)
+        ):
 
-            default_date = [1900, 1, 1, 0, 0, 0.]
-            datelist = etime + default_date[len(etime):]
+            default_date = [1900, 1, 1, 0, 0, 0.0]
+            datelist = etime + default_date[len(etime) :]
             prec_part, imprec_part = datelist[:2], datelist[2:]
 
             try:
@@ -338,30 +361,44 @@ class _DateFormat(Builtin):
             except ValueError:
                 # FIXME datetime is fairly easy to overlfow. 1 <= month <= 12
                 # and some bounds on year too.
-                evaluation.message(form_name, 'arg', epochtime)
+                evaluation.message(form_name, "arg", epochtime)
                 return
 
-            tdelta = timedelta(days=imprec_part[0] - 1, hours=imprec_part[1],
-                               minutes=imprec_part[2], seconds=imprec_part[3])
+            tdelta = timedelta(
+                days=imprec_part[0] - 1,
+                hours=imprec_part[1],
+                minutes=imprec_part[2],
+                seconds=imprec_part[3],
+            )
             dtime += tdelta
-            datelist = [dtime.year, dtime.month, dtime.day, dtime.hour,
-                        dtime.minute, dtime.second + 1e-06 * dtime.microsecond]
+            datelist = [
+                dtime.year,
+                dtime.month,
+                dtime.day,
+                dtime.hour,
+                dtime.minute,
+                dtime.second + 1e-06 * dtime.microsecond,
+            ]
             return datelist
 
         if len(etime) == 2:
-            if (isinstance(etime[0], str) and    # noqa
-                isinstance(etime[1], list) and
-                all(isinstance(s, str) for s in etime[1])):
-                is_spec = [str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]]
+            if (
+                isinstance(etime[0], str)
+                and isinstance(etime[1], list)  # noqa
+                and all(isinstance(s, str) for s in etime[1])
+            ):
+                is_spec = [
+                    str(s).strip('"') in DATE_STRING_FORMATS.keys() for s in etime[1]
+                ]
                 etime[1] = [str(s).strip('"') for s in etime[1]]
 
                 if sum(is_spec) == len(is_spec):
                     forms = []
                     fields = [DATE_STRING_FORMATS[s] for s in etime[1]]
-                    for sep in ['', ' ', '/', '-', '.', ',', ':']:
+                    for sep in ["", " ", "/", "-", ".", ",", ":"]:
                         forms.append(sep.join(fields))
                 else:
-                    forms = ['']
+                    forms = [""]
                     for i, s in enumerate(etime[1]):
                         if is_spec[i]:
                             forms[0] += DATE_STRING_FORMATS[s]
@@ -373,28 +410,27 @@ class _DateFormat(Builtin):
                 date.date = None
                 for form in forms:
                     try:
-                        date.date = datetime.strptime(
-                            str(etime[0]).strip('"'), form)
+                        date.date = datetime.strptime(str(etime[0]).strip('"'), form)
                         break
                     except ValueError:
                         pass
 
                 if date.date is None:
-                    evaluation.message(form_name, 'str', etime[0], etime[1])
+                    evaluation.message(form_name, "str", etime[0], etime[1])
                     return
                 datelist = date.to_list()
 
                 # If year is ambiguious, assume the current year
-                if 'Year' not in etime[1] and 'YearShort' not in etime[1]:
+                if "Year" not in etime[1] and "YearShort" not in etime[1]:
                     datelist[0] = datetime.today().year
 
                 return datelist
 
             else:
-                evaluation.message(form_name, 'str', etime[0], etime[1])
+                evaluation.message(form_name, "str", etime[0], etime[1])
                 return
 
-        evaluation.message(form_name, 'arg', epochtime)
+        evaluation.message(form_name, "arg", epochtime)
         return
 
 
@@ -463,21 +499,22 @@ class DateList(_DateFormat):
     #> Quiet[DateList[abc]]
      = DateList[abc]
     """
+
     # TODO: Somehow check that the current year is correct
 
     rules = {
-        'DateList[]': 'DateList[AbsoluteTime[]]',
+        "DateList[]": "DateList[AbsoluteTime[]]",
         'DateList["02/27/20/13"]': 'Import[Uncompress["eJxTyigpKSi20tfPzE0v1qvITk7RS87P1QfizORi/czi/HgLMwNDvYK8dCUATpsOzQ=="]]',
     }
 
     def apply(self, epochtime, evaluation):
-        '%(name)s[epochtime_]'
+        "%(name)s[epochtime_]"
         datelist = self.to_datelist(epochtime, evaluation)
 
         if datelist is None:
             return
 
-        return Expression('List', *datelist)
+        return Expression("List", *datelist)
 
 
 class DateString(_DateFormat):
@@ -542,21 +579,21 @@ class DateString(_DateFormat):
     """
 
     rules = {
-        'DateString[]': 'DateString[DateList[], $DateStringFormat]',
-        'DateString[epochtime_?(VectorQ[#1, NumericQ]&)]': (
-            'DateString[epochtime, $DateStringFormat]'),
-        'DateString[epochtime_?NumericQ]': (
-            'DateString[epochtime, $DateStringFormat]'),
-        'DateString[format_?(VectorQ[#1, StringQ]&)]': (
-            'DateString[DateList[], format]'),
-        'DateString[epochtime_]': 'DateString[epochtime, $DateStringFormat]',
+        "DateString[]": "DateString[DateList[], $DateStringFormat]",
+        "DateString[epochtime_?(VectorQ[#1, NumericQ]&)]": (
+            "DateString[epochtime, $DateStringFormat]"
+        ),
+        "DateString[epochtime_?NumericQ]": ("DateString[epochtime, $DateStringFormat]"),
+        "DateString[format_?(VectorQ[#1, StringQ]&)]": (
+            "DateString[DateList[], format]"
+        ),
+        "DateString[epochtime_]": "DateString[epochtime, $DateStringFormat]",
     }
 
-
-    attributes = ('ReadProtected',)
+    attributes = ("ReadProtected",)
 
     def apply(self, epochtime, form, evaluation):
-        'DateString[epochtime_, form_]'
+        "DateString[epochtime_, form_]"
         datelist = self.to_datelist(epochtime, evaluation)
 
         if datelist is None:
@@ -571,7 +608,7 @@ class DateString(_DateFormat):
         pyform = [x.strip('"') for x in pyform]
 
         if not all(isinstance(f, str) for f in pyform):
-            evaluation.message('DateString', 'fmt', form)
+            evaluation.message("DateString", "fmt", form)
             return
 
         datestrs = []
@@ -581,16 +618,16 @@ class DateString(_DateFormat):
                 tmp = date.date.strftime(DATE_STRING_FORMATS[p])
                 if str(p).endswith("Short") and str(p) != "YearShort":
                     if str(p) == "DateTimeShort":
-                        tmp = tmp.split(' ')
-                        tmp = ' '.join([s.lstrip('0') for s in tmp[:-1]] + [tmp[-1]])
+                        tmp = tmp.split(" ")
+                        tmp = " ".join([s.lstrip("0") for s in tmp[:-1]] + [tmp[-1]])
                     else:
-                        tmp = ' '.join([s.lstrip('0') for s in tmp.split(' ')])
+                        tmp = " ".join([s.lstrip("0") for s in tmp.split(" ")])
             else:
                 tmp = str(p)
 
             datestrs.append(tmp)
 
-        return from_python(''.join(datestrs))
+        return from_python("".join(datestrs))
 
 
 class AbsoluteTime(_DateFormat):
@@ -630,12 +667,12 @@ class AbsoluteTime(_DateFormat):
     """
 
     def apply_now(self, evaluation):
-        'AbsoluteTime[]'
+        "AbsoluteTime[]"
 
         return from_python(total_seconds(datetime.now() - EPOCH_START))
 
     def apply_spec(self, epochtime, evaluation):
-        'AbsoluteTime[epochtime_]'
+        "AbsoluteTime[epochtime_]"
 
         datelist = self.to_datelist(epochtime, evaluation)
 
@@ -660,8 +697,8 @@ class SystemTimeZone(Predefined):
      = ...
     """
 
-    name = '$SystemTimeZone'
-    value = Real(-time.timezone / 3600.)
+    name = "$SystemTimeZone"
+    value = Real(-time.timezone / 3600.0)
 
     def evaluate(self, evaluation):
         return self.value
@@ -687,7 +724,7 @@ class TimeZone(Predefined):
     }
 
     def apply(self, lhs, rhs, evaluation):
-        'lhs_ = rhs_'
+        "lhs_ = rhs_"
 
         self.assign(lhs, rhs, evaluation)
         return rhs
@@ -708,7 +745,7 @@ class TimeUsed(Builtin):
     """
 
     def apply(self, evaluation):
-        'TimeUsed[]'
+        "TimeUsed[]"
         # time.process_time() is better than
         # time.clock(). See https://bugs.python.org/issue31803
         return Real(time.process_time())
@@ -724,8 +761,9 @@ class SessionTime(Builtin):
     >> SessionTime[]
      = ...
     """
+
     def apply(self, evaluation):
-        'SessionTime[]'
+        "SessionTime[]"
         return Real(time.time() - START_TIME)
 
 
@@ -740,27 +778,34 @@ class Pause(Builtin):
     """
 
     messages = {
-        'numnm': ('Non-negative machine-sized number expected at '
-                  'position 1 in `1`.'),
+        "numnm": (
+            "Non-negative machine-sized number expected at " "position 1 in `1`."
+        ),
     }
 
     def apply(self, n, evaluation):
-        'Pause[n_]'
+        "Pause[n_]"
         sleeptime = n.to_python()
         if not isinstance(sleeptime, (int, float)) or sleeptime < 0:
-            evaluation.message('Pause', 'numnm', Expression('Pause', n))
+            evaluation.message("Pause", "numnm", Expression("Pause", n))
             return
 
         time.sleep(sleeptime)
-        return Symbol('Null')
+        return Symbol("Null")
 
 
-class _Date():
+class _Date:
     def __init__(self, datelist=[], absolute=None, datestr=None):
-        datelist += [1900, 1, 1, 0, 0, 0.][len(datelist):]
+        datelist += [1900, 1, 1, 0, 0, 0.0][len(datelist) :]
         self.date = datetime(
-            datelist[0], datelist[1], datelist[2], datelist[3], datelist[4],
-            int(datelist[5]), int(1e6 * (datelist[5] % 1.)))
+            datelist[0],
+            datelist[1],
+            datelist[2],
+            datelist[3],
+            datelist[4],
+            int(datelist[5]),
+            int(1e6 * (datelist[5] % 1.0)),
+        )
         if absolute is not None:
             self.date += timedelta(seconds=absolute)
         if datestr is not None:
@@ -774,16 +819,28 @@ class _Date():
         if months == 0:
             months += 12
             years -= 1
-        self.date = datetime(years, months, self.date.day, self.date.hour,
-                             self.date.minute, self.date.second)
-        tdelta = timedelta(days=timevec[2], hours=timevec[3],
-                           minutes=timevec[4], seconds=timevec[5])
+        self.date = datetime(
+            years,
+            months,
+            self.date.day,
+            self.date.hour,
+            self.date.minute,
+            self.date.second,
+        )
+        tdelta = timedelta(
+            days=timevec[2], hours=timevec[3], minutes=timevec[4], seconds=timevec[5]
+        )
         self.date += tdelta
 
     def to_list(self):
-        return [self.date.year, self.date.month, self.date.day,
-                self.date.hour, self.date.minute,
-                self.date.second + 1e-6 * self.date.microsecond]
+        return [
+            self.date.year,
+            self.date.month,
+            self.date.day,
+            self.date.hour,
+            self.date.minute,
+            self.date.second + 1e-6 * self.date.microsecond,
+        ]
 
 
 class DatePlus(Builtin):
@@ -810,20 +867,19 @@ class DatePlus(Builtin):
      = {2010, 4, 3}
     """
 
-    rules = {
-        'DatePlus[n_]': 'DatePlus[Take[DateList[], 3], n]'
-    }
+    rules = {"DatePlus[n_]": "DatePlus[Take[DateList[], 3], n]"}
 
     messages = {
-        'date': 'Argument `1` cannot be interpreted as a date.',
-        'inc': ('Argument `1` is not a time increment or a list '
-                'of time increments.'),
+        "date": "Argument `1` cannot be interpreted as a date.",
+        "inc": (
+            "Argument `1` is not a time increment or a list " "of time increments."
+        ),
     }
 
-    attributes = ('ReadProtected',)
+    attributes = ("ReadProtected",)
 
     def apply(self, date, off, evaluation):
-        'DatePlus[date_, off_]'
+        "DatePlus[date_, off_]"
 
         # Process date
         pydate = date.to_python()
@@ -831,44 +887,44 @@ class DatePlus(Builtin):
             date_prec = len(pydate)
             idate = _Date(datelist=pydate)
         elif isinstance(pydate, float) or isinstance(pydate, int):
-            date_prec = 'absolute'
+            date_prec = "absolute"
             idate = _Date(absolute=pydate)
         elif isinstance(pydate, str):
-            date_prec = 'string'
+            date_prec = "string"
             idate = _Date(datestr=pydate.strip('"'))
         else:
-            evaluation.message('DatePlus', 'date', date)
+            evaluation.message("DatePlus", "date", date)
             return
 
         # Process offset
         pyoff = off.to_python()
         if isinstance(pyoff, float) or isinstance(pyoff, int):
             pyoff = [[pyoff, '"Day"']]
-        elif (isinstance(pyoff, list) and len(pyoff) == 2 and
-              isinstance(pyoff[1], str)):
+        elif isinstance(pyoff, list) and len(pyoff) == 2 and isinstance(pyoff[1], str):
             pyoff = [pyoff]
 
         # Strip " marks
         pyoff = [[x[0], x[1].strip('"')] for x in pyoff]
 
-        if isinstance(pyoff, list) and all(     # noqa
-            len(o) == 2 and o[1] in TIME_INCREMENTS.keys() and
-            isinstance(o[0], (float, int)) for o in pyoff):
+        if isinstance(pyoff, list) and all(  # noqa
+            len(o) == 2
+            and o[1] in TIME_INCREMENTS.keys()
+            and isinstance(o[0], (float, int))
+            for o in pyoff
+        ):
 
             for o in pyoff:
-                idate.addself([o[0] * TIME_INCREMENTS[
-                              o[1]][i] for i in range(6)])
+                idate.addself([o[0] * TIME_INCREMENTS[o[1]][i] for i in range(6)])
         else:
-            evaluation.message('DatePlus', 'inc', off)
+            evaluation.message("DatePlus", "inc", off)
             return
 
         if isinstance(date_prec, int):
-            result = Expression('List', *idate.to_list()[:date_prec])
-        elif date_prec == 'absolute':
-            result = Expression('AbsoluteTime', idate.to_list())
-        elif date_prec == 'string':
-            result = Expression('DateString', Expression(
-                'List', *idate.to_list()))
+            result = Expression("List", *idate.to_list()[:date_prec])
+        elif date_prec == "absolute":
+            result = Expression("AbsoluteTime", idate.to_list())
+        elif date_prec == "string":
+            result = Expression("DateString", Expression("List", *idate.to_list()))
 
         return result
 
@@ -907,63 +963,61 @@ class DateDifference(Builtin):
      = {{14, "Month"}, {20, "Day"}}
     """
 
-    rules = {
-        'DateDifference[date1_, date2_]': 'DateDifference[date1, date2, "Day"]'
-    }
+    rules = {"DateDifference[date1_, date2_]": 'DateDifference[date1, date2, "Day"]'}
 
     messages = {
-        'date': 'Argument `1` cannot be interpreted as a date.',
-        'inc': ('Argument `1` is not a time increment or '
-                'a list of time increments.'),
+        "date": "Argument `1` cannot be interpreted as a date.",
+        "inc": (
+            "Argument `1` is not a time increment or " "a list of time increments."
+        ),
     }
 
-    attributes = ('ReadProtected',)
+    attributes = ("ReadProtected",)
 
     def apply(self, date1, date2, units, evaluation):
-        'DateDifference[date1_, date2_, units_]'
+        "DateDifference[date1_, date2_, units_]"
 
         # Process dates
         pydate1, pydate2 = date1.to_python(), date2.to_python()
 
-        if isinstance(pydate1, list):               # Date List
+        if isinstance(pydate1, list):  # Date List
             idate = _Date(datelist=pydate1)
-        elif isinstance(pydate1, (float, int)):     # Absolute Time
+        elif isinstance(pydate1, (float, int)):  # Absolute Time
             idate = _Date(absolute=pydate1)
-        elif isinstance(pydate1, str):       # Date string
+        elif isinstance(pydate1, str):  # Date string
             idate = _Date(datestr=pydate2.strip('"'))
         else:
-            evaluation.message('DateDifference', 'date', date1)
+            evaluation.message("DateDifference", "date", date1)
             return
 
-        if isinstance(pydate2, list):           # Date List
+        if isinstance(pydate2, list):  # Date List
             fdate = _Date(datelist=pydate2)
         elif isinstance(pydate2, (int, float)):  # Absolute Time
             fdate = _Date(absolute=pydate2)
-        elif isinstance(pydate1, str):   # Date string
+        elif isinstance(pydate1, str):  # Date string
             fdate = _Date(datestr=pydate2.strip('"'))
         else:
-            evaluation.message('DateDifference', 'date', date2)
+            evaluation.message("DateDifference", "date", date2)
             return
 
         try:
             tdelta = fdate.date - idate.date
         except OverflowError:
-            evaluation.message('General', 'ovf')
+            evaluation.message("General", "ovf")
             return
 
         # Process Units
         pyunits = units.to_python()
         if isinstance(pyunits, str):
             pyunits = [str(pyunits.strip('"'))]
-        elif (isinstance(pyunits, list) and
-              all(isinstance(p, str) for p in pyunits)):
+        elif isinstance(pyunits, list) and all(isinstance(p, str) for p in pyunits):
             pyunits = [p.strip('"') for p in pyunits]
 
         if not all(p in TIME_INCREMENTS.keys() for p in pyunits):
-            evaluation.message('DateDifference', 'inc', units)
+            evaluation.message("DateDifference", "inc", units)
 
         def intdiv(a, b, flag=True):
-            'exact integer division where possible'
+            "exact integer division where possible"
             if flag:
                 if a % b == 0:
                     return a // b
@@ -990,34 +1044,31 @@ class DateDifference(Builtin):
             if i + 1 == len(pyunits):
                 flag = True
 
-            if unit == 'Year':
-                result.append([intdiv(
-                    seconds, 365 * 24 * 60 * 60, flag), "Year"])
+            if unit == "Year":
+                result.append([intdiv(seconds, 365 * 24 * 60 * 60, flag), "Year"])
                 seconds = seconds % (365 * 24 * 60 * 60)
-            if unit == 'Quarter':
-                result.append([intdiv(
-                    seconds, 365 * 6 * 60 * 60, flag), "Quarter"])
+            if unit == "Quarter":
+                result.append([intdiv(seconds, 365 * 6 * 60 * 60, flag), "Quarter"])
                 seconds = seconds % (365 * 6 * 60 * 60)
-            if unit == 'Month':
-                result.append([intdiv(
-                    seconds, 365 * 2 * 60 * 60, flag), "Month"])
+            if unit == "Month":
+                result.append([intdiv(seconds, 365 * 2 * 60 * 60, flag), "Month"])
                 seconds = seconds % (365 * 2 * 60 * 60)
-            if unit == 'Week':
-                result.append([intdiv(
-                    seconds, 7 * 24 * 60 * 60, flag), "Week"])
+            if unit == "Week":
+                result.append([intdiv(seconds, 7 * 24 * 60 * 60, flag), "Week"])
                 seconds = seconds % (7 * 24 * 60 * 60)
-            if unit == 'Day':
+            if unit == "Day":
                 result.append([intdiv(seconds, 24 * 60 * 60, flag), "Day"])
                 seconds = seconds % (24 * 60 * 60)
-            if unit == 'Hour':
+            if unit == "Hour":
                 result.append([intdiv(seconds, 60 * 60, flag), "Hour"])
                 seconds = seconds % (60 * 60)
-            if unit == 'Minute':
+            if unit == "Minute":
                 result.append([intdiv(seconds, 60, flag), "Minute"])
                 seconds = seconds % 60
-            if unit == 'Second':
-                result.append([intdiv(seconds + total_seconds(
-                    tdelta) % 1, 1, flag), "Second"])
+            if unit == "Second":
+                result.append(
+                    [intdiv(seconds + total_seconds(tdelta) % 1, 1, flag), "Second"]
+                )
 
         if len(result) == 1:
             if pyunits[0] == "Day":
@@ -1041,7 +1092,7 @@ class EasterSunday(Builtin):  # Calendar`EasterSunday
     """
 
     def apply(self, year, evaluation):
-        'EasterSunday[year_Integer]'
+        "EasterSunday[year_Integer]"
         y = year.get_int_value()
 
         # "Anonymous Gregorian algorithm", see https://en.wikipedia.org/wiki/Computus
@@ -1060,4 +1111,4 @@ class EasterSunday(Builtin):  # Calendar`EasterSunday
         month = (h + l - 7 * m + 114) // 31
         day = ((h + l - 7 * m + 114) % 31) + 1
 
-        return Expression('List', year, Integer(month), Integer(day))
+        return Expression("List", year, Integer(month), Integer(day))

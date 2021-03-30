@@ -37,7 +37,7 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule
+    SymbolRule,
 )
 from mathics.core.numbers import (
     dps,
@@ -2630,7 +2630,9 @@ class NumberForm(_NumberForm):
             mul = String(options["NumberMultiplier"])
             return Expression(
                 "RowBox",
-                Expression(SymbolList, man, mul, Expression("SuperscriptBox", base, exp)),
+                Expression(
+                    SymbolList, man, mul, Expression("SuperscriptBox", base, exp)
+                ),
             )
         else:
             return man

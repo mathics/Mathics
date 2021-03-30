@@ -194,6 +194,7 @@ class Normal(Builtin):
     </dl>
     """
 
+
 class ByteArray(Builtin):
     r"""
     <dl>
@@ -218,35 +219,37 @@ class ByteArray(Builtin):
      = $Failed
     """
 
-    messages = {'aotd': 'Elements in `1` are inconsistent with type Byte',
-                'lend': 'The first argument in Bytearray[`1`] should ' + \
-                         'be a B64 enconded string or a vector of integers.',}
+    messages = {
+        "aotd": "Elements in `1` are inconsistent with type Byte",
+        "lend": "The first argument in Bytearray[`1`] should "
+        + "be a B64 enconded string or a vector of integers.",
+    }
 
     def apply_str(self, string, evaluation):
-        'ByteArray[string_String]'
+        "ByteArray[string_String]"
         try:
             atom = ByteArrayAtom(string.value)
         except Exception:
-            evaluation.message("ByteArray", 'lend', string)
+            evaluation.message("ByteArray", "lend", string)
             return SymbolFailed
         return Expression("ByteArray", atom)
 
     def apply_to_str(self, baa, evaluation):
-        'ToString[ByteArray[baa_ByteArrayAtom]]'
+        "ToString[ByteArray[baa_ByteArrayAtom]]"
         return String('ByteArray["' + baa.__str__() + '"]')
 
     def apply_normal(self, baa, evaluation):
-        'System`Normal[ByteArray[baa_ByteArrayAtom]]'
+        "System`Normal[ByteArray[baa_ByteArrayAtom]]"
         return Expression(SymbolList, *[Integer(x) for x in baa.value])
 
     def apply_list(self, values, evaluation):
-        'ByteArray[values_List]'
-        if not values.has_form('List', None):
+        "ByteArray[values_List]"
+        if not values.has_form("List", None):
             return
         try:
-            ba = bytearray([b.get_int_value() for b in  values._leaves])
+            ba = bytearray([b.get_int_value() for b in values._leaves])
         except:
-            evaluation.message("ByteArray", 'aotd' , values)
+            evaluation.message("ByteArray", "aotd", values)
             return
         return Expression(SymbolByteArray, ByteArrayAtom(ba))
 
@@ -275,7 +278,9 @@ class List(Builtin):
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         items = items.get_sequence()
-        return Expression("RowBox", Expression(SymbolList, *list_boxes(items, f, "{", "}")))
+        return Expression(
+            "RowBox", Expression(SymbolList, *list_boxes(items, f, "{", "}"))
+        )
 
 
 class ListQ(Test):
@@ -503,10 +508,12 @@ def set_part(varlist, indices, newval):
 
     rec(varlist, indices)
 
+
 def _parts_all_selector():
     start = 1
     stop = None
     step = 1
+
     def select(inner):
         if inner.is_atom():
             raise MessageException("Part", "partd")
@@ -516,6 +523,7 @@ def _parts_all_selector():
         return inner.leaves[py_slice]
 
     return select
+
 
 def _parts_span_selector(pspec):
     if len(pspec.leaves) > 3:
@@ -590,7 +598,7 @@ def _part_selectors(indices):
         if index.has_form("Span", None):
             yield _parts_span_selector(index)
         elif index.get_name() == "System`All":
-            yield  _parts_all_selector()
+            yield _parts_all_selector()
         elif index.has_form("List", None):
             yield _parts_sequence_selector(index.leaves)
         elif isinstance(index, Integer):
@@ -1105,8 +1113,10 @@ class Part(Builtin):
         if list.get_head_name() == "System`ByteArray":
             list = list.evaluate(evaluation)
             if len(indices) > 1:
-                print("Part::partd1: Depth of object ByteArray[<3>] " +
-                      "is not sufficient for the given part specification.")
+                print(
+                    "Part::partd1: Depth of object ByteArray[<3>] "
+                    + "is not sufficient for the given part specification."
+                )
                 return
             idx = indices[0]
             if idx.get_head_name() == "System`Integer":
@@ -1118,12 +1128,12 @@ class Part(Builtin):
                 if idx < 0:
                     idx = data - idx
                     if idx < 0:
-                        evaluation.message("Part", "partw",  i, list)
+                        evaluation.message("Part", "partw", i, list)
                         return
                 else:
                     idx = idx - 1
                     if idx > lendata:
-                        evaluation.message("Part", "partw",  i, list)
+                        evaluation.message("Part", "partw", i, list)
                         return
                 return Integer(data[idx])
             if idx == Symbol("System`All"):
@@ -1131,7 +1141,6 @@ class Part(Builtin):
             # TODO: handling ranges and lists...
             evaluation.message("Part", "notimplemented")
             return
-
 
         # Otherwise...
         result = walk_parts([list], indices, evaluation)
@@ -2072,7 +2081,6 @@ class DeleteCases(Builtin):
         "level": "Level specification `1` is not of the form n, {n}, or {m, n}.",
         "innf": "Non-negative integer or Infinity expected at position 4 in `1`",
     }
-
 
     def apply_ls_n(self, items, pattern, levelspec, n, evaluation):
         "DeleteCases[items_, pattern_, levelspec_:1, n_:System`Infinity]"
@@ -4721,7 +4729,9 @@ class _Pad(Builtin):
                 return []
             elif len(n) > 1:
                 return [
-                    _Pad._build(Expression(SymbolList), n[1:], x, next_m, level + 1, mode)
+                    _Pad._build(
+                        Expression(SymbolList), n[1:], x, next_m, level + 1, mode
+                    )
                 ] * amount
             else:
                 return clip(x * (1 + amount // len(x)), amount, sign)
@@ -4937,9 +4947,9 @@ class _PrecomputedDistances(PrecomputedDistances):
 
     def __init__(self, df, p, evaluation):
         distances_form = [df(p[i], p[j]) for i in range(len(p)) for j in range(i)]
-        distances = Expression(SymbolN, Expression(SymbolList, *distances_form)).evaluate(
-            evaluation
-        )
+        distances = Expression(
+            SymbolN, Expression(SymbolList, *distances_form)
+        ).evaluate(evaluation)
         mpmath_distances = [_to_real_distance(d) for d in distances.leaves]
         super(_PrecomputedDistances, self).__init__(mpmath_distances)
 
@@ -5033,7 +5043,9 @@ class _Cluster(Builtin):
             elif py_k == 1:
                 return Expression(SymbolList, *repr_p)
             elif py_k == len(dist_p):
-                return Expression(SymbolList, [Expression(SymbolList, q) for q in repr_p])
+                return Expression(
+                    SymbolList, [Expression(SymbolList, q) for q in repr_p]
+                )
         else:  # automatic detection of k. choose a suitable method here.
             if len(dist_p) <= 2:
                 return Expression(SymbolList, *repr_p)
@@ -5093,12 +5105,17 @@ class _Cluster(Builtin):
         except _IllegalDataPoint:
             name_of_builtin = strip_context(self.get_name())
             evaluation.message(
-                self.get_name(), "amtd", name_of_builtin, Expression(SymbolList, *dist_p)
+                self.get_name(),
+                "amtd",
+                name_of_builtin,
+                Expression(SymbolList, *dist_p),
             )
             return
 
         if mode == "clusters":
-            return Expression(SymbolList, *[Expression(SymbolList, *c) for c in clusters])
+            return Expression(
+                SymbolList, *[Expression(SymbolList, *c) for c in clusters]
+            )
         elif mode == "components":
             return Expression(SymbolList, *clusters)
         else:
@@ -5451,7 +5468,10 @@ class Permutations(Builtin):
         "Permutations[l_List]"
         return Expression(
             "List",
-            *[Expression(SymbolList, *p) for p in permutations(l.leaves, len(l.leaves))],
+            *[
+                Expression(SymbolList, *p)
+                for p in permutations(l.leaves, len(l.leaves))
+            ],
         )
 
     def apply_n(self, l, n, evaluation):
@@ -5839,7 +5859,8 @@ class Association(Builtin):
             self.error_idx += 1
             symbol = Expression(SymbolMakeBoxes, SymbolAssociation, f)
             expr = Expression(
-                "RowBox", Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]"))
+                "RowBox",
+                Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]")),
             )
 
         expr = expr.evaluate(evaluation)
@@ -6089,7 +6110,9 @@ class Values(Builtin):
                 expr.has_form("Association", None)
                 and AssociationQ(expr).evaluate(evaluation) == Symbol("True")
             ):
-                return Expression(SymbolList, *[get_values(leaf) for leaf in expr.leaves])
+                return Expression(
+                    SymbolList, *[get_values(leaf) for leaf in expr.leaves]
+                )
             else:
                 raise
 

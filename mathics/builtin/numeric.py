@@ -51,6 +51,7 @@ from mathics.core.expression import (
 )
 from mathics.core.convert import from_sympy
 
+
 @lru_cache(maxsize=1024)
 def log_n_b(py_n, py_b) -> int:
     return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
@@ -1887,17 +1888,10 @@ class Fold(object):
     SYMBOLIC = 2
 
     math = {
-        FLOAT: ComputationFunctions(
-            cos=math.cos,
-            sin=math.sin,
-        ),
-        MPMATH: ComputationFunctions(
-            cos=mpmath.cos,
-            sin=mpmath.sin,
-        ),
+        FLOAT: ComputationFunctions(cos=math.cos, sin=math.sin,),
+        MPMATH: ComputationFunctions(cos=mpmath.cos, sin=mpmath.sin,),
         SYMBOLIC: ComputationFunctions(
-            cos=lambda x: Expression("Cos", x),
-            sin=lambda x: Expression("Sin", x),
+            cos=lambda x: Expression("Cos", x), sin=lambda x: Expression("Sin", x),
         ),
     }
 

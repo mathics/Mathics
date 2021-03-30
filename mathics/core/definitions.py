@@ -23,6 +23,7 @@ from mathics_scanner.tokeniser import full_names_pattern
 
 type_compiled_pattern = type(re.compile("a.a"))
 
+
 def get_file_time(file) -> float:
     try:
         return os.stat(file).st_mtime
@@ -116,8 +117,10 @@ class Definitions(object):
         """
         import importlib
         from mathics.builtin import is_builtin, builtins_by_module, Builtin
+
         # Ensures that the pymathics module be reloaded
         import sys
+
         if module in sys.modules:
             loaded_module = importlib.reload(sys.modules[module])
         else:
@@ -157,7 +160,6 @@ class Definitions(object):
         for name, item in newsymbols.items():
             if name != "System`MakeBoxes":
                 item.contribute(self, is_pymodule=True)
-
 
         onload = loaded_module.pymathics_version_data.get("onload", None)
         if onload:
@@ -422,18 +424,25 @@ class Definitions(object):
             if builtin_instance is None:
                 builtin_instance = builtin
 
-        definition = candidates[0] if len(candidates)==1 else None
-        if len(candidates)>0 and not definition:
-            attributes = user.attributes if user else (
-                pymathics.attributes if pymathics else
-                (builtin.attributes if builtin else set())
+        definition = candidates[0] if len(candidates) == 1 else None
+        if len(candidates) > 0 and not definition:
+            attributes = (
+                user.attributes
+                if user
+                else (
+                    pymathics.attributes
+                    if pymathics
+                    else (builtin.attributes if builtin else set())
+                )
             )
-            upvalues = [],
-            messages = [],
-            nvalues = [],
-            defaultvalues = [],
+            upvalues = ([],)
+            messages = ([],)
+            nvalues = ([],)
+            defaultvalues = ([],)
             options = {}
-            formatvalues = {"": [],}
+            formatvalues = {
+                "": [],
+            }
             # Merge definitions
             its = [c for c in candidates]
             while its:
@@ -447,17 +456,17 @@ class Definitions(object):
             # Build the new definition
             definition = Definition(
                 name=name,
-                ownvalues=sum((c.ownvalues for c in candidates),[]),
-                downvalues=sum((c.downvalues for c in candidates),[]),
-                subvalues=sum((c.subvalues for c in candidates),[]),
-                upvalues=sum((c.upvalues for c in candidates),[]),
+                ownvalues=sum((c.ownvalues for c in candidates), []),
+                downvalues=sum((c.downvalues for c in candidates), []),
+                subvalues=sum((c.subvalues for c in candidates), []),
+                upvalues=sum((c.upvalues for c in candidates), []),
                 formatvalues=formatvalues,
-                messages=sum((c.messages for c in candidates),[]),
+                messages=sum((c.messages for c in candidates), []),
                 attributes=attributes,
                 options=options,
-                nvalues=sum((c.nvalues for c in candidates),[]),
-                defaultvalues=sum((c.defaultvalues for c in candidates),[]),
-                builtin=builtin_instance
+                nvalues=sum((c.nvalues for c in candidates), []),
+                defaultvalues=sum((c.defaultvalues for c in candidates), []),
+                builtin=builtin_instance,
             )
 
         if definition is not None:
@@ -736,7 +745,7 @@ class Definition(object):
         options=None,
         nvalues=None,
         defaultvalues=None,
-        builtin=None
+        builtin=None,
     ) -> None:
 
         super(Definition, self).__init__()
