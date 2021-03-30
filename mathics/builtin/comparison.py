@@ -227,6 +227,9 @@ class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
     def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
+        # See comments in
+        # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
+        # for a future refactory of this methods...
         if l1.same(l2):
             return True
         else:
@@ -309,11 +312,6 @@ class _EqualityOperator(_InequalityOperator):
                     if len(l1._leaves) == 0 or do_compare(l1._leaves[0], Integer(1)):
                         return True
 
-        # Use Mathics' built-in comparisons for Real and Integer. These use
-        # WL's interpretation of Equal[] which allows for slop in Reals
-        # in the least significant digit of precision, while for Integers, comparison
-        # has to be exact.
-
         # For everything else, use sympy.
 
         l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
@@ -336,13 +334,13 @@ class _EqualityOperator(_InequalityOperator):
             lhs = l1_sympy.n(dps(prec))
             rhs = l2_sympy.n(dps(prec))
             if lhs == rhs:
-                return True            
+                return True
             tol = 10 ** (-prec)
             diff = abs(lhs - rhs)
             if isinstance(diff, sympy.core.add.Add):
-                return (sympy.re(diff) < tol)
+                return sympy.re(diff) < tol
             else:
-                return (diff < tol)
+                return diff < tol
         else:
             return None
 
