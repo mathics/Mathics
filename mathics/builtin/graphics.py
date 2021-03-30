@@ -2602,7 +2602,7 @@ class InsetBox(_GraphicsElement):
         # svg = (
         #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
         #    "<math>%s</math></foreignObject>")
-        svg = ('<text x="%f" y="%f" ox="%f" oy="%f" style="%s">' "%s" "</text>") % (
+        svg = ('<text x="%f" y="%f" ox="%f" oy="%f" style="text-anchor:middle; dominant-baseline:middle; %s">' "%s" "</text>") % (
             x,
             y,
             self.opos[0],
