@@ -227,6 +227,9 @@ class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
     def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
+        # See comments in
+        # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
+        # for a future refactory of this methods...
         if l1.same(l2):
             return True
         else:
