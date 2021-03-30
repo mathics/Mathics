@@ -226,7 +226,9 @@ class ImageImport(_ImageBuiltin):
             "List",
             Expression(SymbolRule, String("Image"), image),
             Expression(SymbolRule, String("ColorSpace"), String(image.color_space)),
-            Expression(SymbolRule, String("ImageSize"), from_python(image.dimensions())),
+            Expression(
+                SymbolRule, String("ImageSize"), from_python(image.dimensions())
+            ),
             Expression(SymbolRule, String("RawExif"), exif),
         )
 

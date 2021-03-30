@@ -401,7 +401,9 @@ class Show(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression(SymbolN, options[option]).evaluate(evaluation)
+                options[option] = Expression(SymbolN, options[option]).evaluate(
+                    evaluation
+                )
 
         # The below could probably be done with graphics.filter..
         new_leaves = []
@@ -478,7 +480,9 @@ class Graphics(Builtin):
             head = content.get_head_name()
 
             if head == "System`List":
-                return Expression(SymbolList, *[convert(item) for item in content.leaves])
+                return Expression(
+                    SymbolList, *[convert(item) for item in content.leaves]
+                )
             elif head == "System`Style":
                 return Expression(
                     "StyleBox", *[convert(item) for item in content.leaves]
@@ -510,7 +514,9 @@ class Graphics(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression(SymbolN, options[option]).evaluate(evaluation)
+                options[option] = Expression(SymbolN, options[option]).evaluate(
+                    evaluation
+                )
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
 
         if type(self) is Graphics:
@@ -3229,12 +3235,14 @@ clip(%s);
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
         # template = "<mtext><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>"
-        template = '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+        template = (
+            '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+        )
         return template % (
-                int(width),
-                int(height),
-                base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
-            )
+            int(width),
+            int(height),
+            base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
+        )
 
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):

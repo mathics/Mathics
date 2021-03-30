@@ -451,6 +451,7 @@ class Out(Builtin):
         "    f:StandardForm|TraditionalForm|InputForm|OutputForm]": r'"%%" <> ToString[k]',
     }
 
+
 class Quit(Builtin):
     """
     <dl>
@@ -469,11 +470,13 @@ class Quit(Builtin):
 
     """
 
-    rules = {"Exit[n___]":"Quit[n]", }
+    rules = {
+        "Exit[n___]": "Quit[n]",
+    }
 
     def apply(self, evaluation, n):
-        '%(name)s[n___]'
+        "%(name)s[n___]"
         exitcode = 0
         if isinstance(n, Integer):
-            exitcode =(n.get_int_value())
+            exitcode = n.get_int_value()
         raise SystemExit(exitcode)

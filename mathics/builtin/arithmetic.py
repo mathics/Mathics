@@ -123,7 +123,8 @@ class _MPMathFunction(SympyFunction):
             prec = min_prec(*args)
             d = dps(prec)
             args = [
-                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation) for arg in args
+                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation)
+                for arg in args
             ]
             with mpmath.workprec(prec):
                 mpmath_args = [x.to_mpmath() for x in args]
@@ -689,7 +690,7 @@ class Times(BinaryOperator, SympyFunction):
                 )
             elif item.get_head().same(SymbolDirectedInfinity):
                 infinity_factor = True
-                if len(item.leaves)>1:
+                if len(item.leaves) > 1:
                     direction = item.leaves[0]
                     if isinstance(direction, Number):
                         numbers.append(direction)
@@ -1093,7 +1094,7 @@ class DirectedInfinity(SympyFunction):
     """
 
     rules = {
-        "DirectedInfinity[Indeterminate]":"Indeterminate",
+        "DirectedInfinity[Indeterminate]": "Indeterminate",
         "DirectedInfinity[args___] ^ -1": "0",
         "0 * DirectedInfinity[args___]": "Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate",
         "DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1": "DirectedInfinity[a / Abs[a]]",

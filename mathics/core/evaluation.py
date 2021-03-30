@@ -262,7 +262,6 @@ class Evaluation(object):
 
         return self.parse_feeder(MathicsSingleLineFeeder(query))
 
-
     def parse_evaluate(self, query, timeout=None):
         expr = self.parse(query)
         if expr is not None:
@@ -274,6 +273,7 @@ class Evaluation(object):
     def parse_feeder_returning_code(self, feeder):
         "Parse a single expression from feeder and print the messages."
         from mathics.core.parser.util import parse_returning_code
+
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)
         except TranslateError:

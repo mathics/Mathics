@@ -136,7 +136,8 @@ class GetEnvironment(Builtin):
         env_vars = var.get_sequence()
         if len(env_vars) == 0:
             rules = [
-                Expression(SymbolRule, name, value) for name, value in os.environ.items()
+                Expression(SymbolRule, name, value)
+                for name, value in os.environ.items()
             ]
             return Expression(SymbolList, *rules)
 
@@ -333,7 +334,9 @@ class ScriptCommandLine(Predefined):
             # not run in script mode
             return Expression(SymbolList)
 
-        return Expression(SymbolList, *(String(arg) for arg in sys.argv[dash_index + 1 :]))
+        return Expression(
+            SymbolList, *(String(arg) for arg in sys.argv[dash_index + 1 :])
+        )
 
 
 class Run(Builtin):
