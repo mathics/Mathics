@@ -3,6 +3,7 @@ from .helper import check_evaluation
 
 def test_compare():
     for str_expr, str_expected in (
+        (r'"\[Mu]"=="μ"', "True", ), 
         (
             "I == I",
             "True",
