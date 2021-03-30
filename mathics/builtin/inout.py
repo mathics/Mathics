@@ -2092,12 +2092,15 @@ class MathMLForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             xml = ""
+        is_a_picture = (xml[:6] == '<mtext')
+            
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
         query = evaluation.parse("System`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
-        if usesansserif:
-            xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+        if not is_a_picture:
+            if usesansserif:
+                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression("RowBox", Expression(SymbolList, String(mathml)))

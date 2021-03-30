@@ -4,13 +4,13 @@ Begin["System`Convert`TextDump`"]
 
 
 SVGExport[filename_, expr_, opts___] := 
-  Module[{strm, data}, 
+  Module[{strm, data, p}, 
     strm = OpenWrite[filename];
     If[strm === $Failed, Return[$Failed]];
-    If[System`$UseSansSerif,
-	    data = StringTake[ToString[MathMLForm[expr]],{23,-8}],
-	    data = StringTake[ToString[MathMLForm[expr]],{23,-8}]];
-    WriteString[strm, "<svg>" <> data <> "</svg>"];
+    data=ToString[MathMLForm[expr]];
+    p = StringPosition[data, "data:image/svg+xml;base64"][[1]][[2]];
+    data = StringTake[data  ,{p+2,-19}];
+    WriteString[strm, System`Convert`B64Dump`B64Decode[data]];
     Close[strm];
   ]
 
