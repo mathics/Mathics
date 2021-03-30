@@ -710,7 +710,7 @@ class BoxConstruct(InstanceableBuiltin):
     def boxes_to_text(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_xml(self, leaves, **options) -> str:
+    def boxes_to_mathml(self, leaves, **options) -> str:
         raise BoxConstructError
 
     def boxes_to_tex(self, leaves, **options) -> str:

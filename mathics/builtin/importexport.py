@@ -1917,8 +1917,8 @@ class ExportString(Builtin):
      . 2,
      . 3,
      . 4,
-    >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
-     = ...
+    >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]//Head
+     = String
     """
 
     options = {
