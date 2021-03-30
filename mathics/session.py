@@ -12,11 +12,15 @@ class MathicsSession:
         self.last_result = None
 
     def evaluate(self, str_expression, timeout = None, form=None):
-        expr = parse(self.definitions, MathicsSingleLineFeeder(str_expression))
+        expr = parse(self.definitions, MathicsLineFeeder(str_expression))
         if form is None:
             form = self.form
+        self.evaluation.out.clear()
         self.last_result = expr.evaluate(self.evaluation)
         return self.last_result
+
+    def out(self):
+        return self.evaluation.out
 
     def format_result(self, str_expression=None, timeout=None, form=None):
         if str_expression:
