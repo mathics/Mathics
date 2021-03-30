@@ -2092,8 +2092,8 @@ class MathMLForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             xml = ""
-        is_a_picture = (xml[:6] == '<mtext')
-            
+        is_a_picture = xml[:6] == "<mtext"
+
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
         query = evaluation.parse("System`$UseSansSerif")
