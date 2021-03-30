@@ -1630,24 +1630,26 @@ class ToString(Builtin):
     >> "U" <> ToString[2]
      = U2
     """
-    options = { 'CharacterEncoding' : '$SystemCharacterEncoding',
-                'FormatType' : 'OutputForm',
-                'NumberMarks': '$NumberMarks',
-                'PageHeight' : 'Infinity',
-                'PageWidth' : 'Infinity',
-                'TotalHeight' : 'Infinity',
-                'TotalWidth' : 'Infinity'}
+
+    options = {
+        "CharacterEncoding": "$SystemCharacterEncoding",
+        "FormatType": "OutputForm",
+        "NumberMarks": "$NumberMarks",
+        "PageHeight": "Infinity",
+        "PageWidth": "Infinity",
+        "TotalHeight": "Infinity",
+        "TotalWidth": "Infinity",
+    }
 
     def apply(self, value, evaluation, options):
-        'ToString[value_, OptionsPattern[ToString]]'
+        "ToString[value_, OptionsPattern[ToString]]"
         encoding = options["System`CharacterEncoding"].evaluate(evaluation)
-        if not isinstance(encoding, String) or encoding.value not in encodings:
+        if not isinstance(encoding, String) or encoding.value not in _encodings:
             evaluation.message("General", "charcode", encoding)
             encoding = Symbol("$SystemCharacterEncoding").evaluate(evaluation)
-        formattype  = options["System`FormatType"].evaluate(evaluation)
+        formattype = options["System`FormatType"].evaluate(evaluation)
         res = value.format(evaluation, formattype)
-        res = res.boxes_to_text(
-            evaluation=evaluation, encoding=encoding.value)
+        res = res.boxes_to_text(evaluation=evaluation, encoding=encoding.value)
         return String(res)
 
 

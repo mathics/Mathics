@@ -13,7 +13,8 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
+from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, wl_strings_to_specific_encoding
+from mathics.settings import SYSTEM_CHARACTER_ENCODING
 
 FORMATS = [
     "StandardForm",
@@ -228,7 +229,12 @@ class Output(object):
 
 class Evaluation(object):
     def __init__(
-        self, definitions=None, output=None, format="text", catch_interrupt=True
+        self,
+        definitions=None,
+        output=None,
+        format="text",
+        catch_interrupt=True,
+        default_encoding=SYSTEM_CHARACTER_ENCODING,
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
@@ -249,6 +255,7 @@ class Evaluation(object):
         self.quiet_all = False
         self.format = format
         self.catch_interrupt = catch_interrupt
+        self.encoding = default_encoding
 
         self.SymbolNull = Symbol("Null")
 
@@ -510,6 +517,7 @@ class Evaluation(object):
             Expression("StringForm", text, *(from_python(arg) for arg in args)), "text"
         )
 
+        text = wl_strings_to_specific_encoding(text, encoding=self.encoding)
         self.out.append(Message(symbol_shortname, tag, text))
         self.output.out(self.out[-1])
 
