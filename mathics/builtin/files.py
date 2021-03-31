@@ -26,7 +26,7 @@ from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics_scanner.errors import IncompleteSyntaxError
+from mathics_scanner.errors import IncompleteSyntaxError, InvalidSyntaxError
 from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, parse
 
@@ -720,7 +720,10 @@ class Read(Builtin):
         else:
             types = (types,)
 
-        types = (typ._leaves[0] if typ.get_head_name()=="System`Hold" else typ for typ in types)
+        types = (
+            typ._leaves[0] if typ.get_head_name() == "System`Hold" else typ
+            for typ in types
+        )
         types = Expression("List", *types)
 
         READ_TYPES = [
@@ -767,21 +770,38 @@ class Read(Builtin):
 
                     if tmp == "":
                         if word == "":
-                            raise EOFError
+                            pos = stream.tell()
+                            newchar = stream.read(1)
+                            if pos == stream.tell():
+                                raise EOFError
+                            else:
+                                if newchar:
+                                    word = newchar
+                                    continue
+                                else:
+                                    yield word
+                                    continue
                         last_word = word
                         word = ""
                         yield last_word
+                        continue
 
                     if tmp in word_separators:
                         if word == "":
                             break
-                        if stream.seekable():
-                            # stream.seek(-1, 1) #Python3
-                            stream.seek(stream.tell() - 1)
-                        yield word
+                        # if stream.seekable():
+                        # stream.seek(-1, 1) #Python3
+                        #    stream.seek(stream.tell() - 1)
+                        last_word = word
+                        word = ""
+                        yield last_word
+                        continue
 
                     if accepted is not None and tmp not in accepted:
-                        yield word
+                        last_word = word
+                        word = ""
+                        yield last_word
+                        continue
 
                     word += tmp
 
@@ -816,20 +836,22 @@ class Read(Builtin):
                             feeder = MathicsMultiLineFeeder(tmp)
                             expr = parse(evaluation.definitions, feeder)
                             break
-                        except IncompleteSyntaxError:
+                        except (IncompleteSyntaxError, InvalidSyntaxError) as e:
                             try:
                                 nextline = next(read_record)
+                                tmp = tmp + "\n" + nextline
                             except EOFError:
                                 expr = Symbol("EndOfFile")
                                 break
-                            tmp = tmp + "\n" + nextline
-                    # if expr is None:
-                    #    evaluation.message(
-                    #        "Read", "readt", tmp, Expression("InputSteam", name, n)
-                    #    )
-                    #    return SymbolFailed
-                    if expr is not None:
+
+                    if expr is None:
+                        evaluation.message(
+                            "Read", "readt", tmp, Expression("InputSteam", name, n)
+                        )
+                        return SymbolFailed
+                    else:
                         result.append(expr)
+
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
                     try:
