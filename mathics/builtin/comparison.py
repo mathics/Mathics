@@ -312,11 +312,6 @@ class _EqualityOperator(_InequalityOperator):
                     if len(l1._leaves) == 0 or do_compare(l1._leaves[0], Integer(1)):
                         return True
 
-        # Use Mathics' built-in comparisons for Real and Integer. These use
-        # WL's interpretation of Equal[] which allows for slop in Reals
-        # in the least significant digit of precision, while for Integers, comparison
-        # has to be exact.
-
         # For everything else, use sympy.
 
         l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
