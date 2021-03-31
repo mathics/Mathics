@@ -2962,7 +2962,7 @@ class ReadList(Read):
     >> ReadList[StringToStream["a 1 b 2"], {Word, Number}]
      = {{a, 1}, {b, 2}}
 
-    >> str = StringToStream["abc123"];
+    >> str = StringToStream["\\"abc123\\""];
     >> ReadList[str]
      = {abc123}
     >> InputForm[%]
