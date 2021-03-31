@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import (Builtin, Test, MessageException)
+from mathics.builtin.base import Builtin, Test, MessageException
 from mathics.builtin.randomnumbers import RandomEnv
 from mathics.builtin.strings import to_regex, anchor_pattern, ToLowerCase
-from mathics.core.expression import Expression, String, Integer, Real, Symbol, Number, strip_context
+from mathics.core.expression import (
+    Expression,
+    String,
+    Integer,
+    Real,
+    Symbol,
+    Number,
+    strip_context,
+)
 
 import os
 import re
@@ -15,8 +23,10 @@ import math
 
 import pint
 from pint import UnitRegistry
+
 ureg = UnitRegistry()
 Q_ = ureg.Quantity
+
 
 class KnownUnitQ(Test):
 
@@ -32,6 +42,7 @@ class KnownUnitQ(Test):
     >> KnownUnitQ["Foo"]
      = False
     """
+
     def test(self, expr):
         def validate(unit):
             try:
@@ -42,6 +53,7 @@ class KnownUnitQ(Test):
                 return True
 
         return validate(expr.get_string_value().lower())
+
 
 class UnitConvert(Builtin):
 
@@ -76,31 +88,32 @@ class UnitConvert(Builtin):
     """
 
     messages = {
-        'argrx': 'UnitConvert called with `1` arguments; 2 arguments are expected'
-        }
+        "argrx": "UnitConvert called with `1` arguments; 2 arguments are expected"
+    }
+
     def apply(self, expr, toUnit, evaluation):
-        'UnitConvert[expr_, toUnit_]'
+        "UnitConvert[expr_, toUnit_]"
 
         def convert_unit(leaves, target):
 
             mag = leaves[0]
             unit = leaves[1].get_string_value()
             quantity = Q_(mag, unit)
-            converted_quantity =  quantity.to(target)
+            converted_quantity = quantity.to(target)
 
             q_mag = converted_quantity.magnitude.evaluate(evaluation).get_float_value()
 
-            #Displaying the magnitude in Integer form if the convert rate is an Integer
+            # Displaying the magnitude in Integer form if the convert rate is an Integer
             if q_mag - int(q_mag) > 0:
                 return Expression("Quantity", Real(q_mag), target)
             else:
                 return Expression("Quantity", Integer(q_mag), target)
 
         if len(evaluation.out) > 0:
-               return
+            return
 
         if toUnit.has_form("Quantity", None):
-           targetUnit = toUnit.leaves[1].get_string_value().lower()
+            targetUnit = toUnit.leaves[1].get_string_value().lower()
         elif toUnit.has_form("List", None):
             if not toUnit.leaves[0].has_form("Quantity", None):
                 return
@@ -119,7 +132,7 @@ class UnitConvert(Builtin):
             return convert_unit(expr.leaves, targetUnit)
 
     def apply_base_unit(self, expr, evaluation):
-        'UnitConvert[expr_]'
+        "UnitConvert[expr_]"
 
         def convert_unit(leaves):
 
@@ -127,12 +140,16 @@ class UnitConvert(Builtin):
             unit = leaves[1].get_string_value()
 
             quantity = Q_(mag, unit)
-            converted_quantity =  quantity.to_base_units()
+            converted_quantity = quantity.to_base_units()
 
-            return Expression("Quantity", converted_quantity.magnitude, String(converted_quantity.units))
+            return Expression(
+                "Quantity",
+                converted_quantity.magnitude,
+                String(converted_quantity.units),
+            )
 
         if len(evaluation.out) > 0:
-               return
+            return
         if expr.has_form("List", None):
             abc = []
             for i in range(len(expr.leaves)):
@@ -140,6 +157,7 @@ class UnitConvert(Builtin):
             return Expression("List", *abc)
         else:
             return convert_unit(expr.leaves)
+
 
 class Quantity(Builtin):
     """
@@ -170,50 +188,58 @@ class Quantity(Builtin):
      = 1 foot
     """
 
-    attributes = ('HoldRest', 'NHoldRest', 'Protected', 'ReadProtected')
+    attributes = ("HoldRest", "NHoldRest", "Protected", "ReadProtected")
 
     messages = {
-        'unkunit': 'Unable to interpret unit specification `1`.',
-        }
+        "unkunit": "Unable to interpret unit specification `1`.",
+    }
+
     def validate(self, unit, evaluation):
-        if KnownUnitQ(unit).evaluate(evaluation) == Symbol('False'):
+        if KnownUnitQ(unit).evaluate(evaluation) == Symbol("False"):
             return False
         return True
 
     def apply_makeboxes(self, mag, unit, f, evaluation):
-        'MakeBoxes[Quantity[mag_, unit_?StringQ], f:StandardForm|TraditionalForm|OutputForm|InputForm]'
+        "MakeBoxes[Quantity[mag_, unit_?StringQ], f:StandardForm|TraditionalForm|OutputForm|InputForm]"
 
         q_unit = unit.get_string_value().lower()
-        if (self.validate(unit, evaluation)):
-            return Expression(
-                'RowBox', Expression('List', mag, " ", q_unit))
+        if self.validate(unit, evaluation):
+            return Expression("RowBox", Expression("List", mag, " ", q_unit))
         else:
             return Expression(
-                'RowBox', Expression('List', "Quantity", "[", mag, ",", q_unit, "]"))
+                "RowBox", Expression("List", "Quantity", "[", mag, ",", q_unit, "]")
+            )
 
     def apply_n(self, mag, unit, evaluation):
-        'Quantity[mag_, unit_?StringQ]'
-        expr = Expression('Quantity', mag, unit)
+        "Quantity[mag_, unit_?StringQ]"
+        expr = Expression("Quantity", mag, unit)
 
-        if(self.validate(unit, evaluation)):
-            if(mag.has_form("List", None)):
+        if self.validate(unit, evaluation):
+            if mag.has_form("List", None):
                 results = []
                 for i in range(len(mag.leaves)):
                     quantity = Q_(mag.leaves[i], unit.get_string_value().lower())
-                    results.append(Expression("Quantity", quantity.magnitude, String(quantity.units)))
+                    results.append(
+                        Expression(
+                            "Quantity", quantity.magnitude, String(quantity.units)
+                        )
+                    )
                 return Expression("List", *results)
             else:
                 quantity = Q_(mag, unit.get_string_value().lower())
-                return Expression('Quantity', quantity.magnitude, String(quantity.units))
+                return Expression(
+                    "Quantity", quantity.magnitude, String(quantity.units)
+                )
         else:
-            return evaluation.message('Quantity', 'unkunit', unit)
+            return evaluation.message("Quantity", "unkunit", unit)
 
     def apply_1(self, unit, evaluation):
-        'Quantity[unit_]'
+        "Quantity[unit_]"
         if not isinstance(unit, String):
-            return evaluation.message('Quantity', 'unkunit', unit)
+            return evaluation.message("Quantity", "unkunit", unit)
         else:
             return self.apply_n(Integer(1), unit, evaluation)
+
 
 class QuantityQ(Test):
     """
@@ -234,7 +260,6 @@ class QuantityQ(Test):
     """
 
     def test(self, expr):
-
         def validate_unit(unit):
             try:
                 Q_(1, unit)
@@ -260,7 +285,8 @@ class QuantityQ(Test):
                 else:
                     return False
 
-        return expr.get_head_name() == 'System`Quantity' and validate(expr.leaves)
+        return expr.get_head_name() == "System`Quantity" and validate(expr.leaves)
+
 
 class QuantityUnit(Builtin):
     """
@@ -284,7 +310,7 @@ class QuantityUnit(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'QuantityUnit[expr_]'
+        "QuantityUnit[expr_]"
 
         def get_unit(leaves):
             if len(leaves) == 1:
@@ -293,7 +319,7 @@ class QuantityUnit(Builtin):
                 return leaves[1]
 
         if len(evaluation.out) > 0:
-               return
+            return
         if expr.has_form("List", None):
             results = []
             for i in range(len(expr.leaves)):
@@ -301,6 +327,7 @@ class QuantityUnit(Builtin):
             return Expression("List", *results)
         else:
             return get_unit(expr.leaves)
+
 
 class QuantityMagnitude(Builtin):
     """
@@ -341,7 +368,7 @@ class QuantityMagnitude(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'QuantityMagnitude[expr_]'
+        "QuantityMagnitude[expr_]"
 
         def get_magnitude(leaves):
             if len(leaves) == 1:
@@ -350,7 +377,7 @@ class QuantityMagnitude(Builtin):
                 return leaves[0]
 
         if len(evaluation.out) > 0:
-               return
+            return
         if expr.has_form("List", None):
             results = []
             for i in range(len(expr.leaves)):
@@ -360,25 +387,25 @@ class QuantityMagnitude(Builtin):
             return get_magnitude(expr.leaves)
 
     def apply_unit(self, expr, unit, evaluation):
-        'QuantityMagnitude[expr_, unit_]'
+        "QuantityMagnitude[expr_, unit_]"
 
         def get_magnitude(leaves, targetUnit, evaluation):
             quanity = Q_(leaves[0], leaves[1].get_string_value())
             converted_quantity = quanity.to(targetUnit)
             q_mag = converted_quantity.magnitude.evaluate(evaluation).get_float_value()
 
-            #Displaying the magnitude in Integer form if the convert rate is an Integer
+            # Displaying the magnitude in Integer form if the convert rate is an Integer
             if q_mag - int(q_mag) > 0:
                 return Real(q_mag)
             else:
                 return Integer(q_mag)
 
         if len(evaluation.out) > 0:
-               return
+            return
 
-        #Getting the target unit
+        # Getting the target unit
         if unit.has_form("Quantity", None):
-           targetUnit = unit.leaves[1].get_string_value().lower()
+            targetUnit = unit.leaves[1].get_string_value().lower()
         elif unit.has_form("List", None):
             if not unit.leaves[0].has_form("Quantity", None):
                 return
@@ -389,11 +416,13 @@ class QuantityMagnitude(Builtin):
         else:
             return
 
-        #convert the quantity to the target unit and return the magnitude
+        # convert the quantity to the target unit and return the magnitude
         if expr.has_form("List", None):
             results = []
             for i in range(len(expr.leaves)):
-                results.append(get_magnitude(expr.leaves[i].leaves, targetUnit, evaluation))
+                results.append(
+                    get_magnitude(expr.leaves[i].leaves, targetUnit, evaluation)
+                )
             return Expression("List", *results)
         else:
             return get_magnitude(expr.leaves, targetUnit, evaluation)

@@ -100,6 +100,7 @@ class Fibonacci(_MPMathFunction):
     sympy_name = "fibonacci"
     mpmath_name = "fibonacci"
 
+
 class _NoBoolVector(Exception):
     pass
 

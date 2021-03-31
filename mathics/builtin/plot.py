@@ -19,6 +19,9 @@ from mathics.core.expression import (
     String,
     Integer,
     from_python,
+    SymbolList,
+    SymbolN,
+    SymbolRule,
 )
 from mathics.builtin.base import Builtin
 from mathics.builtin.scoping import dynamic_scoping
@@ -54,7 +57,9 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
 
     xd = x1 - x0
     offsets = [MachineReal(x0 + float(xd * i) / float(n - 1)) for i in range(n)]
-    colors = Expression("Map", blend, Expression("List", *offsets)).evaluate(evaluation)
+    colors = Expression("Map", blend, Expression(SymbolList, *offsets)).evaluate(
+        evaluation
+    )
     if len(colors.leaves) != n:
         return
 
@@ -81,7 +86,12 @@ class _GradientColorScheme(object):
         blend = Expression(
             "Function", Expression("Blend", colors, Expression("Slot", 1))
         )
-        arguments = [String(name), String("Gradients"), Expression("List", 0, 1), blend]
+        arguments = [
+            String(name),
+            String("Gradients"),
+            Expression(SymbolList, 0, 1),
+            blend,
+        ]
         return Expression("ColorDataFunction", *arguments)
 
 
@@ -185,13 +195,15 @@ class ColorData(Builtin):
 
     def apply_directory(self, evaluation):
         "ColorData[]"
-        return Expression("List", String("Gradients"))
+        return Expression(SymbolList, String("Gradients"))
 
     def apply(self, name, evaluation):
         "ColorData[name_String]"
         py_name = name.get_string_value()
         if py_name == "Gradients":
-            return Expression("List", *[String(name) for name in self.palettes.keys()])
+            return Expression(
+                SymbolList, *[String(name) for name in self.palettes.keys()]
+            )
         palette = ColorData.palettes.get(py_name, None)
         if palette is None:
             evaluation.message("ColorData", "notent", name)
@@ -382,11 +394,13 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
 
             return quiet_f
 
-    expr = Expression("N", expr)
+    expr = Expression(SymbolN, expr)
     quiet_expr = Expression(
         "Quiet",
         expr,
-        Expression("List", Expression("MessageName", Symbol("Power"), String("infy"))),
+        Expression(
+            SymbolList, Expression("MessageName", Symbol("Power"), String("infy"))
+        ),
     )
 
     def quiet_f(*args):
@@ -517,7 +531,7 @@ class _Plot(Builtin):
                 functions_param[index] = f
             functions = functions.flatten(Symbol("List"))
 
-        expr_limits = Expression("List", x, start, stop)
+        expr_limits = Expression(SymbolList, x, start, stop)
         expr = Expression(
             self.get_name(), functions, expr_limits, *options_to_rules(options)
         )
@@ -815,11 +829,13 @@ class _Plot(Builtin):
         if mesh != "None":
             for hue, points in zip(function_hues, mesh_points):
                 graphics.append(Expression("Hue", hue, 0.6, 0.6))
-                meshpoints = [Expression("List", xx, yy) for xx, yy in points]
-                graphics.append(Expression("Point", Expression("List", *meshpoints)))
+                meshpoints = [Expression(SymbolList, xx, yy) for xx, yy in points]
+                graphics.append(
+                    Expression("Point", Expression(SymbolList, *meshpoints))
+                )
 
         return Expression(
-            "Graphics", Expression("List", *graphics), *options_to_rules(options)
+            "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
         )
 
 
@@ -917,7 +933,9 @@ class _Chart(Builtin):
                     Expression(
                         "List", Expression("FaceForm", color), Expression("Rectangle")
                     ),
-                    Expression("Rule", Symbol("ImageSize"), Expression("List", 50, 50)),
+                    Expression(
+                        SymbolRule, Symbol("ImageSize"), Expression(SymbolList, 50, 50)
+                    ),
                 )
 
             rows_per_col = 5
@@ -939,7 +957,7 @@ class _Chart(Builtin):
                         items.extend([box(color(k, n)), names[k - 1]])
                     else:
                         items.extend([String(""), String("")])
-                yield Expression("List", *items)
+                yield Expression(SymbolList, *items)
 
         def color(k, n):
             if spread_colors and n < len(colors):
@@ -952,9 +970,9 @@ class _Chart(Builtin):
 
         if has_chart_legends:
             grid = Expression(
-                "Grid", Expression("List", *list(legends(chart_legends.leaves)))
+                "Grid", Expression(SymbolList, *list(legends(chart_legends.leaves)))
             )
-            chart = Expression("Row", Expression("List", chart, grid))
+            chart = Expression("Row", Expression(SymbolList, chart, grid))
 
         return chart
 
@@ -1004,7 +1022,7 @@ class PieChart(_Chart):
         sector_origin = self.get_option(options, "SectorOrigin", evaluation)
         if not sector_origin.has_form("List", 2):
             return
-        sector_origin = Expression("N", sector_origin).evaluate(evaluation)
+        sector_origin = Expression(SymbolN, sector_origin).evaluate(evaluation)
 
         orientation = sector_origin.leaves[0]
         if (
@@ -1030,9 +1048,9 @@ class PieChart(_Chart):
         sector_spacing = self.get_option(options, "SectorSpacing", evaluation)
         if isinstance(sector_spacing, Symbol):
             if sector_spacing.get_name() == "System`Automatic":
-                sector_spacing = Expression("List", Integer(0), Real(0.2))
+                sector_spacing = Expression(SymbolList, Integer(0), Real(0.2))
             elif sector_spacing.get_name() == "System`None":
-                sector_spacing = Expression("List", Integer(0), Integer(0))
+                sector_spacing = Expression(SymbolList, Integer(0), Integer(0))
             else:
                 return
         if not sector_spacing.has_form("List", 2):
@@ -1041,7 +1059,7 @@ class PieChart(_Chart):
         radius_spacing = max(0.0, min(1.0, sector_spacing.leaves[1].round_to_float()))
 
         def vector2(x, y):
-            return Expression("List", Real(x), Real(y))
+            return Expression(SymbolList, Real(x), Real(y))
 
         def radii():
             outer = 2.0
@@ -1117,7 +1135,7 @@ class PieChart(_Chart):
         )
 
         return Expression(
-            "Graphics", Expression("List", *graphics), *options_to_rules(options)
+            "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
         )
 
 
@@ -1146,15 +1164,12 @@ class BarChart(_Chart):
 
     options = _Chart.options.copy()
     options.update(
-        {
-            "Axes": "{False, True}",
-            "AspectRatio": "1 / GoldenRatio",
-        }
+        {"Axes": "{False, True}", "AspectRatio": "1 / GoldenRatio",}
     )
 
     def _draw(self, data, color, evaluation, options):
         def vector2(x, y):
-            return Expression("List", Real(x), Real(y))
+            return Expression(SymbolList, Real(x), Real(y))
 
         def boxes():
             w = 0.9
@@ -1182,8 +1197,8 @@ class BarChart(_Chart):
                     "Style",
                     Expression(
                         "Rectangle",
-                        Expression("List", x0, 0),
-                        Expression("List", x1, y),
+                        Expression(SymbolList, x0, 0),
+                        Expression(SymbolList, x1, y),
                     ),
                     color(k, n),
                 )
@@ -1191,14 +1206,14 @@ class BarChart(_Chart):
                 last_x1 = x1
 
             yield Expression(
-                "Line", Expression("List", vector2(0, 0), vector2(last_x1, 0))
+                "Line", Expression(SymbolList, vector2(0, 0), vector2(last_x1, 0))
             )
 
         def axes():
             yield Expression("FaceForm", Symbol("Black"))
 
             def points(x):
-                return Expression("List", vector2(x, 0), vector2(x, -0.2))
+                return Expression(SymbolList, vector2(x, 0), vector2(x, -0.2))
 
             for (k, n), x0, x1, y in boxes():
                 if k == 1:
@@ -1239,7 +1254,7 @@ class BarChart(_Chart):
         )
 
         return Expression(
-            "Graphics", Expression("List", *graphics), *options_to_rules(options)
+            "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
         )
 
 
@@ -1362,8 +1377,8 @@ class Histogram(Builtin):
                             "Style",
                             Expression(
                                 "Rectangle",
-                                Expression("List", x0, 0),
-                                Expression("List", x1, y),
+                                Expression(SymbolList, x0, 0),
+                                Expression(SymbolList, x1, y),
                             ),
                             style,
                         )
@@ -1374,8 +1389,8 @@ class Histogram(Builtin):
                         "Line",
                         Expression(
                             "List",
-                            Expression("List", 0, 0),
-                            Expression("List", last_x1, 0),
+                            Expression(SymbolList, 0, 0),
+                            Expression(SymbolList, last_x1, 0),
                         ),
                     )
 
@@ -1442,7 +1457,9 @@ class Histogram(Builtin):
             options["System`PlotRange"] = from_python([x_range, y_range])
 
             return Expression(
-                "Graphics", Expression("List", *graphics), *options_to_rules(options)
+                "Graphics",
+                Expression(SymbolList, *graphics),
+                *options_to_rules(options)
             )
 
         def manual_bins(bspec, hspec):
@@ -1488,7 +1505,7 @@ class Histogram(Builtin):
             return manual_bins(*spec)
         return Expression(
             "Graphics",
-            Expression("List", *graphics),
+            Expression(SymbolList, *graphics),
             *options_to_rules(options, Graphics.options)
         )
 
@@ -1678,7 +1695,7 @@ class _ListPlot(Builtin):
 
         return Expression(
             "Graphics",
-            Expression("List", *graphics),
+            Expression(SymbolList, *graphics),
             *options_to_rules(options, Graphics.options)
         )
 
@@ -1703,8 +1720,8 @@ class _Plot3D(Builtin):
     def apply(self, functions, x, xstart, xstop, y, ystart, ystop, evaluation, options):
         """%(name)s[functions_, {x_Symbol, xstart_, xstop_},
         {y_Symbol, ystart_, ystop_}, OptionsPattern[%(name)s]]"""
-        xexpr_limits = Expression("List", x, xstart, xstop)
-        yexpr_limits = Expression("List", y, ystart, ystop)
+        xexpr_limits = Expression(SymbolList, x, xstart, xstop)
+        yexpr_limits = Expression(SymbolList, y, ystart, ystop)
         expr = Expression(
             self.get_name(),
             functions,
@@ -2293,9 +2310,7 @@ class PolarPlot(_Plot):
 
     options = _Plot.options.copy()
     options.update(
-        {
-            "AspectRatio": "1",
-        }
+        {"AspectRatio": "1",}
     )
 
     def get_functions_param(self, functions):
@@ -2489,9 +2504,9 @@ class Plot3D(_Plot3D):
                     "Polygon",
                     Expression(
                         "List",
-                        Expression("List", *p1),
-                        Expression("List", *p2),
-                        Expression("List", *p3),
+                        Expression(SymbolList, *p1),
+                        Expression(SymbolList, *p2),
+                        Expression(SymbolList, *p3),
                     ),
                 )
             )
@@ -2507,13 +2522,13 @@ class Plot3D(_Plot3D):
                         mesh_points[xi][yi][2],
                     )
                 )
-            graphics.append(Expression("Line", Expression("List", *line)))
+            graphics.append(Expression("Line", Expression(SymbolList, *line)))
         return graphics
 
     def final_graphics(self, graphics, options):
         return Expression(
             "Graphics3D",
-            Expression("List", *graphics),
+            Expression(SymbolList, *graphics),
             *options_to_rules(options, Graphics3D.options)
         )
 
@@ -2635,15 +2650,19 @@ class DensityPlot(_Plot3D):
         vertex_colors = []
         graphics = []
         for p in triangles:
-            points.append(Expression("List", *(Expression("List", *x[:2]) for x in p)))
-            vertex_colors.append(Expression("List", *(eval_color(*x) for x in p)))
+            points.append(
+                Expression(SymbolList, *(Expression(SymbolList, *x[:2]) for x in p))
+            )
+            vertex_colors.append(Expression(SymbolList, *(eval_color(*x) for x in p)))
 
         graphics.append(
             Expression(
                 "Polygon",
-                Expression("List", *points),
+                Expression(SymbolList, *points),
                 Expression(
-                    "Rule", Symbol("VertexColors"), Expression("List", *vertex_colors)
+                    "Rule",
+                    Symbol("VertexColors"),
+                    Expression(SymbolList, *vertex_colors),
                 ),
             )
         )
@@ -2653,15 +2672,17 @@ class DensityPlot(_Plot3D):
             line = []
             for yi in range(len(mesh_points[xi])):
                 line.append(
-                    Expression("List", mesh_points[xi][yi][0], mesh_points[xi][yi][1])
+                    Expression(
+                        SymbolList, mesh_points[xi][yi][0], mesh_points[xi][yi][1]
+                    )
                 )
-            graphics.append(Expression("Line", Expression("List", *line)))
+            graphics.append(Expression("Line", Expression(SymbolList, *line)))
 
         return graphics
 
     def final_graphics(self, graphics, options):
         return Expression(
             "Graphics",
-            Expression("List", *graphics),
+            Expression(SymbolList, *graphics),
             *options_to_rules(options, Graphics.options)
         )

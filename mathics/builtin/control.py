@@ -9,10 +9,20 @@ Control Statements
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import (Expression, Symbol, from_python, SymbolTrue, SymbolFalse)
+from mathics.core.expression import (
+    Expression,
+    Symbol,
+    from_python,
+    SymbolTrue,
+    SymbolFalse,
+)
 from mathics.core.evaluation import (
-    AbortInterrupt, BreakInterrupt, ContinueInterrupt, ReturnInterrupt,
-    WLThrowInterrupt)
+    AbortInterrupt,
+    BreakInterrupt,
+    ContinueInterrupt,
+    ReturnInterrupt,
+    WLThrowInterrupt,
+)
 from mathics.builtin.lists import _IterationFunction
 from mathics.builtin.patterns import match
 
@@ -74,22 +84,22 @@ class CompoundExpression(BinaryOperator):
      = 3
     """
 
-    operator = ';'
+    operator = ";"
     precedence = 10
-    attributes = ('HoldAll', 'ReadProtected')
+    attributes = ("HoldAll", "ReadProtected")
 
     def apply(self, expr, evaluation):
-        'CompoundExpression[expr___]'
+        "CompoundExpression[expr___]"
 
         items = expr.get_sequence()
-        result = Symbol('Null')
+        result = Symbol("Null")
         for expr in items:
             prev_result = result
             result = expr.evaluate(evaluation)
 
             # `expr1; expr2;` returns `Null` but assigns `expr2` to `Out[n]`.
             # even stranger `CompoundExpresion[expr1, Null, Null]` assigns `expr1` to `Out[n]`.
-            if result == Symbol('Null') and prev_result != Symbol('Null'):
+            if result == Symbol("Null") and prev_result != Symbol("Null"):
                 evaluation.predetermined_out = prev_result
 
         return result
@@ -118,18 +128,18 @@ class If(Builtin):
     >> If[a, (*then*) b, (*else*) c];
     """
 
-    attributes = ('HoldRest',)
+    attributes = ("HoldRest",)
 
     def apply_2(self, condition, t, evaluation):
-        'If[condition_, t_]'
+        "If[condition_, t_]"
 
         if condition == SymbolTrue:
             return t.evaluate(evaluation)
         elif condition == SymbolFalse:
-            return Symbol('Null')
+            return Symbol("Null")
 
     def apply_3(self, condition, t, f, evaluation):
-        'If[condition_, t_, f_]'
+        "If[condition_, t_, f_]"
 
         if condition == SymbolTrue:
             return t.evaluate(evaluation)
@@ -137,7 +147,7 @@ class If(Builtin):
             return f.evaluate(evaluation)
 
     def apply_4(self, condition, t, f, u, evaluation):
-        'If[condition_, t_, f_, u_]'
+        "If[condition_, t_, f_, u_]"
 
         if condition == SymbolTrue:
             return t.evaluate(evaluation)
@@ -175,19 +185,21 @@ class Switch(Builtin):
      = Switch[b, b]
     """
 
-    attributes = ('HoldRest',)
+    attributes = ("HoldRest",)
 
     messages = {
-        'argct': ("Switch called with `2` arguments. "
-                  "Switch must be called with an odd number of arguments."),
+        "argct": (
+            "Switch called with `2` arguments. "
+            "Switch must be called with an odd number of arguments."
+        ),
     }
 
     def apply(self, expr, rules, evaluation):
-        'Switch[expr_, rules___]'
+        "Switch[expr_, rules___]"
 
         rules = rules.get_sequence()
         if len(rules) % 2 != 0:
-            evaluation.message('Switch', 'argct', 'Switch', len(rules) + 1)
+            evaluation.message("Switch", "argct", "Switch", len(rules) + 1)
             return
         for pattern, value in zip(rules[::2], rules[1::2]):
             if match(expr, pattern, evaluation):
@@ -224,18 +236,18 @@ class Which(Builtin):
      = Which[a, b, c]
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     def apply(self, items, evaluation):
-        'Which[items___]'
+        "Which[items___]"
 
         items = items.get_sequence()
         nr_items = len(items)
         if len(items) == 1:
-            evaluation.message('Which', 'argctu', 'Which')
+            evaluation.message("Which", "argctu", "Which")
             return
         elif len(items) % 2 == 1:
-            evaluation.message('Which', 'argct', 'Which', len(items))
+            evaluation.message("Which", "argct", "Which", len(items))
             return
         while items:
             test, item = items[0], items[1]
@@ -245,9 +257,9 @@ class Which(Builtin):
             elif test_result != SymbolFalse:
                 if len(items) == nr_items:
                     return None
-                return Expression('Which', *items)
+                return Expression("Which", *items)
             items = items[2:]
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class Do(_IterationFunction):
@@ -291,7 +303,7 @@ class Do(_IterationFunction):
     allow_loopcontrol = True
 
     def get_result(self, items):
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class For(Builtin):
@@ -320,13 +332,13 @@ class For(Builtin):
      = 120
     """
 
-    attributes = ('HoldRest',)
+    attributes = ("HoldRest",)
     rules = {
-        'For[start_, test_, incr_]': 'For[start, test, incr, Null]',
+        "For[start_, test_, incr_]": "For[start, test, incr, Null]",
     }
 
     def apply(self, start, test, incr, body, evaluation):
-        'For[start_, test_, incr_, body_]'
+        "For[start_, test_, incr_, body_]"
         while test.evaluate(evaluation).is_true():
             evaluation.check_stopped()
             try:
@@ -343,7 +355,7 @@ class For(Builtin):
                 break
             except ReturnInterrupt as e:
                 return e.expr
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class While(Builtin):
@@ -365,13 +377,13 @@ class While(Builtin):
      = 12
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
     rules = {
-        'While[test_]': 'While[test, Null]',
+        "While[test_]": "While[test, Null]",
     }
 
     def apply(self, test, body, evaluation):
-        'While[test_, body_]'
+        "While[test_, body_]"
 
         while test.evaluate(evaluation).is_true():
             try:
@@ -383,7 +395,7 @@ class While(Builtin):
                 break
             except ReturnInterrupt as e:
                 return e.expr
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class Nest(Builtin):
@@ -400,7 +412,7 @@ class Nest(Builtin):
     """
 
     def apply(self, f, expr, n, evaluation):
-        'Nest[f_, expr_, n_Integer]'
+        "Nest[f_, expr_, n_Integer]"
 
         n = n.get_int_value()
         if n is None or n < 0:
@@ -432,7 +444,7 @@ class NestList(Builtin):
     """
 
     def apply(self, f, expr, n, evaluation):
-        'NestList[f_, expr_, n_Integer]'
+        "NestList[f_, expr_, n_Integer]"
 
         n = n.get_int_value()
         if n is None or n < 0:
@@ -466,18 +478,18 @@ class NestWhile(Builtin):
     """
 
     rules = {
-        'NestWhile[f_, expr_, test_]': 'NestWhile[f, expr, test, 1]',
+        "NestWhile[f_, expr_, test_]": "NestWhile[f, expr, test, 1]",
     }
 
     def apply(self, f, expr, test, m, evaluation):
-        'NestWhile[f_, expr_, test_, Pattern[m,_Integer|All]]'
+        "NestWhile[f_, expr_, test_, Pattern[m,_Integer|All]]"
 
         results = [expr]
         while True:
-            if m.get_name() == 'All':
+            if m.get_name() == "All":
                 test_leaves = results
             else:
-                test_leaves = results[-m.value:]
+                test_leaves = results[-m.value :]
             test_expr = Expression(test, *test_leaves)
             test_result = test_expr.evaluate(evaluation)
             if test_result.is_true():
@@ -513,14 +525,14 @@ class FixedPoint(Builtin):
     """
 
     def apply(self, f, expr, n, evaluation):
-        'FixedPoint[f_, expr_, n_:DirectedInfinity[1]]'
+        "FixedPoint[f_, expr_, n_:DirectedInfinity[1]]"
 
-        if n == Expression('DirectedInfinity', 1):
+        if n == Expression("DirectedInfinity", 1):
             count = None
         else:
             count = n.get_int_value()
             if count is None or count < 0:
-                evaluation.message('FixedPoint', 'intnn')
+                evaluation.message("FixedPoint", "intnn")
                 return
         result = expr
         index = 0
@@ -572,14 +584,14 @@ class FixedPointList(Builtin):
     """
 
     def apply(self, f, expr, n, evaluation):
-        'FixedPointList[f_, expr_, n_:DirectedInfinity[1]]'
+        "FixedPointList[f_, expr_, n_:DirectedInfinity[1]]"
 
-        if n == Expression('DirectedInfinity', 1):
+        if n == Expression("DirectedInfinity", 1):
             count = None
         else:
             count = n.get_int_value()
             if count is None or count < 0:
-                evaluation.message('FixedPoint', 'intnn')
+                evaluation.message("FixedPoint", "intnn")
                 return
 
         interm = expr
@@ -612,9 +624,10 @@ class Abort(Builtin):
     """
 
     def apply(self, evaluation):
-        'Abort[]'
+        "Abort[]"
 
         raise AbortInterrupt
+
 
 class Interrupt(Builtin):
     """
@@ -628,12 +641,13 @@ class Interrupt(Builtin):
     """
 
     def apply(self, evaluation):
-        'Interrupt[]'
+        "Interrupt[]"
 
         raise AbortInterrupt
 
+
 class Return(Builtin):
-    '''
+    """
     <dl>
     <dt>'Return[$expr$]'
       <dd>aborts a function call and returns $expr$.
@@ -663,14 +677,14 @@ class Return(Builtin):
     #> g[y_] := Module[{}, z = f[y]; 2]
     #> g[1]
      = 2
-    '''
+    """
 
     rules = {
-        'Return[]': 'Return[Null]',
+        "Return[]": "Return[Null]",
     }
 
     def apply(self, expr, evaluation):
-        'Return[expr_]'
+        "Return[expr_]"
 
         raise ReturnInterrupt(expr)
 
@@ -688,11 +702,11 @@ class Break(Builtin):
     """
 
     messages = {
-        'nofwd': "No enclosing For, While, or Do found for Break[].",
+        "nofwd": "No enclosing For, While, or Do found for Break[].",
     }
 
     def apply(self, evaluation):
-        'Break[]'
+        "Break[]"
 
         raise BreakInterrupt
 
@@ -712,11 +726,11 @@ class Continue(Builtin):
     """
 
     messages = {
-        'nofwd': "No enclosing For, While, or Do found for Continue[].",
+        "nofwd": "No enclosing For, While, or Do found for Continue[].",
     }
 
     def apply(self, evaluation):
-        'Continue[]'
+        "Continue[]"
 
         raise ContinueInterrupt
 
@@ -748,10 +762,11 @@ class Catch(Builtin):
      = 24
 
     """
+
     attributes = ("HoldAll",)
 
     def apply1(self, expr, evaluation):
-        'Catch[expr_]'
+        "Catch[expr_]"
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
@@ -795,12 +810,15 @@ class Throw(Builtin):
      << Throw[1]
       = Null
     """
-    messages = {'nocatch': 'Uncaught `1` returned to top level.', }
+
+    messages = {
+        "nocatch": "Uncaught `1` returned to top level.",
+    }
 
     def apply1(self, value, evaluation):
-        'Throw[value_]'
+        "Throw[value_]"
         raise WLThrowInterrupt(value)
 
     def apply2(self, value, tag, evaluation):
-        'Throw[value_, tag_]'
+        "Throw[value_, tag_]"
         raise WLThrowInterrupt(value, tag)

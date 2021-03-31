@@ -7,7 +7,12 @@ Graphics (3D)
 
 import numbers
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.core.expression import Expression, from_python, system_symbols_dict
+from mathics.core.expression import (
+    Expression,
+    from_python,
+    system_symbols_dict,
+    SymbolList,
+)
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from .graphics import (
     Graphics,
@@ -1026,81 +1031,81 @@ class Cuboid(Builtin):
             # X
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmin, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmin, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmin, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmin, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymax, zmin),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymin, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             # Y
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymin, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmax, ymin, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmax, ymin, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmax, ymax, zmin),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmin, ymax, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmin, ymax, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             # Z
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmax, ymax, zmin),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymax, zmin),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmin, ymax, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmin, ymax, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmax, ymin, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmax, ymin, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
         ]
 
-        return Expression("Polygon", Expression("List", *polygons))
+        return Expression("Polygon", Expression(SymbolList, *polygons))
 
     def apply_min(self, xmin, ymin, zmin, evaluation):
         "Cuboid[{xmin_, ymin_, zmin_}]"
