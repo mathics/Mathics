@@ -339,13 +339,13 @@ class _EqualityOperator(_InequalityOperator):
             lhs = l1_sympy.n(dps(prec))
             rhs = l2_sympy.n(dps(prec))
             if lhs == rhs:
-                return True            
+                return True
             tol = 10 ** (-prec)
             diff = abs(lhs - rhs)
             if isinstance(diff, sympy.core.add.Add):
-                return (sympy.re(diff) < tol)
+                return sympy.re(diff) < tol
             else:
-                return (diff < tol)
+                return diff < tol
         else:
             return None
 
