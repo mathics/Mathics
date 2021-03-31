@@ -23,6 +23,8 @@ from mathics.core.expression import (
     PrecisionReal,
     String,
     Symbol,
+    SymbolTrue,
+    SymbolFalse,
     ensure_context,
     strip_context,
 )
@@ -445,6 +447,7 @@ class SympyObject(Builtin):
             return [self.sympy_name]
         return []
 
+
 class UnaryOperator(Operator):
     def __init__(self, format_function, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -526,13 +529,12 @@ class Test(Builtin):
         "%(name)s[expr_]"
 
         if self.test(expr):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class SympyFunction(SympyObject):
-
     def apply(self, *args):
         """
         Generic apply method that uses the class sympy_name.
@@ -581,8 +583,6 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
-
-
 
 
 class InvalidLevelspecError(Exception):

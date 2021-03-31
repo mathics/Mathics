@@ -4,10 +4,7 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-from mathics.core.expression import (Expression, system_symbols,
-                                     ensure_context)
+from mathics.core.expression import Expression, system_symbols, ensure_context
 from mathics.core.util import subsets, subranges, permutations
 from itertools import chain
 
@@ -19,6 +16,7 @@ from itertools import chain
 
 def Pattern_create(expr):
     from mathics.builtin import pattern_objects
+
     # from mathics.core.pattern import AtomPattern, ExpressionPattern
 
     name = expr.get_head_name()
@@ -47,8 +45,18 @@ class StopGenerator_Pattern(StopGenerator):
 class Pattern(object):
     create = staticmethod(Pattern_create)
 
-    def match(self, yield_func, expression, vars, evaluation, head=None,
-              leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
+    def match(
+        self,
+        yield_func,
+        expression,
+        vars,
+        evaluation,
+        head=None,
+        leaf_index=None,
+        leaf_count=None,
+        fully=True,
+        wrap_oneid=True,
+    ):
         raise NotImplementedError
 
     """def match(self, expression, vars, evaluation,
@@ -72,6 +80,7 @@ class Pattern(object):
 
         def yield_match(sub_vars, rest):
             raise StopGenerator_Pattern(True)
+
         try:
             self.match(yield_match, expression, vars, evaluation, fully=fully)
         except StopGenerator_Pattern as exc:
@@ -118,8 +127,11 @@ class Pattern(object):
         return []
 
     def get_match_candidates_count(
-            self, leaves, expression, attributes, evaluation, vars={}):
-        return len(self.get_match_candidates(leaves, expression, attributes, evaluation, vars))
+        self, leaves, expression, attributes, evaluation, vars={}
+    ):
+        return len(
+            self.get_match_candidates(leaves, expression, attributes, evaluation, vars)
+        )
 
 
 class AtomPattern(Pattern):
@@ -128,10 +140,20 @@ class AtomPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return '<AtomPattern: %s>' % self.atom
+        return "<AtomPattern: %s>" % self.atom
 
-    def match(self, yield_func, expression, vars, evaluation, head=None,
-              leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
+    def match(
+        self,
+        yield_func,
+        expression,
+        vars,
+        evaluation,
+        head=None,
+        leaf_index=None,
+        leaf_count=None,
+        fully=True,
+        wrap_oneid=True,
+    ):
         if expression.same(self.atom):
             # yield vars, None
             yield_func(vars, None)
@@ -146,16 +168,27 @@ class AtomPattern(Pattern):
 # class StopGenerator_ExpressionPattern_match(StopGenerator):
 #    pass
 
+
 class ExpressionPattern(Pattern):
     # get_pre_choices = pattern_nocython.get_pre_choices
     # match = pattern_nocython.match
 
-    def match(self, yield_func, expression, vars, evaluation, head=None,
-              leaf_index=None, leaf_count=None, fully=True, wrap_oneid=True):
+    def match(
+        self,
+        yield_func,
+        expression,
+        vars,
+        evaluation,
+        head=None,
+        leaf_index=None,
+        leaf_count=None,
+        fully=True,
+        wrap_oneid=True,
+    ):
         evaluation.check_stopped()
 
         attributes = self.head.get_attributes(evaluation.definitions)
-        if 'System`Flat' not in attributes:
+        if "System`Flat" not in attributes:
             fully = True
         if not expression.is_atom():
             # don't do this here, as self.get_pre_choices changes the
@@ -184,16 +217,21 @@ class ExpressionPattern(Pattern):
                 # call to get_match_candidates_count(), which is slow.
 
                 unmatched_leaves = expression.leaves
-                leading_blanks = 'System`Orderless' not in attributes
+                leading_blanks = "System`Orderless" not in attributes
 
                 for leaf in self.leaves:
                     match_count = leaf.get_match_count()
 
                     if leading_blanks:
-                        if tuple(match_count) == (1, 1):  # Blank? (i.e. length exactly 1?)
+                        if tuple(match_count) == (
+                            1,
+                            1,
+                        ):  # Blank? (i.e. length exactly 1?)
                             if not unmatched_leaves:
                                 raise StopGenerator_ExpressionPattern_match()
-                            if not leaf.does_match(unmatched_leaves[0], evaluation, pre_vars):
+                            if not leaf.does_match(
+                                unmatched_leaves[0], evaluation, pre_vars
+                            ):
                                 raise StopGenerator_ExpressionPattern_match()
                             unmatched_leaves = unmatched_leaves[1:]
                         else:
@@ -201,7 +239,12 @@ class ExpressionPattern(Pattern):
 
                     if not leading_blanks:
                         candidates = leaf.get_match_candidates_count(
-                            unmatched_leaves, expression, attributes, evaluation, pre_vars)
+                            unmatched_leaves,
+                            expression,
+                            attributes,
+                            evaluation,
+                            pre_vars,
+                        )
                         if candidates < match_count[0]:
                             raise StopGenerator_ExpressionPattern_match()
 
@@ -213,11 +256,19 @@ class ExpressionPattern(Pattern):
                 # def yield_leaf(new_vars, rest):
                 #    yield_func(new_vars, rest)
                 self.match_leaf(
-                    yield_func, next_leaf, next_leaves,
-                    ([], expression.leaves), pre_vars, expression, attributes,
-                    evaluation, first=True, fully=fully,
+                    yield_func,
+                    next_leaf,
+                    next_leaves,
+                    ([], expression.leaves),
+                    pre_vars,
+                    expression,
+                    attributes,
+                    evaluation,
+                    first=True,
+                    fully=fully,
                     leaf_count=len(self.leaves),
-                    wrap_oneid=expression.get_head_name() != 'System`MakeBoxes')
+                    wrap_oneid=expression.get_head_name() != "System`MakeBoxes",
+                )
 
             # for head_vars, _ in self.head.match(expression.get_head(), vars,
             # evaluation):
@@ -228,19 +279,24 @@ class ExpressionPattern(Pattern):
                     # for pre_vars in pre_choices:
 
                     self.get_pre_choices(
-                        yield_choice, expression, attributes, head_vars)
+                        yield_choice, expression, attributes, head_vars
+                    )
                 else:
                     if not expression.leaves:
                         yield_func(head_vars, None)
                     else:
                         return
+
             try:
-                self.head.match(
-                    yield_head, expression.get_head(), vars, evaluation)
+                self.head.match(yield_head, expression.get_head(), vars, evaluation)
             except StopGenerator_ExpressionPattern_match:
                 return
-        if (wrap_oneid and 'System`OneIdentity' in attributes and      # nopep8
-            expression.get_head() != self.head and expression != self.head):
+        if (
+            wrap_oneid
+            and "System`OneIdentity" in attributes
+            and expression.get_head() != self.head  # nopep8
+            and expression != self.head
+        ):
             # and 'OneIdentity' not in
             # (expression.get_attributes(evaluation.definitions) |
             # expression.get_head().get_attributes(evaluation.definitions)):
@@ -261,15 +317,24 @@ class ExpressionPattern(Pattern):
             # def yield_leaf(new_vars, rest):
             #    yield_func(new_vars, rest)
             self.match_leaf(
-                yield_func, self.leaves[0], self.leaves[1:],
-                ([], [expression]), vars, new_expression, attributes,
-                evaluation, first=True, fully=fully,
-                leaf_count=len(self.leaves), wrap_oneid=True)
+                yield_func,
+                self.leaves[0],
+                self.leaves[1:],
+                ([], [expression]),
+                vars,
+                new_expression,
+                attributes,
+                evaluation,
+                first=True,
+                fully=fully,
+                leaf_count=len(self.leaves),
+                wrap_oneid=True,
+            )
 
     def get_pre_choices(self, yield_func, expression, attributes, vars):
-        if 'System`Orderless' in attributes:
+        if "System`Orderless" in attributes:
             self.sort()
-            patterns = self.filter_leaves('Pattern')
+            patterns = self.filter_leaves("Pattern")
             groups = {}
             prev_pattern = prev_name = None
             for pattern in patterns:
@@ -306,9 +371,10 @@ class ExpressionPattern(Pattern):
                         sub_match_count = pattern.get_match_count()
                         if sub_match_count[0] > match_count[0]:
                             match_count[0] = sub_match_count[0]
-                        if (match_count[1] is None or
-                            (sub_match_count[1] is not None and
-                             sub_match_count[1] < match_count[1])):
+                        if match_count[1] is None or (
+                            sub_match_count[1] is not None
+                            and sub_match_count[1] < match_count[1]
+                        ):
                             match_count[1] = sub_match_count[1]
                     # possibilities = [{}]
                     # sum = 0
@@ -324,8 +390,9 @@ class ExpressionPattern(Pattern):
                             expr, count = expr_groups.popitem()
                             max_per_pattern = count // len(patterns)
                             for per_pattern in range(max_per_pattern, -1, -1):
-                                for next in per_expr(   # nopep8
-                                    expr_groups, sum + per_pattern):
+                                for next in per_expr(  # nopep8
+                                    expr_groups, sum + per_pattern
+                                ):
                                     yield_expr([expr] * per_pattern + next)
                         else:
                             if sum >= match_count[0]:
@@ -338,14 +405,17 @@ class ExpressionPattern(Pattern):
                         # FIXME: this call is wrong and needs a
                         # wrapper_function as the 1st parameter.
                         wrappings = self.get_wrappings(
-                            sequence, match_count[1], expression, attributes)
+                            sequence, match_count[1], expression, attributes
+                        )
                         for wrapping in wrappings:
                             # for next in per_name(groups[1:], vars):
                             def yield_next(next):
                                 setting = next.copy()
                                 setting[name] = wrapping
                                 yield_name(setting)
+
                             per_name(yield_next, groups[1:], vars)
+
                     per_expr(yield_expr, expr_groups)
                 else:  # no groups left
                     yield_name(vars)
@@ -364,37 +434,56 @@ class ExpressionPattern(Pattern):
 
     def filter_leaves(self, head_name):
         head_name = ensure_context(head_name)
-        return [leaf for leaf in self.leaves
-                if leaf.get_head_name() == head_name]
+        return [leaf for leaf in self.leaves if leaf.get_head_name() == head_name]
 
     def __repr__(self):
-        return '<ExpressionPattern: %s>' % self.expr
+        return "<ExpressionPattern: %s>" % self.expr
 
     def get_match_count(self, vars={}):
         return (1, 1)
 
-    def get_wrappings(self, yield_func, items, max_count,
-                      expression, attributes, include_flattened=True):
+    def get_wrappings(
+        self,
+        yield_func,
+        items,
+        max_count,
+        expression,
+        attributes,
+        include_flattened=True,
+    ):
         if len(items) == 1:
             yield_func(items[0])
         else:
             if max_count is None or len(items) <= max_count:
-                if 'System`Orderless' in attributes:
+                if "System`Orderless" in attributes:
                     for perm in permutations(items):
-                        sequence = Expression('Sequence', *perm)
+                        sequence = Expression("Sequence", *perm)
                         sequence.pattern_sequence = True
                         yield_func(sequence)
                 else:
-                    sequence = Expression('Sequence', *items)
+                    sequence = Expression("Sequence", *items)
                     sequence.pattern_sequence = True
                     yield_func(sequence)
-            if 'System`Flat' in attributes and include_flattened:
+            if "System`Flat" in attributes and include_flattened:
                 yield_func(Expression(expression.get_head(), *items))
 
-    def match_leaf(self, yield_func, leaf, rest_leaves, rest_expression, vars,
-                   expression, attributes, evaluation, leaf_index=1,
-                   leaf_count=None, first=False, fully=True, depth=1,
-                   wrap_oneid=True):
+    def match_leaf(
+        self,
+        yield_func,
+        leaf,
+        rest_leaves,
+        rest_expression,
+        vars,
+        expression,
+        attributes,
+        evaluation,
+        leaf_index=1,
+        leaf_count=None,
+        first=False,
+        fully=True,
+        depth=1,
+        wrap_oneid=True,
+    ):
 
         if rest_expression is None:
             rest_expression = ([], [])
@@ -404,7 +493,11 @@ class ExpressionPattern(Pattern):
         match_count = leaf.get_match_count(vars)
         leaf_candidates = leaf.get_match_candidates(
             rest_expression[1],  # leaf.candidates,
-            expression, attributes, evaluation, vars)
+            expression,
+            attributes,
+            evaluation,
+            vars,
+        )
 
         if len(leaf_candidates) < match_count[0]:
             return
@@ -414,11 +507,24 @@ class ExpressionPattern(Pattern):
         # "Artificially" only use more leaves than specified for some kind
         # of pattern.
         # TODO: This could be further optimized!
-        try_flattened = (('System`Flat' in attributes) and (leaf.get_head_name() in (
-            system_symbols(
-                'Pattern', 'PatternTest', 'Condition', 'Optional', 'Blank',
-                'BlankSequence', 'BlankNullSequence', 'Alternatives',
-                'OptionsPattern', 'Repeated', 'RepeatedNull'))))
+        try_flattened = ("System`Flat" in attributes) and (
+            leaf.get_head_name()
+            in (
+                system_symbols(
+                    "Pattern",
+                    "PatternTest",
+                    "Condition",
+                    "Optional",
+                    "Blank",
+                    "BlankSequence",
+                    "BlankNullSequence",
+                    "Alternatives",
+                    "OptionsPattern",
+                    "Repeated",
+                    "RepeatedNull",
+                )
+            )
+        )
 
         if try_flattened:
             set_lengths = (match_count[0], None)
@@ -428,12 +534,13 @@ class ExpressionPattern(Pattern):
         # try_flattened is used later to decide whether wrapping of leaves
         # into one operand may occur.
         # This can of course also be when flat and same head.
-        try_flattened = try_flattened or ((
-            'System`Flat' in attributes) and leaf.get_head() == expression.head)
+        try_flattened = try_flattened or (
+            ("System`Flat" in attributes) and leaf.get_head() == expression.head
+        )
 
         less_first = len(rest_leaves) > 0
 
-        if 'System`Orderless' in attributes:
+        if "System`Orderless" in attributes:
             # we only want leaf_candidates to be a set if we're orderless.
             # otherwise, constructing a set() is very slow for large lists.
             # performance test case:
@@ -441,33 +548,43 @@ class ExpressionPattern(Pattern):
             leaf_candidates = set(leaf_candidates)  # for fast lookup
 
             sets = None
-            if leaf.get_head_name() == 'System`Pattern':
+            if leaf.get_head_name() == "System`Pattern":
                 varname = leaf.leaves[0].get_name()
                 existing = vars.get(varname, None)
                 if existing is not None:
                     head = existing.get_head()
-                    if (head.get_name() == 'System`Sequence' or (
-                            'System`Flat' in attributes and
-                            head == expression.get_head())):
+                    if head.get_name() == "System`Sequence" or (
+                        "System`Flat" in attributes and head == expression.get_head()
+                    ):
                         needed = existing.leaves
                     else:
                         needed = [existing]
                     available = candidates[:]
                     for needed_leaf in needed:
-                        if (needed_leaf in available and        # nopep8
-                            needed_leaf in leaf_candidates):
+                        if (
+                            needed_leaf in available
+                            and needed_leaf in leaf_candidates  # nopep8
+                        ):
                             available.remove(needed_leaf)
                         else:
                             return
                     sets = [(needed, ([], available))]
 
             if sets is None:
-                sets = subsets(candidates, included=leaf_candidates,
-                               less_first=less_first, *set_lengths)
+                sets = subsets(
+                    candidates,
+                    included=leaf_candidates,
+                    less_first=less_first,
+                    *set_lengths
+                )
         else:
-            sets = subranges(candidates, flexible_start=first and not fully,
-                             included=leaf_candidates, less_first=less_first,
-                             *set_lengths)
+            sets = subranges(
+                candidates,
+                flexible_start=first and not fully,
+                included=leaf_candidates,
+                less_first=less_first,
+                *set_lengths
+            )
 
         if rest_leaves:
             next_leaf = rest_leaves[0]
@@ -479,8 +596,9 @@ class ExpressionPattern(Pattern):
             # Include wrappings like Plus[a, b] only if not all items taken
             # - in that case we would match the same expression over and over.
 
-            include_flattened = (try_flattened and
-                                 0 < len(items) < len(expression.leaves))
+            include_flattened = try_flattened and 0 < len(items) < len(
+                expression.leaves
+            )
 
             # Don't try flattened when the expression would remain the same!
 
@@ -491,35 +609,58 @@ class ExpressionPattern(Pattern):
                 # next_rest[1]))
                 if next_rest is None:
                     yield_func(
-                        next_vars,
-                        (list(chain(rest_expression[0], items_rest[0])), []))
+                        next_vars, (list(chain(rest_expression[0], items_rest[0])), [])
+                    )
                 else:
                     yield_func(
                         next_vars,
-                        (list(chain(rest_expression[0], items_rest[0])), next_rest[1]))
+                        (list(chain(rest_expression[0], items_rest[0])), next_rest[1]),
+                    )
 
             def match_yield(new_vars, _):
                 if rest_leaves:
                     self.match_leaf(
-                        leaf_yield, next_leaf, next_rest_leaves, items_rest,
-                        new_vars, expression, attributes, evaluation,
-                        fully=fully, depth=next_depth, leaf_index=next_index,
-                        leaf_count=leaf_count, wrap_oneid=wrap_oneid)
+                        leaf_yield,
+                        next_leaf,
+                        next_rest_leaves,
+                        items_rest,
+                        new_vars,
+                        expression,
+                        attributes,
+                        evaluation,
+                        fully=fully,
+                        depth=next_depth,
+                        leaf_index=next_index,
+                        leaf_count=leaf_count,
+                        wrap_oneid=wrap_oneid,
+                    )
                 else:
                     if not fully or (not items_rest[0] and not items_rest[1]):
                         yield_func(new_vars, items_rest)
 
             def yield_wrapping(item):
-                leaf.match(match_yield, item, vars, evaluation, fully=True,
-                           head=expression.head, leaf_index=leaf_index,
-                           leaf_count=leaf_count, wrap_oneid=wrap_oneid)
+                leaf.match(
+                    match_yield,
+                    item,
+                    vars,
+                    evaluation,
+                    fully=True,
+                    head=expression.head,
+                    leaf_index=leaf_index,
+                    leaf_count=leaf_count,
+                    wrap_oneid=wrap_oneid,
+                )
 
             self.get_wrappings(
-                yield_wrapping, items, match_count[1], expression, attributes,
-                include_flattened=include_flattened)
+                yield_wrapping,
+                items,
+                match_count[1],
+                expression,
+                attributes,
+                include_flattened=include_flattened,
+            )
 
-    def get_match_candidates(self, leaves, expression, attributes, evaluation,
-                             vars={}):
+    def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
         """
         Finds possible leaves that could match the pattern, ignoring future
         pattern variable definitions, but taking into account already fixed
@@ -529,8 +670,9 @@ class ExpressionPattern(Pattern):
 
         return [leaf for leaf in leaves if self.does_match(leaf, evaluation, vars)]
 
-    def get_match_candidates_count(self, leaves, expression, attributes,
-                                   evaluation, vars={}):
+    def get_match_candidates_count(
+        self, leaves, expression, attributes, evaluation, vars={}
+    ):
         """
         Finds possible leaves that could match the pattern, ignoring future
         pattern variable definitions, but taking into account already fixed

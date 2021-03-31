@@ -23,7 +23,7 @@ from mathics.core.expression import (
 from mathics.core.numbers import get_precision, PrecisionValueError, machine_precision
 
 
-def mp_constant(fn: str, d=None) -> mpmath.ctx_mp_python.mpf:
+def mp_constant(fn: str, d=None) -> mpmath.mpf:
     """
     Return the mpmath constant _fn_ with integer precision _d_.
     """
@@ -88,7 +88,7 @@ class _Constant_Common(Predefined):
 
     def get_constant(self, precision, evaluation, preference=None):
         # first, determine the precision
-        machine_d = int( 0.30103 * machine_precision)
+        machine_d = int(0.30103 * machine_precision)
         d = None
         if precision:
             try:
@@ -107,7 +107,7 @@ class _Constant_Common(Predefined):
             else:
                 preference = "mpmath"
         # If preference is not valid, send a message and return.
-        if not (preference in  ("sympy", "numpy", "mpmath")):
+        if not (preference in ("sympy", "numpy", "mpmath")):
             evaluation.message(f'{preference} not in ("sympy", "numpy", "mpmath")')
             return
         # Try to determine the numeric value
@@ -129,14 +129,15 @@ class _Constant_Common(Predefined):
             if d == machine_d:
                 return MachineReal(value)
         if preference == "sympy":
-            value = sympy_constant(self.sympy_name, d+2)
+            value = sympy_constant(self.sympy_name, d + 2)
         if preference == "mpmath":
-            value = mp_constant(self.mpmath_name, d*2)
+            value = mp_constant(self.mpmath_name, d * 2)
         if value:
             return PrecisionReal(sympy.Float(str(value), d))
         # If the value is not available, return none
         # and keep it unevaluated.
         return
+
 
 class MPMathConstant(_Constant_Common):
     """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
@@ -245,7 +246,7 @@ class ComplexInfinity(SympyConstant):
 
 
 class Degree(MPMathConstant, NumpyConstant, SympyConstant):
-    u"""
+    """
     <dl>
       <dt>'Degree'
       <dd>is the number of radians in one degree. It has a numerical value of \u03c0 / 180.
@@ -330,7 +331,7 @@ class E(MPMathConstant, NumpyConstant, SympyConstant):
 
 
 class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
-    u"""
+    """
     <dl>
       <dt>'EulerGamma'</dt>
       <dd>is Euler's constant \u03b3 with numerial value \u2243 0.577216.
@@ -349,7 +350,7 @@ class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
 
 
 class Glaisher(MPMathConstant):
-    u"""
+    """
     <dl>
       <dt>'Glaisher'</dt>
       <dd>is Glaisher's constant, with numerical value \u2243 1.28243.
@@ -366,7 +367,7 @@ class Glaisher(MPMathConstant):
 
 
 class GoldenRatio(MPMathConstant, SympyConstant):
-    u"""
+    """
     <dl>
       <dt>'GoldenRatio'
       <dd>is the golden ratio, \u03D5 = (1+Sqrt[5])/2.
@@ -439,7 +440,7 @@ class Infinity(SympyConstant):
 
 
 class Khinchin(MPMathConstant):
-    u"""
+    """
     <dl>
       <dt>'Khinchin'</dt>
       <dd>is Khinchin's constant, with numerical value \u2243 2.68545.

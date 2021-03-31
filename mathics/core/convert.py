@@ -123,11 +123,12 @@ def from_sympy(expr):
         Expression,
         MachineReal,
         SymbolNull,
+        SymbolList,
     )
     from mathics.core.numbers import machine_precision
 
     if isinstance(expr, (tuple, list)):
-        return Expression("List", *[from_sympy(item) for item in expr])
+        return Expression(SymbolList, *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
         return Integer(expr)
     if isinstance(expr, float):
@@ -143,11 +144,12 @@ def from_sympy(expr):
             # This is a vector (only one column)
             # Transpose and select first row to get result equivalent to Mathematica
             return Expression(
-                "List", *[from_sympy(item) for item in expr.T.tolist()[0]]
+                SymbolList, *[from_sympy(item) for item in expr.T.tolist()[0]]
             )
         else:
             return Expression(
-                "List", *[[from_sympy(item) for item in row] for row in expr.tolist()]
+                SymbolList,
+                *[[from_sympy(item) for item in row] for row in expr.tolist()]
             )
     if isinstance(expr, sympy.MatPow):
         return Expression("MatrixPower", from_sympy(expr.base), from_sympy(expr.exp))
@@ -226,9 +228,9 @@ def from_sympy(expr):
         return Expression(
             "Piecewise",
             Expression(
-                "List",
+                SymbolList,
                 *[
-                    Expression("List", from_sympy(case), from_sympy(cond))
+                    Expression(SymbolList, from_sympy(case), from_sympy(cond))
                     for case, cond in args
                 ]
             ),
@@ -316,7 +318,7 @@ def from_sympy(expr):
         return Expression(Symbol(name), *args)
 
     elif isinstance(expr, sympy.Tuple):
-        return Expression("List", *[from_sympy(arg) for arg in expr.args])
+        return Expression(SymbolList, *[from_sympy(arg) for arg in expr.args])
 
     # elif isinstance(expr, sympy.Sum):
     #    return Expression('Sum', )

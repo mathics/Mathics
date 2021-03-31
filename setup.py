@@ -80,7 +80,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.0.0,<1.1.0",
+    "Mathics_Scanner>=1.1.0,<1.2.0",
     "sympy>=1.7, <= 1.8dev",
     "mpmath>=1.2.0",
     "numpy",
@@ -128,6 +128,7 @@ setup(
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",
+            "autoload/*.m",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",

@@ -42,6 +42,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolNull,
     SymbolTrue,
+    SymbolList,
     from_mpmath,
     from_python,
     valid_context_name,
@@ -65,13 +66,14 @@ PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packa
 
 
 def create_temporary_file(suffix=None, delete=False):
-    if suffix=="":
+    if suffix == "":
         suffix = None
 
     fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
     result = fp.name
     fp.close()
     return result
+
 
 def urlsave_tmp(url, location=None, **kwargs):
     suffix = ""
@@ -396,7 +398,7 @@ class Path(Predefined):
     name = "$Path"
 
     def evaluate(self, evaluation):
-        return Expression("List", *[String(p) for p in PATH_VAR])
+        return Expression(SymbolList, *[String(p) for p in PATH_VAR])
 
 
 class OperatingSystem(Predefined):
@@ -1962,7 +1964,7 @@ class WriteString(Builtin):
             exprs.append(result)
         line = "".join(exprs)
         if type(stream) is BytesIO:
-            line = line.encode('utf8')
+            line = line.encode("utf8")
         stream.write(line)
         try:
             stream.flush()
@@ -2185,9 +2187,13 @@ class Get(PrefixOperator):
             # TODO Proper error messages
 
             result = {}
-            trace_get = evaluation.parse('Settings`$TraceGet')
-            if options["System`Trace"].to_python() or trace_get.evaluate(evaluation) == SymbolTrue:
+            trace_get = evaluation.parse("Settings`$TraceGet")
+            if (
+                options["System`Trace"].to_python()
+                or trace_get.evaluate(evaluation) == SymbolTrue
+            ):
                 import builtins
+
                 result["TraceFn"] = builtins.print
             else:
                 result["TraceFn"] = None
@@ -2598,9 +2604,11 @@ class FileNameJoin(Builtin):
 
         if operating_system in ("Unix", "MacOSX"):
             import posixpath
+
             result = posixpath.join(*py_pathlist)
         elif operating_system in ("Windows",):
             import ntpath
+
             result = ntpath.join(*py_pathlist)
         else:
             result = osp.join(*py_pathlist)
@@ -2689,6 +2697,7 @@ class FileNameTake(Builtin):
     </dl>
 
     """
+
     # mmatura: please put in a pytest
     # >> FileNameTake["/tmp/file.txt"]
     #  = file.txt
@@ -3750,7 +3759,7 @@ class Uncompress(Builtin):
 
     def apply(self, string, evaluation):
         "Uncompress[string_String]"
-        string = string.get_string_value() #.encode("utf-8")
+        string = string.get_string_value()  # .encode("utf-8")
         string = base64.b64decode(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode("utf-8")
@@ -3864,7 +3873,11 @@ class FileHash(Builtin):
             e.message(evaluation)
             return
 
-        return Hash.compute(lambda update: update(dump), hashtype.get_string_value(), format.get_string_value())
+        return Hash.compute(
+            lambda update: update(dump),
+            hashtype.get_string_value(),
+            format.get_string_value(),
+        )
 
 
 class FileDate(Builtin):
@@ -4280,7 +4293,6 @@ class DeleteFile(Builtin):
 
             if path is None:
                 evaluation.message(
-
                     "DeleteFile", "nffil", Expression("DeleteFile", filename)
                 )
                 return SymbolFailed
@@ -4913,24 +4925,23 @@ class Needs(Builtin):
     }
 
     def apply(self, context, evaluation):
-        'Needs[context_String]'
+        "Needs[context_String]"
         contextstr = context.get_string_value()
         if contextstr == "":
             return SymbolNull
-        if contextstr[0]=="`":
+        if contextstr[0] == "`":
             curr_ctxt = evaluation.definitions.get_current_context()
             contextstr = curr_ctxt + contextstr[1:]
             context = String(contextstr)
         if not valid_context_name(contextstr):
-            evaluation.message('Needs', 'ctx', Expression(
-                'Needs', context), 1, '`')
+            evaluation.message("Needs", "ctx", Expression("Needs", context), 1, "`")
             return
         test_loaded = Expression("MemberQ", Symbol("$Packages"), context)
         test_loaded = test_loaded.evaluate(evaluation)
         if test_loaded.is_true():
             # Already loaded
             return SymbolNull
-        result = Expression('Get', context).evaluate(evaluation)
+        result = Expression("Get", context).evaluate(evaluation)
 
         if result == SymbolFailed:
             evaluation.message("Needs", "nocont", context)
@@ -4948,19 +4959,22 @@ class URLSave(Builtin):
         <dd>Save "url" in $filename$.
     </dl>
     """
-    messages = {"invfile": '`1` is not a valid Filename',
-                "invhttp": '`1` is not a valid URL'
-                }
+
+    messages = {
+        "invfile": "`1` is not a valid Filename",
+        "invhttp": "`1` is not a valid URL",
+    }
+
     def apply_1(self, url, evaluation, **options):
-        'URLSave[url_String, OptionsPattern[URLSave]]'
+        "URLSave[url_String, OptionsPattern[URLSave]]"
         return self.apply_2(url, None, evaluation, **options)
 
     def apply_2(self, url, filename, evaluation, **options):
-        'URLSave[url_String, filename_, OptionsPattern[URLSave]]'
+        "URLSave[url_String, filename_, OptionsPattern[URLSave]]"
         url = url.value
         if filename is None:
             result = urlsave_tmp(url, None, **options)
-        elif filename.get_head_name()=="String":
+        elif filename.get_head_name() == "String":
             filename = filename.value
             result = urlsave_tmp(url, filename, **options)
         else:
@@ -4980,13 +4994,17 @@ class CreateFile(Builtin):
         <dd>Creates a temporary file, but do not open it.
     </dl>
     """
-    rules = {'CreateFile[]':'CreateTemporary[]',}
-    options = {'CreateIntermediateDirectories': 'True',
-               'OverwriteTarget': 'True',
+
+    rules = {
+        "CreateFile[]": "CreateTemporary[]",
+    }
+    options = {
+        "CreateIntermediateDirectories": "True",
+        "OverwriteTarget": "True",
     }
 
     def apply_1(self, filename, evaluation, **options):
-        'CreateFile[filename_String, OptionsPattern[CreateFile]]'
+        "CreateFile[filename_String, OptionsPattern[CreateFile]]"
         try:
             # TODO: Implement options
             if not osp.isfile(filename.value):
@@ -4999,6 +5017,7 @@ class CreateFile(Builtin):
         except:
             return SymbolFailed
 
+
 class CreateTemporary(Builtin):
     """
     <dl>
@@ -5006,8 +5025,9 @@ class CreateTemporary(Builtin):
         <dd>Creates a temporary file, but do not open it.
     </dl>
     """
+
     def apply_0(self, evaluation):
-        'CreateTemporary[]'
+        "CreateTemporary[]"
         try:
             res = create_temporary_file()
         except:
@@ -5042,29 +5062,33 @@ class FileNames(Builtin):
     """
     # >> FileNames[]//Length
     #  = 2
-    fmtmaps = {Symbol("System`All"): "*" }
-    options = {"IgnoreCase": "Automatic",}
+    fmtmaps = {Symbol("System`All"): "*"}
+    options = {
+        "IgnoreCase": "Automatic",
+    }
 
     messages = {
-        "nofmtstr" : "`1` is not a format or a list of formats.",
-        "nodirstr" : "`1` is not a directory name  or a list of directory names.",
-        "badn" : "`1` is not an integer number.",
+        "nofmtstr": "`1` is not a format or a list of formats.",
+        "nodirstr": "`1` is not a directory name  or a list of directory names.",
+        "badn": "`1` is not an integer number.",
     }
 
     def apply_0(self, evaluation, **options):
-        '''FileNames[OptionsPattern[FileNames]]'''
-        return self.apply_3(String("*"), String(os.getcwd()), None,  evaluation, **options)
+        """FileNames[OptionsPattern[FileNames]]"""
+        return self.apply_3(
+            String("*"), String(os.getcwd()), None, evaluation, **options
+        )
 
     def apply_1(self, forms, evaluation, **options):
-        '''FileNames[forms_, OptionsPattern[FileNames]]'''
-        return self.apply_3(forms, String(os.getcwd()), None,  evaluation, **options)
+        """FileNames[forms_, OptionsPattern[FileNames]]"""
+        return self.apply_3(forms, String(os.getcwd()), None, evaluation, **options)
 
     def apply_2(self, forms, paths, evaluation, **options):
-        '''FileNames[forms_, paths_, OptionsPattern[FileNames]]'''
-        return self.apply_3(forms, paths, None,  evaluation, **options)
+        """FileNames[forms_, paths_, OptionsPattern[FileNames]]"""
+        return self.apply_3(forms, paths, None, evaluation, **options)
 
     def apply_3(self, forms, paths, n, evaluation, **options):
-        '''FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]'''
+        """FileNames[forms_, paths_, n_, OptionsPattern[FileNames]]"""
         filenames = set()
         # Building a list of forms
         if forms.get_head_name() == "System`List":
@@ -5075,9 +5099,9 @@ class FileNames(Builtin):
                 else:
                     str_forms.append(p)
         else:
-            str_forms = [self.fmtmaps[forms]
-                         if self.fmtmaps.get(forms, None)
-                         else forms]
+            str_forms = [
+                self.fmtmaps[forms] if self.fmtmaps.get(forms, None) else forms
+            ]
         # Building a list of directories
         if paths.get_head_name() == "System`String":
             str_paths = [paths.value]
@@ -5100,24 +5124,28 @@ class FileNames(Builtin):
                 n = None
             else:
                 print(n)
-                evaluation.message("FileNames", "badn",  n)
+                evaluation.message("FileNames", "badn", n)
                 return
         else:
             n = 1
 
         # list the files
-        if options.get('System`IgnoreCase', None) == SymbolTrue:
-            patterns = [re.compile("^" +
-                                   to_regex(p, evaluation,
-                                            abbreviated_patterns=True),
-                                   re.IGNORECASE)+"$"
-                        for p in str_forms]
+        if options.get("System`IgnoreCase", None) == SymbolTrue:
+            patterns = [
+                re.compile(
+                    "^" + to_regex(p, evaluation, abbreviated_patterns=True),
+                    re.IGNORECASE,
+                )
+                + "$"
+                for p in str_forms
+            ]
         else:
-            patterns = [re.compile("^" +
-                                   to_regex(p,
-                                            evaluation,
-                                            abbreviated_patterns=True) +
-                                   "$") for p in str_forms]
+            patterns = [
+                re.compile(
+                    "^" + to_regex(p, evaluation, abbreviated_patterns=True) + "$"
+                )
+                for p in str_forms
+            ]
 
         for path in str_paths:
             if not osp.isdir(path):
@@ -5135,13 +5163,12 @@ class FileNames(Builtin):
                     # FIXME: This is an ugly and inefficient way
                     # to avoid looking deeper than the level n, but I do not realize
                     # how to do this better without a lot of code...
-                    if n is not None and len(root[pathlen:].split(osp.sep))>n:
+                    if n is not None and len(root[pathlen:].split(osp.sep)) > n:
                         continue
-                    for fn in files+dirs:
+                    for fn in files + dirs:
                         for pattern in patterns:
                             if pattern.match(fn):
-                                filenames.add(osp.join(root,fn))
+                                filenames.add(osp.join(root, fn))
                                 break
-
 
         return Expression("List", *[String(s) for s in filenames])

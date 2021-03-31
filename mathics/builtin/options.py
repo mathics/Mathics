@@ -6,7 +6,14 @@ Options and Default Arguments
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, Test, get_option
-from mathics.core.expression import Symbol, String, Expression, get_default_value, ensure_context, strip_context
+from mathics.core.expression import (
+    Symbol,
+    String,
+    Expression,
+    get_default_value,
+    ensure_context,
+    strip_context,
+)
 from mathics.builtin.image import Image
 from mathics.core.expression import strip_context
 
@@ -73,7 +80,7 @@ class Options(Builtin):
     """
 
     def apply(self, f, evaluation):
-        'Options[f_]'
+        "Options[f_]"
 
         name = f.get_name()
         if not name:
@@ -81,7 +88,7 @@ class Options(Builtin):
                 # FIXME ColorSpace, MetaInformation
                 options = f.metadata
             else:
-                evaluation.message('Options', 'sym', f, 1)
+                evaluation.message("Options", "sym", f, 1)
                 return
         else:
             options = evaluation.definitions.get_options(name)
@@ -89,8 +96,8 @@ class Options(Builtin):
         for option, value in sorted(options.items(), key=lambda item: item[0]):
             # Don't use HoldPattern, since the returned List should be
             # assignable to Options again!
-            result.append(Expression('RuleDelayed', Symbol(option), value))
-        return Expression('List', *result)
+            result.append(Expression("RuleDelayed", Symbol(option), value))
+        return Expression("List", *result)
 
 
 class OptionValue(Builtin):
@@ -126,18 +133,17 @@ class OptionValue(Builtin):
     """
 
     messages = {
-        'optnf': "Option name `1` not found.",
+        "optnf": "Option name `1` not found.",
     }
 
-
     rules = {
-        'OptionValue[optnames_List]': 'OptionValue/@optnames',
-        'OptionValue[f_, optnames_List]': 'OptionValue[f,#1]&/@optnames',
-        'OptionValue[f_, opts_, optnames_List]':'OptionValue[f,opts, #1]&/@optnames',
+        "OptionValue[optnames_List]": "OptionValue/@optnames",
+        "OptionValue[f_, optnames_List]": "OptionValue[f,#1]&/@optnames",
+        "OptionValue[f_, opts_, optnames_List]": "OptionValue[f,opts, #1]&/@optnames",
     }
 
     def apply_1(self, optname, evaluation):
-        'OptionValue[optname_]'
+        "OptionValue[optname_]"
         if evaluation.options is None:
             return
 
@@ -152,21 +158,21 @@ class OptionValue(Builtin):
             if name:
                 name = ensure_context(name)
         if not name:
-            evaluation.message('OptionValue', 'sym', optname, 1)
+            evaluation.message("OptionValue", "sym", optname, 1)
             return
 
         val = get_option(evaluation.options, name, evaluation)
         if val is None:
-            evaluation.message('OptionValue', 'optnf', optname)
+            evaluation.message("OptionValue", "optnf", optname)
             return Symbol(name)
         return val
 
     def apply_2(self, f, optname, evaluation):
-        'OptionValue[f_, optname_]'
+        "OptionValue[f_, optname_]"
         return self.apply_3(f, None, optname, evaluation)
 
     def apply_3(self, f, optvals, optname, evaluation):
-        'OptionValue[f_, optvals_, optname_]'
+        "OptionValue[f_, optvals_, optname_]"
         if type(optname) is String:
             name = optname.to_python()[1:-1]
         else:
@@ -177,7 +183,7 @@ class OptionValue(Builtin):
             if name:
                 name = ensure_context(name)
         if not name:
-            evaluation.message('OptionValue', 'sym', optname, 1)
+            evaluation.message("OptionValue", "sym", optname, 1)
             return
         # Look first in the explicit list
         if optvals:
@@ -187,14 +193,20 @@ class OptionValue(Builtin):
         # then, if not found, look at $f$. It could be a symbol, or a list of symbols, rules, and list of rules...
         if val is None:
             if f.is_symbol():
-                val = get_option(evaluation.definitions.get_options(f.get_name()), name, evaluation)
+                val = get_option(
+                    evaluation.definitions.get_options(f.get_name()), name, evaluation
+                )
             else:
-                if f.get_head_name() in ('System`Rule', 'System`RuleDelayed'):
+                if f.get_head_name() in ("System`Rule", "System`RuleDelayed"):
                     f = Expression("List", f)
-                if f.get_head_name() == 'System`List':
+                if f.get_head_name() == "System`List":
                     for leave in f.get_leaves():
                         if leave.is_symbol():
-                            val = get_option(evaluation.definitions.get_options(leave.get_name()), name, evaluation)
+                            val = get_option(
+                                evaluation.definitions.get_options(leave.get_name()),
+                                name,
+                                evaluation,
+                            )
                             if val:
                                 break
                         else:
@@ -206,7 +218,7 @@ class OptionValue(Builtin):
         if val is None and evaluation.options:
             val = get_option(evaluation.options, name, evaluation)
         if val is None:
-            evaluation.message('OptionValue', 'optnf', optname)
+            evaluation.message("OptionValue", "optnf", optname)
             return Symbol(name)
         return val
 
@@ -242,20 +254,20 @@ class Default(Builtin):
     """
 
     def apply(self, f, i, evaluation):
-        'Default[f_, i___]'
+        "Default[f_, i___]"
 
         i = i.get_sequence()
         if len(i) > 2:
-            evaluation.message('Default', 'argb', 1 + len(i), 1, 3)
+            evaluation.message("Default", "argb", 1 + len(i), 1, 3)
             return
         i = [index.get_int_value() for index in i]
         for index in i:
             if index is None or index < 1:
-                evaluation.message('Default', 'intp')
+                evaluation.message("Default", "intp")
                 return
         name = f.get_name()
         if not name:
-            evaluation.message('Default', 'sym', f, 1)
+            evaluation.message("Default", "sym", f, 1)
             return
         result = get_default_value(name, evaluation, *i)
         return result
@@ -294,13 +306,14 @@ class OptionQ(Test):
     """
 
     def test(self, expr):
-        expr = expr.flatten(Symbol('List'))
-        if not expr.has_form('List', None):
+        expr = expr.flatten(Symbol("List"))
+        if not expr.has_form("List", None):
             expr = [expr]
         else:
             expr = expr.get_leaves()
-        return all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
-                   for e in expr)
+        return all(
+            e.has_form("Rule", None) or e.has_form("RuleDelayed", 2) for e in expr
+        )
 
 
 class NotOptionQ(Test):
@@ -323,13 +336,14 @@ class NotOptionQ(Test):
     """
 
     def test(self, expr):
-        expr = expr.flatten(Symbol('List'))
-        if not expr.has_form('List', None):
+        expr = expr.flatten(Symbol("List"))
+        if not expr.has_form("List", None):
             expr = [expr]
         else:
             expr = expr.get_leaves()
-        return not all(e.has_form('Rule', None) or e.has_form('RuleDelayed', 2)
-                       for e in expr)
+        return not all(
+            e.has_form("Rule", None) or e.has_form("RuleDelayed", 2) for e in expr
+        )
 
 
 class FilterRules(Builtin):
@@ -349,24 +363,29 @@ class FilterRules(Builtin):
     """
 
     rules = {
-        'FilterRules[rules_List, patterns_List]': 'FilterRules[rules, Alternatives @@ patterns]',
+        "FilterRules[rules_List, patterns_List]": "FilterRules[rules, Alternatives @@ patterns]",
     }
 
     def apply(self, rules, pattern, evaluation):
-        'FilterRules[rules_List, pattern_]'
+        "FilterRules[rules_List, pattern_]"
         from mathics.builtin.patterns import Matcher
+
         match = Matcher(pattern).match
 
         def matched():
             for rule in rules.leaves:
-                if rule.has_form('Rule', 2) and match(rule.leaves[0], evaluation):
+                if rule.has_form("Rule", 2) and match(rule.leaves[0], evaluation):
                     yield rule
 
-        return Expression('List', *list(matched()))
+        return Expression("List", *list(matched()))
 
 
 def options_to_rules(options, filter=None):
     items = sorted(options.items())
     if filter:
-        items = [(name, value) for name, value in items if strip_context(name) in filter.keys()]
-    return [Expression('Rule', Symbol(name), value) for name, value in items]
+        items = [
+            (name, value)
+            for name, value in items
+            if strip_context(name) in filter.keys()
+        ]
+    return [Expression("Rule", Symbol(name), value) for name, value in items]
