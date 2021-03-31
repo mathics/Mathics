@@ -19,6 +19,7 @@ New builtins
 Enhancements
 ++++++++++++
 
+* Improve and bug fixings in `Equal`
 * the Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
 * Automatic detection for the best strategy to numeric evaluation of constants.
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
