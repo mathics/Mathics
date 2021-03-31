@@ -715,18 +715,13 @@ class Read(Builtin):
             return
 
         # Wrap types in a list (if it isn't already one)
-        if not types.has_form("List", None):
-            if types.get_head_name() == "System`Hold":
-                types = types._leaves[0]
-            types = Expression("List", types)
+        if types.has_form("List", None):
+            types = types._leaves
         else:
-            leaves = []
-            for leaf in leaves:
-                if leaf.get_head_name() == "System`Hold":
-                    leaves.append(leaf._leaves[0])
-                else:
-                    leaves.append(leaf)
-            types = Expression("List", *leaves)
+            types = (types,)
+
+        types = (typ._leaves[0] if typ.get_head_name()=="System`Hold" else typ for typ in types)
+        types = Expression("List", *types)
 
         READ_TYPES = [
             Symbol(k)
@@ -834,7 +829,7 @@ class Read(Builtin):
                     #    )
                     #    return SymbolFailed
                     if expr is not None:
-                        result.append(Expression("Hold", expr))
+                        result.append(expr)
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
                     try:
