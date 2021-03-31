@@ -603,6 +603,12 @@ class Read(Builtin):
 
     #> Quiet[Read[str, {Real}]]
      = Read[InputStream[String, ...], {Real}]
+
+    Multiple lines:
+    >> str = StringToStream["\\"Tengo una\\nvaca lechera.\\""]; Read[str]
+     = Tengo una
+     . vaca lechera.
+
     """
 
     messages = {
@@ -784,24 +790,24 @@ class Read(Builtin):
                         last_word = word
                         word = ""
                         yield last_word
-                        continue
+                        break
 
                     if tmp in word_separators:
                         if word == "":
-                            break
-                        # if stream.seekable():
-                        # stream.seek(-1, 1) #Python3
-                        #    stream.seek(stream.tell() - 1)
+                            continue
+                        if stream.seekable():
+                             # stream.seek(-1, 1) #Python3
+                            stream.seek(stream.tell() - 1)
                         last_word = word
                         word = ""
                         yield last_word
-                        continue
+                        break
 
                     if accepted is not None and tmp not in accepted:
                         last_word = word
                         word = ""
                         yield last_word
-                        continue
+                        break
 
                     word += tmp
 
