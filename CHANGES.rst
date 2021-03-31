@@ -32,7 +32,6 @@ Enhancements
 * ``StringSplit`` now accepts a list in the first argument.
 * ``SetDelayed`` now accepts several conditions imposed both at LHS as well as RHS.
 
-
 Bug fixes
 +++++++++
 
