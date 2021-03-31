@@ -27,6 +27,7 @@ Enhancements
   as a Python function.
 * ``Equal[]`` now compares complex against other numbers properly.
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]``
+* `StringSplit` not support lists as a first argument.
 
 Bug fixes
 +++++++++
