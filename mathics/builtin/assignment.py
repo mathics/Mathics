@@ -77,7 +77,7 @@ class _SetOperator(object):
             # f[x_]/; cond1 /; cond2 ...
             # is resumed to a single condition
             # f[x_]/; And[cond1, cond2, ...]
-            condition = [lhs._leaves[1]]          
+            condition = [lhs._leaves[1]]
             lhs = lhs._leaves[0]
             name = lhs.get_head_name()
             while name == "System`Condition" and len(lhs.leaves) == 2:
