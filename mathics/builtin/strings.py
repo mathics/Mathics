@@ -868,7 +868,7 @@ class StringSplit(Builtin):
         <dd>splits $s$ at the delimiter $d$.
     <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
         <dd>splits $s$ using multiple delimiters.
-    <dt>'StringSplit[{$s_1$, $s_2, $\ldots$}, {"$d1$", "$d2$", ...}]'
+    <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
         <dd>returns a list with the result of applying the function to 
             each element.
     </dl>
