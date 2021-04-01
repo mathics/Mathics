@@ -29,6 +29,8 @@ Enhancements
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]`.
 * ``SetDelayed`` now accept several conditions impossed both at LHS as well as RHS.
 * `StringSplit` not support lists as a first argument.
+* $Path is now Unprocected by default
+* Improving the reading of expressions from files.
 
 
 Bug fixes

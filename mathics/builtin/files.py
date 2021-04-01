@@ -26,8 +26,10 @@ from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+from mathics_scanner.errors import IncompleteSyntaxError, InvalidSyntaxError
 from mathics_scanner import TranslateError
-from mathics.core.parser import MathicsFileLineFeeder
+from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, parse
+
 
 from mathics.core.expression import (
     BoxError,
@@ -394,7 +396,7 @@ class Path(Predefined):
      = ...
     """
 
-    attributes = "Protected"
+    attributes = ("Unprotected",)
     name = "$Path"
 
     def evaluate(self, evaluation):
@@ -601,6 +603,12 @@ class Read(Builtin):
 
     #> Quiet[Read[str, {Real}]]
      = Read[InputStream[String, ...], {Real}]
+
+    Multiple lines:
+    >> str = StringToStream["\\"Tengo una\\nvaca lechera.\\""]; Read[str]
+     = Tengo una
+     . vaca lechera.
+
     """
 
     messages = {
@@ -713,8 +721,16 @@ class Read(Builtin):
             return
 
         # Wrap types in a list (if it isn't already one)
-        if not types.has_form("List", None):
-            types = Expression("List", types)
+        if types.has_form("List", None):
+            types = types._leaves
+        else:
+            types = (types,)
+
+        types = (
+            typ._leaves[0] if typ.get_head_name() == "System`Hold" else typ
+            for typ in types
+        )
+        types = Expression("List", *types)
 
         READ_TYPES = [
             Symbol(k)
@@ -760,19 +776,38 @@ class Read(Builtin):
 
                     if tmp == "":
                         if word == "":
-                            raise EOFError
-                        yield word
+                            pos = stream.tell()
+                            newchar = stream.read(1)
+                            if pos == stream.tell():
+                                raise EOFError
+                            else:
+                                if newchar:
+                                    word = newchar
+                                    continue
+                                else:
+                                    yield word
+                                    continue
+                        last_word = word
+                        word = ""
+                        yield last_word
+                        break
 
                     if tmp in word_separators:
                         if word == "":
-                            break
+                            continue
                         if stream.seekable():
-                            # stream.seek(-1, 1) #Python3
+                             # stream.seek(-1, 1) #Python3
                             stream.seek(stream.tell() - 1)
-                        yield word
+                        last_word = word
+                        word = ""
+                        yield last_word
+                        break
 
                     if accepted is not None and tmp not in accepted:
-                        yield word
+                        last_word = word
+                        word = ""
+                        yield last_word
+                        break
 
                     word += tmp
 
@@ -802,13 +837,27 @@ class Read(Builtin):
                     result.append(tmp)
                 elif typ == Symbol("Expression"):
                     tmp = next(read_record)
-                    expr = evaluation.parse(tmp)
+                    while True:
+                        try:
+                            feeder = MathicsMultiLineFeeder(tmp)
+                            expr = parse(evaluation.definitions, feeder)
+                            break
+                        except (IncompleteSyntaxError, InvalidSyntaxError) as e:
+                            try:
+                                nextline = next(read_record)
+                                tmp = tmp + "\n" + nextline
+                            except EOFError:
+                                expr = Symbol("EndOfFile")
+                                break
+
                     if expr is None:
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
                         return SymbolFailed
-                    result.append(tmp)
+                    else:
+                        result.append(expr)
+
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
                     try:
@@ -2180,7 +2229,6 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation, options):
         "Get[path_String, OptionsPattern[Get]]"
-        from mathics.core.parser import parse
 
         def check_options(options):
             # Options
@@ -2942,7 +2990,7 @@ class ReadList(Read):
     >> ReadList[StringToStream["a 1 b 2"], {Word, Number}]
      = {{a, 1}, {b, 2}}
 
-    >> str = StringToStream["abc123"];
+    >> str = StringToStream["\\"abc123\\""];
     >> ReadList[str]
      = {abc123}
     >> InputForm[%]
