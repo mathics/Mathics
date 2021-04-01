@@ -71,9 +71,24 @@ class _SetOperator(object):
         name = lhs.get_head_name()
         lhs._format_cache = None
         condition = None
+
         if name == "System`Condition" and len(lhs.leaves) == 2:
-            condition = lhs
-            lhs = condition._leaves[0]
+            # This handle the case of many sucesive conditions:
+            # f[x_]/; cond1 /; cond2 ...
+            # is summarized to a single condition
+            # f[x_]/; And[cond1, cond2, ...]
+            condition = [lhs._leaves[1]]
+            lhs = lhs._leaves[0]
+            name = lhs.get_head_name()
+            while name == "System`Condition" and len(lhs.leaves) == 2:
+                condition.append(lhs._leaves[1])
+                lhs = lhs._leaves[0]
+                name = lhs.get_head_name()
+            if len(condition) > 1:
+                condition = Expression("System`And", *condition)
+            else:
+                condition = condition[0]
+            condition = Expression("System`Condition", lhs, condition)
             name = lhs.get_head_name()
             lhs._format_cache = None
         if name == "System`Pattern":
@@ -334,15 +349,19 @@ class _SetOperator(object):
                 return False
 
         rhs_name = rhs.get_head_name()
-        if rhs_name == "System`Condition":
+        while rhs_name == "System`Condition":
             if len(rhs.leaves) != 2:
                 evaluation.message_args("Condition", len(rhs.leaves), 2)
                 return False
             else:
                 lhs = Expression("Condition", lhs, rhs.leaves[1])
                 rhs = rhs.leaves[0]
+            rhs_name = rhs.get_head_name()
+
+        # Now, let's add the conditions on the LHS
         if condition:
             lhs = Expression("Condition", lhs, condition.leaves[1])
+
         rule = Rule(lhs, rhs)
         count = 0
         defs = evaluation.definitions
@@ -532,12 +551,14 @@ class SetDelayed(Set):
     >> f[-3]
      = f[-3]
     It also works if the condition is set in the LHS
-    >> F[x_, y_] /; x < y  := x / y;
+    >> F[x_, y_] /; x < y /; x>0  := x / y;
     >> F[x_, y_] := y / x;
     >> F[2, 3]
      = 2 / 3
     >> F[3, 2]
      = 2 / 3
+    >> F[-3, 2]
+     = -2 / 3
     """
 
     operator = ":="
