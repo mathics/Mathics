@@ -75,7 +75,7 @@ class _SetOperator(object):
         if name == "System`Condition" and len(lhs.leaves) == 2:
             # This handle the case of many sucesive conditions:
             # f[x_]/; cond1 /; cond2 ...
-            # is resumed to a single condition
+            # is summarized to a single condition
             # f[x_]/; And[cond1, cond2, ...]
             condition = [lhs._leaves[1]]
             lhs = lhs._leaves[0]
