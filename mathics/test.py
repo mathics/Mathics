@@ -25,7 +25,6 @@ MAX_TESTS = 100000  # Number than the total number of tests
 
 logfile = None
 
-
 class TestOutput(Output):
     def max_stored_size(self, settings):
         return None
@@ -45,10 +44,7 @@ def print_and_log(*args):
     if logfile:
         logfile.write(string)
 
-
 def compare(result, wanted):
-    if wanted == "..." and result is not None:
-        return True
     if result == wanted:
         return True
     if result is None or wanted is None:
@@ -108,13 +104,13 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         print("out=-----------------")
         for rr in out:
             for line in rr.text.splitlines():
-                print("  <", line, ">")
+                print("  <",line,">")
         print("wanted_out=-------------------")
         for rr in wanted_out:
             for line in rr.text.splitlines():
-                print("  <", line, ">")
+                print("  <",line,">")
         print("---------------------------------")
-
+    
     if not compare(result, wanted):
         print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
@@ -128,7 +124,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
     else:
         for got, wanted in zip(out, wanted_out):
             if False:
-                print("got=<", got, "> wanted=<", wanted, ">")
+                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break
@@ -365,19 +361,11 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--sections",
-        "-s",
-        dest="section",
-        metavar="SECTION",
-        help="only test SECTION(s). "
-        "You can list multiple sections by adding a comma (and no space) in between section names.",
+        "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names."
     )
     parser.add_argument(
-        "--logfile",
-        "-f",
-        dest="logfilename",
-        metavar="LOGFILENAME",
-        help="stores the output in [logfilename]. ",
+        "--logfile", "-f", dest="logfilename", metavar="LOGFILENAME", help="stores the output in [logfilename]. "
     )
     parser.add_argument(
         "--pymathics",
@@ -440,7 +428,7 @@ def main():
     # If a test for a specific section is called
     # just test it
     if args.logfilename:
-        logfile = open(args.logfilename, "wt")
+        logfile = open(args.logfilename,"wt")
 
     if args.section:
         sections = set(args.section.split(","))
@@ -454,7 +442,9 @@ def main():
             print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
         elif args.doc_only:
-            make_doc(quiet=args.quiet,)
+            make_doc(
+                quiet=args.quiet,
+            )
         else:
             start_at = args.skip + 1
             start_time = datetime.now()
