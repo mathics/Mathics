@@ -29,6 +29,7 @@ Enhancements
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]`.
 * ``SetDelayed`` now accept several conditions impossed both at LHS as well as RHS.
 
+  
 Bug fixes
 +++++++++
 
@@ -56,6 +57,10 @@ Windows under MSYS.
 * In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
 * In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
   in order to control the final form of boxes from the user space in specific symbols and contexts.
+* ``GraphicsBox`` now have two methods:  `to_svg` and  ``to_mathml``. The first produces SVG plane text while the second produces ``<mglyph ...>``
+  tags with base64 encoded svgs.
+* Improving the support for ``Inset`` and  ``InsetBox``.
+
 
 2.0.0
 -----
