@@ -435,14 +435,11 @@ class Evaluation(object):
         from mathics.core.expression import Expression, BoxError
 
         if format == "text":
-            ruleformat = Expression("Rule", Symbol("Format"), String("System`OutputForm"))
-            # result = expr.format(self, "System`OutputForm")
-        elif format in ("xml", "mathml"):
-            ruleformat = Expression("Rule", Symbol("Format"), String("System`MathMLForm"))
-            #result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
+            result = expr.format(self, "System`OutputForm")
+        elif format == "xml":
+            result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
         elif format == "tex":
-            ruleformat = Expression("Rule", Symbol("Format"), String("System`TeXForm"))
-            # result = Expression("StandardForm", expr).format(self, "System`TeXForm")
+            result = Expression("StandardForm", expr).format(self, "System`TeXForm")
         elif format == "unformatted":
             self.exc_result = None
             return expr
@@ -450,7 +447,7 @@ class Evaluation(object):
             raise ValueError
 
         try:
-            boxes = Expression("ToString", expr, ruleformat).evaluate(evaluation=self).value
+            boxes = result.boxes_to_text(evaluation=self)
         except BoxError:
             self.message(
                 "General", "notboxes", Expression("FullForm", result).evaluate(self)
