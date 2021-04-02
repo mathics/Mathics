@@ -516,9 +516,7 @@ class Graphics(Builtin):
                         )
                 else:
                     n_leaves = content.leaves
-                ret = Expression(head + self.box_suffix, *n_leaves)
-                print(ret)
-                return ret
+                return Expression(head + self.box_suffix, *n_leaves)
             return content
 
         for option in options:
@@ -541,7 +539,6 @@ class Graphics(Builtin):
 class _GraphicsElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
-            print("item=", item)
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
@@ -1277,7 +1274,6 @@ class _RoundBox(_GraphicsElement):
     def init(self, graphics, style, item):
         super(_RoundBox, self).init(graphics, item, style)
         if len(item._leaves) not in (1, 2):
-            print(item, item._leaves)
             raise BoxConstructError
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=self.face_element
