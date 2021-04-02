@@ -447,7 +447,7 @@ class Evaluation(object):
             raise ValueError
 
         try:
-            boxes = Expression("String", result).evaluate(evaluation=self).value
+            boxes = Expression("ToString", result).evaluate(evaluation=self).value
         except BoxError:
             self.message(
                 "General", "notboxes", Expression("FullForm", result).evaluate(self)
