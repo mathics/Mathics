@@ -625,7 +625,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         )
         return tex
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def _boxes_to_mathml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
 

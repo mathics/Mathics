@@ -2577,7 +2577,7 @@ class InsetBox(_GraphicsElement):
             self.content = content
             self.pos = pos
             self.opos = opos
-        self.content_text = self.content.boxes_to_text(
+        self.content_text = self.content._boxes_to_text(
             evaluation=self.graphics.evaluation
         )
 
@@ -2592,17 +2592,29 @@ class InsetBox(_GraphicsElement):
 
     def to_svg(self):
         x, y = self.pos.pos()
-        content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
-        style = create_css(font_color=self.color)
-        svg = (
-            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            "<math>%s</math></foreignObject>"
-        ) % (x, y, self.opos[0], self.opos[1], style, content)
+        content = self.content._boxes_to_text(evaluation=self.graphics.evaluation)
+        style = create_css(
+            font_color=self.color, edge_color=self.color, face_color=self.color
+        )
+
+        # content = self.content._boxes_to_mathml(evaluation=self.graphics.evaluation)
+        # style = create_css(font_color=self.color)
+        # svg = (
+        #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
+        #    "<math>%s</math></foreignObject>")
+        svg = ('<text x="%f" y="%f" ox="%f" oy="%f" style="text-anchor:middle; dominant-baseline:middle; %s">' "%s" "</text>") % (
+            x,
+            y,
+            self.opos[0],
+            self.opos[1],
+            style,
+            content,
+        )
         return svg
 
     def to_asy(self):
         x, y = self.pos.pos()
-        content = self.content.boxes_to_tex(evaluation=self.graphics.evaluation)
+        content = self.content._boxes_to_tex(evaluation=self.graphics.evaluation)
         pen = create_pens(edge_color=self.color)
         asy = 'label("$%s$", (%s,%s), (%s,%s), %s);' % (
             content,
@@ -2933,7 +2945,7 @@ class GraphicsBox(BoxConstruct):
 
     attributes = ("HoldAll", "ReadProtected")
 
-    def boxes_to_text(self, leaves=None, **options):
+    def _boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
 
@@ -3140,7 +3152,7 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_tex(self, leaves=None, **options):
+    def _boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(
@@ -3195,7 +3207,7 @@ clip(%s);
 
         return tex
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def _boxes_to_mathml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
@@ -3234,11 +3246,13 @@ clip(%s);
 
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
-        # template = "<mtext><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>"
+        # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
         template = (
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
         )
         return template % (
+            #        int(width),
+            #        int(height),
             int(width),
             int(height),
             base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),

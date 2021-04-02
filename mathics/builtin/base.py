@@ -707,13 +707,13 @@ class BoxConstruct(InstanceableBuiltin):
                 default[option] = parse_builtin_rule(value)
         return default
 
-    def boxes_to_text(self, leaves, **options) -> str:
+    def _boxes_to_text(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_xml(self, leaves, **options) -> str:
+    def _boxes_to_mathml(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_tex(self, leaves, **options) -> str:
+    def _boxes_to_tex(self, leaves, **options) -> str:
         raise BoxConstructError
 
 
