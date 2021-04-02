@@ -2597,7 +2597,7 @@ class InsetBox(_GraphicsElement):
             font_color=self.color, edge_color=self.color, face_color=self.color
         )
 
-        # content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
+        # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
         # style = create_css(font_color=self.color)
         # svg = (
         #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
@@ -3207,7 +3207,7 @@ clip(%s);
 
         return tex
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
