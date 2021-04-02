@@ -294,8 +294,8 @@ def _CMC_distance(lab1, lab2, l, c):
 
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression(SymbolMakeBoxes, graphics).evaluate(evaluation)
-    builtin = GraphicsBox(expression=False)
-    elements, calc_dimensions = builtin._prepare_elements(
+    # builtin = GraphicsBox(expression=False)
+    elements, calc_dimensions = graphics_box._prepare_elements(
         graphics_box.leaves, {"evaluation": evaluation}, neg_y=True
     )
     xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
@@ -498,7 +498,14 @@ class Graphics(Builtin):
                     for atom in atoms
                 ):
                     if head == "System`Inset":
-                        n_leaves = [content.leaves[0]] + [
+                        inset = content.leaves[0]
+                        if inset.get_head_name() == "System`Graphics":
+                            opts = {}
+                            # opts = dict(opt._leaves[0].name:opt_leaves[1]   for opt in  inset._leaves[1:])
+                            inset = self.apply_makeboxes(
+                                inset._leaves[0], evaluation, opts
+                            )
+                        n_leaves = [inset] + [
                             Expression(SymbolN, leaf).evaluate(evaluation)
                             for leaf in content.leaves[1:]
                         ]
@@ -509,7 +516,9 @@ class Graphics(Builtin):
                         )
                 else:
                     n_leaves = content.leaves
-                return Expression(head + self.box_suffix, *n_leaves)
+                ret = Expression(head + self.box_suffix, *n_leaves)
+                print(ret)
+                return ret
             return content
 
         for option in options:
@@ -520,14 +529,19 @@ class Graphics(Builtin):
         from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
 
         if type(self) is Graphics:
-            return GraphicsBox(convert(content), *options_to_rules(options))
+            return GraphicsBox(
+                convert(content), evaluation=evaluation, *options_to_rules(options)
+            )
         elif type(self) is Graphics3D:
-            return Graphics3DBox(convert(content), *options_to_rules(options))
+            return Graphics3DBox(
+                convert(content), evaluation=evaluation, *options_to_rules(options)
+            )
 
 
 class _GraphicsElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
+            print("item=", item)
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
@@ -1218,7 +1232,7 @@ class RectangleBox(_GraphicsElement):
             )
         return result
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=True)
         x1, y1 = self.p1.pos()
         x2, y2 = self.p2.pos()
@@ -1226,6 +1240,9 @@ class RectangleBox(_GraphicsElement):
         ymin = min(y1, y2)
         w = max(x1, x2) - xmin
         h = max(y1, y2) - ymin
+        if offset:
+            x1, x2 = x1 + offset[0], x2 + offset[0]
+            y1, y2 = y1 + offset[1], y2 + offset[1]
         style = create_css(self.edge_color, self.face_color, l)
         return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
             xmin,
@@ -1259,7 +1276,8 @@ class _RoundBox(_GraphicsElement):
 
     def init(self, graphics, style, item):
         super(_RoundBox, self).init(graphics, item, style)
-        if len(item.leaves) not in (1, 2):
+        if len(item._leaves) not in (1, 2):
+            print(item, item._leaves)
             raise BoxConstructError
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=self.face_element
@@ -1286,7 +1304,7 @@ class _RoundBox(_GraphicsElement):
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
@@ -1373,9 +1391,9 @@ class _ArcBox(_RoundBox):
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         if self.arc is None:
-            return super(_ArcBox, self).to_svg()
+            return super(_ArcBox, self).to_svg(offset)
 
         x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
@@ -1506,7 +1524,7 @@ class PointBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         point_size, _ = self.style.get_style(PointSize, face_element=False)
         if point_size is None:
             point_size = PointSize(self.graphics, value=0.005)
@@ -1570,7 +1588,7 @@ class LineBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=l)
         svg = ""
@@ -1724,7 +1742,7 @@ class BezierCurveBox(_Polyline):
             raise BoxConstructError
         self.spline_degree = spline_degree.get_int_value()
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=l)
 
@@ -1811,7 +1829,7 @@ class FilledCurveBox(_GraphicsElement):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(
             edge_color=self.edge_color, face_color=self.face_color, stroke_width=l
@@ -1916,7 +1934,7 @@ class PolygonBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=True)
         if self.vertex_colors is None:
             face_color = self.face_color
@@ -2497,7 +2515,7 @@ class ArrowBox(_Polyline):
 
         return make
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         width = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=width)
         polyline = self.curve.make_draw_svg(style)
@@ -2590,26 +2608,31 @@ class InsetBox(_GraphicsElement):
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         x, y = self.pos.pos()
-        content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
-        style = create_css(
-            font_color=self.color, edge_color=self.color, face_color=self.color
-        )
+        if offset:
+            x = x + offset[0]
+            y = y + offset[1]
 
+        if hasattr(self.content, "to_svg"):
+            content = self.content.to_svg(noheader=True, offset=(x, y))
+            svg = "\n" + content + "\n"
+        else:
+            style = create_css(
+                font_color=self.color, edge_color=self.color, face_color=self.color
+            )
+            content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
+            svg = (
+                '<text x="%f" y="%f" ox="%f" oy="%f" style="text-anchor:middle; dominant-baseline:middle; %s">'
+                "%s"
+                "</text>"
+            ) % (x, y, self.opos[0], self.opos[1], style, content,)
         # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
         # style = create_css(font_color=self.color)
         # svg = (
         #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
         #    "<math>%s</math></foreignObject>")
-        svg = ('<text x="%f" y="%f" ox="%f" oy="%f" style="text-anchor:middle; dominant-baseline:middle; %s">' "%s" "</text>") % (
-            x,
-            y,
-            self.opos[0],
-            self.opos[1],
-            style,
-            content,
-        )
+
         return svg
 
     def to_asy(self):
@@ -2925,8 +2948,8 @@ class GraphicsElements(_GraphicsElements):
             ymax *= 2
         return xmin, xmax, ymin, ymax
 
-    def to_svg(self):
-        return "\n".join(element.to_svg() for element in self.elements)
+    def to_svg(self, offset=None):
+        return "\n".join(element.to_svg(offset) for element in self.elements)
 
     def to_asy(self):
         return "\n".join(element.to_asy() for element in self.elements)
@@ -2944,6 +2967,11 @@ class GraphicsBox(BoxConstruct):
     options = Graphics.options
 
     attributes = ("HoldAll", "ReadProtected")
+
+    def __new__(cls, *leaves, **kwargs):
+        instance = super().__new__(cls, *leaves, **kwargs)
+        instance.evaluation = kwargs.get("evaluation", None)
+        return instance
 
     def boxes_to_text(self, leaves=None, **options):
         if not leaves:
@@ -3025,7 +3053,10 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-        elements = GraphicsElements(leaves[0], options["evaluation"], neg_y)
+        evaluation = options.get("evaluation", None)
+        if evaluation is None:
+            evaluation = self.evaluation
+        elements = GraphicsElements(leaves[0], evaluation, neg_y)
         axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
@@ -3207,15 +3238,22 @@ clip(%s);
 
         return tex
 
-    def boxes_to_mathml(self, leaves=None, **options):
+    def to_svg(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
 
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        data = options.get("data", None)
+        if data:
+            elements, xmin, xmax, ymin, ymax, w, h, width, height = data
+        else:
+            elements, calc_dimensions = self._prepare_elements(
+                leaves, options, neg_y=True
+            )
+            xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+
         elements.view_width = w
 
-        svg = elements.to_svg()
+        svg = elements.to_svg(offset=options.get("offset", None))
 
         if self.background_color is not None:
             svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
@@ -3232,6 +3270,8 @@ clip(%s);
         w += 2
         h += 2
 
+        if options.get("noheader", False):
+            return svg
         svg_xml = """
             <svg xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
@@ -3243,12 +3283,23 @@ clip(%s);
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
             svg,
         )
+        return svg_xml  # , width, height
 
+    def boxes_to_mathml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
+        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
+
+        svg_xml = self.to_svg(leaves, data=data, **options)
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
         # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
         template = (
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+            #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
         )
         return template % (
             #        int(width),
