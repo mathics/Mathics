@@ -1453,7 +1453,7 @@ class Expression(BaseExpression):
         else:
             return False, options
 
-    def boxes_to_text(self, **options) -> str:
+    def _boxes_to_text(self, **options) -> str:
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
@@ -1468,10 +1468,10 @@ class Expression(BaseExpression):
         else:
             raise BoxError(self, "text")
 
-    def boxes_to_xml(self, **options) -> str:
+    def _boxes_to_mathml(self, **options) -> str:
         is_style, options = self.process_style_box(options)
         if is_style:
-            return self._leaves[0].boxes_to_xml(**options)
+            return self._leaves[0]._boxes_to_mathml(**options)
         name = self._head.get_name()
         if (
             name == "System`RowBox"
@@ -1510,40 +1510,40 @@ class Expression(BaseExpression):
                 options["inside_row"] = True
 
             for leaf in self._leaves[0].get_leaves():
-                result.append(leaf.boxes_to_xml(**options))
+                result.append(leaf._boxes_to_mathml(**options))
             return "<mrow>%s</mrow>" % " ".join(result)
         else:
             options = options.copy()
             options["inside_row"] = True
             if name == "System`SuperscriptBox" and len(self._leaves) == 2:
                 return "<msup>%s %s</msup>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0]._boxes_to_mathml(**options),
+                    self._leaves[1]._boxes_to_mathml(**options),
                 )
             if name == "System`SubscriptBox" and len(self._leaves) == 2:
                 return "<msub>%s %s</msub>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0]._boxes_to_mathml(**options),
+                    self._leaves[1]._boxes_to_mathml(**options),
                 )
             if name == "System`SubsuperscriptBox" and len(self._leaves) == 3:
                 return "<msubsup>%s %s %s</msubsup>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
-                    self._leaves[2].boxes_to_xml(**options),
+                    self._leaves[0]._boxes_to_mathml(**options),
+                    self._leaves[1]._boxes_to_mathml(**options),
+                    self._leaves[2]._boxes_to_mathml(**options),
                 )
             elif name == "System`FractionBox" and len(self._leaves) == 2:
                 return "<mfrac>%s %s</mfrac>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0]._boxes_to_mathml(**options),
+                    self._leaves[1]._boxes_to_mathml(**options),
                 )
             elif name == "System`SqrtBox" and len(self._leaves) == 1:
-                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_xml(**options))
+                return "<msqrt>%s</msqrt>" % (self._leaves[0]._boxes_to_mathml(**options))
             elif name == "System`GraphBox":
-                return "<mi>%s</mi>" % (self._leaves[0].boxes_to_xml(**options))
+                return "<mi>%s</mi>" % (self._leaves[0]._boxes_to_mathml(**options))
             else:
                 raise BoxError(self, "xml")
 
-    def boxes_to_tex(self, **options) -> str:
+    def _boxes_to_tex(self, **options) -> str:
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
@@ -1905,7 +1905,7 @@ class Symbol(Atom):
     def do_copy(self) -> "Symbol":
         return Symbol(self.name)
 
-    def boxes_to_text(self, **options) -> str:
+    def _boxes_to_text(self, **options) -> str:
         return str(self.name)
 
     def atom_to_boxes(self, f, evaluation) -> "String":
@@ -2105,13 +2105,13 @@ class Integer(Number):
         self.value = n
         return self
 
-    def boxes_to_text(self, **options) -> str:
+    def _boxes_to_text(self, **options) -> str:
         return str(self.value)
 
-    def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes("MathMLForm").boxes_to_xml(**options)
+    def _boxes_to_mathml(self, **options) -> str:
+        return self.make_boxes("MathMLForm")._boxes_to_mathml(**options)
 
-    def boxes_to_tex(self, **options) -> str:
+    def _boxes_to_tex(self, **options) -> str:
         return str(self.value)
 
     def make_boxes(self, form) -> "String":
@@ -2291,13 +2291,13 @@ class Real(Number):
         else:
             return PrecisionReal.__new__(PrecisionReal, value)
 
-    def boxes_to_text(self, **options) -> str:
+    def _boxes_to_text(self, **options) -> str:
         return self.make_boxes("System`OutputForm").boxes_to_text(**options)
 
-    def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes("System`MathMLForm").boxes_to_xml(**options)
+    def _boxes_to_mathml(self, **options) -> str:
+        return self.make_boxes("System`MathMLForm")._boxes_to_mathml(**options)
 
-    def boxes_to_tex(self, **options) -> str:
+    def _boxes_to_tex(self, **options) -> str:
         return self.make_boxes("System`TeXForm").boxes_to_tex(**options)
 
     def atom_to_boxes(self, f, evaluation):
@@ -2715,7 +2715,7 @@ class String(Atom):
     def __str__(self) -> str:
         return '"%s"' % self.value
 
-    def boxes_to_text(self, show_string_characters=False, **options) -> str:
+    def _boxes_to_text(self, show_string_characters=False, **options) -> str:
         value = self.value
 
         if (
@@ -2727,7 +2727,7 @@ class String(Atom):
 
         return value
 
-    def boxes_to_xml(self, show_string_characters=False, **options) -> str:
+    def _boxes_to_mathml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins_by_module
 
@@ -2774,7 +2774,7 @@ class String(Atom):
                     outtext += render("<mtext>%s</mtext>", line)
                 return outtext
 
-    def boxes_to_tex(self, show_string_characters=False, **options) -> str:
+    def _boxes_to_tex(self, show_string_characters=False, **options) -> str:
         from mathics.builtin import builtins_by_module
 
         operators = set()
@@ -2894,13 +2894,13 @@ class ByteArrayAtom(Atom):
     def __str__(self) -> str:
         return base64.b64encode(self.value).decode("utf8")
 
-    def boxes_to_text(self, **options) -> str:
+    def _boxes_to_text(self, **options) -> str:
         return '"' + self.__str__() + '"'
 
-    def boxes_to_xml(self, **options) -> str:
+    def _boxes_to_mathml(self, **options) -> str:
         return encode_mathml(String('"' + self.__str__() + '"'))
 
-    def boxes_to_tex(self, **options) -> str:
+    def _boxes_to_tex(self, **options) -> str:
         return encode_tex(String('"' + self.__str__() + '"'))
 
     def atom_to_boxes(self, f, evaluation):

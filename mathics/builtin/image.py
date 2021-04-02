@@ -2102,10 +2102,10 @@ class ImageQ(_ImageTest):
 
 
 class ImageBox(BoxConstruct):
-    def boxes_to_text(self, leaves=None, **options):
+    def _boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def _boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         # see https://tools.ietf.org/html/rfc2397
@@ -2115,7 +2115,7 @@ class ImageBox(BoxConstruct):
             leaves[2].get_int_value(),
         )
 
-    def boxes_to_tex(self, leaves=None, **options):
+    def _boxes_to_tex(self, leaves=None, **options):
         return "-Image-"
 
 
