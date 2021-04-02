@@ -26,7 +26,8 @@ Enhancements
   ``Compile[] and CompiledFunction[]``  every expression can have a compiled form,
   as a Python function.
 * ``Equal[]`` now compares complex against other numbers properly.
-* Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]``
+* Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]`.
+* ``SetDelayed`` now accept several conditions impossed both at LHS as well as RHS.
 
 Bug fixes
 +++++++++
