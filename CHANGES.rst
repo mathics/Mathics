@@ -32,8 +32,8 @@ Enhancements
 * ``Read[]`` handles expressions better.
 * ``StringSplit[]`` now accepts a list in the first argument.
 * ``SetDelayed[]`` now accepts several conditions imposed both at LHS as well as RHS.
-* Axes for 2D Plots rendered via SVG work
-* InsertBox accepts an opaque parameter
+* Axes for 2D Plots are now rendered for SVGs
+* ``InsertBox`` accepts an opaque parameter
 
 
 Bug fixes
@@ -62,8 +62,7 @@ Miscellanea
 * In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
 * In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
 * In order to control the final form of boxes from the user space in specific symbols and contexts.
-* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded svgs.
-* Improving the support for ``Inset`` and  ``InsetBox``.
+* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded SVGs.
 
 
 What's to expect in a Future Release
