@@ -19,7 +19,7 @@ New builtins
 Enhancements
 ++++++++++++
 
-* the Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
+* The Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
 * Automatic detection for the best strategy to numeric evaluation of constants.
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 * Mathics functions are accepted by ``Compile[]``. The return value or type will be
@@ -27,6 +27,8 @@ Enhancements
   as a Python function.
 * ``Equal[]`` now compares complex against other numbers properly.
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]``
+* ``$Path`` is now Unprotected by default
+* Improving the reading of expressions from files.
 * ``StringSplit`` now accepts a list in the first argument.
 * ``SetDelayed`` now accepts several conditions imposed both at LHS as well as RHS.
 
