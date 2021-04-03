@@ -2105,7 +2105,7 @@ class ImageBox(BoxConstruct):
     def boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         # see https://tools.ietf.org/html/rfc2397

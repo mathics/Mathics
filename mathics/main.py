@@ -249,7 +249,11 @@ def main() -> int:
         "multiple times)",
     )
 
-    argparser.add_argument("--colors", nargs="?", help="interactive shell colors. Use value 'NoColor' or 'None' to disable ANSI color decoration")
+    argparser.add_argument(
+        "--colors",
+        nargs="?",
+        help="interactive shell colors. Use value 'NoColor' or 'None' to disable ANSI color decoration",
+    )
 
     argparser.add_argument(
         "--no-completion", help="disable tab completion", action="store_true"
@@ -377,6 +381,7 @@ def main() -> int:
         finally:
             shell.reset_lineno()
     return exit_rc
+
 
 if __name__ == "__main__":
     sys.exit(main())

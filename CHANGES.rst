@@ -19,7 +19,7 @@ New builtins
 Enhancements
 ++++++++++++
 
-* the Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
+* The Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
 * Automatic detection for the best strategy to numeric evaluation of constants.
 * ``FileNameJoin`` - implement ``OperatingSystem`` option
 * Mathics functions are accepted by ``Compile[]``. The return value or type will be
@@ -27,8 +27,10 @@ Enhancements
   as a Python function.
 * ``Equal[]`` now compares complex against other numbers properly.
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]``
-* $Path is now Unprocected by default
+* ``$Path`` is now Unprotected by default
 * Improving the reading of expressions from files.
+* ``StringSplit`` now accepts a list in the first argument.
+* ``SetDelayed`` now accepts several conditions imposed both at LHS as well as RHS.
 
 
 Bug fixes
@@ -55,6 +57,13 @@ Miscellanea
 Windows under MSYS.
 * Include numpy version in version string. Show in CLI
 * Small CLI tweaks ``--colors=None`` added to match mathicsscript.
+* In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
+* In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
+  In order to control the final form of boxes from the user space in specific symbols and contexts.
+* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>``
+  tags with base64 encoded svgs.
+* Improving the support for ``Inset`` and  ``InsetBox``.
+
 
 2.0.0
 -----

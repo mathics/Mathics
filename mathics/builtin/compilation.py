@@ -198,7 +198,7 @@ class CompiledCodeBox(BoxConstruct):
             leaves = self._leaves
         return leaves[0].value
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         return leaves[0].value
