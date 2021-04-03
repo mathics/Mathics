@@ -550,7 +550,7 @@ class SetDelayed(Set):
      = p[3]
     >> f[-3]
      = f[-3]
-    It also works if the condition is set in the LHS
+    It also works if the condition is set in the LHS:
     >> F[x_, y_] /; x < y /; x>0  := x / y;
     >> F[x_, y_] := y / x;
     >> F[2, 3]

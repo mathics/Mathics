@@ -419,7 +419,7 @@ class NIntegrate(Builtin):
     """
     <dl>
        <dt>'NIntegrate[$expr$, $interval$]'
-       <dd>returns a numeric approximation to the definite integral of $expr$ with limits $iterval and with a precision of $prec$ digits.
+       <dd>returns a numeric approximation to the definite integral of $expr$ with limits $interval$ and with a precision of $prec$ digits.
 
         <dt>'NIntegrate[$expr$, $interval1$, $interval2$, ...]'
         <dd>returns a numeric approximation to the multiple integral of $expr$ with limits $interval1$, $interval2$ and with a precision of $prec$ digits.
@@ -433,7 +433,7 @@ class NIntegrate(Builtin):
      = 2.50663
 
     >> Table[1./NIntegrate[x^k,{x,0,1},Tolerance->1*^-6], {k,0,6}]
-     : The especified method failed to return a number. Falling back into the internal evaluator.
+     : The specified method failed to return a number. Falling back into the internal evaluator.
      = {1., 2., 3., 4., 5., 6., 7.}
 
     >> NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance->1.*^-4]
