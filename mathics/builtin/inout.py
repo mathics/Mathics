@@ -845,7 +845,7 @@ class GridBox(BoxConstruct):
         result += r"\end{array}"
         return result
 
-    def boxes_to_xml(self, leaves=None, **box_options) -> str:
+    def boxes_to_mathml(self, leaves=None, **box_options) -> str:
         if not leaves:
             leaves = self._leaves
         evaluation = box_options.get("evaluation")
@@ -872,7 +872,7 @@ class GridBox(BoxConstruct):
             for item in row:
                 result += "<mtd {0}>{1}</mtd>".format(
                     joined_attrs,
-                    item.evaluate(evaluation).boxes_to_xml(**new_box_options),
+                    item.evaluate(evaluation).boxes_to_mathml(**new_box_options),
                 )
             result += "</mtr>\n"
         result += "</mtable>"
@@ -2084,7 +2084,7 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(evaluation=evaluation)
+            xml = boxes.boxes_to_mathml(evaluation=evaluation)
         except BoxError:
             evaluation.message(
                 "General",
@@ -2092,12 +2092,15 @@ class MathMLForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             xml = ""
+        is_a_picture = xml[:6] == "<mtext"
+
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
         query = evaluation.parse("System`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
-        if usesansserif:
-            xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+        if not is_a_picture:
+            if usesansserif:
+                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression("RowBox", Expression(SymbolList, String(mathml)))
