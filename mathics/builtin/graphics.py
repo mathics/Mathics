@@ -119,25 +119,26 @@ def cut(value):
     return value
 
 
-def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None):
+def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None, opacity=1.0):
     css = []
     if edge_color is not None:
-        color, opacity = edge_color.to_css()
+        color, stroke_opacity = edge_color.to_css()
         css.append("stroke: %s" % color)
-        css.append("stroke-opacity: %s" % opacity)
+        css.append("stroke-opacity: %s" % stroke_opacity)
     else:
         css.append("stroke: none")
     if stroke_width is not None:
         css.append("stroke-width: %fpx" % stroke_width)
     if face_color is not None:
-        color, opacity = face_color.to_css()
+        color, fill_opacity = face_color.to_css()
         css.append("fill: %s" % color)
-        css.append("fill-opacity: %s" % opacity)
+        css.append("fill-opacity: %s" % fill_opacity)
     else:
         css.append("fill: none")
     if font_color is not None:
-        color, opacity = font_color.to_css()
+        color, _ = font_color.to_css()
         css.append("color: %s" % color)
+    css.append("opacity: %s" % opacity)
     return "; ".join(css)
 
 
@@ -537,11 +538,12 @@ class Graphics(Builtin):
 
 
 class _GraphicsElement(InstanceableBuiltin):
-    def init(self, graphics, item=None, style=None):
+    def init(self, graphics, item=None, style=None, opacity=1.0):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
+        self.opacity = opacity
         self.is_completely_visible = False  # True for axis elements
 
     @staticmethod
@@ -2567,12 +2569,13 @@ class ArrowBox(_Polyline):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
+    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0), opacity=1.0):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option("System`FontColor")
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
+        self.opacity = opacity
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2615,7 +2618,7 @@ class InsetBox(_GraphicsElement):
             svg = "\n" + content + "\n"
         else:
             style = create_css(
-                font_color=self.color, edge_color=self.color, face_color=self.color
+                font_color=self.color, edge_color=self.color, face_color=self.color, opacity=self.opacity
             )
             content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
             svg = (
@@ -3477,6 +3480,7 @@ clip(%s);
                                 elements, pos=p_origin(x), d=p_self0(-tick_label_d)
                             ),
                             opos=p_self0(1),
+                            opacity=0.5,
                         )
                     )
                 for x in ticks_small:
