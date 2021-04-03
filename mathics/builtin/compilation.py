@@ -163,6 +163,12 @@ class CompiledCode(Atom):
             return "-PythonizedCode-"
         return "-CompiledCode-"
 
+    def boxes_to_text(self, leaves=None, **options):
+        from trepan.api import debug; debug()
+        if not leaves:
+            leaves = self._leaves
+        return "-CompiledCode-"
+
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
 

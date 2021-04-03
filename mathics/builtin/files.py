@@ -796,7 +796,7 @@ class Read(Builtin):
                         if word == "":
                             continue
                         if stream.seekable():
-                             # stream.seek(-1, 1) #Python3
+                            # stream.seek(-1, 1) #Python3
                             stream.seek(stream.tell() - 1)
                         last_word = word
                         word = ""
@@ -2597,19 +2597,22 @@ class ToFileName(Builtin):
 
 class FileNameJoin(Builtin):
     """
-    <dl>
-    <dt>'FileNameJoin[{"$dir_1$", "$dir_2$", ...}]'
-      <dd>joins the $dir_i$ togeather into one path.
-    </dl>
+        <dl>
+          <dt>'FileNameJoin[{"$dir_1$", "$dir_2$", ...}]'
+          <dd>joins the $dir_i$ together into one path.
 
-    >> FileNameJoin[{"dir1", "dir2", "dir3"}]
-     = ...
+          <dt>'FileNameJoin[..., OperatingSystem->"os"]'
+          <dd>yields a file name in the format for the specified operating system. Possible choices are "Windows", "MacOSX", and "Unix".
+        </dl>
 
-    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
-     = dir1/dir2/dir3
+        >> FileNameJoin[{"dir1", "dir2", "dir3"}]
+         = ...
 
-    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-     = dir1\\dir2\\dir3
+        >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
+         = dir1/dir2/dir3
+
+        >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+         = dir1\\dir2\\dir3
     """
 
     attributes = "Protected"
