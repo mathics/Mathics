@@ -21,22 +21,23 @@ Enhancements
 
 * The Mathics version is checked for builtin modules at load time. A message is given when a builtin doesn't load.
 * Automatic detection for the best strategy to numeric evaluation of constants.
-* ``FileNameJoin`` - implement ``OperatingSystem`` option
-* Mathics functions are accepted by ``Compile[]``. The return value or type will be
-  ``Compile[] and CompiledFunction[]``  every expression can have a compiled form,
-  as a Python function.
+* ``FileNameJoin`` now implements ``OperatingSystem`` option
+* Mathics functions are accepted by ``Compile[]``. The return value or
+  type will be ``Compile[] and CompiledFunction[]``.  Every Mathics
+  Expression can have a compiled form, which may be implemented as a
+  Python function.
 * ``Equal[]`` now compares complex against other numbers properly.
 * Improvements in handling products with infinite factors: ``0 Infinity``-> ``Indeterminate``, and ``expr Infinity``-> ``DirectedInfinite[expr]``
-* ``$Path`` is now Unprotected by default
-* Improving the reading of expressions from files.
-* ``StringSplit`` now accepts a list in the first argument.
-* ``SetDelayed`` now accepts several conditions imposed both at LHS as well as RHS.
+* ``$Path`` is now ``Unprotected`` by default
+* ``Read[]`` handles expressions better.
+* ``StringSplit[]`` now accepts a list in the first argument.
+* ``SetDelayed[]`` now accepts several conditions imposed both at LHS as well as RHS.
 
 
 Bug fixes
 +++++++++
 
-* TeXForm for integrals are now properly formatted.
+* ``TeXForm[]`` for integrals are now properly formatted.
 
 
 Pymathics Modules
@@ -53,16 +54,25 @@ Pymathics Modules
 Miscellanea
 +++++++++++
 
-* A pass was made to improve Microsoft Windows compatability and testing
-Windows under MSYS.
+* A pass was made to improve Microsoft Windows compatability and testing Windows under MSYS.
 * Include numpy version in version string. Show in CLI
 * Small CLI tweaks ``--colors=None`` added to match mathicsscript.
 * In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
 * In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
-  In order to control the final form of boxes from the user space in specific symbols and contexts.
-* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>``
-  tags with base64 encoded svgs.
+* In order to control the final form of boxes from the user space in specific symbols and contexts.
+* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded svgs.
 * Improving the support for ``Inset`` and  ``InsetBox``.
+
+
+What's to expect in a Future Release
+++++++++++++++++++++++++++++++++++++
+
+* Improved ``Equal`` See `PR #1209 <https://github.com/mathics/Mathics/pull/1209/>`_
+* Better Unicode support, especially for Mathics operators
+* Improved ``D[]`` and ``Derivative[]`` See `PR #1220 <https://github.com/mathics/Mathics/pull/1209/>`_.
+* Improved performance
+* ``Collect[]`` See `Issue #1194 <https://github.com/mathics/Mathics/issues/1194>`_.
+* ``Series[]`` See `Issue #1193 <https://github.com/mathics/Mathics/issues/1194>`_.
 
 
 2.0.0

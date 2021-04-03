@@ -2032,7 +2032,7 @@ SymbolAssociation = Symbol("Association")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolRule = Symbol("Rule")
-SymbolSequence = Symbol("Sequence") 
+SymbolSequence = Symbol("Sequence")
 
 
 @lru_cache(maxsize=1024)

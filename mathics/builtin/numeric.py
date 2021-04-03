@@ -418,14 +418,13 @@ def _fubini(func, ranges, **opts):
 class NIntegrate(Builtin):
     """
     <dl>
-    <dt>'NIntegrate[$expr$, $interval$]'
-        <dd>evaluates the definite integral of $expr$ numerically
-            with a precision of $prec$ digits.
+       <dt>'NIntegrate[$expr$, $interval$]'
+       <dd>returns a numeric approximation to the definite integral of $expr$ with limits $interval$ and with a precision of $prec$ digits.
+
+        <dt>'NIntegrate[$expr$, $interval1$, $interval2$, ...]'
+        <dd>returns a numeric approximation to the multiple integral of $expr$ with limits $interval1$, $interval2$ and with a precision of $prec$ digits.
     </dl>
 
-    >> Table[1./NIntegrate[x^k,{x,0,1},Tolerance->1*^-6], {k,0,6}]
-     : The especified method failed to return a number. Falling back into the internal evaluator.
-     = {1., 2., 3., 4., 5., 6., 7.}
     >> NIntegrate[Exp[-x],{x,0,Infinity},Tolerance->1*^-6]
      = 1.
     >> NIntegrate[Exp[x],{x,-Infinity, 0},Tolerance->1*^-6]
@@ -433,18 +432,23 @@ class NIntegrate(Builtin):
     >> NIntegrate[Exp[-x^2/2.],{x,-Infinity, Infinity},Tolerance->1*^-6]
      = 2.50663
 
+    >> Table[1./NIntegrate[x^k,{x,0,1},Tolerance->1*^-6], {k,0,6}]
+     : The specified method failed to return a number. Falling back into the internal evaluator.
+     = {1., 2., 3., 4., 5., 6., 7.}
+
     >> NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance->1.*^-4]
      : Integration over a complex domain is not implemented yet
      = NIntegrate[1 / z, {z, -1 - I, 1 - I, 1 + I, -1 + I, -1 - I}, Tolerance -> 0.0001]
      ## = 6.2832 I
 
     Integrate singularities with weak divergences:
-    >> Table[NIntegrate[x^(1./k-1.),{x,0,1.},Tolerance->1*^-6], {k,1,7.}]
+    >> Table[ NIntegrate[x^(1./k-1.), {x,0,1.}, Tolerance->1*^-6], {k,1,7.} ]
      = {1., 2., 3., 4., 5., 6., 7.}
 
-    Iterated Integral:
-    >> NIntegrate[x * y,{x, 0, 1},{y, 0, 1}]
+    Mutiple Integrals :
+    >> NIntegrate[x * y,{x, 0, 1}, {y, 0, 1}]
      = 0.25
+
     """
 
     messages = {
@@ -457,7 +461,7 @@ class NIntegrate(Builtin):
         "nlim": "`1` = `2` is not a valid limit of integration.",
         "ilim": "Invalid integration variable or limit(s) in `1`.",
         "mtdfail": (
-            "The especified method failed to return a "
+            "The specified method failed to return a "
             + "number. Falling back into the internal "
             + "evaluator."
         ),
@@ -1807,7 +1811,7 @@ class Hash(Builtin):
       <dd>returns an integer hash of the specified $type$ for the given $expr$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
     <dt>'Hash[$expr$, $type$, $format$]'
-      <dd>Returns the hash in the  especified format.</dd>
+      <dd>Returns the hash in the specified format.</dd>
     </dl>
 
     > Hash["The Adventures of Huckleberry Finn"]

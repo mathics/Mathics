@@ -198,8 +198,8 @@ class Normal(Builtin):
 class ByteArray(Builtin):
     r"""
     <dl>
-    <dt>'ByteArray[{$b_1$, $b_2$, $\ldots$}]'
-       <dd> Represents a sequence of Bytes $b_1$, $b_2$, $\ldots$
+    <dt>'ByteArray[{$b_1$, $b_2$, ...}]'
+       <dd> Represents a sequence of Bytes $b_1$, $b_2$, ...
     <dt>'ByteArray["string"]'
        <dd> Constructs a byte array where bytes comes from decode a b64 encoded String
     </dl>
@@ -6274,10 +6274,10 @@ class Failure(Builtin):
 class FirstCase(Builtin):
     """
     <dl>
-    <dt> FirstCase[{$e1$, $e2$, $\\ldots$}, $pattern$]
+    <dt> FirstCase[{$e1$, $e2$, ...}, $pattern$]
         <dd>gives the first $ei$ to match $pattern$, or $Missing[\"NotFound\"]$ if none matching pattern is found.
 
-    <dt> FirstCase[{$e1$,$e2$, $\\ldots$}, $pattern$ -> $rhs$]
+    <dt> FirstCase[{$e1$,$e2$, ...}, $pattern$ -> $rhs$]
         <dd> gives the value of $rhs$ corresponding to the first $ei$ to match pattern.
     <dt> FirstCase[$expr$, $pattern$, $default$]
          <dd> gives $default$ if no element matching $pattern$ is found.
