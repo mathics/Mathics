@@ -2617,15 +2617,17 @@ class InsetBox(_GraphicsElement):
             content = self.content.to_svg(noheader=True, offset=(x, y))
             svg = "\n" + content + "\n"
         else:
-            style = create_css(
+            css_style = create_css(
                 font_color=self.color, edge_color=self.color, face_color=self.color, opacity=self.opacity
             )
+            text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
+            # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
+            text_style_opts = "text-anchor:middle; dominant-baseline:middle;"
             content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
             svg = (
-                '<text x="%f" y="%f" ox="%f" oy="%f" style="text-anchor:middle; dominant-baseline:middle; %s">'
-                "%s"
-                "</text>"
-            ) % (x, y, self.opos[0], self.opos[1], style, content,)
+                f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
+            )
+
         # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
         # style = create_css(font_color=self.color)
         # svg = (
