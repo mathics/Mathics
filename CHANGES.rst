@@ -32,6 +32,8 @@ Enhancements
 * ``Read[]`` handles expressions better.
 * ``StringSplit[]`` now accepts a list in the first argument.
 * ``SetDelayed[]`` now accepts several conditions imposed both at LHS as well as RHS.
+* Axes for 2D Plots rendered via SVG work
+* InsertBox accepts an opaque parameter
 
 
 Bug fixes
