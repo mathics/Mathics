@@ -266,6 +266,17 @@ class Full(Builtin):
     </dl>
     """
 
+class MaxRecursion(Builtin):
+    """
+    <dl>
+      <dt>'MaxRecursion'
+      <dd>is an option for functions like NIntegrate and Plot that specifies how many recursive subdivisions can be made.
+    </dl>
+
+    >> NIntegrate[Exp[-10^8 x^2], {x, -1, 1}, MaxRecursion -> 10]
+     =  1.97519*^-207
+    """
+
 
 class ImageSize(Builtin):
     """
@@ -2422,14 +2433,23 @@ class ListLinePlot(_ListPlot):
 class Plot3D(_Plot3D):
     """
     <dl>
-    <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
-        <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+      <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
+      <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+
     </dl>
+
+    Plot3D has the same options as Graphics3D, in particular:
+    <ul>
+    <li>Mesh</li>
+    <li>PlotPoints</li>
+    <li>MaxRecursion</li>
+    </ul>
+
 
     >> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics3D-
 
-    >> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+    >> Plot3D[Sin[y + Sin[3 x]], {x, -2, 2}, {y, -2, 2}, PlotPoints->20]
      = -Graphics3D-
 
     >> Plot3D[x / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}, Mesh->None]
