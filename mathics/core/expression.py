@@ -1378,7 +1378,11 @@ class Expression(BaseExpression):
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
         from mathics.builtin.base import BoxConstruct
 
+        up_cache_result = evaluation.cache_result
+        cache_result = up_cache_result
         head = self._head.evaluate(evaluation)
+        cache_result = cache_result and evaluation.cache_result
+        evaluation.cache_result = up_cache_result
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
 
@@ -1389,7 +1393,11 @@ class Expression(BaseExpression):
                 for index in indices:
                     leaf = leaves[index]
                     if leaf.has_form("Evaluate", 1):
+                        up_cache_result = evaluation.cache_result
+                        cache_result = up_cache_result
                         leaves[index] = leaf.evaluate(evaluation)
+                        cache_result = cache_result and evaluation.cache_result
+                        evaluation.cache_result = up_cache_result
 
         def eval_range(indices):
             for index in indices:
@@ -1405,11 +1413,18 @@ class Expression(BaseExpression):
         elif "System`HoldFirst" in attributes:
             rest_range(range(0, min(1, len(leaves))))
             eval_range(range(1, len(leaves)))
+            cache_result = cache_result and evaluation.cache_result
+            evaluation.cache_result = up_cache_result
         elif "System`HoldRest" in attributes:
             eval_range(range(0, min(1, len(leaves))))
+            cache_result = cache_result and evaluation.cache_result
+            evaluation.cache_result = up_cache_result
             rest_range(range(1, len(leaves)))
         else:
             eval_range(range(len(leaves)))
+            cache_result = cache_result and evaluation.cache_result
+            evaluation.cache_result = up_cache_result
+
             # rest_range(range(0, 0))
 
         new = Expression(head)
@@ -1454,6 +1469,7 @@ class Expression(BaseExpression):
         if "System`Listable" in attributes:
             done, threaded = new.thread(evaluation)
             if done:
+                evaluation.cache_result = cache_result
                 if threaded.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
@@ -1481,6 +1497,7 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
+                evaluation.cache_result = cache_result
                 if isinstance(result, BoxConstruct):
                     return result, False
                 if result.sameQ(new):
@@ -1504,11 +1521,19 @@ class Expression(BaseExpression):
 
         new.unformatted = self.unformatted
         new._timestamp_cache(evaluation)
+        evaluation.cache_result = cache_result
         return new, False
 
     def evaluate_leaves(self, evaluation) -> "Expression":
-        leaves = [leaf.evaluate(evaluation) for leaf in self._leaves]
+        up_cache_result = evaluation.cache_result
+        cache_result = up_cache_result
+        leaves = []
+        for leaf in self._leaves:
+            leaves.append(leaf.evaluate(evaluation))
+            cache_result = cache_result and evaluation.cache_result
+            evaluation.cache_result = up_cache_result        
         head = self._head.evaluate_leaves(evaluation)
+        evaluation.cache_result = cache_result and evaluation.cache_result
         return Expression(head, *leaves)
 
     def __str__(self) -> str:

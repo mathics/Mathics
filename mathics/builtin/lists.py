@@ -2906,6 +2906,7 @@ class AppendTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "AppendTo[s_, item_]"
+        evaluation.cache_result = False
         resolved_s = s.evaluate(evaluation)
         if s == resolved_s:
             return evaluation.message("AppendTo", "rvalue", s)
@@ -3008,6 +3009,7 @@ class PrependTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "PrependTo[s_, item_]"
+        evaluation.cache_result = False
         resolved_s = s.evaluate(evaluation)
         if s == resolved_s:
             return evaluation.message("PrependTo", "rvalue", s)
