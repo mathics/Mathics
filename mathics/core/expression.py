@@ -20,6 +20,12 @@ import base64
 # Imperical number that seems to work.
 # We have to be able to match mpmath values with sympy values
 COMPARE_PREC = 50
+# Expressions that should not be cached
+NO_CACHE_EXPR = [
+    "System`Return",
+    "System`Run",
+    "System`GetEnvironment",
+]
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -1301,6 +1307,21 @@ class Expression(BaseExpression):
 
         old_options = evaluation.options
         evaluation.inc_recursion_depth()
+
+        if self.get_head_name() in NO_CACHE_EXPR:
+            expr_hash = None
+        else:
+            expr_hash = self.hash()
+
+        if expr_hash:
+            cache_expr_result = evaluation.cache_eval.get(expr_hash, None)
+            if cache_expr_result is not None:
+                expr = cache_expr_result[0]
+                if not expr.has_changed(definitions):
+                    expr = cache_expr_result[1]
+                    if not expr.has_changed(definitions):
+                        return expr
+
         try:
             while reevaluate:
                 # changed before last evaluated?
@@ -1340,6 +1361,8 @@ class Expression(BaseExpression):
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
 
+        if expr_hash:
+            evaluation.cache_eval[expr_hash] = (self, expr)
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
