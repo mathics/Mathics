@@ -337,6 +337,7 @@ class For(Builtin):
 
     def apply(self, start, test, incr, body, evaluation):
         "For[start_, test_, incr_, body_]"
+        evaluation.cache_result = False
         while test.evaluate(evaluation).is_true():
             evaluation.check_stopped()
             try:
@@ -382,7 +383,7 @@ class While(Builtin):
 
     def apply(self, test, body, evaluation):
         "While[test_, body_]"
-
+        evaluation.cache_result = False
         while test.evaluate(evaluation).is_true():
             try:
                 evaluation.check_stopped()
@@ -645,7 +646,7 @@ class Abort(Builtin):
 
     def apply(self, evaluation):
         "Abort[]"
-
+        evaluation.cache_result = False
         raise AbortInterrupt
 
 
@@ -662,7 +663,7 @@ class Interrupt(Builtin):
 
     def apply(self, evaluation):
         "Interrupt[]"
-
+        evaluation.cache_result = False
         raise AbortInterrupt
 
 
@@ -707,7 +708,7 @@ class Return(Builtin):
 
     def apply(self, expr, evaluation):
         "Return[expr_]"
-
+        evaluation.cache_result = False
         raise ReturnInterrupt(expr)
 
 
@@ -729,7 +730,7 @@ class Break(Builtin):
 
     def apply(self, evaluation):
         "Break[]"
-
+        evaluation.cache_result = False
         raise BreakInterrupt
 
 
@@ -753,7 +754,7 @@ class Continue(Builtin):
 
     def apply(self, evaluation):
         "Continue[]"
-
+        evaluation.cache_result = False
         raise ContinueInterrupt
 
 
@@ -790,6 +791,7 @@ class Catch(Builtin):
 
     def apply1(self, expr, evaluation):
         "Catch[expr_]"
+        evaluation.cache_result = False
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
@@ -798,6 +800,7 @@ class Catch(Builtin):
 
     def apply3(self, expr, form, f, evaluation):
         "Catch[expr_, form_, f__:Identity]"
+        evaluation.cache_result = False
         try:
             ret = expr.evaluate(evaluation)
         except WLThrowInterrupt as e:
@@ -840,8 +843,10 @@ class Throw(Builtin):
 
     def apply1(self, value, evaluation):
         "Throw[value_]"
+        evaluation.cache_result = False
         raise WLThrowInterrupt(value)
 
     def apply_with_tag(self, value, tag, evaluation):
         "Throw[value_, tag_]"
+        evaluation.cache_result = False
         raise WLThrowInterrupt(value, tag)

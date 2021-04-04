@@ -289,6 +289,7 @@ class Manipulate(Builtin):
 
     def apply(self, expr, args, evaluation):
         "Manipulate[expr_, args__]"
+        evaluation.cache_result = False
         if (not _jupyter) or (not Kernel.initialized()) or (Kernel.instance() is None):
             return evaluation.message("Manipulate", "jupyter")
 

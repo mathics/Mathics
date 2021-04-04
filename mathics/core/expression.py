@@ -22,9 +22,17 @@ import base64
 COMPARE_PREC = 50
 # Expressions that should not be cached
 NO_CACHE_EXPR = [
+    "System`Set",
+    "System`SetDelayed",
+    "System`TimeRemaining",
+    "System`Timing",
+    "System`AbsoluteTiming",
+    "System`Timing",
     "System`Return",
     "System`Run",
     "System`GetEnvironment",
+    "System`DateList",
+    "System`TimeUsed",
 ]
 
 
@@ -1307,11 +1315,13 @@ class Expression(BaseExpression):
 
         old_options = evaluation.options
         evaluation.inc_recursion_depth()
-
-        if self.get_head_name() in NO_CACHE_EXPR:
-            expr_hash = None
+        # evaluation.cache_result can be set here or from inside the evaluation
+        # of a branch. Once it is set to false, the result is not cached,
+        # and hence, not used.
+        if evaluation.cache_result:
+            expr_hash = self.__hash__()
         else:
-            expr_hash = self.hash()
+            expr_hash = None
 
         if expr_hash:
             cache_expr_result = evaluation.cache_eval.get(expr_hash, None)
@@ -1361,7 +1371,7 @@ class Expression(BaseExpression):
             evaluation.options = old_options
             evaluation.dec_recursion_depth()
 
-        if expr_hash:
+        if evaluation.cache_result:
             evaluation.cache_eval[expr_hash] = (self, expr)
         return expr
 

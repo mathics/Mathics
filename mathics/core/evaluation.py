@@ -265,6 +265,7 @@ class Evaluation(object):
         # lhs in assignment
         self.ignore_oneidentity = False
         self.cache_eval = {}
+        self.cache_result = False
 
 
     def parse(self, query):
@@ -311,6 +312,7 @@ class Evaluation(object):
         self.stopped = False
         self.exc_result = self.SymbolNull
         self.last_eval = None
+        self.cache_result = True
         if format is None:
             format = self.format
 

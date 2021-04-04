@@ -360,6 +360,7 @@ class Run(Builtin):
     def apply(self, command, evaluation):
         "Run[command_?StringQ]"
         command_str = command.to_python()
+        evaluation.cache_result = False
         return Integer(subprocess.call(command_str, shell=True))
 
 
@@ -612,3 +613,31 @@ class Share(Builtin):
         # remplace them by references.
         # Return the amount of memory recovered.
         return Integer0
+
+
+class ClearSystemCache(Builtin):
+    """
+    <dl>
+      <dt>'ClearSystemCache[]'
+      <dd> Clears the internal system cache of expressions.
+    </dl>
+    
+    """
+    def apply_clear(self, evaluation):
+        "ClearSystemCache[]"
+        evaluation.cache_result = False
+        evaluation.cache_expr = {}
+        return
+
+    def apply_clear_symbolic(self, evaluation):
+        'ClearSystemCache["Symbolic"]'
+        evaluation.cache_result = False
+        evaluation.cache_expr = {}
+        return
+
+    def apply_clear_numeric(self, evaluation):
+        'ClearSystemCache["Numeric"]'
+        evaluation.cache_result = False
+        evaluation.cache_expr = {}
+        return
+

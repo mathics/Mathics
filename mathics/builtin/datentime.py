@@ -121,6 +121,7 @@ class TimeRemaining(Builtin):
 
     def apply(self, evaluation):
         "TimeRemaining[]"
+        evaluation.cache_result = False
         if len(evaluation.timeout_queue) > 0:
             t, start_time = evaluation.timeout_queue[-1]
             curr_time = datetime.now().timestamp()
@@ -167,10 +168,12 @@ if sys.platform != "win32" and ("Pyston" not in sys.version):
 
         def apply_2(self, expr, t, evaluation):
             "TimeConstrained[expr_, t_]"
+            evaluation.cache_result = False
             return self.apply_3(expr, t, SymbolAborted, evaluation)
 
         def apply_3(self, expr, t, failexpr, evaluation):
             "TimeConstrained[expr_, t_, failexpr_]"
+            evaluation.cache_result = False
             t = t.evaluate(evaluation)
             if not t.is_numeric():
                 evaluation.message("TimeConstrained", "timc", t)
@@ -208,7 +211,7 @@ class Timing(Builtin):
 
     def apply(self, expr, evaluation):
         "Timing[expr_]"
-
+        evaluation.cache_result = False
         start = time.process_time()
         result = expr.evaluate(evaluation)
         stop = time.process_time()
@@ -232,7 +235,7 @@ class AbsoluteTiming(Builtin):
 
     def apply(self, expr, evaluation):
         "AbsoluteTiming[expr_]"
-
+        evaluation.cache_result = False
         start = time.time()
         result = expr.evaluate(evaluation)
         stop = time.time()
@@ -498,7 +501,6 @@ class DateList(_DateFormat):
     def apply(self, epochtime, evaluation):
         "%(name)s[epochtime_]"
         datelist = self.to_datelist(epochtime, evaluation)
-
         if datelist is None:
             return
 
@@ -754,7 +756,7 @@ class AbsoluteTime(_DateFormat):
 
     def apply_now(self, evaluation):
         "AbsoluteTime[]"
-
+        evaluation.cache_result = False
         return from_python(total_seconds(datetime.now() - EPOCH_START))
 
     def apply_spec(self, epochtime, evaluation):
@@ -849,6 +851,7 @@ class TimeUsed(Builtin):
         "TimeUsed[]"
         # time.process_time() is better than
         # time.clock(). See https://bugs.python.org/issue31803
+        evaluation.cache_result = False
         return Real(time.process_time())
 
 
@@ -865,6 +868,7 @@ class SessionTime(Builtin):
 
     def apply(self, evaluation):
         "SessionTime[]"
+        evaluation.cache_result = False
         return Real(time.time() - START_TIME)
 
 
@@ -886,11 +890,11 @@ class Pause(Builtin):
 
     def apply(self, n, evaluation):
         "Pause[n_]"
+        evaluation.cache_result = False
         sleeptime = n.to_python()
         if not isinstance(sleeptime, (int, float)) or sleeptime < 0:
             evaluation.message("Pause", "numnm", Expression("Pause", n))
             return
-
         time.sleep(sleeptime)
         return Symbol("Null")
 

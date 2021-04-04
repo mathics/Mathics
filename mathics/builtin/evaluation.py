@@ -78,6 +78,7 @@ class RecursionLimit(Predefined):
     }
 
     def evaluate(self, evaluation) -> Integer:
+        evaluation.cache_result = False
         return Integer(self.value)
 
 
@@ -138,6 +139,7 @@ class IterationLimit(Predefined):
     }
 
     def evaluate(self, evaluation):
+        evaluation.cache_result = False
         return Integer(self.value)
 
 
