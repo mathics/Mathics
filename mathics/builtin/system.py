@@ -626,18 +626,18 @@ class ClearSystemCache(Builtin):
     def apply_clear(self, evaluation):
         "ClearSystemCache[]"
         evaluation.cache_result = False
-        evaluation.cache_expr = {}
+        evaluation.definitions.cache_eval = {}
         return
 
     def apply_clear_symbolic(self, evaluation):
         'ClearSystemCache["Symbolic"]'
         evaluation.cache_result = False
-        evaluation.cache_expr = {}
+        evaluation.definitions.cache_eval = {}
         return
 
     def apply_clear_numeric(self, evaluation):
         'ClearSystemCache["Numeric"]'
         evaluation.cache_result = False
-        evaluation.cache_expr = {}
+        evaluation.definitions.cache_eval = {}
         return
 

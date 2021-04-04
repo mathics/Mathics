@@ -1319,12 +1319,12 @@ class Expression(BaseExpression):
         # of a branch. Once it is set to false, the result is not cached,
         # and hence, not used.
         if evaluation.cache_result:
-            expr_hash = self.__hash__()
+            expr_hash = str(self.__hash__())
         else:
             expr_hash = None
 
         if expr_hash:
-            cache_expr_result = evaluation.cache_eval.get(expr_hash, None)
+            cache_expr_result = evaluation.definitions.cache_eval.get(expr_hash, None)
             if cache_expr_result is not None:
                 expr = cache_expr_result[0]
                 if not expr.has_changed(definitions):
@@ -1342,7 +1342,6 @@ class Expression(BaseExpression):
 
                 if hasattr(expr, "options") and expr.options:
                     evaluation.options = expr.options
-
                 expr, reevaluate = expr.evaluate_next(evaluation)
                 if not reevaluate:
                     break
@@ -1372,7 +1371,8 @@ class Expression(BaseExpression):
             evaluation.dec_recursion_depth()
 
         if evaluation.cache_result:
-            evaluation.cache_eval[expr_hash] = (self, expr)
+            self._timestamp_cache(evaluation)
+            evaluation.definitions.cache_eval[expr_hash] = (self, expr)
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
@@ -1426,7 +1426,6 @@ class Expression(BaseExpression):
             evaluation.cache_result = up_cache_result
 
             # rest_range(range(0, 0))
-
         new = Expression(head)
         new._leaves = tuple(leaves)
 
@@ -1497,7 +1496,7 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
-                evaluation.cache_result = cache_result
+                evaluation.cache_result = cache_result and evaluation.cache_result
                 if isinstance(result, BoxConstruct):
                     return result, False
                 if result.sameQ(new):
@@ -1522,6 +1521,7 @@ class Expression(BaseExpression):
         new.unformatted = self.unformatted
         new._timestamp_cache(evaluation)
         evaluation.cache_result = cache_result
+
         return new, False
 
     def evaluate_leaves(self, evaluation) -> "Expression":
@@ -1531,7 +1531,7 @@ class Expression(BaseExpression):
         for leaf in self._leaves:
             leaves.append(leaf.evaluate(evaluation))
             cache_result = cache_result and evaluation.cache_result
-            evaluation.cache_result = up_cache_result        
+            evaluation.cache_result = up_cache_result
         head = self._head.evaluate_leaves(evaluation)
         evaluation.cache_result = cache_result and evaluation.cache_result
         return Expression(head, *leaves)

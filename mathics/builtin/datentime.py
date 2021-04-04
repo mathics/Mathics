@@ -211,9 +211,9 @@ class Timing(Builtin):
 
     def apply(self, expr, evaluation):
         "Timing[expr_]"
-        evaluation.cache_result = False
         start = time.process_time()
         result = expr.evaluate(evaluation)
+        evaluation.cache_result = False      
         stop = time.process_time()
         return Expression("List", Real(stop - start), result)
 

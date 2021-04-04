@@ -238,7 +238,6 @@ class Evaluation(object):
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
-
         if definitions is None:
             definitions = Definitions()
         self.definitions = definitions
@@ -334,11 +333,13 @@ class Evaluation(object):
                 self.last_eval = Expression("System`$Pre", query).evaluate(self)
             else:
                 self.last_eval = query.evaluate(self)
-
             if check_io_hook("System`$Post"):
                 self.last_eval = Expression("System`$Post", self.last_eval).evaluate(
                     self
                 )
+            # From there, it is all about format. Do not catch evaluations.
+            self.cache_result = False
+
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out

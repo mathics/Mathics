@@ -84,6 +84,7 @@ class Definitions(object):
         self.proxy = defaultdict(set)
         self.now = 0  # increments whenever something is updated
         self._packages = []
+        self.cache_eval = {}
 
         if add_builtin:
             from mathics.builtin import modules, contribute
