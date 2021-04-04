@@ -264,6 +264,8 @@ class Evaluation(object):
         # Necesary to handle OneIdentity on
         # lhs in assignment
         self.ignore_oneidentity = False
+        self.cache_eval = {}
+
 
     def parse(self, query):
         "Parse a single expression and print the messages."
