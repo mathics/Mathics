@@ -2637,20 +2637,23 @@ class Array(Builtin):
 class Table(_IterationFunction):
     """
     <dl>
-    <dt>'Table[$expr$, {$i$, $n$}]'
-        <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
-        a list of the results.
-    <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
-        <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
+      <dt>'Table[$expr$, $n$]'
+      <dd>generates a list of $n$ copies of $expr$.
+
+      <dt>'Table[$expr$, {$i$, $n$}]'
+      <dd>generates a list of the values of expr when $i$ runs from 1 to $n$.
+
+      <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
+      <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
         incrementing by $step$.
-    <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
-        <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
+
+      <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
+      <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
         ..., $ei$.
     </dl>
-    >> Table[x, {4}]
-     = {x, x, x, x}
-    >> n = 0;
-    >> Table[n = n + 1, {5}]
+    >> Table[x, 3]
+     = {x, x, x}
+    >> n = 0; Table[n = n + 1, {5}]
      = {1, 2, 3, 4, 5}
     >> Table[i, {i, 4}]
      = {1, 2, 3, 4}
@@ -2673,8 +2676,13 @@ class Table(_IterationFunction):
      = {-0.2, 0.8, 1.8, 2.8, 3.8}
     """
 
+    rules = {
+        "Table[expr_, n_Integer]": "Table[expr, {n}]",
+    }
+
     def get_result(self, items):
         return Expression(SymbolList, *items)
+
 
 
 class Join(Builtin):
