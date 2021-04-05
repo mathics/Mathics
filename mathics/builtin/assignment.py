@@ -2,13 +2,13 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-import mathics.builtin
 from mathics.builtin.base import (
     Builtin,
     BinaryOperator,
     PostfixOperator,
     PrefixOperator,
 )
+from mathics.core.rules import Rule
 from mathics.core.expression import (
     Expression,
     Symbol,
@@ -18,15 +18,9 @@ from mathics.core.expression import (
     system_symbols,
     String,
 )
-from mathics.core.rules import Rule, BuiltinRule
-from mathics.builtin.patterns import RuleDelayed
 from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
-
-from mathics import settings
-from mathics.core.definitions import PyMathicsLoadException
-
 
 def repl_pattern_by_symbol(expr):
     leaves = expr.get_leaves()
@@ -984,8 +978,8 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
 class Information(PrefixOperator):
     """
     <dl>
-    <dt>'Information[$symbol$]'
-        <dd>Prints information about a $symbol$
+      <dt>'Information[$symbol$]'
+      <dd>Prints information about a $symbol$
     </dl>
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
@@ -1008,36 +1002,6 @@ class Information(PrefixOperator):
      .
      = Null
 
-
-    #> ? Table
-     | 
-     .   'Table[expr, {i, n}]'
-     .     evaluates expr with i ranging from 1 to n, returning
-     . a list of the results.
-     .   'Table[expr, {i, start, stop, step}]'
-     .     evaluates expr with i ranging from start to stop,
-     . incrementing by step.
-     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     .     evaluates expr with i taking on the values e1, e2,
-     . ..., ei.
-     .
-     = Null
-
-    #> Information[Table]
-     | 
-     .   'Table[expr, {i, n}]'
-     .     evaluates expr with i ranging from 1 to n, returning
-     . a list of the results.
-     .   'Table[expr, {i, start, stop, step}]'
-     .     evaluates expr with i ranging from start to stop,
-     . incrementing by step.
-     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     .     evaluates expr with i taking on the values e1, e2,
-     . ..., ei.
-     .
-     . Attributes[Table] = {HoldAll, Protected}
-     .
-     = Null
     """
 
     operator = "??"
