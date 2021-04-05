@@ -1207,6 +1207,7 @@ class URLFetch(Builtin):
 
         import tempfile
         import os
+
         evaluation.cache_result = False
         py_url = url.get_string_value()
 

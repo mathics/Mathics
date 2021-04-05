@@ -315,9 +315,8 @@ class _SetOperator(object):
             #    $Context = $Context <> "test`"
             #
             if new_context.startswith("`"):
-                new_context = (
-                    evaluation.definitions.get_current_context()
-                    + new_context.lstrip("`")
+                new_context = evaluation.definitions.get_current_context() + new_context.lstrip(
+                    "`"
                 )
 
             evaluation.definitions.set_current_context(new_context)
@@ -1320,7 +1319,7 @@ class ClearAll(Clear):
     def apply_all(self, evaluation):
         "ClearAll[System`All]"
         evaluation.cache_result = False
-        evaluation.cache_expr = {}        
+        evaluation.cache_expr = {}
         evaluation.definitions.set_user_definitions({})
         evaluation.definitions.clear_pymathics_modules()
         return
@@ -1929,7 +1928,7 @@ class LoadModule(Builtin):
 
     def apply(self, module, evaluation):
         "LoadModule[module_String]"
-        evaluation.cache_result = False        
+        evaluation.cache_result = False
         try:
             evaluation.definitions.load_pymathics_module(module.value)
         except PyMathicsLoadException:

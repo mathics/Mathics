@@ -623,6 +623,7 @@ class ClearSystemCache(Builtin):
     </dl>
     
     """
+
     def apply_clear(self, evaluation):
         "ClearSystemCache[]"
         evaluation.cache_result = False
@@ -640,4 +641,3 @@ class ClearSystemCache(Builtin):
         evaluation.cache_result = False
         evaluation.definitions.cache_eval = {}
         return
-

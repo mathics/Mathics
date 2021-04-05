@@ -2152,7 +2152,7 @@ class Put(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         "Put[exprs___, filename_String]"
         evaluation.cache_result = False
-        
+
         instream = Expression("OpenWrite", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
@@ -2165,7 +2165,7 @@ class Put(BinaryOperator):
     def apply_input(self, exprs, name, n, evaluation):
         "Put[exprs___, OutputStream[name_, n_]]"
         evaluation.cache_result = False
-        
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io.closed:
@@ -2186,7 +2186,7 @@ class Put(BinaryOperator):
     def apply_default(self, exprs, filename, evaluation):
         "Put[exprs___, filename_]"
         evaluation.cache_result = False
-        
+
         expr = Expression("Put", exprs, filename)
         evaluation.message("General", "stream", filename)
         return expr
@@ -2248,7 +2248,7 @@ class PutAppend(BinaryOperator):
     def apply(self, exprs, filename, evaluation):
         "PutAppend[exprs___, filename_String]"
         evaluation.cache_result = False
-        
+
         instream = Expression("OpenAppend", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
@@ -2261,7 +2261,7 @@ class PutAppend(BinaryOperator):
     def apply_input(self, exprs, name, n, evaluation):
         "PutAppend[exprs___, OutputStream[name_, n_]]"
         evaluation.cache_result = False
-        
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io.closed:
@@ -2282,7 +2282,7 @@ class PutAppend(BinaryOperator):
     def apply_default(self, exprs, filename, evaluation):
         "PutAppend[exprs___, filename_]"
         evaluation.cache_result = False
-        
+
         expr = Expression("PutAppend", exprs, filename)
         evaluation.message("General", "stream", filename)
         return expr
@@ -2452,7 +2452,7 @@ class FilePrint(Builtin):
     def apply(self, path, evaluation, options):
         "FilePrint[path_ OptionsPattern[FilePrint]]"
         evaluation.cache_result = False
-        
+
         pypath = path.to_python()
         if not (
             isinstance(pypath, str)
@@ -2584,13 +2584,13 @@ class StreamPosition(Builtin):
     def apply_output(self, name, n, evaluation):
         "StreamPosition[OutputStream[name_, n_]]"
         evaluation.cache_result = False
-        
+
         self.input_apply(name, n, evaluation)
 
     def apply_default(self, stream, evaluation):
         "StreamPosition[stream_]"
         evaluation.cache_result = False
-        
+
         evaluation.message("General", "stream", stream)
         return
 
@@ -2639,7 +2639,7 @@ class SetStreamPosition(Builtin):
     def apply_input(self, name, n, m, evaluation):
         "SetStreamPosition[InputStream[name_, n_], m_]"
         evaluation.cache_result = False
-        
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io is None or stream.io.closed:
@@ -2672,13 +2672,13 @@ class SetStreamPosition(Builtin):
     def apply_output(self, name, n, m, evaluation):
         "SetStreamPosition[OutputStream[name_, n_], m_]"
         evaluation.cache_result = False
-        
+
         return self.apply_input(name, n, m, evaluation)
 
     def apply_default(self, stream, evaluation):
         "SetStreamPosition[stream_]"
         evaluation.cache_result = False
-        
+
         evaluation.message("General", "stream", stream)
         return
 
@@ -2854,7 +2854,7 @@ class InputStream(Builtin):
     def apply(self, name, n, evaluation):
         "InputStream[name_, n_]"
         evaluation.cache_result = False
-        
+
         return
 
 
@@ -2876,7 +2876,7 @@ class OutputStream(Builtin):
     def apply(self, name, n, evaluation):
         "OutputStream[name_, n_]"
         evaluation.cache_result = False
-        
+
         return
 
 
@@ -2905,7 +2905,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         "StringToStream[string_]"
         evaluation.cache_result = False
-        
+
         pystring = string.to_python()[1:-1]
         fp = io.StringIO(str(pystring))
 
@@ -2941,13 +2941,13 @@ class Streams(Builtin):
     def apply(self, evaluation):
         "Streams[]"
         evaluation.cache_result = False
-        
+
         return self.apply_name(None, evaluation)
 
     def apply_name(self, name, evaluation):
         "Streams[name_String]"
         evaluation.cache_result = False
-        
+
         result = []
         for stream in stream_manager.STREAMS.values():
             if stream is None or stream.io.closed:

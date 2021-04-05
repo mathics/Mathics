@@ -213,8 +213,8 @@ class Timing(Builtin):
         "Timing[expr_]"
         start = time.process_time()
         result = expr.evaluate(evaluation)
-        evaluation.cache_result = False      
         stop = time.process_time()
+        evaluation.cache_result = False
         return Expression("List", Real(stop - start), result)
 
 

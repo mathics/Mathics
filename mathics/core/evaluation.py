@@ -238,6 +238,7 @@ class Evaluation(object):
     ) -> None:
         from mathics.core.definitions import Definitions
         from mathics.core.expression import Symbol
+
         if definitions is None:
             definitions = Definitions()
         self.definitions = definitions
@@ -265,7 +266,6 @@ class Evaluation(object):
         self.ignore_oneidentity = False
         self.cache_eval = {}
         self.cache_result = False
-
 
     def parse(self, query):
         "Parse a single expression and print the messages."

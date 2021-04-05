@@ -144,12 +144,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -1318,6 +1313,12 @@ class Expression(BaseExpression):
         # evaluation.cache_result can be set here or from inside the evaluation
         # of a branch. Once it is set to false, the result is not cached,
         # and hence, not used.
+        if evaluation.cache_result and (
+            self.get_head_name()
+            in ("System`Out", "System`ToBoxes", "System`MakeBoxes",)
+        ):
+            evaluation.cache_result = False
+
         if evaluation.cache_result:
             expr_hash = str(self.__hash__())
         else:
@@ -1894,21 +1895,17 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return (
-            self._head.get_name()
-            in system_symbols(
-                "Sqrt",
-                "Times",
-                "Plus",
-                "Subtract",
-                "Minus",
-                "Power",
-                "Abs",
-                "Divide",
-                "Sin",
-            )
-            and all(leaf.is_numeric() for leaf in self._leaves)
-        )
+        return self._head.get_name() in system_symbols(
+            "Sqrt",
+            "Times",
+            "Plus",
+            "Subtract",
+            "Minus",
+            "Power",
+            "Abs",
+            "Divide",
+            "Sin",
+        ) and all(leaf.is_numeric() for leaf in self._leaves)
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
