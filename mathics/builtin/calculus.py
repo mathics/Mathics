@@ -1101,6 +1101,7 @@ class FindRoot(Builtin):
 
     rules = {
         "FindRoot[lhs_ == rhs_, {x_, xs_}]": "FindRoot[lhs - rhs, {x, xs}]",
+        "FindRoot[lhs_ == rhs_, x__]": "FindRoot[lhs - rhs, x]",
     }
 
     def apply(self, f, x, x0, evaluation):
@@ -1150,3 +1151,17 @@ class FindRoot(Builtin):
             evaluation.message("FindRoot", "maxiter")
 
         return Expression(SymbolList, Expression(SymbolRule, x, x0))
+
+    def apply_with_x_tuple(self, f, xtuple, evaluation):
+        "FindRoot[f_, xtuple_]"
+        f_val = f.evaluate(evaluation)
+
+        # This is not seem quite right.
+        if f_val.get_head_name() == "System`Equal":
+            f = Expression("Minus", *f_val.leaves)
+
+        xtuple_value = xtuple.evaluate(evaluation)
+        if xtuple_value.has_form("List", 2):
+            x, x0 = xtuple.evaluate(evaluation).leaves
+            return self.apply(f, x, x0, evaluation)
+        return
