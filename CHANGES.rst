@@ -38,6 +38,7 @@ Bug fixes
 * ``FindRoot`` now handles equations.
 
 
+
 2.1.0
 -----
 
