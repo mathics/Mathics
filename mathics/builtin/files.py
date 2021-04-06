@@ -259,14 +259,14 @@ class InitialDirectory(Predefined):
 class InstallationDirectory(Predefined):
     """
     <dl>
-    <dt>'$InstallationDirectory'
-      <dd>returns the directory in which \\Mathics was installed.
+      <dt>'$InstallationDirectory'
+      <dd>returns the top-level directory in which \\Mathics was installed.
     </dl>
-
     >> $InstallationDirectory
      = ...
     """
 
+    attributes = ("Unprotected",)
     name = "$InstallationDirectory"
 
     def evaluate(self, evaluation):
