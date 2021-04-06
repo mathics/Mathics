@@ -1839,6 +1839,9 @@ class Gamma(_MPMathMultiFunction):
     rules = {
         "Gamma[z_, x0_, x1_]": "Gamma[z, x0] - Gamma[z, x1]",
         "Gamma[1 + z_]": "z!",
+        "Derivative[1][Gamma]": "(Gamma[#1]*PolyGamma[0, #1])&",
+        "Derivative[1, 0][Gamma]": "(Gamma[#1, #2]*Log[#2] + MeijerG[{{}, {1, 1}}, {{0, 0, #1}, {}}, #2])&",
+        "Derivative[0, 1][Gamma]": "(-(#2^(-1 + #1)/E^#2))&",
     }
 
     def get_sympy_names(self):
@@ -1868,6 +1871,8 @@ class Pochhammer(SympyFunction):
 
     rules = {
         "Pochhammer[a_, n_]": "Gamma[a + n] / Gamma[a]",
+        "Derivative[1,0][Pochhammer]": "(Pochhammer[#1, #2]*(-PolyGamma[0, #1] + PolyGamma[0, #1 + #2]))&",
+        "Derivative[0,1][Pochhammer]": "(Pochhammer[#1, #2]*PolyGamma[0, #1 + #2])&",
     }
 
 
