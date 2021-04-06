@@ -233,8 +233,8 @@ class BesselJ(_Bessel):
     #> BesselJ[2.5, 1]
      = 0.0494968
 
-    ## >> D[BesselJ[n, z], z]
-    ##  = BesselJ[n - 1, z] / 2 - BesselJ[n + 1, z] / 2
+    >> D[BesselJ[n, z], z]
+     = -BesselJ[1 + n, z] / 2 + BesselJ[-1 + n, z] / 2
 
     #> BesselJ[0., 0.]
      = 1.
@@ -243,12 +243,14 @@ class BesselJ(_Bessel):
      = -Graphics-
     """
 
-    # TODO: Sympy Backend is not as powerful as Mathmeatica
+    # TODO: Sympy Backend is not as powerful as Mathematica
     """
     >> BesselJ[1/2, x]
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
     """
-
+    rules = {
+        "Derivative[0,1][BesselJ]": "(BesselJ[#1- 1, #2] / 2 - BesselJ[#1 + 1, #2] / 2)&",
+    }
     attributes = ("Listable", "NumericFunction", "Protected")
 
     sympy_name = "besselj"
@@ -278,6 +280,9 @@ class BesselY(_Bessel):
     >> BesselY[0, 0]
      = -Infinity
     """
+    rules = {
+        "Derivative[0,1][BesselY]": "(BesselY[-1 + #1, #2] / 2 - BesselY[1 + #1, #2] / 2)&",
+    }
 
     attributes = ("Listable", "NumericFunction", "Protected")
 
@@ -298,6 +303,10 @@ class BesselI(_Bessel):
     >> Plot[BesselI[0, x], {x, 0, 5}]
      = -Graphics-
     """
+
+    rules = {
+        "Derivative[0, 1][BesselI]": "((BesselI[-1 + #1, #2] + BesselI[1 + #1, #2])/2)&",
+    }
 
     attributes = ("Listable", "NumericFunction", "Protected")
 
@@ -320,6 +329,9 @@ class BesselK(_Bessel):
     """
 
     attributes = ("Listable", "NumericFunction", "Protected")
+    rules = {
+        "Derivative[0, 1][BesselK]": "((-BesselK[-1 + #1, #2] - BesselK[1 + #1, #2])/2)&",
+    }
 
     sympy_name = "besselk"
     mpmath_name = "besselk"
@@ -341,6 +353,10 @@ class HankelH1(_Bessel):
      = 0.185286 + 0.367112 I
     """
 
+    rules = {
+        "Derivative[0, 1][HankelH1]": "((HankelH1[-1 + #1, #2] - HankelH1[1 + #1, #2])/2)&",
+    }
+
     sympy_name = "hankel1"
     mpmath_name = "hankel1"
 
@@ -355,6 +371,10 @@ class HankelH2(_Bessel):
     >> HankelH2[1.5, 4]
      = 0.185286 - 0.367112 I
     """
+
+    rules = {
+        "Derivative[0, 1][HankelH2]": "((HankelH2[-1 + #1, #2] - HankelH2[1 + #1, #2])/2)&",
+    }
 
     sympy_name = "hankel2"
     mpmath_name = "hankel2"
@@ -408,6 +428,10 @@ class AiryAiPrime(_MPMathFunction):
      = -0.224911
     """
 
+    rules = {
+        "Derivative[1][AiryAiPrime]": "(#1 AiryAi[#1])&",
+    }
+
     sympy_name = "airyaiprime"
     mpmath_name = ""
 
@@ -438,7 +462,6 @@ class AiryBi(_MPMathFunction):
 
     sympy_name = "airybi"
     mpmath_name = "airybi"
-
     rules = {
         "Derivative[1][AiryBi]": "AiryBiPrime",
     }
@@ -463,6 +486,9 @@ class AiryBiPrime(_MPMathFunction):
 
     sympy_name = "airybiprime"
     mpmath_name = ""
+    rules = {
+        "Derivative[1][AiryBiPrime]": "(#1 AiryBi[#1])&",
+    }
 
     def get_mpmath_function(self, args):
         return lambda x: mpmath.airybi(x, derivative=1)
@@ -495,6 +521,7 @@ class KelvinBer(_Bessel):
 
     rules = {
         "KelvinBer[z_]": "KelvinBer[0, z]",
+        "Derivative[1][KelvinBer]": "((2*KelvinBei[1, #1] + 2*KelvinBer[1, #1])/(2*Sqrt[2]))&",
     }
 
     sympy_name = ""
@@ -525,6 +552,7 @@ class KelvinBei(_Bessel):
 
     rules = {
         "KelvinBei[z_]": "KelvinBei[0, z]",
+        "Derivative[1][KelvinBei]": "((2*KelvinBei[1, #1] - 2*KelvinBer[1, #1])/(2*Sqrt[2]))&",
     }
 
     sympy_name = ""
@@ -858,7 +886,11 @@ class LegendreP(_MPMathFunction):
      = -3 x Sqrt[1 - x^2]
     """
 
-    rules = {"LegendreP[n_, x_]": "LegendreP[n, 0, x]"}
+    rules = {
+        "LegendreP[n_, x_]": "LegendreP[n, 0, x]",
+        "Derivative[0,1][LegendreP]": "(((-1 - #1)*x*LegendreP[#1, #2] + (1 + #1)*LegendreP[1 + #1, #2])/(-1 + #2^2))&",
+        "Derivative[0,0,1][LegendreP]": "((LegendreP[1 + #1, #2, #3]*(1 + #1 - #2) + LegendreP[#1, #2, #3]*(-1 - #1)*#3)/(-1 + #3^2))&",
+    }
 
     nargs = 3
     sympy_name = "legendre"
@@ -896,7 +928,11 @@ class LegendreQ(_MPMathFunction):
      = -3 x / 2 - 3 x ^ 2 Log[1 - x] / 4 + 3 x ^ 2 Log[1 + x] / 4 - Log[1 + x] / 4 + Log[1 - x] / 4
     """
 
-    rules = {"LegendreQ[n_, x_]": "LegendreQ[n, 0, x]"}
+    rules = {
+        "LegendreQ[n_, x_]": "LegendreQ[n, 0, x]",
+        "Derivative[0,1][LegendreQ]": "((LegendreQ[1 + #1, #2]*(1 + #1) + LegendreQ[#1, #2]*(-1 - #1)*#2)/(-1 + #2^2))&",
+        "Derivative[0,0,1][LegendreQ]": "((LegendreQ[1 + #1, #2, #3]*(1 + #1 - #2) + LegendreQ[#1, #2, #3]*(-1 - #1)*#3)/(-1 + #3^2))&",
+    }
 
     nargs = 3
     sympy_name = ""
@@ -948,6 +984,10 @@ class SphericalHarmonicY(_MPMathFunction):
     nargs = 4
     sympy_name = "Ynm"
     mpmath_name = "spherharm"
+    rules = {
+        "Derivative[0,0,1,0][SphericalHarmonicY]": "(Cot[#3]*#2*SphericalHarmonicY[#1, #2, #3, #4] + (Sqrt[Gamma[1 + #1 - #2]]*Sqrt[Gamma[2 + #1 + #2]]*SphericalHarmonicY[#1, 1 + #2, #3, #4])/(E^(I*#4)*Sqrt[Gamma[#1 - #2]]*Sqrt[Gamma[1 + #1 + #2]]))&",
+        "Derivative[0,0,0,1][SphericalHarmonicY]": "(I*#2*SphericalHarmonicY[#1, #2, #3, #4])&",
+    }
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr.expand(func=True).simplify()
@@ -1137,6 +1177,9 @@ class FresnelS(_MPMathFunction):
      = 3 FresnelS[z] Gamma[3 / 4] / (4 Gamma[7 / 4])
     """
 
+    rules = {
+        "Derivative[1][FresnelS]": "Sin[(Pi*#1^2)/2]&",
+    }
     mpmath_name = "fresnels"
 
 
@@ -1155,4 +1198,7 @@ class FresnelC(_MPMathFunction):
      = FresnelC[z] Gamma[1 / 4] / (4 Gamma[5 / 4])
     """
 
+    rules = {
+        "Derivative[1][FresnelC]": "Cos[(Pi*#1^2)/2]&",
+    }
     mpmath_name = "fresnelc"

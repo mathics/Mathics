@@ -33,7 +33,6 @@ IntegerZero = Integer(0)
 IntegerMinusOne = Integer(-1)
 
 
-
 class D(SympyFunction):
     """
     <dl>
@@ -159,18 +158,21 @@ class D(SympyFunction):
 
         x_pattern = Pattern.create(x)
         if f.is_free(x_pattern, evaluation):
-            return IntegerZero 
+            return IntegerZero
         elif f == x:
-            return IntegerOne
+            return Integer1
         elif f.is_atom(): # Shouldn't happen
             1 / 0
             return
         # So, this is not an atom...
-        
+
         head = f.get_head()
         if head == SymbolPlus:
-            terms = [Expression("D", term, x)  for term in f.leaves
-                                    if not term.is_free(x_pattern, evaluation)]
+            terms = [
+                Expression("D", term, x)
+                for term in f.leaves
+                if not term.is_free(x_pattern, evaluation)
+            ]
             if len(terms) == 0:
                 return IntegerZero
             return Expression(SymbolPlus, *terms)
@@ -179,26 +181,41 @@ class D(SympyFunction):
             for i, factor in enumerate(f.leaves):
                 if factor.is_free(x_pattern, evaluation):
                     continue
-                factors = [leaf for j, leaf in enumerate(f.leaves) if j!=i]
+                factors = [leaf for j, leaf in enumerate(f.leaves) if j != i]
                 factors.append(Expression("D", factor, x))
                 terms.append(Expression(SymbolTimes, *factors))
-            if len(terms)!=0:
+            if len(terms) != 0:
                 return Expression(SymbolPlus, *terms)
             else:
                 return IntegerZero
-        elif head == SymbolPower and len(f.leaves)==2:
+        elif head == SymbolPower and len(f.leaves) == 2:
             base, exp = f.leaves
             terms = []
             if not base.is_free(x_pattern, evaluation):
                 terms.append(
-                    Expression(SymbolTimes, exp, 
-                               Expression(SymbolPower, base, Expression(SymbolPlus, exp, IntegerMinusOne)),
-                               Expression("D", base, x)))
+                    Expression(
+                        SymbolTimes,
+                        exp,
+                        Expression(
+                            SymbolPower,
+                            base,
+                            Expression(SymbolPlus, exp, IntegerMinusOne),
+                        ),
+                        Expression("D", base, x),
+                    )
+                )
             if not exp.is_free(x_pattern, evaluation):
                 if base.is_atom() and base.get_name() == "System`E":
                     terms.append(Expression(SymbolTimes, f, Expression("D", exp, x)))
                 else:
-                    terms.append(Expression(SymbolTimes, f, Expression("Log", base), Expression("D", exp, x)))
+                    terms.append(
+                        Expression(
+                            SymbolTimes,
+                            f,
+                            Expression("Log", base),
+                            Expression("D", exp, x),
+                        )
+                    )
             if len(terms) == 0:
                 return IntegerZero
             elif len(terms) == 1:
@@ -218,6 +235,7 @@ class D(SympyFunction):
                     Expression("D", g, x),
                 )
         else:  # many leaves
+
             def summand(leaf, index):
                 result = Expression(
                     Expression(
@@ -238,9 +256,10 @@ class D(SympyFunction):
                 else:
                     return Expression("Times", result, Expression("D", leaf, x))
 
-            result = [ summand(leaf, index)
-                       for index, leaf in enumerate(f.leaves)
-                       if not leaf.is_free(x_pattern, evaluation)
+            result = [
+                summand(leaf, index)
+                for index, leaf in enumerate(f.leaves)
+                if not leaf.is_free(x_pattern, evaluation)
             ]
 
             if len(result) == 1:
@@ -368,6 +387,7 @@ class Derivative(PostfixOperator, SympyFunction):
         super(Derivative, self).__init__(*args, **kwargs)
 
     def to_sympy(self, expr, **kwargs):
+        print("calling to_sympy")
         inner = expr
         exprs = [inner]
         try:
