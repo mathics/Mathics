@@ -26,6 +26,14 @@ from mathics import Symbol
 import sympy
 
 
+SymbolPlus = Symbol("Plus")
+SymbolTimes = Symbol("Times")
+SymbolPower = Symbol("Power")
+IntegerZero = Integer(0)
+IntegerMinusOne = Integer(-1)
+
+
+
 class D(SympyFunction):
     """
     <dl>
@@ -118,23 +126,24 @@ class D(SympyFunction):
     }
 
     rules = {
-        "D[f_ + g_, x_?NotListQ]": "D[f, x] + D[g, x]",
-        "D[f_ * g_, x_?NotListQ]": "D[f, x] * g + f * D[g, x]",
-        "D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]": "r * f ^ (r-1) * D[f, x]",
-        "D[E ^ f_, x_?NotListQ]": "E ^ f * D[f, x]",
-        "D[f_ ^ g_, x_?NotListQ]": "D[E ^ (Log[f] * g), x]",
-        "D[f_, x_?NotListQ] /; FreeQ[f, x]": "0",
-        # 'D[f_[g_], x_?NotListQ]': (
-        #   'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
-        # 'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
-        "D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]": "Derivative[Sequence @@ UnitVector["
-        "  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]",
-        # 'D[f_[args___], x_?NotListQ]':
-        # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
-        # '/. t->#) * D[#, x]&, {args}]',
+        # Basic rules (implemented in apply):
+        #   "D[f_ + g_, x_?NotListQ]": "D[f, x] + D[g, x]",
+        #   "D[f_ * g_, x_?NotListQ]": "D[f, x] * g + f * D[g, x]",
+        #   "D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]": "r * f ^ (r-1) * D[f, x]",
+        #   "D[E ^ f_, x_?NotListQ]": "E ^ f * D[f, x]",
+        #   "D[f_ ^ g_, x_?NotListQ]": "D[E ^ (Log[f] * g), x]",
+        # Hacky: better implement them in apply
+        # "D[f_, x_?NotListQ] /; FreeQ[f, x]": "0",
+        #  "D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]":
+        #  "Derivative[Sequence @@ UnitVector["
+        #  "  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]",
+        #  'D[f_[args___], x_?NotListQ]':
+        #  'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
+        #  '/. t->#) * D[#, x]&, {args}]',
         "D[{items___}, x_?NotListQ]": (
             "Function[{System`Private`item}, D[System`Private`item, x]]" " /@ {items}"
         ),
+        # Handling iterated and vectorized derivative variables
         "D[f_, {list_List}]": "D[f, #]& /@ list",
         "D[f_, {list_List, n_Integer?Positive}]": (
             "D[f, Sequence @@ ConstantArray[{list}, n]]"
@@ -148,52 +157,99 @@ class D(SympyFunction):
     def apply(self, f, x, evaluation):
         "D[f_, x_?NotListQ]"
 
-        if f == x:
+        x_pattern = Pattern.create(x)
+        if f.is_free(x_pattern, evaluation):
+            return IntegerZero 
+        elif f == x:
             return Integer1
-        elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
-            return Expression(Expression(Expression("Derivative", Integer1), f.head), x)
-        elif not f.is_atom() and len(f.leaves) == 1:
-            g = f.leaves[0]
-            return Expression(
-                "Times",
-                Expression("D", Expression(f.head, g), g),
-                Expression("D", g, x),
-            )
-        elif not f.is_atom() and len(f.leaves) > 1:
-
-            def summand(leaf, index):
-                if leaf.sameQ(x):
-                    result = Expression(
-                        Expression(
-                            Expression(
-                                "Derivative",
-                                *(
-                                    [Integer(0)] * (index)
-                                    + [Integer1]
-                                    + [Integer(0)] * (len(f.leaves) - index - 1)
-                                )
-                            ),
-                            f.head,
-                        ),
-                        *f.leaves
-                    )
-                else:
-                    result = Expression("D", f, leaf)
-                return Expression("Times", result, Expression("D", leaf, x))
-
-            x_pattern = Pattern.create(x)
-            result = Expression(
-                "Plus",
-                *[
-                    summand(leaf, index)
-                    for index, leaf in enumerate(f.leaves)
-                    if not leaf.is_free(x_pattern, evaluation)
-                ]
-            )
-            if len(result.leaves) == 1:
-                return result.leaves[0]
+        elif f.is_atom(): # Shouldn't happen
+            1 / 0
+            return
+        # So, this is not an atom...
+        
+        head = f.get_head()
+        if head == SymbolPlus:
+            terms = [Expression("D", term, x)  for term in f.leaves
+                                    if not term.is_free(x_pattern, evaluation)]
+            if len(terms) == 0:
+                return IntegerZero
+            return Expression(SymbolPlus, *terms)
+        elif head == SymbolTimes:
+            terms = []
+            for i, factor in enumerate(f.leaves):
+                if factor.is_free(x_pattern, evaluation):
+                    continue
+                factors = [leaf for j, leaf in enumerate(f.leaves) if j!=i]
+                factors.append(Expression("D", factor, x))
+                terms.append(Expression(SymbolTimes, *factors))
+            if len(terms)!=0:
+                return Expression(SymbolPlus, *terms)
             else:
-                return result
+                return IntegerZero
+        elif head == SymbolPower and len(f.leaves)==2:
+            base, exp = f.leaves
+            terms = []
+            if not base.is_free(x_pattern, evaluation):
+                terms.append(
+                    Expression(SymbolTimes, exp, 
+                               Expression(SymbolPower, base, Expression(SymbolPlus, exp, IntegerMinusOne)),
+                               Expression("D", base, x)))
+            if not exp.is_free(x_pattern, evaluation):
+                if base.is_atom() and base.get_name() == "System`E":
+                    terms.append(Expression(SymbolTimes, f, Expression("D", exp, x)))
+                else:
+                    terms.append(Expression(SymbolTimes, f, Expression("Log", base), Expression("D", exp, x)))
+
+            if len(terms) == 0:
+                return IntegerZero
+            elif len(terms) == 1:
+                return terms[0]
+            else:
+                return Expression(SymbolPlus, *terms)
+        elif len(f.leaves) == 1:
+            if f.leaves[0] == x:
+                return Expression(
+                    Expression(Expression("Derivative", Integer(1)), f.head), x
+                )
+            else:
+                g = f.leaves[0]
+                return Expression(
+                    SymbolTimes,
+                    Expression("D", Expression(f.head, g), g),
+                    Expression("D", g, x),
+                )
+        else:  # many leaves
+            def summand(leaf, index):
+                result = Expression(
+                    Expression(
+                        Expression(
+                            "Derivative",
+                            *(
+                                [IntegerZero] * (index)
+                                + [Integer1]
+                                + [IntegerZero] * (len(f.leaves) - index - 1)
+                            )
+                        ),
+                        f.head,
+                    ),
+                    *f.leaves
+                )
+                if leaf.same(x):
+                    return result
+                else:
+                    return Expression("Times", result, Expression("D", leaf, x))
+
+            result = [ summand(leaf, index)
+                       for index, leaf in enumerate(f.leaves)
+                       if not leaf.is_free(x_pattern, evaluation)
+            ]
+
+            if len(result) == 1:
+                return result[0]
+            elif len(result) == 0:
+                return IntegerZero
+            else:
+                return Expression("Plus", *result)
 
     def apply_wrong(self, expr, x, other, evaluation):
         "D[expr_, {x_, other___}]"
