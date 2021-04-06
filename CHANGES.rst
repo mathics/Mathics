@@ -4,13 +4,6 @@ CHANGES
 2.1.1
 -----
 
-
-New builtins
-++++++++++++
-
-* ``Dispatch``
-
-
 Enhancements
 ++++++++++++
 
@@ -24,10 +17,16 @@ Enhancements
 Bug fixes
 +++++++++
 
-
 * ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
+* Improvings in the implementation of ``D`` and ``Derivative``.
 
+New builtins
+++++++++++++
+
+* ``Dispatch``
+* ``Series``,  ``O`` and ``SeriesData``
+ 
 2.1.0
 -----
 
