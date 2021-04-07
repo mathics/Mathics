@@ -37,10 +37,10 @@ from mathics.core.expression import (
     SymbolInfinity,
     SymbolN,
     SymbolNull,
-    SymbolSequence,
     SymbolTrue,
     SymbolFalse,
     SymbolUndefined,
+    SymbolSequence,
     from_mpmath,
     from_python,
 )

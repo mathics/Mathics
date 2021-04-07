@@ -1,19 +1,22 @@
 CHANGES
 =======
 
+
 2.1.1
 -----
-
 
 New builtins
 ++++++++++++
 
 * ``Dispatch``
+* ``Series``,  ``O`` and ``SeriesData``
+
 
 
 Enhancements
 ++++++++++++
 
+* Improvings in the implementation of ``D`` and ``Derivative``.
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
@@ -24,9 +27,9 @@ Enhancements
 Bug fixes
 +++++++++
 
-
 * ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
+
 
 2.1.0
 -----
