@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .helper import check_evaluation
+import pytest
 
 #  The following tests where generated automatically calling wolframscript -c
 #  followed by a combination of expressions.
