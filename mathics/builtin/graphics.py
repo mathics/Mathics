@@ -38,15 +38,15 @@ from mathics.builtin.colors import convert as convert_color
 from mathics.core.numbers import machine_epsilon
 
 GRAPHICS_OPTIONS = {
-    "Axes": "False",
-    "TicksStyle": "{}",
-    "AxesStyle": "{}",
-    "LabelStyle": "{}",
     "AspectRatio": "Automatic",
+    "Axes": "False",
+    "AxesStyle": "{}",
+    "Background": "Automatic",
+    "ImageSize": "Automatic",
+    "LabelStyle": "{}",
     "PlotRange": "Automatic",
     "PlotRangePadding": "Automatic",
-    "ImageSize": "Automatic",
-    "Background": "Automatic",
+    "TicksStyle": "{}",
     "$OptionSyntax": "Ignore",
 }
 
@@ -441,7 +441,6 @@ class Graphics(Builtin):
       <li>PlotRangePadding</li>
       <li>ImageSize</li>
       <li>Background</li>
-    <li>
     </ul>
 
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]
