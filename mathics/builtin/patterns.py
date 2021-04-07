@@ -1462,7 +1462,7 @@ class Dispatch(Builtin):
     """
 
     def apply_stub(self, rules, evaluation):
-        """DispatchRule[list_List]"""
+        """Dispatch[rules_List]"""
         # TODO:
         # The next step would be to enlarge this method, in order to
         # check that all the elements in x are rules, eliminate redundancies
