@@ -1,6 +1,23 @@
 CHANGES
 =======
 
+
+2.1.1
+-----
+
+New builtins
+++++++++++++
+
+* ``Series``,  ``O`` and ``SeriesData``
+
+
+Enhancements
+++++++++++++
+
+* Improvings in the implementation of ``D`` and ``Derivative``.
+
+
+
 2.1.0
 -----
 
