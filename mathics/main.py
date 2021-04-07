@@ -242,7 +242,6 @@ def main() -> int:
 
     argparser.add_argument(
         "--execute",
-        "-c",
         "-e",
         action="append",
         metavar="EXPR",
