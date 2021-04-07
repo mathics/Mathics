@@ -1,0 +1,24 @@
+The DrawPD was written by Emily Redelmeier at the University of Toronto in the summers of 2003 and 2004.
+The minimum braids representing the knots with up to 10 crossings were provided by Thomas Gittings. See arXiv:math.GT/0401051.
+The GaussCode to PD conversion was written by Siddarth Sankaran at the University of Toronto in the summer of 2005.
+The braid index data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The bridge index data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The Nakanishi index data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The super bridge index data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The symmetry type data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The 3-genus data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The 3-genus data known to KnotTheory` is taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The tabulated unknotting numbers known to KnotTheory` are taken from Charles Livingston's http://www.indiana.edu/~knotinfo/.
+The HOMFLYPT program was written by Scott Morrison.
+The Kauffman polynomial program was written by Scott Morrison.
+The Khovanov homology program FastKh was written by Dror Bar-Natan.
+The Khovanov homology program JavaKh-v1 was written by Jeremy Green in the summer of 2005 at the University of Toronto.
+The Khovanov homology program JavaKh-v2 is an update of Jeremy Green's program JavaKh-v1, written by Scott Morrison in 2008 at Microsoft Station Q.
+MorseLink was added to KnotTheory` by Siddarth Sankaran
+DrawMorseLink was written by Siddarth Sankaran
+The program Alexander[K, r] to compute Alexander ideals was written by Jana Archibald at the University of Toronto in the summer of 2005.
+Vogel's algorithm was implemented by Dan Carney in the summer of 2005 at the University of Toronto.
+MVA1[BR[numberOfStrings_Integer,permutations_List]]/;numberOfStrings>=3:=MVA1[BR[numberOfStrings,permutations]]=Module[{data},The multivariable Alexander program \"MVA1\" was written by Dan Carney at the University of Toronto in the summer of 2005.
+The multivariable Alexander program \"MVA2\" was written by Jana Archibald at the University of Toronto in 2007-2008.
+The R-matrix engine was written by Siddarth Sankaran at the University of Toronto, in the summer of 2005.
+Graphical knot output was written by ???.

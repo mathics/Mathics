@@ -1,0 +1,195 @@
+import OLink
+import RectDia
+import copy
+from inputLink import inputLink
+class FastRectDiag:
+    def __init__(self,tab):
+        if isinstance(tab, RectDia.RectDia):
+            tab=[(p.x,p.y) for p in tab.points]
+        self.complexity=len(tab)/2
+        self.xSorted=[]
+        self.ySorted=[]
+        for i in range(self.complexity):
+            self.xSorted.append([-1,-1])
+            self.ySorted.append([-1,-1])
+        for p in tab:
+            if self.xSorted[p[0]][0]==-1:
+                self.xSorted[p[0]][0]=p[1]
+            else:
+                if p[1]>self.xSorted[p[0]][0]:
+                    self.xSorted[p[0]][1]=p[1]
+                else:
+                    (self.xSorted[p[0]][0],self.xSorted[p[0]][1])=(p[1],self.xSorted[p[0]][0])
+            if self.ySorted[p[1]][0]==-1:
+                    self.ySorted[p[1]][0]=p[0]
+            else:
+                if p[0]>self.ySorted[p[1]][0]:
+                    self.ySorted[p[1]][1]=p[0]
+                else:
+                    (self.ySorted[p[1]][0],self.ySorted[p[1]][1])=(p[0],self.ySorted[p[1]][0])
+    def copy(self):
+        return copy.deepcopy(self)
+    def __areUnlinked(self,i,j,k,l):
+        if (i-j)*(i-k)*(i-l)*(k-j)*(l-j)*(l-k)==0:return 0
+        if i<k<j or j<k<i: boo=1
+        if i<l<j or j<l<i: boo2=1
+        return boo==boo2
+    def __areUnlinked2(self,i,j,k,l):
+        return (k-i)*(j-k)*(l-i)*(j-l)>0
+    def castleX(self,nb):
+        tmp11=self.xSorted[nb][0]        
+        tmp12=self.xSorted[nb][1]
+        tmp21=self.xSorted[(nb+1)%self.complexity][0]        
+        tmp22=self.xSorted[(nb+1)%self.complexity][1]
+        if self.ySorted[tmp11][0]==nb:
+            self.ySorted[tmp11][0]=(nb+1)%self.complexity
+        else:
+            self.ySorted[tmp11][1]=(nb+1)%self.complexity
+        if self.ySorted[tmp12][0]==nb:
+            self.ySorted[tmp12][0]=(nb+1)%self.complexity
+        else:
+            self.ySorted[tmp12][1]=(nb+1)%self.complexity
+        if self.ySorted[tmp21][0]==(nb+1)%self.complexity:
+            self.ySorted[tmp21][0]=nb
+        else:
+            self.ySorted[tmp21][1]=nb
+        if self.ySorted[tmp22][0]==(nb+1)%self.complexity:
+            self.ySorted[tmp22][0]=nb
+        else:
+            self.ySorted[tmp22][1]=nb
+        (self.xSorted[nb],self.xSorted[(nb+1)%self.complexity])=(self.xSorted[(nb+1)%self.complexity],self.xSorted[nb])
+        return self
+    def castleY(self,nb):
+        tmp11=self.ySorted[nb][0]        
+        tmp12=self.ySorted[nb][1]
+        tmp21=self.ySorted[(nb+1)%self.complexity][0]        
+        tmp22=self.ySorted[(nb+1)%self.complexity][1]
+        if self.xSorted[tmp11][0]==nb:
+            self.xSorted[tmp11][0]=(nb+1)%self.complexity
+        else:
+            self.xSorted[tmp11][1]=(nb+1)%self.complexity
+        if self.xSorted[tmp12][0]==nb:
+            self.xSorted[tmp12][0]=(nb+1)%self.complexity
+        else:
+            self.xSorted[tmp12][1]=(nb+1)%self.complexity
+
+        if self.xSorted[tmp21][0]==(nb+1)%self.complexity:
+            self.xSorted[tmp21][0]=nb
+        else:
+            self.xSorted[tmp21][1]=nb
+        if self.xSorted[tmp22][0]==(nb+1)%self.complexity:
+            self.xSorted[tmp22][0]=nb
+        else:
+            self.xSorted[tmp22][1]=nb
+        (self.ySorted[nb],self.ySorted[(nb+1)%self.complexity])=(self.ySorted[(nb+1)%self.complexity],self.ySorted[nb])
+        return self
+    def castle(self,nb,direction):
+        if direction:
+            if self.__areUnlinked2(self.ySorted[(nb+1)%self.complexity][0],self.ySorted[(nb+1)%self.complexity][1],self.ySorted[nb][0],self.ySorted[nb][1]):
+                return self.castleY(nb)
+                
+        else:
+            if self.__areUnlinked2(self.xSorted[(nb+1)%self.complexity][0],self.xSorted[(nb+1)%self.complexity][1],self.xSorted[nb][0],self.xSorted[nb][1]):
+                return self.castleX(nb)
+        return 0
+    def isCastle(self,nb,direction):
+        if direction:
+            return self.__areUnlinked2(self.ySorted[(nb+1)%self.complexity][0],self.ySorted[(nb+1)%self.complexity][1],self.ySorted[nb][0],self.ySorted[nb][1])
+        else:
+            return self.__areUnlinked2(self.xSorted[(nb+1)%self.complexity][0],self.xSorted[(nb+1)%self.complexity][1],self.xSorted[nb][0],self.xSorted[nb][1])
+    def __has(self,x,y):
+        return self.xSorted[x][0]==y or self.xSorted[x][1]==y
+    def isdestabilisation(self,x,y):
+        nn=self.__has(x,y)
+        mn=self.__has((x-1)%self.complexity,y)
+        nm=self.__has(x,(y-1)%self.complexity)
+        mm=self.__has((x-1)%self.complexity,(y-1)%self.complexity)
+        if mn and nm and nn and (not mm): return 0
+        if mm and mn and nn and (not nm): return 1
+        if mm and nm and nn and (not mn): return 2
+        if mm and mn and nm and (not nn): return 3
+        return -1
+    def isdestabilisable(self):
+        for x in range(self.complexity):
+            if self.ySorted[x][1]-self.ySorted[x][0]==1:
+                return (1,x)
+            if self.xSorted[x][1]-self.xSorted[x][0]==1:
+                return (0,x)
+        return 0
+    def m_destabilisation(self,direction,row):
+        self.complexity-=1
+        if direction==0:
+            a=self.xSorted[row][0]
+            del self.xSorted[row]
+            if self.ySorted[a][0]==row: tmp1=self.ySorted[a][1]
+            else: tmp1=self.ySorted[a][0]
+            if self.ySorted[a+1][0]==row: tmp2=self.ySorted[a+1][1]
+            else: tmp2=self.ySorted[a+1][0]
+            del self.ySorted[a]
+            del self.ySorted[a]
+            self.ySorted[a:a]=[[min(tmp1,tmp2),max(tmp1,tmp2)]]
+            for i in range(self.complexity):
+                if self.ySorted[i][0]>row:
+                    self.ySorted[i][0]-=1
+                if self.ySorted[i][1]>row:
+                    self.ySorted[i][1]-=1
+                if self.xSorted[i][0]>a:
+                    self.xSorted[i][0]-=1
+                if self.xSorted[i][1]>a:
+                    self.xSorted[i][1]-=1
+        if direction==1:
+            a=self.ySorted[row][0]
+            del self.ySorted[row]
+            if self.xSorted[a][0]==row: tmp1=self.xSorted[a][1]
+            else: tmp1=self.xSorted[a][0]
+            if self.xSorted[a+1][0]==row: tmp2=self.xSorted[a+1][1]
+            else: tmp2=self.xSorted[a+1][0]
+            del self.xSorted[a]
+            del self.xSorted[a]
+            self.xSorted[a:a]=[[min(tmp1,tmp2),max(tmp1,tmp2)]]
+            for i in range(self.complexity):
+                if self.xSorted[i][0]>row:
+                    self.xSorted[i][0]-=1
+                if self.xSorted[i][1]>row:
+                    self.xSorted[i][1]-=1
+                if self.ySorted[i][0]>a:
+                    self.ySorted[i][0]-=1
+                if self.ySorted[i][1]>a:
+                    self.ySorted[i][1]-=1
+    def succCa(self):
+        acc=[]
+        for i in range(self.complexity):
+            if self.isCastle(i,0): acc.append(self.copy().castle(i,0))
+            if self.isCastle(i,1): acc.append(self.copy().castle(i,1))
+        return acc
+    def fastsuccCa(self,dico):
+        acc=[]
+        h=self.hashInt()
+        n=self.complexity
+        for i in range(self.complexity):
+            if self.isCastle(i,0):
+                if not dico.has_key(self.hashCastle(h,i,0)): acc.append((copy.deepcopy(self)).castle(i,0))
+            if self.isCastle(i,1):
+                if not dico.has_key(self.hashCastle(h,i,1)): acc.append((copy.deepcopy(self)).castle(i,1))
+        return acc
+    def hashCastle(self,h,i,d):
+        self.castle(i,d)
+        h1=self.hashInt()
+        self.castle(i,d)
+        return h1    
+    def hashInt(self):
+        n=self.complexity
+        res=0
+        for i in range(n):
+            res*=n
+            res+=self.xSorted[i][0]
+            res*=n
+            res+=self.xSorted[i][1]
+        return res
+    def toRectDia(self):
+        return RectDia([(i,self.xSorted[0])for i in len(self.xSorted)]+[(i,self.xSorted[0])for i in len(self.xSorted)])
+if __name__ == "__main__":
+    dd=FastRectDiag([(0,0),(0,4),(1,2),(1,8),(2,7),(2,9),(3,6),(3,8),(4,1),(4,3),(5,2),(5,7),(6,0),(6,3),(7,1),(7,5),(8,4),(8,6),(9,5),(9,9)])
+    
+    print dd.succCa()
+    

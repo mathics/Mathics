@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+
+<project name="WikiLink" default="create-zip" basedir=".">
+
+  <target name="init">
+      <property name="sourceDir" value="src"/>
+      <property name="outputDir" value="bin"/>
+      <property name="jarDir" value="jars"/>
+      <property name="mathematicaDir" value="mathematica"/>
+      <property name="jarFile" value="wikilink.jar"/>
+   </target>
+
+  <target name="clean-archives" depends="init">
+    <delete>
+        <fileset dir="." includes="WikiLink.zip"/>
+        <fileset dir="." includes="WikiLink.tar"/>
+        <fileset dir="." includes="WikiLink.tar.gz"/>
+    </delete>
+  </target>
+
+  <target name="prepare-compile" depends="init">
+      <delete dir="${outputDir}" />
+      <mkdir dir="${outputDir}" />
+   </target>
+
+  <target name="compile" depends="prepare-compile">
+     <javac srcdir="${sourceDir}" destdir="${outputDir}" target="1.5" source="1.5">
+         <classpath>
+          <pathelement path="${classpath}"/>
+          <pathelement location="${jarDir}/jdom.jar"/>
+          <pathelement location="${jarDir}/junit.jar"/>          
+          <pathelement location="${jarDir}/commons-logging.jar"/>
+          <pathelement location="${jarDir}/commons-lang-2.1.jar"/>
+          <pathelement location="${jarDir}/commons-codec-1.3.jar"/>
+          <pathelement location="${jarDir}/commons-httpclient-3.0-rc2.jar"/>
+        </classpath>
+     </javac>
+  </target>
+  
+  <target name="create-jar" depends="compile">
+      <jar destfile="${jarFile}">
+        <fileset dir="${outputDir}" includes="**"/>
+        <manifest>
+        </manifest>
+      </jar>
+  </target>
+
+  <target name="create-zip" depends="clean-archives,create-jar">
+    <zip destfile="WikiLink.zip">
+         <zipfileset dir="." includes="${mathematicaDir}/WikiLink.m"/>
+         <zipfileset dir="." includes="${mathematicaDir}/WikiLink.nb"/>
+         <zipfileset dir="." includes="${jarDir}/*.jar"/>
+         <zipfileset dir="." includes="wikilink.jar"/>
+    </zip>
+  </target>
+
+  <target name="create-tar.gz" depends="clean-archives,create-jar">
+    <tar destfile="WikiLink.tar">
+        <tarfileset dir="." includes="${mathematicaDir}/WikiLink.m"/>
+        <tarfileset dir="." includes="${mathematicaDir}/WikiLink.nb"/>
+        <tarfileset dir="." includes="${jarDir}/*.jar"/>
+        <tarfileset dir="." includes="wikilink.jar"/>
+    </tar>
+    <gzip zipfile="WikiLink.tar.gz" src="WikiLink.tar"/>
+    <delete file="WikiLink.tar"/>
+  </target>
+
+  <target name="create-archives" depends="create-zip,create-tar.gz"/>
+
+  <target name="install-from-trunk">
+  </target>
+
+  <target name="svn-update">
+  </target>
+
+  <target name="svn-commit">
+  </target>
+
+  <target name="post-to-knotatlas" depends="create-archives">
+  </target>
+
+</project>
