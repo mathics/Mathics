@@ -1,6 +1,19 @@
 CHANGES
 =======
 
+
+2.1.1
+-----
+
+
+
+Enhancements
+++++++++++++
+
+* Improvings in the implementation of ``D`` and ``Derivative``.
+
+
+
 2.1.0
 -----
 
