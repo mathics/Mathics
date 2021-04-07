@@ -2733,7 +2733,7 @@ WikiForm/:ToString[a_,WikiForm]:=MathTags[ToString[a,WikiTeXForm]]
   *)
 
 PowerQ[_Integer] := True;
-PowerQ[_\^_Integer] = True;
+PowerQ[SuperScriptBox[_,_Integer]] = True;
 PowerQ[_Symbol] = True;
 PowerQ[_] = False;
 
@@ -2753,14 +2753,13 @@ MonomialStringQ[_]:=False
 
 
 (*
-\!\(PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", z_\^n_ \[RuleDelayed] ToString[z] <> "\<^{\>" <> ToString[n] <> "\<} \>", z_Symbol \[RuleDelayed] ToString[z]}\)
+ \!\(PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", SuperScriptBox[z_,n_] \[RuleDelayed] ToString[z] <> "\<^{\>" <> ToString[n] <> "\<} \>", z_Symbol \[RuleDelayed] ToString[z]}\)
 
 \!\(InvertMonomialString[x_?MonomialStringQ] := StringJoin @@ \((PowerToString /@ \(\((#\^\(-1\) &)\) /@ SplitMonomial[ToExpression[StringReplace[x, {"\<{\>" \[Rule] "\<(\>", "\<}\>" \[Rule] "\<)\>"}], InputForm]]\))\)\)
 *)
 
-PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", z_\^n_ \[RuleDelayed] ToString[z] <> "\<^{\>" <> ToString[n] <> "\<} \>", z_Symbol \[RuleDelayed] ToString[z]}
+PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", SuperScriptBox[z_,n_] \[RuleDelayed] ToString[z] <> "^{" <> ToString[n] <> "} ", z_Symbol \[RuleDelayed] ToString[z]}
 
-InvertMonomialString[x_?MonomialStringQ] := StringJoin @@ RowBox[{(PowerToString /@ RowBox[{RowBox[{(#\^\(-1\) &)}] /@ SplitMonomial[ToExpression[StringReplace[x, {"\<{\>" \[Rule] "\<(\>", "\<}\>" \[Rule] "\<)\>"}], InputForm]]}]}]
 
 
 LaurentPolynomialQ[x_?MonomialQ]:=True
@@ -3120,7 +3119,8 @@ EndPackage[]
 
 Begin["`FastKh`"]
 
-bdot[_]^_ ^=0; tdot[_]^_ ^=0;
+Power[bdot[_],_] ^=0;
+Power[tdot[_],_] ^=0;
 
 EquivalenceClasses[l_List] := Module[{pos}, Fold[
       (
