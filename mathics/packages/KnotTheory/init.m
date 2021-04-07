@@ -2725,14 +2725,20 @@ WikiTeXForm/:ToString[a_,WikiTeXForm]:=
 WikiForm/:ToString[a_,WikiForm]:=MathTags[ToString[a,WikiTeXForm]]
 
 
-
+  (* This notation is not supported by the Mathics' parser now
 \!\(\(PowerQ[_Integer] := True;\)\[IndentingNewLine]
   \(PowerQ[_\^_Integer] = True;\)\[IndentingNewLine]
   \(PowerQ[_Symbol] = True;\)\[IndentingNewLine]
   \(PowerQ[_] = False;\)\)
+  *)
+
+PowerQ[_Integer] := True;
+PowerQ[_\^_Integer] = True;
+PowerQ[_Symbol] = True;
+PowerQ[_] = False;
 
 
-
+  
 MonomialQ[x_Times]:=And@@(PowerQ/@List@@x)
 
 MonomialQ[x_]:=PowerQ[x]
@@ -2745,9 +2751,17 @@ MonomialStringQ[x_String]:=
 
 MonomialStringQ[_]:=False
 
+
+(*
 \!\(PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", z_\^n_ \[RuleDelayed] ToString[z] <> "\<^{\>" <> ToString[n] <> "\<} \>", z_Symbol \[RuleDelayed] ToString[z]}\)
 
 \!\(InvertMonomialString[x_?MonomialStringQ] := StringJoin @@ \((PowerToString /@ \(\((#\^\(-1\) &)\) /@ SplitMonomial[ToExpression[StringReplace[x, {"\<{\>" \[Rule] "\<(\>", "\<}\>" \[Rule] "\<)\>"}], InputForm]]\))\)\)
+*)
+
+PowerToString[x_?PowerQ] := x /. {k_Integer \[RuleDelayed] ToString[k] <> "\< \>", z_\^n_ \[RuleDelayed] ToString[z] <> "\<^{\>" <> ToString[n] <> "\<} \>", z_Symbol \[RuleDelayed] ToString[z]}
+
+InvertMonomialString[x_?MonomialStringQ] := StringJoin @@ RowBox[{(PowerToString /@ RowBox[{RowBox[{(#\^\(-1\) &)}] /@ SplitMonomial[ToExpression[StringReplace[x, {"\<{\>" \[Rule] "\<(\>", "\<}\>" \[Rule] "\<)\>"}], InputForm]]}]}]
+
 
 LaurentPolynomialQ[x_?MonomialQ]:=True
 LaurentPolynomialQ[x_Plus]:=And@@(MonomialQ/@List@@x)
@@ -5046,6 +5060,7 @@ l=Length[pd];
 mat=Table[0, {2*l}, {2*l}];
 skel=Skeleton[pd];
 pd1=List@@pd;
+(* \! is not supported...
 G=\!\(\*
 TagBox[
 RowBox[{"Table", "[", 
@@ -5054,6 +5069,8 @@ RowBox[{"{",
 RowBox[{"2", "*", " ", "l"}], "}"}], ",", 
 RowBox[{"{", "l", "}"}]}], "]"}],
 Function[BoxForm`e$, MatrixForm[BoxForm`e$]]]\);
+ *)
+G=Table[0,{0, 2*l},{l}];
 pd1//.X[a_, b_, c_, d_]:> If[d==b+1||b-d>1,
 {mat[[c,a]] =-t[b]; mat[[c,b]]=t[a]-1;  mat[[c,c]]=1},
 {mat[[c,a]]=-1;mat[[c,b]]=1-t[a] ; mat[[c,c]]=t[b]}
