@@ -10,6 +10,7 @@ from mathics.core.expression import (
     Expression,
     Integer,
     Number,
+    Rational,
     SymbolTrue,
     SymbolFalse,
     SymbolList,
@@ -347,9 +348,12 @@ class Derivative(PostfixOperator, SympyFunction):
             r'    RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]'
         ),
         "MakeBoxes[Derivative[n:1|2][f_], form:OutputForm]": """RowBox[{MakeBoxes[f, form], If[n==1, "'", "''"]}]""",
+        # The following rules should be applied in the apply method, instead of relying on the pattern matching
+        # mechanism.
         "Derivative[0...][f_]": "f",
         "Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] "
         "== Length[{n}]": "Derivative[Sequence @@ ({n} + {m})][f]",
+        # This would require at least some comments...
         """Derivative[n__Integer][f_Symbol] /; Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft=f[t]},
             If[Head[ft] === f
             && FreeQ[Join[UpValues[f], DownValues[f], SubValues[f]], Derivative|D]
@@ -388,7 +392,6 @@ class Derivative(PostfixOperator, SympyFunction):
         super(Derivative, self).__init__(*args, **kwargs)
 
     def to_sympy(self, expr, **kwargs):
-        print("calling to_sympy")
         inner = expr
         exprs = [inner]
         try:
@@ -1226,3 +1229,113 @@ class FindRoot(Builtin):
             evaluation.message("FindRoot", "maxiter")
 
         return Expression(SymbolList, Expression(SymbolRule, x, x0))
+
+
+class O(Builtin):
+    """
+    <dl>
+    <dt>'O[$x$]^n'
+        <dd> Represents a term of order $x^n$.
+        <dd> O[x]^n is generated to represent omitted higher‐order terms in power series.
+    </dl>
+
+    >> Series[1/(1-x),{x,0,2}]
+     = 1 + x + x ^ 2 + O[x] ^ 3
+
+    """
+
+    pass
+
+
+class Series(Builtin):
+    """
+    <dl>
+    <dt>'Series[$f$, {$x$, $x0$, $n$}]'
+        <dd>Represents the series expansion around '$x$=$x0$' up to order $n$.
+    </dl>
+
+    >> Series[Exp[x],{x,0,2}]
+     = 1 + x + 1 / 2 x ^ 2 + O[x] ^ 3
+    >> Series[Exp[x^2],{x,0,2}]
+     = 1 + x ^ 2 + O[x] ^ 3
+
+    """
+
+    def apply_series(self, f, x, x0, n, evaluation):
+        """Series[f_, {x_Symbol, x0_, n_Integer}]"""
+        # TODO:
+        # - Asymptotic series
+        # - Series of compositions
+        vars = {
+            x.get_name(): x0,
+        }
+
+        data = [f.replace_vars(vars)]
+        df = f
+        for i in range(n.get_int_value()):
+            df = Expression("D", df, x).evaluate(evaluation)
+            newcoeff = df.replace_vars(vars)
+            factorial = Expression("Factorial", Integer(i + 1))
+            newcoeff = Expression(
+                SymbolTimes,
+                Expression(SymbolPower, factorial, IntegerMinusOne),
+                newcoeff,
+            ).evaluate(evaluation)
+            data.append(newcoeff)
+        data = Expression(SymbolList, *data).evaluate(evaluation)
+        return Expression("SeriesData", x, x0, data, IntegerZero, n, IntegerOne)
+
+
+class SeriesData(Builtin):
+    """
+    
+    TODO:
+    - Implement sum, product and composition of series
+    """
+
+    def apply_makeboxes(self, x, x0, data, nmin, nmax, den, form, evaluation):
+        """MakeBoxes[SeriesData[x_, x0_, data_List, nmin_Integer, nmax_Integer, den_Integer], form_Symbol]"""
+
+        form = form.get_name()
+        if x0.is_zero:
+            variable = x
+        else:
+            variable = Expression(
+                SymbolPlus, x, Expression(SymbolTimes, IntegerMinusOne, x0)
+            )
+        den = den.get_int_value()
+        nmin = nmin.get_int_value()
+        nmax = nmax.get_int_value() + 1
+        if den != 1:
+            powers = [Rational(i, den) for i in range(nmin, nmax)]
+            powers = powers + [Rational(nmax, den)]
+        else:
+            powers = [Integer(i) for i in range(nmin, nmax)]
+            powers = powers + [Integer(nmax)]
+
+        expansion = []
+        for i, leaf in enumerate(data.leaves):
+            if leaf.is_numeric() and leaf.is_zero:
+                continue
+            if powers[i].is_zero:
+                expansion.append(leaf)
+                continue
+            if powers[i] == IntegerOne:
+                if leaf == IntegerOne:
+                    term = variable
+                else:
+                    term = Expression(SymbolTimes, leaf, variable)
+            else:
+                if leaf == IntegerOne:
+                    term = Expression(SymbolPower, variable, powers[i])
+                else:
+                    term = Expression(
+                        SymbolTimes, leaf, Expression(SymbolPower, variable, powers[i])
+                    )
+            expansion.append(term)
+        expansion = expansion + [
+            Expression(SymbolPower, Expression("O", variable), powers[-1])
+        ]
+        # expansion = [ex.format(form) for ex in expansion]
+        expansion = Expression(SymbolPlus, *expansion)
+        return expansion.format(evaluation, form)
