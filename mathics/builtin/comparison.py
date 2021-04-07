@@ -405,11 +405,16 @@ class _EqualityOperator(_InequalityOperator):
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
+        max_extra_prec = (
+            Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
+        )
+        if type(max_extra_prec) is not int:
+            max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y, max_extra_prec)
             if c is None:
                 return
-            if self._op(c) is False:
+            if not self._op(c):
                 return SymbolFalse
         return SymbolTrue
 
