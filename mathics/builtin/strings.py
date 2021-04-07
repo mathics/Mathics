@@ -1627,6 +1627,9 @@ class ToString(Builtin):
     <dl>
     <dt>'ToString[$expr$]'
         <dd>returns a string representation of $expr$.
+    <dt>'ToString[$expr$, $form$]'
+        <dd>returns a string representation of $expr$ in the form
+          $form$.
     </dl>
 
     >> ToString[2]
@@ -1640,6 +1643,9 @@ class ToString(Builtin):
      = U <> 2
     >> "U" <> ToString[2]
      = U2
+    >> ToString[Integrate[f[x],x], TeXForm]
+     = \\int f\\left[x\\right] \\, dx
+
     """
 
     options = {
@@ -1652,10 +1658,14 @@ class ToString(Builtin):
         "TotalWidth": "Infinity",
     }
 
-    def apply(self, value, evaluation, **options):
+    def apply_default(self, value, evaluation, options):
         "ToString[value_, OptionsPattern[ToString]]"
-        encoding = options["options"]["System`CharacterEncoding"]
-        text = value.format(evaluation, "System`OutputForm", encoding=encoding)
+        return self.apply_form(value, Symbol("System`OutputForm"), evaluation, options)
+
+    def apply_form(self, value, form, evaluation, options):
+        "ToString[value_, form_, OptionsPattern[ToString]]"
+        encoding = options["System`CharacterEncoding"]
+        text = value.format(evaluation, form.get_name(), encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
