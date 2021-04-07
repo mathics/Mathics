@@ -238,26 +238,6 @@ class D(SympyFunction):
                 )
         else:  # many leaves
 
-            if len(terms) == 0:
-                return IntegerZero
-            elif len(terms) == 1:
-                return terms[0]
-            else:
-                return Expression(SymbolPlus, *terms)
-        elif len(f.leaves) == 1:
-            if f.leaves[0] == x:
-                return Expression(
-                    Expression(Expression("Derivative", Integer(1)), f.head), x
-                )
-            else:
-                g = f.leaves[0]
-                return Expression(
-                    SymbolTimes,
-                    Expression("D", Expression(f.head, g), g),
-                    Expression("D", g, x),
-                )
-        else:  # many leaves
-
             def summand(leaf, index):
                 result = Expression(
                     Expression(
@@ -412,7 +392,6 @@ class Derivative(PostfixOperator, SympyFunction):
         super(Derivative, self).__init__(*args, **kwargs)
 
     def to_sympy(self, expr, **kwargs):
-        print("calling to_sympy")
         inner = expr
         exprs = [inner]
         try:
@@ -766,7 +745,7 @@ class Solve(Builtin):
     >> sol = Solve[eqs, {x, y}] // Simplify
      = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (1 - I Sqrt[3]) ^ 2 / 4, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
-     = {{True, True}, {True, True}, {True, True}, {True, True}}
+     = {{True, True}, {True, True}, {False, False}, {True, True}}
 
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
