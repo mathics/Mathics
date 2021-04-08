@@ -34,6 +34,7 @@ from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, p
 from mathics.core.expression import (
     BoxError,
     Complex,
+    BaseExpression,
     Expression,
     Integer,
     MachineReal,
@@ -849,13 +850,15 @@ class Read(Builtin):
                             except EOFError:
                                 expr = Symbol("EndOfFile")
                                 break
+                        except Exception as e:
+                            print(e)
 
-                    if expr is None:
+                    if expr == Symbol("EndOfFile"):
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
                         return SymbolFailed
-                    else:
+                    elif isinstance(expr, BaseExpression):
                         result.append(expr)
 
                 elif typ == Symbol("Number"):
@@ -3775,10 +3778,13 @@ class Compress(Builtin):
 
     def apply(self, expr, evaluation, options):
         "Compress[expr_, OptionsPattern[Compress]]"
-        string = expr.format(evaluation, "System`FullForm")
-        string = string.boxes_to_text(
-            evaluation=evaluation, show_string_characters=True
-        )
+        if isinstance(expr, String):
+            string = '"' + expr.value + '"'
+        else:
+            string = expr.format(evaluation, "System`FullForm")
+            string = string.boxes_to_text(
+                evaluation=evaluation, show_string_characters=True
+            )
         string = string.encode("utf-8")
 
         # TODO Implement other Methods
