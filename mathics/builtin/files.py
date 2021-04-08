@@ -34,6 +34,7 @@ from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, p
 from mathics.core.expression import (
     BoxError,
     Complex,
+    BaseExpression,
     Expression,
     Integer,
     MachineReal,
@@ -889,13 +890,15 @@ class Read(Builtin):
                             except EOFError:
                                 expr = Symbol("EndOfFile")
                                 break
+                        except Exception as e:
+                            print(e)
 
-                    if expr is None:
+                    if expr == Symbol("EndOfFile"):
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
                         return SymbolFailed
-                    else:
+                    elif isinstance(expr, BaseExpression):
                         result.append(expr)
 
                 elif typ == Symbol("Number"):
