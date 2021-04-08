@@ -315,6 +315,46 @@ class RootDirectory(Predefined):
         return String(SYS_ROOT_DIR)
 
 
+class UserBaseDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$UserBaseDirectory'
+      <dd>returns the folder where user configurations are stored.
+    </dl>
+
+    >> $RootDirectory
+     = ...
+    """
+
+    name = "$UserBaseDirectory"
+
+    attributes = "Protected"
+
+    def evaluate(self, evaluation):
+        global HOME_DIR
+        return String(HOME_DIR + os.sep + ".mathics")
+
+
+class BaseDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$UserBaseDirectory'
+      <dd>returns the folder where user configurations are stored.
+    </dl>
+
+    >> $RootDirectory
+     = ...
+    """
+
+    name = "$BaseDirectory"
+
+    attributes = "Protected"
+
+    def evaluate(self, evaluation):
+        global ROOT_DIR
+        return String(ROOT_DIR)
+
+
 class TemporaryDirectory(Predefined):
     """
     <dl>
@@ -585,6 +625,14 @@ class Read(Builtin):
     ## #> str = Quiet[StringToStream["Sin[1 123"]; Read[str, Expression]]
     ##  = $Failed
 
+    ## HoldExpression:
+    >> str = StringToStream["2+2\\n2+3"];
+    >> Read[str, Hold[Expression]]
+     = Hold[2 + 2]
+    >> Read[str, Expression]
+     = 5
+    >> Close[str];
+
     ## Multiple types
     >> str = StringToStream["123 abc"];
     >> Read[str, {Number, Word}]
@@ -727,8 +775,15 @@ class Read(Builtin):
         else:
             types = (types,)
 
+        # TODO: look for a better implementation handling "Hold[Expression]".
+        #
         types = (
-            typ._leaves[0] if typ.get_head_name() == "System`Hold" else typ
+            Symbol("HoldExpression")
+            if (
+                typ.get_head_name() == "System`Hold"
+                and typ.leaves[0].get_name() == "System`Expression"
+            )
+            else typ
             for typ in types
         )
         types = Expression("List", *types)
@@ -739,6 +794,7 @@ class Read(Builtin):
                 "Byte",
                 "Character",
                 "Expression",
+                "HoldExpression",
                 "Number",
                 "Real",
                 "Record",
@@ -836,7 +892,7 @@ class Read(Builtin):
                     if tmp == "":
                         raise EOFError
                     result.append(tmp)
-                elif typ == Symbol("Expression"):
+                elif typ == Symbol("Expression") or typ == Symbol("HoldExpression"):
                     tmp = next(read_record)
                     while True:
                         try:
@@ -859,6 +915,8 @@ class Read(Builtin):
                         )
                         return SymbolFailed
                     elif isinstance(expr, BaseExpression):
+                        if typ == Symbol("HoldExpression"):
+                            expr = Expression("Hold", expr)
                         result.append(expr)
 
                 elif typ == Symbol("Number"):
