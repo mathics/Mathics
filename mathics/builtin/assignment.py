@@ -66,6 +66,7 @@ class _SetOperator(object):
         lhs._format_cache = None
         condition = None
 
+        # Maybe these first conversions should be a loop...
         if name == "System`Condition" and len(lhs.leaves) == 2:
             # This handle the case of many sucesive conditions:
             # f[x_]/; cond1 /; cond2 ...
@@ -90,6 +91,10 @@ class _SetOperator(object):
             lhs = lhsleaves[1]
             rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
             rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
+
+        if name == "System`HoldPattern":
+            lhs = lhs.leaves[0]
             name = lhs.get_head_name()
 
         if name in system_symbols(
@@ -222,7 +227,7 @@ class _SetOperator(object):
                 for leaf in focus.get_leaves():
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
-                if name not in allowed_names:
+                if name not in allowed_names:                
                     evaluation.message(self.get_name(), "tagnfd", Symbol(name))
                     return False
 
