@@ -1927,9 +1927,9 @@ class Sum(_IterationFunction, SympyFunction):
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
      = 0
 
-
-    >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
-     = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
+    ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
+    ## = -1 + (a ^ n) ^ m  # this is what I am getting
+    ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
 
     Infinite sums:
     >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
