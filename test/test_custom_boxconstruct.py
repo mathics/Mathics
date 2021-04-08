@@ -16,7 +16,7 @@ class CustomBoxConstruct(BoxConstruct):
             leaves = self._leaves
         return 'CustomBoxConstruct<<' + self._leaves.__str__()   + '>>'
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
         return 'CustomBoxConstruct<<' + self._leaves.__str__()   + '>>'
@@ -60,7 +60,7 @@ class CustomGraphicsBox(BoxConstruct):
     def boxes_to_tex(self, leaves=None, **options):
         return "--custom graphics--: I should plot " + self._leaves.__str__() +" items" 
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         return "--custom graphics--: I should plot " + self._leaves.__str__() +" items"
 
     def boxes_to_svg(self, evaluation):
@@ -75,7 +75,7 @@ def test_custom_boxconstruct():
     instance_custom_atom = CustomAtom(expression=False)
     instance_custom_atom.contribute(defs, is_pymodule=True)
     expr = session.evaluate("MakeBoxes[CustomAtom, InputForm]")
-    formatted = session.format_result().boxes_to_xml()
+    formatted = session.format_result().boxes_to_mathml()
     assert formatted == "CustomBoxConstruct<<[1, 2, 3]>>"
 
 
@@ -85,5 +85,5 @@ def test_custom_graphicsbox_constructor():
     instance_customgb_atom = CustomGraphicsBox(expression=False, evaluation=session.evaluation)
     instance_customgb_atom.contribute(defs, is_pymodule=True)
     expr = session.evaluate("MakeBoxes[Graphics[{Circle[{0,0},1]}], OutputForm]")
-    formatted = session.format_result().boxes_to_xml()
+    formatted = session.format_result().boxes_to_mathml()
     assert formatted == "--custom graphics--: I should plot (<Expression: System`Circle[System`List[0, 0], 1]>,) items"

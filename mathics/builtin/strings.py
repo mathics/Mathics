@@ -868,6 +868,9 @@ class StringSplit(Builtin):
         <dd>splits $s$ at the delimiter $d$.
     <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
         <dd>splits $s$ using multiple delimiters.
+    <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
+        <dd>returns a list with the result of applying the function to 
+            each element.
     </dl>
 
     >> StringSplit["abc,123", ","]
@@ -884,6 +887,9 @@ class StringSplit(Builtin):
 
     >> StringSplit["a  b    c", RegularExpression[" +"]]
      = {a, b, c}
+
+    >> StringSplit[{"a  b", "c  d"}, RegularExpression[" +"]]
+     = {{a, b}, {c, d}}
 
     #> StringSplit["x", "x"]
      = {}
@@ -921,6 +927,11 @@ class StringSplit(Builtin):
 
     def apply(self, string, patt, evaluation, options):
         "StringSplit[string_, patt_, OptionsPattern[%(name)s]]"
+
+        if string.get_head_name() == "System`List":
+            leaves = [self.apply(s, patt, evaluation, options) for s in string._leaves]
+            return Expression("List", *leaves)
+
         py_string = string.get_string_value()
 
         if py_string is None:
@@ -1616,6 +1627,9 @@ class ToString(Builtin):
     <dl>
     <dt>'ToString[$expr$]'
         <dd>returns a string representation of $expr$.
+    <dt>'ToString[$expr$, $form$]'
+        <dd>returns a string representation of $expr$ in the form
+          $form$.
     </dl>
 
     >> ToString[2]
@@ -1629,6 +1643,9 @@ class ToString(Builtin):
      = U <> 2
     >> "U" <> ToString[2]
      = U2
+    >> ToString[Integrate[f[x],x], TeXForm]
+     = \\int f\\left[x\\right] \\, dx
+
     """
 
     options = {
@@ -1641,10 +1658,14 @@ class ToString(Builtin):
         "TotalWidth": "Infinity",
     }
 
-    def apply(self, value, evaluation, **options):
+    def apply_default(self, value, evaluation, options):
         "ToString[value_, OptionsPattern[ToString]]"
-        encoding = options["options"]["System`CharacterEncoding"]
-        text = value.format(evaluation, "System`OutputForm", encoding=encoding)
+        return self.apply_form(value, Symbol("System`OutputForm"), evaluation, options)
+
+    def apply_form(self, value, form, evaluation, options):
+        "ToString[value_, form_, OptionsPattern[ToString]]"
+        encoding = options["System`CharacterEncoding"]
+        text = value.format(evaluation, form.get_name(), encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 

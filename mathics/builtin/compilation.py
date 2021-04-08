@@ -23,6 +23,10 @@ class Compile(Builtin):
       <dd>Compiles assuming each $xi$ matches type $ti$.
     </dl>
 
+    Compilation is performed using llvmlite , or Python's builtin
+    "compile" function.
+
+
     >> cf = Compile[{x, y}, x + 2 y]
      = CompiledFunction[{x, y}, x + 2 y, -CompiledCode-]
     >> cf[2.5, 4.3]
@@ -59,8 +63,7 @@ class Compile(Builtin):
     #> cf[0, -2]
      = 0.5
 
-    Loops and variable assignments are supported as python (not llvmlite)
-    functions
+    Loops and variable assignments are supported usinv Python builtin "compile" function:
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
      =  CompiledFunction[{a, b}, a, -PythonizedCode-]
     """
@@ -163,6 +166,12 @@ class CompiledCode(Atom):
             return "-PythonizedCode-"
         return "-CompiledCode-"
 
+    def boxes_to_text(self, leaves=None, **options):
+        from trepan.api import debug; debug()
+        if not leaves:
+            leaves = self._leaves
+        return "-CompiledCode-"
+
     def do_copy(self):
         return CompiledCode(self.cfunc, self.args)
 
@@ -198,7 +207,7 @@ class CompiledCodeBox(BoxConstruct):
             leaves = self._leaves
         return leaves[0].value
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         return leaves[0].value
