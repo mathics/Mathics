@@ -22,6 +22,7 @@ from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
+
 def repl_pattern_by_symbol(expr):
     leaves = expr.get_leaves()
     if len(leaves) == 0:
@@ -66,6 +67,7 @@ class _SetOperator(object):
         lhs._format_cache = None
         condition = None
 
+        # Maybe these first conversions should be a loop...
         if name == "System`Condition" and len(lhs.leaves) == 2:
             # This handle the case of many sucesive conditions:
             # f[x_]/; cond1 /; cond2 ...
@@ -90,6 +92,10 @@ class _SetOperator(object):
             lhs = lhsleaves[1]
             rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
             rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
+
+        if name == "System`HoldPattern":
+            lhs = lhs.leaves[0]
             name = lhs.get_head_name()
 
         if name in system_symbols(
