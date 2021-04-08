@@ -314,6 +314,46 @@ class RootDirectory(Predefined):
         return String(SYS_ROOT_DIR)
 
 
+class UserBaseDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$UserBaseDirectory'
+      <dd>returns the folder where user configurations are stored.
+    </dl>
+
+    >> $RootDirectory
+     = ...
+    """
+
+    name = "$UserBaseDirectory"
+
+    attributes = "Protected"
+
+    def evaluate(self, evaluation):
+        global HOME_DIR
+        return String(HOME_DIR + os.sep + ".mathics")
+
+
+class BaseDirectory(Predefined):
+    """
+    <dl>
+    <dt>'$UserBaseDirectory'
+      <dd>returns the folder where user configurations are stored.
+    </dl>
+
+    >> $RootDirectory
+     = ...
+    """
+
+    name = "$BaseDirectory"
+
+    attributes = "Protected"
+
+    def evaluate(self, evaluation):
+        global ROOT_DIR
+        return String(ROOT_DIR)
+
+
 class TemporaryDirectory(Predefined):
     """
     <dl>
