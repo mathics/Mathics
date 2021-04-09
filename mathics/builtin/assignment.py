@@ -718,7 +718,6 @@ class TagSetDelayed(TagSet):
             evaluation.message(self.get_name(), "sym", f, 1)
             return
 
-        rhs = rhs.evaluate(evaluation)
         if self.assign_elementary(lhs, rhs, evaluation, tags=[name]):
             return Symbol("Null")
         else:

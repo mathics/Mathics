@@ -16,6 +16,11 @@ Enhancements
 
 * Improvings in the implementation of ``D`` and ``Derivative``.
 
+Bug fixes
++++++++++
+
+* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
+
 
 
 2.1.0
