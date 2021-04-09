@@ -1404,3 +1404,118 @@ class Exponent(Builtin):
             return Expression(
                 "List", *[Expression(h, *[i for i in s]) for s in exponents]
             )
+
+
+class CoefficientArrays(Builtin):
+    """
+    <dl>
+    <dt>'CoefficientArrays[$polys$, $vars$]'
+        <dd>returns a list of arrays of coefficients of the variables $vars$ in the polynomial  $poly$.
+
+    """
+
+    
+    options = {"Symmetric": "False", }
+    messages =  {"poly": "`1` is not a polynomial", }
+    def apply_list(self, polys, varlist, expression, options):
+        """%(name)s[polys_list, varlist_, OptionsPattern[]]"""
+        return
+        if polys.has_form("List", None):
+            polys =  polys.leaves
+        else:
+            polys =  [polys]
+            
+        # Expand all the polynomials before start
+        polys = [Expression("ExpandAll", poly).evaluate(evaluation) for poly in polys]
+
+        if varlist.has_form("List", None):
+            varpat =  varlist.leaves
+        else:
+            varpat =  [varlist]
+
+        degree = 0
+
+        def isvar(var):
+            # TODO: check also patterns
+            if term.is_atom():
+                return var in varpat
+            # if the expression do not match, and
+            # is not atomic, do not decide.
+            return
+        
+        def term_degree(term):
+            degree = 0
+            linear = isvar(term):
+            if not (linear is None):
+                return linear
+            
+            if term.get_head_name()=="System`Times":
+                for factor in term.leaves:
+                    q = factor_degree(factor)
+                    if factor is None:
+                        return None
+                    degree += q
+            elif term.get_head_name()=="System`Power":
+                return power_degree(term)
+
+        def factor_degree(factor):
+            linear = isvar(factor)
+            if not (islinear is None):
+                return linear
+            if factor.free_of
+            if factor.get_head_name() == "System`Power":
+                return power_degree(factor)
+            return None
+
+        def power_degree(factor):
+            if not isvar(factor.leaves[0]):
+                return 0
+            if not isinstance(factor.leaves[1], Integer):
+                return None
+            return factor.leaves[1].get_int_value()
+        
+                
+                    
+                
+            
+        for poly in polys:
+            if poly.is_atom():
+                if degree == 0 and poly in varpat:
+                    degree = 1
+                # TODO: handle patterns
+                continue
+            elif poly.get_head_name() == "System`Plus":
+                for term in poly.leaves:
+                    curr_degree = 0
+                    if term.get_head_name() == "System`Times":
+                        for factor in term.leaves:
+                            if factor.get_head_name() == "System`Power":
+                                if isinstance(factor.leaves[1], Integer):
+                                    curr_degree = factor.leaves[1].get_int_value()
+                                else:
+                                    evaluation.message("CoefficientArrays", "poly", poly)
+
+                            else:
+                    elif term.get_head_name() == "System`Power":
+                        if term.leaves[0] in varpat:
+                            if isinstance(term.leaves[1], Integer):
+                                curr_degree = term.leaves[1].get_int_value()
+                            else:
+                                evaluation.message("CoefficientArrays", "poly", poly)
+                    elif term in vars:
+                        curr_degree = 1
+                    
+                        
+                            
+                        
+
+            elif poly.get_head_name() not in ("System`Plus", "System`Times", "System`Power")):
+                evaluation.message("CoefficientArrays", "poly", poly)
+                return
+            
+            
+
+        
+        
+            
+
