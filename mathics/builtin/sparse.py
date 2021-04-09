@@ -80,8 +80,14 @@ class SparseArray(Builtin):
         <dd>Builds a sparse representation of $list$.
     </dl>
 
-    >> SparseArray[{{0,1}->1, {1,0}->1}]
-     = SparseArray[{{0,1}->1, {1,0}->1},{2, 2}]
+    >> SparseArray[{{1, 2} -> 1, {2, 1} -> 1}]
+     = SparseArray[Automatic, {2, 2}, 0, {{1, 2} -> 1, {2, 1} -> 1}]
+    >> SparseArray[{{1, 2} -> 1, {2, 1} -> 1}, {3, 3}]
+     = SparseArray[Automatic, {3, 3}, 0, {{1, 2} -> 1, {2, 1} -> 1}]
+    >> M=SparseArray[{{0, a}, {b, 0}}]
+     = SparseArray[Automatic, {2, 2}, 0, {{1, 2} -> a, {2, 1} -> b}]
+    >> M //Normal
+     = {{0, a}, {b, 0}} 
 
     """
 
@@ -114,10 +120,10 @@ class SparseArray(Builtin):
             for i, leaf  in enumerate(array.leaves):
                 if i == 0:
                     continue
-                newleaf = list_to_sparse(leaf, evaluation)
+                newleaf = self.list_to_sparse(leaf, evaluation)
                 if newleaf is None:
                     return
-                if not newleaf.has_form(SparseArray, None):
+                if not newleaf.has_form("SparseArray", None):
                     return
                 if not dims == newleaf.leaves[1]:
                     return
