@@ -515,7 +515,7 @@ class Integrate(SympyFunction):
      = f[b] - f[a]
     >> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
      = ConditionalExpression[t / 2, Abs[Arg[t]] < Pi / 2]
-    # This should work after merging the more sophisticated predicate_evaluation routine 
+    # This should work after merging the more sophisticated predicate_evaluation routine
     # be merged...
     # >> Assuming[Abs[Arg[t]] < Pi / 2, Integrate[x/Exp[x^2/t], {x, 0, Infinity}]]
     # = t / 2

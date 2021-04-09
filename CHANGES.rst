@@ -24,7 +24,7 @@ New variables and builtins
 * ``StringReverse``
 * ``$SystemMemory``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
-
+* ``Collect``
 
 
 Enhancements
