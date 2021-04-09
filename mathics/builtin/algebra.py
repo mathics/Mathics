@@ -1414,11 +1414,11 @@ class CoefficientArrays(Builtin):
 
     """
 
-    
+"""    
     options = {"Symmetric": "False", }
     messages =  {"poly": "`1` is not a polynomial", }
     def apply_list(self, polys, varlist, expression, options):
-        """%(name)s[polys_list, varlist_, OptionsPattern[]]"""
+        "%(name)s[polys_list, varlist_, OptionsPattern[]]"
         return
         if polys.has_form("List", None):
             polys =  polys.leaves
@@ -1519,3 +1519,4 @@ class CoefficientArrays(Builtin):
         
             
 
+"""
