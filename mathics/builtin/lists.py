@@ -2987,16 +2987,14 @@ class PrependTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "PrependTo[s_, item_]"
-
-        if isinstance(s, Symbol) or s.get_head_name() in system_symbols_names:
-            resolved_s = s.evaluate(evaluation)
-            if not resolved_s.is_atom():
-                result = Expression("Set", s, Expression("Prepend", resolved_s, item))
-                return result.evaluate(evaluation)
-            if s != resolved_s:
-                return evaluation.message(
-                    "PrependTo", "normal", Expression("PrependTo", s, item)
-                )
+        resolved_s = s.evaluate(evaluation)   
+        if not resolved_s.is_atom():
+            result = Expression("Set", s, Expression("Prepend", resolved_s, item))
+            return result.evaluate(evaluation)
+        if s != resolved_s:
+            return evaluation.message(
+                "PrependTo", "normal", Expression("PrependTo", s, item)
+            )
         return evaluation.message("PrependTo", "rvalue", s)
 
 
