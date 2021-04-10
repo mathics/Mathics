@@ -13,6 +13,8 @@ Enhancements
 Bug fixes
 +++++++++
 
+
+* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
 
 2.1.0
