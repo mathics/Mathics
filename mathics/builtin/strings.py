@@ -1763,7 +1763,7 @@ class ToExpression(Builtin):
         if form == Symbol("InputForm"):
             if isinstance(inp, String):
 
-                # TODO: wrap the below up into a function.
+                # TODO: turn the below up into a function and call that.
                 s = inp.get_string_value()
                 short_s = s[:15] + '...' if len(s) > 16 else s
                 with io.StringIO(s) as f:
