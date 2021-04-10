@@ -11,6 +11,7 @@ from sys import version_info
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
+from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
@@ -1765,7 +1766,7 @@ class ToExpression(Builtin):
 
                 # TODO: turn the below up into a function and call that.
                 s = inp.get_string_value()
-                short_s = s[:15] + '...' if len(s) > 16 else s
+                short_s = s[:15] + "..." if len(s) > 16 else s
                 with io.StringIO(s) as f:
                     f.name = """ToExpression['%s']""" % short_s
                     feeder = MathicsFileLineFeeder(f)
@@ -2373,14 +2374,14 @@ def _levenshtein_di(c1, s2, i, d_prev, sameQ, cost):  # compute one new row
         d_curr_prev_j = d_curr_j
 
 
-def _levenshtein(s1, s2, same):
+def _levenshtein(s1, s2, sameQ: Callable[..., bool]):
     d_prev = _levenshtein_d0(s2)
     for i, c1 in _one_based(enumerate(s1)):  # c1 = s1[[i]]
-        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, same, 1))
+        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, sameQ, 1))
     return d_prev[-1]
 
 
-def _damerau_levenshtein(s1, s2, sameQ):
+def _damerau_levenshtein(s1, s2, sameQ: Callable[..., bool]):
     # _damerau_levenshtein works like _levenshtein, except for one additional
     # rule covering transposition:
     #
@@ -2407,7 +2408,9 @@ def _damerau_levenshtein(s1, s2, sameQ):
     return d_prev[-1]
 
 
-def _levenshtein_like_or_border_cases(s1, s2, sameQ, compute):
+def _levenshtein_like_or_border_cases(
+    s1, s2, sameQ: Callable[..., bool], compute
+):
     if len(s1) == len(s2) and all(sameQ(c1, c2) for c1, c2 in zip(s1, s2)):
         return 0
 
@@ -2453,7 +2456,7 @@ class EditDistance(_StringDistance):
      = 2
     """
 
-    def _distance(self, s1, s2, sameQ):
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
         return _levenshtein_like_or_border_cases(s1, s2, sameQ, _levenshtein)
 
 
@@ -2491,7 +2494,7 @@ class DamerauLevenshteinDistance(_StringDistance):
      = 1
     """
 
-    def _distance(self, s1, s2, sameQ):
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
         return _levenshtein_like_or_border_cases(s1, s2, sameQ, _damerau_levenshtein)
 
 
@@ -2698,7 +2701,7 @@ class StringInsert(Builtin):
      = {XXX, XXMathicsX}
 
     >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
-     = 1.234.567.890.123.456    """
+     = 1.234.567.890.123.456"""
 
     messages = {
         "strse": "String or list of strings expected at position `1` in `2`.",

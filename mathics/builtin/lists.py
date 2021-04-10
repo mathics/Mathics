@@ -6,6 +6,7 @@ List Functions
 
 
 from itertools import chain, permutations
+from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
@@ -3634,7 +3635,7 @@ class Union(_SetOperation):
 
     _operation = "union"
 
-    def _elementwise(self, a, b, sameQ):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for eb in b:
             yield eb
         for ea in a:
@@ -3668,7 +3669,7 @@ class Intersection(_SetOperation):
 
     _operation = "intersection"
 
-    def _elementwise(self, a, b, sameQ):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
             if any(sameQ(eb, ea) for eb in b):
                 yield ea
@@ -3713,7 +3714,7 @@ class Complement(_SetOperation):
 
     _operation = "difference"
 
-    def _elementwise(self, a, b, sameQ):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
             if not any(sameQ(eb, ea) for eb in b):
                 yield ea
