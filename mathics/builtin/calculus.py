@@ -239,8 +239,8 @@ class D(SympyFunction):
         else:  # many leaves
 
             def summand(leaf, index):
-                result = Expression(
-                    Expression(
+                if leaf.sameQ(x):
+                    result = Expression(
                         Expression(
                             "Derivative",
                             *(

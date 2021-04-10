@@ -196,7 +196,7 @@ class _WidgetInstantiator:
 
         default_index = 0
         for i, option in enumerate(options.leaves):
-            if option.same(default):
+            if option.sameQ(default):
                 default_index = i
 
         widget = _create_widget(

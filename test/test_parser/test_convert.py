@@ -28,9 +28,9 @@ class ConvertTests(unittest.TestCase):
             expr2 = self.parse(expr2)
 
         if expr1 is None:
-            self.assertIsNone(expr2)
+            assert expr2 is None
         else:
-            self.assertTrue(expr1.same(expr2))
+            assert expr1.sameQ(expr2)
 
     def scan_error(self, string):
         self.assertRaises(ScanError, self.parse, string)

@@ -4,7 +4,7 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import sympy
 
@@ -67,7 +67,7 @@ class SameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ === rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolTrue
         else:
             return SymbolFalse
@@ -93,7 +93,7 @@ class UnsameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ =!= rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolFalse
         else:
             return SymbolTrue
@@ -174,7 +174,7 @@ class ValueQ(Builtin):
     def apply(self, expr, evaluation):
         "ValueQ[expr_]"
         evaluated_expr = expr.evaluate(evaluation)
-        if expr.same(evaluated_expr):
+        if expr.sameQ(evaluated_expr):
             return SymbolFalse
         return SymbolTrue
 
@@ -226,11 +226,15 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
+    def equal2(self, l1: Any, l2: Any) -> Union[bool, None]:
+        """
+        Two-argument Equal[]
         # See comments in
         # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
         # for a future refactory of this methods...
-        if l1.same(l2):
+        """
+      
+        if l1.sameQ(l2):
             return True
         else:
             if not (isinstance(l1, Symbol) or isinstance(l2, Symbol)) and (
@@ -246,7 +250,7 @@ class _EqualityOperator(_InequalityOperator):
             if len(l1.leaves) != len(l2.leaves):
                 return False
             for item1, item2 in zip(l1.leaves, l2.leaves):
-                result = self.do_compare(item1, item2)
+                result = self.equal2(item1, item2)
                 if not result:
                     return result
             return True
@@ -411,7 +415,7 @@ class _EqualityOperator(_InequalityOperator):
         if type(max_extra_prec) is not int:
             max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y, max_extra_prec)
+            c = self.equal2(x, y)
             if c is None:
                 return
             if not self._op(c):

@@ -6,11 +6,19 @@ Algebraic Manipulation
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
+from mathics.core.expression import (
+    Atom,
+    Expression,
+    Integer,
+    Number,
+    Symbol,
+    SymbolFalse,
+    SymbolNull,
+    SymbolTrue,
+)
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
 import sympy
-import mpmath
 
 
 def sympy_factor(expr_sympy):
@@ -143,7 +151,10 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
     if deep:
         # thread over everything
-        for i, sub_expr, in enumerate(sub_exprs):
+        for (
+            i,
+            sub_expr,
+        ) in enumerate(sub_exprs):
             if not sub_expr.is_atom():
                 head = _expand(sub_expr.head)  # also expand head
                 leaves = sub_expr.get_leaves()
@@ -632,9 +643,9 @@ class _Expand(Builtin):
             py_modulus = None
 
         trig = options["System`Trig"]
-        if trig == Symbol("True"):
+        if trig == SymbolTrue:
             py_trig = True
-        elif trig == Symbol("False"):
+        elif trig == SymbolFalse:
             py_trig = False
         else:
             return evaluation.message(self.get_name(), "opttf", Symbol("Trig"), trig)
@@ -939,7 +950,7 @@ class MinimalPolynomial(Builtin):
         if len(variables) > 0:
             return evaluation.message("MinimalPolynomial", "nalg", s)
 
-        if s == Symbol("Null"):
+        if s == SymbolNull:
             return evaluation.message("MinimalPolynomial", "nalg", s)
 
         sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
@@ -1011,8 +1022,8 @@ class PolynomialQ(Builtin):
 
     def apply(self, expr, v, evaluation):
         "PolynomialQ[expr_, v___]"
-        if expr == Symbol("Null"):
-            return Symbol("True")
+        if expr == SymbolNull:
+            return SymbolTrue
 
         v = v.get_sequence()
         if len(v) > 1:
@@ -1021,8 +1032,8 @@ class PolynomialQ(Builtin):
             return evaluation.message("PolynomialQ", "novar")
 
         var = v[0]
-        if var == Symbol("Null"):
-            return Symbol("True")
+        if var == SymbolNull:
+            return SymbolTrue
         elif var.has_form("List", None):
             if len(var.leaves) == 0:
                 return evaluation.message("PolynomialQ", "novar")
@@ -1032,12 +1043,12 @@ class PolynomialQ(Builtin):
 
         sympy_expr = expr.to_sympy()
         sympy_result = sympy_expr.is_polynomial(*[x for x in sympy_var])
-        return Symbol("True") if sympy_result else Symbol("False")
+        return SymbolTrue if sympy_result else SymbolFalse
 
 
 # Get a coefficient of form in an expression
 def _coefficient(name, expr, form, n, evaluation):
-    if expr == Symbol("Null") or form == Symbol("Null") or n == Symbol("Null"):
+    if expr == SymbolNull or form == SymbolNull or n == SymbolNull:
         return Integer(0)
 
     if not (isinstance(form, Symbol)) and not (isinstance(form, Expression)):
@@ -1243,14 +1254,14 @@ class CoefficientList(Builtin):
                 return evaluation.message("CoefficientList", "ivar", v)
 
         # special cases for expr and form
-        e_null = expr == Symbol("Null")
-        f_null = form == Symbol("Null")
+        e_null = expr == SymbolNull
+        f_null = form == SymbolNull
         if expr == Integer(0):
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0), Integer(0))
+            return Expression("List", Integer(0), Integer0)
         elif e_null and not f_null:
-            return Expression("List", Symbol("Null"))
+            return Expression("List", SymbolNull)
         elif f_null:
             return Expression("List", expr)
         elif form.has_form("List", 0):

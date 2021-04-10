@@ -625,8 +625,9 @@ class BoxConstruct(InstanceableBuiltin):
     def get_string_value(self):
         return "-@" + self.get_head_name() + "@-"
 
-    def same(self, expr):
-        return expr.same(self)
+    def sameQ(self, expr) -> bool:
+        """Mathics SameQ"""
+        return expr.sameQ(self)
 
     def is_atom(self):
         return False
