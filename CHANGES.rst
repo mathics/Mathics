@@ -7,8 +7,9 @@ CHANGES
 Enhancements
 ++++++++++++
 
-* ``Table`` [*expr*, *n*] is now supported.
-* ``ToString`` now excepts the *Form* form.
+* ``Table`` [*expr*, *n*] is supported.
+* ``ToString`` accepts an optional *form* parameter.
+* ``ToExpression`` handles multi-line string input
 
 Bug fixes
 +++++++++
