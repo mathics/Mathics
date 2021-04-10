@@ -22,6 +22,7 @@ from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
+
 def repl_pattern_by_symbol(expr):
     leaves = expr.get_leaves()
     if len(leaves) == 0:
@@ -225,6 +226,16 @@ class _SetOperator(object):
             allowed_names = [focus.get_lookup_name()]
             if allow_custom_tag:
                 for leaf in focus.get_leaves():
+                    if (not leaf.is_symbol() and
+                        leaf.get_head_name() in ("System`Pattern",)):
+                        leaf = leaf.leaves[1]
+                    if (not leaf.is_symbol() and
+                        leaf.get_head_name() in ("System`Blank",
+                                                    "System`BlankSequence",
+                                                    "System`BlankNullSequence")):
+                        if len(leaf.leaves)==1:
+                            leaf = leaf.leaves[0]
+                    
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:                
