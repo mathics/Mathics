@@ -32,6 +32,7 @@ New builtins
 * ``NIntegrate``
 * ``PartitionsP``
 * ``$Notebooks``
+* ``SparseArray``
 
 Enhancements
 ++++++++++++
