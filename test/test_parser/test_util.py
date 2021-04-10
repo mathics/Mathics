@@ -44,7 +44,7 @@ class SingleLineParserTests(UtilTests):
         return parse(definitions, SingleLineFeeder(code))
 
     def compare(self, expr1, expr2):
-        self.assertTrue(expr1.same(expr2))
+        assert expr1.sameQ(expr2)
 
     def test_continuation(self):
         self.incomplete_error("Sin[")
@@ -61,7 +61,7 @@ class MultiLineParserTests(UtilTests):
         return parse(definitions, MultiLineFeeder(code))
 
     def compare(self, expr1, expr2):
-        self.assertTrue(expr1.same(expr2))
+        assert expr1.sameQ(expr2)
 
     def test_trailing_backslash(self):
         self.incomplete_error("x \\")

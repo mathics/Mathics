@@ -241,7 +241,7 @@ class N(Builtin):
                 name, "System`NValues", nexpr, evaluation
             )
             if result is not None:
-                if not result.same(nexpr):
+                if not result.sameQ(nexpr):
                     result = Expression(SymbolN, result, prec).evaluate(evaluation)
                 return result
 

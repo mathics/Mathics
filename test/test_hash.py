@@ -45,10 +45,10 @@ def _test_group(k, *group):
                 sys.excepthook(*info)
                 return False
 
-            is_same = a.same(b)
+            is_same = a.sameQ(b)
             if is_same != _symbol_truth_value(is_same_under_sameq):
                 print(
-                    "%sTest failed: %s and %s are inconsistent under same() and SameQ\n"
+                    "%sTest failed: %s and %s are inconsistent under .sameQ() and SameQ\n"
                     % (sep, repr(a), repr(b))
                 )
                 return False

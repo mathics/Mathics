@@ -126,7 +126,12 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -345,8 +350,9 @@ class BaseExpression(KeyComparable):
         # __hash__ might only hash a sample of the data available.
         raise NotImplementedError
 
-    def same(self, other) -> bool:
-        pass
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
+        return id(self) == id(other)
 
     def get_sequence(self):
         if self.get_head().get_name() == "System`Sequence":
@@ -1183,17 +1189,18 @@ class Expression(BaseExpression):
             else:
                 return [1 if self.is_numeric() else 2, 3, self._head, self._leaves, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if id(self) == id(other):
             return True
         if self.get_head_name() != other.get_head_name():
             return False
-        if not self._head.same(other.get_head()):
+        if not self._head.sameQ(other.get_head()):
             return False
         if len(self._leaves) != len(other.get_leaves()):
             return False
         for leaf, other in zip(self._leaves, other.get_leaves()):
-            if not leaf.same(other):
+            if not leaf.sameQ(other):
                 return False
         return True
 
@@ -1207,7 +1214,7 @@ class Expression(BaseExpression):
         sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self._leaves:
-            if leaf.get_head().same(head) and (
+            if leaf.get_head().sameQ(head) and (
                 not pattern_only or leaf.pattern_sequence
             ):
                 do_flatten = True
@@ -1215,7 +1222,7 @@ class Expression(BaseExpression):
         if do_flatten:
             new_leaves = []
             for leaf in self._leaves:
-                if leaf.get_head().same(head) and (
+                if leaf.get_head().sameQ(head) and (
                     not pattern_only or leaf.pattern_sequence
                 ):
                     new_leaf = leaf.flatten(
@@ -1365,7 +1372,7 @@ class Expression(BaseExpression):
         if "System`Listable" in attributes:
             done, threaded = new.thread(evaluation)
             if done:
-                if threaded.same(new):
+                if threaded.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
@@ -1394,7 +1401,7 @@ class Expression(BaseExpression):
             if result is not None:
                 if isinstance(result, BoxConstruct):
                     return result, False
-                if result.same(new):
+                if result.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
@@ -1537,7 +1544,9 @@ class Expression(BaseExpression):
                     self._leaves[1].boxes_to_mathml(**options),
                 )
             elif name == "System`SqrtBox" and len(self._leaves) == 1:
-                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_mathml(**options))
+                return "<msqrt>%s</msqrt>" % (
+                    self._leaves[0].boxes_to_mathml(**options)
+                )
             elif name == "System`GraphBox":
                 return "<mi>%s</mi>" % (self._leaves[0].boxes_to_mathml(**options))
             else:
@@ -1640,9 +1649,7 @@ class Expression(BaseExpression):
             return Expression(expr._head, *[apply_leaf(leaf) for leaf in expr._leaves])
 
         if options is None:  # default ReplaceAll mode; replace breadth first
-            result, applied = super().apply_rules(
-                rules, evaluation, level, options
-            )
+            result, applied = super().apply_rules(rules, evaluation, level, options)
             if applied:
                 return result, True
             head, applied = self._head.apply_rules(rules, evaluation, level, options)
@@ -1753,7 +1760,7 @@ class Expression(BaseExpression):
         items = []
         dim = None
         for leaf in self._leaves:
-            if leaf.get_head().same(head):
+            if leaf.get_head().sameQ(head):
                 if dim is None:
                     dim = len(leaf._leaves)
                     items = [(items + [innerleaf]) for innerleaf in leaf._leaves]
@@ -1776,17 +1783,21 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return self._head.get_name() in system_symbols(
-            "Sqrt",
-            "Times",
-            "Plus",
-            "Subtract",
-            "Minus",
-            "Power",
-            "Abs",
-            "Divide",
-            "Sin",
-        ) and all(leaf.is_numeric() for leaf in self._leaves)
+        return (
+            self._head.get_name()
+            in system_symbols(
+                "Sqrt",
+                "Times",
+                "Plus",
+                "Subtract",
+                "Minus",
+                "Power",
+                "Abs",
+                "Divide",
+                "Sin",
+            )
+            and all(leaf.is_numeric() for leaf in self._leaves)
+        )
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
@@ -1968,7 +1979,8 @@ class Symbol(Atom):
                 1,
             ]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, Symbol) and self.name == other.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
@@ -1986,7 +1998,7 @@ class Symbol(Atom):
         rules = evaluation.definitions.get_ownvalues(self.name)
         for rule in rules:
             result = rule.apply(self, evaluation, fully=True)
-            if result is not None and not result.same(self):
+            if result is not None and not result.sameQ(self):
                 return result.evaluate(evaluation)
         return self
 
@@ -2154,7 +2166,8 @@ class Integer(Number):
     def get_int_value(self) -> int:
         return self.value
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, Integer) and self.value == other.value
 
     def evaluate(self, evaluation):
@@ -2212,7 +2225,8 @@ class Rational(Number):
         else:
             return PrecisionReal(self.value.n(d))
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, Rational) and self.value == other.value
 
     def numerator(self) -> "Integer":
@@ -2385,7 +2399,8 @@ class MachineReal(Real):
     def round(self, d=None) -> "MachineReal":
         return self
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if isinstance(other, MachineReal):
             return self.value == other.value
         elif isinstance(other, PrecisionReal):
@@ -2464,7 +2479,8 @@ class PrecisionReal(Real):
             d = min(dps(self.get_precision()), d)
             return PrecisionReal(self.value.n(d))
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if isinstance(other, PrecisionReal):
             return self.value == other.value
         elif isinstance(other, MachineReal):
@@ -2511,7 +2527,7 @@ class Complex(Number):
         if isinstance(imag, Complex) or not isinstance(imag, Number):
             raise ValueError("Argument 'imag' must be a real number.")
 
-        if imag.same(Integer(0)):
+        if imag.sameQ(Integer(0)):
             return real
 
         if isinstance(real, MachineReal) and not isinstance(imag, MachineReal):
@@ -2547,7 +2563,7 @@ class Complex(Number):
         parts: typing.List[Any] = []
         if self.is_machine_precision() or not self.real.is_zero:
             parts.append(self.real)
-        if self.imag.same(Integer(1)):
+        if self.imag.sameQ(Integer(1)):
             parts.append(Symbol("I"))
         else:
             parts.append(Expression("Times", self.imag, Symbol("I")))
@@ -2571,7 +2587,8 @@ class Complex(Number):
         else:
             return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return (
             isinstance(other, Complex)
             and self.real == other.real
@@ -2866,7 +2883,8 @@ class String(Atom):
         else:
             return [0, 1, self.value, 0, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, String) and self.value == other.value
 
     def get_string_value(self) -> str:
@@ -2934,7 +2952,8 @@ class ByteArrayAtom(Atom):
         else:
             return [0, 1, self.value, 0, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         # FIX: check
         if isinstance(other, ByteArrayAtom):
             return self.value == other.value
@@ -2992,7 +3011,7 @@ def get_default_value(name, evaluation, k=None, n=None):
             name, "System`DefaultValues", defaultexpr, evaluation
         )
         if result is not None:
-            if result.same(defaultexpr):
+            if result.sameQ(defaultexpr):
                 result = result.evaluate(evaluation)
             return result
     return None

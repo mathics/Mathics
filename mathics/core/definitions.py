@@ -722,7 +722,7 @@ def get_tag_position(pattern, name) -> typing.Optional[str]:
 
 def insert_rule(values, rule) -> None:
     for index, existing in enumerate(values):
-        if existing.pattern.same(rule.pattern):
+        if existing.pattern.sameQ(rule.pattern):
             del values[index]
             break
     # use insort_left to guarantee that if equal rules exist, newer rules will
@@ -818,7 +818,7 @@ class Definition(object):
         if position:
             values = self.get_values_list(position)
             for index, existing in enumerate(values):
-                if existing.pattern.expr.same(lhs):
+                if existing.pattern.expr.sameQ(lhs):
                     del values[index]
                     return True
         return False
