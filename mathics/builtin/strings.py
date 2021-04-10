@@ -4,9 +4,10 @@
 Strings and Characters
 """
 
+import io
+import re
 import sys
 from sys import version_info
-import re
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
@@ -24,9 +25,10 @@ from mathics.core.expression import (
     from_python,
     string_list,
 )
+from mathics.core.parser import MathicsFileLineFeeder, parse
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.settings import SYSTEM_CHARACTER_ENCODING
-
+from mathics_scanner import TranslateError
 
 _regex_longest = {
     "+": "+",
@@ -869,7 +871,7 @@ class StringSplit(Builtin):
     <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
         <dd>splits $s$ using multiple delimiters.
     <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
-        <dd>returns a list with the result of applying the function to 
+        <dd>returns a list with the result of applying the function to
             each element.
     </dl>
 
@@ -1673,12 +1675,15 @@ class ToString(Builtin):
 class ToExpression(Builtin):
     """
     <dl>
-    <dt>'ToExpression[$input$]'
+      <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
-    <dt>'ToExpression[$input$, $form$]'
+
+      <dt>'ToExpression[$input$, $form$]'
       <dd>reads the given input in the specified $form$.
-    <dt>'ToExpression[$input$, $form$, $h$]'
+
+      <dt>'ToExpression[$input$, $form$, $h$]'
       <dd>applies the head $h$ to the expression before evaluating it.
+
     </dl>
 
     >> ToExpression["1 + 2"]
@@ -1687,11 +1692,18 @@ class ToExpression(Builtin):
     >> ToExpression["{2, 3, 1}", InputForm, Max]
      = 3
 
+    >> ToExpression["2 3", InputForm]
+     = 6
+
+    Note that newlines are like semicolons, not blanks. So so the return value is the second-line value.
+    >> ToExpression["2\[NewLine]3"]
+     = 3
+
     #> ToExpression["log(x)", InputForm]
      = log x
 
     #> ToExpression["1+"]
-     : Incomplete expression; more input is needed (line 1 of "").
+     : Incomplete expression; more input is needed (line 1 of "ToExpression['1+']").
      = $Failed
 
     #> ToExpression[]
@@ -1701,6 +1713,8 @@ class ToExpression(Builtin):
 
     # TODO: Other forms
     """
+    >> ToExpression["log(x)", TraditionalForm]
+     = Log[x]
     >> ToExpression["log(x)", TraditionalForm]
      = Log[x]
     #> ToExpression["log(x)", StandardForm]
@@ -1745,12 +1759,27 @@ class ToExpression(Builtin):
             )
             return
 
-        # Apply the differnet forms
+        # Apply the different forms
         if form == Symbol("InputForm"):
             if isinstance(inp, String):
-                result = evaluation.parse(inp.get_string_value())
-                if result is None:
-                    return SymbolFailed
+
+                # TODO: wrap the below up into a function.
+                s = inp.get_string_value()
+                short_s = s[:15] + '...' if len(s) > 16 else s
+                with io.StringIO(s) as f:
+                    f.name = """ToExpression['%s']""" % short_s
+                    feeder = MathicsFileLineFeeder(f)
+                    while not feeder.empty():
+                        try:
+                            query = parse(evaluation.definitions, feeder)
+                        except TranslateError:
+                            return SymbolFailed
+                        finally:
+                            feeder.send_messages(evaluation)
+                        if query is None:  # blank line / comment
+                            continue
+                        result = query.evaluate(evaluation)
+
             else:
                 result = inp
         else:
