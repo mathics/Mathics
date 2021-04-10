@@ -2256,7 +2256,8 @@ class Image(Atom):
         else:
             return hash(self)
 
-    def same(self, other):
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if not isinstance(other, Image):
             return False
         if self.color_space != other.color_space or self.metadata != other.metadata:
