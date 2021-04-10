@@ -70,6 +70,19 @@ from collections import defaultdict
 import functools
 
 
+system_symbols_names = (
+    "System`OwnValues",
+    "System`DownValues",
+    "System`SubValues",
+    "System`UpValues",
+    "System`NValues",
+    "System`Options",
+    "System`DefaultValues",
+    "System`Attributes",
+    "System`Messages",
+)
+
+
 def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1):
     """
     This function walks the expression `expr` and deleting occurrencies of `pattern`
@@ -2878,7 +2891,7 @@ class AppendTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "AppendTo[s_, item_]"
-        if isinstance(s, Symbol):
+        if isinstance(s, Symbol) or s.get_head_name() in system_symbols_names:
             resolved_s = s.evaluate(evaluation)
             if not resolved_s.is_atom():
                 result = Expression("Set", s, Expression("Append", resolved_s, item))
@@ -2974,9 +2987,9 @@ class PrependTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "PrependTo[s_, item_]"
-        if isinstance(s, Symbol):
-            resolved_s = s.evaluate(evaluation)
 
+        if isinstance(s, Symbol) or s.get_head_name() in system_symbols_names:
+            resolved_s = s.evaluate(evaluation)
             if not resolved_s.is_atom():
                 result = Expression("Set", s, Expression("Prepend", resolved_s, item))
                 return result.evaluate(evaluation)
