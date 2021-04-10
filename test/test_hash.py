@@ -8,7 +8,6 @@ from mathics.core.expression import (
     Expression,
     Integer,
     MachineReal,
-    PrecisionReal,
     Rational,
     Real,
     String,
@@ -33,6 +32,7 @@ def _symbol_truth_value(x):
 
 def _test_group(k, *group):
     for i, a in enumerate(group):
+        sep = ""
         for j, b in enumerate(group):
             if i == j:
                 continue
@@ -59,6 +59,7 @@ def _test_group(k, *group):
                     % (sep, repr(a), repr(b))
                 )
                 return False
+            sep = "\n"
 
 
 class HashAndSameQ(unittest.TestCase):
