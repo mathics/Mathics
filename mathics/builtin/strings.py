@@ -4,12 +4,14 @@
 Strings and Characters
 """
 
+import io
+import re
 import sys
 from sys import version_info
-import re
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
+from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
@@ -24,9 +26,10 @@ from mathics.core.expression import (
     from_python,
     string_list,
 )
+from mathics.core.parser import MathicsFileLineFeeder, parse
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.settings import SYSTEM_CHARACTER_ENCODING
-
+from mathics_scanner import TranslateError
 
 _regex_longest = {
     "+": "+",
@@ -207,7 +210,7 @@ def to_regex(
         if patt is not None:
             if expr.leaves[1].has_form("Blank", 0):
                 pass  # ok, no warnings
-            elif not expr.leaves[1].same(patt):
+            elif not expr.leaves[1].sameQ(patt):
                 evaluation.message(
                     "StringExpression", "cond", expr.leaves[0], expr, expr.leaves[0]
                 )
@@ -869,7 +872,7 @@ class StringSplit(Builtin):
     <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
         <dd>splits $s$ using multiple delimiters.
     <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
-        <dd>returns a list with the result of applying the function to 
+        <dd>returns a list with the result of applying the function to
             each element.
     </dl>
 
@@ -1166,7 +1169,7 @@ class _StringFind(Builtin):
         raise NotImplementedError()
 
     def _apply(self, string, rule, n, evaluation, options, cases):
-        if n.same(Symbol("System`Private`Null")):
+        if n.sameQ(Symbol("System`Private`Null")):
             expr = Expression(self.get_name(), string, rule)
             n = None
         else:
@@ -1673,12 +1676,15 @@ class ToString(Builtin):
 class ToExpression(Builtin):
     """
     <dl>
-    <dt>'ToExpression[$input$]'
+      <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
-    <dt>'ToExpression[$input$, $form$]'
+
+      <dt>'ToExpression[$input$, $form$]'
       <dd>reads the given input in the specified $form$.
-    <dt>'ToExpression[$input$, $form$, $h$]'
+
+      <dt>'ToExpression[$input$, $form$, $h$]'
       <dd>applies the head $h$ to the expression before evaluating it.
+
     </dl>
 
     >> ToExpression["1 + 2"]
@@ -1687,11 +1693,18 @@ class ToExpression(Builtin):
     >> ToExpression["{2, 3, 1}", InputForm, Max]
      = 3
 
+    >> ToExpression["2 3", InputForm]
+     = 6
+
+    Note that newlines are like semicolons, not blanks. So so the return value is the second-line value.
+    >> ToExpression["2\[NewLine]3"]
+     = 3
+
     #> ToExpression["log(x)", InputForm]
      = log x
 
     #> ToExpression["1+"]
-     : Incomplete expression; more input is needed (line 1 of "").
+     : Incomplete expression; more input is needed (line 1 of "ToExpression['1+']").
      = $Failed
 
     #> ToExpression[]
@@ -1701,6 +1714,8 @@ class ToExpression(Builtin):
 
     # TODO: Other forms
     """
+    >> ToExpression["log(x)", TraditionalForm]
+     = Log[x]
     >> ToExpression["log(x)", TraditionalForm]
      = Log[x]
     #> ToExpression["log(x)", StandardForm]
@@ -1745,12 +1760,27 @@ class ToExpression(Builtin):
             )
             return
 
-        # Apply the differnet forms
+        # Apply the different forms
         if form == Symbol("InputForm"):
             if isinstance(inp, String):
-                result = evaluation.parse(inp.get_string_value())
-                if result is None:
-                    return SymbolFailed
+
+                # TODO: turn the below up into a function and call that.
+                s = inp.get_string_value()
+                short_s = s[:15] + "..." if len(s) > 16 else s
+                with io.StringIO(s) as f:
+                    f.name = """ToExpression['%s']""" % short_s
+                    feeder = MathicsFileLineFeeder(f)
+                    while not feeder.empty():
+                        try:
+                            query = parse(evaluation.definitions, feeder)
+                        except TranslateError:
+                            return SymbolFailed
+                        finally:
+                            feeder.send_messages(evaluation)
+                        if query is None:  # blank line / comment
+                            continue
+                        result = query.evaluate(evaluation)
+
             else:
                 result = inp
         else:
@@ -2240,17 +2270,17 @@ class HammingDistance(Builtin):
     }
 
     @staticmethod
-    def _compute(u, v, same, evaluation):
+    def _compute(u, v, sameQ, evaluation):
         if len(u) != len(v):
             evaluation.message("HammingDistance", "idim", u, v)
             return None
         else:
-            return Integer(sum(0 if same(x, y) else 1 for x, y in zip(u, v)))
+            return Integer(sum(0 if sameQ(x, y) else 1 for x, y in zip(u, v)))
 
     def apply_list(self, u, v, evaluation):
         "HammingDistance[u_List, v_List]"
         return HammingDistance._compute(
-            u.leaves, v.leaves, lambda x, y: x.same(y), evaluation
+            u.leaves, v.leaves, lambda x, y: x.sameQ(y), evaluation
         )
 
     def apply_string(self, u, v, evaluation, options):
@@ -2285,7 +2315,7 @@ class _StringDistance(Builtin):
                     py_b = py_b.lower()
             return Integer(self._distance(py_a, py_b, lambda u, v: u == v))
         elif a.get_head_name() == "System`List" and b.get_head_name() == "System`List":
-            return Integer(self._distance(a.leaves, b.leaves, lambda u, v: u.same(v)))
+            return Integer(self._distance(a.leaves, b.leaves, lambda u, v: u.sameQ(v)))
         else:
             return Expression("EditDistance", a, b)
 
@@ -2325,14 +2355,14 @@ def _levenshtein_d0(s2):  # compute D(0, ...)
     return list(range(len(s2) + 1))  # see (1), (3)
 
 
-def _levenshtein_di(c1, s2, i, d_prev, same, cost):  # compute one new row
+def _levenshtein_di(c1, s2, i, d_prev, sameQ, cost):  # compute one new row
     # given c1 = s1[i], s2, i, d_prev = D(i - 1, ...), compute D(i, ...)
 
     yield i  # start with D(i, 0) = i, see (2)
     d_curr_prev_j = i  # d_curr_prev_j stores D(i, j - 1)
 
     for j, c2 in _one_based(enumerate(s2)):  # c2 = s2[[j]]
-        cond = 0 if same(c1, c2) else cost
+        cond = 0 if sameQ(c1, c2) else cost
 
         d_curr_j = min(  # see (4)
             d_prev[j - 1] + cond,  # D(i - 1, j - 1) + cond; substitution
@@ -2344,14 +2374,14 @@ def _levenshtein_di(c1, s2, i, d_prev, same, cost):  # compute one new row
         d_curr_prev_j = d_curr_j
 
 
-def _levenshtein(s1, s2, same):
+def _levenshtein(s1, s2, sameQ: Callable[..., bool]):
     d_prev = _levenshtein_d0(s2)
     for i, c1 in _one_based(enumerate(s1)):  # c1 = s1[[i]]
-        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, same, 1))
+        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, sameQ, 1))
     return d_prev[-1]
 
 
-def _damerau_levenshtein(s1, s2, same):
+def _damerau_levenshtein(s1, s2, sameQ: Callable[..., bool]):
     # _damerau_levenshtein works like _levenshtein, except for one additional
     # rule covering transposition:
     #
@@ -2361,9 +2391,9 @@ def _damerau_levenshtein(s1, s2, same):
     def row(d_prev_prev, d_prev, i, prev_c1, c1, cost):
         # given c1 = s1[i], d_prev_prev = D(i - 2), d_prev = D(i - 1),
         # prev_c1 = s1[[i - 1]], c1 = s1[[i]], compute D(i, ...)
-        for j, d_curr_j in enumerate(_levenshtein_di(c1, s2, i, d_prev, same, cost)):
+        for j, d_curr_j in enumerate(_levenshtein_di(c1, s2, i, d_prev, sameQ, cost)):
             if i > 1 and j > 1:
-                if same(c1, s2[j - 2]) and same(prev_c1, s2[j - 1]):  # transposition?
+                if sameQ(c1, s2[j - 2]) and sameQ(prev_c1, s2[j - 1]):  # transposition?
                     # i.e. if s1[[i]] = s2[[j-1]] and s1[[i-1]] = s2[[j]]
                     d_curr_j = min(d_curr_j, d_prev_prev[j - 2] + cost)
             yield d_curr_j
@@ -2378,8 +2408,10 @@ def _damerau_levenshtein(s1, s2, same):
     return d_prev[-1]
 
 
-def _levenshtein_like_or_border_cases(s1, s2, same, compute):
-    if len(s1) == len(s2) and all(same(c1, c2) for c1, c2 in zip(s1, s2)):
+def _levenshtein_like_or_border_cases(
+    s1, s2, sameQ: Callable[..., bool], compute
+):
+    if len(s1) == len(s2) and all(sameQ(c1, c2) for c1, c2 in zip(s1, s2)):
         return 0
 
     if len(s1) < len(s2):
@@ -2388,7 +2420,7 @@ def _levenshtein_like_or_border_cases(s1, s2, same, compute):
     if len(s2) == 0:
         return len(s1)
 
-    return compute(s1, s2, same)
+    return compute(s1, s2, sameQ)
 
 
 class EditDistance(_StringDistance):
@@ -2424,8 +2456,8 @@ class EditDistance(_StringDistance):
      = 2
     """
 
-    def _distance(self, s1, s2, same):
-        return _levenshtein_like_or_border_cases(s1, s2, same, _levenshtein)
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
+        return _levenshtein_like_or_border_cases(s1, s2, sameQ, _levenshtein)
 
 
 class DamerauLevenshteinDistance(_StringDistance):
@@ -2462,8 +2494,8 @@ class DamerauLevenshteinDistance(_StringDistance):
      = 1
     """
 
-    def _distance(self, s1, s2, same):
-        return _levenshtein_like_or_border_cases(s1, s2, same, _damerau_levenshtein)
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
+        return _levenshtein_like_or_border_cases(s1, s2, sameQ, _damerau_levenshtein)
 
 
 class RemoveDiacritics(Builtin):
@@ -2669,7 +2701,7 @@ class StringInsert(Builtin):
      = {XXX, XXMathicsX}
 
     >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
-     = 1.234.567.890.123.456    """
+     = 1.234.567.890.123.456"""
 
     messages = {
         "strse": "String or list of strings expected at position `1` in `2`.",

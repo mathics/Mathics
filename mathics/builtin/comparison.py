@@ -4,7 +4,7 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import sympy
 
@@ -63,7 +63,7 @@ class SameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ === rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolTrue
         else:
             return SymbolFalse
@@ -89,7 +89,7 @@ class UnsameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ =!= rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolFalse
         else:
             return SymbolTrue
@@ -170,7 +170,7 @@ class ValueQ(Builtin):
     def apply(self, expr, evaluation):
         "ValueQ[expr_]"
         evaluated_expr = expr.evaluate(evaluation)
-        if expr.same(evaluated_expr):
+        if expr.sameQ(evaluated_expr):
             return SymbolFalse
         return SymbolTrue
 
@@ -222,8 +222,11 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2) -> Union[bool, None]:
-        if l1.same(l2):
+    def equal2(self, l1: Any, l2: Any) -> Union[bool, None]:
+        """
+        Two-argument Equal[]
+        """
+        if l1.sameQ(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
             return False
@@ -235,7 +238,7 @@ class _EqualityOperator(_InequalityOperator):
             if len(l1.leaves) != len(l2.leaves):
                 return False
             for item1, item2 in zip(l1.leaves, l2.leaves):
-                result = self.do_compare(item1, item2)
+                result = self.equal2(item1, item2)
                 if not result:
                     return result
             return True
@@ -305,7 +308,7 @@ class _EqualityOperator(_InequalityOperator):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
         for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y)
+            c = self.equal2(x, y)
             if c is None:
                 return
             if self._op(c) is False:
