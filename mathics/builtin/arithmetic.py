@@ -1135,7 +1135,7 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr._leaves) >= 1:
+        if len(expr._leaves) == 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo
