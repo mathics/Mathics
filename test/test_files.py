@@ -4,7 +4,6 @@ from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 import pathlib
-import os
 import sys
 
 
@@ -17,23 +16,13 @@ def _evaluate(str_expression):
     return expr.evaluate(evaluation)
 
 
-# FIXME: see if we can refine this better such as
-# by running some Python code and looking for a failure.
-limited_characterset = (
-    sys.platform
-    not in {
-        "win32",
-    }
-    and not os.environ.get("CI")
-)
-if limited_characterset:
-
-    def test_non_win32_compress():
-        for str_expr, str_expected, message in (
-            (r'Compress[" "]', '"eJxTetQwVQkABwMCPA=="', ""),
-            (r'Uncompress["eJxTetQwVQkABwMCPA=="]', r'" "', ""),
-        ):
-            check_evaluation(str_expr, str_expected, message)
+def test_compress():
+    for text in ("", "abc", " "):
+        str_expr = f'Uncompress[Compress["{text}"]]'
+        str_expected = f'"{text}"'
+        check_evaluation(
+            str_expr, str_expected, to_string_expr=False, to_string_expected=False
+        )
 
 
 def test_unprotected():
