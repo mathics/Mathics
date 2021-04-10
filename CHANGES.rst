@@ -1,12 +1,21 @@
 CHANGES
 =======
 
+2.1.1
+-----
+
+Enhancements
+++++++++++++
+
+* ``Table`` [*expr*, *n*] is now supported.
+* ``ToString`` now excepts the *Form* form.
 
 Bug fixes
 +++++++++
 
-* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 
+* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
+* ``$InstallationDirectory`` starts out Unprotected
 
 2.1.0
 -----
