@@ -1438,5 +1438,13 @@ class Dispatch(Builtin):
     '''
     def apply_stub(self, rules, evaluation):
         '''DispatchRule[list_List]'''
+        # TODO:
+        # The next step would be to enlarge this method, in order to
+        # check that all the elements in x are rules, eliminate redundancies
+        # in the list, and sort the list in a way that increases efficiency. 
+        # A second step would be to implement an ``Atom`` class containing the
+        # compiled patters, and modify Replace and ReplaceAll to handle this
+        # kind of objects.
+        #
         return rules
         
