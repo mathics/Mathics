@@ -4,7 +4,7 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import sympy
 
@@ -64,7 +64,7 @@ class SameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ === rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolTrue
         else:
             return SymbolFalse
@@ -90,7 +90,7 @@ class UnsameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ =!= rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolFalse
         else:
             return SymbolTrue
@@ -171,7 +171,7 @@ class ValueQ(Builtin):
     def apply(self, expr, evaluation):
         "ValueQ[expr_]"
         evaluated_expr = expr.evaluate(evaluation)
-        if expr.same(evaluated_expr):
+        if expr.sameQ(evaluated_expr):
             return SymbolFalse
         return SymbolTrue
 
@@ -230,7 +230,7 @@ class _EqualityOperator(_InequalityOperator):
         # See comments in
         # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
         # for a future refactory of this methods...
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return True
         else:
             if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (
@@ -274,11 +274,11 @@ class _EqualityOperator(_InequalityOperator):
                 return True
 
             # Handling comparisons with DirectedInfinity
-            if head2.same(SymbolDirectedInfinity):
+            if head2.sameQ(SymbolDirectedInfinity):
                 lhs, rhs = rhs, lhs
                 head1, head2 = head2, head1
-            if head1.same(SymbolDirectedInfinity):
-                if head2.same(SymbolDirectedInfinity):
+            if head1.sameQ(SymbolDirectedInfinity):
+                if head2.sameQ(SymbolDirectedInfinity):
                     dir1 = dir2 = Integer(1)
                     if len(lhs._leaves) == 0:
                         if len(rhs._leaves) == 0:
@@ -287,7 +287,7 @@ class _EqualityOperator(_InequalityOperator):
                     else:
                         dir1 = lhs._leaves[0]
                     if len(rhs._leaves) == 0:
-                        if dir1.same(Integer(1)):
+                        if dir1.sameQ(Integer(1)):
                             return True
                         dir2 = Integer(1)
                     else:
@@ -305,10 +305,10 @@ class _EqualityOperator(_InequalityOperator):
         elif not lhs.is_atom():
             if lhs.get_head_name() == "System`CompiledFunction":
                 return None
-            if lhs.get_head().same(SymbolDirectedInfinity):
+            if lhs.get_head().sameQ(SymbolDirectedInfinity):
                 if isinstance(rhs, Number):
                     return False
-                elif SymbolInfinity.same(rhs):
+                elif SymbolInfinity.sameQ(rhs):
                     if len(lhs._leaves) == 0 or self.equal2(lhs._leaves[0], Integer(1)):
                         return True
 

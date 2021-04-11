@@ -1083,7 +1083,7 @@ def _norm_calc(head, u, v, evaluation):
         expr_eval = expr.evaluate(evaluation)
     finally:
         evaluation.quiet_all = old_quiet_all
-    if expr_eval.same(expr):
+    if expr_eval.sameQ(expr):
         evaluation.message("Norm", "nvm")
         return None
     else:
