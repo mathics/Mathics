@@ -184,7 +184,8 @@ class CompiledCode(Atom):
         else:
             return hash(self)
 
-    def same(self, other):
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return self is other
 
     def to_python(self, *args, **kwargs):
@@ -248,9 +249,9 @@ class CompiledFunction(Builtin):
         for arg in argseq:
             if isinstance(arg, Integer):
                 py_args.append(arg.get_int_value())
-            elif arg.same(Symbol("True")):
+            elif arg.sameQ(Symbol("True")):
                 py_args.append(True)
-            elif arg.same(Symbol("False")):
+            elif arg.sameQ(Symbol("False")):
                 py_args.append(False)
             else:
                 py_args.append(arg.round_to_float(evaluation))

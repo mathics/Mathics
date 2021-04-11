@@ -340,7 +340,7 @@ class ReplaceRepeated(BinaryOperator):
             result, applied = expr.apply_rules(rules, evaluation)
             if applied:
                 result = result.evaluate(evaluation)
-            if applied and not result.same(expr):
+            if applied and not result.sameQ(expr):
                 expr = result
             else:
                 break
@@ -674,7 +674,7 @@ class Verbatim(PatternObject):
         self.content = expr.leaves[0]
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        if self.content.same(expression):
+        if self.content.sameQ(expression):
             yield_func(vars, None)
 
 
@@ -804,7 +804,7 @@ class Pattern_(PatternObject):
             else:
                 self.pattern.match(yield_func, expression, new_vars, evaluation)
         else:
-            if existing.same(expression):
+            if existing.sameQ(expression):
                 yield_func(vars, None)
 
     def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
@@ -941,7 +941,7 @@ def get_default_value(name, evaluation, k=None, n=None):
             name, "System`DefaultValues", defaultexpr, evaluation
         )
         if result is not None:
-            if result.same(defaultexpr):
+            if result.sameQ(defaultexpr):
                 result = result.evaluate(evaluation)
             return result
     return None
@@ -997,7 +997,7 @@ class Blank(_Blank):
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if not expression.has_form("Sequence", 0):
             if self.head is not None:
-                if expression.get_head().same(self.head):
+                if expression.get_head().sameQ(self.head):
                     yield_func(vars, None)
             else:
                 yield_func(vars, None)

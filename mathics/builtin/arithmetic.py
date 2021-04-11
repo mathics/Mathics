@@ -260,7 +260,7 @@ class Plus(BinaryOperator, SympyFunction):
             if item.has_form("Times", 1, None):
                 if isinstance(item.leaves[0], Number):
                     neg = -item.leaves[0]
-                    if neg.same(Integer(1)):
+                    if neg.sameQ(Integer(1)):
                         if len(item.leaves) == 1:
                             return neg
                         else:
@@ -375,7 +375,7 @@ class Plus(BinaryOperator, SympyFunction):
         else:
             number = Integer(0)
 
-        if not number.same(Integer(0)):
+        if not number.sameQ(Integer(0)):
             leaves.insert(0, number)
 
         if not leaves:
@@ -583,7 +583,7 @@ class Times(BinaryOperator, SympyFunction):
                 item.leaves[1], (Integer, Rational, Real)
             ):
                 neg = -item.leaves[1]
-                if neg.same(Integer(1)):
+                if neg.sameQ(Integer(1)):
                     return item.leaves[0]
                 else:
                     return Expression("Power", item.leaves[0], neg)
@@ -603,7 +603,7 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
-                if not numerator.same(Integer(1)):
+                if not numerator.sameQ(Integer(1)):
                     positive.append(numerator)
                 negative.append(item.denominator())
             else:
@@ -667,7 +667,7 @@ class Times(BinaryOperator, SympyFunction):
                 leaves
                 and item.has_form("Power", 2)
                 and leaves[-1].has_form("Power", 2)
-                and item.leaves[0].same(leaves[-1].leaves[0])
+                and item.leaves[0].sameQ(leaves[-1].leaves[0])
             ):
                 leaves[-1] = Expression(
                     "Power",
@@ -675,7 +675,7 @@ class Times(BinaryOperator, SympyFunction):
                     Expression("Plus", item.leaves[1], leaves[-1].leaves[1]),
                 )
             elif (
-                leaves and item.has_form("Power", 2) and item.leaves[0].same(leaves[-1])
+                leaves and item.has_form("Power", 2) and item.leaves[0].sameQ(leaves[-1])
             ):
                 leaves[-1] = Expression(
                     "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer(1))
@@ -683,12 +683,12 @@ class Times(BinaryOperator, SympyFunction):
             elif (
                 leaves
                 and leaves[-1].has_form("Power", 2)
-                and leaves[-1].leaves[0].same(item)
+                and leaves[-1].leaves[0].sameQ(item)
             ):
                 leaves[-1] = Expression(
                     "Power", item, Expression("Plus", Integer(1), leaves[-1].leaves[1])
                 )
-            elif item.get_head().same(SymbolDirectedInfinity):
+            elif item.get_head().sameQ(SymbolDirectedInfinity):
                 infinity_factor = True
                 if len(item.leaves) > 1:
                     direction = item.leaves[0]
@@ -696,7 +696,7 @@ class Times(BinaryOperator, SympyFunction):
                         numbers.append(direction)
                     else:
                         leaves.append(direction)
-            elif item.same(SymbolInfinity) or item.same(SymbolComplexInfinity):
+            elif item.sameQ(SymbolInfinity) or item.sameQ(SymbolComplexInfinity):
                 infinity_factor = True
             else:
                 leaves.append(item)
@@ -718,13 +718,13 @@ class Times(BinaryOperator, SympyFunction):
         else:
             number = Integer(1)
 
-        if number.same(Integer(1)):
+        if number.sameQ(Integer(1)):
             number = None
         elif number.is_zero:
             if infinity_factor:
                 return Symbol("Indeterminate")
             return number
-        elif number.same(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
+        elif number.sameQ(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
                 leaves[0].get_head(),
                 *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves]
@@ -1135,7 +1135,7 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr._leaves) >= 1:
+        if len(expr._leaves) == 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo

@@ -6,6 +6,7 @@ List Functions
 
 
 from itertools import chain, permutations
+from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
@@ -2452,7 +2453,7 @@ class _IterationFunction(Builtin):
             result = from_sympy(result)
             result = cancel(result)
 
-            if not result.same(whole_expr):
+            if not result.sameQ(whole_expr):
                 return result
             return
 
@@ -3122,7 +3123,7 @@ class Reap(Builtin):
             for pattern, items in sown:
                 if pattern.does_match(tag, evaluation):
                     for item in items:
-                        if item[0].same(tag):
+                        if item[0].sameQ(tag):
                             item[1].append(e)
                             break
                     else:
@@ -3306,7 +3307,8 @@ class _SlowEquivalence:
     def select(self, elem):
         return self._groups
 
-    def same(self, a, b):
+    def sameQ(self, a, b) -> bool:
+        """Mathics SameQ"""
         return _test_pair(self._test, a, b, self._evaluation, self._name)
 
 
@@ -3334,8 +3336,9 @@ class _FastEquivalence:
     def select(self, elem):
         return self._hashes[hash(elem)]
 
-    def same(self, a, b):
-        return a.same(b)
+    def sameQ(self, a, b) -> bool:
+        """Mathics SameQ"""
+        return a.sameQ(b)
 
 
 class _GatherBin:
@@ -3413,7 +3416,7 @@ class _GatherOperation(Builtin):
         for key, value in zip(keys.leaves, values.leaves):
             selection = equivalence.select(key)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.same(prototype, key):
+                if equivalence.sameQ(prototype, key):
                     add_to_bin(value)  # add to existing bin
                     break
             else:
@@ -3590,10 +3593,10 @@ class _SetOperation(Builtin):
         same_test = self.get_option(options, "SameTest", evaluation)
         operands = [l.leaves for l in seq]
         if not _is_sameq(same_test):
-            same = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
-            operands = [self._remove_duplicates(op, same) for op in operands]
+            sameQ = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
+            operands = [self._remove_duplicates(op, sameQ) for op in operands]
             items = functools.reduce(
-                lambda a, b: [e for e in self._elementwise(a, b, same)], operands
+                lambda a, b: [e for e in self._elementwise(a, b, sameQ)], operands
             )
         else:
             items = list(
@@ -3632,11 +3635,11 @@ class Union(_SetOperation):
 
     _operation = "union"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for eb in b:
             yield eb
         for ea in a:
-            if not any(same(eb, ea) for eb in b):
+            if not any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -3666,9 +3669,9 @@ class Intersection(_SetOperation):
 
     _operation = "intersection"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
-            if any(same(eb, ea) for eb in b):
+            if any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -3711,9 +3714,9 @@ class Complement(_SetOperation):
 
     _operation = "difference"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
-            if not any(same(eb, ea) for eb in b):
+            if not any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -6195,13 +6198,14 @@ class ContainsOnly(Builtin):
 
         same_test = self.get_option(options, "SameTest", evaluation)
 
-        def same(a, b):
+        def sameQ(a, b) -> bool:
+            """Mathics SameQ"""
             result = Expression(same_test, a, b).evaluate(evaluation)
             return result.is_true()
 
         self.check_options(None, evaluation, options)
         for a in list1.leaves:
-            if not any(same(a, b) for b in list2.leaves):
+            if not any(sameQ(a, b) for b in list2.leaves):
                 return Symbol("False")
         return Symbol("True")
 

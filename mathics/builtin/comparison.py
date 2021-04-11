@@ -4,7 +4,7 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import itertools
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import sympy
 
@@ -22,12 +22,9 @@ from mathics.core.expression import (
     Atom,
     Integer,
     Number,
-    Real,
-    String,
     Symbol,
     SymbolFalse,
     SymbolTrue,
-    SymbolList,
     SymbolDirectedInfinity,
     SymbolInfinity,
 )
@@ -67,7 +64,7 @@ class SameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ === rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolTrue
         else:
             return SymbolFalse
@@ -93,7 +90,7 @@ class UnsameQ(BinaryOperator):
     def apply(self, lhs, rhs, evaluation):
         "lhs_ =!= rhs_"
 
-        if lhs.same(rhs):
+        if lhs.sameQ(rhs):
             return SymbolFalse
         else:
             return SymbolTrue
@@ -174,7 +171,7 @@ class ValueQ(Builtin):
     def apply(self, expr, evaluation):
         "ValueQ[expr_]"
         evaluated_expr = expr.evaluate(evaluation)
-        if expr.same(evaluated_expr):
+        if expr.sameQ(evaluated_expr):
             return SymbolFalse
         return SymbolTrue
 
@@ -226,113 +223,116 @@ COMPARE_PREC = 50
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2, max_extra_prec=None) -> Union[bool, None]:
+    def equal2(self, lhs, rhs, max_extra_prec=None) -> Union[bool, None]:
+        """
+        Two-argument Equal[]
+        """
         # See comments in
         # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
         # for a future refactory of this methods...
-        if l1.same(l2):
+        if lhs.sameQ(rhs):
             return True
         else:
-            if not (isinstance(l1, Symbol) or isinstance(l2, Symbol)) and (
-                isinstance(l1, Atom) and isinstance(l2, Atom)
+            if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (
+                isinstance(lhs, Atom) and isinstance(rhs, Atom)
             ):
-                return l1 == l2
-            elif l1 == SymbolTrue and l2 == SymbolFalse:
+                return lhs == rhs
+            elif lhs == SymbolTrue and rhs == SymbolFalse:
                 return False
-            elif l1 == SymbolFalse and l2 == SymbolTrue:
+            elif lhs == SymbolFalse and rhs == SymbolTrue:
                 return False
         # Comparing lists: compare leaves
-        if l1.has_form("List", None) and l2.has_form("List", None):
-            if len(l1.leaves) != len(l2.leaves):
+        if lhs.has_form("List", None) and rhs.has_form("List", None):
+            if len(lhs.leaves) != len(rhs.leaves):
                 return False
-            for item1, item2 in zip(l1.leaves, l2.leaves):
-                result = self.do_compare(item1, item2)
+            for item1, item2 in zip(lhs.leaves, rhs.leaves):
+                result = self.equal2(item1, item2)
                 if not result:
                     return result
             return True
 
-        if l1.is_atom():
-            l1, l2 = l2, l1
+        if lhs.is_atom():
+            lhs, rhs = rhs, lhs
         # Dealing with two non-atomic expressions:
-        if not l2.is_atom():
-            head_name_1 = l1.get_head_name()
-            head_name_2 = l2.get_head_name()
-            head1 = l1.get_head()
-            head2 = l2.get_head()
+        if not rhs.is_atom():
+            head_name_1 = lhs.get_head_name()
+            head_name_2 = rhs.get_head_name()
+            head1 = lhs.get_head()
+            head2 = rhs.get_head()
             # Handling comparisons between CompiledFunction and expressions
             if head_name_2 in ("System`CompiledFunction",):
-                l1, l2 == l2, l1
+                lhs, rhs == rhs, lhs
                 head_name_2, head_name_1 = head_name_1, head_name_2
             if head_name_1 == "System`CompiledFunction":
-                # If l2 is not a CompiledFunction, can not be compared.
+                # If rhs is not a CompiledFunction, can not be compared.
                 if head_name_2 != "System`CompiledFunction":
                     return None
-                if not self.do_compare(l1._leaves[0], l2._leaves[0]):
+                if not self.equal2(lhs._leaves[0], rhs._leaves[0]):
                     return None
-                if not self.do_compare(l1._leaves[1], l2._leaves[1]):
+                if not self.equal2(lhs._leaves[1], rhs._leaves[1]):
                     return None
                 return True
 
             # Handling comparisons with DirectedInfinity
-            if head2.same(SymbolDirectedInfinity):
-                l1, l2 = l2, l1
+            if head2.sameQ(SymbolDirectedInfinity):
+                lhs, rhs = rhs, lhs
                 head1, head2 = head2, head1
-            if head1.same(SymbolDirectedInfinity):
-                if head2.same(SymbolDirectedInfinity):
+            if head1.sameQ(SymbolDirectedInfinity):
+                if head2.sameQ(SymbolDirectedInfinity):
                     dir1 = dir2 = Integer(1)
-                    if len(l1._leaves) == 0:
-                        if len(l2._leaves) == 0:
+                    if len(lhs._leaves) == 0:
+                        if len(rhs._leaves) == 0:
                             return True
                         dir1 = Integer(1)
                     else:
-                        dir1 = l1._leaves[0]
-                    if len(l2._leaves) == 0:
-                        if dir1.same(Integer(1)):
+                        dir1 = lhs._leaves[0]
+                    if len(rhs._leaves) == 0:
+                        if dir1.sameQ(Integer(1)):
                             return True
                         dir2 = Integer(1)
                     else:
-                        dir2 = l2._leaves[0]
+                        dir2 = rhs._leaves[0]
                     # If the directions are equal,
                     # then both infinites are the same
-                    if self.do_compare(dir1, dir2):
+                    if self.equal2(dir1, dir2):
                         return True
                     # Now, compare the signs:
                     dir1 = Expression("Sign", dir1)
                     dir2 = Expression("Sign", dir2)
-                    return self.do_compare(dir1, dir2)
+                    return self.equal2(dir1, dir2)
 
         # Dealing with one expression
-        elif not l1.is_atom():
-            if l1.get_head_name() == "System`CompiledFunction":
+        elif not lhs.is_atom():
+            if lhs.get_head_name() == "System`CompiledFunction":
                 return None
-            if l1.get_head().same(SymbolDirectedInfinity):
-                if isinstance(l2, Number):
+            if lhs.get_head().sameQ(SymbolDirectedInfinity):
+                if isinstance(rhs, Number):
                     return False
-                elif SymbolInfinity.same(l2):
-                    if len(l1._leaves) == 0 or do_compare(l1._leaves[0], Integer(1)):
+                elif SymbolInfinity.sameQ(rhs):
+                    if len(lhs._leaves) == 0 or self.equal2(lhs._leaves[0], Integer(1)):
                         return True
 
         # For everything else, use sympy.
 
-        l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
-        l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
 
-        if l1_sympy is None or l2_sympy is None:
+        if lhs_sympy is None or rhs_sympy is None:
             return None
 
-        if not is_number(l1_sympy):
-            l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
-        if not is_number(l2_sympy):
-            l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
+        if not is_number(lhs_sympy):
+            lhs_sympy = mp_convert_constant(lhs_sympy, prec=COMPARE_PREC)
+        if not is_number(rhs_sympy):
+            rhs_sympy = mp_convert_constant(rhs_sympy, prec=COMPARE_PREC)
 
-        if l1_sympy.is_number and l2_sympy.is_number:
-            # assert min_prec(l1, l2) is None
+        if lhs_sympy.is_number and rhs_sympy.is_number:
+            # assert min_prec(lhs, rhs) is None
             if max_extra_prec:
                 prec = max_extra_prec
             else:
                 prec = COMPARE_PREC
-            lhs = l1_sympy.n(dps(prec))
-            rhs = l2_sympy.n(dps(prec))
+            lhs = lhs_sympy.n(dps(prec))
+            rhs = rhs_sympy.n(dps(prec))
             if lhs == rhs:
                 return True
             tol = 10 ** (-prec)
@@ -411,7 +411,7 @@ class _EqualityOperator(_InequalityOperator):
         if type(max_extra_prec) is not int:
             max_extra_prec = COMPARE_PREC
         for x, y in itertools.combinations(args, 2):
-            c = self.do_compare(x, y, max_extra_prec)
+            c = self.equal2(x, y, max_extra_prec)
             if c is None:
                 return
             if not self._op(c):
