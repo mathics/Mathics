@@ -10,6 +10,7 @@ Enhancements
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
+* ``FileNames`` returns a sorted list (#1250).
 
 2.1.1
 -----

@@ -4225,7 +4225,6 @@ class SetFileDate(Builtin):
             if py_attr == "All":
                 os.utime(py_filename, (stattime, stattime))
         except OSError as e:
-            print(e)
             # evaluation.message(...)
             return SymbolFailed
 
@@ -5238,7 +5237,6 @@ class FileNames(Builtin):
             elif n.get_head_name() == "System`DirectedInfinity":
                 n = None
             else:
-                print(n)
                 evaluation.message("FileNames", "badn", n)
                 return
         else:
@@ -5286,4 +5284,4 @@ class FileNames(Builtin):
                                 filenames.add(osp.join(root, fn))
                                 break
 
-        return Expression("List", *[String(s) for s in filenames])
+        return Expression("List", *[String(s) for s in sorted(filenames)])
