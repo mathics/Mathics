@@ -744,7 +744,7 @@ class Expression(BaseExpression):
         # Think about: should we use isinstance?
         if type(self) == type(rhs):
             if len(self._leaves) != len(rhs._leaves):
-                return None
+                return False
             for item1, item2 in zip(self._leaves, rhs._leaves):
                 result = item1.equal2(item2)
                 if not result:
