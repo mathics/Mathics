@@ -226,13 +226,14 @@ class _EqualityOperator(_InequalityOperator):
         # See comments in
         # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
         # for a future refactory of this methods...
-        if lhs.sameQ(rhs):
-            return True
-
         if hasattr(lhs, "equal2"):
             result = lhs.equal2(rhs)
             if result is not None:
                 return result
+
+        # Do this after lhs.equal2 since lhs.equal2 will do a sameQ test.
+        if lhs.sameQ(rhs):
+            return True
 
         # FIXME: I think this can be folded into Symbol.equal2 and Atom.equal2
         if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (

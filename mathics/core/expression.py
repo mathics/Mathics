@@ -2120,7 +2120,8 @@ class Number(Atom):
 
     def equal2(self, rhs: Any, prec=COMPARE_PREC) -> Optional[bool]:
         """Mathics two-argument Equal (==) """
-        # SameQ comparison is assumed to have been done in the caller
+        if self.sameQ(rhs):
+            return True
         if not (isinstance(rhs, Symbol) or isinstance(rhs, Expression)):
             return self == rhs
 
