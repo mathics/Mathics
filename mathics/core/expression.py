@@ -7,7 +7,7 @@ import math
 import re
 
 import typing
-from typing import Any
+from typing import Any, Optional
 from itertools import chain
 from bisect import bisect_left
 from functools import lru_cache
@@ -17,6 +17,9 @@ from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precisio
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import base64
 
+# Imperical number that seems to work.
+# We have to be able to match mpmath values with sympy values
+COMPARE_PREC = 50
 
 def fully_qualified_symbol_name(name) -> bool:
     return (
@@ -264,6 +267,20 @@ class BaseExpression(KeyComparable):
     def clear_cache(self):
         self._cache = None
 
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+
+        # If the types are the same then we'll use the classes definition of == (or __eq__).
+        # Superclasses which need to specialized this behavior should redefine equal2()
+        # Think about: should we use isinstance?
+        if type(self) == type(rhs):
+            return self == rhs
+        return None
+
     def has_changed(self, definitions):
         return True
 
@@ -350,9 +367,9 @@ class BaseExpression(KeyComparable):
         # __hash__ might only hash a sample of the data available.
         raise NotImplementedError
 
-    def sameQ(self, other) -> bool:
+    def sameQ(self, rhs) -> bool:
         """Mathics SameQ"""
-        return id(self) == id(other)
+        return id(self) == id(rhs)
 
     def get_sequence(self):
         if self.get_head().get_name() == "System`Sequence":
@@ -714,6 +731,26 @@ class Expression(BaseExpression):
     @leaves.setter
     def leaves(self, value):
         raise ValueError("Expression.leaves is write protected.")
+
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+
+        # If the types are the same then we'll use the classes definition of == (or __eq__).
+        # Superclasses which need to specialized this behavior should redefine equal2()
+        # Think about: should we use isinstance?
+        if type(self) == type(rhs):
+            if len(self._leaves) != len(rhs._leaves):
+                return None
+            for item1, item2 in zip(self._leaves, rhs._leaves):
+                result = item1.equal2(item2)
+                if not result:
+                    return result
+            return True
+        return None
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
@@ -1979,9 +2016,17 @@ class Symbol(Atom):
                 1,
             ]
 
-    def sameQ(self, other) -> bool:
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==) """
+        if id(self) == id(rhs):
+            return True
+        if isinstance(rhs, Symbol):
+            return self == rhs
+        return None
+
+    def sameQ(self, rhs: Any) -> bool:
         """Mathics SameQ"""
-        return isinstance(other, Symbol) and self.name == other.name
+        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self == rhs
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
@@ -2072,6 +2117,28 @@ class Number(Atom):
 
     def is_numeric(self) -> bool:
         return True
+
+    def equal2(self, rhs: Any, prec=COMPARE_PREC) -> Optional[bool]:
+        """Mathics two-argument Equal (==) """
+        # SameQ comparison is assumed to have been done in the caller
+        if not (isinstance(rhs, Symbol) or isinstance(rhs, Expression)):
+            return self == rhs
+
+        lhs_sympy = self.to_sympy(evaluate=True, prec=prec)
+
+        try:
+            rhs_sympy = rhs.to_sympy(evaluate=True, prec=prec)
+        except NotImplementedError:
+            return None
+
+        # if rhs.has_form('Global`Compile', 2, None):
+        #     return None
+
+        if lhs_sympy is None or rhs_sympy is None:
+            return None
+        if lhs_sympy == rhs_sympy:
+            return True
+        return None
 
 
 def _ExponentFunction(value):

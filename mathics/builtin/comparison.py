@@ -4,7 +4,7 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import itertools
-from typing import Optional, Union, Any
+from typing import Optional, Union
 
 import sympy
 
@@ -17,9 +17,10 @@ from mathics.builtin.base import (
 from mathics.builtin.constants import mp_convert_constant
 
 from mathics.core.expression import (
+    Atom,
+    COMPARE_PREC,
     Complex,
     Expression,
-    Atom,
     Integer,
     Number,
     Symbol,
@@ -215,11 +216,6 @@ class _InequalityOperator(BinaryOperator):
         return items
 
 
-# Imperical number that seems to work.
-# We have to be able to match mpmath values with sympy values
-COMPARE_PREC = 50
-
-
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
@@ -232,46 +228,24 @@ class _EqualityOperator(_InequalityOperator):
         # for a future refactory of this methods...
         if lhs.sameQ(rhs):
             return True
-        else:
-            if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (
-                isinstance(lhs, Atom) and isinstance(rhs, Atom)
-            ):
-                return lhs == rhs
-            elif lhs == SymbolTrue and rhs == SymbolFalse:
-                return False
-            elif lhs == SymbolFalse and rhs == SymbolTrue:
-                return False
-        # Comparing lists: compare leaves
-        if lhs.has_form("List", None) and rhs.has_form("List", None):
-            if len(lhs.leaves) != len(rhs.leaves):
-                return False
-            for item1, item2 in zip(lhs.leaves, rhs.leaves):
-                result = self.equal2(item1, item2)
-                if not result:
-                    return result
-            return True
 
-        if lhs.is_atom():
-            lhs, rhs = rhs, lhs
+        if hasattr(lhs, "equal2"):
+            result = lhs.equal2(rhs)
+            if result is not None:
+                return result
+
+        # FIXME: I think this can be folded into Symbol.equal2 and Atom.equal2
+        if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (
+            isinstance(lhs, Atom) and isinstance(rhs, Atom)
+        ):
+            return lhs == rhs
+
         # Dealing with two non-atomic expressions:
         if not rhs.is_atom():
-            head_name_1 = lhs.get_head_name()
-            head_name_2 = rhs.get_head_name()
             head1 = lhs.get_head()
             head2 = rhs.get_head()
-            # Handling comparisons between CompiledFunction and expressions
-            if head_name_2 in ("System`CompiledFunction",):
-                lhs, rhs == rhs, lhs
-                head_name_2, head_name_1 = head_name_1, head_name_2
-            if head_name_1 == "System`CompiledFunction":
-                # If rhs is not a CompiledFunction, can not be compared.
-                if head_name_2 != "System`CompiledFunction":
-                    return None
-                if not self.equal2(lhs._leaves[0], rhs._leaves[0]):
-                    return None
-                if not self.equal2(lhs._leaves[1], rhs._leaves[1]):
-                    return None
-                return True
+
+            # FIXME: add equal2 method for DirectedInfinity
 
             # Handling comparisons with DirectedInfinity
             if head2.sameQ(SymbolDirectedInfinity):
@@ -303,16 +277,13 @@ class _EqualityOperator(_InequalityOperator):
 
         # Dealing with one expression
         elif not lhs.is_atom():
-            if lhs.get_head_name() == "System`CompiledFunction":
-                return None
+            # FIXME: Ass mentioned above: add equal2 method for DirectedInfinity
             if lhs.get_head().sameQ(SymbolDirectedInfinity):
                 if isinstance(rhs, Number):
                     return False
                 elif SymbolInfinity.sameQ(rhs):
                     if len(lhs._leaves) == 0 or self.equal2(lhs._leaves[0], Integer(1)):
                         return True
-
-        # For everything else, use sympy.
 
         lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
         rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
@@ -324,6 +295,10 @@ class _EqualityOperator(_InequalityOperator):
             lhs_sympy = mp_convert_constant(lhs_sympy, prec=COMPARE_PREC)
         if not is_number(rhs_sympy):
             rhs_sympy = mp_convert_constant(rhs_sympy, prec=COMPARE_PREC)
+
+        # WL's interpretation of Equal[] which allows for slop in Reals
+        # in the least significant digit of precision, while for Integers, comparison
+        # has to be exact.
 
         if lhs_sympy.is_number and rhs_sympy.is_number:
             # assert min_prec(lhs, rhs) is None

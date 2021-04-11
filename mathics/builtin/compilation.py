@@ -6,10 +6,10 @@ from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
     Atom,
     Expression,
-    Symbol,
-    String,
-    from_python,
     Integer,
+    String,
+    Symbol,
+    from_python,
 )
 from types import FunctionType
 
@@ -182,14 +182,17 @@ class CompiledCode(Atom):
         if pattern_sort:
             return super(CompiledCode, self).get_sort_key(True)
         else:
-            return hash(self)
+            return hex(id(self))
 
-    def sameQ(self, other) -> bool:
+    def sameQ(self, rhs) -> bool:
         """Mathics SameQ"""
-        return self is other
+        return self is rhs
 
     def to_python(self, *args, **kwargs):
         return None
+
+    def to_sympy(self, *args, **kwargs):
+        raise NotImplementedError
 
     def __hash__(self):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack

@@ -41,7 +41,7 @@ import pytest
         (".25 == BesselJ[0, 2]", "False"),
         (".25 == 2.+ I Pi", "False"),
         (".25 == 3+I Pi", "False"),
-        (r'"\[Mu]"=="μ"', "True", ), 
+        (r'"\[Mu]"=="μ"', "True", ),
         (
             '.25 == TestFunction["Tengo una vaca lechera"]',
             '0.25 == TestFunction["Tengo una vaca lechera"]',
@@ -269,7 +269,7 @@ import pytest
         ),
         (
             "I == Compile[{x}, Sqrt[x]]",
-            'I == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "I == Compile[{x}, Sqrt[x]]",
         ),
         ("0 == Infinity", "False"),
         ("0 == -Infinity", "False"),
@@ -394,7 +394,7 @@ import pytest
         (".25 == -Infinity", "False"),
         (
             "3+2 I == Compile[{x}, Sqrt[x]]",
-            '3 + 2 I == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "3+2 I == Compile[{x}, Sqrt[x]]",
         ),
         ("-Infinity == a", "-Infinity == a"),
         ('-Infinity == "a"', '-Infinity == "a"'),
@@ -406,11 +406,11 @@ import pytest
         ("-Infinity == 2.+ I Pi", "False"),
         (
             "Compile[{x}, Sqrt[x]] == 3+2 I",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 3 + 2 I',
+            "Compile[{x}, Sqrt[x]] == 3+2 I",
         ),
         (
             "Compile[{x}, Sqrt[x]] == I",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == I',
+            "Compile[{x}, Sqrt[x]] == I",
         ),
         ("2.+ I Pi == Sqrt[I] Infinity", "False"),
         ('2.+ I Pi == "a"', "False"),
@@ -427,23 +427,23 @@ def test_cmp1_pass(str_expr, str_expected):
         ("-Infinity == 3+2 I", "False"),
         (
             "Compile[{x}, Sqrt[x]] == BesselJ[0, 2]",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == BesselJ[0, 2]',
+            "Compile[{x}, Sqrt[x]] == BesselJ[0, 2]",
         ),
         (
             "Compile[{x}, Sqrt[x]] == 2.+ I Pi",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 2. + 3.14159 I',
+            "Compile[{x}, Sqrt[x]] == 2.+ I Pi",
         ),
         (
             "Compile[{x}, Sqrt[x]] == 3 + I Pi",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 3 + I Pi',
+            "Compile[{x}, Sqrt[x]] == 3 + I Pi",
         ),
         (
             'Compile[{x}, Sqrt[x]] == TestFunction["Tengo una vaca lechera"]',
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == TestFunction["Tengo una vaca lechera"]',
+            'Compile[{x}, Sqrt[x]] == TestFunction["Tengo una vaca lechera"]',
         ),
         (
             "Sqrt[I] Infinity == Compile[{x}, Sqrt[x]]",
-            '(-1) ^ (1 / 4) Infinity == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "Sqrt[I] Infinity == Compile[{x}, Sqrt[x]]",
         ),
         ("Sqrt[I] Infinity == 0.25", "False"),
         ("Sqrt[I] Infinity == Infinity", "False"),
@@ -458,23 +458,23 @@ def test_cmp1_pass(str_expr, str_expected):
         (".25 == 3+2 I", "False"),
         (
             ".25 == Compile[{x}, Sqrt[x]]",
-            '.25 == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            ".25 == Compile[{x}, Sqrt[x]]",
         ),
         (
             "Sqrt[2] == Compile[{x}, Sqrt[x]]",
-            'Sqrt[2] == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "Sqrt[2] == Compile[{x}, Sqrt[x]]",
         ),
         (
             "BesselJ[0, 2] == Compile[{x}, Sqrt[x]]",
-            'BesselJ[0, 2] == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "BesselJ[0, 2] == Compile[{x}, Sqrt[x]]",
         ),
         (
             "2.+ I Pi == Compile[{x}, Sqrt[x]]",
-            '2. + 3.14159 I == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "2.+ I Pi == Compile[{x}, Sqrt[x]]",
         ),
         (
             "3+I Pi == Compile[{x}, Sqrt[x]]",
-            '3 + I Pi == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "3+I Pi == Compile[{x}, Sqrt[x]]",
         ),
         ("Sqrt[I] Infinity == -Infinity", "False"),
         ('.25 == "a"', "False"),
@@ -483,21 +483,21 @@ def test_cmp1_pass(str_expr, str_expected):
         (".25 == Sqrt[I] Infinity", "False"),
         (
             "1 / 4 == Compile[{x}, Sqrt[x]]",
-            '1 / 4 == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "1 / 4 == Compile[{x}, Sqrt[x]]",
         ),
         (
             '"a" == Compile[{x}, Sqrt[x]]',
-            '"a" == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            '"a" == Compile[{x}, Sqrt[x]]',
         ),
         (
             "a == Compile[{x}, Sqrt[x]]",
-            'a == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "a == Compile[{x}, Sqrt[x]]",
         ),
         ("Infinity == 3+2 I", "False"),
         ("-Infinity == I", "False"),
         (
             "Infinity == Compile[{x}, Sqrt[x]]",
-            'Infinity == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "Infinity == Compile[{x}, Sqrt[x]]",
         ),
         ("Sqrt[I] Infinity == I", "False"),
         ("Sqrt[I] Infinity == 0", "False"),
@@ -516,20 +516,20 @@ def test_cmp1_pass(str_expr, str_expected):
         ("I == 2.+ I Pi", "False"),
         (
             '"1 / 4" == Compile[{x}, Sqrt[x]]',
-            '"1 / 4" == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            '"1 / 4" == Compile[{x}, Sqrt[x]]',
         ),
         (
             "0 == Compile[{x}, Sqrt[x]]",
-            '0 == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "0 == Compile[{x}, Sqrt[x]]",
         ),
         (
             "Graphics[{Disk[{0,0},1]}] == Compile[{x}, Sqrt[x]]",
-            '"-Graphics-" == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "Graphics[{Disk[{0,0},1]}] == Compile[{x}, Sqrt[x]]",
         ),
         ("Compile[{x}, Sqrt[x]] == Compile[{x}, Sqrt[x]]", "True"),
         (
             "Compile[{x}, Sqrt[x]] == Graphics[{Disk[{0,0},1]}]",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == "-Graphics-"',
+            "Compile[{x}, Sqrt[x]] == Graphics[{Disk[{0,0},1]}]",
         ),
         ("1 / 4 == Sqrt[I] Infinity", "False"),
         ("1 / 4 == 2.+ I Pi", "False"),
@@ -553,51 +553,51 @@ def test_cmp1_pass(str_expr, str_expected):
         ),
         (
             'TestFunction["Tengo una vaca lechera"] == Compile[{x}, Sqrt[x]]',
-            'TestFunction["Tengo una vaca lechera"] == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            'TestFunction["Tengo una vaca lechera"] == Compile[{x}, Sqrt[x]]',
         ),
         (
             "Compile[{x}, Sqrt[x]] == 2 + 3 a",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 2 + 3 a',
+            "Compile[{x}, Sqrt[x]] == 2 + 3 a",
         ),
         (
             "Compile[{x}, Sqrt[x]] == Infinity",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == Infinity',
+            "Compile[{x}, Sqrt[x]] == Infinity",
         ),
         (
             "Compile[{x}, Sqrt[x]] == -Infinity",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == -Infinity',
+            "Compile[{x}, Sqrt[x]] == -Infinity",
         ),
         (
             "Compile[{x}, Sqrt[x]] == Sqrt[I] Infinity",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == (-1) ^ (1 / 4) Infinity',
+            "Compile[{x}, Sqrt[x]] == Sqrt[I] Infinity",
         ),
         (
             "Compile[{x}, Sqrt[x]] == a",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == a',
+            "Compile[{x}, Sqrt[x]] == a",
         ),
         (
             'Compile[{x}, Sqrt[x]] == "a"',
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == a',
+            'Compile[{x}, Sqrt[x]] == "a"',
         ),
         (
             'Compile[{x}, Sqrt[x]] == "1 / 4"',
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 1 / 4',
+            'Compile[{x}, Sqrt[x]] == "1 / 4"',
         ),
         (
             "Compile[{x}, Sqrt[x]] == 0",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 0',
+            "Compile[{x}, Sqrt[x]] == 0",
         ),
         (
             "Compile[{x}, Sqrt[x]] == 0",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 0',
+            "Compile[{x}, Sqrt[x]] == 0",
         ),
         (
             "Compile[{x}, Sqrt[x]] == 0.25",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == 0.25',
+            "Compile[{x}, Sqrt[x]] == 0.25",
         ),
         (
             "Compile[{x}, Sqrt[x]] == Sqrt[2]",
-            'CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"] == Sqrt[2]',
+            "Compile[{x}, Sqrt[x]] == Sqrt[2]",
         ),
     ],
 )
@@ -630,7 +630,7 @@ def test_cmp1_no_pass(str_expr, str_expected):
         ("3+I Pi == 3+2 I", "False"),
         (
             "2 + 3 a == Compile[{x}, Sqrt[x]]",
-            '2 + 3 a == CompiledFunction[{x}, Sqrt[x], "-PythonizedCode-"]',
+            "2 + 3 a == Compile[{x}, Sqrt[x]]",
         ),
         ("Sqrt[I] Infinity == 3+I Pi", "False"),
         ("Sqrt[I] Infinity == Sqrt[2]", "False"),
