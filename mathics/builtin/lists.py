@@ -70,19 +70,6 @@ from collections import defaultdict
 import functools
 
 
-system_symbols_names = (
-    "System`OwnValues",
-    "System`DownValues",
-    "System`SubValues",
-    "System`UpValues",
-    "System`NValues",
-    "System`Options",
-    "System`DefaultValues",
-    "System`Attributes",
-    "System`Messages",
-)
-
-
 def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1):
     """
     This function walks the expression `expr` and deleting occurrencies of `pattern`
@@ -2698,7 +2685,6 @@ class Table(_IterationFunction):
         return Expression(SymbolList, *items)
 
 
-
 class Join(Builtin):
     """
     <dl>
@@ -2891,12 +2877,15 @@ class AppendTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "AppendTo[s_, item_]"
-        if isinstance(s, Symbol) or s.get_head_name() in system_symbols_names:
-            resolved_s = s.evaluate(evaluation)
-            if not resolved_s.is_atom():
-                result = Expression("Set", s, Expression("Append", resolved_s, item))
-                return result.evaluate(evaluation)
-        return evaluation.message("AppendTo", "rvalue", s)
+        resolved_s = s.evaluate(evaluation)
+        if s == resolved_s:
+            return evaluation.message("AppendTo", "rvalue", s)
+
+        if not resolved_s.is_atom():
+            result = Expression("Set", s, Expression("Append", resolved_s, item))
+            return result.evaluate(evaluation)
+
+        return evaluation.message("AppendTo", "normal", Expression("AppendTo", s, item))
 
 
 class Prepend(Builtin):
@@ -2987,15 +2976,17 @@ class PrependTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "PrependTo[s_, item_]"
-        resolved_s = s.evaluate(evaluation)   
+        resolved_s = s.evaluate(evaluation)
+        if s == resolved_s:
+            return evaluation.message("PrependTo", "rvalue", s)
+
         if not resolved_s.is_atom():
             result = Expression("Set", s, Expression("Prepend", resolved_s, item))
             return result.evaluate(evaluation)
-        if s != resolved_s:
-            return evaluation.message(
-                "PrependTo", "normal", Expression("PrependTo", s, item)
-            )
-        return evaluation.message("PrependTo", "rvalue", s)
+
+        return evaluation.message(
+            "PrependTo", "normal", Expression("PrependTo", s, item)
+        )
 
 
 def get_tuples(items):
@@ -3604,7 +3595,9 @@ class _SetOperation(Builtin):
         same_test = self.get_option(options, "SameTest", evaluation)
         operands = [l.leaves for l in seq]
         if not _is_sameq(same_test):
-            sameQ = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
+            sameQ = lambda a, b: _test_pair(
+                same_test, a, b, evaluation, self.get_name()
+            )
             operands = [self._remove_duplicates(op, sameQ) for op in operands]
             items = functools.reduce(
                 lambda a, b: [e for e in self._elementwise(a, b, sameQ)], operands
