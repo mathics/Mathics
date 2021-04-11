@@ -278,11 +278,11 @@ class _EqualityOperator(_InequalityOperator):
                 return True
 
             # Handling comparisons with DirectedInfinity
-            if head2.same(SymbolDirectedInfinity):
+            if head2.sameQ(SymbolDirectedInfinity):
                 l1, l2 = l2, l1
                 head1, head2 = head2, head1
-            if head1.same(SymbolDirectedInfinity):
-                if head2.same(SymbolDirectedInfinity):
+            if head1.sameQ(SymbolDirectedInfinity):
+                if head2.sameQ(SymbolDirectedInfinity):
                     dir1 = dir2 = Integer(1)
                     if len(l1._leaves) == 0:
                         if len(l2._leaves) == 0:
@@ -291,7 +291,7 @@ class _EqualityOperator(_InequalityOperator):
                     else:
                         dir1 = l1._leaves[0]
                     if len(l2._leaves) == 0:
-                        if dir1.same(Integer(1)):
+                        if dir1.sameQ(Integer(1)):
                             return True
                         dir2 = Integer(1)
                     else:
@@ -309,10 +309,10 @@ class _EqualityOperator(_InequalityOperator):
         elif not l1.is_atom():
             if l1.get_head_name() == "System`CompiledFunction":
                 return None
-            if l1.get_head().same(SymbolDirectedInfinity):
+            if l1.get_head().sameQ(SymbolDirectedInfinity):
                 if isinstance(l2, Number):
                     return False
-                elif SymbolInfinity.same(l2):
+                elif SymbolInfinity.sameQ(l2):
                     if len(l1._leaves) == 0 or do_compare(l1._leaves[0], Integer(1)):
                         return True
 

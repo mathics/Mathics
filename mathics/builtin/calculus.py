@@ -253,7 +253,7 @@ class D(SympyFunction):
                     ),
                     *f.leaves
                 )
-                if leaf.same(x):
+                if leaf.sameQ(x):
                     return result
                 else:
                     return Expression("Times", result, Expression("D", leaf, x))
