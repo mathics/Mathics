@@ -739,10 +739,7 @@ class Expression(BaseExpression):
         if self.sameQ(rhs):
             return True
 
-        # If the types are the same then we'll use the classes definition of == (or __eq__).
-        # Superclasses which need to specialized this behavior should redefine equal2()
-        # Think about: should we use isinstance?
-        if type(self) == type(rhs):
+        if self.has_form("List", None) and rhs.has_form("List", None):
             if len(self._leaves) != len(rhs._leaves):
                 return False
             for item1, item2 in zip(self._leaves, rhs._leaves):
