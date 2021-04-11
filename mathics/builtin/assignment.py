@@ -63,6 +63,8 @@ def get_symbol_list(list, error_callback):
 
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
+        # TODO: This function should be splitted and simplified
+
         name = lhs.get_head_name()
         lhs._format_cache = None
         condition = None
