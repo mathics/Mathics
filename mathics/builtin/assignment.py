@@ -229,6 +229,10 @@ class _SetOperator(object):
             if allow_custom_tag:
                 for leaf in focus.get_leaves():
                     if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`HoldPattern",
+                    ):
+                        leaf = leaf.leaves[0]
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
                         "System`Pattern",
                     ):
                         leaf = leaf.leaves[1]
