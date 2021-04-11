@@ -163,7 +163,7 @@ class D(SympyFunction):
         elif not f.is_atom() and len(f.leaves) > 1:
 
             def summand(leaf, index):
-                if leaf.same(x):
+                if leaf.sameQ(x):
                     result = Expression(
                         Expression(
                             Expression(

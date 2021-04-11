@@ -1,6 +1,24 @@
 CHANGES
 =======
 
+2.1.1
+-----
+
+Enhancements
+++++++++++++
+
+* ``Table`` [*expr*, *n*] is supported.
+* ``ToString`` accepts an optional *form* parameter.
+* ``ToExpression`` handles multi-line string input
+* ``FileNames`` returns a sorted list (#1250).
+
+Bug fixes
++++++++++
+
+
+* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
+* ``$InstallationDirectory`` starts out Unprotected
+
 2.1.0
 -----
 
@@ -15,6 +33,7 @@ New builtins
 * ``NIntegrate``
 * ``PartitionsP``
 * ``$Notebooks``
+* ``SparseArray``
 
 Enhancements
 ++++++++++++

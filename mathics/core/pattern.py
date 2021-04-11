@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # cython: language_level=3
 # cython: profile=False
 # -*- coding: utf-8 -*-
@@ -96,8 +95,9 @@ class Pattern(object):
     def get_head_name(self):
         return self.expr.get_head_name()
 
-    def same(self, other):
-        return self.expr.same(other.expr)
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
+        return self.expr.sameQ(other.expr)
 
     def get_head(self):
         return self.expr.get_head()
@@ -154,12 +154,12 @@ class AtomPattern(Pattern):
         fully=True,
         wrap_oneid=True,
     ):
-        if expression.same(self.atom):
+        if expression.sameQ(self.atom):
             # yield vars, None
             yield_func(vars, None)
 
     def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
-        return [leaf for leaf in leaves if leaf.same(self.atom)]
+        return [leaf for leaf in leaves if leaf.sameQ(self.atom)]
 
     def get_match_count(self, vars={}):
         return (1, 1)
