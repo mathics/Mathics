@@ -2241,10 +2241,11 @@ class Assuming(Builtin):
     >> Assuming[y>0, $Assumptions]
      = {x > 0, y > 0}
     """
-    attributes = ("HoldRest", )
-    
+
+    attributes = ("HoldRest",)
+
     def apply_assuming(self, cond, expr, evaluation):
-        "Assuming[cond_, expr_]"                
+        "Assuming[cond_, expr_]"
         cond = cond.evaluate(evaluation)
         if cond.is_true():
             cond = []
@@ -2266,14 +2267,20 @@ class Assuming(Builtin):
             if assumptions.is_symbol() or not assumptions.has_form("List", None):
                 assumptions = [assumptions]
             else:
-                assumptions = assumptions.leaves 
+                assumptions = assumptions.leaves
             cond = assumptions + tuple(cond)
-        Expression("Set", Symbol("System`$Assumptions"), Expression("List", *cond)).evaluate(evaluation)
+        Expression(
+            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
+        ).evaluate(evaluation)
         ret = expr.evaluate(evaluation)
         if assumptions:
-            Expression("Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)).evaluate(evaluation)
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
+            ).evaluate(evaluation)
         else:
-            Expression("Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)).evaluate(evaluation)
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
+            ).evaluate(evaluation)
         return ret
 
 
