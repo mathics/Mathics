@@ -29,7 +29,8 @@ Enhancements
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
 * The implementation of Streams was redone
-
+* a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
+  
 Bug fixes
 +++++++++
 

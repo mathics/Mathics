@@ -509,14 +509,17 @@ class Integrate(SympyFunction):
 
     >> Integrate[f'[x], {x, a, b}]
      = f[b] - f[a]
+    >> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
+     = Piecewise[{{t / 2, Abs[Arg[t]] < Pi / 2}, {Integrate[x E ^ (-x ^ 2 / t), {x, 0, Infinity}], True}}]
+    >> Assuming[Abs[Arg[t]] < Pi / 2, Integrate[x/Exp[x^2/t], {x, 0, Infinity}]]
+     = t / 2
+
     """
 
     # TODO
     """
     >> Integrate[Sqrt[Tan[x]], x]
      = 1/4 Log[1 + Tan[x] - Sqrt[2] Sqrt[Tan[x]]] Sqrt[2] + 1/2 ArcTan[-1/2 (Sqrt[2] - 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] + 1/2 ArcTan[1/2 (Sqrt[2] + 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] - 1/4 Log[1 + Tan[x] + Sqrt[2] Sqrt[Tan[x]]] Sqrt[2]
-    #> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
-     = ConditionalExpression[-, Re[t] > 0]
     >> Integrate[f'[x], {x, a, b}]
      = f[b] - f[a]
     """
@@ -561,7 +564,7 @@ class Integrate(SympyFunction):
 
     def apply(self, f, xs, evaluation):
         "Integrate[f_, xs__]"
-
+        uneval_expr = Expression("Integrate", f, xs.evaluate(evaluation))
         f_sympy = f.to_sympy()
         if f_sympy is None or isinstance(f_sympy, SympyExpression):
             return
@@ -604,11 +607,19 @@ class Integrate(SympyFunction):
             # e.g. NotImplementedError: Result depends on the sign of
             # -sign(_Mathics_User_j)*sign(_Mathics_User_w)
             return
-
         if prec is not None and isinstance(result, sympy.Integral):
             # TODO MaxExtaPrecision -> maxn
             result = result.evalf(dps(prec))
-        result = from_sympy(result)
+        else:
+            result = from_sympy(result)
+        # If the result is defined as a Piecewise expression,
+        # use ConditionalExpression.
+        # This does not work now because the form sympy returns the values
+        if result.get_head_name() == "System`Piecewise":
+           cases = result._leaves[0]._leaves
+           if len(cases) == 2 and len(result._leaves) == 1:
+               if (cases[-1]._leaves[1] == SymbolTrue and cases[-1]._leaves[0] == uneval_expr):
+                   result = Expression("ConditionalExpression", *(cases[0]._leaves))
         return result
 
 

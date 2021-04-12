@@ -41,13 +41,16 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolUndefined,
     SymbolSequence,
+    SymbolList,
     from_mpmath,
     from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy, SympyExpression
+from mathics.core.convert import from_sympy, SympyExpression, sympy_symbol_prefix
+from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.logic import get_assumptions_list, evaluate_predicate
 
 
 @lru_cache(maxsize=1024)
@@ -1307,6 +1310,7 @@ class Arg(_MPMathFunction):
     rules = {"Arg[DirectedInfinity[]]": "1",
              "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
+
     sympy_name = "arg"
     mpmath_name = "arg"
 
@@ -2189,15 +2193,18 @@ class Piecewise(SympyFunction):
 
     def apply(self, items, evaluation):
         "%(name)s[items__]"
-        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()))
+        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()),
+                               evaluation=evaluation
+        )
         if result is None:
             return
         if not isinstance(result, sympy.Piecewise):
-            return from_sympy(result)
+            result = from_sympy(result)
+            return result
 
     def to_sympy(self, expr, **kwargs):
         leaves = expr.leaves
-
+        evaluation = kwargs.get('evaluation', None)
         if len(leaves) not in (1, 2):
             return
 
@@ -2208,7 +2215,9 @@ class Piecewise(SympyFunction):
             if len(case.leaves) != 2:
                 return
             then, cond = case.leaves
-
+            if evaluation:
+                cond = evaluate_predicate(cond, evaluation)
+            
             sympy_cond = None
             if isinstance(cond, Symbol):
                 if cond == SymbolTrue:
@@ -2283,63 +2292,49 @@ class Assuming(Builtin):
     """
     <dl>
     <dt>'Assuming[$cond$, $expr$]'
-      <dd>Evaluates $expr$ assuming the conditions $cond$
+      <dd>Evaluates $expr$ assuming the conditions $cond$.
     </dl>
     >> $Assumptions = { x > 0 }
      = {x > 0}
-    >> Assuming[y>0, $Assumptions]
-     = {x > 0, y > 0}
+    >> Assuming[y>0, ConditionalExpression[y x^2, y>0]]
+     = x ^ 2 y
+    >> Assuming[Not[y>0], ConditionalExpression[y x^2, y>0]]
+     = Undefined
+    >> ConditionalExpression[y x ^ 2, y > 0]
+     = ConditionalExpression[x ^ 2 y, y > 0]
     """
 
     attributes = ("HoldRest",)
 
-    def apply_assuming(self, cond, expr, evaluation):
-        "Assuming[cond_, expr_]"
-        cond = cond.evaluate(evaluation)
-        if cond.is_true():
+    def apply_assuming(self, asumptions, expr, evaluation):
+        "Assuming[asumptions_, expr_]"
+        asumptions = asumptions.evaluate(evaluation)
+        if asumptions.is_true():
             cond = []
-        elif cond.is_symbol() or not cond.has_form("List", None):
-            cond = [cond]
+        elif asumptions.is_symbol() or not asumptions.has_form("List", None):
+            cond = [asumptions]
         else:
-            cond = cond.leaves
-        assumptions = evaluation.definitions.get_definition(
-            "System`$Assumptions", only_if_exists=True
+            cond = asumptions._leaves
+        cond = cond + get_assumptions_list(evaluation)
+        list_cond = Expression("List", *cond)
+        # TODO: reduce the list of predicates
+        return dynamic_scoping(
+            lambda ev: expr.evaluate(ev), {"System`$Assumptions": list_cond}, evaluation
         )
-
-        if assumptions:
-            assumptions = assumptions.ownvalues
-            if len(assumptions) > 0:
-                assumptions = assumptions[0].replace
-            else:
-                assumptions = None
-        if assumptions:
-            if assumptions.is_symbol() or not assumptions.has_form("List", None):
-                assumptions = [assumptions]
-            else:
-                assumptions = assumptions.leaves
-            cond = assumptions + tuple(cond)
-        Expression(
-            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
-        ).evaluate(evaluation)
-        ret = expr.evaluate(evaluation)
-        if assumptions:
-            Expression(
-                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
-            ).evaluate(evaluation)
-        else:
-            Expression(
-                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
-            ).evaluate(evaluation)
-        return ret
 
 
 class ConditionalExpression(Builtin):
     """
     <dl>
-    <dt>'ConditionalExpression[$expr$, $cond$]'
-      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
-          $cond$ evaluates to $False$.
+      <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if $cond$ evaluates to $False$.
     </dl>
+
+    >> ConditionalExpression[x^2, True]
+     = x ^ 2
+
+     >> ConditionalExpression[x^2, False]
+     = Undefined
 
     >> f = ConditionalExpression[x^2, x>0]
      = ConditionalExpression[x ^ 2, x > 0]
@@ -2347,7 +2342,14 @@ class ConditionalExpression(Builtin):
      = 4
     >> f /. x -> -2
      = Undefined
+    'ConditionalExpression' uses assumptions to evaluate the condition:
+    >> $Assumptions = x > 0;
+    >> ConditionalExpression[x ^ 2, x>0]
+     = x ^ 2
+    >> $Assumptions = True;
     """
+
+    sympy_name = "Piecewise"
 
     rules = {
         "ConditionalExpression[expr_, True]": "expr",
@@ -2356,7 +2358,14 @@ class ConditionalExpression(Builtin):
 
     def apply_generic(self, expr, cond, evaluation):
         "ConditionalExpression[expr_, cond_]"
-        cond = cond.evaluate(evaluation)
+        # What we need here is a way to evaluate
+        # cond as a predicate, using assumptions.
+        # Let's delegate this to the And (and Or) symbols...
+        if not cond.is_atom() and cond._head == SymbolList:
+            cond = Expression("System`And", *(cond._leaves))
+        else:
+            cond = Expression("System`And", cond)
+        cond = evaluate_predicate(cond, evaluation)
         if cond is None:
             return
         if cond.is_true():
@@ -2364,3 +2373,26 @@ class ConditionalExpression(Builtin):
         if cond == SymbolFalse:
             return SymbolUndefined
         return
+
+    def to_sympy(self, expr, **kwargs):
+        leaves = expr.leaves
+        if len(leaves) != 2:
+            return
+        expr, cond = leaves
+
+        sympy_cond = None
+        if isinstance(cond, Symbol):
+            if cond == SymbolTrue:
+                sympy_cond = True
+            elif cond == SymbolFalse:
+                sympy_cond = False
+        if sympy_cond is None:
+            sympy_cond = cond.to_sympy(**kwargs)
+            if not (sympy_cond.is_Relational or sympy_cond.is_Boolean):
+                return
+
+        sympy_cases = (
+            (expr.to_sympy(**kwargs), sympy_cond),
+            (sympy.Symbol(sympy_symbol_prefix + "System`Undefined"), True),
+        )
+        return sympy.Piecewise(*sympy_cases)
