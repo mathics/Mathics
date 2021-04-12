@@ -33,19 +33,20 @@ from mathics.core.expression import (
     Symbol,
     SymbolComplexInfinity,
     SymbolDirectedInfinity,
-    SymbolFalse,
     SymbolInfinity,
     SymbolN,
     SymbolNull,
     SymbolSequence,
     SymbolTrue,
+    SymbolFalse,
+    SymbolUndefined,
     from_mpmath,
     from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy, SympyExpression
+from mathics.core.convert import from_sympy, SympyExpression, sympy_symbol_prefix
 
 
 @lru_cache(maxsize=1024)
@@ -675,7 +676,9 @@ class Times(BinaryOperator, SympyFunction):
                     Expression("Plus", item.leaves[1], leaves[-1].leaves[1]),
                 )
             elif (
-                leaves and item.has_form("Power", 2) and item.leaves[0].sameQ(leaves[-1])
+                leaves
+                and item.has_form("Power", 2)
+                and item.leaves[0].sameQ(leaves[-1])
             ):
                 leaves[-1] = Expression(
                     "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer(1))
@@ -1135,12 +1138,16 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
+        if len(expr._leaves) == 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo
             elif dir == -1:
                 return -sympy.oo
+            else:
+                return sympy.Mul((expr._leaves[0].to_sympy()), sympy.zoo)
+        else:
+            return sympy.zoo
 
 
 class Re(SympyFunction):
@@ -2205,3 +2212,131 @@ class Boole(Builtin):
             elif expr == SymbolFalse:
                 return Integer(0)
         return None
+
+
+class Assumptions(Predefined):
+    """
+    <dl>
+    <dt>'$Assumptions'
+      <dd>is the default setting for the Assumptions option used in such
+   functions as Simplify, Refine, and Integrate. 
+    </dl>
+    """
+
+    name = "$Assumptions"
+    attributes = ("Unprotected",)
+    rules = {
+        "$Assumptions": "True",
+    }
+
+
+class Assuming(Builtin):
+    """
+    <dl>
+    <dt>'Assuming[$cond$, $expr$]'
+      <dd>Evaluates $expr$ assuming the conditions $cond$
+    </dl>
+    >> $Assumptions = { x > 0 }
+     = {x > 0}
+    >> Assuming[y>0, $Assumptions]
+     = {x > 0, y > 0}
+    """
+
+    attributes = ("HoldRest",)
+
+    def apply_assuming(self, cond, expr, evaluation):
+        "Assuming[cond_, expr_]"
+        cond = cond.evaluate(evaluation)
+        if cond.is_true():
+            cond = []
+        elif cond.is_symbol() or not cond.has_form("List", None):
+            cond = [cond]
+        else:
+            cond = cond.leaves
+        assumptions = evaluation.definitions.get_definition(
+            "System`$Assumptions", only_if_exists=True
+        )
+
+        if assumptions:
+            assumptions = assumptions.ownvalues
+            if len(assumptions) > 0:
+                assumptions = assumptions[0].replace
+            else:
+                assumptions = None
+        if assumptions:
+            if assumptions.is_symbol() or not assumptions.has_form("List", None):
+                assumptions = [assumptions]
+            else:
+                assumptions = assumptions.leaves
+            cond = assumptions + tuple(cond)
+        Expression(
+            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
+        ).evaluate(evaluation)
+        ret = expr.evaluate(evaluation)
+        if assumptions:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
+            ).evaluate(evaluation)
+        else:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
+            ).evaluate(evaluation)
+        return ret
+
+
+class ConditionalExpression(SympyFunction):
+    """
+    <dl>
+    <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
+          $cond$ evaluates to $False$.
+    </dl>
+
+    >> f = ConditionalExpression[x^2, x>0]
+     = ConditionalExpression[x ^ 2, x > 0]
+    >> f /. x -> 2
+     = 4
+    >> f /. x -> -2
+     = Undefined
+    """
+
+    sympy_name = "Piecewise"
+
+    rules = {
+        "ConditionalExpression[expr_, True]": "expr",
+        "ConditionalExpression[expr_, False]": "Undefined",
+    }
+
+    def apply_generic(self, expr, cond, evaluation):
+        "ConditionalExpression[expr_, cond_]"
+        cond = cond.evaluate(evaluation)
+        if cond is None:
+            return
+        if cond.is_true():
+            return expr
+        if cond == SymbolFalse:
+            return SymbolUndefined
+        return
+
+    def to_sympy(self, expr, **kwargs):
+        leaves = expr.leaves
+        if len(leaves) != 2:
+            return
+        expr, cond = leaves
+
+        sympy_cond = None
+        if isinstance(cond, Symbol):
+            if cond == SymbolTrue:
+                sympy_cond = True
+            elif cond == SymbolFalse:
+                sympy_cond = False
+        if sympy_cond is None:
+            sympy_cond = cond.to_sympy(**kwargs)
+            if not (sympy_cond.is_Relational or sympy_cond.is_Boolean):
+                return
+
+        sympy_cases = (
+                (expr.to_sympy(**kwargs), sympy_cond),
+                (sympy.Symbol(sympy_symbol_prefix + "System`Undefined"), True),
+            )
+        return sympy.Piecewise(*sympy_cases)
