@@ -17,6 +17,24 @@ from mathics.core.rules import Rule
 from typing import Optional, Union, Any
 
 
+def evaluate_predicate(pred, evaluation):
+    assumptions_list = get_assumptions_list(evaluation)
+    assumption_rules = []
+    for pat in assumptions_list:
+        if pat.get_head() == Symbol("Not"):
+            assumption_rules.append(Rule(pat._leaves[0], SymbolFalse))
+        else:
+            assumption_rules.append(Rule(pat, SymbolTrue))
+    # TODO: expand the pred and assumptions into an standard,
+    # atomized form, and then apply the rules...
+    pred = pred.evaluate(evaluation)
+    changed = True
+    while changed:
+        pred, changed = pred.apply_rules(assumption_rules, evaluation)
+    pred = pred.evaluate(evaluation)
+    return pred
+
+
 def get_assumptions_list(evaluation) -> Optional[list]:
     assumptions = None
     assumptions_def = evaluation.definitions.get_definition(
@@ -46,31 +64,9 @@ def get_assumptions_list(evaluation) -> Optional[list]:
         if assumption.is_numeric():
             evaluation.message("Assumption", "baas")
             continue
-        # TODO: Process other inference rules...
+        # TODO: Pre-process other inference rules...
         assumptions_list.append(assumption)
-    if len(assumptions_list) == 0:
-        return
     return assumptions_list
-
-
-def evaluate_predicate(pred, evaluation):
-    newpred = pred.evaluate(evaluation)
-    if not newpred is None:
-        pred = newpred
-    if pred.is_atom():
-        return pred
-    # Reduce pred to a single pred
-    if pred.has_form("List", None):
-        pred = pred.flatten(SymbolList)
-        for leaf in pred._leaves:
-            if leaf == SymbolFalse:
-                return SymbolFalse
-        pred = Expression("And", *(pred._leaves))
-    # Now, use assumptions and sympy to reduce the predicate
-    assumptions_list = get_assumptions_list(evaluation)
-    assumption_rules = [Rule(a, True) for a in assumptions_list]
-    pred = pred.apply_rules(assumption_rules, evaluation)
-    return pred
 
 
 class Or(BinaryOperator):
@@ -102,7 +98,7 @@ class Or(BinaryOperator):
         args = args.get_sequence()
         leaves = []
         for arg in args:
-            result = arg.evaluate(evaluation)
+            result = evaluate_predicate(arg, evaluation)
             if result.is_true():
                 return SymbolTrue
             elif result != SymbolFalse:
@@ -145,7 +141,7 @@ class And(BinaryOperator):
         args = args.get_sequence()
         leaves = []
         for arg in args:
-            result = arg.evaluate(evaluation)
+            result = evaluate_predicate(arg, evaluation)
             if result == SymbolFalse:
                 return SymbolFalse
             elif not result.is_true():
@@ -214,13 +210,13 @@ class Implies(BinaryOperator):
     def apply(self, x, y, evaluation):
         "Implies[x_, y_]"
 
-        result0 = x.evaluate(evaluation)
+        result0 = evaluate_predicate(x, evaluation)
         if result0 == SymbolFalse:
             return SymbolTrue
         elif result0.is_true():
-            return y.evaluate(evaluation)
+            return evaluate_predicate(y, evaluation)
         else:
-            return Expression("Implies", result0, y.evaluate(evaluation))
+            return Expression("Implies", result0, evaluate_predicate(y, evaluation))
 
 
 class Equivalent(BinaryOperator):
@@ -261,7 +257,7 @@ class Equivalent(BinaryOperator):
             return SymbolTrue
         flag = False
         for arg in args:
-            result = arg.evaluate(evaluation)
+            result = evaluate_predicate(arg, evaluation)
             if result == SymbolFalse or result.is_true():
                 flag = not flag
                 break
@@ -317,7 +313,7 @@ class Xor(BinaryOperator):
         leaves = []
         flag = True
         for arg in args:
-            result = arg.evaluate(evaluation)
+            result = evaluate_predicate(arg, evaluation)
             if result.is_true():
                 flag = not flag
             elif result != SymbolFalse:
