@@ -50,7 +50,8 @@ from mathics.core.numbers import min_prec, dps, SpecialValueError
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression, sympy_symbol_prefix
 from mathics.builtin.scoping import dynamic_scoping
-from mathics.builtin.logic import get_assumptions_list
+from mathics.builtin.logic import get_assumptions_list, evaluate_predicate
+
 
 @lru_cache(maxsize=1024)
 def call_mpmath(mpmath_function, mpmath_args):
@@ -1306,9 +1307,12 @@ class Arg(_MPMathFunction):
     >> Arg[DirectedInfinity[]]
      = 1
     """
-    rules = {"Arg[DirectedInfinity[]]": "1",
-             "Arg[DirectedInfinity[a_]]": "Arg[a]",
+
+    rules = {
+        "Arg[DirectedInfinity[]]": "1",
+        "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
+
     sympy_name = "arg"
     mpmath_name = "arg"
 
@@ -2191,15 +2195,18 @@ class Piecewise(SympyFunction):
 
     def apply(self, items, evaluation):
         "%(name)s[items__]"
-        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()))
+        result = self.to_sympy(
+            Expression("Piecewise", *items.get_sequence()), evaluation=evaluation
+        )
         if result is None:
             return
         if not isinstance(result, sympy.Piecewise):
-            return from_sympy(result)
+            result = from_sympy(result)
+            return result
 
     def to_sympy(self, expr, **kwargs):
         leaves = expr.leaves
-
+        evaluation = kwargs.get("evaluation", None)
         if len(leaves) not in (1, 2):
             return
 
@@ -2210,6 +2217,8 @@ class Piecewise(SympyFunction):
             if len(case.leaves) != 2:
                 return
             then, cond = case.leaves
+            if evaluation:
+                cond = evaluate_predicate(cond, evaluation)
 
             sympy_cond = None
             if isinstance(cond, Symbol):
@@ -2289,25 +2298,31 @@ class Assuming(Builtin):
     </dl>
     >> $Assumptions = { x > 0 }
      = {x > 0}
-    >> Assuming[y>0, $Assumptions]
-     = {y > 0, x > 0}
+    >> Assuming[y>0, ConditionalExpression[y x^2, y>0]]
+     = x ^ 2 y
+    >> Assuming[Not[y>0], ConditionalExpression[y x^2, y>0]]
+     = Undefined
+    >> ConditionalExpression[y x ^ 2, y > 0]
+     = ConditionalExpression[x ^ 2 y, y > 0]
     """
 
     attributes = ("HoldRest",)
 
-    def apply_assuming(self, asumptions, expr, evaluation):
-        "Assuming[asumptions_, expr_]"
-        asumptions = asumptions.evaluate(evaluation)
-        if asumptions.is_true():
+    def apply_assuming(self, assumptions, expr, evaluation):
+        "Assuming[assumptions_, expr_]"
+        assumptions = assumptions.evaluate(evaluation)
+        if assumptions.is_true():
             cond = []
-        elif asumptions.is_symbol() or not asumptions.has_form("List", None):
-            cond = [asumptions]
+        elif assumptions.is_symbol() or not assumptions.has_form("List", None):
+            cond = [assumptions]
         else:
-            cond = asumptions._leaves
+            cond = assumptions._leaves
         cond = cond + get_assumptions_list(evaluation)
         list_cond = Expression("List", *cond)
         # TODO: reduce the list of predicates
-        return dynamic_scoping(lambda ev: expr.evaluate(ev), {"System`$Assumptions":list_cond}, evaluation)
+        return dynamic_scoping(
+            lambda ev: expr.evaluate(ev), {"System`$Assumptions": list_cond}, evaluation
+        )
 
 
 class ConditionalExpression(Builtin):
@@ -2329,6 +2344,11 @@ class ConditionalExpression(Builtin):
      = 4
     >> f /. x -> -2
      = Undefined
+    'ConditionalExpression' uses assumptions to evaluate the condition:
+    >> $Assumptions = x > 0;
+    >> ConditionalExpression[x ^ 2, x>0]
+     = x ^ 2
+    >> $Assumptions = True;
     """
 
     sympy_name = "Piecewise"
@@ -2347,7 +2367,7 @@ class ConditionalExpression(Builtin):
             cond = Expression("System`And", *(cond._leaves))
         else:
             cond = Expression("System`And", cond)
-        cond = cond.evaluate(evaluation)
+        cond = evaluate_predicate(cond, evaluation)
         if cond is None:
             return
         if cond.is_true():
@@ -2374,7 +2394,7 @@ class ConditionalExpression(Builtin):
                 return
 
         sympy_cases = (
-                (expr.to_sympy(**kwargs), sympy_cond),
-                (sympy.Symbol(sympy_symbol_prefix + "System`Undefined"), True),
-            )
+            (expr.to_sympy(**kwargs), sympy_cond),
+            (sympy.Symbol(sympy_symbol_prefix + "System`Undefined"), True),
+        )
         return sympy.Piecewise(*sympy_cases)
