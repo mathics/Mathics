@@ -9,7 +9,7 @@ from mathics.core.expression import (
     Integer,
     fully_qualified_symbol_name,
 )
-from mathics.core.rules import Rule
+
 from mathics.core.evaluation import Evaluation
 
 

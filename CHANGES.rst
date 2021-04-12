@@ -10,7 +10,9 @@ New builtins
 
 * ``Arg``
 * ``Dispatch``
+* ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``Nand`` and ``Nor`` logical functions.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
@@ -20,19 +22,23 @@ New builtins
 Enhancements
 ++++++++++++
 
+* a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
 * ``Attributes`` accepts a string parameter.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
-* ``FixedPoint`` now supports the ``SameTest`` option.
+* ``FixedPoint`` now supports the ``SameTest`` option.  
 * ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
+* ``Simplify`` performs a more sophisticated set of simplifications.
+* ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
 * The implementation of Streams was redone.
+  
 
 Bug fixes
 +++++++++

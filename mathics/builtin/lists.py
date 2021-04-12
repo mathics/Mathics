@@ -19,13 +19,12 @@ from mathics.builtin.base import (
     PartRangeError,
     Predefined,
     SympyFunction,
-)
-from mathics.builtin.scoping import dynamic_scoping
-from mathics.builtin.base import (
     MessageException,
     NegativeIntegerException,
     CountableInteger,
 )
+from mathics.builtin.scoping import dynamic_scoping
+
 from mathics.core.expression import (
     Expression,
     String,
@@ -51,7 +50,9 @@ from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
+
 from mathics.builtin.algebra import cancel
+
 from mathics.algorithm.introselect import introselect
 from mathics.algorithm.clusters import (
     optimize,
@@ -61,6 +62,7 @@ from mathics.algorithm.clusters import (
     LazyDistances,
 )
 from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
+
 from mathics.builtin.options import options_to_rules
 
 import sympy
@@ -2007,7 +2009,9 @@ class Cases(Builtin):
         "Cases[pattern_][list_]": "Cases[list, pattern]",
     }
 
-    options = {"Heads": "False",}
+    options = {
+        "Heads": "False",
+    }
 
     def apply(self, items, pattern, ls, evaluation, options):
         "Cases[items_, pattern_, ls_:{1}, OptionsPattern[]]"
@@ -2045,7 +2049,7 @@ class Cases(Builtin):
                 return level
 
         # TODO
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
+        heads = self.get_option(options, "Heads", evaluation).is_true()
         # heads = False
 
         walk_levels(items, start, stop, heads=heads, callback=callback)

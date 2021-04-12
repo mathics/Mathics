@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Rational,
@@ -41,13 +42,16 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolUndefined,
     SymbolSequence,
+    SymbolList,
     from_mpmath,
     from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy, SympyExpression
+from mathics.core.convert import from_sympy, SympyExpression, sympy_symbol_prefix
+from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.inference import get_assumptions_list, evaluate_predicate
 
 
 @lru_cache(maxsize=1024)
@@ -740,7 +744,7 @@ class Times(BinaryOperator, SympyFunction):
         elif number.sameQ(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
                 leaves[0].get_head(),
-                *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves]
+                *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves],
             )
             number = None
 
@@ -952,6 +956,7 @@ class Power(BinaryOperator, _MPMathFunction):
     rules = {
         "Power[]": "1",
         "Power[x_]": "x",
+        "Power[0, x_]": "ConditionalExpression[0, Re[x]>0]",
     }
 
     def apply_check(self, x, y, evaluation):
@@ -1297,12 +1302,26 @@ class Abs(_MPMathFunction):
 
 class Arg(_MPMathFunction):
     """
-    <dl>
-    <dt>'Arg[$z$]'
-        <dd>returns the argument of a complex value $z$.
-    </dl>
-    >> Arg[-3]
-     = Pi
+     <dl>
+       <dt>'Arg'[$z$, $method_option$]</dt>
+       <dd>returns the argument of a complex value $z$.</dd>
+
+       <ul>
+         <li>'Arg'[$z$] is left unevaluated if $z$ is not a numeric quantity.
+         <li>'Arg'[$z$] gives the phase angle of $z$ in radians.
+         <li>The result from 'Arg'[$z$] is always between -Pi and +Pi.
+         <li>'Arg'[$z$] has a branch cut discontinuity in the complex $z$ plane running from -Infinity to 0.
+         <li>'Arg'[0] is 0.
+      </ul>
+     </dl>
+
+     >> Arg[-3]
+      = Pi
+
+     Same as above using sympy's method:
+     >> Arg[-3, Method->"sympy"]
+      = Pi
+
     >> Arg[1-I]
      = -Pi / 4
 
@@ -1312,14 +1331,39 @@ class Arg(_MPMathFunction):
      = Pi / 4
     >> Arg[DirectedInfinity[]]
      = 1
+    Arg for 0 is assumed to be 0:
+    >> Arg[0]
+     = 0
     """
-    rules = {"Arg[DirectedInfinity[]]": "1",
-             "Arg[DirectedInfinity[a_]]": "Arg[a]",
+    rules = {
+        "Arg[0]": "0",
+        "Arg[DirectedInfinity[]]": "1",
+        "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
-    attributes = ("Listable", "NumericFunction")
 
+    attributes = ("Listable", "NumericFunction")
+    options = {"Method": "Automatic"}
+
+    numpy_name = "angle" # for later
     mpmath_name = "arg"
     sympy_name = "arg"
+
+    def apply(self, z, evaluation, options={}):
+        "%(name)s[z_, OptionsPattern[%(name)s]]"
+        if Expression("PossibleZeroQ", z).evaluate(evaluation) == SymbolTrue:
+            return Integer0
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
+        if preference is None or preference == "Automatic":
+            return super(Arg, self).apply(z, evaluation)
+        elif preference == "mpmath":
+            return _MPMathFunction.apply(self, z, evaluation)
+        elif preference == "sympy":
+            return SympyFunction.apply(self, z)
+        # TODO: add NumpyFunction
+        evaluation.message(
+            "meth", f'Arg Method {preference} not in ("sympy", "mpmath")'
+        )
+        return
 
 
 class Sign(SympyFunction):
@@ -2182,7 +2226,7 @@ class Piecewise(SympyFunction):
     ## Piecewise({{0, Or[x < 0, x > 0]}}, Indeterminate).
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], x]
-     = Piecewise[{{x, x <= 0}, {-x, True}}]
+     = Piecewise[{{x, !x > 0}}, -x]
 
     >> Integrate[Piecewise[{{1, x <= 0}, {-1, x > 0}}], {x, -1, 2}]
      = -1
@@ -2204,15 +2248,18 @@ class Piecewise(SympyFunction):
 
     def apply(self, items, evaluation):
         "%(name)s[items__]"
-        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()))
+        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()),
+                               evaluation=evaluation
+        )
         if result is None:
             return
         if not isinstance(result, sympy.Piecewise):
-            return from_sympy(result)
+            result = from_sympy(result)
+            return result
 
     def to_sympy(self, expr, **kwargs):
         leaves = expr.leaves
-
+        evaluation = kwargs.get("evaluation", None)
         if len(leaves) not in (1, 2):
             return
 
@@ -2223,6 +2270,8 @@ class Piecewise(SympyFunction):
             if len(case.leaves) != 2:
                 return
             then, cond = case.leaves
+            if evaluation:
+                cond = evaluate_predicate(cond, evaluation)
 
             sympy_cond = None
             if isinstance(cond, Symbol):
@@ -2280,11 +2329,11 @@ class Boole(Builtin):
 
 class Assumptions(Predefined):
     """
-    <dl>
-    <dt>'$Assumptions'
-      <dd>is the default setting for the Assumptions option used in such
-   functions as Simplify, Refine, and Integrate.
-    </dl>
+     <dl>
+     <dt>'$Assumptions'
+       <dd>is the default setting for the Assumptions option used in such
+    functions as Simplify, Refine, and Integrate.
+     </dl>
     """
 
     name = "$Assumptions"
@@ -2298,63 +2347,49 @@ class Assuming(Builtin):
     """
     <dl>
     <dt>'Assuming[$cond$, $expr$]'
-      <dd>Evaluates $expr$ assuming the conditions $cond$
+      <dd>Evaluates $expr$ assuming the conditions $cond$.
     </dl>
     >> $Assumptions = { x > 0 }
      = {x > 0}
-    >> Assuming[y>0, $Assumptions]
-     = {x > 0, y > 0}
+    >> Assuming[y>0, ConditionalExpression[y x^2, y>0]//Simplify]
+     = x ^ 2 y
+    >> Assuming[Not[y>0], ConditionalExpression[y x^2, y>0]//Simplify]
+     = Undefined
+    >> ConditionalExpression[y x ^ 2, y > 0]//Simplify
+     = ConditionalExpression[x ^ 2 y, y > 0]
     """
 
     attributes = ("HoldRest",)
 
-    def apply_assuming(self, cond, expr, evaluation):
-        "Assuming[cond_, expr_]"
-        cond = cond.evaluate(evaluation)
-        if cond.is_true():
+    def apply_assuming(self, assumptions, expr, evaluation):
+        "Assuming[assumptions_, expr_]"
+        assumptions = assumptions.evaluate(evaluation)
+        if assumptions.is_true():
             cond = []
-        elif cond.is_symbol() or not cond.has_form("List", None):
-            cond = [cond]
+        elif assumptions.is_symbol() or not assumptions.has_form("List", None):
+            cond = [assumptions]
         else:
-            cond = cond.leaves
-        assumptions = evaluation.definitions.get_definition(
-            "System`$Assumptions", only_if_exists=True
+            cond = assumptions._leaves
+        cond = tuple(cond) + get_assumptions_list(evaluation)
+        list_cond = Expression("List", *cond)
+        # TODO: reduce the list of predicates
+        return dynamic_scoping(
+            lambda ev: expr.evaluate(ev), {"System`$Assumptions": list_cond}, evaluation
         )
-
-        if assumptions:
-            assumptions = assumptions.ownvalues
-            if len(assumptions) > 0:
-                assumptions = assumptions[0].replace
-            else:
-                assumptions = None
-        if assumptions:
-            if assumptions.is_symbol() or not assumptions.has_form("List", None):
-                assumptions = [assumptions]
-            else:
-                assumptions = assumptions.leaves
-            cond = assumptions + tuple(cond)
-        Expression(
-            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
-        ).evaluate(evaluation)
-        ret = expr.evaluate(evaluation)
-        if assumptions:
-            Expression(
-                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
-            ).evaluate(evaluation)
-        else:
-            Expression(
-                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
-            ).evaluate(evaluation)
-        return ret
 
 
 class ConditionalExpression(Builtin):
     """
     <dl>
-    <dt>'ConditionalExpression[$expr$, $cond$]'
-      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
-          $cond$ evaluates to $False$.
+      <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if $cond$ evaluates to $False$.
     </dl>
+
+    >> ConditionalExpression[x^2, True]
+     = x ^ 2
+
+     >> ConditionalExpression[x^2, False]
+     = Undefined
 
     >> f = ConditionalExpression[x^2, x>0]
      = ConditionalExpression[x ^ 2, x > 0]
@@ -2362,16 +2397,36 @@ class ConditionalExpression(Builtin):
      = 4
     >> f /. x -> -2
      = Undefined
+    'ConditionalExpression' uses assumptions to evaluate the condition:
+    >> $Assumptions = x > 0;
+    >> ConditionalExpression[x ^ 2, x>0]//Simplify
+     = x ^ 2
+    >> $Assumptions = True;
+    >> ConditionalExpression[ConditionalExpression[s,x>a], x<b]
+     = ConditionalExpression[s, And[x>a, x<b]]
     """
+
+    sympy_name = "Piecewise"
 
     rules = {
         "ConditionalExpression[expr_, True]": "expr",
         "ConditionalExpression[expr_, False]": "Undefined",
+        "ConditionalExpression[ConditionalExpression[expr_, cond1_], cond2_]": "ConditionalExpression[expr, And@@Flatten[{cond1, cond2}]]",
+        "ConditionalExpression[expr1_, cond_] + expr2_": "ConditionalExpression[expr1+expr2, cond]",
+        "ConditionalExpression[expr1_, cond_]  expr2_": "ConditionalExpression[expr1 expr2, cond]",
+        "ConditionalExpression[expr1_, cond_]^expr2_": "ConditionalExpression[expr1^expr2, cond]",
+        "expr1_ ^ ConditionalExpression[expr2_, cond_]": "ConditionalExpression[expr1^expr2, cond]",
     }
 
     def apply_generic(self, expr, cond, evaluation):
         "ConditionalExpression[expr_, cond_]"
-        cond = cond.evaluate(evaluation)
+        # What we need here is a way to evaluate
+        # cond as a predicate, using assumptions.
+        # Let's delegate this to the And (and Or) symbols...
+        if not cond.is_atom() and cond._head == SymbolList:
+            cond = Expression("System`And", *(cond._leaves))
+        else:
+            cond = Expression("System`And", cond)
         if cond is None:
             return
         if cond.is_true():
@@ -2379,3 +2434,26 @@ class ConditionalExpression(Builtin):
         if cond == SymbolFalse:
             return SymbolUndefined
         return
+
+    def to_sympy(self, expr, **kwargs):
+        leaves = expr.leaves
+        if len(leaves) != 2:
+            return
+        expr, cond = leaves
+
+        sympy_cond = None
+        if isinstance(cond, Symbol):
+            if cond == SymbolTrue:
+                sympy_cond = True
+            elif cond == SymbolFalse:
+                sympy_cond = False
+        if sympy_cond is None:
+            sympy_cond = cond.to_sympy(**kwargs)
+            if not (sympy_cond.is_Relational or sympy_cond.is_Boolean):
+                return
+
+        sympy_cases = (
+            (expr.to_sympy(**kwargs), sympy_cond),
+            (sympy.Symbol(sympy_symbol_prefix + "System`Undefined"), True),
+        )
+        return sympy.Piecewise(*sympy_cases)
