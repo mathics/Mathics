@@ -3,7 +3,74 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator, Builtin
 from mathics.builtin.lists import InvalidLevelspecError, python_levelspec, walk_levels
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import (
+    Expression,
+    Symbol,
+    SymbolTrue,
+    SymbolFalse,
+    SymbolUndefined,
+    SymbolList,
+)
+
+from mathics.core.rules import Rule
+
+from typing import Optional, Union, Any
+
+
+def get_assumptions_list(evaluation) -> Optional[list]:
+    assumptions = None
+    assumptions_def = evaluation.definitions.get_definition(
+        "System`$Assumptions", only_if_exists=True
+    )
+    if assumptions_def:
+        assumptions = assumptions_def.ownvalues
+        if len(assumptions) > 0:
+            assumptions = assumptions[0].replace
+    if assumptions is None:
+        return None
+
+    if assumptions.is_atom() or not assumptions.has_form("List", None):
+        assumptions = (assumptions,)
+    else:
+        assumptions = assumptions._leaves
+
+    # Remove True, and malformed assumptions
+
+    assumptions_list = []
+    for assumption in assumptions:
+        if assumption.is_true():
+            continue
+        if assumption == SymbolFalse:
+            evaluation.message("Assumption", "faas")
+            continue
+        if assumption.is_numeric():
+            evaluation.message("Assumption", "baas")
+            continue
+        # TODO: Process other inference rules...
+        assumptions_list.append(assumption)
+    if len(assumptions_list) == 0:
+        return
+    return assumptions_list
+
+
+def evaluate_predicate(pred, evaluation):
+    newpred = pred.evaluate(evaluation)
+    if not newpred is None:
+        pred = newpred
+    if pred.is_atom():
+        return pred
+    # Reduce pred to a single pred
+    if pred.has_form("List", None):
+        pred = pred.flatten(SymbolList)
+        for leaf in pred._leaves:
+            if leaf == SymbolFalse:
+                return SymbolFalse
+        pred = Expression("And", *(pred._leaves))
+    # Now, use assumptions and sympy to reduce the predicate
+    assumptions_list = get_assumptions_list(evaluation)
+    assumption_rules = [Rule(a, True) for a in assumptions_list]
+    pred = pred.apply_rules(assumption_rules, evaluation)
+    return pred
 
 
 class Or(BinaryOperator):
@@ -37,8 +104,8 @@ class Or(BinaryOperator):
         for arg in args:
             result = arg.evaluate(evaluation)
             if result.is_true():
-                return Symbol("True")
-            elif result != Symbol("False"):
+                return SymbolTrue
+            elif result != SymbolFalse:
                 leaves.append(result)
         if leaves:
             if len(leaves) == 1:
@@ -46,7 +113,7 @@ class Or(BinaryOperator):
             else:
                 return Expression("Or", *leaves)
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class And(BinaryOperator):
@@ -79,8 +146,8 @@ class And(BinaryOperator):
         leaves = []
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol("False"):
-                return Symbol("False")
+            if result == SymbolFalse:
+                return SymbolFalse
             elif not result.is_true():
                 leaves.append(result)
         if leaves:
@@ -89,7 +156,7 @@ class And(BinaryOperator):
             else:
                 return Expression("And", *leaves)
         else:
-            return Symbol("True")
+            return SymbolTrue
 
 
 class Not(PrefixOperator):
@@ -148,8 +215,8 @@ class Implies(BinaryOperator):
         "Implies[x_, y_]"
 
         result0 = x.evaluate(evaluation)
-        if result0 == Symbol("False"):
-            return Symbol("True")
+        if result0 == SymbolFalse:
+            return SymbolTrue
         elif result0.is_true():
             return y.evaluate(evaluation)
         else:
@@ -191,11 +258,11 @@ class Equivalent(BinaryOperator):
         args = args.get_sequence()
         argc = len(args)
         if argc == 0 or argc == 1:
-            return Symbol("True")
+            return SymbolTrue
         flag = False
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol("False") or result.is_true():
+            if result == SymbolFalse or result.is_true():
                 flag = not flag
                 break
         if flag:
@@ -253,7 +320,7 @@ class Xor(BinaryOperator):
             result = arg.evaluate(evaluation)
             if result.is_true():
                 flag = not flag
-            elif result != Symbol("False"):
+            elif result != SymbolFalse:
                 leaves.append(result)
         if leaves and flag:
             if len(leaves) == 1:
@@ -352,10 +419,10 @@ class NoneTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if what:
-            raise _ShortCircuit(Symbol("False"))
+            raise _ShortCircuit(SymbolFalse)
 
     def _no_short_circuit(self):
-        return Symbol("True")
+        return SymbolTrue
 
 
 class AnyTrue(_ManyTrue):
@@ -381,10 +448,10 @@ class AnyTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if what:
-            raise _ShortCircuit(Symbol("True"))
+            raise _ShortCircuit(SymbolTrue)
 
     def _no_short_circuit(self):
-        return Symbol("False")
+        return SymbolFalse
 
 
 class AllTrue(_ManyTrue):
@@ -410,7 +477,7 @@ class AllTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if not what:
-            raise _ShortCircuit(Symbol("False"))
+            raise _ShortCircuit(SymbolFalse)
 
     def _no_short_circuit(self):
-        return Symbol("True")
+        return SymbolTrue

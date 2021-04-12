@@ -559,7 +559,7 @@ class BaseExpression(KeyComparable):
     def get_rules_list(self):
         from mathics.core.rules import Rule
 
-        list_expr = self.flatten(Symbol("List"))
+        list_expr = self.flatten(SymbolList)
         list = []
         if list_expr.has_form("List", None):
             list.extend(list_expr.leaves)
@@ -2104,6 +2104,7 @@ SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
+
 
 
 @lru_cache(maxsize=1024)
