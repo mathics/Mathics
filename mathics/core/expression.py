@@ -21,6 +21,7 @@ import base64
 # We have to be able to match mpmath values with sympy values
 COMPARE_PREC = 50
 
+
 def fully_qualified_symbol_name(name) -> bool:
     return (
         isinstance(name, str)
@@ -2015,9 +2016,14 @@ class Symbol(Atom):
 
     def equal2(self, rhs: Any) -> Optional[bool]:
         """Mathics two-argument Equal (==) """
-        if id(self) == id(rhs):
+        if self.sameQ(rhs):
             return True
-        if isinstance(rhs, Symbol):
+
+        # Booleans are treated like constants, but all other symbols
+        # are treated None. We could create a Bool class and
+        # define equal2 in that, but for just this doesn't
+        # seem to be worth it. If other things come up, this may change.
+        if self in (SymbolTrue, SymbolFalse) and rhs in (SymbolTrue, SymbolFalse):
             return self == rhs
         return None
 
@@ -3004,7 +3010,7 @@ class ByteArrayAtom(Atom):
         res = String('""' + self.__str__() + '""')
         return res
 
-    def do_copy(self) -> "ByteArray":
+    def do_copy(self) -> "ByteArrayAtom":
         return ByteArrayAtom(self.value)
 
     def default_format(self, evaluation, form) -> str:
