@@ -63,10 +63,13 @@ def get_symbol_list(list, error_callback):
 
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
+        # TODO: This function should be splitted and simplified
+
         name = lhs.get_head_name()
         lhs._format_cache = None
         condition = None
 
+        # Maybe these first conversions should be a loop...
         if name == "System`Condition" and len(lhs.leaves) == 2:
             # This handle the case of many sucesive conditions:
             # f[x_]/; cond1 /; cond2 ...
@@ -91,6 +94,10 @@ class _SetOperator(object):
             lhs = lhsleaves[1]
             rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
             rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
+
+        if name == "System`HoldPattern":
+            lhs = lhs.leaves[0]
             name = lhs.get_head_name()
 
         if name in system_symbols(
@@ -221,6 +228,22 @@ class _SetOperator(object):
             allowed_names = [focus.get_lookup_name()]
             if allow_custom_tag:
                 for leaf in focus.get_leaves():
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`HoldPattern",
+                    ):
+                        leaf = leaf.leaves[0]
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`Pattern",
+                    ):
+                        leaf = leaf.leaves[1]
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`Blank",
+                        "System`BlankSequence",
+                        "System`BlankNullSequence",
+                    ):
+                        if len(leaf.leaves) == 1:
+                            leaf = leaf.leaves[0]
+
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:
