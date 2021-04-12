@@ -305,6 +305,11 @@ class ReplaceRepeated(BinaryOperator):
     >> a+b+c //. c->d
      = a + b + d
 
+    >> f = ReplaceRepeated[c->d];
+    >> f[a+b+c]
+     = a + b + d
+    >> Clear[f];
+
     Simplification of logarithms:
     >> logrules = {Log[x_ * y_] :> Log[x] + Log[y], Log[x_ ^ y_] :> y * Log[x]};
     >> Log[a * (b * c) ^ d ^ e * f] //. logrules
@@ -324,8 +329,16 @@ class ReplaceRepeated(BinaryOperator):
         "rmix": "Elements of `1` are a mixture of lists and nonlists.",
     }
 
-    def apply_list(self, expr, rules, evaluation):
-        "ReplaceRepeated[expr_, rules_]"
+    options = {
+        "MaxIterations": "65535",
+    }
+
+    rules = {
+        "ReplaceRepeated[rules_][expr_]": "ReplaceRepeated[expr, rules]",
+    }
+
+    def apply_list(self, expr, rules, evaluation, options):
+        "ReplaceRepeated[expr_, rules_, OptionsPattern[ReplaceRepeated]]"
         try:
             rules, ret = create_rules(rules, expr, "ReplaceRepeated", evaluation)
         except PatternError:
@@ -335,8 +348,17 @@ class ReplaceRepeated(BinaryOperator):
         if ret:
             return rules
 
+        maxit = self.get_option(options, "MaxIterations", evaluation)
+        if maxit.is_numeric():
+            maxit = maxit.get_int_value()
+        else:
+            maxit = -1
+
         while True:
             evaluation.check_stopped()
+            if maxit == 0:
+                break
+            maxit -= 1
             result, applied = expr.apply_rules(rules, evaluation)
             if applied:
                 result = result.evaluate(evaluation)
