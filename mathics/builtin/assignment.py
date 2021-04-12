@@ -22,6 +22,7 @@ from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
+
 def repl_pattern_by_symbol(expr):
     leaves = expr.get_leaves()
     if len(leaves) == 0:
