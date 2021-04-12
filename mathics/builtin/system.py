@@ -455,3 +455,121 @@ class VersionNumber(Predefined):
         # Make this be whatever the latest Mathematica release is,
         # assuming we are trying to be compatible with this.
         return Real(self.value)
+
+
+class SystemMemory(Predefined):
+    """
+    <dl>
+      <dt>'$SystemMemory'
+      <dd>Returns the total amount of physical memory.
+    </dl>
+
+    >> $SystemMemory
+     = ...
+    """
+
+    name = "$SystemMemory"
+    
+    def evaluate(self, evaluation) -> Integer:
+        try:
+            import psutil
+            totalmem = psutil.virtual_memory().total
+            return Integer(total)
+        except:
+            return String(SymbolFailed)
+    
+
+class MemoryAvailable(Builtin):
+    """
+    <dl>
+      <dt>'MemoryAvailable'
+      <dd>Returns the amount of the available physical memory.
+    </dl>
+
+    >> MemoryAvailable[]
+     = ...
+    """
+    
+    def apply_0(self, evaluation) -> Integer:
+        """MemoryAvailable[]"""
+        try:
+            import psutil
+            totalmem = psutil.virtual_memory().available
+            return Integer(total)
+        except:
+            return String(SymbolFailed)
+
+
+class MemoryInUse(Builtin):
+    """
+    <dl>
+      <dt>'MemoryInUse[]'
+      <dd>Returns the amount of memory used by the definitions object.
+    </dl>
+
+    >> MemoryInUse[]
+     = ...
+    """
+    
+    def apply_0(self, evaluation) -> Integer:
+        """MemoryInUse[]"""
+        # Partially borrowed from https://code.activestate.com/recipes/577504/
+        from itertools import chain
+        from sys import getsizeof
+        definitions = evaluation.definitions
+        seen = set()
+        default_size = getsizeof(0)
+        handlers = {tuple: iter,
+                    list: iter,
+                    dict: (lambda d: chain.from_iterable(d.items())),
+                    set: iter,
+                    frozenset: iter,}
+        def sizeof(obj):
+            if id(obj) in seen:
+                return 0
+            seen.add(id(obj))
+            s = getsizeof(obj, default_size)
+            for typ, handler in handlers.items():
+                if isinstance(obj, typ):
+                    s += sum(map(sizeof, handler(obj)))
+                    break
+            return s
+
+        return Integer(sizeof(definitions))
+
+                
+            
+        
+
+
+class Share(Builtin):
+    """
+    <dl>
+      <dt>'Share[]'
+      <dd>Tries to reduce the amount of memory required to store definitions, by reducing duplicated definitions.
+          Now it just do nothing.
+      <dt>'Share[Symbol]'
+      <dd>Tries to reduce the amount of memory required to store definitions associated to $Symbol$.
+    </dl>
+
+    >> Share[]
+     = ...
+    """
+    
+    def apply_0(self, evaluation) -> Integer:
+        """Share[]"""
+        # TODO: implement a routine that swap all the definitions,
+        # collecting repeated symbols and expressions, and then
+        # remplace them by references.
+        # Return the amount of memory recovered.
+        return Integer(0)
+
+    def apply_1(self, symbol, evaluation) -> Integer:
+        """Share[symbol_Symbol]"""
+        # TODO: implement a routine that swap all the definitions,
+        # collecting repeated symbols and expressions, and then
+        # remplace them by references.
+        # Return the amount of memory recovered.
+        return Integer(0)
+
+
