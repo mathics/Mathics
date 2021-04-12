@@ -1424,3 +1424,27 @@ def item_is_free(item, form, evaluation):
         return item_is_free(item.head, form, evaluation) and all(
             item_is_free(leaf, form, evaluation) for leaf in item.leaves
         )
+
+
+class Dispatch(Builtin):
+    '''
+    <dl>
+    <dt>'Dispatch[$rulelist$]'
+        <dd>Introduced for compatibility. Currently, it just return $rulelist$.
+            In the future, it should return an optimized DispatchRules atom,
+            containing an optimized set of rules.
+    </dl>
+
+    '''
+    def apply_stub(self, rules, evaluation):
+        '''DispatchRule[list_List]'''
+        # TODO:
+        # The next step would be to enlarge this method, in order to
+        # check that all the elements in x are rules, eliminate redundancies
+        # in the list, and sort the list in a way that increases efficiency. 
+        # A second step would be to implement an ``Atom`` class containing the
+        # compiled patters, and modify Replace and ReplaceAll to handle this
+        # kind of objects.
+        #
+        return rules
+        
