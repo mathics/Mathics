@@ -506,7 +506,7 @@ class FixedPoint(Builtin):
     <dt>'FixedPoint[$f$, $expr$]'
         <dd>starting with $expr$, iteratively applies $f$ until the result no longer changes.
     <dt>'FixedPoint[$f$, $expr$, $n$]'
-        <dd>performs at most $n$ iterations.
+        <dd>performs at most $n$ iterations. The same that using $MaxIterations->n$
     </dl>
 
     >> FixedPoint[Cos, 1.0]
@@ -524,9 +524,13 @@ class FixedPoint(Builtin):
      = 0.739085
     """
 
-    def apply(self, f, expr, n, evaluation):
-        "FixedPoint[f_, expr_, n_:DirectedInfinity[1]]"
+    options = {
+        "MaxIterations": "Infinity",
+        "SameTest": "Automatic",
+    }
 
+    def apply(self, f, expr, n, evaluation, options):
+        "FixedPoint[f_, expr_, n_:DirectedInfinity[1], OptionsPattern[FixedPoint]]"
         if n == Expression("DirectedInfinity", 1):
             count = None
         else:
@@ -534,14 +538,32 @@ class FixedPoint(Builtin):
             if count is None or count < 0:
                 evaluation.message("FixedPoint", "intnn")
                 return
+
+        if count is None:
+            count = self.get_option(options, "MaxIterations", evaluation)
+            if count.is_numeric():
+                count = count.get_int_value()
+            else:
+                count = None
+
         result = expr
         index = 0
+        sametest = self.get_option(options, "SameTest", evaluation)
+        if sametest == Symbol("Automatic"):
+            sametest = None
+
         while count is None or index < count:
             evaluation.check_stopped()
             new_result = Expression(f, result).evaluate(evaluation)
-            if new_result == result:
-                result = new_result
-                break
+            if sametest:
+                same = Expression(sametest, result, new_result).evaluate(evaluation)
+                same = same.is_true()
+                if same:
+                    break
+            else:
+                if new_result == result:
+                    result = new_result
+                    break
             result = new_result
             index += 1
 
