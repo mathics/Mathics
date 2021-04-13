@@ -16,18 +16,21 @@ def check_evaluation(
     its results"""
     if to_string_expr:
         str_expr = f'ToString[{str_expr}]'
+        result = session.evaluate(str_expr).value
+    else:
+        result = session.evaluate(str_expr)
+        
     if to_string_expected:
         str_expected = f'ToString[{str_expected}]'
-    # print(str_expr)
-    # print(str_expected)
+        expected = session.evaluate(str_expected).value
+    else:
+        expected = session.evaluate(str_expected)
 
-    result = session.evaluate(str_expr).value
-    print("result=", result)
-    expected = session.evaluate(str_expected).value
-    print("expected=", expected)
     print(time.asctime())
     print(message)
     if message:
-        assert result == expected, message
+        print((result, expected))
+        assert (result == expected), message
     else:
+        print((result, expected))
         assert result == expected

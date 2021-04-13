@@ -161,6 +161,9 @@ class CompiledCode(Atom):
         self.cfunc = cfunc
         self.args = args
 
+    def equal2(self, rhs):
+        return isinstance(rhs, CompiledCode)
+
     def __str__(self):
         if type(self.cfunc) is FunctionType:
             return "-PythonizedCode-"
