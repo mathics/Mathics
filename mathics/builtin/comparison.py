@@ -3,7 +3,6 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-import itertools
 from typing import Optional, Union
 
 import sympy
@@ -28,6 +27,7 @@ from mathics.core.expression import (
     SymbolTrue,
     SymbolDirectedInfinity,
     SymbolInfinity,
+    SymbolComplexInfinity,
 )
 from mathics.core.numbers import dps
 
@@ -219,75 +219,66 @@ class _InequalityOperator(BinaryOperator):
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def equal2(self, lhs, rhs, max_extra_prec=None) -> Union[bool, None]:
-        """
-        Two-argument Equal[]
-        """
-        # See comments in
-        # [https://github.com/mathics/Mathics/pull/1209#issuecomment-810277502]
-        # for a future refactory of this methods...
-        if hasattr(lhs, "equal2"):
-            result = lhs.equal2(rhs)
-            if result is not None:
-                return result
+    @staticmethod
+    def get_pairs(args):
+        for i in range(len(args)):
+            for j in range(i):
+                yield (args[i], args[j])
 
-        # Do this after lhs.equal2 since lhs.equal2 will do a sameQ test.
-        if lhs.sameQ(rhs):
-            return True
+    def expr_cmp(self, lhs, rhs, max_extra_prec=None):
+        if isinstance(rhs, Expression):
+            lhs, rhs = rhs, lhs
+        if not isinstance(lhs, Expression):
+            return
+        same_heads = lhs.get_head().sameQ(rhs.get_head())
+        if not same_heads:
+            return None
+        if len(lhs._leaves) != len(rhs._leaves):
+            return
+        for l, r in zip(lhs._leaves, rhs._leaves):
+            tst = self.equal2(l, r, max_extra_prec)
+            if not tst:
+                return tst
+        return True
 
-        # FIXME: I think this can be folded into Symbol.equal2 and Atom.equal2
-        if not (isinstance(lhs, Symbol) or isinstance(rhs, Symbol)) and (
-            isinstance(lhs, Atom) and isinstance(rhs, Atom)
-        ):
-            return lhs == rhs
+    def infty_cmp(self, lhs, rhs, max_extra_prec=None):
+        IntegerOne = Integer(1)
+        if rhs.get_head().sameQ(SymbolDirectedInfinity):
+            lhs, rhs = rhs, lhs
+        if not lhs.get_head().sameQ(SymbolDirectedInfinity):
+            return None
+        if rhs.sameQ(SymbolInfinity) or rhs.sameQ(SymbolComplexInfinity):
+            if len(lhs._leaves) == 0:
+                return True
+            else:
+                return self.equal2(
+                    Expression("Sign", lhs._leaves[0]), IntegerOne, max_extra_prec
+                )
+        if rhs.is_numeric():
+            return False
+        elif rhs.is_atom():
+            return None
+        if rhs.get_head().sameQ(lhs.get_head()):
+            dir1 = dir2 = IntegerOne
+            if len(lhs._leaves) == 1:
+                dir1 = lhs._leaves[0]
+            if len(rhs._leaves) == 1:
+                dir2 = rhs._leaves[0]
+            if self.equal2(dir1, dir2, max_extra_prec):
+                return True
+            # Now, compare the signs:
+            dir1 = Expression("Sign", dir1)
+            dir2 = Expression("Sign", dir2)
+            return self.equal2(dir1, dir2, max_extra_prec)
+        return
 
-        # Dealing with two non-atomic expressions:
-        if not rhs.is_atom():
-            head1 = lhs.get_head()
-            head2 = rhs.get_head()
-
-            # FIXME: add equal2 method for DirectedInfinity
-
-            # Handling comparisons with DirectedInfinity
-            if head2.sameQ(SymbolDirectedInfinity):
-                lhs, rhs = rhs, lhs
-                head1, head2 = head2, head1
-            if head1.sameQ(SymbolDirectedInfinity):
-                if head2.sameQ(SymbolDirectedInfinity):
-                    dir1 = dir2 = Integer(1)
-                    if len(lhs._leaves) == 0:
-                        if len(rhs._leaves) == 0:
-                            return True
-                        dir1 = Integer(1)
-                    else:
-                        dir1 = lhs._leaves[0]
-                    if len(rhs._leaves) == 0:
-                        if dir1.sameQ(Integer(1)):
-                            return True
-                        dir2 = Integer(1)
-                    else:
-                        dir2 = rhs._leaves[0]
-                    # If the directions are equal,
-                    # then both infinites are the same
-                    if self.equal2(dir1, dir2):
-                        return True
-                    # Now, compare the signs:
-                    dir1 = Expression("Sign", dir1)
-                    dir2 = Expression("Sign", dir2)
-                    return self.equal2(dir1, dir2)
-
-        # Dealing with one expression
-        elif not lhs.is_atom():
-            # FIXME: Ass mentioned above: add equal2 method for DirectedInfinity
-            if lhs.get_head().sameQ(SymbolDirectedInfinity):
-                if isinstance(rhs, Number):
-                    return False
-                elif SymbolInfinity.sameQ(rhs):
-                    if len(lhs._leaves) == 0 or self.equal2(lhs._leaves[0], Integer(1)):
-                        return True
-
-        lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
-        rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+    def sympy_cmp(self, lhs, rhs, max_extra_prec=None):
+        try:
+            lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+            rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        except NotImplementedError:
+            return None
+            
 
         if lhs_sympy is None or rhs_sympy is None:
             return None
@@ -320,6 +311,27 @@ class _EqualityOperator(_InequalityOperator):
         else:
             return None
 
+    def equal2(self, lhs, rhs, max_extra_prec=None) -> Union[bool, None]:
+        """
+        Two-argument Equal[]
+        """
+        if hasattr(lhs, "equal2"):
+            result = lhs.equal2(rhs)
+            if result is not None:
+                return result
+        elif lhs.sameQ(rhs):
+            return True
+        # TODO: Check $Assumptions
+        # Still we didn't have a result. Try with the following
+        # tests
+        other_tests = (self.infty_cmp, self.expr_cmp, self.sympy_cmp)
+
+        for test in other_tests:
+            c = test(lhs, rhs, max_extra_prec)
+            if c is not None:
+                return c
+        return None
+
     def apply(self, items, evaluation):
         "%(name)s[items___]"
         items_sequence = items.get_sequence()
@@ -333,49 +345,12 @@ class _EqualityOperator(_InequalityOperator):
         if not all(val == SymbolTrue for val in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
-        wanted = operators[self.get_name()]
-        for x, y in itertools.combinations(args, 2):
-            if isinstance(y, Complex):
-                x, y = y, x
-            if isinstance(x, Complex):
-                if isinstance(y, Complex):
-                    c = do_cmp(x.real, y.real)
-                    if c is None:
-                        return
-                    if c not in wanted:
-                        return SymbolFalse
-                    c = do_cmp(x.imag, y.imag)
-                    if c is None:
-                        return
-                    if c not in wanted:
-                        return SymbolFalse
-                    else:
-                        return SymbolTrue
-                else:
-                    c = do_cmp(x.imag, Integer(0))
-                    if c is None:
-                        return
-                    if c not in wanted:
-                        return SymbolFalse
-                    c = do_cmp(x.real, y.real)
-                    if c is None:
-                        return
-                    if c not in wanted:
-                        return SymbolFalse
-                    else:
-                        return SymbolTrue
-            # if isinstance(x, String) or isinstance(y, String):
-            # if not (isinstance(x, String) and isinstance(y, String)):
-            #    c = 1
-            # else:
-            #    c = cmp(x.get_string_value(), y.get_string_value())
-            else:
-                c = do_cmp(x, y)
+        for x, y in self.get_pairs(args):
+            c = do_cmp_cplx(x, y)
             if c is None:
                 return
-            elif c not in wanted:
+            if not self._op(c):
                 return SymbolFalse
-            assert c in wanted
         return SymbolTrue
 
     def apply_other(self, args, evaluation):
@@ -386,7 +361,7 @@ class _EqualityOperator(_InequalityOperator):
         )
         if type(max_extra_prec) is not int:
             max_extra_prec = COMPARE_PREC
-        for x, y in itertools.combinations(args, 2):
+        for x, y in self.get_pairs(args):
             c = self.equal2(x, y, max_extra_prec)
             if c is None:
                 return
@@ -464,6 +439,39 @@ class Inequality(Builtin):
                 for index in range(1, count - 1, 2)
             ]
             return Expression("And", *groups)
+
+
+def do_cmp_cplx(x, y) -> Optional[int]:
+    if isinstance(y, Complex):
+        x, y = y, x
+    if isinstance(x, Complex):
+        if isinstance(y, Complex):
+            c = do_cmp(x.real, y.real)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            c = do_cmp(x.imag, y.imag)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            else:
+                return True
+        else:
+            c = do_cmp(x.imag, Integer(0))
+            if c is None:
+                return
+            if c != 0:
+                return False
+            c = do_cmp(x.real, y.real)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            else:
+                return True
+    return do_cmp(x, y) == 0
 
 
 def do_cmp(x1, x2) -> Optional[int]:
@@ -617,6 +625,11 @@ class Equal(_EqualityOperator, SympyComparison):
     operator = "=="
     grouping = "None"
     sympy_name = "Eq"
+
+    @staticmethod
+    def get_pairs(args):
+        for i in range(len(args) - 1):
+            yield (args[i], args[i + 1])
 
     @staticmethod
     def _op(x):
