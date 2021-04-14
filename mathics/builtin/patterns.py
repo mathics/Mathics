@@ -101,6 +101,8 @@ class RuleDelayed(BinaryOperator):
 
 
 def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
+    if rules_expr.has_form("Dispatch", None):
+        rules_expr = rules_expr.leaves[0]
     if rules_expr.has_form("List", None):
         rules = rules_expr.leaves
     else:
@@ -1457,6 +1459,8 @@ class Dispatch(Builtin):
             containing an optimized set of rules.
     </dl>
 
+    >> a /. Dispatch[{a->5}]
+     = 5
     '''
     def apply_stub(self, rules, evaluation):
         '''DispatchRule[list_List]'''
