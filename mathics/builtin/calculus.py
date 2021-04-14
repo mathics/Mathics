@@ -1156,8 +1156,7 @@ class FindRoot(Builtin):
         "FindRoot[f_, xtuple_]"
         f_val = f.evaluate(evaluation)
 
-        # This is not seem quite right.
-        if f_val.get_head_name() == "System`Equal":
+        if f_val.has_form("Equal", 2):
             f = Expression("Minus", *f_val.leaves)
 
         xtuple_value = xtuple.evaluate(evaluation)
