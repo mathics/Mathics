@@ -225,7 +225,7 @@ class _EqualityOperator(_InequalityOperator):
             for j in range(i):
                 yield (args[i], args[j])
 
-    def expr_eq_tst(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+    def expr_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
         if isinstance(rhs, Expression):
             lhs, rhs = rhs, lhs
         if not isinstance(lhs, Expression):
@@ -241,7 +241,7 @@ class _EqualityOperator(_InequalityOperator):
                 return tst
         return True
 
-    def infty_eq_tst(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+    def infty_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
         IntegerOne = Integer(1)
         if rhs.get_head().sameQ(SymbolDirectedInfinity):
             lhs, rhs = rhs, lhs
@@ -272,7 +272,7 @@ class _EqualityOperator(_InequalityOperator):
             return self.equal2(dir1, dir2, max_extra_prec)
         return
 
-    def sympy_eq_tst(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+    def sympy_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
         try:
             lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
             rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
@@ -323,7 +323,7 @@ class _EqualityOperator(_InequalityOperator):
         # TODO: Check $Assumptions
         # Still we didn't have a result. Try with the following
         # tests
-        other_tests = (self.infty_eq_tst, self.expr_eq_tst, self.sympy_eq_tst)
+        other_tests = (self.infty_equal, self.expr_equal, self.sympy_equal)
 
         for test in other_tests:
             c = test(lhs, rhs, max_extra_prec)
@@ -345,7 +345,7 @@ class _EqualityOperator(_InequalityOperator):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
         for x, y in self.get_pairs(args):
-            c = do_cplx_eq_tst(x, y)
+            c = do_cplx_equal(x, y)
             if c is None:
                 return
             if not self._op(c):
@@ -440,7 +440,7 @@ class Inequality(Builtin):
             return Expression("And", *groups)
 
 
-def do_cplx_eq_tst(x, y) -> Optional[int]:
+def do_cplx_equal(x, y) -> Optional[int]:
     if isinstance(y, Complex):
         x, y = y, x
     if isinstance(x, Complex):
