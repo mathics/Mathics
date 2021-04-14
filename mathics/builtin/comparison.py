@@ -3,8 +3,7 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-import itertools
-from typing import Optional, Union, Any
+from typing import Optional, Union
 
 import sympy
 
@@ -17,15 +16,19 @@ from mathics.builtin.base import (
 from mathics.builtin.constants import mp_convert_constant
 
 from mathics.core.expression import (
+    COMPARE_PREC,
     Complex,
     Expression,
     Integer,
+    Integer1,
     Number,
-    Real,
-    String,
     Symbol,
     SymbolFalse,
     SymbolTrue,
+    SymbolList,
+    SymbolDirectedInfinity,
+    SymbolInfinity,
+    SymbolComplexInfinity,
 )
 from mathics.core.numbers import dps
 
@@ -42,9 +45,10 @@ def is_number(sympy_value) -> bool:
 class SameQ(BinaryOperator):
     """
     <dl>
-    <dt>'SameQ[$x$, $y$]'
-    <dt>'$x$ === $y$'
-        <dd>returns 'True' if $x$ and $y$ are structurally identical.
+      <dt>'SameQ[$x$, $y$]'
+      <dt>'$x$ === $y$'
+      <dd>returns 'True' if $x$ and $y$ are structurally identical.
+      Commutative properties apply, so if $x$ === $y$ then $y$ === $x$.
     </dl>
 
     Any object is the same as itself:
@@ -72,9 +76,10 @@ class SameQ(BinaryOperator):
 class UnsameQ(BinaryOperator):
     """
     <dl>
-    <dt>'UnsameQ[$x$, $y$]'
-    <dt>'$x$ =!= $y$'
-        <dd>returns 'True' if $x$ and $y$ are not structurally identical.
+      <dt>'UnsameQ[$x$, $y$]'
+      <dt>'$x$ =!= $y$'
+      <dd>returns 'True' if $x$ and $y$ are not structurally identical.
+      Commutative properties apply, so if $x$ =!= $y$, then $y$ =!= $x$.
     </dl>
 
     >> a=!=a
@@ -214,66 +219,119 @@ class _InequalityOperator(BinaryOperator):
         return items
 
 
-# Imperical number that seems to work.
-# We have to be able to match mpmath values with sympy values
-COMPARE_PREC = 50
-
-
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def equal2(self, l1: Any, l2: Any) -> Union[bool, None]:
-        """
-        Two-argument Equal[]
-        """
-        if l1.sameQ(l2):
-            return True
-        elif l1 == SymbolTrue and l2 == SymbolFalse:
-            return False
-        elif l1 == SymbolFalse and l2 == SymbolTrue:
-            return False
-        elif isinstance(l1, String) and isinstance(l2, String):
-            return False
-        elif l1.has_form("List", None) and l2.has_form("List", None):
-            if len(l1.leaves) != len(l2.leaves):
-                return False
-            for item1, item2 in zip(l1.leaves, l2.leaves):
-                result = self.equal2(item1, item2)
-                if not result:
-                    return result
-            return True
+    @staticmethod
+    def get_pairs(args):
+        for i in range(len(args)):
+            for j in range(i):
+                yield (args[i], args[j])
 
-        # Use Mathics' built-in comparisons for Real and Integer. These use
+    def expr_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+        if isinstance(rhs, Expression):
+            lhs, rhs = rhs, lhs
+        if not isinstance(lhs, Expression):
+            return
+        same_heads = lhs.get_head().sameQ(rhs.get_head())
+        if not same_heads:
+            return None
+        if len(lhs._leaves) != len(rhs._leaves):
+            return
+        for l, r in zip(lhs._leaves, rhs._leaves):
+            tst = self.equal2(l, r, max_extra_prec)
+            if not tst:
+                return tst
+        return True
+
+    def infty_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+        if rhs.get_head().sameQ(SymbolDirectedInfinity):
+            lhs, rhs = rhs, lhs
+        if not lhs.get_head().sameQ(SymbolDirectedInfinity):
+            return None
+        if rhs.sameQ(SymbolInfinity) or rhs.sameQ(SymbolComplexInfinity):
+            if len(lhs._leaves) == 0:
+                return True
+            else:
+                return self.equal2(
+                    Expression("Sign", lhs._leaves[0]), Integer1, max_extra_prec
+                )
+        if rhs.is_numeric():
+            return False
+        elif rhs.is_atom():
+            return None
+        if rhs.get_head().sameQ(lhs.get_head()):
+            dir1 = dir2 = Integer1
+            if len(lhs._leaves) == 1:
+                dir1 = lhs._leaves[0]
+            if len(rhs._leaves) == 1:
+                dir2 = rhs._leaves[0]
+            if self.equal2(dir1, dir2, max_extra_prec):
+                return True
+            # Now, compare the signs:
+            dir1 = Expression("Sign", dir1)
+            dir2 = Expression("Sign", dir2)
+            return self.equal2(dir1, dir2, max_extra_prec)
+        return
+
+    def sympy_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+        try:
+            lhs_sympy = lhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+            rhs_sympy = rhs.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        except NotImplementedError:
+            return None
+
+        if lhs_sympy is None or rhs_sympy is None:
+            return None
+
+        if not is_number(lhs_sympy):
+            lhs_sympy = mp_convert_constant(lhs_sympy, prec=COMPARE_PREC)
+        if not is_number(rhs_sympy):
+            rhs_sympy = mp_convert_constant(rhs_sympy, prec=COMPARE_PREC)
+
         # WL's interpretation of Equal[] which allows for slop in Reals
         # in the least significant digit of precision, while for Integers, comparison
         # has to be exact.
 
-        if (isinstance(l1, Real) and isinstance(l2, Real)) or (
-            isinstance(l1, Integer) and isinstance(l2, Integer)
-        ):
-            return l1 == l2
-
-        # For everything else, use sympy.
-
-        l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
-        l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
-
-        if l1_sympy is None or l2_sympy is None:
-            return None
-
-        if not is_number(l1_sympy):
-            l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
-        if not is_number(l2_sympy):
-            l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
-
-        if l1_sympy.is_number and l2_sympy.is_number:
-            # assert min_prec(l1, l2) is None
-            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
-            if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
+        if lhs_sympy.is_number and rhs_sympy.is_number:
+            # assert min_prec(lhs, rhs) is None
+            if max_extra_prec:
+                prec = max_extra_prec
+            else:
+                prec = COMPARE_PREC
+            lhs = lhs_sympy.n(dps(prec))
+            rhs = rhs_sympy.n(dps(prec))
+            if lhs == rhs:
                 return True
-            return False
+            tol = 10 ** (-prec)
+            diff = abs(lhs - rhs)
+            if isinstance(diff, sympy.core.add.Add):
+                return sympy.re(diff) < tol
+            else:
+                return diff < tol
         else:
             return None
+
+    def equal2(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
+        """
+        Two-argument Equal[]
+        """
+        if hasattr(lhs, "equal2"):
+            result = lhs.equal2(rhs)
+            if result is not None:
+                return result
+        elif lhs.sameQ(rhs):
+            return True
+        # TODO: Check $Assumptions
+        # Still we didn't have a result. Try with the following
+        # tests
+        other_tests = (self.infty_equal, self.expr_equal, self.sympy_equal)
+
+        for test in other_tests:
+            c = test(lhs, rhs, max_extra_prec)
+            if c is not None:
+                return c
+        return None
 
     def apply(self, items, evaluation):
         "%(name)s[items___]"
@@ -285,33 +343,30 @@ class _EqualityOperator(_InequalityOperator):
             Expression("ExactNumberQ", arg).evaluate(evaluation)
             for arg in items_sequence
         ]
-        if all(val == SymbolTrue for val in is_exact_vals):
+        if not all(val == SymbolTrue for val in is_exact_vals):
             return self.apply_other(items, evaluation)
         args = self.numerify_args(items, evaluation)
-        wanted = operators[self.get_name()]
-        for x, y in itertools.combinations(args, 2):
-            if isinstance(x, String) or isinstance(y, String):
-                if not (isinstance(x, String) and isinstance(y, String)):
-                    c = 1
-                else:
-                    c = cmp(x.get_string_value(), y.get_string_value())
-            else:
-                c = do_cmp(x, y)
+        for x, y in self.get_pairs(args):
+            c = do_cplx_equal(x, y)
             if c is None:
                 return
-            elif c not in wanted:
+            if not self._op(c):
                 return SymbolFalse
-            assert c in wanted
         return SymbolTrue
 
     def apply_other(self, args, evaluation):
         "%(name)s[args___?(!ExactNumberQ[#]&)]"
         args = args.get_sequence()
-        for x, y in itertools.combinations(args, 2):
-            c = self.equal2(x, y)
+        max_extra_prec = (
+            Symbol("$MaxExtraPrecision").evaluate(evaluation).get_int_value()
+        )
+        if type(max_extra_prec) is not int:
+            max_extra_prec = COMPARE_PREC
+        for x, y in self.get_pairs(args):
+            c = self.equal2(x, y, max_extra_prec)
             if c is None:
                 return
-            if self._op(c) is False:
+            if not self._op(c):
                 return SymbolFalse
         return SymbolTrue
 
@@ -387,6 +442,39 @@ class Inequality(Builtin):
             return Expression("And", *groups)
 
 
+def do_cplx_equal(x, y) -> Optional[int]:
+    if isinstance(y, Complex):
+        x, y = y, x
+    if isinstance(x, Complex):
+        if isinstance(y, Complex):
+            c = do_cmp(x.real, y.real)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            c = do_cmp(x.imag, y.imag)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            else:
+                return True
+        else:
+            c = do_cmp(x.imag, Integer(0))
+            if c is None:
+                return
+            if c != 0:
+                return False
+            c = do_cmp(x.real, y.real)
+            if c is None:
+                return
+            if c != 0:
+                return False
+            else:
+                return True
+    return do_cmp(x, y) == 0
+
+
 def do_cmp(x1, x2) -> Optional[int]:
 
     # don't attempt to compare complex numbers
@@ -442,12 +530,12 @@ class SympyComparison(SympyFunction):
 class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
-    <dt>'Equal[$x$, $y$]'
+      <dt>'Equal[$x$, $y$]'
       <dt>'$x$ == $y$'
-      <dd>yields 'True' if $x$ and $y$ are known to be equal, or
-        'False' if $x$ and $y$ are known to be unequal.
-    <dt>'$lhs$ == $rhs$'
-        <dd>represents the equation $lhs$ = $rhs$.
+      <dd>is 'True' if $x$ and $y$ are known to be equal, or
+        'False' if $x$ and $y$ are known to be unequal, in which case
+        case, 'Not[$x$ == $y$]' will be 'True'.
+        Commutative properties apply, so if $x$ == $y$ then $y$ == $x$.
     </dl>
 
     >> a==a
@@ -540,6 +628,11 @@ class Equal(_EqualityOperator, SympyComparison):
     sympy_name = "Eq"
 
     @staticmethod
+    def get_pairs(args):
+        for i in range(len(args) - 1):
+            yield (args[i], args[i + 1])
+
+    @staticmethod
     def _op(x):
         return x
 
@@ -547,12 +640,12 @@ class Equal(_EqualityOperator, SympyComparison):
 class Unequal(_EqualityOperator, SympyComparison):
     """
     <dl>
-    <dt>'Unequal[$x$, $y$]'
-    <dt>'$x$ != $y$'
-        <dd>yields 'False' if $x$ and $y$ are known to be equal, or
+      <dt>'Unequal[$x$, $y$]'
+      <dt>'$x$ != $y$'
+      <dd>is 'False' if $x$ and $y$ are known to be equal, or
         'True' if $x$ and $y$ are known to be unequal.
-    <dt>'$lhs$ == $rhs$'
-        <dd>represents the inequality $lhs$   $rhs$.
+        Commutative properties apply so if $x$ != $y$ then
+        $y$ != $x$.
     </dl>
 
     >> 1 != 1.

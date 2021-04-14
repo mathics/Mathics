@@ -48,3 +48,8 @@ Thanks to the authors of all projects that are used in Mathics:
 - dateutil
 - colorama
 - six
+
+Credits for the different parts of KnotTheory package can be found in the credits.txt file. See more information in [http://katlas.org/wiki/Setup]
+
+Credits for FeynCalc can be found at (https://feyncalc.github.io/)[https://feyncalc.github.io/]
+

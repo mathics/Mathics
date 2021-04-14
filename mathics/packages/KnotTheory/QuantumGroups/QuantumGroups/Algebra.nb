@@ -1,0 +1,686 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     19624,        677]
+NotebookOptionsPosition[     16187,        560]
+NotebookOutlinePosition[     16583,        577]
+CellTagsIndexPosition[     16540,        574]
+WindowFrame->Normal
+ContainsDynamic->False*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["QuantumGroups`Algebra` package", "Subtitle",
+ InitializationCell->True],
+
+Cell["\<\
+A subpackage for QuantumGroups v2.
+Version 2.0, June 20, 2005, Scott Morrison\
+\>", "Text",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section",
+ InitializationCell->True],
+
+Cell["", "Text",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{"BeginPackage", "[", 
+  RowBox[{"\"\<QuantumGroups`Algebra`\>\"", ",", 
+   RowBox[{"{", 
+    RowBox[{
+    "\"\<QuantumGroups`\>\"", ",", "\"\<QuantumGroups`RootSystems`\>\"", ",", 
+     "\"\<QuantumGroups`WeylGroups`\>\""}], "}"}]}], "]"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{"X", ";", "K", ";", "\[ScriptOne]", ";", "\[ScriptZero]", 
+  ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307651702196703`*^9, 3.4307651704600163`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"SuperPlus", ";", "SuperMinus", ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{"PositiveGenerators", ";", "NegativeGenerators", ";", 
+  "CartanGenerators", ";", "Generators", ";", "NonCommutativePower", ";", 
+  "\[CapitalDelta]", ";", "\[CapitalDelta]op", ";", "OperatorWeight", ";", 
+  "OperatorLength", ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"PositiveGenerators", "[", "\[CapitalGamma]_", "]"}], ":=", 
+   RowBox[{"Table", "[", 
+    RowBox[{
+     RowBox[{"SuperPlus", "[", 
+      SubscriptBox["X", "i"], "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", "1", ",", 
+       RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}], "}"}]}], "]"}]}], 
+  ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307652235763936`*^9, 3.430765228223075*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"NegativeGenerators", "[", "\[CapitalGamma]_", "]"}], ":=", 
+   RowBox[{"Table", "[", 
+    RowBox[{
+     RowBox[{"SuperMinus", "[", 
+      SubscriptBox["X", "i"], "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", "1", ",", 
+       RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}], "}"}]}], "]"}]}], 
+  ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307652301358256`*^9, 3.4307652346322913`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"CartanGenerators", "[", "\[CapitalGamma]_", "]"}], ":=", 
+   RowBox[{"Table", "[", 
+    RowBox[{
+     SubscriptBox["K", "i"], ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", "1", ",", 
+       RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}], "}"}]}], "]"}]}], 
+  ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Generators", "[", "\[CapitalGamma]_", "]"}], ":=", 
+  RowBox[{
+   RowBox[{"CartanGenerators", "[", "\[CapitalGamma]", "]"}], "~", "Join", 
+   "~", 
+   RowBox[{"PositiveGenerators", "[", "\[CapitalGamma]", "]"}], "~", "Join", 
+   "~", 
+   RowBox[{"NegativeGenerators", "[", "\[CapitalGamma]", "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Composition", "Subsubsection",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Unprotect", "[", "NonCommutativeMultiply", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"0", "**", "b_"}], ":=", "0"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"a_", "**", "0"}], ":=", "0"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"a_", "**", "b_Plus"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"a", "**", "#"}], "&"}], "/@", "b"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"a_Plus", "**", "b_"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"#", "**", "b"}], "&"}], "/@", "a"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"\[Alpha]_", "?", "qNumberQ"}], " ", "a_"}], ")"}], "**", "b_"}],
+   ":=", 
+  RowBox[{"\[Alpha]", 
+   RowBox[{"(", 
+    RowBox[{"a", "**", "b"}], ")"}]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"a_", "**", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"\[Alpha]_", "?", "qNumberQ"}], " ", "b_"}], ")"}]}], ":=", 
+  RowBox[{"\[Alpha]", 
+   RowBox[{"(", 
+    RowBox[{"a", "**", "b"}], ")"}]}]}]}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"\[ScriptOne]", "**", "Z_"}], ":=", "Z"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Z_", "**", "\[ScriptOne]"}], ":=", "Z"}]}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{"a_", "\[CircleTimes]", "b_"}], ")"}], "**", 
+   RowBox[{"(", 
+    RowBox[{"c_", "\[CircleTimes]", "d_"}], ")"}]}], ":=", 
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{"a", "**", "c"}], ")"}], "\[CircleTimes]", 
+   RowBox[{"(", 
+    RowBox[{"b", "**", "d"}], ")"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"NonCommutativePower", "[", 
+   RowBox[{"x_", ",", 
+    RowBox[{"n_", "?", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"#", "\[GreaterEqual]", "2"}], "&"}], ")"}]}]}], "]"}], ":=", 
+  RowBox[{"NonCommutativeMultiply", "@@", 
+   RowBox[{"Table", "[", 
+    RowBox[{"x", ",", 
+     RowBox[{"{", "n", "}"}]}], "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"NonCommutativePower", "[", 
+   RowBox[{"x_", ",", "1"}], "]"}], ":=", "x"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"NonCommutativePower", "[", 
+   RowBox[{"x_", ",", "0"}], "]"}], ":=", "\[ScriptOne]"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"NonCommutativePower", "[", 
+   RowBox[{"x_", ",", 
+    RowBox[{"n_", "?", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"#", "<", "0"}], "&"}], ")"}]}]}], "]"}], ":=", 
+  RowBox[{"NonCommutativePower", "[", 
+   RowBox[{
+    SuperscriptBox["x", 
+     RowBox[{"-", "1"}]], ",", 
+    RowBox[{"-", "n"}]}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Protect", "[", "NonCommutativeMultiply", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Comultiplication", "Subsubsection",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"\[CapitalDelta]", "[", "\[ScriptOne]", "]"}], "=", 
+   RowBox[{"\[ScriptOne]", "\[CircleTimes]", "\[ScriptOne]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   SubscriptBox["K", "i_"], "]"}], ":=", 
+  RowBox[{
+   SubscriptBox["K", "i"], "\[CircleTimes]", 
+   SubscriptBox["K", "i"]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   SuperscriptBox[
+    SubscriptBox["K", "i_"], 
+    RowBox[{"-", "1"}]], "]"}], ":=", 
+  RowBox[{
+   SuperscriptBox[
+    SubscriptBox["K", "i"], 
+    RowBox[{"-", "1"}]], "\[CircleTimes]", 
+   SuperscriptBox[
+    SubscriptBox["K", "i"], 
+    RowBox[{"-", "1"}]]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   RowBox[{"SuperPlus", "[", 
+    SubscriptBox["X", "i_"], "]"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"SuperPlus", "[", 
+     SubscriptBox["X", "i"], "]"}], "\[CircleTimes]", 
+    SubscriptBox["K", "i"]}], "+", 
+   RowBox[{"\[ScriptOne]", "\[CircleTimes]", 
+    RowBox[{"SuperPlus", "[", 
+     SubscriptBox["X", "i"], "]"}]}]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   RowBox[{"SuperMinus", "[", 
+    SubscriptBox["X", "i_"], "]"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"SuperMinus", "[", 
+     SubscriptBox["X", "i"], "]"}], "\[CircleTimes]", "\[ScriptOne]"}], "+", 
+   RowBox[{
+    SuperscriptBox[
+     SubscriptBox["K", "i"], 
+     RowBox[{"-", "1"}]], "\[CircleTimes]", 
+    RowBox[{"SuperMinus", "[", 
+     SubscriptBox["X", "i"], "]"}]}]}]}]}], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307652424435234`*^9, 3.430765282771512*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   RowBox[{
+    RowBox[{"\[Alpha]_", "?", "qNumberQ"}], " ", "A_"}], "]"}], ":=", 
+  RowBox[{"\[Alpha]", " ", 
+   RowBox[{"\[CapitalDelta]", "[", "A", "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", 
+   RowBox[{"A_", "**", "B_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"\[CapitalDelta]", "[", "A", "]"}], "**", 
+   RowBox[{"\[CapitalDelta]", "[", "B", "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"\[CapitalDelta]op", "[", "Z_", "]"}], ":=", 
+  RowBox[{
+   RowBox[{"\[CapitalDelta]", "[", "Z", "]"}], "/.", 
+   RowBox[{
+    RowBox[{"X_", "\[CircleTimes]", "Y_"}], "\[RuleDelayed]", 
+    RowBox[{"Y", "\[CircleTimes]", "X"}]}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", "X_Plus", "]"}], ":=", 
+  RowBox[{"\[CapitalDelta]", "/@", "X"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CapitalDelta]", "[", "X_TensorProduct", "]"}], ":=", 
+  RowBox[{
+   RowBox[{"\[CapitalDelta]", "[", 
+    RowBox[{"First", "[", "X", "]"}], "]"}], "\[CircleTimes]", 
+   RowBox[{"Rest", "[", "X", "]"}]}]}]}], "Input",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Weights of quantum group generators", "Subsubsection",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   "\[ScriptZero]", "]"}], ":=", 
+  RowBox[{"ZeroVector", "[", 
+   RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   "\[ScriptOne]", "]"}], ":=", 
+  RowBox[{"ZeroVector", "[", 
+   RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   SubscriptBox["K", "i_"], "]"}], ":=", 
+  RowBox[{"ZeroVector", "[", 
+   RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   SuperscriptBox[
+    SubscriptBox["K", "i_"], 
+    RowBox[{"-", "1"}]], "]"}], ":=", 
+  RowBox[{"ZeroVector", "[", 
+   RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], "]"}]}]}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"SuperPlus", "[", 
+    SubscriptBox["X", "i_"], "]"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", 
+    RowBox[{"SuperPlus", "[", 
+     SubscriptBox["X", "i"], "]"}], "]"}], "=", 
+   RowBox[{
+    RowBox[{"SimpleRoots", "[", "\[CapitalGamma]", "]"}], 
+    "\[LeftDoubleBracket]", "i", 
+    "\[RightDoubleBracket]"}]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"SuperMinus", "[", 
+    SubscriptBox["X", "i_"], "]"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", 
+    RowBox[{"SuperMinus", "[", 
+     SubscriptBox["X", "i"], "]"}], "]"}], "=", 
+   RowBox[{"-", 
+    RowBox[{
+     RowBox[{"SimpleRoots", "[", "\[CapitalGamma]", "]"}], 
+     "\[LeftDoubleBracket]", "i", "\[RightDoubleBracket]"}]}]}]}]}], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.430765289941822*^9, 3.430765327976514*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"A_", "**", "B_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", "]"}], 
+   "+", 
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "B", 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"A_", "\[CircleTimes]", "B_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", "]"}], 
+   "+", 
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "B", 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+     RowBox[{
+      RowBox[{"\[Alpha]_", "?", "qNumberQ"}], " ", "A_"}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", 
+     "]"}]}], "\[IndentingNewLine]"}], 
+  RowBox[{"(*", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+      RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", 
+      RowBox[{"A_", "+", "B_"}], "]"}], "/;", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", 
+        "]"}], "\[Equal]", 
+       RowBox[{
+        RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "B", 
+        "]"}]}], ")"}]}], ":=", 
+    RowBox[{
+     RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", 
+     "]"}]}], "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"OperatorWeight", "[", "\[CapitalGamma]_", "]"}], "[", "A_Plus", 
+    "]"}], "/;", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"Length", "[", 
+      RowBox[{"Union", "[", 
+       RowBox[{
+        RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "/@", 
+        RowBox[{"(", 
+         RowBox[{"List", "@@", "A"}], ")"}]}], "]"}], "]"}], "\[Equal]", 
+     "1"}], ")"}]}], ":=", 
+  RowBox[{
+   RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", 
+   RowBox[{"First", "[", "A", "]"}], "]"}]}]}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"OperatorLength", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "A_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"OperatorLength", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "A"}], "]"}], "=", 
+   RowBox[{"With", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"\[Lambda]", "=", 
+       RowBox[{
+        RowBox[{"OperatorWeight", "[", "\[CapitalGamma]", "]"}], "[", "A", 
+        "]"}]}], "}"}], ",", 
+     SqrtBox[
+      RowBox[{
+       RowBox[{"KillingForm", "[", "\[CapitalGamma]", "]"}], "[", 
+       RowBox[{"\[Lambda]", ",", "\[Lambda]"}], "]"}]]}], "]"}]}]}]], "Input",\
+
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ SubscriptBox["K", "\[Rho]"]], "Subsubsection"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   SubscriptBox["K", 
+    RowBox[{
+     SubscriptBox["A", "1"], ",", "\[Rho]"}]], "=", 
+   SubscriptBox["K", "1"]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  SubscriptBox["K", 
+   RowBox[{"\[CapitalGamma]_", ",", "\[Rho]"}]], ":=", 
+  RowBox[{"Inner", "[", 
+   RowBox[{"NonCommutativePower", ",", 
+    RowBox[{"CartanGenerators", "[", "\[CapitalGamma]", "]"}], ",", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"Plus", "@@", 
+       RowBox[{"PositiveRoots", "[", "\[CapitalGamma]", "]"}]}], ")"}], ".", 
+     RowBox[{"Inverse", "[", 
+      RowBox[{"SimpleRoots", "[", "\[CapitalGamma]", "]"}], "]"}]}], ",", 
+    "NonCommutativeMultiply"}], "]"}]}]}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"End", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"EndPackage", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{832, 558},
+WindowMargins->{{Automatic, 46}, {Automatic, -63}},
+ShowSelection->True,
+FrontEndVersion->"6.0 for Microsoft Windows (32-bit) (June 19, 2007)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[590, 23, 77, 1, 49, "Subtitle",
+ InitializationCell->True],
+Cell[670, 26, 128, 4, 47, "Text",
+ InitializationCell->True],
+Cell[CellGroupData[{
+Cell[823, 34, 58, 1, 71, "Section",
+ InitializationCell->True],
+Cell[884, 37, 43, 1, 29, "Text",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[964, 43, 60, 1, 71, "Section",
+ InitializationCell->True],
+Cell[1027, 46, 300, 7, 52, "Input",
+ InitializationCell->True],
+Cell[1330, 55, 197, 4, 31, "Input",
+ InitializationCell->True],
+Cell[1530, 61, 98, 2, 31, "Input",
+ InitializationCell->True],
+Cell[1631, 65, 292, 5, 72, "Input",
+ InitializationCell->True],
+Cell[1926, 72, 119, 3, 31, "Input",
+ InitializationCell->True],
+Cell[2048, 77, 463, 13, 31, "Input",
+ InitializationCell->True],
+Cell[2514, 92, 466, 13, 31, "Input",
+ InitializationCell->True],
+Cell[2983, 107, 353, 11, 31, "Input",
+ InitializationCell->True],
+Cell[3339, 120, 374, 9, 31, "Input",
+ InitializationCell->True],
+Cell[CellGroupData[{
+Cell[3738, 133, 63, 1, 28, "Subsubsection",
+ InitializationCell->True],
+Cell[3804, 136, 128, 3, 31, "Input",
+ InitializationCell->True],
+Cell[3935, 141, 102, 3, 31, "Input",
+ InitializationCell->True],
+Cell[4040, 146, 102, 3, 31, "Input",
+ InitializationCell->True],
+Cell[4145, 151, 176, 6, 31, "Input",
+ InitializationCell->True],
+Cell[4324, 159, 176, 6, 31, "Input",
+ InitializationCell->True],
+Cell[4503, 167, 515, 18, 52, "Input",
+ InitializationCell->True],
+Cell[5021, 187, 202, 5, 52, "Input",
+ InitializationCell->True],
+Cell[5226, 194, 365, 12, 31, "Input",
+ InitializationCell->True],
+Cell[5594, 208, 393, 12, 31, "Input",
+ InitializationCell->True],
+Cell[5990, 222, 148, 4, 31, "Input",
+ InitializationCell->True],
+Cell[6141, 228, 159, 4, 31, "Input",
+ InitializationCell->True],
+Cell[6303, 234, 387, 13, 33, "Input",
+ InitializationCell->True],
+Cell[6693, 249, 126, 3, 31, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6856, 257, 68, 1, 28, "Subsubsection",
+ InitializationCell->True],
+Cell[6927, 260, 1693, 51, 115, "Input",
+ InitializationCell->True],
+Cell[8623, 313, 257, 7, 31, "Input",
+ InitializationCell->True],
+Cell[8883, 322, 256, 7, 31, "Input",
+ InitializationCell->True],
+Cell[9142, 331, 304, 8, 31, "Input",
+ InitializationCell->True],
+Cell[9449, 341, 416, 10, 52, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9902, 356, 87, 1, 28, "Subsubsection",
+ InitializationCell->True],
+Cell[9992, 359, 1041, 30, 94, "Input",
+ InitializationCell->True],
+Cell[11036, 391, 1117, 30, 52, "Input",
+ InitializationCell->True],
+Cell[12156, 423, 393, 12, 31, "Input",
+ InitializationCell->True],
+Cell[12552, 437, 405, 12, 31, "Input",
+ InitializationCell->True],
+Cell[12960, 451, 1518, 45, 92, "Input",
+ InitializationCell->True],
+Cell[14481, 498, 633, 19, 59, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15151, 522, 61, 1, 29, "Subsubsection"],
+Cell[15215, 525, 727, 20, 73, "Input",
+ InitializationCell->True],
+Cell[15945, 547, 96, 3, 31, "Input",
+ InitializationCell->True],
+Cell[16044, 552, 103, 3, 31, "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

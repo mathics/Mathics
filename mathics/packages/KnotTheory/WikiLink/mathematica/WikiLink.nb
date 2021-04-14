@@ -1,0 +1,623 @@
+(************** Content-type: application/mathematica **************
+                     CreatedBy='Mathematica 5.2'
+
+                    Mathematica-Compatible Notebook
+
+This notebook can be used with any Mathematica-compatible
+application, such as Mathematica, MathReader or Publicon. The data
+for the notebook starts with the line containing stars above.
+
+To get the notebook into a Mathematica-compatible application, do
+one of the following:
+
+* Save the data starting with the line of stars above into a file
+  with a name ending in .nb, then open the file inside the
+  application;
+
+* Copy the data starting with the line of stars above to the
+  clipboard, then use the Paste menu command inside the application.
+
+Data for notebooks contains only printable 7-bit ASCII and can be
+sent directly in email or through ftp in text mode.  Newlines can be
+CR, LF or CRLF (Unix, Macintosh or MS-DOS style).
+
+NOTE: If you modify the data for this notebook not in a Mathematica-
+compatible application, you must delete the line below containing
+the word CacheID, otherwise Mathematica-compatible applications may
+try to use invalid cache data.
+
+For more information on notebooks and Mathematica-compatible 
+applications, contact Wolfram Research:
+  web: http://www.wolfram.com
+  email: info@wolfram.com
+  phone: +1-217-398-0700 (U.S.)
+
+Notebook reader applications are available free of charge from 
+Wolfram Research.
+*******************************************************************)
+
+(*CacheID: 232*)
+
+
+(*NotebookFileLineBreakTest
+NotebookFileLineBreakTest*)
+(*NotebookOptionsPosition[     18328,        472]*)
+(*NotebookOutlinePosition[     19005,        495]*)
+(*  CellTagsIndexPosition[     18961,        491]*)
+(*WindowFrame->Normal*)
+
+
+
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["WikiLink` package", "Subtitle"],
+
+Cell["\<\
+Version 0.1, August 15, 2005, Scott Morrison
+Available under MIT and GPL licenses.\
+\>", "Text"],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section"],
+
+Cell["\<\
+Provides a thin wrapper around a java class for manipulating Mediawiki \
+connections.\
+\>", "Text"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section"],
+
+Cell[BoxData[
+    \( (*\(<\)\(pre\)\(>\)*) \)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BeginPackage["\<WikiLink`\>", {"\<JLink`\>"}];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(AddJarPath::usage = "\<You'll need to call this, specifying the path \
+to the jar files needed by this package. Hopefully, they're in the same place \
+as the package itself.\>";\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(SetDefaultWikiURL::usage = "\<Specify a default Wiki URL to attempt \
+to connect to. If a default URL has been specified, and a connection has not \
+been made explicitly using CreateWikiConnection, the WikiLink` package will \
+attempt to connect to the default URL, with no username or password, on the \
+first attempted use.\>";\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[{
+    \(\(CreateWikiConnection::usage = "\<CreateWikiConnection[URL, username, \
+password] initialises a connection to a mediawiki server. The URL should \
+typically end in \"index.php\". The username and password are optional.\n\>";\
+\)\), "\[IndentingNewLine]", 
+    \(\(WikiGetPageText::usage = "\<WikiGetPageText[pagename] returns the raw \
+text of the specified page.\>";\)\), "\[IndentingNewLine]", 
+    \(\(WikiGetPageTexts::usage = "\<WikiGetPageTexts[{pagename1, pagename2, \
+...}] returns a list of pairs of the form {{pagename1, text1}, {pagename2, \
+text2}, ...}. If this failed for some pages, the expression $Failed will \
+appear instead of the raw wiki text.\>";\)\), "\[IndentingNewLine]", 
+    \(\(WikiSetPageText::usage = "\<WikiSetPageText[pagename, text] \
+overwrites the contents of the specificied page with the given text.\n\>" <> \
+"\<WikiSetPageText[pagename, text, summary] overwrites the contents of the \
+specificied page with the given text and notes summary in the change log.\n\
+\>";\)\), "\[IndentingNewLine]", 
+    \(\(WikiSetPageTexts::usage = "\<WikiSetPageText[{{pagename1, \
+text1},{pagename2,text2},...}] efficiently sets multiple pages, by first \
+checking which texts are already up to date.\n\>";\)\), \
+"\[IndentingNewLine]", 
+    \(\(WikiUploadFile::usage = "\<WikiUploadFile[name, description] uploads \
+the specified file to the wiki.\>";\)\)}], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(WikiUserName::usage = "\<WikiUserName[] returns either the name of \
+the user you are logged in as, your IP address if you're not logged in, or \
+$Failed if something more complicated has happened!\>";\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(WikiAllPages::usage = \
+"\<WikiAllPages[url,initialtext,namespace,namespaceNumber] attempts to \
+produce a list of all pages in the namespace with titles beginning with \
+initialtext. The first argument, url, shoould be the url of the wiki, ending \
+in index.php.\>";\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPageMatchQ; WikiPageFreeQ; WikiStringReplace; WikiStringCases; 
+    WikiPagesContaining;\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(Begin["\<`Private`\>"];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(WikiLinkDirectory[] = 
+        ParentDirectory[
+          DirectoryName[
+            File /. Flatten[\(FileInformation[
+                      ToFileName[#, "\<WikiLink.m\>"]] &\) /@ \(($Path /. \
+"\<.\>" \[Rule] Directory[])\)]]];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(mediawikiConnection; defaultURL = "\<\>";\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(SetDefaultWikiURL[URL_String] := \((defaultURL = URL)\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(AddJarPath[
+        path_String] := \[IndentingNewLine]Module[{PathSeparator, FileExists, 
+          jars}, \[IndentingNewLine]jars\  = \(ToFileName[
+                path, #] &\) /@ {"\<commons-httpclient-3.0-rc2.jar\>", \
+"\<commons-codec-1.3.jar\>", "\<commons-logging.jar\>", \
+"\<commons-lang-2.1.jar\>", "\<jdom.jar\>", \ "\<wikilink.jar\>"}; \
+\[IndentingNewLine]FileExists[file_String] := 
+          FileNames[file] =!= {}; \[IndentingNewLine]jars = 
+          Select[jars, 
+            FileExists]; \[IndentingNewLine]InstallJava[]; \
+\[IndentingNewLine]AddToClassPath @@ jars;\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(AddJarPath[paths__String] := AddJarPath /@ {paths}\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(GuessJarPath[] := 
+      AddJarPath[WikiLinkDirectory[], 
+        ToFileName[WikiLinkDirectory[], "\<jars\>"]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(CreateWikiConnection[
+        baseURL_String] := \[IndentingNewLine]\((InstallJava[]; 
+        GuessJarPath[]; 
+        mediawikiConnection = 
+          JavaNew["\<wikilink.MediawikiConnection\>", baseURL];)\)\)], "Input",\
+
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(CreateWikiConnection[baseURL_String, username_String, \ 
+        password_String] := \[IndentingNewLine]\((InstallJava[]; 
+        GuessJarPath[]; 
+        mediawikiConnection = 
+          JavaNew["\<wikilink.MediawikiConnection\>", baseURL, \ username, \ 
+            password];)\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiConnectionValidQ[] := 
+      If[JavaObjectQ[mediawikiConnection], True, 
+        If[defaultURL == "\<\>", False, CreateWikiConnection[defaultURL]; 
+          defaultURL = "\<\>"; WikiConnectionValidQ[]]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(WikiGetPageText::invalid = \(WikiSetPageText::invalid = "\<You must \
+call CreateWikiConnection before using WikiGetPageText or \
+WikiSetPageText\>"\);\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikifyName[name_String] := 
+      StringReplace[name, "\< \>" \[Rule] "\<_\>"]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(UnwikifyName[name_String] := 
+      StringReplace[name, "\<_\>" \[Rule] "\< \>"]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiGetPageText[name_String] := 
+      If[WikiConnectionValidQ[], 
+        mediawikiConnection@getPageText[WikifyName[name]], 
+        Message[WikiGetPageText::invalid]]\)], "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(WikiGetPageTexts[names : {__String}] := \[IndentingNewLine]If[
+        WikiConnectionValidQ[], \[IndentingNewLine]Module[{results, 
+            getResult, 
+            wikinames = WikifyName /@ names}, \[IndentingNewLine]results = 
+            mediawikiConnection@
+              getPageTexts[wikinames]; \[IndentingNewLine]getResult[name_] := 
+            Module[{c, r}, \[IndentingNewLine]c = 
+                Cases[results, {WikifyName[name], r_} \[RuleDelayed] 
+                    r]; \[IndentingNewLine]If[Length[c] \[Equal] 1, 
+                c\[LeftDoubleBracket]1\[RightDoubleBracket], "\<\>"]\
+\[IndentingNewLine]]; \[IndentingNewLine]\({#, getResult[#]} &\) /@ 
+            names\[IndentingNewLine]]\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    RowBox[{\(General::"spell"\), \(\(:\)\(\ \)\), "\<\"Possible spelling \
+error: new symbol name \\\"\\!\\(WikiGetPageTexts\\)\\\" is similar to \
+existing symbols \\!\\({WikiGetPageText, WikiSetPageTexts}\\). \
+\\!\\(\\*ButtonBox[\\\"More\[Ellipsis]\\\", ButtonStyle->\\\"RefGuideLinkText\
+\\\", ButtonFrame->None, ButtonData:>\\\"General::spell\\\"]\\)\"\>"}]], \
+"Message"],
+
+Cell[BoxData[
+    RowBox[{\(General::"spell1"\), \(\(:\)\(\ \)\), "\<\"Possible spelling \
+error: new symbol name \\\"\\!\\(names\\)\\\" is similar to existing symbol \
+\\\"\\!\\(Names\\)\\\". \\!\\(\\*ButtonBox[\\\"More\[Ellipsis]\\\", \
+ButtonStyle->\\\"RefGuideLinkText\\\", ButtonFrame->None, \
+ButtonData:>\\\"General::spell1\\\"]\\)\"\>"}]], "Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(WikiSetPageText[name_String, contents_String] := 
+      WikiSetPageText[WikifyName[name], contents, "\<\>"]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiSetPageText[name_String, contents_String, \ 
+        summary_String] := \[IndentingNewLine]If[
+        WikiConnectionValidQ[], \[IndentingNewLine]mediawikiConnection@
+          setPageText[WikifyName[name], \ contents, \ 
+            summary], \[IndentingNewLine]Message[
+          WikiSetPageText::invalid]\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiSetPageTexts[uploadPairs_List] := 
+      WikiSetPageTexts[uploadPairs, "\<\>"]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiSetPageTexts[uploadPairs_List, \ 
+        summary_String] := \[IndentingNewLine]If[
+        WikiConnectionValidQ[], \[IndentingNewLine]mediawikiConnection@
+          setPageTexts[\({WikifyName[#\[LeftDoubleBracket]1\
+\[RightDoubleBracket]], #\[LeftDoubleBracket]2\[RightDoubleBracket]} &\) /@ 
+              uploadPairs, \ summary], \[IndentingNewLine]Message[
+          WikiSetPageText::invalid]\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiUploadFile[name_String, description_String] := 
+      If[WikiConnectionValidQ[], 
+        mediawikiConnection@uploadFile[name, description], 
+        Message[WikiUploadFile::invalid]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiUserName[] := 
+      Module[{text, 
+          cases}, \[IndentingNewLine]If[\(! WikiSetPageText["\<Who_Am_I\>", "\
+\<--~~~\>"]\), Return[$Failed]]; \[IndentingNewLine]text = 
+          WikiGetPageText["\<Who_Am_I\>"]; \[IndentingNewLine]cases = 
+          StringCases[
+            text, "\<--[[User:\>" ~~ \(x__ ~~ \("\<|\>" ~~ \(x__ ~~ \
+"\<]]\>"\)\)\) \[RuleDelayed] x]; \[IndentingNewLine]If[
+          Length[cases] \[Equal] 1, 
+          Return[cases\[LeftDoubleBracket]1\[RightDoubleBracket]]]; \
+\[IndentingNewLine]Return[$Failed];\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPageMatchQ[name_String, patt_] := 
+      StringMatchQ[WikiGetPageText[name], patt]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPageMatchQ[names : {__String}, 
+        patt_] := \(StringMatchQ[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+            patt] &\) /@ WikiGetPageTexts[names]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPagesContaining[names : {__String}, pattern_] := 
+      Pick[names, 
+        Last /@ WikiGetPageTexts[
+            names], _?\((\(! StringFreeQ[#, pattern]\) &)\)]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPageFreeQ[name_String, patt_] := 
+      StringFreeQ[WikiGetPageText[name], patt]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiPageFreeQ[names : {__String}, 
+        patt_] := \(StringFreeQ[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+            patt] &\) /@ WikiGetPageTexts[names]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[name_String, rules_] := 
+      WikiSetPageText[name, 
+        StringReplace[WikiGetPageText[name], rules]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[name_String, rules_, n_Integer] := 
+      WikiSetPageText[name, 
+        StringReplace[WikiGetPageText[name], rules, n]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[name_String, rules_, description_String] := 
+      WikiSetPageText[name, StringReplace[WikiGetPageText[name], rules], 
+        description]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[name_String, rules_, n_Integer, description_String] := 
+      WikiSetPageText[name, StringReplace[WikiGetPageText[name], rules, n], 
+        description]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[names : {__String}, rules_] := 
+      WikiSetPageTexts[\({#\[LeftDoubleBracket]1\[RightDoubleBracket], 
+              StringReplace[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+                rules]} &\) /@ WikiGetPageTexts[names]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[names : {__String}, rules_, n_Integer] := 
+      WikiSetPageTexts[\({#\[LeftDoubleBracket]1\[RightDoubleBracket], 
+              StringReplace[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+                rules, n]} &\) /@ WikiGetPageTexts[names]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[names : {__String}, rules_, summary_String] := 
+      WikiSetPageTexts[\({#\[LeftDoubleBracket]1\[RightDoubleBracket], 
+              StringReplace[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+                rules]} &\) /@ WikiGetPageTexts[names], summary]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringReplace[names : {__String}, rules_, n_Integer, 
+        summary_String] := 
+      WikiSetPageTexts[\({#\[LeftDoubleBracket]1\[RightDoubleBracket], 
+              StringReplace[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+                rules, n]} &\) /@ WikiGetPageTexts[names], 
+        summary]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringCases[name_String, rules_] := 
+      StringCases[WikiGetPageText[name], rules]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiStringCases[names : {__String}, 
+        rules_] := \({#\[LeftDoubleBracket]1\[RightDoubleBracket], 
+            StringCases[#\[LeftDoubleBracket]2\[RightDoubleBracket], 
+              rules]} &\) /@ WikiGetPageTexts[names]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(nextPageURL[hostname_, baseURL_, text_, initialText_: "\<\>"] := 
+      Module[{candidates}, 
+        candidates = 
+          StringCases[
+            text, "\<<a href=\"\>" ~~ \(nextURL : \((baseURL ~~ \
+\("\<?title=Special:Allpages&amp;from=\>" ~~ \(initialText ~~ 
+                            ShortestMatch[__]\)\))\) ~~ "\<\" \
+title=\"Special:Allpages\">Next page\>"\) \[RuleDelayed] "\<http://\>" <> 
+                hostname <> StringReplace[nextURL, "\<&amp;\>" -> "\<&\>"], 
+            1]; \[IndentingNewLine]If[Length[candidates] \[Equal] 0, $Failed, 
+          candidates\[LeftDoubleBracket]1\[RightDoubleBracket]]\
+\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(WikiAllPages[hostname_String, baseURL_String: "\</w/index.php\>", 
+        initialText_String: "\<\>", nameSpace_String: "\<\>", 
+        nameSpaceNumber_Integer:  0, 
+        maxPages_:  \[Infinity]] := \[IndentingNewLine]Module[{pages = {}, 
+          newPages, 
+          allPagesURL = "\<http://\>" <> hostname <> 
+              baseURL <> "\<?title=Special%3AAllpages&from=\>" <> 
+              initialText <> "\<&namespace=\>" <> ToString[nameSpaceNumber], 
+          allPagesText}, \[IndentingNewLine]While[
+          allPagesURL =!= $Failed \[And] 
+            Length[pages] \[LessEqual] 
+              maxPages, \[IndentingNewLine]Print["\<Looking at: \>" <> 
+              allPagesURL]; \[IndentingNewLine]allPagesText = 
+            Import[allPagesURL, "\<Text\>"]; \[IndentingNewLine]If[
+            allPagesText \[Equal] $Failed, 
+            Continue[]]; \[IndentingNewLine]allPagesURL = 
+            nextPageURL[hostname, baseURL, allPagesText, 
+              initialText]; \[IndentingNewLine]newPages = 
+            StringCases[
+              allPagesText, "\<title=\"\>" ~~ \(pagename : \((\((\((nameSpace \
+~~ "\<:\>")\) | "\<\>")\) ~~ \(initialText ~~ 
+                            ShortestMatch[__]\))\) ~~ "\<\"\>"\) \
+\[RuleDelayed] pagename]; \[IndentingNewLine]Print["\<Found \>" <> 
+              ToString[
+                Length[newPages]] <> "\< more pages.\>"]; \
+\[IndentingNewLine]pages = 
+            pages~Join~
+              newPages;\[IndentingNewLine]]; \[IndentingNewLine]pages\
+\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(End[];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(EndPackage[];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \( (*\(<\)\(\(/\)\(pre\)\)\(>\)\([\([Category : 
+              Source\ Code]\)]\)*) \)], "Input",
+  InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+},
+FrontEndVersion->"5.2 for Microsoft Windows",
+ScreenRectangle->{{0, 1280}, {0, 713}},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1272, 679},
+WindowMargins->{{0, Automatic}, {Automatic, 0}}
+]
+
+(*******************************************************************
+Cached data follows.  If you edit this Notebook file directly, not
+using Mathematica, you must remove the line containing CacheID at
+the top of  the file.  The cache data will then be recreated when
+you save this file from within Mathematica.
+*******************************************************************)
+
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+
+(*NotebookFileOutline
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[1776, 53, 37, 0, 51, "Subtitle"],
+Cell[1816, 55, 106, 3, 52, "Text"],
+
+Cell[CellGroupData[{
+Cell[1947, 62, 31, 0, 73, "Section"],
+Cell[1981, 64, 109, 3, 33, "Text"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[2127, 72, 33, 0, 73, "Section"],
+Cell[2163, 74, 84, 2, 30, "Input",
+  InitializationCell->True],
+Cell[2250, 78, 111, 2, 30, "Input",
+  InitializationCell->True],
+Cell[2364, 82, 242, 4, 50, "Input",
+  InitializationCell->True],
+Cell[2609, 88, 394, 6, 70, "Input",
+  InitializationCell->True],
+Cell[3006, 96, 1440, 22, 250, "Input",
+  InitializationCell->True],
+Cell[4449, 120, 266, 4, 50, "Input",
+  InitializationCell->True],
+Cell[4718, 126, 332, 6, 50, "Input",
+  InitializationCell->True],
+Cell[5053, 134, 153, 3, 30, "Input",
+  InitializationCell->True],
+Cell[5209, 139, 88, 2, 30, "Input",
+  InitializationCell->True],
+Cell[5300, 143, 295, 7, 30, "Input",
+  InitializationCell->True],
+Cell[5598, 152, 102, 2, 30, "Input",
+  InitializationCell->True],
+Cell[5703, 156, 116, 2, 30, "Input",
+  InitializationCell->True],
+Cell[5822, 160, 666, 12, 190, "Input",
+  InitializationCell->True],
+Cell[6491, 174, 111, 2, 30, "Input",
+  InitializationCell->True],
+Cell[6605, 178, 171, 4, 30, "Input",
+  InitializationCell->True],
+Cell[6779, 184, 272, 7, 50, "Input",
+  InitializationCell->True],
+Cell[7054, 193, 343, 7, 50, "Input",
+  InitializationCell->True],
+Cell[7400, 202, 268, 5, 50, "Input",
+  InitializationCell->True],
+Cell[7671, 209, 216, 4, 30, "Input",
+  InitializationCell->True],
+Cell[7890, 215, 139, 3, 30, "Input",
+  InitializationCell->True],
+Cell[8032, 220, 141, 3, 30, "Input",
+  InitializationCell->True],
+Cell[8176, 225, 230, 5, 30, "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+Cell[8431, 234, 791, 13, 230, "Input",
+  InitializationCell->True],
+Cell[9225, 249, 392, 6, 22, "Message"],
+Cell[9620, 257, 358, 5, 22, "Message"]
+}, Open  ]],
+Cell[9993, 265, 168, 3, 30, "Input",
+  InitializationCell->True],
+Cell[10164, 270, 392, 7, 110, "Input",
+  InitializationCell->True],
+Cell[10559, 279, 143, 3, 30, "Input",
+  InitializationCell->True],
+Cell[10705, 284, 481, 8, 110, "Input",
+  InitializationCell->True],
+Cell[11189, 294, 248, 5, 30, "Input",
+  InitializationCell->True],
+Cell[11440, 301, 623, 12, 150, "Input",
+  InitializationCell->True],
+Cell[12066, 315, 147, 3, 30, "Input",
+  InitializationCell->True],
+Cell[12216, 320, 224, 4, 30, "Input",
+  InitializationCell->True],
+Cell[12443, 326, 228, 5, 30, "Input",
+  InitializationCell->True],
+Cell[12674, 333, 145, 3, 30, "Input",
+  InitializationCell->True],
+Cell[12822, 338, 222, 4, 30, "Input",
+  InitializationCell->True],
+Cell[13047, 344, 185, 4, 30, "Input",
+  InitializationCell->True],
+Cell[13235, 350, 199, 4, 30, "Input",
+  InitializationCell->True],
+Cell[13437, 356, 218, 4, 30, "Input",
+  InitializationCell->True],
+Cell[13658, 362, 232, 4, 30, "Input",
+  InitializationCell->True],
+Cell[13893, 368, 312, 5, 30, "Input",
+  InitializationCell->True],
+Cell[14208, 375, 326, 5, 30, "Input",
+  InitializationCell->True],
+Cell[14537, 382, 337, 5, 30, "Input",
+  InitializationCell->True],
+Cell[14877, 389, 369, 7, 30, "Input",
+  InitializationCell->True],
+Cell[15249, 398, 149, 3, 30, "Input",
+  InitializationCell->True],
+Cell[15401, 403, 288, 5, 30, "Input",
+  InitializationCell->True],
+Cell[15692, 410, 709, 13, 170, "Input",
+  InitializationCell->True],
+Cell[16404, 425, 1595, 30, 310, "Input",
+  InitializationCell->True],
+Cell[18002, 457, 71, 2, 30, "Input",
+  InitializationCell->True],
+Cell[18076, 461, 78, 2, 30, "Input",
+  InitializationCell->True],
+Cell[18157, 465, 143, 3, 30, "Input",
+  InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+
+
+(*******************************************************************
+End of Mathematica Notebook file.
+*******************************************************************)
+

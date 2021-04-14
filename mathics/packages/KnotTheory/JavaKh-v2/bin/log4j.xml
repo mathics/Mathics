@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+        
+  <appender name="ConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+    <layout class="org.apache.log4j.SimpleLayout"/>
+  </appender>
+
+  <appender name="SocketAppender" class="org.apache.log4j.net.SocketAppender">
+        <param name="RemoteHost" value="localhost"/>
+        <param name="Port" value="4445"/>
+        <param name="LocationInfo" value="true"/>
+  </appender>
+
+  <appender name="NullAppender" class="org.apache.log4j.varia.NullAppender"/>
+
+  <root>
+    <level value="DEBUG" />
+    <!-- Configure your logging here. Choose between 
+        1) NullAppender, for no output
+        2) ConsoleAppender, for logging output interspersed with usual program output
+        3) SocketAppender, if you're using Eclipse and have the Ganymede log4j plugin
+         To change options, simply remove the comments from the appropriate lines below.
+    -->
+    <!--<appender-ref ref="NullAppender"/>-->
+    <appender-ref ref="ConsoleAppender"/>
+    <!--<appender-ref ref="SocketAppender"/>-->
+  </root>
+
+</log4j:configuration> 

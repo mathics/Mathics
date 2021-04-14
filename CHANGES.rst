@@ -21,12 +21,27 @@ Enhancements
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``FixedPoint`` now supports the ``SameTest`` option.
 
+2.1.1
+-----
+
+New builtins
+++++++++++++
+
+* ``Series``,  ``O`` and ``SeriesData``
+
+
+Enhancements
+++++++++++++
+
+* Improvings in the implementation of ``D`` and ``Derivative``.
+
 Bug fixes
 +++++++++
 
 
 * ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
+
 
 2.1.0
 -----
