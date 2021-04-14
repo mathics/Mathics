@@ -33,12 +33,13 @@ from mathics.core.expression import (
     Symbol,
     SymbolComplexInfinity,
     SymbolDirectedInfinity,
-    SymbolFalse,
     SymbolInfinity,
     SymbolN,
     SymbolNull,
     SymbolSequence,
     SymbolTrue,
+    SymbolFalse,
+    SymbolUndefined,
     from_mpmath,
     from_python,
 )
@@ -675,7 +676,9 @@ class Times(BinaryOperator, SympyFunction):
                     Expression("Plus", item.leaves[1], leaves[-1].leaves[1]),
                 )
             elif (
-                leaves and item.has_form("Power", 2) and item.leaves[0].sameQ(leaves[-1])
+                leaves
+                and item.has_form("Power", 2)
+                and item.leaves[0].sameQ(leaves[-1])
             ):
                 leaves[-1] = Expression(
                     "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer(1))
@@ -2209,3 +2212,106 @@ class Boole(Builtin):
             elif expr == SymbolFalse:
                 return Integer(0)
         return None
+
+
+class Assumptions(Predefined):
+    """
+    <dl>
+    <dt>'$Assumptions'
+      <dd>is the default setting for the Assumptions option used in such
+   functions as Simplify, Refine, and Integrate. 
+    </dl>
+    """
+
+    name = "$Assumptions"
+    attributes = ("Unprotected",)
+    rules = {
+        "$Assumptions": "True",
+    }
+
+
+class Assuming(Builtin):
+    """
+    <dl>
+    <dt>'Assuming[$cond$, $expr$]'
+      <dd>Evaluates $expr$ assuming the conditions $cond$
+    </dl>
+    >> $Assumptions = { x > 0 }
+     = {x > 0}
+    >> Assuming[y>0, $Assumptions]
+     = {x > 0, y > 0}
+    """
+
+    attributes = ("HoldRest",)
+
+    def apply_assuming(self, cond, expr, evaluation):
+        "Assuming[cond_, expr_]"
+        cond = cond.evaluate(evaluation)
+        if cond.is_true():
+            cond = []
+        elif cond.is_symbol() or not cond.has_form("List", None):
+            cond = [cond]
+        else:
+            cond = cond.leaves
+        assumptions = evaluation.definitions.get_definition(
+            "System`$Assumptions", only_if_exists=True
+        )
+
+        if assumptions:
+            assumptions = assumptions.ownvalues
+            if len(assumptions) > 0:
+                assumptions = assumptions[0].replace
+            else:
+                assumptions = None
+        if assumptions:
+            if assumptions.is_symbol() or not assumptions.has_form("List", None):
+                assumptions = [assumptions]
+            else:
+                assumptions = assumptions.leaves
+            cond = assumptions + tuple(cond)
+        Expression(
+            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
+        ).evaluate(evaluation)
+        ret = expr.evaluate(evaluation)
+        if assumptions:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
+            ).evaluate(evaluation)
+        else:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
+            ).evaluate(evaluation)
+        return ret
+
+
+class ConditionalExpression(Builtin):
+    """
+    <dl>
+    <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
+          $cond$ evaluates to $False$.
+    </dl>
+
+    >> f = ConditionalExpression[x^2, x>0]
+     = ConditionalExpression[x ^ 2, x > 0]
+    >> f /. x -> 2
+     = 4
+    >> f /. x -> -2
+     = Undefined
+    """
+
+    rules = {
+        "ConditionalExpression[expr_, True]": "expr",
+        "ConditionalExpression[expr_, False]": "Undefined",
+    }
+
+    def apply_generic(self, expr, cond, evaluation):
+        "ConditionalExpression[expr_, cond_]"
+        cond = cond.evaluate(evaluation)
+        if cond is None:
+            return
+        if cond.is_true():
+            return expr
+        if cond == SymbolFalse:
+            return SymbolUndefined
+        return

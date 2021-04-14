@@ -534,7 +534,7 @@ class Equal(_EqualityOperator, SympyComparison):
       <dd>is 'True' if $x$ and $y$ are known to be equal, or
         'False' if $x$ and $y$ are known to be unequal, in which case
         case, 'Not[$x$ == $y$]' will be 'True'.
-        Commutative properties apply, so if $x$ === $y$ then $y$ === $x$.
+        Commutative properties apply, so if $x$ == $y$ then $y$ == $x$.
     </dl>
 
     >> a==a

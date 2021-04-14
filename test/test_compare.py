@@ -251,7 +251,6 @@ def test_cmp1_no_pass(str_lhs, str_rhs, str_expected):
 
 
 
-
 @pytest.mark.parametrize(
     ("str_lhs", "str_rhs", "str_expected"),
     tests2,
