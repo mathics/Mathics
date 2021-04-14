@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer1,
     Number,
     Rational,
     Real,
@@ -113,7 +114,7 @@ class _MPMathFunction(SympyFunction):
                 if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
                     result = Symbol("ComplexInfinity")
                 elif mpmath.isinf(result) and result > 0:
-                    result = Expression("DirectedInfinity", Integer(1))
+                    result = Expression("DirectedInfinity", Integer1)
                 elif mpmath.isinf(result) and result < 0:
                     result = Expression("DirectedInfinity", Integer(-1))
                 elif mpmath.isnan(result):
@@ -261,7 +262,7 @@ class Plus(BinaryOperator, SympyFunction):
             if item.has_form("Times", 1, None):
                 if isinstance(item.leaves[0], Number):
                     neg = -item.leaves[0]
-                    if neg.sameQ(Integer(1)):
+                    if neg.sameQ(Integer1):
                         if len(item.leaves) == 1:
                             return neg
                         else:
@@ -584,7 +585,7 @@ class Times(BinaryOperator, SympyFunction):
                 item.leaves[1], (Integer, Rational, Real)
             ):
                 neg = -item.leaves[1]
-                if neg.sameQ(Integer(1)):
+                if neg.sameQ(Integer1):
                     return item.leaves[0]
                 else:
                     return Expression("Power", item.leaves[0], neg)
@@ -604,7 +605,7 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
-                if not numerator.sameQ(Integer(1)):
+                if not numerator.sameQ(Integer1):
                     positive.append(numerator)
                 negative.append(item.denominator())
             else:
@@ -619,7 +620,7 @@ class Times(BinaryOperator, SympyFunction):
         if positive:
             positive = create_infix(positive, op, 400, "None")
         else:
-            positive = Integer(1)
+            positive = Integer1
         if negative:
             negative = create_infix(negative, op, 400, "None")
             result = Expression(
@@ -681,7 +682,7 @@ class Times(BinaryOperator, SympyFunction):
                 and item.leaves[0].sameQ(leaves[-1])
             ):
                 leaves[-1] = Expression(
-                    "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer(1))
+                    "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer1)
                 )
             elif (
                 leaves
@@ -689,7 +690,7 @@ class Times(BinaryOperator, SympyFunction):
                 and leaves[-1].leaves[0].sameQ(item)
             ):
                 leaves[-1] = Expression(
-                    "Power", item, Expression("Plus", Integer(1), leaves[-1].leaves[1])
+                    "Power", item, Expression("Plus", Integer1, leaves[-1].leaves[1])
                 )
             elif item.get_head().sameQ(SymbolDirectedInfinity):
                 infinity_factor = True
@@ -719,9 +720,9 @@ class Times(BinaryOperator, SympyFunction):
                 number = sympy.Mul(*[item.to_sympy() for item in numbers])
                 number = from_sympy(number)
         else:
-            number = Integer(1)
+            number = Integer1
 
-        if number.sameQ(Integer(1)):
+        if number.sameQ(Integer1):
             number = None
         elif number.is_zero:
             if infinity_factor:
@@ -743,7 +744,7 @@ class Times(BinaryOperator, SympyFunction):
         if not leaves:
             if infinity_factor:
                 return SymbolComplexInfinity
-            return Integer(1)
+            return Integer1
 
         if len(leaves) == 1:
             ret = leaves[0]
@@ -1354,7 +1355,7 @@ class I(Predefined):
     python_equivalent = 1j
 
     def evaluate(self, evaluation):
-        return Complex(Integer(0), Integer(1))
+        return Complex(Integer(0), Integer1)
 
 
 class NumberQ(Test):
@@ -2208,7 +2209,7 @@ class Boole(Builtin):
         "%(name)s[expr_]"
         if isinstance(expr, Symbol):
             if expr == SymbolTrue:
-                return Integer(1)
+                return Integer1
             elif expr == SymbolFalse:
                 return Integer(0)
         return None
@@ -2219,7 +2220,7 @@ class Assumptions(Predefined):
     <dl>
     <dt>'$Assumptions'
       <dd>is the default setting for the Assumptions option used in such
-   functions as Simplify, Refine, and Integrate. 
+   functions as Simplify, Refine, and Integrate.
     </dl>
     """
 

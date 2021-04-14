@@ -20,6 +20,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer1,
     Number,
     Symbol,
     SymbolFalse,
@@ -243,7 +244,6 @@ class _EqualityOperator(_InequalityOperator):
         return True
 
     def infty_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
-        IntegerOne = Integer(1)
         if rhs.get_head().sameQ(SymbolDirectedInfinity):
             lhs, rhs = rhs, lhs
         if not lhs.get_head().sameQ(SymbolDirectedInfinity):
@@ -253,14 +253,14 @@ class _EqualityOperator(_InequalityOperator):
                 return True
             else:
                 return self.equal2(
-                    Expression("Sign", lhs._leaves[0]), IntegerOne, max_extra_prec
+                    Expression("Sign", lhs._leaves[0]), Integer1, max_extra_prec
                 )
         if rhs.is_numeric():
             return False
         elif rhs.is_atom():
             return None
         if rhs.get_head().sameQ(lhs.get_head()):
-            dir1 = dir2 = IntegerOne
+            dir1 = dir2 = Integer1
             if len(lhs._leaves) == 1:
                 dir1 = lhs._leaves[0]
             if len(rhs._leaves) == 1:

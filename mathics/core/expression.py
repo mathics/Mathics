@@ -2265,6 +2265,7 @@ class Integer(Number):
     def is_zero(self) -> bool:
         return self.value == 0
 
+Integer1 = Integer(1)
 
 class Rational(Number):
     @lru_cache()
