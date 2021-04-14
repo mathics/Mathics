@@ -366,19 +366,34 @@ class _SetOperator(object):
                 evaluation.message(lhs_name, "precset", lhs, rhs)
                 return False
 
+        # To Handle `OptionValue` in `Condition`
+        rulopc = Rule(
+            Expression(
+                "OptionValue",
+                Expression("Pattern", Symbol("$cond$"), Expression("Blank")),
+            ),
+            Expression("OptionValue", lhs.get_head(), Symbol("$cond$")),
+        )
+
         rhs_name = rhs.get_head_name()
         while rhs_name == "System`Condition":
             if len(rhs.leaves) != 2:
                 evaluation.message_args("Condition", len(rhs.leaves), 2)
                 return False
             else:
-                lhs = Expression("Condition", lhs, rhs.leaves[1])
+                lhs = Expression(
+                    "Condition", lhs, rhs.leaves[1].apply_rules([rulopc], evaluation)[0]
+                )
                 rhs = rhs.leaves[0]
             rhs_name = rhs.get_head_name()
 
         # Now, let's add the conditions on the LHS
         if condition:
-            lhs = Expression("Condition", lhs, condition.leaves[1])
+            lhs = Expression(
+                "Condition",
+                lhs,
+                condition.leaves[1].apply_rules([rulopc], evaluation)[0],
+            )
 
         rule = Rule(lhs, rhs)
         count = 0
