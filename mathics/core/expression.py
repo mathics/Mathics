@@ -130,12 +130,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -277,8 +272,9 @@ class BaseExpression(KeyComparable):
 
         # If the types are the same then we'll use the classes definition of == (or __eq__).
         # Superclasses which need to specialized this behavior should redefine equal2()
-        # Think about: should we use isinstance?
-        if type(self) == type(rhs):
+        #
+        # I would use `is` instead `==` here, to compare classes.
+        if type(self) is type(rhs):
             return self == rhs
         return None
 
@@ -739,8 +735,16 @@ class Expression(BaseExpression):
         """
         if self.sameQ(rhs):
             return True
+        # if rhs is an Atom, return None
+        elif isinstance(rhs, Atom):
+            return None
 
-        if self.has_form("List", None) and rhs.has_form("List", None):
+        # Here we only need to deal with Expressions.
+        equal_heads = self._head.equal2(rhs._head)
+        if not equal_heads:
+            return equal_heads
+        # From here, we can assume that both heads are the same
+        if self.get_head_name() in ("System`List", "System`Sequence"):
             if len(self._leaves) != len(rhs._leaves):
                 return False
             for item1, item2 in zip(self._leaves, rhs._leaves):
@@ -748,6 +752,8 @@ class Expression(BaseExpression):
                 if not result:
                     return result
             return True
+        elif self.get_head_name() in ("System`DirectedInfinity",):
+            return self._leaves[0].equal2(rhs._leaves[0])
         return None
 
     def slice(self, head, py_slice, evaluation):
@@ -1818,21 +1824,17 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return (
-            self._head.get_name()
-            in system_symbols(
-                "Sqrt",
-                "Times",
-                "Plus",
-                "Subtract",
-                "Minus",
-                "Power",
-                "Abs",
-                "Divide",
-                "Sin",
-            )
-            and all(leaf.is_numeric() for leaf in self._leaves)
-        )
+        return self._head.get_name() in system_symbols(
+            "Sqrt",
+            "Times",
+            "Plus",
+            "Subtract",
+            "Minus",
+            "Power",
+            "Abs",
+            "Divide",
+            "Sin",
+        ) and all(leaf.is_numeric() for leaf in self._leaves)
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
@@ -1883,6 +1885,16 @@ class Expression(BaseExpression):
 class Atom(BaseExpression):
     def is_atom(self) -> bool:
         return True
+
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+        if isinstance(rhs, Symbol) or not isinstance(rhs, Atom):
+            return None
+        return self == rhs
 
     def has_form(self, heads, *leaf_counts) -> bool:
         if leaf_counts:
@@ -1938,11 +1950,16 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     name: str
     sympy_dummy: Any
+    defined_symbols = {}
 
     def __new__(cls, name, sympy_dummy=None):
-        self = super(Symbol, cls).__new__(cls)
-        self.name = ensure_context(name)
-        self.sympy_dummy = sympy_dummy
+        name = ensure_context(name)
+        self = cls.defined_symbols.get(name, None)
+        if self is None:
+            self = super(Symbol, cls).__new__(cls)
+            self.name = name
+            self.sympy_dummy = sympy_dummy
+            # cls.defined_symbols[name] = self
         return self
 
     def __str__(self) -> str:
@@ -2029,7 +2046,7 @@ class Symbol(Atom):
 
     def sameQ(self, rhs: Any) -> bool:
         """Mathics SameQ"""
-        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self == rhs
+        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self.name == rhs.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
@@ -2120,29 +2137,6 @@ class Number(Atom):
 
     def is_numeric(self) -> bool:
         return True
-
-    def equal2(self, rhs: Any, prec=COMPARE_PREC) -> Optional[bool]:
-        """Mathics two-argument Equal (==) """
-        if self.sameQ(rhs):
-            return True
-        if not (isinstance(rhs, Symbol) or isinstance(rhs, Expression)):
-            return self == rhs
-
-        lhs_sympy = self.to_sympy(evaluate=True, prec=prec)
-
-        try:
-            rhs_sympy = rhs.to_sympy(evaluate=True, prec=prec)
-        except NotImplementedError:
-            return None
-
-        # if rhs.has_form('Global`Compile', 2, None):
-        #     return None
-
-        if lhs_sympy is None or rhs_sympy is None:
-            return None
-        if lhs_sympy == rhs_sympy:
-            return True
-        return None
 
 
 def _ExponentFunction(value):
