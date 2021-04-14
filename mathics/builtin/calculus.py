@@ -338,7 +338,7 @@ class Derivative(PostfixOperator, SympyFunction):
 
     operator = "'"
     precedence = 670
-    attributes = ("NHoldAll",)
+    attributes = ("NHoldAll", "Unprotected")
 
     rules = {
         "MakeBoxes[Derivative[n__Integer][f_], "
