@@ -242,6 +242,13 @@ def test_cmp1_no_pass(str_lhs, str_rhs, str_expected):
     else:
         expr = str_lhs + " == " + str_rhs
         check_evaluation(expr, str_expected,to_string_expr=True,  to_string_expected=True)
+        # Checking commutativity
+        str_expected_members = str_expected[1:-1].split(" == ")
+        if len(str_expected_members) == 2:
+            str_expected = '"' + str_expected_members[1] + " == " + str_expected_members[0] + '"'
+        expr = str_rhs + " == " + str_lhs
+        check_evaluation(expr, str_expected,to_string_expr=True,  to_string_expected=True)
+
 
 
 
