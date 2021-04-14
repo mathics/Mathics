@@ -29,5 +29,15 @@ def test_calculus():
             "{x->1.51213}",
             "Issue #1235",
         ),
+        (
+            "v1 := Exp[y] - 3y == 0; v2 = {y, 2}; FindRoot[v1, v2]",
+            "{y->1.51213}",
+            "Issue #1235",
+        ),
+        (
+            "v1 := Exp[z] - 3z == 1.0; v2 = {z, 3}; FindRoot[v1, v2]",
+            "{z->1.51213}",
+            "Issue #1235",
+        ),
     ):
         check_evaluation(str_expr, str_expected, message)

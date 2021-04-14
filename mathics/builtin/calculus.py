@@ -1156,11 +1156,15 @@ class FindRoot(Builtin):
         "FindRoot[f_, xtuple_]"
         f_val = f.evaluate(evaluation)
 
-        if f_val.has_form("Equal", 2):
-            f = Expression("Minus", *f_val.leaves)
-
         xtuple_value = xtuple.evaluate(evaluation)
+        if f_val.has_form("Equal", 2):
+            f, x0_adjust = f_val.leaves
+        else:
+            x0_adjust = None
+
         if xtuple_value.has_form("List", 2):
             x, x0 = xtuple.evaluate(evaluation).leaves
+            if x0_adjust is not None and x0_adjust.to_python() != 0.0:
+                x0 = Expression("Plus", x0, Expression("Minus", x0_adjust)).evaluate(evaluation)
             return self.apply(f, x, x0, evaluation)
         return
