@@ -16,11 +16,11 @@ from mathics.builtin.base import (
 from mathics.builtin.constants import mp_convert_constant
 
 from mathics.core.expression import (
-    Atom,
     COMPARE_PREC,
     Complex,
     Expression,
     Integer,
+    Integer1,
     Number,
     Symbol,
     SymbolFalse,
@@ -44,9 +44,10 @@ def is_number(sympy_value) -> bool:
 class SameQ(BinaryOperator):
     """
     <dl>
-    <dt>'SameQ[$x$, $y$]'
-    <dt>'$x$ === $y$'
-        <dd>returns 'True' if $x$ and $y$ are structurally identical.
+      <dt>'SameQ[$x$, $y$]'
+      <dt>'$x$ === $y$'
+      <dd>returns 'True' if $x$ and $y$ are structurally identical.
+      Commutative properties apply, so if $x$ === $y$ then $y$ === $x$.
     </dl>
 
     Any object is the same as itself:
@@ -74,9 +75,10 @@ class SameQ(BinaryOperator):
 class UnsameQ(BinaryOperator):
     """
     <dl>
-    <dt>'UnsameQ[$x$, $y$]'
-    <dt>'$x$ =!= $y$'
-        <dd>returns 'True' if $x$ and $y$ are not structurally identical.
+      <dt>'UnsameQ[$x$, $y$]'
+      <dt>'$x$ =!= $y$'
+      <dd>returns 'True' if $x$ and $y$ are not structurally identical.
+      Commutative properties apply, so if $x$ =!= $y$, then $y$ =!= $x$.
     </dl>
 
     >> a=!=a
@@ -242,7 +244,6 @@ class _EqualityOperator(_InequalityOperator):
         return True
 
     def infty_equal(self, lhs, rhs, max_extra_prec=None) -> Optional[bool]:
-        IntegerOne = Integer(1)
         if rhs.get_head().sameQ(SymbolDirectedInfinity):
             lhs, rhs = rhs, lhs
         if not lhs.get_head().sameQ(SymbolDirectedInfinity):
@@ -252,14 +253,14 @@ class _EqualityOperator(_InequalityOperator):
                 return True
             else:
                 return self.equal2(
-                    Expression("Sign", lhs._leaves[0]), IntegerOne, max_extra_prec
+                    Expression("Sign", lhs._leaves[0]), Integer1, max_extra_prec
                 )
         if rhs.is_numeric():
             return False
         elif rhs.is_atom():
             return None
         if rhs.get_head().sameQ(lhs.get_head()):
-            dir1 = dir2 = IntegerOne
+            dir1 = dir2 = Integer1
             if len(lhs._leaves) == 1:
                 dir1 = lhs._leaves[0]
             if len(rhs._leaves) == 1:
@@ -528,12 +529,12 @@ class SympyComparison(SympyFunction):
 class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
-    <dt>'Equal[$x$, $y$]'
+      <dt>'Equal[$x$, $y$]'
       <dt>'$x$ == $y$'
-      <dd>yields 'True' if $x$ and $y$ are known to be equal, or
-        'False' if $x$ and $y$ are known to be unequal.
-    <dt>'$lhs$ == $rhs$'
-        <dd>represents the equation $lhs$ = $rhs$.
+      <dd>is 'True' if $x$ and $y$ are known to be equal, or
+        'False' if $x$ and $y$ are known to be unequal, in which case
+        case, 'Not[$x$ == $y$]' will be 'True'.
+        Commutative properties apply, so if $x$ == $y$ then $y$ == $x$.
     </dl>
 
     >> a==a
@@ -638,12 +639,12 @@ class Equal(_EqualityOperator, SympyComparison):
 class Unequal(_EqualityOperator, SympyComparison):
     """
     <dl>
-    <dt>'Unequal[$x$, $y$]'
-    <dt>'$x$ != $y$'
-        <dd>yields 'False' if $x$ and $y$ are known to be equal, or
+      <dt>'Unequal[$x$, $y$]'
+      <dt>'$x$ != $y$'
+      <dd>is 'False' if $x$ and $y$ are known to be equal, or
         'True' if $x$ and $y$ are known to be unequal.
-    <dt>'$lhs$ == $rhs$'
-        <dd>represents the inequality $lhs$   $rhs$.
+        Commutative properties apply so if $x$ != $y$ then
+        $y$ != $x$.
     </dl>
 
     >> 1 != 1.

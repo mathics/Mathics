@@ -2098,6 +2098,7 @@ SymbolList = Symbol("List")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolUndefined = Symbol("Undefined")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
@@ -2264,6 +2265,9 @@ class Integer(Number):
     def is_zero(self) -> bool:
         return self.value == 0
 
+Integer0 = Integer(0)
+Integer1 = Integer(1)
+Integern1 = Integer(-1)
 
 class Rational(Number):
     @lru_cache()

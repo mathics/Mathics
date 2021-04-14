@@ -9,6 +9,7 @@ from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (
     Expression,
     Integer,
+    Integer1,
     Number,
     SymbolTrue,
     SymbolFalse,
@@ -148,10 +149,10 @@ class D(SympyFunction):
         "D[f_, x_?NotListQ]"
 
         if f == x:
-            return Integer(1)
+            return Integer1
         elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
             return Expression(
-                Expression(Expression("Derivative", Integer(1)), f.head), x
+                Expression(Expression("Derivative", Integer1), f.head), x
             )
         elif not f.is_atom() and len(f.leaves) == 1:
             g = f.leaves[0]
@@ -170,7 +171,7 @@ class D(SympyFunction):
                                 "Derivative",
                                 *(
                                     [Integer(0)] * (index)
-                                    + [Integer(1)]
+                                    + [Integer1]
                                     + [Integer(0)] * (len(f.leaves) - index - 1)
                                 )
                             ),

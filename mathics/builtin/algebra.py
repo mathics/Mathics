@@ -10,6 +10,7 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer1,
     Number,
     Symbol,
     SymbolFalse,
@@ -497,9 +498,9 @@ class FactorTermsList(Builtin):
     def apply_list(self, expr, vars, evaluation):
         "FactorTermsList[expr_, vars_List]"
         if expr == Integer(0):
-            return Expression("List", Integer(1), Integer(0))
+            return Expression("List", Integer1, Integer(0))
         elif isinstance(expr, Number):
-            return Expression("List", expr, Integer(1))
+            return Expression("List", expr, Integer1)
 
         for x in vars.leaves:
             if not (isinstance(x, Atom)):
@@ -507,7 +508,7 @@ class FactorTermsList(Builtin):
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
-            return Expression("List", Integer(1), expr)
+            return Expression("List", Integer1, expr)
         sympy_expr = sympy.together(sympy_expr)
 
         sympy_vars = [
@@ -1160,7 +1161,7 @@ class Coefficient(Builtin):
 
     def apply(self, expr, form, evaluation):
         "Coefficient[expr_, form_]"
-        return _coefficient(self.__class__.__name__, expr, form, Integer(1), evaluation)
+        return _coefficient(self.__class__.__name__, expr, form, Integer1, evaluation)
 
     def apply_n(self, expr, form, n, evaluation):
         "Coefficient[expr_, form_, n_]"
@@ -1401,7 +1402,7 @@ class Exponent(Builtin):
 
     def apply_novar(self, expr, evaluation):
         "Exponent[expr_]"
-        return evaluation.message("Exponent", "argtu", Integer(1))
+        return evaluation.message("Exponent", "argtu", Integer1)
 
     def apply(self, expr, form, h, evaluation):
         "Exponent[expr_, form_, h_]"
