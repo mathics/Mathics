@@ -9,6 +9,7 @@ from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (
     Expression,
     Integer,
+    Integer1,
     Number,
     SymbolTrue,
     SymbolFalse,
@@ -148,11 +149,9 @@ class D(SympyFunction):
         "D[f_, x_?NotListQ]"
 
         if f == x:
-            return Integer(1)
+            return Integer1
         elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
-            return Expression(
-                Expression(Expression("Derivative", Integer(1)), f.head), x
-            )
+            return Expression(Expression(Expression("Derivative", Integer1), f.head), x)
         elif not f.is_atom() and len(f.leaves) == 1:
             g = f.leaves[0]
             return Expression(
@@ -170,7 +169,7 @@ class D(SympyFunction):
                                 "Derivative",
                                 *(
                                     [Integer(0)] * (index)
-                                    + [Integer(1)]
+                                    + [Integer1]
                                     + [Integer(0)] * (len(f.leaves) - index - 1)
                                 )
                             ),
@@ -667,7 +666,7 @@ class Solve(Builtin):
     >> sol = Solve[eqs, {x, y}] // Simplify
      = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (1 - I Sqrt[3]) ^ 2 / 4, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
-     = {{True, True}, {True, True}, {False, False}, {True, True}}
+     = {{True, True}, {True, True}, {True, True}, {True, True}}
 
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
