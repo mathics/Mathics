@@ -9,6 +9,9 @@ from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (
     Expression,
     Integer,
+    Integer0,
+    Integer1,
+    Integern1,
     Number,
     Rational,
     SymbolTrue,
@@ -29,9 +32,6 @@ import sympy
 SymbolPlus = Symbol("Plus")
 SymbolTimes = Symbol("Times")
 SymbolPower = Symbol("Power")
-IntegerZero = Integer(0)
-IntegerOne = Integer(1)
-IntegerMinusOne = Integer(-1)
 
 
 class D(SympyFunction):
@@ -156,12 +156,11 @@ class D(SympyFunction):
 
     def apply(self, f, x, evaluation):
         "D[f_, x_?NotListQ]"
-
         x_pattern = Pattern.create(x)
         if f.is_free(x_pattern, evaluation):
-            return IntegerZero
+            return Integer0
         elif f == x:
-            return IntegerOne
+            return Integer1
         elif f.is_atom():  # Shouldn't happen
             1 / 0
             return
@@ -175,7 +174,7 @@ class D(SympyFunction):
                 if not term.is_free(x_pattern, evaluation)
             ]
             if len(terms) == 0:
-                return IntegerZero
+                return Integer0
             return Expression(SymbolPlus, *terms)
         elif head == SymbolTimes:
             terms = []
@@ -188,7 +187,7 @@ class D(SympyFunction):
             if len(terms) != 0:
                 return Expression(SymbolPlus, *terms)
             else:
-                return IntegerZero
+                return Integer0
         elif head == SymbolPower and len(f.leaves) == 2:
             base, exp = f.leaves
             terms = []
@@ -200,7 +199,7 @@ class D(SympyFunction):
                         Expression(
                             SymbolPower,
                             base,
-                            Expression(SymbolPlus, exp, IntegerMinusOne),
+                            Expression(SymbolPlus, exp, Integern1),
                         ),
                         Expression("D", base, x),
                     )
@@ -219,7 +218,7 @@ class D(SympyFunction):
                     )
 
             if len(terms) == 0:
-                return IntegerZero
+                return Integer0
             elif len(terms) == 1:
                 return terms[0]
             else:
@@ -242,12 +241,16 @@ class D(SympyFunction):
                 if leaf.sameQ(x):
                     result = Expression(
                         Expression(
-                            "Derivative",
-                            *(
-                                [IntegerZero] * (index)
-                                + [IntegerOne]
-                                + [IntegerZero] * (len(f.leaves) - index - 1)
-                            )
+                            Expression(
+                                "Derivative",
+                                *(
+                                    [Integer(0)] * (index)
+                                    + [Integer1]
+                                    + [Integer(0)] * (len(f.leaves) - index - 1)
+                                )
+                            ),
+                            f.head,
+
                         ),
                         f.head,
                     ),
@@ -267,7 +270,7 @@ class D(SympyFunction):
             if len(result) == 1:
                 return result[0]
             elif len(result) == 0:
-                return IntegerZero
+                return Integer0
             else:
                 return Expression("Plus", *result)
 
@@ -1278,12 +1281,12 @@ class Series(Builtin):
             factorial = Expression("Factorial", Integer(i + 1))
             newcoeff = Expression(
                 SymbolTimes,
-                Expression(SymbolPower, factorial, IntegerMinusOne),
+                Expression(SymbolPower, factorial, Integern1),
                 newcoeff,
             ).evaluate(evaluation)
             data.append(newcoeff)
         data = Expression(SymbolList, *data).evaluate(evaluation)
-        return Expression("SeriesData", x, x0, data, IntegerZero, n, IntegerOne)
+        return Expression("SeriesData", x, x0, data, Integer0, n, Integer1)
 
 
 class SeriesData(Builtin):
@@ -1301,7 +1304,7 @@ class SeriesData(Builtin):
             variable = x
         else:
             variable = Expression(
-                SymbolPlus, x, Expression(SymbolTimes, IntegerMinusOne, x0)
+                SymbolPlus, x, Expression(SymbolTimes, Integern1, x0)
             )
         den = den.get_int_value()
         nmin = nmin.get_int_value()
@@ -1320,13 +1323,13 @@ class SeriesData(Builtin):
             if powers[i].is_zero:
                 expansion.append(leaf)
                 continue
-            if powers[i] == IntegerOne:
-                if leaf == IntegerOne:
+            if powers[i] == Integer1:
+                if leaf == Integer1:
                     term = variable
                 else:
                     term = Expression(SymbolTimes, leaf, variable)
             else:
-                if leaf == IntegerOne:
+                if leaf == Integer1:
                     term = Expression(SymbolPower, variable, powers[i])
                 else:
                     term = Expression(
