@@ -256,4 +256,10 @@ def test_cmp2_no_pass(str_lhs, str_rhs, str_expected):
     else:
         expr = str_lhs + " == " + str_rhs
         check_evaluation(expr, str_expected,to_string_expr=False,  to_string_expected=False)
+        # Checking commutativity
+        str_expected_members = str_expected.split("==")
+        if len(str_expected_members) == 2:
+            str_expected = str_expected_members[1] + " == " + str_expected_members[0]
+        expr = str_rhs + " == " + str_lhs
+        check_evaluation(expr, str_expected,to_string_expr=False,  to_string_expected=False)
 
