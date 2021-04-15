@@ -19,6 +19,7 @@ from mathics.core.expression import (
     SymbolList,
     SymbolN,
     SymbolRule,
+    from_python,
 )
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
@@ -1118,6 +1119,82 @@ class DiscreteLimit(Builtin):
             pass
 
 
+def find_root_secant(f, x0, x, opts, evaluation) -> (Number, bool):
+    region = opts.get("$$Region", None)
+    if not type(region) is list:
+        if x0.is_zero:
+            region = (Real(-1), Real(1))
+        else:
+            xmax = 2 * x0.to_python()
+            xmin = -2 * x0.to_python()
+            if xmin > xmax:
+                region = (Real(xmax), Real(xmin))
+            else:
+                region = (Real(xmin), Real(xmax))
+
+    maxit = opts["System`MaxIterations"]
+    x_name = x.get_name()
+    if maxit.sameQ(Symbol("Automatic")):
+        maxit = 100
+    else:
+        maxit = maxit.evaluate(evaluation).get_int_value()
+
+    x0 = from_python(region[0])
+    x1 = from_python(region[1])
+    f0 = dynamic_scoping(lambda ev: f.evaluate(evaluation), {x_name: x0}, evaluation)
+    f1 = dynamic_scoping(lambda ev: f.evaluate(evaluation), {x_name: x1}, evaluation)
+    if not isinstance(f0, Number):
+        return x0, False
+    if not isinstance(f1, Number):
+        return x0, False
+    f0 = f0.to_python(n_evaluation=True)
+    f1 = f1.to_python(n_evaluation=True)
+    count = 0
+    while count < maxit:
+        if f0 == f1:
+            x1 = Expression(
+                "Plus",
+                x0,
+                Expression(
+                    "Times",
+                    Real(0.75),
+                    Expression("Plus", x1, Expression("Times", Integer(-1), x0)),
+                ),
+            )
+            x1 = x1.evaluate(evaluation)
+            f1 = dynamic_scoping(
+                lambda ev: f.evaluate(evaluation), {x_name: x1}, evaluation
+            )
+            if not isinstance(f1, Number):
+                return x0, False
+            f1 = f1.to_python(n_evaluation=True)
+            continue
+
+        inv_deltaf = from_python(1.0 / (f1 - f0))
+        num = Expression(
+            "Plus",
+            Expression("Times", x0, f1),
+            Expression("Times", x1, f0, Integer(-1)),
+        )
+        x2 = Expression("Times", num, inv_deltaf)
+        x2 = x2.evaluate(evaluation)
+        f2 = dynamic_scoping(
+            lambda ev: f.evaluate(evaluation), {x_name: x2}, evaluation
+        )
+        if not isinstance(f2, Number):
+            return x0, False
+        f2 = f2.to_python(n_evaluation=True)
+        f1, f0 = f2, f1
+        x1, x0 = x2, x1
+        if x1 == x0 or abs(f2) == 0:
+            break
+        count = count + 1
+    else:
+        evaluation.message("FindRoot", "maxiter")
+        return x0, False
+    return x0, True
+
+
 def find_root_newton(f, x0, x, opts, evaluation) -> (Number, bool):
     df = opts["System`Jacobian"]
     maxit = opts["System`MaxIterations"]
@@ -1207,6 +1284,10 @@ class FindRoot(Builtin):
 
     #> FindRoot[2.5==x,{x,0}]
      = {x -> 2.5}
+
+    >> FindRoot[x^2 - 2, {x, 1,3}, Method->"Secant"]
+     = {x -> 1.41421}
+
     """
 
     options = {
@@ -1237,6 +1318,7 @@ class FindRoot(Builtin):
 
     methods = {
         "Newton": find_root_newton,
+        "Secant": find_root_secant,
     }
 
     def apply(self, f, x, x0, evaluation, options):
@@ -1265,7 +1347,9 @@ class FindRoot(Builtin):
 
         # Determine the method
         method = options["System`Method"]
-        if method.sameQ(Symbol("Automatic")):
+        if isinstance(method, Symbol):
+            method = method.get_name().split("`")[-1]
+        if method == "Automatic":
             method = "Newton"
         elif not isinstance(method, String):
             method = None
@@ -1307,8 +1391,15 @@ class FindRoot(Builtin):
             f = Expression("Plus", f_val.leaves[0], f_val.leaves[1])
 
         xtuple_value = xtuple.evaluate(evaluation)
-        if xtuple_value.has_form("List", 2):
-            x, x0 = xtuple.evaluate(evaluation).leaves
+        if xtuple_value.has_form("List", None):
+            nleaves = len(xtuple_value.leaves)
+            if nleaves == 2:
+                x, x0 = xtuple.evaluate(evaluation).leaves
+            elif nleaves == 3:
+                x, x0, x1 = xtuple.evaluate(evaluation).leaves
+                options["$$Region"] = (x0, x1)
+            else:
+                return
             return self.apply(f, x, x0, evaluation, options)
         return
 
