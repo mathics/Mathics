@@ -17,12 +17,13 @@ Enhancements
 ++++++++++++
 
 * ``D`` and ``Derivative`` improvements.
+* ``FileNames`` returns a sorted list (#1250).
+* ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
+* ``FixedPoint`` now supports the ``SameTest`` option.
+* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
-* ``FileNames`` returns a sorted list (#1250).
-* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
-* ``FixedPoint`` now supports the ``SameTest`` option.
 * The implementation of Streams was redone
 
 Bug fixes
@@ -30,6 +31,7 @@ Bug fixes
 
 * ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
+* ``FindRoot`` now handles equations.
 
 
 2.1.0

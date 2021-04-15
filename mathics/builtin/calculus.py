@@ -8,10 +8,12 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (
     Expression,
+    String,
     Integer,
     Integer1,
     Number,
     Rational,
+    Real,
     SymbolTrue,
     SymbolFalse,
     SymbolList,
@@ -1116,6 +1118,47 @@ class DiscreteLimit(Builtin):
             pass
 
 
+def find_root_newton(f, x0, x, opts, evaluation) -> (Number, bool):
+    df = opts["System`Jacobian"]
+    maxit = opts["System`MaxIterations"]
+    x_name = x.get_name()
+    if maxit.sameQ(Symbol("Automatic")):
+        maxit = 100
+    else:
+        maxit = maxit.evaluate(evaluation).get_int_value()
+
+    def sub(evaluation):
+        d_value = df.evaluate(evaluation)
+        if d_value == Integer(0):
+            return None
+        return Expression(
+            "Times", f, Expression("Power", d_value, Integer(-1))
+        ).evaluate(evaluation)
+
+    count = 0
+    while count < maxit:
+        minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
+        if minus is None:
+            evaluation.message("FindRoot", "dsing", x, x0)
+            return x0, False
+        x1 = Expression("Plus", x0, Expression("Times", Integer(-1), minus)).evaluate(
+            evaluation
+        )
+        if not isinstance(x1, Number):
+            evaluation.message("FindRoot", "nnum", x, x0)
+            return x0, False
+        # TODO: use Precision goal...
+        if x1 == x0:
+            break
+        x0 = Expression(SymbolN, x1).evaluate(
+            evaluation
+        )  # N required due to bug in sympy arithmetic
+        count += 1
+    else:
+        evaluation.message("FindRoot", "maxiter")
+    return x0, True
+
+
 class FindRoot(Builtin):
     r"""
     <dl>
@@ -1125,7 +1168,7 @@ class FindRoot(Builtin):
         <dd>tries to solve the equation '$lhs$ == $rhs$'.
     </dl>
 
-    'FindRoot' uses Newton\'s method, so the function of interest should have a first derivative.
+    'FindRoot' by default uses Newton\'s method, so the function of interest should have a first derivative.
 
     >> FindRoot[Cos[x], {x, 1}]
      = {x -> 1.5708}
@@ -1137,9 +1180,9 @@ class FindRoot(Builtin):
 
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
-    >> x = 3;
+    >> x = "I am the result!";
     >> FindRoot[Tan[x] + Sin[x] == Pi, {x, 1}]
-     = {3 -> 1.14911}
+     = {I am the result! -> 1.14911}
     >> Clear[x]
 
     'FindRoot' stops after 100 iterations:
@@ -1161,16 +1204,26 @@ class FindRoot(Builtin):
      : Encountered a singular derivative at the point x = 0..
      = FindRoot[Sin[x] - x, {x, 0}]
 
+
     #> FindRoot[2.5==x,{x,0}]
      = {x -> 2.5}
     """
 
+    options = {
+        "MaxIterations": "100",
+        "Method": "Automatic",
+        "AccuracyGoal": "Automatic",
+        "PrecisionGoal": "Automatic",
+        "StepMonitor": "None",
+        "Jacobian": "Automatic",
+    }
     attributes = ("HoldAll",)
 
     messages = {
         "snum": "Value `1` is not a number.",
         "nnum": "The function value is not a number at `1` = `2`.",
         "dsing": "Encountered a singular derivative at the point `1` = `2`.",
+        "bdmthd": "Value option Method->`1` is not `2`",
         "maxiter": (
             "The maximum number of iterations was exceeded. "
             "The result might be inaccurate."
@@ -1178,13 +1231,17 @@ class FindRoot(Builtin):
     }
 
     rules = {
-        "FindRoot[lhs_ == rhs_, {x_, xs_}]": "FindRoot[lhs - rhs, {x, xs}]",
-        "FindRoot[lhs_ == rhs_, x__]": "FindRoot[lhs - rhs, x]",
+        "FindRoot[lhs_ == rhs_, {x_, xs_}, opt:OptionsPattern[]]": "FindRoot[lhs-rhs, {x, xs}, opt]",
+        "FindRoot[lhs_ == rhs_, x__, opt:OptionsPattern[]]": "FindRoot[lhs-rhs, x, opt]",
     }
 
-    def apply(self, f, x, x0, evaluation):
-        "FindRoot[f_, {x_, x0_}]"
+    methods = {
+        "Newton": find_root_newton,
+    }
 
+    def apply(self, f, x, x0, evaluation, options):
+        "FindRoot[f_, {x_, x0_}, OptionsPattern[]]"
+        # First, determine x0 and x
         x0 = Expression(SymbolN, x0).evaluate(evaluation)
         if not isinstance(x0, Number):
             evaluation.message("FindRoot", "snum", x0)
@@ -1193,54 +1250,66 @@ class FindRoot(Builtin):
         if not x_name:
             evaluation.message("FindRoot", "sym", x, 2)
             return
-        count = 0
 
-        def diff(evaluation):
-            return Expression("D", f, x).evaluate(evaluation)
+        # Now, get the explicit form of f, depending of x
+        # keeping x without evaluation (Like inside a "Block[{x},f])
+        f = dynamic_scoping(lambda ev: f.evaluate(ev), {x_name: None}, evaluation)
+        # If after evaluation, we get an "Equal" expression,
+        # convert it in a function by substracting both
+        # members. Again, ensure the scope in the evaluation
+        if f.get_head_name() == "System`Equal":
+            f = Expression(
+                "Plus", f.leaves[0], Expression("Times", Integer(-1), f.leaves[1])
+            )
+            f = dynamic_scoping(lambda ev: f.evaluate(ev), {x_name: None}, evaluation)
 
-        d = dynamic_scoping(diff, {x_name: None}, evaluation)
-
-        def sub(evaluation):
-            d_value = d.evaluate(evaluation)
-            if d_value == Integer(0):
-                return None
-            return Expression(
-                "Times", f, Expression("Power", d_value, Integer(-1))
-            ).evaluate(evaluation)
-
-        while count < 100:
-            minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
-            if minus is None:
-                evaluation.message("FindRoot", "dsing", x, x0)
-                return
-            x1 = Expression(
-                "Plus", x0, Expression("Times", Integer(-1), minus)
-            ).evaluate(evaluation)
-            if not isinstance(x1, Number):
-                evaluation.message("FindRoot", "nnum", x, x0)
-                return
-            if x1 == x0:
-                break
-            x0 = Expression(SymbolN, x1).evaluate(
-                evaluation
-            )  # N required due to bug in sympy arithmetic
-            count += 1
+        # Determine the method
+        method = options["System`Method"]
+        if method.sameQ(Symbol("Automatic")):
+            method = "Newton"
+        elif not isinstance(method, String):
+            method = None
+            evaluation.message(
+                "FindRoot", "bdmthd", method, [String(m) for m in self.methods.keys()]
+            )
+            return
         else:
-            evaluation.message("FindRoot", "maxiter")
+            method = method.value
 
+        # Determine the "jacobian"
+        if method in ("Newton",) and options["System`Jacobian"].sameQ(
+            Symbol("Automatic")
+        ):
+
+            def diff(evaluation):
+                return Expression("D", f, x).evaluate(evaluation)
+
+            d = dynamic_scoping(diff, {x_name: None}, evaluation)
+            options["System`Jacobian"] = d
+
+        method = self.methods.get(method, None)
+        if method is None:
+            evaluation.message(
+                "FindRoot", "bdmthd", method, [String(m) for m in self.methods.keys()]
+            )
+            return
+
+        x0, success = method(f, x0, x, options, evaluation)
+        if not success:
+            return
         return Expression(SymbolList, Expression(SymbolRule, x, x0))
 
-    def apply_with_x_tuple(self, f, xtuple, evaluation):
-        "FindRoot[f_, xtuple_]"
+    def apply_with_x_tuple(self, f, xtuple, evaluation, options):
+        "FindRoot[f_, xtuple_, OptionsPattern[]]"
         f_val = f.evaluate(evaluation)
 
         if f_val.has_form("Equal", 2):
-            f = Expression("Minus", *f_val.leaves)
+            f = Expression("Plus", f_val.leaves[0], f_val.leaves[1])
 
         xtuple_value = xtuple.evaluate(evaluation)
         if xtuple_value.has_form("List", 2):
             x, x0 = xtuple.evaluate(evaluation).leaves
-            return self.apply(f, x, x0, evaluation)
+            return self.apply(f, x, x0, evaluation, options)
         return
 
 
