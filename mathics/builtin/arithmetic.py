@@ -1901,31 +1901,55 @@ class HarmonicNumber(_MPMathFunction):
 class Sum(_IterationFunction, SympyFunction):
     """
     <dl>
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}]'
-        <dd>evaluates the discrete sum of $expr$ with $i$ ranging from $imin$ to $imax$.
-    <dt>'Sum[$expr$, {$i$, $imax$}]'
-        <dd>same as 'Sum[$expr$, {$i$, 1, $imax$}]'.
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$, $di$}]'
-        <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
-        <dd>evaluates $expr$ as a multiple sum, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$}]'
+      <dd>evaluates the discrete sum of $expr$ with $i$ ranging from $imin$ to $imax$.
+
+      <dt>'Sum[$expr$, {$i$, $imax$}]'
+      <dd>same as 'Sum[$expr$, {$i$, 1, $imax$}]'.
+
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$, $di$}]'
+      <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
+
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
+      <dd>evaluates $expr$ as a multiple sum, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
     </dl>
+
+    A sum that Gauss in elementary school was asked to do to kill time:
     >> Sum[k, {k, 1, 10}]
      = 55
 
-    Double sum:
-    >> Sum[i * j, {i, 1, 10}, {j, 1, 10}]
-     = 3025
-
-    Symbolic sums are evaluated:
+    The symbolic form he used:
     >> Sum[k, {k, 1, n}]
      = n (1 + n) / 2
-    >> Sum[k, {k, n, 2 n}]
-     = 3 n (1 + n) / 2
-    >> Sum[k, {k, I, I + 1}]
-     = 1 + 2 I
+
+    A Geometric series with a finite limit:
+    >> Sum[1 / 2 ^ i, {i, 1, k}]
+     = 1 - 2 ^ (-k)
+
+    A Geometric series using Infinity:
+    >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
+     = 1
+
+    Leibniz forumla used in computing Pi:
+    >> Sum[1 / ((-1)^k (2k + 1)), {k, 0, Infinity}]
+     = Pi / 4
+
+    A table of double sums to compute squares:
+    >> Table[ Sum[i * j, {i, 0, n}, {j, 0, n}], {n, 0, 4} ]
+     = {0, 1, 9, 36, 100}
+
+    Computing Harmonic using a sum
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
+
+    Other symbolic sums:
+    >> Sum[k, {k, n, 2 n}]
+     = 3 n (1 + n) / 2
+
+    A sum with Complex-number iteration values
+    >> Sum[k, {k, I, I + 1}]
+     = 1 + 2 I
+
     >> Sum[f[i], {i, 1, 7}]
      = f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7]
 
@@ -1936,12 +1960,6 @@ class Sum(_IterationFunction, SympyFunction):
     ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
     ## = -1 + (a ^ n) ^ m  # this is what I am getting
     ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
-
-    Infinite sums:
-    >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
-     = 1
-    >> Sum[1 / k ^ 2, {k, 1, Infinity}]
-     = Pi ^ 2 / 6
 
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").

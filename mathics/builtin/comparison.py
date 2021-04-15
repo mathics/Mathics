@@ -19,7 +19,6 @@ from mathics.core.expression import (
     COMPARE_PREC,
     Complex,
     Expression,
-    Atom,
     Integer,
     Integer1,
     Number,
@@ -29,7 +28,6 @@ from mathics.core.expression import (
     SymbolDirectedInfinity,
     SymbolInfinity,
     SymbolComplexInfinity,
-    SymbolList,
 )
 from mathics.core.numbers import dps
 
@@ -536,14 +534,16 @@ class Equal(_EqualityOperator, SympyComparison):
       <dd>is 'True' if $x$ and $y$ are known to be equal, or
         'False' if $x$ and $y$ are known to be unequal, in which case
         case, 'Not[$x$ == $y$]' will be 'True'.
+
         Commutative properties apply, so if $x$ === $y$ then $y$ === $x$.
+
+        For any expression $x$ and $y$, Equal[$x$, $y$] == Not[Unequal[$x$, $y$]].
+
+        For any expression 'SameQ[$x$, $y$]' implies Equal[$x$, $y$].
     </dl>
 
-    >> a==a
-     = True
-    >> a==b
-     = a == b
-    >> 1==1.
+
+    >> 1 == 1.
      = True
 
     Strings are allowed:
@@ -553,6 +553,18 @@ class Equal(_EqualityOperator, SympyComparison):
 
     >> Equal["121", "11"]
      = False
+
+    When we have symbols without values, the values are equal
+    only if the symbols are equal:
+
+    >> Clear[a, b]; a == b
+     = a == b
+
+    >> a == a
+     = True
+
+    >> a = b; a == b
+     = True
 
     Comparision to mismatched types is False:
 
@@ -647,6 +659,8 @@ class Unequal(_EqualityOperator, SympyComparison):
         'True' if $x$ and $y$ are known to be unequal.
         Commutative properties apply so if $x$ != $y$ then
         $y$ != $x$.
+
+        For any expression $x$ and $y$, Unequal[$x$, $y$] == Not[Equal[$x$, $y$]].
     </dl>
 
     >> 1 != 1.
@@ -681,6 +695,7 @@ class Unequal(_EqualityOperator, SympyComparison):
     #> a_ != b_
      = a_ != b_
 
+    #> Clear[a, b];
     #> a != a != a
      = False
     #> "abc" != "def" != "abc"
