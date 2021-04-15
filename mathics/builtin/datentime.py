@@ -630,6 +630,36 @@ class DateString(_DateFormat):
         return from_python("".join(datestrs))
 
 
+class DateObject(Builtin):
+    """
+    <dl>
+      <dt>'DateObject[...]'
+      <dd> Returns an object codifiyng DateList....
+    </dl>
+    >> DateObject[{2020, 4, 15}]
+     = DateObject[{2020, 4, 15, 0, 0, 0.}, Instant, Gregorian, ...]
+    """
+
+    options = {
+        "TimeZone": "Automatic",
+        "CalendarType": "Automatic",
+        "DateFormat": "Automatic",
+    }
+
+    def apply_any(self, args, evaluation, options):
+        "DateObject[args___, OptionsPattern[]]"
+        if len(args.leaves) == 4 and args.leaves[0].has_form("List", None):
+            return
+        datelist = Expression("DateList", args).evaluate(evaluation)
+        if options["System`TimeZone"].sameQ(Symbol("Automatic")):
+            timezone = Real(-time.timezone / 3600.0)
+        else:
+            timezone = options["System`TimeZone"].evaluate(evaluation)
+        return Expression(
+            "DateObject", datelist, Symbol("Instant"), Symbol("Gregorian"), timezone
+        )
+
+
 class AbsoluteTime(_DateFormat):
     """
     <dl>
@@ -702,6 +732,21 @@ class SystemTimeZone(Predefined):
 
     def evaluate(self, evaluation):
         return self.value
+
+
+class Now(Predefined):
+    """
+    <dl>
+      <dt>'Now'
+      <dd> gives the current time on the system.
+    </dl>
+
+    >> Now
+     = ...
+    """
+
+    def evaluate(self, evaluation):
+        return Expression("DateObject").evaluate(evaluation)
 
 
 class TimeZone(Predefined):
