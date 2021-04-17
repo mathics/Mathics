@@ -6,7 +6,6 @@ File Operations
 """
 
 import os
-import sys
 import io
 import shutil
 import zlib
@@ -17,7 +16,6 @@ import struct
 import mpmath
 import math
 import sympy
-import requests
 import pathlib
 
 from io import BytesIO
@@ -51,101 +49,19 @@ from mathics.core.expression import (
     valid_context_name,
 )
 from mathics.core.numbers import dps
+from mathics.core.streams import create_temporary_file, urlsave_tmp, PATH_VAR, stream_manager, path_search, Stream
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_python_encoding, to_regex
 from mathics.builtin.base import MessageException
-from mathics.settings import ROOT_DIR
 import re
 
 INITIAL_DIR = os.getcwd()
-HOME_DIR = osp.expanduser("~")
 SYS_ROOT_DIR = "/" if os.name == "posix" else "\\"
 TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
-PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
-
-
-def create_temporary_file(suffix=None, delete=False):
-    if suffix == "":
-        suffix = None
-
-    fp = tempfile.NamedTemporaryFile(delete=delete, suffix=suffix)
-    result = fp.name
-    fp.close()
-    return result
-
-
-def urlsave_tmp(url, location=None, **kwargs):
-    suffix = ""
-    strip_url = url.split("/")
-    if len(strip_url) > 3:
-        strip_url = strip_url[-1]
-        if strip_url != "":
-            suffix = strip_url[len(strip_url.split(".")[0]) :]
-        try:
-            r = requests.get(url, allow_redirects=True)
-            if location is None:
-                location = create_temporary_file(suffix=suffix)
-            with open(location, "wb") as fp:
-                fp.write(r.content)
-                result = fp.name
-        except Exception:
-            result = None
-    return result
-
-
-def path_search(filename):
-    # For names of the form "name`", search for name.mx and name.m
-    if filename[-1] == "`":
-        filename = filename[:-1].replace("`", osp.sep)
-        for ext in [".mx", ".m"]:
-            result = path_search(filename + ext)
-            if result is not None:
-                filename = None
-                break
-    if filename is not None:
-        result = None
-        # If filename is an internet address, download the file
-        # and store it in a temporal location
-        lenfn = len(filename)
-        if (
-            (lenfn > 7 and filename[:7] == "http://")
-            or (lenfn > 8 and filename[:8] == "https://")
-            or (lenfn > 6 and filename[:6] == "ftp://")
-        ):
-            result = urlsave_tmp(filename)
-        else:
-            for p in PATH_VAR + [""]:
-                path = osp.join(p, filename)
-                if osp.exists(path):
-                    result = path
-                    break
-
-            # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-            if result is not None and osp.isdir(result):
-                for ext in [osp.join("Kernel", "init.m"), "init.m"]:
-                    tmp = osp.join(result, ext)
-                    if osp.isfile(tmp):
-                        return tmp
-    return result
-
-
-def count():
-    n = 0
-    while True:
-        yield n
-        n += 1
-
-
-NSTREAMS = count()  # use next(NSTREAMS)
-STREAMS = [sys.stdin, sys.stdout, sys.stderr]
-next(NSTREAMS)
-next(NSTREAMS)
-next(NSTREAMS)
-
 
 def _channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
@@ -158,7 +74,7 @@ def _channel_to_stream(channel, mode="r"):
         elif mode in ["w", "a", "wb", "ab"]:
             head = "OutputStream"
         else:
-            raise ValueError("Unknown format {0}".format(mode))
+            raise ValueError(f"Unknown format {mode}")
         return Expression(head, channel, Integer(n))
     elif channel.has_form("InputStream", 2):
         return channel
@@ -167,26 +83,10 @@ def _channel_to_stream(channel, mode="r"):
     else:
         return None
 
-
-def _lookup_stream(n=None):
-    if n is None:
-        return None
-    elif n is not None:
-        try:
-            return STREAMS[n]
-        except IndexError:
-            return None
-
-
-class mathics_open:
+class mathics_open(Stream):
     def __init__(self, name, mode="r", encoding=None):
-        self.name = name
-        self.mode = mode
-        self.encoding = encoding
+        super().__init__(name, mode, encoding)
         self.old_inputfile_var = None  # Set in __enter__ and __exit__
-
-        if mode not in ["r", "w", "a", "rb", "wb", "ab"]:
-            raise ValueError("Can't handle mode {0}".format(mode))
 
     def __enter__(self):
         # find path
@@ -209,34 +109,15 @@ class mathics_open:
             python_encoding = None
 
         # open the stream
-        stream = io.open(path, self.mode, encoding=python_encoding)
-        global INPUTFILE_VAR
-        self.old_inputfile_var = INPUTFILE_VAR
-        INPUTFILE_VAR = osp.abspath(path)
-
-        # build the Expression
-        n = next(NSTREAMS)
-        if self.mode in ["r", "rb"]:
-            self.expr = Expression("InputStream", String(path), Integer(n))
-        elif self.mode in ["w", "a", "wb", "ab"]:
-            self.expr = Expression("OutputStream", String(path), Integer(n))
-        else:
-            raise IOError
-
-        STREAMS.append(stream)
-
-        self.n = n
-
+        stream = io.open(path, self.mode, encoding=encoding)
+        stream_manager.add(name=path, mode=self.mode, encoding=encoding,
+                           stream=stream, num=stream_manager.next)
         return stream
 
     def __exit__(self, type, value, traceback):
-        strm = STREAMS[self.n]
         global INPUTFILE_VAR
         INPUTFILE_VAR = self.old_inputfile_var or ""
-        self.oldinputfile_var = None
-        if strm is not None:
-            strm.close()
-            STREAMS[self.n] = None
+        super().__exit__(type, value, traceback)
 
 
 class InitialDirectory(Predefined):
@@ -763,9 +644,9 @@ class Read(Builtin):
 
         [name, n] = strm.get_leaves()
 
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("Read", "openx", strm)
             return
 
@@ -826,16 +707,16 @@ class Read(Builtin):
                 word = ""
                 while True:
                     try:
-                        tmp = stream.read(1)
+                        tmp = stream.stream.read(1)
                     except UnicodeDecodeError:
                         tmp = " "  # ignore
                         evaluation.message("General", "ucdec")
 
                     if tmp == "":
                         if word == "":
-                            pos = stream.tell()
-                            newchar = stream.read(1)
-                            if pos == stream.tell():
+                            pos = stream.stream.tell()
+                            newchar = stream.stream.read(1)
+                            if pos == stream.stream.tell():
                                 raise EOFError
                             else:
                                 if newchar:
@@ -853,8 +734,8 @@ class Read(Builtin):
                         if word == "":
                             continue
                         if stream.seekable():
-                            # stream.seek(-1, 1) #Python3
-                            stream.seek(stream.tell() - 1)
+                            # stream.stream.seek(-1, 1) #Python3
+                            stream.seek(stream.stream.tell() - 1)
                         last_word = word
                         word = ""
                         yield last_word
@@ -883,12 +764,12 @@ class Read(Builtin):
         for typ in types.leaves:
             try:
                 if typ == Symbol("Byte"):
-                    tmp = stream.read(1)
+                    tmp = stream.stream.read(1)
                     if tmp == "":
                         raise EOFError
                     result.append(ord(tmp))
                 elif typ == Symbol("Character"):
-                    tmp = stream.read(1)
+                    tmp = stream.stream.read(1)
                     if tmp == "":
                         raise EOFError
                     result.append(tmp)
@@ -899,7 +780,7 @@ class Read(Builtin):
                             feeder = MathicsMultiLineFeeder(tmp)
                             expr = parse(evaluation.definitions, feeder)
                             break
-                        except (IncompleteSyntaxError, InvalidSyntaxError) as e:
+                        except (IncompleteSyntaxError, InvalidSyntaxError):
                             try:
                                 nextline = next(read_record)
                                 tmp = tmp + "\n" + nextline
@@ -947,7 +828,7 @@ class Read(Builtin):
                 elif typ == Symbol("Record"):
                     result.append(next(read_record))
                 elif typ == Symbol("String"):
-                    tmp = stream.readline()
+                    tmp = stream.stream.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip("\n"))
@@ -1000,9 +881,9 @@ class Write(Builtin):
             return
 
         n = strm.leaves[1].get_int_value()
-        stream = _lookup_stream(n)
+        stream = stream_manager.lookup_stream(n)
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("General", "openx", channel)
             return SymbolNull
 
@@ -1011,7 +892,7 @@ class Write(Builtin):
 
         evaluation.format = "text"
         text = evaluation.format_output(from_python(expr))
-        stream.write(str(text) + "\n")
+        stream.stream.write(str(text) + "\n")
         return SymbolNull
 
 
@@ -1596,9 +1477,9 @@ class BinaryWrite(Builtin):
             expr = Expression("BinaryWrite", channel, b, typ)
 
         # Check channel
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("General", "openx", name)
             return expr
 
@@ -1689,13 +1570,13 @@ class BinaryWrite(Builtin):
                 return evaluation.message("BinaryWrite", "nocoerce", b)
 
             try:
-                self.writers[t](stream, x)
+                self.writers[t](stream.stream, x)
             except struct.error:
                 return evaluation.message("BinaryWrite", "nocoerce", b)
             i += 1
 
         try:
-            stream.flush()
+            stream.stream.flush()
         except IOError as err:
             evaluation.message("BinaryWrite", "writex", err.strerror)
         return channel
@@ -1961,9 +1842,9 @@ class BinaryRead(Builtin):
             expr = Expression("BinaryRead", channel, typ)
 
         # Check channel
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("General", "openx", name)
             return expr
 
@@ -1985,7 +1866,7 @@ class BinaryRead(Builtin):
         result = []
         for t in types:
             try:
-                result.append(self.readers[t](stream))
+                result.append(self.readers[t](stream.stream))
             except struct.error:
                 result.append(Symbol("EndOfFile"))
 
@@ -2055,9 +1936,9 @@ class WriteString(Builtin):
         if strm is None:
             return
 
-        stream = _lookup_stream(strm.leaves[1].get_int_value())
+        stream = stream_manager.lookup_stream(strm.leaves[1].get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             return None
 
         exprs = []
@@ -2075,9 +1956,9 @@ class WriteString(Builtin):
         line = "".join(exprs)
         if type(stream) is BytesIO:
             line = line.encode("utf8")
-        stream.write(line)
+        stream.stream.write(line)
         try:
-            stream.flush()
+            stream.stream.flush()
         except IOError as err:
             evaluation.message("WriteString", "writex", err.strerror)
         return SymbolNull
@@ -2414,9 +2295,9 @@ class Put(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         "Put[exprs___, OutputStream[name_, n_]]"
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
             return
 
@@ -2427,7 +2308,7 @@ class Put(BinaryOperator):
         text = "\n".join(text) + "\n"
         text.encode("utf-8")
 
-        stream.write(text)
+        stream.stream.write(text)
 
         return SymbolNull
 
@@ -2504,7 +2385,7 @@ class PutAppend(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         "PutAppend[exprs___, OutputStream[name_, n_]]"
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
@@ -2517,7 +2398,7 @@ class PutAppend(BinaryOperator):
         text = "\n".join(text) + "\n"
         text.encode("ascii")
 
-        stream.write(text)
+        stream.stream.write(text)
 
         return SymbolNull
 
@@ -3291,16 +3172,16 @@ class Close(Builtin):
             "OutputStream", 2
         ):
             [name, n] = channel.get_leaves()
-            stream = _lookup_stream(n.get_int_value())
+            stream = stream_manager.lookup_stream(n.get_int_value())
         else:
             stream = None
 
-        if stream is None or stream.closed:
+        if stream is None or stream.stream.closed:
             evaluation.message("General", "openx", channel)
             return
 
         try:
-            stream.close()
+            stream.stream.close()
         except IOError as err:
             evaluation.message("Close", "closex", err.strerror)
         return name
@@ -3327,7 +3208,7 @@ class StreamPosition(Builtin):
 
     def apply_input(self, name, n, evaluation):
         "StreamPosition[InputStream[name_, n_]]"
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message("General", "openx", name)
@@ -3337,7 +3218,7 @@ class StreamPosition(Builtin):
 
     def apply_output(self, name, n, evaluation):
         "StreamPosition[OutputStream[name_, n_]]"
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message("General", "openx", name)
@@ -3394,7 +3275,7 @@ class SetStreamPosition(Builtin):
 
     def apply_input(self, name, n, m, evaluation):
         "SetStreamPosition[InputStream[name_, n_], m_]"
-        stream = _lookup_stream(n.get_int_value())
+        stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.closed:
             evaluation.message("General", "openx", name)
@@ -3797,8 +3678,7 @@ class Streams(Builtin):
     def apply_name(self, name, evaluation):
         "Streams[name_String]"
         result = []
-        for n in range(len(STREAMS)):
-            stream = _lookup_stream(n)
+        for stream in stream_manager.STREAMS:
             if stream is None or stream.closed:
                 continue
             if isinstance(stream, io.StringIO):
@@ -3813,7 +3693,7 @@ class Streams(Builtin):
                 else:
                     raise ValueError("Unknown mode {0}".format(mode))
                 _name = String(stream.name)
-            expr = Expression(head, _name, Integer(n))
+            expr = Expression(head, _name, Integer(stream.num))
             if name is None or _name == name:
                 result.append(expr)
         return Expression("List", *result)
