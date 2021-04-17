@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: language_level=3
 
 """
 File Stream Operations
@@ -105,7 +104,7 @@ class StreamsManager(object):
             return None
         return self.STREAMS.get(n, None)
 
-    def delete_stream(self, n: int) -> bool:
+    def delete(self, n: int) -> bool:
         stream = self.STREAMS.get(n, None)
         if stream is not None:
             del self.STREAMS[stream.n]
@@ -180,7 +179,7 @@ class Stream(object):
         if self.io is not None:
             self.io.close()
         # Leave around self.io so we can call closed() to query its status.
-        stream_manager.delete_stream(self.n)
+        stream_manager.delete(self.n)
 
 Stream("stdin", mode="r", channel_num=0, io=sys.stdin)
 Stream("stdout", mode="w", channel_num=1, io=sys.stdout)
