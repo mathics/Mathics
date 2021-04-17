@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Drawing Options and Option Values
+Options and Option Values
 
-The various common Plot and Graphics options, along with the meaning of specific option values are described here.
+Various common options along with the meaning of specific option values are described here.
 
 """
 
@@ -17,6 +17,23 @@ The various common Plot and Graphics options, along with the meaning of specific
 from mathics.builtin.base import Builtin
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
+
+class AssumptionsOption(Builtin):
+    """
+    <dl>
+      <dt>'Assumptions'
+      <dd>is an option for functions such as 'Simplify', 'Refine', and 'Integrate' that specifies default assumptions to be made about symbolic quantities.
+
+      Note: Currently this option hasn't been implemented. We hope to do so in the future, though.
+    </dl>
+
+    ## Add when Integrate accepts the Assumptions option
+    ## >> Integrate[x^a, {x, 0, 1}, Assumptions -> a > 0]
+    ##
+    ## >> Refine[Sqrt[x^4], Assumptions -> x < 0]
+    ##  = -x^2
+    """
 
 
 class Axes(Builtin):

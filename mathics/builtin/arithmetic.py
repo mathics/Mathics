@@ -2217,9 +2217,10 @@ class Boole(Builtin):
 class Assumptions(Predefined):
     """
     <dl>
-    <dt>'$Assumptions'
-      <dd>is the default setting for the Assumptions option used in such
-   functions as Simplify, Refine, and Integrate. 
+      <dt>'$Assumptions'
+      <dd>is the default setting for the 'Assumptions' option used in such functions as 'Simplify', 'Refine', and 'Integrate'.
+
+      Note: Currently this option hasn't been implemented. We hope to do so in the future, though.
     </dl>
     """
 
@@ -2234,7 +2235,7 @@ class Assuming(Builtin):
     """
     <dl>
     <dt>'Assuming[$cond$, $expr$]'
-      <dd>Evaluates $expr$ assuming the conditions $cond$
+      <dd>Evaluates $expr$ assuming the conditions $cond$.
     </dl>
     >> $Assumptions = { x > 0 }
      = {x > 0}
@@ -2253,12 +2254,12 @@ class Assuming(Builtin):
             cond = [cond]
         else:
             cond = cond.leaves
-        assumptions = evaluation.definitions.get_definition(
+        assumptions_def = evaluation.definitions.get_definition(
             "System`$Assumptions", only_if_exists=True
         )
 
-        if assumptions:
-            assumptions = assumptions.ownvalues
+        if assumptions_def:
+            assumptions = assumptions_def.ownvalues
             if len(assumptions) > 0:
                 assumptions = assumptions[0].replace
             else:
@@ -2267,8 +2268,8 @@ class Assuming(Builtin):
             if assumptions.is_symbol() or not assumptions.has_form("List", None):
                 assumptions = [assumptions]
             else:
-                assumptions = assumptions.leaves
-            cond = assumptions + tuple(cond)
+                assumptions = list(assumptions.leaves)
+            cond = assumptions + list(cond)
         Expression(
             "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
         ).evaluate(evaluation)
@@ -2287,10 +2288,15 @@ class Assuming(Builtin):
 class ConditionalExpression(SympyFunction):
     """
     <dl>
-    <dt>'ConditionalExpression[$expr$, $cond$]'
-      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
-          $cond$ evaluates to $False$.
+      <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if $cond$ evaluates to $False$.
     </dl>
+
+    >> ConditionalExpression[x^2, True]
+     = x ^ 2
+
+     >> ConditionalExpression[x^2, False]
+     = Undefined
 
     >> f = ConditionalExpression[x^2, x>0]
      = ConditionalExpression[x ^ 2, x > 0]
