@@ -4,7 +4,7 @@
 """
 File Stream Operations
 """
-import io
+from io import open as io_open
 import requests
 import sys
 import tempfile
@@ -112,7 +112,7 @@ class StreamsManager(object):
             return True
         return False
 
-    def add(self, name: str, mode:str, encoding, stream, num: Optional[int]=None) -> Optional["Stream"]:
+    def add(self, name: str, mode: Optional[str]=None, encoding=None, io=None, num: Optional[int]=None) -> Optional["Stream"]:
         if num is None:
             num = self.next
             # In theory in this branch we won't find num.
@@ -120,28 +120,17 @@ class StreamsManager(object):
         found = self.lookup_stream(num)
         if found and found is not None:
             raise Exception(f"Stream {num} already open")
-        stream = Stream(name, mode, encoding, stream, num)
+        stream = Stream(name, mode, encoding, io, num)
         self.STREAMS[num] = stream
         return stream
 
     @property
-    def count(self):
-        return len(self.STREAMS)
-
-    @property
     def next(self):
-        return len(self.STREAMS) + 1
+        numbers = [stream.n for stream in self.STREAMS.values()] + [2]
+        return max(numbers)+1
 
 
 stream_manager = StreamsManager()
-
-def channel_to_stream(channel:str, mode="r"):
-    if mode not in ("r", "rb", "w", "a", "wb", "ab"):
-        raise ValueError(f"Unknown format {mode}")
-
-    opener = Stream(channel, mode)
-    return opener.__enter__()
-
 
 class Stream(object):
     """
@@ -154,15 +143,16 @@ class Stream(object):
 
     However see mathics_open which wraps this
     """
-    def __init__(self, name: str, mode="r", encoding=None, stream=None, num=None):
-        if num is None:
-            num = stream_manager.next
+    def __init__(self, name: str, mode="r", encoding=None, io=None, channel_num=None):
+        if channel_num is None:
+            channel_num = stream_manager.next
+        if mode is None:
+            mode = "r"
         self.name = name
         self.mode = mode
         self.encoding = encoding
-        self.stream = stream
-        self.n = num
-        self.old_inputfile_var = None  # Set in __enter__ and __exit__
+        self.io = io
+        self.n = channel_num
 
         if mode not in ["r", "w", "a", "rb", "wb", "ab"]:
             raise ValueError("Can't handle mode {0}".format(mode))
@@ -182,16 +172,16 @@ class Stream(object):
             encoding = None
 
         # open the stream
-        stream = io.open(path, self.mode, encoding=encoding)
-        stream_manager.add(name=path, mode=self.mode, encoding=encoding, stream=stream)
-        return stream
+        fp = io_open(path, self.mode, encoding=encoding)
+        stream_manager.add(name=path, mode=self.mode, encoding=encoding, io=fp)
+        return fp
 
     def __exit__(self, type, value, traceback):
-        if self.stream is not None:
-            self.stream.close()
-            self.stream = None
+        if self.io is not None:
+            self.io.close()
+        # Leave around self.io so we can call closed() to query its status.
         stream_manager.delete_stream(self.n)
 
-Stream("sys.stdin", mode="r", num=0, stream=sys.stdin)
-Stream("sys.stdout", mode="w", num=1, stream=sys.stdout)
-Stream("sys.stderr", mode="w", num=2, stream=sys.stderr)
+Stream("stdin", mode="r", channel_num=0, io=sys.stdin)
+Stream("stdout", mode="w", channel_num=1, io=sys.stdout)
+Stream("stderr", mode="w", channel_num=2, io=sys.stderr)

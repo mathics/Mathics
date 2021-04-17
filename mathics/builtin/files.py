@@ -49,7 +49,16 @@ from mathics.core.expression import (
     valid_context_name,
 )
 from mathics.core.numbers import dps
-from mathics.core.streams import create_temporary_file, urlsave_tmp, PATH_VAR, stream_manager, path_search, Stream
+from mathics.core.streams import (
+    HOME_DIR,
+    PATH_VAR,
+    ROOT_DIR,
+    Stream,
+    create_temporary_file,
+    path_search,
+    stream_manager,
+    urlsave_tmp,
+)
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_python_encoding, to_regex
@@ -62,6 +71,7 @@ TMP_DIR = tempfile.gettempdir()
 DIRECTORY_STACK = [INITIAL_DIR]
 INPUT_VAR = ""
 INPUTFILE_VAR = ""
+
 
 def _channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
@@ -83,9 +93,18 @@ def _channel_to_stream(channel, mode="r"):
     else:
         return None
 
+
 class mathics_open(Stream):
     def __init__(self, name, mode="r", encoding=None):
-        super().__init__(name, mode, encoding)
+        if encoding is not None:
+            encoding = to_python_encoding(encoding)
+            if "b" in mode:
+                # We should not specify an encoding for a binary mode
+                encoding = None
+            elif encoding is None:
+                raise MessageException("General", "charcode", self.encoding)
+        self.encoding = encoding
+        super().__init__(name, mode, self.encoding)
         self.old_inputfile_var = None  # Set in __enter__ and __exit__
 
     def __enter__(self):
@@ -96,23 +115,16 @@ class mathics_open(Stream):
         if path is None:
             raise IOError
 
-        # determine encoding
-        if "b" not in self.mode:
-            encoding = self.encoding
-            if encoding is None:
-                python_encoding = None
-            else:
-                python_encoding = to_python_encoding(encoding)
-                if python_encoding is None:
-                    raise MessageException("General", "charcode", encoding)
-        else:
-            python_encoding = None
-
         # open the stream
-        stream = io.open(path, self.mode, encoding=encoding)
-        stream_manager.add(name=path, mode=self.mode, encoding=encoding,
-                           stream=stream, num=stream_manager.next)
-        return stream
+        fp = io.open(path, self.mode, encoding=self.encoding)
+        stream_manager.add(
+            name=path,
+            mode=self.mode,
+            encoding=self.encoding,
+            io=fp,
+            num=stream_manager.next,
+        )
+        return fp
 
     def __exit__(self, type, value, traceback):
         global INPUTFILE_VAR
@@ -437,29 +449,29 @@ class Read(Builtin):
      : InputStream[String, -1] is not open.
      = Read[InputStream[String, -1], {Word, Number}]
 
-    ## String
-    >> str = StringToStream["abc123"];
-    >> Read[str, String]
+    ## Reading Strings
+    >> stream = StringToStream["abc123"];
+    >> Read[stream, String]
      = abc123
-    #> Read[str, String]
+    #> Read[stream, String]
      = EndOfFile
-    #> Close[str];
+    #> Close[stream];
 
-    ## Word
-    >> str = StringToStream["abc 123"];
-    >> Read[str, Word]
+    ## Reading Words
+    >> stream = StringToStream["abc 123"];
+    >> Read[stream, Word]
      = abc
-    >> Read[str, Word]
+    >> Read[stream, Word]
      = 123
-    #> Read[str, Word]
+    #> Read[stream, Word]
      = EndOfFile
     #> Close[str];
-    #> str = StringToStream[""];
-    #> Read[str, Word]
+    #> stream = StringToStream[""];
+    #> Read[stream, Word]
      = EndOfFile
-    #> Read[str, Word]
+    #> Read[stream, Word]
      = EndOfFile
-    #> Close[str];
+    #> Close[stream];
 
     ## Number
     >> str = StringToStream["123, 4"];
@@ -645,8 +657,13 @@ class Read(Builtin):
         [name, n] = strm.get_leaves()
 
         stream = stream_manager.lookup_stream(n.get_int_value())
+        if stream is None:
+            evaluation.message("Read", "openx", strm)
+            return
+        if stream.io is None:
+            stream.__enter__()
 
-        if stream is None or stream.stream.closed:
+        if stream.io.closed:
             evaluation.message("Read", "openx", strm)
             return
 
@@ -707,16 +724,16 @@ class Read(Builtin):
                 word = ""
                 while True:
                     try:
-                        tmp = stream.stream.read(1)
+                        tmp = stream.io.read(1)
                     except UnicodeDecodeError:
                         tmp = " "  # ignore
                         evaluation.message("General", "ucdec")
 
                     if tmp == "":
                         if word == "":
-                            pos = stream.stream.tell()
-                            newchar = stream.stream.read(1)
-                            if pos == stream.stream.tell():
+                            pos = stream.io.tell()
+                            newchar = stream.io.read(1)
+                            if pos == stream.io.tell():
                                 raise EOFError
                             else:
                                 if newchar:
@@ -733,9 +750,9 @@ class Read(Builtin):
                     if tmp in word_separators:
                         if word == "":
                             continue
-                        if stream.seekable():
-                            # stream.stream.seek(-1, 1) #Python3
-                            stream.seek(stream.stream.tell() - 1)
+                        if stream.io.seekable():
+                            # stream.io.seek(-1, 1) #Python3
+                            stream.io.seek(stream.io.tell() - 1)
                         last_word = word
                         word = ""
                         yield last_word
@@ -764,12 +781,12 @@ class Read(Builtin):
         for typ in types.leaves:
             try:
                 if typ == Symbol("Byte"):
-                    tmp = stream.stream.read(1)
+                    tmp = stream.io.read(1)
                     if tmp == "":
                         raise EOFError
                     result.append(ord(tmp))
                 elif typ == Symbol("Character"):
-                    tmp = stream.stream.read(1)
+                    tmp = stream.io.read(1)
                     if tmp == "":
                         raise EOFError
                     result.append(tmp)
@@ -828,7 +845,7 @@ class Read(Builtin):
                 elif typ == Symbol("Record"):
                     result.append(next(read_record))
                 elif typ == Symbol("String"):
-                    tmp = stream.stream.readline()
+                    tmp = stream.io.readline()
                     if len(tmp) == 0:
                         raise EOFError
                     result.append(tmp.rstrip("\n"))
@@ -883,7 +900,7 @@ class Write(Builtin):
         n = strm.leaves[1].get_int_value()
         stream = stream_manager.lookup_stream(n)
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io is None or stream.io.closed:
             evaluation.message("General", "openx", channel)
             return SymbolNull
 
@@ -892,7 +909,7 @@ class Write(Builtin):
 
         evaluation.format = "text"
         text = evaluation.format_output(from_python(expr))
-        stream.stream.write(str(text) + "\n")
+        stream.io.write(str(text) + "\n")
         return SymbolNull
 
 
@@ -1479,7 +1496,7 @@ class BinaryWrite(Builtin):
         # Check channel
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io.closed:
             evaluation.message("General", "openx", name)
             return expr
 
@@ -1570,13 +1587,13 @@ class BinaryWrite(Builtin):
                 return evaluation.message("BinaryWrite", "nocoerce", b)
 
             try:
-                self.writers[t](stream.stream, x)
+                self.writers[t](stream.io, x)
             except struct.error:
                 return evaluation.message("BinaryWrite", "nocoerce", b)
             i += 1
 
         try:
-            stream.stream.flush()
+            stream.io.flush()
         except IOError as err:
             evaluation.message("BinaryWrite", "writex", err.strerror)
         return channel
@@ -1844,7 +1861,7 @@ class BinaryRead(Builtin):
         # Check channel
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io.closed:
             evaluation.message("General", "openx", name)
             return expr
 
@@ -1866,7 +1883,7 @@ class BinaryRead(Builtin):
         result = []
         for t in types:
             try:
-                result.append(self.readers[t](stream.stream))
+                result.append(self.readers[t](stream.io))
             except struct.error:
                 result.append(Symbol("EndOfFile"))
 
@@ -1938,7 +1955,7 @@ class WriteString(Builtin):
 
         stream = stream_manager.lookup_stream(strm.leaves[1].get_int_value())
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io.closed:
             return None
 
         exprs = []
@@ -1956,9 +1973,9 @@ class WriteString(Builtin):
         line = "".join(exprs)
         if type(stream) is BytesIO:
             line = line.encode("utf8")
-        stream.stream.write(line)
+        stream.io.write(line)
         try:
-            stream.stream.flush()
+            stream.io.flush()
         except IOError as err:
             evaluation.message("WriteString", "writex", err.strerror)
         return SymbolNull
@@ -2297,7 +2314,7 @@ class Put(BinaryOperator):
         "Put[exprs___, OutputStream[name_, n_]]"
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io.closed:
             evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
             return
 
@@ -2308,7 +2325,7 @@ class Put(BinaryOperator):
         text = "\n".join(text) + "\n"
         text.encode("utf-8")
 
-        stream.stream.write(text)
+        stream.io.write(text)
 
         return SymbolNull
 
@@ -2398,7 +2415,7 @@ class PutAppend(BinaryOperator):
         text = "\n".join(text) + "\n"
         text.encode("ascii")
 
-        stream.stream.write(text)
+        stream.io.write(text)
 
         return SymbolNull
 
@@ -2542,22 +2559,22 @@ class ToFileName(Builtin):
 
 class FileNameJoin(Builtin):
     """
-        <dl>
-          <dt>'FileNameJoin[{"$dir_1$", "$dir_2$", ...}]'
-          <dd>joins the $dir_i$ together into one path.
+    <dl>
+      <dt>'FileNameJoin[{"$dir_1$", "$dir_2$", ...}]'
+      <dd>joins the $dir_i$ together into one path.
 
-          <dt>'FileNameJoin[..., OperatingSystem->"os"]'
-          <dd>yields a file name in the format for the specified operating system. Possible choices are "Windows", "MacOSX", and "Unix".
-        </dl>
+      <dt>'FileNameJoin[..., OperatingSystem->"os"]'
+      <dd>yields a file name in the format for the specified operating system. Possible choices are "Windows", "MacOSX", and "Unix".
+    </dl>
 
-        >> FileNameJoin[{"dir1", "dir2", "dir3"}]
-         = ...
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}]
+     = ...
 
-        >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
-         = dir1/dir2/dir3
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Unix"]
+     = dir1/dir2/dir3
 
-        >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-         = dir1\\dir2\\dir3
+    >> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
+     = dir1\\dir2\\dir3
     """
 
     attributes = "Protected"
@@ -3176,14 +3193,11 @@ class Close(Builtin):
         else:
             stream = None
 
-        if stream is None or stream.stream.closed:
+        if stream is None or stream.io.closed:
             evaluation.message("General", "openx", channel)
             return
 
-        try:
-            stream.stream.close()
-        except IOError as err:
-            evaluation.message("Close", "closex", err.strerror)
+        stream.io.close()
         return name
 
 
@@ -3639,15 +3653,11 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         "StringToStream[string_]"
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(str(pystring))
+        fp = io.StringIO(str(pystring))
 
         name = Symbol("String")
-        n = next(NSTREAMS)
-
-        result = Expression("InputStream", name, Integer(n))
-
-        STREAMS.append(stream)
-        return result
+        stream = stream_manager.add(pystring, io=fp)
+        return Expression("InputStream", name, Integer(stream.n))
 
 
 class Streams(Builtin):
@@ -3678,10 +3688,10 @@ class Streams(Builtin):
     def apply_name(self, name, evaluation):
         "Streams[name_String]"
         result = []
-        for stream in stream_manager.STREAMS:
-            if stream is None or stream.closed:
+        for stream in stream_manager.STREAMS.values():
+            if stream is None or stream.io.closed:
                 continue
-            if isinstance(stream, io.StringIO):
+            if isinstance(stream.io, io.StringIO):
                 head = "InputStream"
                 _name = Symbol("String")
             else:
@@ -3700,7 +3710,7 @@ class Streams(Builtin):
 
 
 class Compress(Builtin):
-    u"""
+    """
     <dl>
     <dt>'Compress[$expr$]'
       <dd>gives a compressed string representation of $expr$.
@@ -5168,3 +5178,7 @@ class FileNames(Builtin):
                                 break
 
         return Expression("List", *[String(s) for s in sorted(filenames)])
+
+
+# To placate import
+ROOT_DIR, HOME_DIR
