@@ -465,7 +465,7 @@ class Read(Builtin):
      = 123
     #> Read[stream, Word]
      = EndOfFile
-    #> Close[str];
+    #> Close[stream];
     #> stream = StringToStream[""];
     #> Read[stream, Word]
      = EndOfFile
@@ -474,80 +474,80 @@ class Read(Builtin):
     #> Close[stream];
 
     ## Number
-    >> str = StringToStream["123, 4"];
-    >> Read[str, Number]
+    >> stream = StringToStream["123, 4"];
+    >> Read[stream, Number]
      = 123
-    >> Read[str, Number]
+    >> Read[stream, Number]
      = 4
-    #> Read[str, Number]
+    #> Read[stream, Number]
      = EndOfFile
-    #> Close[str];
-    #> str = StringToStream["123xyz 321"];
-    #> Read[str, Number]
+    #> Close[stream];
+    #> stream = StringToStream["123xyz 321"];
+    #> Read[stream, Number]
      = 123
-    #> Quiet[Read[str, Number]]
+    #> Quiet[Read[stream, Number]]
      = $Failed
 
     ## Real
-    #> str = StringToStream["123, 4abc"];
-    #> Read[str, Real]
+    #> stream = StringToStream["123, 4abc"];
+    #> Read[stream, Real]
      = 123.
-    #> Read[str, Real]
+    #> Read[stream, Real]
      = 4.
-    #> Quiet[Read[str, Number]]
+    #> Quiet[Read[stream, Number]]
      = $Failed
 
-    #> Close[str];
-    #> str = StringToStream["1.523E-19"]; Read[str, Real]
+    #> Close[stream];
+    #> stream = StringToStream["1.523E-19"]; Read[stream, Real]
      = 1.523*^-19
-    #> Close[str];
-    #> str = StringToStream["-1.523e19"]; Read[str, Real]
+    #> Close[stream];
+    #> stream = StringToStream["-1.523e19"]; Read[stream, Real]
      = -1.523*^19
-    #> Close[str];
-    #> str = StringToStream["3*^10"]; Read[str, Real]
+    #> Close[stream];
+    #> stream = StringToStream["3*^10"]; Read[stream, Real]
      = 3.*^10
-    #> Close[str];
-    #> str = StringToStream["3.*^10"]; Read[str, Real]
+    #> Close[stream];
+    #> stream = StringToStream["3.*^10"]; Read[stream, Real]
      = 3.*^10
-    #> Close[str];
+    #> Close[stream];
 
     ## Expression
-    #> str = StringToStream["x + y Sin[z]"]; Read[str, Expression]
+    #> stream = StringToStream["x + y Sin[z]"]; Read[stream, Expression]
      = x + y Sin[z]
-    #> Close[str];
-    ## #> str = Quiet[StringToStream["Sin[1 123"]; Read[str, Expression]]
+    #> Close[stream];
+    ## #> stream = Quiet[StringToStream["Sin[1 123"]; Read[stream, Expression]]
     ##  = $Failed
 
     ## HoldExpression:
-    >> str = StringToStream["2+2\\n2+3"];
-    >> Read[str, Hold[Expression]]
+    >> stream = StringToStream["2+2\\n2+3"];
+    >> Read[stream, Hold[Expression]]
      = Hold[2 + 2]
-    >> Read[str, Expression]
+    >> Read[stream, Expression]
      = 5
-    >> Close[str];
+    >> Close[stream];
 
     ## Multiple types
-    >> str = StringToStream["123 abc"];
-    >> Read[str, {Number, Word}]
+    >> stream = StringToStream["123 abc"];
+    >> Read[stream, {Number, Word}]
      = {123, abc}
-    #> Read[str, {Number, Word}]
+    #> Read[stream, {Number, Word}]
      = EndOfFile
-    #> Close[str];
+    #> Close[stream];
 
-    #> str = StringToStream["123 abc"];
-    #> Quiet[Read[str, {Word, Number}]]
+    #> stream = StringToStream["123 abc"];
+    #> Quiet[Read[stream, {Word, Number}]]
      = $Failed
-    #> Close[str];
+    #> Close[stream];
 
-    #> str = StringToStream["123 123"];  Read[str, {Real, Number}]
+    #> stream = StringToStream["123 123"];  Read[stream, {Real, Number}]
      = {123., 123}
-    #> Close[str];
+    #> Close[stream];
 
-    #> Quiet[Read[str, {Real}]]
+    #> Quiet[Read[stream, {Real}]]
      = Read[InputStream[String, ...], {Real}]
 
     Multiple lines:
-    >> str = StringToStream["\\"Tengo una\\nvaca lechera.\\""]; Read[str]
+    >> stream = StringToStream["\\"Tengo una\\nvaca lechera.\\""]; Read[stream]
      = Tengo una
      . vaca lechera.
 
@@ -875,16 +875,16 @@ class Write(Builtin):
       <dd>writes the expressions to the output channel followed by a newline.
     </dl>
 
-    >> str = OpenWrite[]
+    >> stream = OpenWrite[]
      = ...
-    >> Write[str, 10 x + 15 y ^ 2]
-    >> Write[str, 3 Sin[z]]
-    >> Close[str]
+    >> Write[stream, 10 x + 15 y ^ 2]
+    >> Write[stream, 3 Sin[z]]
+    >> Close[stream]
      = ...
-    >> str = OpenRead[%];
-    >> ReadList[str]
+    >> stream = OpenRead[%];
+    >> ReadList[stream]
      = {10 x + 15 y ^ 2, 3 Sin[z]}
-    #> Close[str];
+    #> Close[stream];
     """
 
     attributes = "Protected"
@@ -1309,7 +1309,7 @@ class BinaryWrite(Builtin):
      = ...
 
     ## Write then Read as Bytes
-    #> WRb[bytes_, form_] := Module[{str, res={}, byte}, str = OpenWrite[BinaryFormat -> True]; BinaryWrite[str, bytes, form]; str = OpenRead[Close[str], BinaryFormat -> True]; While[Not[SameQ[byte = BinaryRead[str], EndOfFile]], res = Join[res, {byte}];]; Close[str]; res]
+    #> WRb[bytes_, form_] := Module[{stream, res={}, byte}, stream = OpenWrite[BinaryFormat -> True]; BinaryWrite[stream, bytes, form]; stream = OpenRead[Close[stream], BinaryFormat -> True]; While[Not[SameQ[byte = BinaryRead[stream], EndOfFile]], res = Join[res, {byte}];]; Close[stream]; res]
 
     ## Byte
     #> WRb[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
@@ -1623,7 +1623,7 @@ class BinaryRead(Builtin):
     >> Close[strm];
 
     ## Write as Bytes then Read
-    #> WbR[bytes_, form_] := Module[{str, res}, str = OpenWrite[BinaryFormat -> True]; BinaryWrite[str, bytes]; str = OpenRead[Close[str], BinaryFormat -> True]; res = BinaryRead[str, form]; Close[str]; res]
+    #> WbR[bytes_, form_] := Module[{stream, res}, stream = OpenWrite[BinaryFormat -> True]; BinaryWrite[stream, bytes]; stream = OpenRead[Close[stream], BinaryFormat -> True]; res = BinaryRead[stream, form]; Close[stream]; res]
 
     ## Byte
     #> WbR[{149, 2, 177, 132}, {"Byte", "Byte", "Byte", "Byte"}]
@@ -1901,31 +1901,31 @@ class WriteString(Builtin):
       <dd>writes the strings to the output stream.
     </dl>
 
-    >> str = OpenWrite[];
-    >> WriteString[str, "This is a test 1"]
-    >> WriteString[str, "This is also a test 2"]
-    >> Close[str]
+    >> stream = OpenWrite[];
+    >> WriteString[stream, "This is a test 1"]
+    >> WriteString[stream, "This is also a test 2"]
+    >> Close[stream]
      = ...
     >> FilePrint[%]
      | This is a test 1This is also a test 2
 
-    >> str = OpenWrite[];
-    >> WriteString[str, "This is a test 1", "This is also a test 2"]
-    >> Close[str]
+    >> stream = OpenWrite[];
+    >> WriteString[stream, "This is a test 1", "This is also a test 2"]
+    >> Close[stream]
      = ...
     >> FilePrint[%]
      | This is a test 1This is also a test 2
 
-    #> str = OpenWrite[];
-    #> WriteString[str, 100, 1 + x + y, Sin[x  + y]]
-    #> Close[str]
+    #> stream = OpenWrite[];
+    #> WriteString[stream, 100, 1 + x + y, Sin[x  + y]]
+    #> Close[stream]
      = ...
     #> FilePrint[%]
      | 1001 + x + ySin[x + y]
 
-    #> str = OpenWrite[];
-    #> WriteString[str]
-    #> Close[str]
+    #> stream = OpenWrite[];
+    #> WriteString[stream]
+    #> Close[stream]
      = ...
     #> FilePrint[%]
 
@@ -1955,7 +1955,7 @@ class WriteString(Builtin):
 
         stream = stream_manager.lookup_stream(strm.leaves[1].get_int_value())
 
-        if stream is None or stream.io.closed:
+        if stream is None or stream.io is None or stream.io.closed:
             return None
 
         exprs = []
@@ -2404,7 +2404,7 @@ class PutAppend(BinaryOperator):
         "PutAppend[exprs___, OutputStream[name_, n_]]"
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.io.closed:
             evaluation.message("Put", "openx", Expression("OutputSteam", name, n))
             return
 
@@ -2955,16 +2955,16 @@ class ReadList(Read):
     >> ReadList[StringToStream["a 1 b 2"], {Word, Number}]
      = {{a, 1}, {b, 2}}
 
-    >> str = StringToStream["\\"abc123\\""];
-    >> ReadList[str]
+    >> stream = StringToStream["\\"abc123\\""];
+    >> ReadList[stream]
      = {abc123}
     >> InputForm[%]
      = {"abc123"}
 
-    #> ReadList[str, "Invalid"]
+    #> ReadList[stream, "Invalid"]
      : Invalid is not a valid format specification.
      = ReadList[..., Invalid]
-    #> Close[str];
+    #> Close[stream];
 
 
     #> ReadList[StringToStream["a 1 b 2"], {Word, Number}, 1]
@@ -3193,7 +3193,7 @@ class Close(Builtin):
         else:
             stream = None
 
-        if stream is None or stream.io.closed:
+        if stream is None or stream.io is None or stream.io.closed:
             evaluation.message("General", "openx", channel)
             return
 
@@ -3208,13 +3208,13 @@ class StreamPosition(Builtin):
       <dd>returns the current position in a stream as an integer.
     </dl>
 
-    >> str = StringToStream["Mathics is cool!"]
+    >> stream = StringToStream["Mathics is cool!"]
      = ...
 
-    >> Read[str, Word]
+    >> Read[stream, Word]
      = Mathics
 
-    >> StreamPosition[str]
+    >> StreamPosition[stream]
      = 7
     """
 
@@ -3224,21 +3224,15 @@ class StreamPosition(Builtin):
         "StreamPosition[InputStream[name_, n_]]"
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.io is None or stream.io.closed:
             evaluation.message("General", "openx", name)
             return
 
-        return from_python(stream.tell())
+        return from_python(stream.io.tell())
 
     def apply_output(self, name, n, evaluation):
         "StreamPosition[OutputStream[name_, n_]]"
-        stream = stream_manager.lookup_stream(n.get_int_value())
-
-        if stream is None or stream.closed:
-            evaluation.message("General", "openx", name)
-            return
-
-        return from_python(stream.tell())
+        self.input_apply(name, n, evaluation)
 
     def apply_default(self, stream, evaluation):
         "StreamPosition[stream_]"
@@ -3253,26 +3247,26 @@ class SetStreamPosition(Builtin):
       <dd>sets the current position in a stream.
     </dl>
 
-    >> str = StringToStream["Mathics is cool!"]
+    >> stream = StringToStream["Mathics is cool!"]
      = ...
 
-    >> SetStreamPosition[str, 8]
+    >> SetStreamPosition[stream, 8]
      = 8
 
-    >> Read[str, Word]
+    >> Read[stream, Word]
      = is
 
-    #> SetStreamPosition[str, -5]
+    #> SetStreamPosition[stream, -5]
      : Python2 cannot handle negative seeks.
      = 10
 
-    >> SetStreamPosition[str, Infinity]
+    >> SetStreamPosition[stream, Infinity]
      = 16
     """
 
     # TODO: Seeks beyond stream should return stmrng message
     """
-    #> SetStreamPosition[str, 40]
+    #> SetStreamPosition[stream, 40]
      = ERROR_MESSAGE_HERE
     """
 
@@ -3291,11 +3285,11 @@ class SetStreamPosition(Builtin):
         "SetStreamPosition[InputStream[name_, n_], m_]"
         stream = stream_manager.lookup_stream(n.get_int_value())
 
-        if stream is None or stream.closed:
+        if stream is None or stream.io is None or stream.io.closed:
             evaluation.message("General", "openx", name)
             return
 
-        if not stream.seekable:
+        if not stream.io.seekable:
             raise NotImplementedError
 
         seekpos = m.to_python()
@@ -3307,16 +3301,16 @@ class SetStreamPosition(Builtin):
 
         try:
             if seekpos == float("inf"):
-                stream.seek(0, 2)
+                stream.io.seek(0, 2)
             else:
                 if seekpos < 0:
-                    stream.seek(seekpos, 2)
+                    stream.io.seek(seekpos, 2)
                 else:
-                    stream.seek(seekpos)
+                    stream.io.seek(seekpos)
         except IOError:
             evaluation.message("SetStreamPosition", "python2")
 
-        return from_python(stream.tell())
+        return from_python(stream.io.tell())
 
     def apply_output(self, name, n, m, evaluation):
         "SetStreamPosition[OutputStream[name_, n_], m_]"
@@ -3337,23 +3331,23 @@ class Skip(Read):
       <dd>skips ahead in an input steream by $n$ objects of the specified $type$.
     </dl>
 
-    >> str = StringToStream["a b c d"];
-    >> Read[str, Word]
+    >> stream = StringToStream["a b c d"];
+    >> Read[stream, Word]
      = a
-    >> Skip[str, Word]
-    >> Read[str, Word]
+    >> Skip[stream, Word]
+    >> Read[stream, Word]
      = c
-    #> Close[str];
+    #> Close[stream];
 
-    >> str = StringToStream["a b c d"];
-    >> Read[str, Word]
+    >> stream = StringToStream["a b c d"];
+    >> Read[stream, Word]
      = a
-    >> Skip[str, Word, 2]
-    >> Read[str, Word]
+    >> Skip[stream, Word, 2]
+    >> Read[stream, Word]
      = d
-    #> Skip[str, Word]
+    #> Skip[stream, Word]
      = EndOfFile
-    #> Close[str];
+    #> Close[stream];
     """
 
     rules = {
@@ -3410,20 +3404,20 @@ class Find(Read):
       <dd>find the first line in $stream$ that contains $text$.
     </dl>
 
-    >> str = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
-    >> Find[str, "uranium"]
+    >> stream = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
+    >> Find[stream, "uranium"]
      = in manuscript, leads me to expect that the element uranium may be turned into
-    >> Find[str, "uranium"]
+    >> Find[stream, "uranium"]
      = become possible to set up a nuclear chain reaction in a large mass of uranium,
-    >> Close[str]
+    >> Close[stream]
      = ...
 
-    >> str = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
-    >> Find[str, {"energy", "power"} ]
+    >> stream = OpenRead["ExampleData/EinsteinSzilLetter.txt"];
+    >> Find[stream, {"energy", "power"} ]
      = a new and important source of energy in the immediate future. Certain aspects
-    >> Find[str, {"energy", "power"} ]
+    >> Find[stream, {"energy", "power"} ]
      = by which vast amounts of power and large quantities of new radium-like
-    >> Close[str]
+    >> Close[stream]
      = ...
     """
 
@@ -3490,8 +3484,8 @@ class FindList(Builtin):
       <dd>returns a list of all lines in any of the $filei$ that contain the specified strings.
     </dl>
 
-    >> str = FindList["ExampleData/EinsteinSzilLetter.txt", "uranium"];
-    #> Length[str]
+    >> stream = FindList["ExampleData/EinsteinSzilLetter.txt", "uranium"];
+    #> Length[stream]
      = 7
 
     >> FindList["ExampleData/EinsteinSzilLetter.txt", "uranium", 1]
@@ -3595,9 +3589,9 @@ class InputStream(Builtin):
       <dd>represents an input stream.
     </dl>
 
-    >> str = StringToStream["Mathics is cool!"]
+    >> stream = StringToStream["Mathics is cool!"]
      = ...
-    >> Close[str]
+    >> Close[stream]
      = String
     """
 
@@ -3703,7 +3697,7 @@ class Streams(Builtin):
                 else:
                     raise ValueError("Unknown mode {0}".format(mode))
                 _name = String(stream.name)
-            expr = Expression(head, _name, Integer(stream.num))
+            expr = Expression(head, _name, Integer(stream.n))
             if name is None or _name == name:
                 result.append(expr)
         return Expression("List", *result)
