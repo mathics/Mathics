@@ -10,6 +10,7 @@ New builtins
 
 * ``Dispatch``
 * ``Series``,  ``O`` and ``SeriesData``
+* All of the named colors, e.g. ``Brown`` or ``LighterMagenta``
 
 
 
