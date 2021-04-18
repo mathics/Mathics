@@ -518,7 +518,7 @@ class DirectoryName(Builtin):
         "intpm": ("Positive machine-sized integer expected at " "position 2 in `1`."),
     }
 
-    def apply(self, name, n, evaluation, options):
+    def apply_with_n(self, name, n, evaluation, options):
         "DirectoryName[name_, n_, OptionsPattern[DirectoryName]]"
 
         if n is None:
@@ -544,9 +544,9 @@ class DirectoryName(Builtin):
 
         return String(result)
 
-    def apply1(self, name, evaluation, options):
+    def apply(self, name, evaluation, options):
         "DirectoryName[name_, OptionsPattern[DirectoryName]]"
-        return self.apply(name, None, evaluation, options)
+        return self.apply_with_n(name, None, evaluation, options)
 
 
 class DirectoryStack(Builtin):
