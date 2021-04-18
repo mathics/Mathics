@@ -1661,14 +1661,23 @@ class ToString(Builtin):
         "TotalWidth": "Infinity",
     }
 
+    messages = {"encoding": "Encoding not implemented for ToString."}
+
+
     def apply_default(self, value, evaluation, options):
         "ToString[value_, OptionsPattern[ToString]]"
         return self.apply_form(value, Symbol("System`OutputForm"), evaluation, options)
 
     def apply_form(self, value, form, evaluation, options):
         "ToString[value_, form_, OptionsPattern[ToString]]"
-        encoding = options["System`CharacterEncoding"]
-        text = value.format(evaluation, form.get_name(), encoding=encoding)
+        if form.has_form("Rule", 2) and form.leaves[0] == Symbol("System`CharacterEncoding"):
+            return evaluation.message("ToString", "encoding")
+            encoding = form.leaves[1]
+            # form_name='System`OutputForm'
+        else:
+            encoding = options["System`CharacterEncoding"]
+            form_name = form.get_name()
+        text = value.format(evaluation, form_name, encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 

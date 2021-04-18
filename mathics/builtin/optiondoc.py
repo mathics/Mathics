@@ -55,6 +55,18 @@ class Bottom(Builtin):
     """
 
 
+class CharacterEncodingOption(Builtin):
+    """
+    <dl>
+      <dt>'CharacterEncoding'
+      <dd>is an option for input and output functions which specifies what raw character encoding should be used.
+    </dl>
+
+    >> ToString["\[CirclePlus]", CharacterEncoding -> "UTF8"]
+     = ...
+    """
+
+
 class Filling(Builtin):
     """
     <dl>
