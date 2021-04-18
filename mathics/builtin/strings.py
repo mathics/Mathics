@@ -1352,6 +1352,21 @@ class StringReplace(_StringFind):
         return self._apply(string, rule, n, evaluation, options, False)
 
 
+class StringReverse(Builtin):
+    """
+    <dl>
+      <dt>'StringReverse["$string$"]'
+      <dd>reverses the order of the characters in "string".
+      </dl>
+
+      >> StringReverse["live"]
+       = evil
+    """
+    def apply(self, string, evaluation):
+        "StringReverse[string_String]"
+        return String(string.get_string_value()[::-1])
+
+
 class StringCases(_StringFind):
     """
     <dl>
