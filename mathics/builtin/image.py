@@ -1444,14 +1444,30 @@ class Binarize(_SkimageBuiltin):
 class ColorNegate(_ImageBuiltin):
     """
     <dl>
-    <dt>'ColorNegate[$image$]'
-      <dd>Gives a version of $image$ with all colors negated.
+      <dt>'ColorNegate[$image$]'
+      <dd>returns the negative of $image$ in which colors have been negated.
+
+      <dt>'ColorNegate[$color$]'
+      <dd>returns the negative of a color.
+
+      Yellow is RGBColor[1.0, 1.0, 0.0]
+      >> ColorNegate[Yellow]
+       = RGBColor[0., 0., 1.]
     </dl>
     """
 
-    def apply(self, image, evaluation):
+    def apply_for_image(self, image, evaluation):
         "ColorNegate[image_Image]"
         return image.filter(lambda im: PIL.ImageOps.invert(im))
+
+    def apply_for_color(self, color, evaluation):
+        "ColorNegate[color_RGBColor]"
+        # Get components
+        r, g, b = [leaf.to_python() for leaf in color.leaves]
+        # Invert
+        r, g, b = (1.0 - r, 1.0 - g, 1.0 - b)
+        # Reconstitute
+        return Expression("RGBColor", Real(r), Real(g), Real(b))
 
 
 class ColorSeparate(_ImageBuiltin):

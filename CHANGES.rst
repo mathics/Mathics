@@ -16,6 +16,7 @@ New builtins
 Enhancements
 ++++++++++++
 
+* ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
