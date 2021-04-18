@@ -841,6 +841,6 @@ class Throw(Builtin):
         "Throw[value_]"
         raise WLThrowInterrupt(value)
 
-    def apply2(self, value, tag, evaluation):
+    def apply_with_tag(self, value, tag, evaluation):
         "Throw[value_, tag_]"
         raise WLThrowInterrupt(value, tag)

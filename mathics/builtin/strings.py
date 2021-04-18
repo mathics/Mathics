@@ -2181,7 +2181,7 @@ class StringDrop(Builtin):
         "drop": 'Cannot drop positions `1` through `2` in "`3`".',
     }
 
-    def apply1_(self, string, n, evaluation):
+    def apply_with_n(self, string, n, evaluation):
         "StringDrop[string_,n_Integer]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse")
@@ -2199,7 +2199,7 @@ class StringDrop(Builtin):
                 return string
         return evaluation.message("StringDrop", "mseqs")
 
-    def apply2_(self, string, ni, nf, evaluation):
+    def apply_with_ni_nf(self, string, ni, nf, evaluation):
         "StringDrop[string_,{ni_Integer,nf_Integer}]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse", string)
@@ -2221,7 +2221,7 @@ class StringDrop(Builtin):
             return string  # this is what actually mma does
         return String(fullstring[: (posi - 1)] + fullstring[posf:])
 
-    def apply3_(self, string, ni, evaluation):
+    def apply_with_ni(self, string, ni, evaluation):
         "StringDrop[string_,{ni_Integer}]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse", string)
@@ -2236,7 +2236,7 @@ class StringDrop(Builtin):
             return evaluation.message("StringDrop", "drop", ni, ni, fullstring)
         return String(fullstring[: (posi - 1)] + fullstring[posi:])
 
-    def apply4_(self, string, something, evaluation):
+    def apply(self, string, something, evaluation):
         "StringDrop[string_,something___]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse")
