@@ -37,7 +37,7 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule,
+    SymbolRule
 )
 from mathics.core.numbers import (
     dps,
@@ -764,7 +764,7 @@ class Row(Builtin):
         else:
             result = []
             for index, item in enumerate(items):
-                if index > 0 and not sep.same(String("")):
+                if index > 0 and not sep.sameQ(String("")):
                     result.append(sep)
                 result.append(MakeBoxes(item, f))
             return RowBox(Expression(SymbolList, *result))
@@ -845,7 +845,7 @@ class GridBox(BoxConstruct):
         result += r"\end{array}"
         return result
 
-    def boxes_to_xml(self, leaves=None, **box_options) -> str:
+    def boxes_to_mathml(self, leaves=None, **box_options) -> str:
         if not leaves:
             leaves = self._leaves
         evaluation = box_options.get("evaluation")
@@ -872,7 +872,7 @@ class GridBox(BoxConstruct):
             for item in row:
                 result += "<mtd {0}>{1}</mtd>".format(
                     joined_attrs,
-                    item.evaluate(evaluation).boxes_to_xml(**new_box_options),
+                    item.evaluate(evaluation).boxes_to_mathml(**new_box_options),
                 )
             result += "</mtr>\n"
         result += "</mtable>"
@@ -2084,7 +2084,7 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(evaluation=evaluation)
+            xml = boxes.boxes_to_mathml(evaluation=evaluation)
         except BoxError:
             evaluation.message(
                 "General",
@@ -2092,12 +2092,15 @@ class MathMLForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             xml = ""
+        is_a_picture = xml[:6] == "<mtext"
+
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
         query = evaluation.parse("System`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
-        if usesansserif:
-            xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+        if not is_a_picture:
+            if usesansserif:
+                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression("RowBox", Expression(SymbolList, String(mathml)))
@@ -2291,20 +2294,20 @@ class _NumberForm(Builtin):
 
     def check_DigitBlock(self, value, evaluation):
         py_value = value.get_int_value()
-        if value.same(Symbol("Infinity")):
+        if value.sameQ(Symbol("Infinity")):
             return [0, 0]
         elif py_value is not None and py_value > 0:
             return [py_value, py_value]
         elif value.has_form("List", 2):
             nleft, nright = value.leaves
             py_left, py_right = nleft.get_int_value(), nright.get_int_value()
-            if nleft.same(Symbol("Infinity")):
+            if nleft.sameQ(Symbol("Infinity")):
                 nleft = 0
             elif py_left is not None and py_left > 0:
                 nleft = py_left
             else:
                 nleft = None
-            if nright.same(Symbol("Infinity")):
+            if nright.sameQ(Symbol("Infinity")):
                 nright = 0
             elif py_right is not None and py_right > 0:
                 nright = py_right
@@ -2316,7 +2319,7 @@ class _NumberForm(Builtin):
         return evaluation.message(self.get_name(), "dblk", value)
 
     def check_ExponentFunction(self, value, evaluation):
-        if value.same(Symbol("Automatic")):
+        if value.sameQ(Symbol("Automatic")):
             return self.default_ExponentFunction
 
         def exp_function(x):
@@ -2325,7 +2328,7 @@ class _NumberForm(Builtin):
         return exp_function
 
     def check_NumberFormat(self, value, evaluation):
-        if value.same(Symbol("Automatic")):
+        if value.sameQ(Symbol("Automatic")):
             return self.default_NumberFormat
 
         def num_function(man, base, exp, options):
@@ -2352,9 +2355,9 @@ class _NumberForm(Builtin):
         return result
 
     def check_SignPadding(self, value, evaluation):
-        if value.same(Symbol("True")):
+        if value.sameQ(Symbol("True")):
             return True
-        elif value.same(Symbol("False")):
+        elif value.sameQ(Symbol("False")):
             return False
         return evaluation.message(self.get_name(), "opttf", value)
 

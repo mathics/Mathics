@@ -219,144 +219,6 @@ class ColorData(Builtin):
         return palette.colors()
 
 
-# Note In defining these class, documentation is given for them
-
-
-class Axis(Builtin):
-    """
-    <dl>
-      <dt>'Axis'
-      <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
-     = -Graphics-
-    """
-
-
-class Bottom(Builtin):
-    """
-    <dl>
-      <dt>'Bottom'
-      <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
-     = -Graphics-
-    """
-
-
-class Filling(Builtin):
-    """
-    <dl>
-      <dt>'Filling Top |Bottom|Axis'
-      <dd>is a an option to Plot to specify what filling to add under point, curves, and surfaces
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
-     = -Graphics-
-    """
-
-
-class Full(Builtin):
-    """
-    <dl>
-      <dt>'Full'
-      <dd>is a possible value for the 'Mesh' and 'PlotRange' options.
-    </dl>
-    """
-
-
-class ImageSize(Builtin):
-    """
-    <dl>
-      <dt>'ImageSize'
-      <dd>is an option that specifies the overall size of an image to display.
-    </dl>
-
-    Specifications for both width and height can be any of the following:
-    <dl>
-      <dt>Automatic
-      <dd>determined by location or other dimension (default)
-      <dt>Tiny, Small, Medium, Large
-      <dd>pre defined absolute sizes
-    </dl>
-    """
-
-
-class Joined(Builtin):
-    """
-    <dl>
-      <dt>'Joined $boolean$'
-      <dd>is an option for 'Plot' that gives whether to join points to make lines.
-    </dl>
-
-    >> ListPlot[Table[n ^ 2, {n, 10}], Joined->True]
-     = -Graphics-
-    """
-
-
-class Mesh(Builtin):
-    """
-    <dl>
-       <dt>'Mesh'
-      <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
-     </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4},Mesh->All]
-     = -Graphics-
-
-    >> Plot[Sin[x], {x,0,4 Pi}, Mesh->Full]
-     = -Graphics-
-
-    >> DensityPlot[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
-     = -Graphics-
-
-    >> Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
-     = -Graphics3D-
-    """
-
-    messages = {
-        "ilevels": "`1` is not a valid mesh specification.",
-    }
-
-
-class PlotPoints(Builtin):
-    """
-    <dl>
-      <dt>'PlotPoints $n$'
-      <dd>A number specifies how many initial sample points to use.
-     </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotPoints->22]
-     = -Graphics-
-    """
-
-
-class PlotRange(Builtin):
-    """
-    <dl>
-      <dt>'PlotRange $n$ | All | Automatic'
-      <dd>is an option for 'Plot' that gives the range of coordinates to include in a plot.
-    </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotRange -> All]
-     = -Graphics-
-    """
-
-
-class Top(Builtin):
-    """
-    <dl>
-    <dt>'Top'
-        <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis|Top|Bottom]
-     = -Graphics-
-    """
-
-
 def extract_pyreal(value):
     if isinstance(value, Real):
         return chop(value).round_to_float()
@@ -2422,14 +2284,23 @@ class ListLinePlot(_ListPlot):
 class Plot3D(_Plot3D):
     """
     <dl>
-    <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
-        <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+      <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
+      <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+
     </dl>
+
+    Plot3D has the same options as Graphics3D, in particular:
+    <ul>
+    <li>Mesh</li>
+    <li>PlotPoints</li>
+    <li>MaxRecursion</li>
+    </ul>
+
 
     >> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics3D-
 
-    >> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+    >> Plot3D[Sin[y + Sin[3 x]], {x, -2, 2}, {y, -2, 2}, PlotPoints->20]
      = -Graphics3D-
 
     >> Plot3D[x / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}, Mesh->None]

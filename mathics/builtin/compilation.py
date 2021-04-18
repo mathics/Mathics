@@ -6,10 +6,10 @@ from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
     Atom,
     Expression,
-    Symbol,
-    String,
-    from_python,
     Integer,
+    String,
+    Symbol,
+    from_python,
 )
 from types import FunctionType
 
@@ -22,6 +22,10 @@ class Compile(Builtin):
     <dt>'Compile[{{$x1$, $t1$} {$x2$, $t1$} ...}, $expr$]'
       <dd>Compiles assuming each $xi$ matches type $ti$.
     </dl>
+
+    Compilation is performed using llvmlite , or Python's builtin
+    "compile" function.
+
 
     >> cf = Compile[{x, y}, x + 2 y]
      = CompiledFunction[{x, y}, x + 2 y, -CompiledCode-]
@@ -59,8 +63,7 @@ class Compile(Builtin):
     #> cf[0, -2]
      = 0.5
 
-    Loops and variable assignments are supported as python (not llvmlite)
-    functions
+    Loops and variable assignments are supported usinv Python builtin "compile" function:
     >> Compile[{{a, _Integer}, {b, _Integer}}, While[b != 0, {a, b} = {b, Mod[a, b]}]; a]       (* GCD of a, b *)
      =  CompiledFunction[{a, b}, a, -PythonizedCode-]
     """
@@ -158,9 +161,20 @@ class CompiledCode(Atom):
         self.cfunc = cfunc
         self.args = args
 
+    def equal2(self, rhs):
+        return isinstance(rhs, CompiledCode)
+
     def __str__(self):
         if type(self.cfunc) is FunctionType:
             return "-PythonizedCode-"
+        return "-CompiledCode-"
+
+    def boxes_to_text(self, leaves=None, **options):
+        from trepan.api import debug
+
+        debug()
+        if not leaves:
+            leaves = self._leaves
         return "-CompiledCode-"
 
     def do_copy(self):
@@ -173,13 +187,17 @@ class CompiledCode(Atom):
         if pattern_sort:
             return super(CompiledCode, self).get_sort_key(True)
         else:
-            return hash(self)
+            return hex(id(self))
 
-    def same(self, other):
-        return self is other
+    def sameQ(self, rhs) -> bool:
+        """Mathics SameQ"""
+        return self is rhs
 
     def to_python(self, *args, **kwargs):
         return None
+
+    def to_sympy(self, *args, **kwargs):
+        raise NotImplementedError
 
     def __hash__(self):
         return hash(("CompiledCode", ctypes.addressof(self.cfunc)))  # XXX hack
@@ -198,7 +216,7 @@ class CompiledCodeBox(BoxConstruct):
             leaves = self._leaves
         return leaves[0].value
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         return leaves[0].value
@@ -239,9 +257,9 @@ class CompiledFunction(Builtin):
         for arg in argseq:
             if isinstance(arg, Integer):
                 py_args.append(arg.get_int_value())
-            elif arg.same(Symbol("True")):
+            elif arg.sameQ(Symbol("True")):
                 py_args.append(True)
-            elif arg.same(Symbol("False")):
+            elif arg.sameQ(Symbol("False")):
                 py_args.append(False)
             else:
                 py_args.append(arg.round_to_float(evaluation))

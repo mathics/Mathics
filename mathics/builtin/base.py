@@ -625,8 +625,9 @@ class BoxConstruct(InstanceableBuiltin):
     def get_string_value(self):
         return "-@" + self.get_head_name() + "@-"
 
-    def same(self, expr):
-        return expr.same(self)
+    def sameQ(self, expr) -> bool:
+        """Mathics SameQ"""
+        return expr.sameQ(self)
 
     def is_atom(self):
         return False
@@ -710,7 +711,7 @@ class BoxConstruct(InstanceableBuiltin):
     def boxes_to_text(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_xml(self, leaves, **options) -> str:
+    def boxes_to_mathml(self, leaves, **options) -> str:
         raise BoxConstructError
 
     def boxes_to_tex(self, leaves, **options) -> str:

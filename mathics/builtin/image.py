@@ -2105,7 +2105,7 @@ class ImageBox(BoxConstruct):
     def boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 
-    def boxes_to_xml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
         # see https://tools.ietf.org/html/rfc2397
@@ -2256,7 +2256,8 @@ class Image(Atom):
         else:
             return hash(self)
 
-    def same(self, other):
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if not isinstance(other, Image):
             return False
         if self.color_space != other.color_space or self.metadata != other.metadata:

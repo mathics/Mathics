@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer1,
     Number,
     Rational,
     Real,
@@ -33,12 +34,13 @@ from mathics.core.expression import (
     Symbol,
     SymbolComplexInfinity,
     SymbolDirectedInfinity,
-    SymbolFalse,
     SymbolInfinity,
     SymbolN,
     SymbolNull,
-    SymbolSequence,
     SymbolTrue,
+    SymbolFalse,
+    SymbolUndefined,
+    SymbolSequence,
     from_mpmath,
     from_python,
 )
@@ -112,7 +114,7 @@ class _MPMathFunction(SympyFunction):
                 if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
                     result = Symbol("ComplexInfinity")
                 elif mpmath.isinf(result) and result > 0:
-                    result = Expression("DirectedInfinity", Integer(1))
+                    result = Expression("DirectedInfinity", Integer1)
                 elif mpmath.isinf(result) and result < 0:
                     result = Expression("DirectedInfinity", Integer(-1))
                 elif mpmath.isnan(result):
@@ -260,7 +262,7 @@ class Plus(BinaryOperator, SympyFunction):
             if item.has_form("Times", 1, None):
                 if isinstance(item.leaves[0], Number):
                     neg = -item.leaves[0]
-                    if neg.same(Integer(1)):
+                    if neg.sameQ(Integer1):
                         if len(item.leaves) == 1:
                             return neg
                         else:
@@ -375,7 +377,7 @@ class Plus(BinaryOperator, SympyFunction):
         else:
             number = Integer(0)
 
-        if not number.same(Integer(0)):
+        if not number.sameQ(Integer(0)):
             leaves.insert(0, number)
 
         if not leaves:
@@ -583,7 +585,7 @@ class Times(BinaryOperator, SympyFunction):
                 item.leaves[1], (Integer, Rational, Real)
             ):
                 neg = -item.leaves[1]
-                if neg.same(Integer(1)):
+                if neg.sameQ(Integer1):
                     return item.leaves[0]
                 else:
                     return Expression("Power", item.leaves[0], neg)
@@ -603,7 +605,7 @@ class Times(BinaryOperator, SympyFunction):
                 negative.append(inverse(item))
             elif isinstance(item, Rational):
                 numerator = item.numerator()
-                if not numerator.same(Integer(1)):
+                if not numerator.sameQ(Integer1):
                     positive.append(numerator)
                 negative.append(item.denominator())
             else:
@@ -618,7 +620,7 @@ class Times(BinaryOperator, SympyFunction):
         if positive:
             positive = create_infix(positive, op, 400, "None")
         else:
-            positive = Integer(1)
+            positive = Integer1
         if negative:
             negative = create_infix(negative, op, 400, "None")
             result = Expression(
@@ -667,7 +669,7 @@ class Times(BinaryOperator, SympyFunction):
                 leaves
                 and item.has_form("Power", 2)
                 and leaves[-1].has_form("Power", 2)
-                and item.leaves[0].same(leaves[-1].leaves[0])
+                and item.leaves[0].sameQ(leaves[-1].leaves[0])
             ):
                 leaves[-1] = Expression(
                     "Power",
@@ -675,20 +677,22 @@ class Times(BinaryOperator, SympyFunction):
                     Expression("Plus", item.leaves[1], leaves[-1].leaves[1]),
                 )
             elif (
-                leaves and item.has_form("Power", 2) and item.leaves[0].same(leaves[-1])
+                leaves
+                and item.has_form("Power", 2)
+                and item.leaves[0].sameQ(leaves[-1])
             ):
                 leaves[-1] = Expression(
-                    "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer(1))
+                    "Power", leaves[-1], Expression("Plus", item.leaves[1], Integer1)
                 )
             elif (
                 leaves
                 and leaves[-1].has_form("Power", 2)
-                and leaves[-1].leaves[0].same(item)
+                and leaves[-1].leaves[0].sameQ(item)
             ):
                 leaves[-1] = Expression(
-                    "Power", item, Expression("Plus", Integer(1), leaves[-1].leaves[1])
+                    "Power", item, Expression("Plus", Integer1, leaves[-1].leaves[1])
                 )
-            elif item.get_head().same(SymbolDirectedInfinity):
+            elif item.get_head().sameQ(SymbolDirectedInfinity):
                 infinity_factor = True
                 if len(item.leaves) > 1:
                     direction = item.leaves[0]
@@ -696,7 +700,7 @@ class Times(BinaryOperator, SympyFunction):
                         numbers.append(direction)
                     else:
                         leaves.append(direction)
-            elif item.same(SymbolInfinity) or item.same(SymbolComplexInfinity):
+            elif item.sameQ(SymbolInfinity) or item.sameQ(SymbolComplexInfinity):
                 infinity_factor = True
             else:
                 leaves.append(item)
@@ -716,15 +720,15 @@ class Times(BinaryOperator, SympyFunction):
                 number = sympy.Mul(*[item.to_sympy() for item in numbers])
                 number = from_sympy(number)
         else:
-            number = Integer(1)
+            number = Integer1
 
-        if number.same(Integer(1)):
+        if number.sameQ(Integer1):
             number = None
         elif number.is_zero:
             if infinity_factor:
                 return Symbol("Indeterminate")
             return number
-        elif number.same(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
+        elif number.sameQ(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
                 leaves[0].get_head(),
                 *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves]
@@ -740,7 +744,7 @@ class Times(BinaryOperator, SympyFunction):
         if not leaves:
             if infinity_factor:
                 return SymbolComplexInfinity
-            return Integer(1)
+            return Integer1
 
         if len(leaves) == 1:
             ret = leaves[0]
@@ -1135,12 +1139,16 @@ class DirectedInfinity(SympyFunction):
     }
 
     def to_sympy(self, expr, **kwargs):
-        if len(expr.leaves) == 1:
+        if len(expr._leaves) == 1:
             dir = expr.leaves[0].get_int_value()
             if dir == 1:
                 return sympy.oo
             elif dir == -1:
                 return -sympy.oo
+            else:
+                return sympy.Mul((expr._leaves[0].to_sympy()), sympy.zoo)
+        else:
+            return sympy.zoo
 
 
 class Re(SympyFunction):
@@ -1347,7 +1355,7 @@ class I(Predefined):
     python_equivalent = 1j
 
     def evaluate(self, evaluation):
-        return Complex(Integer(0), Integer(1))
+        return Complex(Integer(0), Integer1)
 
 
 class NumberQ(Test):
@@ -1833,6 +1841,9 @@ class Gamma(_MPMathMultiFunction):
     rules = {
         "Gamma[z_, x0_, x1_]": "Gamma[z, x0] - Gamma[z, x1]",
         "Gamma[1 + z_]": "z!",
+        "Derivative[1][Gamma]": "(Gamma[#1]*PolyGamma[0, #1])&",
+        "Derivative[1, 0][Gamma]": "(Gamma[#1, #2]*Log[#2] + MeijerG[{{}, {1, 1}}, {{0, 0, #1}, {}}, #2])&",
+        "Derivative[0, 1][Gamma]": "(-(#2^(-1 + #1)/E^#2))&",
     }
 
     def get_sympy_names(self):
@@ -1862,6 +1873,8 @@ class Pochhammer(SympyFunction):
 
     rules = {
         "Pochhammer[a_, n_]": "Gamma[a + n] / Gamma[a]",
+        "Derivative[1,0][Pochhammer]": "(Pochhammer[#1, #2]*(-PolyGamma[0, #1] + PolyGamma[0, #1 + #2]))&",
+        "Derivative[0,1][Pochhammer]": "(Pochhammer[#1, #2]*PolyGamma[0, #1 + #2])&",
     }
 
 
@@ -1893,31 +1906,55 @@ class HarmonicNumber(_MPMathFunction):
 class Sum(_IterationFunction, SympyFunction):
     """
     <dl>
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}]'
-        <dd>evaluates the discrete sum of $expr$ with $i$ ranging from $imin$ to $imax$.
-    <dt>'Sum[$expr$, {$i$, $imax$}]'
-        <dd>same as 'Sum[$expr$, {$i$, 1, $imax$}]'.
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$, $di$}]'
-        <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
-    <dt>'Sum[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
-        <dd>evaluates $expr$ as a multiple sum, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$}]'
+      <dd>evaluates the discrete sum of $expr$ with $i$ ranging from $imin$ to $imax$.
+
+      <dt>'Sum[$expr$, {$i$, $imax$}]'
+      <dd>same as 'Sum[$expr$, {$i$, 1, $imax$}]'.
+
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$, $di$}]'
+      <dd>$i$ ranges from $imin$ to $imax$ in steps of $di$.
+
+      <dt>'Sum[$expr$, {$i$, $imin$, $imax$}, {$j$, $jmin$, $jmax$}, ...]'
+      <dd>evaluates $expr$ as a multiple sum, with {$i$, ...}, {$j$, ...}, ... being in outermost-to-innermost order.
     </dl>
+
+    A sum that Gauss in elementary school was asked to do to kill time:
     >> Sum[k, {k, 1, 10}]
      = 55
 
-    Double sum:
-    >> Sum[i * j, {i, 1, 10}, {j, 1, 10}]
-     = 3025
-
-    Symbolic sums are evaluated:
+    The symbolic form he used:
     >> Sum[k, {k, 1, n}]
      = n (1 + n) / 2
-    >> Sum[k, {k, n, 2 n}]
-     = 3 n (1 + n) / 2
-    >> Sum[k, {k, I, I + 1}]
-     = 1 + 2 I
+
+    A Geometric series with a finite limit:
+    >> Sum[1 / 2 ^ i, {i, 1, k}]
+     = 1 - 2 ^ (-k)
+
+    A Geometric series using Infinity:
+    >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
+     = 1
+
+    Leibniz forumla used in computing Pi:
+    >> Sum[1 / ((-1)^k (2k + 1)), {k, 0, Infinity}]
+     = Pi / 4
+
+    A table of double sums to compute squares:
+    >> Table[ Sum[i * j, {i, 0, n}, {j, 0, n}], {n, 0, 4} ]
+     = {0, 1, 9, 36, 100}
+
+    Computing Harmonic using a sum
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
+
+    Other symbolic sums:
+    >> Sum[k, {k, n, 2 n}]
+     = 3 n (1 + n) / 2
+
+    A sum with Complex-number iteration values
+    >> Sum[k, {k, I, I + 1}]
+     = 1 + 2 I
+
     >> Sum[f[i], {i, 1, 7}]
      = f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7]
 
@@ -1928,12 +1965,6 @@ class Sum(_IterationFunction, SympyFunction):
     ## >> (-1 + a^n) Sum[a^(k n), {k, 0, m-1}] // Simplify
     ## = -1 + (a ^ n) ^ m  # this is what I am getting
     ## = Piecewise[{{m (-1 + a ^ n), a ^ n == 1}, {-1 + (a ^ n) ^ m, True}}]
-
-    Infinite sums:
-    >> Sum[1 / 2 ^ i, {i, 1, Infinity}]
-     = 1
-    >> Sum[1 / k ^ 2, {k, 1, Infinity}]
-     = Pi ^ 2 / 6
 
     #> a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]]
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
@@ -2201,7 +2232,110 @@ class Boole(Builtin):
         "%(name)s[expr_]"
         if isinstance(expr, Symbol):
             if expr == SymbolTrue:
-                return Integer(1)
+                return Integer1
             elif expr == SymbolFalse:
                 return Integer(0)
         return None
+
+
+class Assumptions(Predefined):
+    """
+    <dl>
+    <dt>'$Assumptions'
+      <dd>is the default setting for the Assumptions option used in such
+   functions as Simplify, Refine, and Integrate.
+    </dl>
+    """
+
+    name = "$Assumptions"
+    attributes = ("Unprotected",)
+    rules = {
+        "$Assumptions": "True",
+    }
+
+
+class Assuming(Builtin):
+    """
+    <dl>
+    <dt>'Assuming[$cond$, $expr$]'
+      <dd>Evaluates $expr$ assuming the conditions $cond$
+    </dl>
+    >> $Assumptions = { x > 0 }
+     = {x > 0}
+    >> Assuming[y>0, $Assumptions]
+     = {x > 0, y > 0}
+    """
+
+    attributes = ("HoldRest",)
+
+    def apply_assuming(self, cond, expr, evaluation):
+        "Assuming[cond_, expr_]"
+        cond = cond.evaluate(evaluation)
+        if cond.is_true():
+            cond = []
+        elif cond.is_symbol() or not cond.has_form("List", None):
+            cond = [cond]
+        else:
+            cond = cond.leaves
+        assumptions = evaluation.definitions.get_definition(
+            "System`$Assumptions", only_if_exists=True
+        )
+
+        if assumptions:
+            assumptions = assumptions.ownvalues
+            if len(assumptions) > 0:
+                assumptions = assumptions[0].replace
+            else:
+                assumptions = None
+        if assumptions:
+            if assumptions.is_symbol() or not assumptions.has_form("List", None):
+                assumptions = [assumptions]
+            else:
+                assumptions = assumptions.leaves
+            cond = assumptions + tuple(cond)
+        Expression(
+            "Set", Symbol("System`$Assumptions"), Expression("List", *cond)
+        ).evaluate(evaluation)
+        ret = expr.evaluate(evaluation)
+        if assumptions:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", *assumptions)
+            ).evaluate(evaluation)
+        else:
+            Expression(
+                "Set", Symbol("System`$Assumptions"), Expression("List", SymbolTrue)
+            ).evaluate(evaluation)
+        return ret
+
+
+class ConditionalExpression(Builtin):
+    """
+    <dl>
+    <dt>'ConditionalExpression[$expr$, $cond$]'
+      <dd>returns $expr$ if $cond$ evaluates to $True$, $Undefined$ if
+          $cond$ evaluates to $False$.
+    </dl>
+
+    >> f = ConditionalExpression[x^2, x>0]
+     = ConditionalExpression[x ^ 2, x > 0]
+    >> f /. x -> 2
+     = 4
+    >> f /. x -> -2
+     = Undefined
+    """
+
+    rules = {
+        "ConditionalExpression[expr_, True]": "expr",
+        "ConditionalExpression[expr_, False]": "Undefined",
+    }
+
+    def apply_generic(self, expr, cond, evaluation):
+        "ConditionalExpression[expr_, cond_]"
+        cond = cond.evaluate(evaluation)
+        if cond is None:
+            return
+        if cond.is_true():
+            return expr
+        if cond == SymbolFalse:
+            return SymbolUndefined
+        return
