@@ -229,12 +229,25 @@ class Word(Builtin):
 class Read(Builtin):
     """
     <dl>
-      <dt>'Read[stream]'
+      <dt>'Read[$stream$]'
       <dd>reads the input stream and returns one expression.
 
-      <dt>'Read[stream, type]'
+      <dt>'Read[$stream$, $type$]'
       <dd>reads the input stream and returns an object of the given type.
+
     </dl>
+    $type$ is one of:
+    <ul>
+      <li>Byte</li>
+      <li>Character</li>
+      <li>Expression</li>
+      <li>HoldExpression</li>
+      <li>Number</li>
+      <li>Real</li>
+      <li>Record</li>
+      <li>String</li>
+      <li>Word</li>
+    </ul>
 
     ## Malformed InputString
     #> Read[InputStream[String], {Word, Number}]
