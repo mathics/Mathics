@@ -391,7 +391,6 @@ class Derivative(PostfixOperator, SympyFunction):
         super(Derivative, self).__init__(*args, **kwargs)
 
     def to_sympy(self, expr, **kwargs):
-        print("calling to_sympy")
         inner = expr
         exprs = [inner]
         try:
@@ -1301,7 +1300,7 @@ class Series(Builtin):
 
 
 class SeriesData(Builtin):
-    """ 
+    """
     <dl>
     <dt>'SeriesData[...]'
     <dd>Represents a series expansion

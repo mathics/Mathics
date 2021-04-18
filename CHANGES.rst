@@ -16,7 +16,7 @@ New builtins
 Enhancements
 ++++++++++++
 
-* Improvings in the implementation of ``D`` and ``Derivative``.
+* ``D`` and ``Derivative`` improvements.
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
