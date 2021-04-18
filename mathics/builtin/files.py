@@ -3662,6 +3662,9 @@ class Streams(Builtin):
     >> Streams[]
      = ...
 
+    >> Streams["stdout"]
+     = ...
+
     #> OpenWrite[]
      = ...
     #> Streams[%[[1]]]

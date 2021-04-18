@@ -99,18 +99,6 @@ class StreamsManager(object):
         else:
             StreamsManager.__instance = self
 
-    def lookup_stream(self, n=None) -> Optional["Stream"]:
-        if n is None:
-            return None
-        return self.STREAMS.get(n, None)
-
-    def delete(self, n: int) -> bool:
-        stream = self.STREAMS.get(n, None)
-        if stream is not None:
-            del self.STREAMS[stream.n]
-            return True
-        return False
-
     def add(self, name: str, mode: Optional[str]=None, encoding=None, io=None, num: Optional[int]=None) -> Optional["Stream"]:
         if num is None:
             num = self.next
@@ -122,6 +110,18 @@ class StreamsManager(object):
         stream = Stream(name, mode, encoding, io, num)
         self.STREAMS[num] = stream
         return stream
+
+    def delete(self, n: int) -> bool:
+        stream = self.STREAMS.get(n, None)
+        if stream is not None:
+            del self.STREAMS[stream.n]
+            return True
+        return False
+
+    def lookup_stream(self, n=None) -> Optional["Stream"]:
+        if n is None:
+            return None
+        return self.STREAMS.get(n, None)
 
     @property
     def next(self):
@@ -181,6 +181,6 @@ class Stream(object):
         # Leave around self.io so we can call closed() to query its status.
         stream_manager.delete(self.n)
 
-Stream("stdin", mode="r", channel_num=0, io=sys.stdin)
-Stream("stdout", mode="w", channel_num=1, io=sys.stdout)
-Stream("stderr", mode="w", channel_num=2, io=sys.stderr)
+stream_manager.add("stdin", mode="r", num=0, io=sys.stdin)
+stream_manager.add("stdout", mode="w", num=1, io=sys.stdout)
+stream_manager.add("stderr", mode="w", num=2, io=sys.stderr)
