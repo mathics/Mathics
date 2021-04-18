@@ -9,7 +9,6 @@ import io
 import math
 import mpmath
 import os
-import shutil
 import struct
 import sympy
 import tempfile
@@ -41,7 +40,6 @@ from mathics.core.expression import (
     SymbolTrue,
     from_mpmath,
     from_python,
-    valid_context_name,
 )
 from mathics.core.numbers import dps
 from mathics.core.streams import (

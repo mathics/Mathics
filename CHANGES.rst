@@ -23,6 +23,7 @@ Enhancements
 * ``FileNames`` returns a sorted list (#1250).
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``FixedPoint`` now supports the ``SameTest`` option.
+* The implementation of Streams was redone
 
 Bug fixes
 +++++++++
