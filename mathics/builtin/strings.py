@@ -1670,7 +1670,7 @@ class ToString(Builtin):
         encoding = options["System`CharacterEncoding"]
         if not isinstance(encoding, String) or encoding.value not in _encodings:
             evaluation.message("General", "charcode", encoding)
-            encoding = Symbol("$SystemCharacterEncoding").evaluate(evaluation)        
+            encoding = Symbol("$SystemCharacterEncoding")
         text = value.format(evaluation, form.get_name(), encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
