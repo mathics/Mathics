@@ -161,7 +161,7 @@ class D(SympyFunction):
             return IntegerZero
         elif f == x:
             return Integer1
-        elif f.is_atom(): # Shouldn't happen
+        elif f.is_atom():  # Shouldn't happen
             1 / 0
             return
         # So, this is not an atom...
@@ -1249,7 +1249,7 @@ class O(Builtin):
     <dl>
     <dt>'O[$x$]^n'
         <dd> Represents a term of order $x^n$.
-        <dd> O[x]^n is generated to represent omitted higher‐order terms in power series.
+        <dd> O[x]^n is generated to represent omitted higher order terms in power series.
     </dl>
 
     >> Series[1/(1-x),{x,0,2}]
