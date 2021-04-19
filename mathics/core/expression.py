@@ -2085,7 +2085,7 @@ class Symbol(Atom):
         return (self.name, self.sympy_dummy)
 
 
-# Some common Symbols
+# Some common Symbols. This list is sorted in alpabetic order.
 SymbolAborted = Symbol("$Aborted")
 SymbolAssociation = Symbol("Association")
 SymbolByteArray = Symbol("ByteArray")
@@ -2098,19 +2098,10 @@ SymbolList = Symbol("List")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
-SymbolUndefined = Symbol("Undefined")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
-SymbolAborted = Symbol("$Aborted")
-SymbolInfinity = Symbol("Infinity")
-SymbolList = Symbol("List")
-SymbolByteArray = Symbol("ByteArray")
-SymbolAssociation = Symbol("Association")
-SymbolMakeBoxes = Symbol("MakeBoxes")
-SymbolN = Symbol("N")
-SymbolRule = Symbol("Rule")
-SymbolSequence = Symbol("Sequence")
+SymbolUndefined = Symbol("Undefined")
 
 
 @lru_cache(maxsize=1024)
