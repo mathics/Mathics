@@ -993,6 +993,34 @@ class Sphere(Builtin):
         "Sphere[positions_]": "Sphere[positions, 1]",
     }
 
+class Cylinder(Builtin):
+    """
+    <dl>
+      <dt>'Cylinder[{$x$, $y$, $z$}]'
+      <dd>is a cylinder of radius 0.5 with height 0.8 centered at the point {$x$, $y$, $z$}.
+
+      <dt>'Cylinder[{$x$, $y$, $z$}, $r$]'
+      <dd>is a cylinder of radius $r$ centered at the point {$x$, $y$, $z$}.
+
+      <dt>'Cylinder[{$x$, $y$, $z$}, $r$, $h$]'
+      <dd>is a cylinder of radius $r$ and height $h$ centered at the point {$x$, $y$, $z$}.
+
+      <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
+      <dd>is a collection cylinders of radius $r$ centered at the points {$x1$, $y2$, $z2$}, {$x2$, $y2$, $z2$}, ...
+    </dl>
+
+    >> Graphics3D[Cylinder[{0, 0, 0}, 0.5, 0.8]]
+     = -Graphics3D-
+
+    ## >> Graphics3D[{Yellow, Cylinder[{{-1, 0, 0}, {1, 0, 0}, {0, 0, Sqrt[3.]}}, 1]}]
+    ##  = -Graphics3D-
+    """
+
+    rules = {
+        "Cylinder[]": "Cylinder[{0, 0, 0}, 0.5, 0.5]",
+        "Cylinder[positions_]": "Cylinder[positions, 0.5, 0.5]",
+    }
+
 
 class Cuboid(Builtin):
     """
@@ -1198,11 +1226,81 @@ class Sphere3DBox(_Graphics3DElement):
         pass
 
 
+class Cylinder3DBox(_Graphics3DElement):
+    def init(self, graphics, style, item):
+        super(Cylinder3DBox, self).init(graphics, item, style)
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+        if len(item.leaves) != 3:
+            raise BoxConstructError
+
+        points = item.leaves[0].to_python()
+        if not all(isinstance(point, list) for point in points):
+            points = [points]
+        if not all(
+            len(point) == 3 and all(isinstance(p, numbers.Real) for p in point)
+            for point in points
+        ):
+            raise BoxConstructError
+
+        self.points = [Coords3D(graphics, pos=point) for point in points]
+        self.radius = item.leaves[1].to_python()
+        self.height = item.leaves[2].to_python()
+
+    def to_asy(self):
+        # l = self.style.get_line_width(face_element=True)
+
+        if self.face_color is None:
+            face_color = (1, 1, 1)
+        else:
+            face_color = self.face_color.to_js()
+
+        return "".join(
+            "draw(surface(cylinder({0}, {1})), rgb({2},{3},{4}));".format(
+                tuple(coord.pos()[0]), self.radius, *face_color[:3]
+            )
+            for coord in self.points
+        )
+
+    def to_json(self):
+        face_color = self.face_color
+        if face_color is not None:
+            face_color = face_color.to_js()
+        return [
+            {
+                "type": "cylinder",
+                "coords": [coords.pos() for coords in self.points],
+                "radius": self.radius,
+                "height": self.height,
+                "faceColor": face_color,
+            }
+        ]
+
+    def extent(self):
+        result = []
+        result.extend(
+            [
+                coords.add(self.radius, self.radius, self.radius).pos()[0]
+                for coords in self.points
+            ]
+        )
+        result.extend(
+            [
+                coords.add(-self.radius, -self.radius, -self.radius).pos()[0]
+                for coords in self.points
+            ]
+        )
+        return result
+
+    def _apply_boxscaling(self, boxscale):
+        # TODO
+        pass
+
 GLOBALS3D = system_symbols_dict(
     {
-        "Polygon3DBox": Polygon3DBox,
+        "Cylinder3DBox": Cylinder3DBox,
         "Line3DBox": Line3DBox,
         "Point3DBox": Point3DBox,
+        "Polygon3DBox": Polygon3DBox,
         "Sphere3DBox": Sphere3DBox,
     }
 )

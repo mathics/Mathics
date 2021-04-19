@@ -29,7 +29,6 @@ from mathics.core.expression import (
     SymbolList,
     SymbolN,
     SymbolMakeBoxes,
-    strip_context,
     system_symbols,
     system_symbols_dict,
     from_python,
@@ -3716,20 +3715,21 @@ class Large(Builtin):
 
 element_heads = frozenset(
     system_symbols(
-        "Rectangle",
-        "Disk",
-        "Line",
         "Arrow",
-        "FilledCurve",
         "BezierCurve",
-        "Point",
         "Circle",
-        "Polygon",
-        "RegularPolygon",
+        "Cylinder",
+        "Disk",
+        "FilledCurve",
         "Inset",
-        "Text",
+        "Line",
+        "Point",
+        "Polygon",
+        "Rectangle",
+        "RegularPolygon",
         "Sphere",
         "Style",
+        "Text",
     )
 )
 
