@@ -8,6 +8,7 @@ CHANGES
 New builtins
 ++++++++++++
 
+* ``Arg``
 * ``Dispatch``
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``

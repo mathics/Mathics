@@ -1286,6 +1286,31 @@ class Abs(_MPMathFunction):
     mpmath_name = "fabs"  # mpmath actually uses python abs(x) / x.__abs__()
 
 
+class Arg(_MPMathFunction):
+    """
+    <dl>
+    <dt>'Arg[$z$]'
+        <dd>returns the argument of a complex value $z$.
+    </dl>
+    >> Arg[-3]
+     = Pi
+    >> Arg[1-I]
+     = -Pi / 4
+
+    Arg evaluate the direction of DirectedInfinity quantities by
+    the Arg of they arguments:
+    >> Arg[DirectedInfinity[1+I]]
+     = Pi / 4
+    >> Arg[DirectedInfinity[]]
+     = 1
+    """
+    rules = {"Arg[DirectedInfinity[]]": "1",
+             "Arg[DirectedInfinity[a_]]": "Arg[a]",
+    }
+    sympy_name = "arg"
+    mpmath_name = "arg"
+
+
 class Sign(SympyFunction):
     """
     <dl>
