@@ -9,25 +9,25 @@ import numbers
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.core.expression import (
     Expression,
+    SymbolList,
     from_python,
     system_symbols_dict,
-    SymbolList,
 )
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from .graphics import (
+    CoordinatesError,
     Graphics,
     GraphicsBox,
-    PolygonBox,
-    create_pens,
-    _Color,
     LineBox,
     PointBox,
-    Style,
+    PolygonBox,
     RGBColor,
-    get_class,
-    asy_number,
-    CoordinatesError,
+    Style,
+    _Color,
     _GraphicsElements,
+    asy_number,
+    create_pens,
+    get_class,
 )
 
 import json
@@ -153,6 +153,10 @@ class Graphics3D(Graphics):
 
 
 class Graphics3DBox(GraphicsBox):
+    """
+    Internal Python class used when Boxing a 'Graphics3D' object.
+    """
+
     def boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
@@ -475,7 +479,7 @@ class Graphics3DBox(GraphicsBox):
                 )
 
             path = "--".join(["(%.5g,%.5g,%.5g)" % coords for coords in line])
-            boundbox_asy += "draw((%s), %s);\n" % (path, pen)
+            boundbox_asy += f"draw(({path}), {pen});\n"
 
         # TODO: Intelligently draw the axis ticks such that they are always
         # directed inward and choose the coordinate direction which makes the
@@ -502,7 +506,7 @@ class Graphics3DBox(GraphicsBox):
                         ["({0},{1},{2})".format(*coords) for coords in line]
                     )
 
-                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += f"draw(({path}), {pen});\n"
                     boundbox_asy += 'label("{0}",{1},{2});\n'.format(
                         ticks[0][2][i],
                         (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]),
@@ -524,7 +528,7 @@ class Graphics3DBox(GraphicsBox):
                     ]
 
                     path = "--".join(
-                        ["({0},{1},{2})".format(*coords) for coords in line]
+                        [f"({coords[0]},{coords[1]},{coords[2]})" for coords in line]
                     )
 
                     boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
@@ -543,7 +547,7 @@ class Graphics3DBox(GraphicsBox):
                         ["({0},{1},{2})".format(*coords) for coords in line]
                     )
 
-                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += f"draw(({path}), {pen});\n"
 
                     boundbox_asy += 'label("{0}",{1},{2});\n'.format(
                         ticks[1][2][i],
@@ -567,7 +571,7 @@ class Graphics3DBox(GraphicsBox):
                     path = "--".join(
                         ["({0},{1},{2})".format(*coords) for coords in line]
                     )
-                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += f"draw(({path}), {pen});\n"
             if 8 <= xi:  # z axis
                 for i, tick in enumerate(ticks[2][0]):
                     line = [
@@ -581,7 +585,7 @@ class Graphics3DBox(GraphicsBox):
                     path = "--".join(
                         ["({0},{1},{2})".format(*coords) for coords in line]
                     )
-                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += f"draw(({path}), {pen});\n"
                     boundbox_asy += 'label("{0}",{1},{2});\n'.format(
                         ticks[2][2][i],
                         (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick),
@@ -603,7 +607,7 @@ class Graphics3DBox(GraphicsBox):
                     path = "--".join(
                         ["({0},{1},{2})".format(*coords) for coords in line]
                     )
-                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += f"draw(({path}), {pen});\n"
 
         (height, width) = (400, 400)  # TODO: Proper size
         tex = r"""
@@ -855,6 +859,8 @@ class Point3DBox(PointBox):
 
 
 class Line3DBox(LineBox):
+    """Internal Python class used when Boxing in 3D a 'Line'."""
+
     def init(self, *args, **kwargs):
         super(Line3DBox, self).init(*args, **kwargs)
 
@@ -993,6 +999,7 @@ class Sphere(Builtin):
         "Sphere[positions_]": "Sphere[positions, 1]",
     }
 
+
 class Cylinder(Builtin):
     """
     <dl>
@@ -1017,8 +1024,8 @@ class Cylinder(Builtin):
     """
 
     rules = {
-        "Cylinder[]": "Cylinder[{0, 0, 0}, 0.5, 0.5]",
-        "Cylinder[positions_]": "Cylinder[positions, 0.5, 0.5]",
+        "Cylinder[]": "Cylinder[{0, 0, 0}, 0.5, 0.8]",
+        "Cylinder[positions_]": "Cylinder[positions, 0.5, 0.8]",
     }
 
 
@@ -1159,6 +1166,8 @@ class _Graphics3DElement(InstanceableBuiltin):
 
 
 class Sphere3DBox(_Graphics3DElement):
+    """Internal Python class used when Boxing a 'Sphere' object."""
+
     def init(self, graphics, style, item):
         super(Sphere3DBox, self).init(graphics, item, style)
         self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
@@ -1227,6 +1236,10 @@ class Sphere3DBox(_Graphics3DElement):
 
 
 class Cylinder3DBox(_Graphics3DElement):
+    """
+    Internal Python class used when Boxing a 'Cylinder' object.
+    """
+
     def init(self, graphics, style, item):
         super(Cylinder3DBox, self).init(graphics, item, style)
         self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
@@ -1254,11 +1267,9 @@ class Cylinder3DBox(_Graphics3DElement):
         else:
             face_color = self.face_color.to_js()
 
+        rgb = f"rgb({face_color[0]}, {face_color[1]}, {face_color[2]})"
         return "".join(
-            "draw(surface(cylinder({0}, {1})), rgb({2},{3},{4}));".format(
-                tuple(coord.pos()[0]), self.radius, *face_color[:3]
-            )
-            for coord in self.points
+            f"draw(surface(cylinder({tuple(coord.pos()[0])}, {self.radius}, {self.height})), {rgb});" for coord in self.points
         )
 
     def to_json(self):
@@ -1295,6 +1306,9 @@ class Cylinder3DBox(_Graphics3DElement):
         # TODO
         pass
 
+
+# GLOBALS3D which is is used in graphics.py to map string names to its class
+# defined here.  FIXME: there must be a better way.
 GLOBALS3D = system_symbols_dict(
     {
         "Cylinder3DBox": Cylinder3DBox,

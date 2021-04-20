@@ -1440,10 +1440,12 @@ class _ArcBox(_RoundBox):
 
 
 class DiskBox(_ArcBox):
+    """Internal Python class used when Boxing a in 2D a 'Disk'."""
     face_element = True
 
 
 class CircleBox(_ArcBox):
+    """Internal Python class used when Boxing in 2D 'Circle'."""
     face_element = False
 
 
