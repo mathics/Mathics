@@ -2098,6 +2098,9 @@ class StringTake(Builtin):
 
       <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
       <dd>gives characters $m$ through $n$ in steps of $s$.
+
+      <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
+      <dd>gives characters $m$ through $n$ in steps of $s$.
     </dl>
 
     >> StringTake["abcde", 2]
@@ -2112,6 +2115,10 @@ class StringTake(Builtin):
      = bc
     >> StringTake["abcdefgh", {1, 5, 2}]
      = ace
+
+    Take the last 2 characters from several strings:
+    >> StringTake[{"abcdef", "stuv", "xyzw"}, -2]
+     = {ef, uv, zw}
 
     StringTake also supports standard sequence specifications
     >> StringTake["abcdef", All]
@@ -2136,8 +2143,7 @@ class StringTake(Builtin):
     }
 
     def apply(self, string, seqspec, evaluation):
-        "StringTake[string_, seqspec_]"
-
+        "StringTake[string_String, seqspec_]"
         result = string.get_string_value()
         if result is None:
             return evaluation.message("StringTake", "strse")
@@ -2161,6 +2167,16 @@ class StringTake(Builtin):
             return evaluation.message("StringTake", "take", start, stop, string)
 
         return String(result[py_slice])
+
+    def apply_strings(self, strings, spec, evaluation):
+        "StringTake[strings__, spec_]"
+        result_list = []
+        for string in strings.leaves:
+            result = self.apply(string, spec, evaluation)
+            if result is not None:
+                result_list.append(result)
+        return Expression("List", *result_list)
+
 
 
 class StringDrop(Builtin):
