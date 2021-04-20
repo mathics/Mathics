@@ -1301,7 +1301,7 @@ class Arg(_MPMathFunction):
     the Arg of they arguments:
     >> Arg[DirectedInfinity[1+I]]
      = Pi / 4
-    >> Arg[DirectedInfinity]
+    >> Arg[DirectedInfinity[]]
      = 1
     """
     rules = {"Arg[DirectedInfinity[]]": "1",
