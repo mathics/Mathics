@@ -25,6 +25,7 @@ Enhancements
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
+* ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
