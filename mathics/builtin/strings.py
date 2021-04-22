@@ -639,6 +639,30 @@ class LetterCharacter(Builtin):
     """
 
 
+class LetterNumber(Builtin):
+    """
+    <dl>
+      <dt>'LetterNumber'[$c$]
+      <dd>returns the position of the character $c$ in the English alphabet.
+    </dl>
+
+    >> LetterNumber["b"]
+     = 2
+
+    LetterNumber also works with uppercase characters
+    >> LetterNumber["B"]
+     = 2
+    """
+    def apply(self, c, evaluation):
+        "LetterNumber[c_String]"
+        py_c = c.get_string_value()
+        if py_c is None or len(py_c) != 1 or not py_c.isalpha():
+            # FIXME: print error messages
+            return None
+        py_c = py_c.lower()
+        return Integer(ord(py_c) - ord("a") + 1)
+
+
 class HexidecimalCharacter(Builtin):
     """
     <dl>
