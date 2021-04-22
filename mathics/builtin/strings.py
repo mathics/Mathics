@@ -2098,6 +2098,9 @@ class StringTake(Builtin):
 
       <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
       <dd>gives characters $m$ through $n$ in steps of $s$.
+
+      <dt>'StringTake[{$s1$, $s2$, ...} $spec$}]'
+      <dd>gives the list of results for each of the $si$.
     </dl>
 
     >> StringTake["abcde", 2]
@@ -2113,6 +2116,10 @@ class StringTake(Builtin):
     >> StringTake["abcdefgh", {1, 5, 2}]
      = ace
 
+    Take the last 2 characters from several strings:
+    >> StringTake[{"abcdef", "stuv", "xyzw"}, -2]
+     = {ef, uv, zw}
+
     StringTake also supports standard sequence specifications
     >> StringTake["abcdef", All]
      = abcdef
@@ -2127,17 +2134,26 @@ class StringTake(Builtin):
     #> StringTake["abc", {0, 0}]
     : Cannot take positions 0 through 0 in "abc".
     = StringTake[abc, {0, 0}]
+
+    #> StringTake[{2, 4},2]
+     : String or list of strings expected at position 1.
+     = StringTake[{2, 4}, 2]
+
+    #> StringTake["kkkl",Graphics[{}]]
+     : Integer or a list of sequence specifications expected at position 2.
+     = StringTake[kkkl, -Graphics-]
     """
 
     messages = {
-        "strse": "String expected at position 1.",
-        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "strse": "String or list of strings expected at position 1.",
+        # FIXME: mseqs should be: Sequence specification (+n, -n, {+n}, {-n}, {m, n}, or {m, n, s}) or a list
+        # of sequence specifications expected at position 2 in
+        "mseqs": "Integer or a list of sequence specifications expected at position 2.",
         "take": 'Cannot take positions `1` through `2` in "`3`".',
     }
 
     def apply(self, string, seqspec, evaluation):
-        "StringTake[string_, seqspec_]"
-
+        "StringTake[string_String, seqspec_]"
         result = string.get_string_value()
         if result is None:
             return evaluation.message("StringTake", "strse")
@@ -2161,6 +2177,17 @@ class StringTake(Builtin):
             return evaluation.message("StringTake", "take", start, stop, string)
 
         return String(result[py_slice])
+
+    def apply_strings(self, strings, spec, evaluation):
+        "StringTake[strings__, spec_]"
+        result_list = []
+        for string in strings.leaves:
+            result = self.apply(string, spec, evaluation)
+            if result is None:
+                return None
+            result_list.append(result)
+        return Expression("List", *result_list)
+
 
 
 class StringDrop(Builtin):
@@ -2192,7 +2219,7 @@ class StringDrop(Builtin):
 
     messages = {
         "strse": "String expected at position 1.",
-        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "mseqs": "Integer or list of two Integers are expected at position 2.",
         "drop": 'Cannot drop positions `1` through `2` in "`3`".',
     }
 
