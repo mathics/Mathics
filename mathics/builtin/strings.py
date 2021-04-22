@@ -11,7 +11,7 @@ from sys import version_info
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
-from typing import Callable
+from typing import Any, Callable, List
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
@@ -638,12 +638,20 @@ class LetterCharacter(Builtin):
      = True
     """
 
+# FIXME: Generalize string.lower() and ord()
+def letter_number(chars: List[str], start_ord) -> List['Integer']:
+    # Note caller has verified that everything isalpha() and
+    # each char has length 1.
+    return [Integer(ord(char.lower()) - start_ord) for char in chars]
 
 class LetterNumber(Builtin):
     """
     <dl>
       <dt>'LetterNumber'[$c$]
       <dd>returns the position of the character $c$ in the English alphabet.
+
+      <dt>'LetterNumber["string"]'
+      <dd>returns a list of the positions of characters in string.
     </dl>
 
     >> LetterNumber["b"]
@@ -652,15 +660,46 @@ class LetterNumber(Builtin):
     LetterNumber also works with uppercase characters
     >> LetterNumber["B"]
      = 2
+
+    Get positions of each of the letters in a string:
+    >> LetterNumber[Characters["Peccary"]]
+    = {16, 5, 3, 3, 1, 18, 25}
     """
-    def apply(self, c, evaluation):
-        "LetterNumber[c_String]"
-        py_c = c.get_string_value()
-        if py_c is None or len(py_c) != 1 or not py_c.isalpha():
-            # FIXME: print error messages
-            return None
-        py_c = py_c.lower()
-        return Integer(ord(py_c) - ord("a") + 1)
+
+    # We proobably need to implement Alphabet to handle other
+    # alphabets like Greek and Russian.
+    def apply(self, chars: List[Any], evaluation):
+        "LetterNumber[chars_]"
+
+        start_ord = ord("a") - 1
+        if isinstance(chars, String):
+            py_chars = chars.get_string_value()
+            if len(py_chars) == 1:
+                # FIXME generalize ord("a")
+                return letter_number([py_chars[0]], start_ord)[0]
+            else:
+                return None
+        elif chars.has_form("List", 1, None):
+            leaves = chars.leaves
+
+            # if len(leaves) == 0:
+            #     return None
+            # if len(leaves) > 2:
+            #     return None
+            # else:
+            #     if len(leaves) == 2:
+            #         # FIXME: validate 2nd arg and handle it.
+            #         pass
+            py_chars = [leaf.get_string_value() for leaf in leaves]
+            if not all(len(py_char) == 1 and py_char.isalpha()
+                        for py_char in py_chars):
+                # FIXME: print error messages
+                return None
+
+            return Expression("List",
+                              *letter_number(py_chars, start_ord))
+        # Figure out what to do here
+        return None
 
 
 class HexidecimalCharacter(Builtin):
