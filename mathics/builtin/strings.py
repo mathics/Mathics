@@ -14,13 +14,7 @@ from heapq import heappush, heappop
 from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import (
-    BinaryOperator,
-    Builtin,
-    Test,
-    Predefined,
-    PrefixOperator,
-)
+from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
 from mathics.core.expression import (
     Expression,
     Symbol,
@@ -1368,7 +1362,6 @@ class StringReverse(Builtin):
       >> StringReverse["live"]
        = evil
     """
-
     def apply(self, string, evaluation):
         "StringReverse[string_String]"
         return String(string.get_string_value()[::-1])
@@ -1695,31 +1688,6 @@ class ToString(Builtin):
         return String(text)
 
 
-class InterpretedBox(PrefixOperator):
-    """
-    <dl>
-      <dt>'InterpretedBox[$box$]'
-      <dd>is the ad hoc fullform for \! $box$. just
-          for internal use...
-
-    >> \! \(2+2\)
-     = 4
-    </dl>
-    """
-
-    operator = "\\!"
-    precedence = 670
-
-    def apply_dummy(self, boxes, evaluation):
-        """InterpretedBox[boxes_]"""
-        # TODO: the following is a very raw and dummy way to
-        # handle these expressions.
-        # In the first place, this should handle different kind
-        # of boxes in different ways.
-        reinput = boxes.boxes_to_text()
-        return Expression("ToExpression", reinput).evaluate(evaluation)
-
-
 class ToExpression(Builtin):
     """
     <dl>
@@ -1768,6 +1736,7 @@ class ToExpression(Builtin):
     #> ToExpression["log(x)", StandardForm]
      = log x
     """
+
     attributes = ("Listable", "Protected")
 
     messages = {
@@ -2481,7 +2450,9 @@ def _damerau_levenshtein(s1, s2, sameQ: Callable[..., bool]):
     return d_prev[-1]
 
 
-def _levenshtein_like_or_border_cases(s1, s2, sameQ: Callable[..., bool], compute):
+def _levenshtein_like_or_border_cases(
+    s1, s2, sameQ: Callable[..., bool], compute
+):
     if len(s1) == len(s2) and all(sameQ(c1, c2) for c1, c2 in zip(s1, s2)):
         return 0
 

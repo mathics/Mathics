@@ -159,6 +159,7 @@ class _SetOperator(object):
         message = False
 
         allow_custom_tag = False
+
         focus = lhs
 
         if name == "System`N":
@@ -204,12 +205,8 @@ class _SetOperator(object):
         else:
             allow_custom_tag = True
 
-        # TODO: the following provides a hacky fix for 1259. I know @rocky loves
-        # this kind of things, but otherwise we need to work on rebuild the pattern
-        # matching mechanism...
-        evaluation.ignore_oneidentity = True
         focus = focus.evaluate_leaves(evaluation)
-        evaluation.ignore_oneidentity = False
+
         if tags is None and not upset:
             name = focus.get_lookup_name()
             if not name:
@@ -377,6 +374,7 @@ class _SetOperator(object):
             ),
             Expression("OptionValue", lhs.get_head(), Symbol("$cond$")),
         )
+
         rhs_name = rhs.get_head_name()
         while rhs_name == "System`Condition":
             if len(rhs.leaves) != 2:
@@ -396,6 +394,7 @@ class _SetOperator(object):
                 lhs,
                 condition.leaves[1].apply_rules([rulopc], evaluation)[0],
             )
+
         rule = Rule(lhs, rhs)
         count = 0
         defs = evaluation.definitions
@@ -426,6 +425,7 @@ class _SetOperator(object):
                     defs.add_rule(tag, rule)
         if count == 0:
             return False
+
         return True
 
     def assign(self, lhs, rhs, evaluation):

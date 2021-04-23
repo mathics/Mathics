@@ -255,9 +255,6 @@ class Evaluation(object):
         # status of last evaluate
         self.exc_result = self.SymbolNull
         self.last_eval = None
-        # Necesary to handle OneIdentity on
-        # lhs in assignment
-        self.ignore_oneidentity = False
 
     def parse(self, query):
         "Parse a single expression and print the messages."

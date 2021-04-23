@@ -559,7 +559,7 @@ class BaseExpression(KeyComparable):
     def get_rules_list(self):
         from mathics.core.rules import Rule
 
-        list_expr = self.flatten(SymbolList)
+        list_expr = self.flatten(Symbol("List"))
         list = []
         if list_expr.has_form("List", None):
             list.extend(list_expr.leaves)
@@ -1513,8 +1513,6 @@ class Expression(BaseExpression):
             )
         elif self.has_form("SuperscriptBox", 2):
             return "^".join([leaf.boxes_to_text(**options) for leaf in self._leaves])
-        elif self.has_form("FractionBox", 2):
-            return "/".join([" ( " + leaf.boxes_to_text(**options)+ " ) " for leaf in self._leaves])
         else:
             raise BoxError(self, "text")
 
@@ -2104,7 +2102,6 @@ SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
-
 
 
 @lru_cache(maxsize=1024)

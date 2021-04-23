@@ -170,8 +170,6 @@ class Parser(object):
             elif result is None and tag != "END":
                 self.consume()
                 new_result = String(token.text)
-                if new_result.value == r"\(":
-                    new_result = self.p_LeftRowBox(token)
             else:
                 new_result = None
             if new_result is None:
@@ -313,8 +311,7 @@ class Parser(object):
         self.bracket_depth += 1
         token = self.next()
         while token.tag not in ("RightRowBox", "OtherscriptBox"):
-            newnode = self.parse_box(0)
-            children.append(newnode)
+            children.append(self.parse_box(0))
             token = self.next()
         if len(children) == 0:
             result = String("")
