@@ -1717,7 +1717,6 @@ class InterpretedBox(PrefixOperator):
         # In the first place, this should handle different kind
         # of boxes in different ways.
         reinput = boxes.boxes_to_text()
-        print(reinput)
         return Expression("ToExpression", reinput).evaluate(evaluation)
 
 
