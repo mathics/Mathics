@@ -30,6 +30,12 @@ Enhancements
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
 * The implementation of Streams was redone
+* a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
+* ``FileNames`` returns a sorted list (#1250).
+* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
+* ``FixedPoint`` now supports the ``SameTest`` option.
+* ``FindRoot`` now receives several optional parameters like ``Method``
+  and  ``MaxIterations``.
 
 Bug fixes
 +++++++++
@@ -37,7 +43,6 @@ Bug fixes
 * ``SetTagDelayed`` does not evaluate now the rhs before assignment.
 * ``$InstallationDirectory`` starts out Unprotected
 * ``FindRoot`` now handles equations.
-
 
 2.1.0
 -----
