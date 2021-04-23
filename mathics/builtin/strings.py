@@ -661,12 +661,25 @@ class LetterNumber(Builtin):
     >> LetterNumber["B"]
      = 2
 
+    >> LetterNumber["ss2!"]
+     = {19, 19, 0, 0}
+
     Get positions of each of the letters in a string:
     >> LetterNumber[Characters["Peccary"]]
     = {16, 5, 3, 3, 1, 18, 25}
+
+    #> LetterNumber[4]
+     : The argument 4 is not a string.
+     = LetterNumber[4]
     """
 
-    # We proobably need to implement Alphabet to handle other
+    messages = {
+        "nas": (
+            "The argument `1` is not a string."
+        ),
+    }
+
+    # We probably need to implement Alphabet to handle other
     # alphabets like Greek and Russian.
     def apply(self, chars: List[Any], evaluation):
         "LetterNumber[chars_]"
@@ -678,7 +691,8 @@ class LetterNumber(Builtin):
                 # FIXME generalize ord("a")
                 return letter_number([py_chars[0]], start_ord)[0]
             else:
-                return None
+                r = [letter_number(c, start_ord)[0] if c.isalpha() else 0 for c in py_chars]
+                return Expression("List", *r)
         elif chars.has_form("List", 1, None):
             leaves = chars.leaves
 
@@ -690,15 +704,11 @@ class LetterNumber(Builtin):
             #     if len(leaves) == 2:
             #         # FIXME: validate 2nd arg and handle it.
             #         pass
-            py_chars = [leaf.get_string_value() for leaf in leaves]
-            if not all(len(py_char) == 1 and py_char.isalpha()
-                        for py_char in py_chars):
-                # FIXME: print error messages
-                return None
-
-            return Expression("List",
-                              *letter_number(py_chars, start_ord))
-        # Figure out what to do here
+            strings = [leaf.get_string_value() for leaf in leaves]
+            r = [letter_number(c, start_ord)[0] if c.isalpha() else 0 for chars in strings for c in chars]
+            return Expression("List", *r)
+        else:
+            return evaluation.message(self.__class__.__name__, "nas", chars)
         return None
 
 
