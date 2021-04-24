@@ -10,6 +10,7 @@ New builtins
 
 * ``Arg``
 * ``Dispatch``
+* ``LetterNumber`` (but alphabet parameter is not supported) #1298
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
 * All of the named colors, e.g. ``Brown`` or ``LighterMagenta``
