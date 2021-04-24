@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
+from .helper import check_evaluation, evaluate
 
 def test_catch():
-    session.evaluate(
+    evaluate(
         """
         (* Define a function that can "throw an exception": *)
 
@@ -65,7 +65,7 @@ def test_catch():
 
 
 def test_condition():
-    session.evaluate(
+    evaluate(
         """
         (* Define a function that can "throw an exception": *)
 

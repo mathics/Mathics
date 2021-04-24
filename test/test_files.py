@@ -34,6 +34,7 @@ def test_unprotected():
 
 
 def test_get_and_put():
+
     temp_directory = _evaluate("$TemporaryDirectory").to_python()
     if len(temp_directory) < 3:
         return
@@ -54,6 +55,8 @@ def test_get_and_put():
         result = _evaluate(f'DeleteFile["{temp_filename}"]').to_python()
         assert result is None
 
+def test_Inputget_and_put():
+    stream = Expression('Plus', Symbol('x'), Integer(2))
 
 # TODO: add these Unix-specific test. Be sure not to test
 # sys.platform for not Windows and to test for applicability
