@@ -4,6 +4,11 @@ from mathics.session import MathicsSession
 
 session = MathicsSession(add_builtin=True, catch_interrupt=False)
 
+def evaluate_value(str_expr: str):
+    return session.evaluate(str_expr).value
+
+def evaluate(str_expr: str):
+    return session.evaluate(str_expr)
 
 def check_evaluation(
     str_expr: str,
@@ -16,15 +21,15 @@ def check_evaluation(
     its results"""
     if to_string_expr:
         str_expr = f"ToString[{str_expr}]"
-        result = session.evaluate(str_expr).value
+        result = evaluate_value(str_expr)
     else:
-        result = session.evaluate(str_expr)
+        result = evaluate(str_expr)
 
     if to_string_expected:
         str_expected = f"ToString[{str_expected}]"
-        expected = session.evaluate(str_expected).value
+        expected = evaluate_value(str_expected)
     else:
-        expected = session.evaluate(str_expected)
+        expected = evaluate(str_expr)
 
     print(time.asctime())
     if message:
