@@ -668,6 +668,9 @@ class LetterNumber(Builtin):
     >> LetterNumber[Characters["Peccary"]]
     = {16, 5, 3, 3, 1, 18, 25}
 
+    >> LetterNumber[{"P", "Pe", "P1", "eck"}]
+    = {16, {16, 5}, {16, 0}, {5, 3, 11}}
+
     #> LetterNumber[4]
      : The argument 4 is not a string.
      = LetterNumber[4]
@@ -694,19 +697,10 @@ class LetterNumber(Builtin):
                 r = [letter_number(c, start_ord)[0] if c.isalpha() else 0 for c in py_chars]
                 return Expression("List", *r)
         elif chars.has_form("List", 1, None):
-            leaves = chars.leaves
-
-            # if len(leaves) == 0:
-            #     return None
-            # if len(leaves) > 2:
-            #     return None
-            # else:
-            #     if len(leaves) == 2:
-            #         # FIXME: validate 2nd arg and handle it.
-            #         pass
-            strings = [leaf.get_string_value() for leaf in leaves]
-            r = [letter_number(c, start_ord)[0] if c.isalpha() else 0 for chars in strings for c in chars]
-            return Expression("List", *r)
+            result = []
+            for leaf in chars.leaves:
+                result.append(self.apply(leaf, evaluation))
+            return Expression("List", *result)
         else:
             return evaluation.message(self.__class__.__name__, "nas", chars)
         return None
