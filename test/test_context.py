@@ -1,7 +1,6 @@
-    
+
 # -*- coding: utf-8 -*-
 from .helper import check_evaluation
-import pytest
 from mathics_scanner.errors import IncompleteSyntaxError
 
 
@@ -22,7 +21,7 @@ bar::usage = "";(*-----------------------------------------*)
 Begin["`MySubpackageA`Private`"];
 intVarA::usage = "";
 foo[x_] := (
-   Print["I can access sharedSymbol directly, since it is in ", 
+   Print["I can access sharedSymbol directly, since it is in ",
     Context[sharedSymbol], " and not in ",
     Context[intVarA]];
    sharedSymbol = x;
@@ -33,7 +32,7 @@ End[];(*-----------------------------------------*)
 Begin["`MySubpackageB`Private`"];
 intVarB::usage = "";
 bar[] := (
-   Print["I can access sharedSymbol directly, since it is in ", 
+   Print["I can access sharedSymbol directly, since it is in ",
     Context[sharedSymbol], " and not in ",
     Context[intVarB]];
    sharedSymbol
@@ -58,5 +57,5 @@ def test_context1():
             print("  OK")
         except IncompleteSyntaxError:
             continue
-    check_evaluation("foo[42]", '42', to_string_expr=True, to_string_expected=True)
-    check_evaluation("bar[]", '42', to_string_expr=True, to_string_expected=True)
+    check_evaluation("foo[42]", '42', to_string_expr=False, to_string_expected=False)
+    check_evaluation("bar[]", '42', to_string_expr=False, to_string_expected=False)
