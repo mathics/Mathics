@@ -771,7 +771,7 @@ class Prime(SympyFunction):
      = {Prime[0], 2, Prime[1.2], 5}
     """
 
-    attributes = ("Listable",)
+    attributes = ("Listable", "NumericFunction")
 
     def apply(self, n, evaluation):
         "Prime[n_]"
@@ -808,6 +808,9 @@ class PrimePi(SympyFunction):
 
     sympy_name = "ntheory.primepi"
     mpmath_name = "primepi"
+
+    attributes = ("Listable", "NumericFunction")
+
 
     # TODO: Traditional Form
 
@@ -911,7 +914,7 @@ class PrimeQ(SympyFunction):
      = {False, True, True, False, True, False, True, False, False, False, True, False, True, False, False, False, True, False, True, False}
     """
 
-    attributes = ("Listable",)
+    attributes = ("Listable", "NumericFunction")
 
     sympy_name = "isprime"
 

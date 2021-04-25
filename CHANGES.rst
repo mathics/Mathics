@@ -25,7 +25,7 @@ Enhancements
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
-* ``Prime`` now accepts a list parameter.
+* ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
