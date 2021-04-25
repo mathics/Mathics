@@ -22,6 +22,8 @@ Enhancements
 
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
+* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
+* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`)
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
@@ -29,8 +31,9 @@ Enhancements
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
-* ``ToExpression`` handles multi-line string input
-* The implementation of Streams was redone.
+* ``ToExpression`` handles multi-line string input.
+*  The implementation of Streams was redone.
+
 
 Bug fixes
 +++++++++

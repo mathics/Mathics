@@ -48,6 +48,7 @@ from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression
+from mathics.core.rules import Pattern
 
 
 @lru_cache(maxsize=1024)
