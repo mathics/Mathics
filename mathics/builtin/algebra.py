@@ -205,7 +205,7 @@ def find_all_vars(expr):
             return
         elif e.is_symbol():
             variables.add(e)
-        elif e.has_form("Plus", None) or e.has_form("Times", None):
+        elif e.has_form(("Plus", "Times"), None):
             for l in e.leaves:
                 l_sympy = l.to_sympy()
                 if l_sympy is not None:
