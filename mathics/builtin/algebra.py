@@ -10,10 +10,12 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Symbol,
     SymbolFalse,
+    SymbolList,
     SymbolNull,
     SymbolTrue,
 )
@@ -1257,7 +1259,7 @@ class CoefficientList(Builtin):
         if expr == Integer(0):
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0), Integer0)
+            return Expression(SymbolList, Integer0)
         elif e_null and not f_null:
             return Expression("List", SymbolNull)
         elif f_null:

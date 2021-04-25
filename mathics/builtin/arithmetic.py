@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Rational,
@@ -734,7 +735,7 @@ class Times(BinaryOperator, SympyFunction):
         elif number.sameQ(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
                 leaves[0].get_head(),
-                *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves]
+                *[Expression("Times", Integer(-1), leaf) for leaf in leaves[0].leaves],
             )
             number = None
 
@@ -1291,30 +1292,66 @@ class Abs(_MPMathFunction):
 
 class Arg(_MPMathFunction):
     """
-    <dl>
-    <dt>'Arg[$z$]'
-        <dd>returns the argument of a complex value $z$.
-    </dl>
-    >> Arg[-3]
-     = Pi
+     <dl>
+       <dt>'Arg'[$z$, $method_option$]</dt>
+       <dd>returns the argument of a complex value $z$.</dd>
+
+       <ul>
+         <li>'Arg'[$z$] is left unevaluated if $z$ is not a numeric quantity.
+         <li>'Arg'[$z$] gives the phase angle of $z$ in radians.
+         <li>The result from 'Arg'[$z$] is always between -Pi and +Pi.
+         <li>'Arg'[$z$] has a branch cut discontinuity in the complex $z$ plane running from -Infinity to 0.
+         <li>'Arg'[0] is 0.
+      </ul>
+     </dl>
+
+     >> Arg[-3]
+      = Pi
+
+     Same as above using sympy's method:
+     >> Arg[-3, Method->"sympy"]
+      = Pi
+
     >> Arg[1-I]
      = -Pi / 4
 
-    Arg evaluate the direction of DirectedInfinity quantities by
-    the Arg of they arguments:
-    >> Arg[DirectedInfinity[1+I]]
-     = Pi / 4
-    >> Arg[DirectedInfinity[]]
-     = 1
+     >> Arg[0]
+      = 0
+
+     'Arg' evaluates the direction of 'DirectedInfinity' quantities by
+     the 'Arg' of they arguments:
+
+     >> Arg[DirectedInfinity[1+I]]
+      = Pi / 4
+
+     >> Arg[DirectedInfinity[]]
+      = 1
     """
 
+    options = {"Method": "Automatic"}
     rules = {
         "Arg[DirectedInfinity[]]": "1",
         "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
 
-    sympy_name = "arg"
+    numpy_name = "angle" # for later
     mpmath_name = "arg"
+    sympy_name = "arg"
+
+    def apply(self, z, evaluation, options={}):
+        "%(name)s[z_, OptionsPattern[%(name)s]]"
+        if Expression("PossibleZeroQ", z).evaluate(evaluation) == SymbolTrue:
+            return Integer0
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
+        if preference is None or preference == "Automatic":
+            return super(Arg, self).apply(z, evaluation)
+        elif preference == "mpmath":
+            return _MPMathFunction.apply(self, z, evaluation)
+        elif preference == "sympy":
+            return SympyFunction.apply(self, z)
+        # TODO: add NumpyFunction
+
+        return evaluation.message("meth", f'Arg Method {preference} not in ("sympy", "mpmath")')
 
 
 class Sign(SympyFunction):
@@ -2276,11 +2313,11 @@ class Boole(Builtin):
 
 class Assumptions(Predefined):
     """
-    <dl>
-    <dt>'$Assumptions'
-      <dd>is the default setting for the Assumptions option used in such
-   functions as Simplify, Refine, and Integrate.
-    </dl>
+     <dl>
+     <dt>'$Assumptions'
+       <dd>is the default setting for the Assumptions option used in such
+    functions as Simplify, Refine, and Integrate.
+     </dl>
     """
 
     name = "$Assumptions"

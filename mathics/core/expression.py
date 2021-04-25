@@ -2258,6 +2258,7 @@ class Integer(Number):
         return self.value == 0
 
 
+Integer0 = Integer(0)
 Integer1 = Integer(1)
 
 
