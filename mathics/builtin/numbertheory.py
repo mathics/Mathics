@@ -754,7 +754,12 @@ class Prime(SympyFunction):
 
     >> Prime[167]
      = 991
+
+    >> Prime[{5, 10, 15}]
+     = {11, 29, 47}
     """
+
+    attributes = ("Listable",)
 
     def apply(self, n, evaluation):
         "Prime[n_]"
