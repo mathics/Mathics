@@ -745,18 +745,30 @@ class PowerMod(Builtin):
 class Prime(SympyFunction):
     """
     <dl>
-    <dt>'Prime[$n$]'
-        <dd>returns the $n$th prime number.
+      <dt>'Prime[$n$]'
+      <dt>'Prime'[{$n0$, $n1$, ...}]
+      <dd>returns the $n$th prime number where $n$ is an positive Integer.
+      If given a list of integers, the return value is a list with 'Prime' applied to each.
     </dl>
 
+    Note that the first prime is 2, not 1:
     >> Prime[1]
      = 2
 
     >> Prime[167]
      = 991
 
+    When given a list of integers, a list is returned:
     >> Prime[{5, 10, 15}]
      = {11, 29, 47}
+
+    1.2 isn't an integer
+    >> Prime[1.2]
+     = Prime[1.2]
+
+    Since 0 is less than 1, like 1.2 it is invalid.
+    >> Prime[{0, 1, 1.2, 3}]
+     = {Prime[0], 2, Prime[1.2], 5}
     """
 
     attributes = ("Listable",)
