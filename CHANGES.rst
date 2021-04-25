@@ -13,7 +13,7 @@ New builtins
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
-* All of the named colors, e.g. ``Brown`` or ``LighterMagenta``
+* Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
 
 
 
@@ -30,13 +30,13 @@ Enhancements
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input
-* The implementation of Streams was redone
+* The implementation of Streams was redone.
 
 Bug fixes
 +++++++++
 
-* ``SetTagDelayed`` does not evaluate now the rhs before assignment.
-* ``$InstallationDirectory`` starts out Unprotected
+* ``SetTagDelayed`` now does not evaluate the RHS before assignment.
+* ``$InstallationDirectory`` starts out `Unprotected`.
 * ``FindRoot`` now handles equations.
 
 
