@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .helper import check_evaluation
+from .helper import check_evaluation, evaluate
 from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
@@ -56,7 +56,7 @@ def test_get_and_put():
         assert result is None
 
 def test_Inputget_and_put():
-    stream = Expression('Plus', Symbol('x'), Integer(2))
+    stream = evaluate("x+2") #Expression('Plus', Symbol('x'), Integer(2))
 
 # TODO: add these Unix-specific test. Be sure not to test
 # sys.platform for not Windows and to test for applicability
