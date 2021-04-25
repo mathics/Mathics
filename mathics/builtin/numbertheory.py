@@ -782,12 +782,16 @@ class Prime(SympyFunction):
             return SympyPrime(expr.leaves[0].to_sympy(**kwargs))
 
 
-class PrimePi(Builtin):
+class PrimePi(SympyFunction):
     """
     <dl>
     <dt>'PrimePi[$x$]'
         <dd>gives the number of primes less than or equal to $x$.
     </dl>
+
+    PrimePi is the inverse of Prime:
+    >> PrimePi[2]
+     = 1
 
     >> PrimePi[100]
      = 25
@@ -801,6 +805,9 @@ class PrimePi(Builtin):
     >> PrimePi[E]
      = 1
     """
+
+    sympy_name = "ntheory.primepi"
+    mpmath_name = "primepi"
 
     # TODO: Traditional Form
 
@@ -870,7 +877,7 @@ class PrimePowerQ(Builtin):
             return Symbol("False")
 
 
-class PrimeQ(Builtin):
+class PrimeQ(SympyFunction):
     """
     <dl>
     <dt>'PrimeQ[$n$]'
@@ -905,6 +912,8 @@ class PrimeQ(Builtin):
     """
 
     attributes = ("Listable",)
+
+    sympy_name = "isprime"
 
     def apply(self, n, evaluation):
         "PrimeQ[n_]"
