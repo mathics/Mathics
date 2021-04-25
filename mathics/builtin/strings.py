@@ -14,7 +14,13 @@ from heapq import heappush, heappop
 from typing import Any, Callable, List
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
+from mathics.builtin.base import (
+    BinaryOperator,
+    Builtin,
+    Test,
+    Predefined,
+    PrefixOperator,
+)
 from mathics.core.expression import (
     Expression,
     Symbol,
@@ -1878,6 +1884,31 @@ class ToString(Builtin):
         return String(text)
 
 
+class InterpretedBox(PrefixOperator):
+    """
+    <dl>
+      <dt>'InterpretedBox[$box$]'
+      <dd>is the ad hoc fullform for \! $box$. just
+          for internal use...
+
+    >> \! \(2+2\)
+     = 4
+    </dl>
+    """
+
+    operator = "\\!"
+    precedence = 670
+
+    def apply_dummy(self, boxes, evaluation):
+        """InterpretedBox[boxes_]"""
+        # TODO: the following is a very raw and dummy way to
+        # handle these expressions.
+        # In the first place, this should handle different kind
+        # of boxes in different ways.
+        reinput = boxes.boxes_to_text()
+        return Expression("ToExpression", reinput).evaluate(evaluation)
+
+
 class ToExpression(Builtin):
     """
     <dl>
@@ -1926,7 +1957,6 @@ class ToExpression(Builtin):
     #> ToExpression["log(x)", StandardForm]
      = log x
     """
-
     attributes = ("Listable", "Protected")
 
     messages = {
