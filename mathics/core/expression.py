@@ -1514,7 +1514,9 @@ class Expression(BaseExpression):
         elif self.has_form("SuperscriptBox", 2):
             return "^".join([leaf.boxes_to_text(**options) for leaf in self._leaves])
         elif self.has_form("FractionBox", 2):
-            return "/".join([" ( " + leaf.boxes_to_text(**options)+ " ) " for leaf in self._leaves])
+            return "/".join(
+                [" ( " + leaf.boxes_to_text(**options) + " ) " for leaf in self._leaves]
+            )
         else:
             raise BoxError(self, "text")
 
@@ -2259,6 +2261,7 @@ class Integer(Number):
         return self.value == 0
 
 
+Integer0 = Integer(0)
 Integer1 = Integer(1)
 
 
@@ -2354,6 +2357,9 @@ class Rational(Number):
         return (
             self.numerator().is_zero
         )  # (implicit) and not (self.denominator().is_zero)
+
+
+RationalOneHalf = Rational(1, 2)
 
 
 class Real(Number):

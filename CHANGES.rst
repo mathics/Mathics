@@ -9,6 +9,7 @@ New builtins
 ++++++++++++
 
 * ``Arg``
+* ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
 * ``Dispatch``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
 * ``Series``,  ``O`` and ``SeriesData``

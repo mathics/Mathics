@@ -10,14 +10,18 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer0,
     Integer1,
+    RationalOneHalf,
     Number,
     Symbol,
     SymbolFalse,
+    SymbolList,
     SymbolNull,
     SymbolTrue,
 )
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
+from mathics.core.rules import Pattern
 
 import sympy
 
@@ -62,7 +66,6 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
     if kwargs["modulus"] is not None and kwargs["modulus"] <= 0:
         return Integer(0)
-
     # A special case for trigonometric functions
     if "trig" in kwargs and kwargs["trig"]:
         if expr.has_form("Sin", 1):
@@ -149,7 +152,6 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
             )
 
     sympy_expr = convert_sympy(expr)
-
     if deep:
         # thread over everything
         for (i, sub_expr,) in enumerate(sub_exprs):
@@ -192,7 +194,6 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
     sympy_expr = sympy_expr.expand(**hints)
     result = from_sympy(sympy_expr)
     result = unconvert_subexprs(result)
-
     return result
 
 
@@ -1415,117 +1416,357 @@ class Exponent(Builtin):
             )
 
 
-class CoefficientArrays(Builtin):
+class _CoefficientHandler(Builtin):
+    def coeff_power_internal(self, expr, var_exprs, filt, evaluation, form="expr"):
+        from mathics.builtin.patterns import match
+
+        if len(var_exprs) == 0:
+            if form == "expr":
+                return expr
+            else:
+                return [([], expr)]
+        if len(var_exprs) == 1:
+            target_pat = Pattern.create(var_exprs[0])
+            var_pats = [target_pat]
+        else:
+            target_pat = Pattern.create(Expression("Alternatives", *var_exprs))
+            var_pats = [Pattern.create(var) for var in var_exprs]
+
+        ####### Auxiliar functions #########
+        def key_powers(lst):
+            key = Expression("Plus", *lst)
+            key = key.evaluate(evaluation)
+            if key.is_numeric():
+                return key.to_python()
+            return 0
+
+        def powers_list(pf):
+            powers = [Integer0 for i, p in enumerate(var_pats)]
+            if pf is None:
+                return powers
+            if pf.is_symbol():
+                for i, pat in enumerate(var_pats):
+                    if match(pf, pat, evaluation):
+                        powers[i] = Integer(1)
+                        return powers
+            if pf.has_form("Sqrt", 1):
+                for i, pat in enumerate(var_pats):
+                    if match(pf._leaves[0], pat, evaluation):
+                        powers[i] = RationalOneHalf
+                        return powers
+            if pf.has_form("Power", 2):
+                for i, pat in enumerate(var_pats):
+                    matchval = match(pf._leaves[0], pat, evaluation)
+                    if matchval:
+                        powers[i] = pf._leaves[1]
+                        return powers
+            if pf.has_form("Times", None):
+                contrib = [powers_list(factor) for factor in pf._leaves]
+                for i in range(len(var_pats)):
+                    powers[i] = Expression("Plus", *[c[i] for c in contrib]).evaluate(
+                        evaluation
+                    )
+                return powers
+            return powers
+
+        def split_coeff_pow(term: Expression) -> tuple[Expression, Expression]:
+            """
+            This function factorizes term in a coefficent free 
+            of powers of the target variables, and a factor with
+            that powers.
+            """
+            coeffs = []
+            powers = []
+            # First, split factors on those which are powers of the variables
+            # and the rest.
+            if term.is_free(target_pat, evaluation):
+                coeffs.append(term)
+            elif (
+                term.is_symbol()
+                or term.has_form("Power", 2)
+                or term.has_form("Sqrt", 1)
+            ):
+                powers.append(term)
+            elif term.has_form("Times", None):
+                for factor in term.leaves:
+                    if factor.is_free(target_pat, evaluation):
+                        coeffs.append(factor)
+                    elif match(factor, target_pat, evaluation):
+                        powers.append(factor)
+                    elif (
+                        factor.has_form("Power", 2) or factor.has_form("Sqrt", 1)
+                    ) and match(factor._leaves[0], target_pat, evaluation):
+                        powers.append(factor)
+                    else:
+                        coeffs.append(factor)
+            else:
+                coeffs.append(term)
+            # Now, rebuild both factors
+            if len(coeffs) == 0:
+                coeffs = None
+            elif len(coeffs) == 1:
+                coeffs = coeffs[0]
+            else:
+                coeffs = Expression("Times", *coeffs)
+            if len(powers) == 0:
+                powers = None
+            elif len(powers) == 1:
+                powers = powers[0]
+            else:
+                powers = Expression("Times", *sorted(powers))
+            return coeffs, powers
+
+        #################  The actual begin ####################
+        expr = expand(
+            expr,
+            numer=True,
+            denom=False,
+            deep=False,
+            trig=False,
+            modulus=None,
+            target_pat=target_pat,
+        )
+
+        if expr.is_free(target_pat, evaluation):
+            if filt:
+                expr = Expression(filt, expr).evaluate(evaluation)
+            if form == "expr":
+                return expr
+            else:
+                return [(powers_list(None), expr)]
+        elif (
+            expr.is_symbol()
+            or match(expr, target_pat, evaluation)
+            or expr.has_form("Power", 2)
+            or expr.has_form("Sqrt", 1)
+        ):
+            coeff = (
+                Expression(filt, Integer1).evaluate(evaluation) if filt else Integer1
+            )
+            if form == "expr":
+                if coeff is Integer1:
+                    return expr
+                else:
+                    return Expression("Times", coeff, expr)
+            else:
+                if not coeff.is_free(target_pat, evaluation):
+                    return []
+                return [(powers_list(expr), coeff)]
+        elif expr.has_form("Times", None):
+            coeff, powers = split_coeff_pow(expr)
+            if coeff is None:
+                coeff = Integer1
+            else:
+                if form != "expr" and not coeff.is_free(target_pat, evaluation):
+                    return []
+            if filt:
+                coeff = Expression(filt, coeff).evaluate(evaluation)
+
+            if form == "expr":
+                if powers is None:
+                    return coeff
+                else:
+                    if coeff is Integer1:
+                        return powers
+                    else:
+                        return Expression("Times", coeff, powers)
+            else:
+                pl = powers_list(powers)
+                return [(pl, coeff)]
+        elif expr.has_form("Plus", None):
+            coeff_dict = {}
+            powers_dict = {}
+            powers_order = {}
+            for term in expr._leaves:
+                coeff, powers = split_coeff_pow(term)
+                if (
+                    form != "expr"
+                    and coeff is not None
+                    and not coeff.is_free(target_pat, evaluation)
+                ):
+                    return []
+                pl = powers_list(powers)
+                key = str(pl)
+                if not key in powers_dict:
+                    if form == "expr":
+                        powers_dict[key] = powers
+                    else:
+                        # TODO: check if pl is a monomial...
+                        powers_dict[key] = pl
+                    coeff_dict[key] = []
+                    powers_order[key] = key_powers(pl)
+
+                coeff_dict[key].append(Integer1 if coeff is None else coeff)
+
+            terms = []
+            for key in sorted(
+                coeff_dict, key=lambda kv: powers_order[kv], reverse=False
+            ):
+                val = coeff_dict[key]
+                if len(val) == 0:
+                    continue
+                elif len(val) == 1:
+                    coeff = val[0]
+                else:
+                    coeff = Expression("Plus", *val)
+                if filt:
+                    coeff = Expression(filt, coeff).evaluate(evaluation)
+
+                powerfactor = powers_dict[key]
+                if form == "expr":
+                    if powerfactor:
+                        terms.append(Expression("Times", coeff, powerfactor))
+                    else:
+                        terms.append(coeff)
+                else:
+                    terms.append([powerfactor, coeff])
+            if form == "expr":
+                return Expression("Plus", *terms)
+            else:
+                return terms
+        else:
+            # expr is not a polynomial.
+            if form == "expr":
+                if filt:
+                    expr = Expression(filt, expr).evaluate(evaluation)
+                return expr
+            else:
+                return []
+
+
+class CoefficientArrays(_CoefficientHandler):
     """
     <dl>
     <dt>'CoefficientArrays[$polys$, $vars$]'
         <dd>returns a list of arrays of coefficients of the variables $vars$ in the polynomial  $poly$.
+    </dl>
 
+    >> CoefficientArrays[1 + x^3, x]
+     = {1, {0}, {{0}}, {{{1}}}}
+    >> CoefficientArrays[1 + x y+ x^3, {x, y}]
+     = {1, {0, 0}, {{0, 1}, {0, 0}}, {{{1, 0}, {0, 0}}, {{0, 0}, {0, 0}}}}
+    >> CoefficientArrays[{1 + x^2, x y}, {x, y}]
+     = {{1, 0}, {{0, 0}, {0, 0}}, {{{1, 0}, {0, 0}}, {{0, 1}, {0, 0}}}}
+    >> CoefficientArrays[(x+y+Sin[z])^3, {x,y}]
+     = {Sin[z] ^ 3, {3 Sin[z] ^ 2, 3 Sin[z] ^ 2}, {{3 Sin[z], 6 Sin[z]}, {0, 3 Sin[z]}}, {{{1, 3}, {0, 3}}, {{0, 0}, {0, 1}}}}
+    >> CoefficientArrays[(x + y + Sin[z])^3, {x, z}]
+     : (x + y + Sin[z]) ^ 3 is not a polynomial in {x, z}
+     = CoefficientArrays[(x + y + Sin[z]) ^ 3, {x, z}]
     """
 
-"""    
-    options = {"Symmetric": "False", }
-    messages =  {"poly": "`1` is not a polynomial", }
-    def apply_list(self, polys, varlist, expression, options):
-        "%(name)s[polys_list, varlist_, OptionsPattern[]]"
-        return
+    options = {
+        "Symmetric": "False",
+    }
+    messages = {
+        "poly": "`1` is not a polynomial in `2`",
+    }
+
+    def apply_list(self, polys, varlist, evaluation, options):
+        "%(name)s[polys_, varlist_, OptionsPattern[]]"
+        from mathics.builtin.lists import walk_parts
+
         if polys.has_form("List", None):
-            polys =  polys.leaves
+            list_polys = polys.leaves
         else:
-            polys =  [polys]
-            
-        # Expand all the polynomials before start
-        polys = [Expression("ExpandAll", poly).evaluate(evaluation) for poly in polys]
+            list_polys = [polys]
 
-        if varlist.has_form("List", None):
-            varpat =  varlist.leaves
+        if varlist.is_symbol():
+            var_exprs = [varlist]
+        elif varlist.has_form("List", None):
+            var_exprs = varlist.get_leaves()
         else:
-            varpat =  [varlist]
+            var_exprs = [varlist]
 
-        degree = 0
+        coeffs = [
+            self.coeff_power_internal(pol, var_exprs, None, evaluation, "coeffs")
+            for pol in list_polys
+        ]
 
-        def isvar(var):
-            # TODO: check also patterns
-            if term.is_atom():
-                return var in varpat
-            # if the expression do not match, and
-            # is not atomic, do not decide.
-            return
-        
-        def term_degree(term):
-            degree = 0
-            linear = isvar(term):
-            if not (linear is None):
-                return linear
-            
-            if term.get_head_name()=="System`Times":
-                for factor in term.leaves:
-                    q = factor_degree(factor)
-                    if factor is None:
-                        return None
-                    degree += q
-            elif term.get_head_name()=="System`Power":
-                return power_degree(term)
-
-        def factor_degree(factor):
-            linear = isvar(factor)
-            if not (islinear is None):
-                return linear
-            if factor.free_of
-            if factor.get_head_name() == "System`Power":
-                return power_degree(factor)
-            return None
-
-        def power_degree(factor):
-            if not isvar(factor.leaves[0]):
-                return 0
-            if not isinstance(factor.leaves[1], Integer):
-                return None
-            return factor.leaves[1].get_int_value()
-        
-                
-                    
-                
-            
-        for poly in polys:
-            if poly.is_atom():
-                if degree == 0 and poly in varpat:
-                    degree = 1
-                # TODO: handle patterns
-                continue
-            elif poly.get_head_name() == "System`Plus":
-                for term in poly.leaves:
-                    curr_degree = 0
-                    if term.get_head_name() == "System`Times":
-                        for factor in term.leaves:
-                            if factor.get_head_name() == "System`Power":
-                                if isinstance(factor.leaves[1], Integer):
-                                    curr_degree = factor.leaves[1].get_int_value()
-                                else:
-                                    evaluation.message("CoefficientArrays", "poly", poly)
-
-                            else:
-                    elif term.get_head_name() == "System`Power":
-                        if term.leaves[0] in varpat:
-                            if isinstance(term.leaves[1], Integer):
-                                curr_degree = term.leaves[1].get_int_value()
-                            else:
-                                evaluation.message("CoefficientArrays", "poly", poly)
-                    elif term in vars:
-                        curr_degree = 1
-                    
-                        
-                            
-                        
-
-            elif poly.get_head_name() not in ("System`Plus", "System`Times", "System`Power")):
-                evaluation.message("CoefficientArrays", "poly", poly)
+        dim1 = len(coeffs)
+        dim2 = len(var_exprs)
+        arrays = []
+        if dim1 == 1:
+            arrays.append(Integer(0))
+        for i, component in enumerate(coeffs):
+            if len(component) == 0:
+                evaluation.message("CoefficientArrays", "poly", polys, varlist)
                 return
-            
-            
+            for idxcoeff in component:
+                idx, coeff = idxcoeff
+                order = Expression("Plus", *idx).evaluate(evaluation).get_int_value()
+                if order is None:
+                    evaluation.message("CoefficientArrays", "poly", polys, varlist)
+                    return
+                while len(arrays) <= order:
+                    cur_ord = len(arrays)
+                    range2 = Expression(SymbolList, Integer(dim2))
+                    its2 = [range2 for k in range(cur_ord)]
+                    # TODO: Use SparseArray...
+                    # This constructs a tensor or range cur_ord+1
+                    if dim1 > 1:
+                        newtable = Expression(
+                            "Table",
+                            Integer(0),
+                            Expression(SymbolList, Integer(dim1)),
+                            *its2
+                        )
+                    else:
+                        newtable = Expression("Table", Integer(0), *its2)
+                    arrays.append(newtable.evaluate(evaluation))
+                curr_array = arrays[order]
+                arrayidx = [
+                    Integer(n + 1)
+                    for n, j in enumerate(idx)
+                    for q in range(j.get_int_value())
+                ]
+                if dim1 > 1:
+                    arrayidx = [Integer(i + 1)] + arrayidx
+                if dim1 == 1 and order == 0:
+                    arrays[0] = coeff
+                else:
+                    arrays[order] = walk_parts(
+                        [curr_array], arrayidx, evaluation, coeff
+                    )
+        return Expression("List", *arrays)
 
-        
-        
-            
 
-"""
+class Collect(_CoefficientHandler):
+    """
+    <dl>
+    <dt>'Collect[$expr$, $x$]'
+    <dd> Expands $expr$ and collect together terms having the same power of $x$.
+    <dt>'Collect[$expr$, {$x_1$, $x_2$, ...}]'
+    <dd> Expands $expr$ and collect together terms having the same powers of 
+         $x_1$, $x_2$, ....
+    <dt>'Collect[$expr$, {$x_1$, $x_2$, ...}, $filter$]'
+    <dd> After collect the terms, applies $filter$ to each coefficient.
+    </dl>
+
+    >> Collect[(x+y)^3, y]
+     =  x ^ 3 + 3 x ^ 2 y + 3 x y ^ 2 + y ^ 3
+    >> Collect[2 Sin[x z] (x+2 y^2 + Sin[y] x), y]
+     = 2 x Sin[x z] + 2 x Sin[x z] Sin[y] + 4 y ^ 2 Sin[x z]
+    >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, y]
+     = 4 x Sin[x z] + x ^ 3 + y (3 x + 3 x ^ 2) + y ^ 2 (3 x + 4 Sin[x z]) + y ^ 3
+    >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, {x,y}]
+     = 4 x Sin[x z] + x ^ 3 + 3 x y + 3 x ^ 2 y + 4 y ^ 2 Sin[x z] + 3 x y ^ 2 + y ^ 3
+    >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, {x,y}, h]
+     = x h[4 Sin[x z]] + x ^ 3 h[1] + x y h[3] + x ^ 2 y h[3] + y ^ 2 h[4 Sin[x z]] + x y ^ 2 h[3] + y ^ 3 h[1]
+    """
+
+    rules = {
+        "Collect[expr_, varlst_]": "Collect[expr, varlst, Identity]",
+    }
+
+    def apply_var_filter(self, expr, varlst, filt, evaluation):
+        """Collect[expr_, varlst_, filt_]"""
+        if filt == Symbol("Identity"):
+            filt = None
+        if varlst.is_symbol():
+            var_exprs = [varlst]
+        elif varlst.has_form("List", None):
+            var_exprs = varlst.get_leaves()
+        else:
+            var_exprs = [varlst]
+
+        return self.coeff_power_internal(expr, var_exprs, filt, evaluation, "expr")
