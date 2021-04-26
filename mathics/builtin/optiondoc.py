@@ -19,6 +19,20 @@ from mathics.builtin.base import Builtin
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 
+class Automatic(Builtin):
+    """
+    <dl>
+    <dt>'Automatic'
+        <dd>is used to specify an automatically computed option value.
+    </dl>
+
+    'Automatic' is the default for 'PlotRange', 'ImageSize', and other
+    graphical options:
+
+    >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
+     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic}
+    """
+
 class Axes(Builtin):
     """
     <dl>

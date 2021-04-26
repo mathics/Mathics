@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin, Test, MessageException
-from mathics.builtin.randomnumbers import RandomEnv
-from mathics.builtin.strings import to_regex, anchor_pattern, ToLowerCase
+from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import (
     Expression,
     String,
@@ -11,17 +9,8 @@ from mathics.core.expression import (
     Real,
     Symbol,
     Number,
-    strip_context,
 )
 
-import os
-import re
-import itertools
-from itertools import chain
-import heapq
-import math
-
-import pint
 from pint import UnitRegistry
 
 ureg = UnitRegistry()
@@ -212,7 +201,6 @@ class Quantity(Builtin):
 
     def apply_n(self, mag, unit, evaluation):
         "Quantity[mag_, unit_?StringQ]"
-        expr = Expression("Quantity", mag, unit)
 
         if self.validate(unit, evaluation):
             if mag.has_form("List", None):

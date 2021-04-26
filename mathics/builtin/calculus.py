@@ -8,13 +8,18 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
 from mathics.core.expression import (
     Expression,
+    String,
     Integer,
+    Integer1,
     Number,
+    Rational,
+    Real,
     SymbolTrue,
     SymbolFalse,
     SymbolList,
     SymbolN,
     SymbolRule,
+    from_python,
 )
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
 from mathics.core.rules import Pattern
@@ -23,6 +28,13 @@ from mathics.builtin.scoping import dynamic_scoping
 from mathics import Symbol
 
 import sympy
+
+
+SymbolPlus = Symbol("Plus")
+SymbolTimes = Symbol("Times")
+SymbolPower = Symbol("Power")
+IntegerZero = Integer(0)
+IntegerMinusOne = Integer(-1)
 
 
 class D(SympyFunction):
@@ -117,23 +129,24 @@ class D(SympyFunction):
     }
 
     rules = {
-        "D[f_ + g_, x_?NotListQ]": "D[f, x] + D[g, x]",
-        "D[f_ * g_, x_?NotListQ]": "D[f, x] * g + f * D[g, x]",
-        "D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]": "r * f ^ (r-1) * D[f, x]",
-        "D[E ^ f_, x_?NotListQ]": "E ^ f * D[f, x]",
-        "D[f_ ^ g_, x_?NotListQ]": "D[E ^ (Log[f] * g), x]",
-        "D[f_, x_?NotListQ] /; FreeQ[f, x]": "0",
-        # 'D[f_[g_], x_?NotListQ]': (
-        #   'Module[{t}, D[f[t], t] /. t -> g] * D[g, x]',
-        # 'D[f_[g_], x_?NotListQ]': 'D[f[g], g] * D[g, x]',
-        "D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]": "Derivative[Sequence @@ UnitVector["
-        "  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]",
-        # 'D[f_[args___], x_?NotListQ]':
-        # 'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
-        # '/. t->#) * D[#, x]&, {args}]',
+        # Basic rules (implemented in apply):
+        #   "D[f_ + g_, x_?NotListQ]": "D[f, x] + D[g, x]",
+        #   "D[f_ * g_, x_?NotListQ]": "D[f, x] * g + f * D[g, x]",
+        #   "D[f_ ^ r_, x_?NotListQ] /; FreeQ[r, x]": "r * f ^ (r-1) * D[f, x]",
+        #   "D[E ^ f_, x_?NotListQ]": "E ^ f * D[f, x]",
+        #   "D[f_ ^ g_, x_?NotListQ]": "D[E ^ (Log[f] * g), x]",
+        # Hacky: better implement them in apply
+        # "D[f_, x_?NotListQ] /; FreeQ[f, x]": "0",
+        #  "D[f_[left___, x_, right___], x_?NotListQ] /; FreeQ[{left, right}, x]":
+        #  "Derivative[Sequence @@ UnitVector["
+        #  "  Length[{left, x, right}], Length[{left, x}]]][f][left, x, right]",
+        #  'D[f_[args___], x_?NotListQ]':
+        #  'Plus @@ MapIndexed[(D[f[Sequence@@ReplacePart[{args}, #2->t]], t] '
+        #  '/. t->#) * D[#, x]&, {args}]',
         "D[{items___}, x_?NotListQ]": (
             "Function[{System`Private`item}, D[System`Private`item, x]]" " /@ {items}"
         ),
+        # Handling iterated and vectorized derivative variables
         "D[f_, {list_List}]": "D[f, #]& /@ list",
         "D[f_, {list_List, n_Integer?Positive}]": (
             "D[f, Sequence @@ ConstantArray[{list}, n]]"
@@ -146,55 +159,119 @@ class D(SympyFunction):
 
     def apply(self, f, x, evaluation):
         "D[f_, x_?NotListQ]"
+        x_pattern = Pattern.create(x)
+        if f.is_free(x_pattern, evaluation):
+            return IntegerZero
+        elif f == x:
+            return Integer1
+        elif f.is_atom():  # Shouldn't happen
+            1 / 0
+            return
+        # So, this is not an atom...
 
-        if f == x:
-            return Integer(1)
-        elif not f.is_atom() and len(f.leaves) == 1 and f.leaves[0] == x:
-            return Expression(
-                Expression(Expression("Derivative", Integer(1)), f.head), x
-            )
-        elif not f.is_atom() and len(f.leaves) == 1:
-            g = f.leaves[0]
-            return Expression(
-                "Times",
-                Expression("D", Expression(f.head, g), g),
-                Expression("D", g, x),
-            )
-        elif not f.is_atom() and len(f.leaves) > 1:
+        head = f.get_head()
+        if head == SymbolPlus:
+            terms = [
+                Expression("D", term, x)
+                for term in f.leaves
+                if not term.is_free(x_pattern, evaluation)
+            ]
+            if len(terms) == 0:
+                return IntegerZero
+            return Expression(SymbolPlus, *terms)
+        elif head == SymbolTimes:
+            terms = []
+            for i, factor in enumerate(f.leaves):
+                if factor.is_free(x_pattern, evaluation):
+                    continue
+                factors = [leaf for j, leaf in enumerate(f.leaves) if j != i]
+                factors.append(Expression("D", factor, x))
+                terms.append(Expression(SymbolTimes, *factors))
+            if len(terms) != 0:
+                return Expression(SymbolPlus, *terms)
+            else:
+                return IntegerZero
+        elif head == SymbolPower and len(f.leaves) == 2:
+            base, exp = f.leaves
+            terms = []
+            if not base.is_free(x_pattern, evaluation):
+                terms.append(
+                    Expression(
+                        SymbolTimes,
+                        exp,
+                        Expression(
+                            SymbolPower,
+                            base,
+                            Expression(SymbolPlus, exp, IntegerMinusOne),
+                        ),
+                        Expression("D", base, x),
+                    )
+                )
+            if not exp.is_free(x_pattern, evaluation):
+                if base.is_atom() and base.get_name() == "System`E":
+                    terms.append(Expression(SymbolTimes, f, Expression("D", exp, x)))
+                else:
+                    terms.append(
+                        Expression(
+                            SymbolTimes,
+                            f,
+                            Expression("Log", base),
+                            Expression("D", exp, x),
+                        )
+                    )
+
+            if len(terms) == 0:
+                return IntegerZero
+            elif len(terms) == 1:
+                return terms[0]
+            else:
+                return Expression(SymbolPlus, *terms)
+        elif len(f.leaves) == 1:
+            if f.leaves[0] == x:
+                return Expression(
+                    Expression(Expression("Derivative", Integer(1)), f.head), x
+                )
+            else:
+                g = f.leaves[0]
+                return Expression(
+                    SymbolTimes,
+                    Expression("D", Expression(f.head, g), g),
+                    Expression("D", g, x),
+                )
+        else:  # many leaves
 
             def summand(leaf, index):
-                if leaf.same(x):
-                    result = Expression(
+                result = Expression(
+                    Expression(
                         Expression(
-                            Expression(
-                                "Derivative",
-                                *(
-                                    [Integer(0)] * (index)
-                                    + [Integer(1)]
-                                    + [Integer(0)] * (len(f.leaves) - index - 1)
-                                )
-                            ),
-                            f.head,
+                            "Derivative",
+                            *(
+                                [IntegerZero] * (index)
+                                + [Integer1]
+                                + [IntegerZero] * (len(f.leaves) - index - 1)
+                            )
                         ),
-                        *f.leaves
-                    )
+                        f.head,
+                    ),
+                    *f.leaves
+                )
+                if leaf.sameQ(x):
+                    return result
                 else:
-                    result = Expression("D", f, leaf)
-                return Expression("Times", result, Expression("D", leaf, x))
+                    return Expression("Times", result, Expression("D", leaf, x))
 
-            x_pattern = Pattern.create(x)
-            result = Expression(
-                "Plus",
-                *[
-                    summand(leaf, index)
-                    for index, leaf in enumerate(f.leaves)
-                    if not leaf.is_free(x_pattern, evaluation)
-                ]
-            )
-            if len(result.leaves) == 1:
-                return result.leaves[0]
+            result = [
+                summand(leaf, index)
+                for index, leaf in enumerate(f.leaves)
+                if not leaf.is_free(x_pattern, evaluation)
+            ]
+
+            if len(result) == 1:
+                return result[0]
+            elif len(result) == 0:
+                return IntegerZero
             else:
-                return result
+                return Expression("Plus", *result)
 
     def apply_wrong(self, expr, x, other, evaluation):
         "D[expr_, {x_, other___}]"
@@ -263,7 +340,7 @@ class Derivative(PostfixOperator, SympyFunction):
 
     operator = "'"
     precedence = 670
-    attributes = ("NHoldAll",)
+    attributes = ("NHoldAll", "Unprotected")
 
     rules = {
         "MakeBoxes[Derivative[n__Integer][f_], "
@@ -273,9 +350,12 @@ class Derivative(PostfixOperator, SympyFunction):
             r'    RowBox[{"(", Sequence @@ Riffle[{n}, ","], ")"}]]]]'
         ),
         "MakeBoxes[Derivative[n:1|2][f_], form:OutputForm]": """RowBox[{MakeBoxes[f, form], If[n==1, "'", "''"]}]""",
+        # The following rules should be applied in the apply method, instead of relying on the pattern matching
+        # mechanism.
         "Derivative[0...][f_]": "f",
         "Derivative[n__Integer][Derivative[m__Integer][f_]] /; Length[{m}] "
         "== Length[{n}]": "Derivative[Sequence @@ ({n} + {m})][f]",
+        # This would require at least some comments...
         """Derivative[n__Integer][f_Symbol] /; Module[{t=Sequence@@Slot/@Range[Length[{n}]], result, nothing, ft=f[t]},
             If[Head[ft] === f
             && FreeQ[Join[UpValues[f], DownValues[f], SubValues[f]], Derivative|D]
@@ -667,7 +747,7 @@ class Solve(Builtin):
     >> sol = Solve[eqs, {x, y}] // Simplify
      = {{x -> 0, y -> 0}, {x -> 1, y -> 1}, {x -> -1 / 2 + I / 2 Sqrt[3], y -> -1 / 2 - I / 2 Sqrt[3]}, {x -> (1 - I Sqrt[3]) ^ 2 / 4, y -> -1 / 2 + I / 2 Sqrt[3]}}
     >> eqs /. sol // Simplify
-     = {{True, True}, {True, True}, {False, False}, {True, True}}
+     = {{True, True}, {True, True}, {True, True}, {True, True}}
 
     An underdetermined system:
     >> Solve[x^2 == 1 && z^2 == -1, {x, y, z}]
@@ -1039,6 +1119,123 @@ class DiscreteLimit(Builtin):
             pass
 
 
+def find_root_secant(f, x0, x, opts, evaluation) -> (Number, bool):
+    region = opts.get("$$Region", None)
+    if not type(region) is list:
+        if x0.is_zero:
+            region = (Real(-1), Real(1))
+        else:
+            xmax = 2 * x0.to_python()
+            xmin = -2 * x0.to_python()
+            if xmin > xmax:
+                region = (Real(xmax), Real(xmin))
+            else:
+                region = (Real(xmin), Real(xmax))
+
+    maxit = opts["System`MaxIterations"]
+    x_name = x.get_name()
+    if maxit.sameQ(Symbol("Automatic")):
+        maxit = 100
+    else:
+        maxit = maxit.evaluate(evaluation).get_int_value()
+
+    x0 = from_python(region[0])
+    x1 = from_python(region[1])
+    f0 = dynamic_scoping(lambda ev: f.evaluate(evaluation), {x_name: x0}, evaluation)
+    f1 = dynamic_scoping(lambda ev: f.evaluate(evaluation), {x_name: x1}, evaluation)
+    if not isinstance(f0, Number):
+        return x0, False
+    if not isinstance(f1, Number):
+        return x0, False
+    f0 = f0.to_python(n_evaluation=True)
+    f1 = f1.to_python(n_evaluation=True)
+    count = 0
+    while count < maxit:
+        if f0 == f1:
+            x1 = Expression(
+                "Plus",
+                x0,
+                Expression(
+                    "Times",
+                    Real(0.75),
+                    Expression("Plus", x1, Expression("Times", Integer(-1), x0)),
+                ),
+            )
+            x1 = x1.evaluate(evaluation)
+            f1 = dynamic_scoping(
+                lambda ev: f.evaluate(evaluation), {x_name: x1}, evaluation
+            )
+            if not isinstance(f1, Number):
+                return x0, False
+            f1 = f1.to_python(n_evaluation=True)
+            continue
+
+        inv_deltaf = from_python(1.0 / (f1 - f0))
+        num = Expression(
+            "Plus",
+            Expression("Times", x0, f1),
+            Expression("Times", x1, f0, Integer(-1)),
+        )
+        x2 = Expression("Times", num, inv_deltaf)
+        x2 = x2.evaluate(evaluation)
+        f2 = dynamic_scoping(
+            lambda ev: f.evaluate(evaluation), {x_name: x2}, evaluation
+        )
+        if not isinstance(f2, Number):
+            return x0, False
+        f2 = f2.to_python(n_evaluation=True)
+        f1, f0 = f2, f1
+        x1, x0 = x2, x1
+        if x1 == x0 or abs(f2) == 0:
+            break
+        count = count + 1
+    else:
+        evaluation.message("FindRoot", "maxiter")
+        return x0, False
+    return x0, True
+
+
+def find_root_newton(f, x0, x, opts, evaluation) -> (Number, bool):
+    df = opts["System`Jacobian"]
+    maxit = opts["System`MaxIterations"]
+    x_name = x.get_name()
+    if maxit.sameQ(Symbol("Automatic")):
+        maxit = 100
+    else:
+        maxit = maxit.evaluate(evaluation).get_int_value()
+
+    def sub(evaluation):
+        d_value = df.evaluate(evaluation)
+        if d_value == Integer(0):
+            return None
+        return Expression(
+            "Times", f, Expression("Power", d_value, Integer(-1))
+        ).evaluate(evaluation)
+
+    count = 0
+    while count < maxit:
+        minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
+        if minus is None:
+            evaluation.message("FindRoot", "dsing", x, x0)
+            return x0, False
+        x1 = Expression("Plus", x0, Expression("Times", Integer(-1), minus)).evaluate(
+            evaluation
+        )
+        if not isinstance(x1, Number):
+            evaluation.message("FindRoot", "nnum", x, x0)
+            return x0, False
+        # TODO: use Precision goal...
+        if x1 == x0:
+            break
+        x0 = Expression(SymbolN, x1).evaluate(
+            evaluation
+        )  # N required due to bug in sympy arithmetic
+        count += 1
+    else:
+        evaluation.message("FindRoot", "maxiter")
+    return x0, True
+
+
 class FindRoot(Builtin):
     r"""
     <dl>
@@ -1048,7 +1245,7 @@ class FindRoot(Builtin):
         <dd>tries to solve the equation '$lhs$ == $rhs$'.
     </dl>
 
-    'FindRoot' uses Newton\'s method, so the function of interest should have a first derivative.
+    'FindRoot' by default uses Newton\'s method, so the function of interest should have a first derivative.
 
     >> FindRoot[Cos[x], {x, 1}]
      = {x -> 1.5708}
@@ -1060,9 +1257,9 @@ class FindRoot(Builtin):
 
     'FindRoot' has attribute 'HoldAll' and effectively uses 'Block' to localize $x$.
     However, in the result $x$ will eventually still be replaced by its value.
-    >> x = 3;
+    >> x = "I am the result!";
     >> FindRoot[Tan[x] + Sin[x] == Pi, {x, 1}]
-     = {3 -> 1.14911}
+     = {I am the result! -> 1.14911}
     >> Clear[x]
 
     'FindRoot' stops after 100 iterations:
@@ -1084,16 +1281,30 @@ class FindRoot(Builtin):
      : Encountered a singular derivative at the point x = 0..
      = FindRoot[Sin[x] - x, {x, 0}]
 
+
     #> FindRoot[2.5==x,{x,0}]
      = {x -> 2.5}
+
+    >> FindRoot[x^2 - 2, {x, 1,3}, Method->"Secant"]
+     = {x -> 1.41421}
+
     """
 
+    options = {
+        "MaxIterations": "100",
+        "Method": "Automatic",
+        "AccuracyGoal": "Automatic",
+        "PrecisionGoal": "Automatic",
+        "StepMonitor": "None",
+        "Jacobian": "Automatic",
+    }
     attributes = ("HoldAll",)
 
     messages = {
         "snum": "Value `1` is not a number.",
         "nnum": "The function value is not a number at `1` = `2`.",
         "dsing": "Encountered a singular derivative at the point `1` = `2`.",
+        "bdmthd": "Value option Method->`1` is not `2`",
         "maxiter": (
             "The maximum number of iterations was exceeded. "
             "The result might be inaccurate."
@@ -1101,12 +1312,18 @@ class FindRoot(Builtin):
     }
 
     rules = {
-        "FindRoot[lhs_ == rhs_, {x_, xs_}]": "FindRoot[lhs - rhs, {x, xs}]",
+        "FindRoot[lhs_ == rhs_, {x_, xs_}, opt:OptionsPattern[]]": "FindRoot[lhs-rhs, {x, xs}, opt]",
+        "FindRoot[lhs_ == rhs_, x__, opt:OptionsPattern[]]": "FindRoot[lhs-rhs, x, opt]",
     }
 
-    def apply(self, f, x, x0, evaluation):
-        "FindRoot[f_, {x_, x0_}]"
+    methods = {
+        "Newton": find_root_newton,
+        "Secant": find_root_secant,
+    }
 
+    def apply(self, f, x, x0, evaluation, options):
+        "FindRoot[f_, {x_, x0_}, OptionsPattern[]]"
+        # First, determine x0 and x
         x0 = Expression(SymbolN, x0).evaluate(evaluation)
         if not isinstance(x0, Number):
             evaluation.message("FindRoot", "snum", x0)
@@ -1115,39 +1332,187 @@ class FindRoot(Builtin):
         if not x_name:
             evaluation.message("FindRoot", "sym", x, 2)
             return
-        count = 0
 
-        def diff(evaluation):
-            return Expression("D", f, x).evaluate(evaluation)
+        # Now, get the explicit form of f, depending of x
+        # keeping x without evaluation (Like inside a "Block[{x},f])
+        f = dynamic_scoping(lambda ev: f.evaluate(ev), {x_name: None}, evaluation)
+        # If after evaluation, we get an "Equal" expression,
+        # convert it in a function by substracting both
+        # members. Again, ensure the scope in the evaluation
+        if f.get_head_name() == "System`Equal":
+            f = Expression(
+                "Plus", f.leaves[0], Expression("Times", Integer(-1), f.leaves[1])
+            )
+            f = dynamic_scoping(lambda ev: f.evaluate(ev), {x_name: None}, evaluation)
 
-        d = dynamic_scoping(diff, {x_name: None}, evaluation)
-
-        def sub(evaluation):
-            d_value = d.evaluate(evaluation)
-            if d_value == Integer(0):
-                return None
-            return Expression(
-                "Times", f, Expression("Power", d_value, Integer(-1))
-            ).evaluate(evaluation)
-
-        while count < 100:
-            minus = dynamic_scoping(sub, {x_name: x0}, evaluation)
-            if minus is None:
-                evaluation.message("FindRoot", "dsing", x, x0)
-                return
-            x1 = Expression(
-                "Plus", x0, Expression("Times", Integer(-1), minus)
-            ).evaluate(evaluation)
-            if not isinstance(x1, Number):
-                evaluation.message("FindRoot", "nnum", x, x0)
-                return
-            if x1 == x0:
-                break
-            x0 = Expression(SymbolN, x1).evaluate(
-                evaluation
-            )  # N required due to bug in sympy arithmetic
-            count += 1
+        # Determine the method
+        method = options["System`Method"]
+        if isinstance(method, Symbol):
+            method = method.get_name().split("`")[-1]
+        if method == "Automatic":
+            method = "Newton"
+        elif not isinstance(method, String):
+            method = None
+            evaluation.message(
+                "FindRoot", "bdmthd", method, [String(m) for m in self.methods.keys()]
+            )
+            return
         else:
-            evaluation.message("FindRoot", "maxiter")
+            method = method.value
 
+        # Determine the "jacobian"
+        if method in ("Newton",) and options["System`Jacobian"].sameQ(
+            Symbol("Automatic")
+        ):
+
+            def diff(evaluation):
+                return Expression("D", f, x).evaluate(evaluation)
+
+            d = dynamic_scoping(diff, {x_name: None}, evaluation)
+            options["System`Jacobian"] = d
+
+        method = self.methods.get(method, None)
+        if method is None:
+            evaluation.message(
+                "FindRoot", "bdmthd", method, [String(m) for m in self.methods.keys()]
+            )
+            return
+
+        x0, success = method(f, x0, x, options, evaluation)
+        if not success:
+            return
         return Expression(SymbolList, Expression(SymbolRule, x, x0))
+
+    def apply_with_x_tuple(self, f, xtuple, evaluation, options):
+        "FindRoot[f_, xtuple_, OptionsPattern[]]"
+        f_val = f.evaluate(evaluation)
+
+        if f_val.has_form("Equal", 2):
+            f = Expression("Plus", f_val.leaves[0], f_val.leaves[1])
+
+        xtuple_value = xtuple.evaluate(evaluation)
+        if xtuple_value.has_form("List", None):
+            nleaves = len(xtuple_value.leaves)
+            if nleaves == 2:
+                x, x0 = xtuple.evaluate(evaluation).leaves
+            elif nleaves == 3:
+                x, x0, x1 = xtuple.evaluate(evaluation).leaves
+                options["$$Region"] = (x0, x1)
+            else:
+                return
+            return self.apply(f, x, x0, evaluation, options)
+        return
+
+
+class O(Builtin):
+    """
+    <dl>
+    <dt>'O[$x$]^n'
+        <dd> Represents a term of order $x^n$.
+        <dd> O[x]^n is generated to represent omitted higher order terms in power series.
+    </dl>
+
+    >> Series[1/(1-x),{x,0,2}]
+     = 1 + x + x ^ 2 + O[x] ^ 3
+
+    """
+
+    pass
+
+
+class Series(Builtin):
+    """
+    <dl>
+    <dt>'Series[$f$, {$x$, $x0$, $n$}]'
+        <dd>Represents the series expansion around '$x$=$x0$' up to order $n$.
+    </dl>
+
+    >> Series[Exp[x],{x,0,2}]
+     = 1 + x + 1 / 2 x ^ 2 + O[x] ^ 3
+    >> Series[Exp[x^2],{x,0,2}]
+     = 1 + x ^ 2 + O[x] ^ 3
+
+    """
+
+    def apply_series(self, f, x, x0, n, evaluation):
+        """Series[f_, {x_Symbol, x0_, n_Integer}]"""
+        # TODO:
+        # - Asymptotic series
+        # - Series of compositions
+        vars = {
+            x.get_name(): x0,
+        }
+
+        data = [f.replace_vars(vars)]
+        df = f
+        for i in range(n.get_int_value()):
+            df = Expression("D", df, x).evaluate(evaluation)
+            newcoeff = df.replace_vars(vars)
+            factorial = Expression("Factorial", Integer(i + 1))
+            newcoeff = Expression(
+                SymbolTimes,
+                Expression(SymbolPower, factorial, IntegerMinusOne),
+                newcoeff,
+            ).evaluate(evaluation)
+            data.append(newcoeff)
+        data = Expression(SymbolList, *data).evaluate(evaluation)
+        return Expression("SeriesData", x, x0, data, IntegerZero, n, Integer1)
+
+
+class SeriesData(Builtin):
+    """
+    <dl>
+    <dt>'SeriesData[...]'
+    <dd>Represents a series expansion
+    </dl>
+
+    TODO:
+    - Implement sum, product and composition of series
+    """
+
+    def apply_makeboxes(self, x, x0, data, nmin, nmax, den, form, evaluation):
+        """MakeBoxes[SeriesData[x_, x0_, data_List, nmin_Integer, nmax_Integer, den_Integer], form_Symbol]"""
+
+        form = form.get_name()
+        if x0.is_zero:
+            variable = x
+        else:
+            variable = Expression(
+                SymbolPlus, x, Expression(SymbolTimes, IntegerMinusOne, x0)
+            )
+        den = den.get_int_value()
+        nmin = nmin.get_int_value()
+        nmax = nmax.get_int_value() + 1
+        if den != 1:
+            powers = [Rational(i, den) for i in range(nmin, nmax)]
+            powers = powers + [Rational(nmax, den)]
+        else:
+            powers = [Integer(i) for i in range(nmin, nmax)]
+            powers = powers + [Integer(nmax)]
+
+        expansion = []
+        for i, leaf in enumerate(data.leaves):
+            if leaf.is_numeric() and leaf.is_zero:
+                continue
+            if powers[i].is_zero:
+                expansion.append(leaf)
+                continue
+            if powers[i] == Integer1:
+                if leaf == Integer1:
+                    term = variable
+                else:
+                    term = Expression(SymbolTimes, leaf, variable)
+            else:
+                if leaf == Integer1:
+                    term = Expression(SymbolPower, variable, powers[i])
+                else:
+                    term = Expression(
+                        SymbolTimes, leaf, Expression(SymbolPower, variable, powers[i])
+                    )
+            expansion.append(term)
+        expansion = expansion + [
+            Expression(SymbolPower, Expression("O", variable), powers[-1])
+        ]
+        # expansion = [ex.format(form) for ex in expansion]
+        expansion = Expression(SymbolPlus, *expansion)
+        return expansion.format(evaluation, form)

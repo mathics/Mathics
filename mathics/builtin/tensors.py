@@ -121,7 +121,7 @@ def get_dimensions(expr, head=None):
     if expr.is_atom():
         return []
     else:
-        if head is not None and not expr.head.same(head):
+        if head is not None and not expr.head.sameQ(head):
             return []
         sub_dim = None
         sub = []
@@ -355,13 +355,13 @@ class Outer(Builtin):
                 return
             if head is None:
                 head = list.head
-            elif not list.head.same(head):
+            elif not list.head.sameQ(head):
                 evaluation.message("Outer", "heads", head, list.head)
                 return
 
         def rec(item, rest_lists, current):
             evaluation.check_stopped()
-            if item.is_atom() or not item.head.same(head):
+            if item.is_atom() or not item.head.sameQ(head):
                 if rest_lists:
                     return rec(rest_lists[0], rest_lists[1:], current + [item])
                 else:

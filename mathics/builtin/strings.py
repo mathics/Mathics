@@ -4,29 +4,39 @@
 Strings and Characters
 """
 
+import io
+import re
 import sys
 from sys import version_info
-import re
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
+from typing import Any, Callable, List
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
+from mathics.builtin.base import (
+    BinaryOperator,
+    Builtin,
+    Test,
+    Predefined,
+    PrefixOperator,
+)
 from mathics.core.expression import (
     Expression,
     Symbol,
     SymbolFailed,
     SymbolFalse,
     SymbolTrue,
+    SymbolList,
     String,
     Integer,
     from_python,
     string_list,
 )
+from mathics.core.parser import MathicsFileLineFeeder, parse
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.settings import SYSTEM_CHARACTER_ENCODING
-
+from mathics_scanner import TranslateError
 
 _regex_longest = {
     "+": "+",
@@ -36,6 +46,36 @@ _regex_longest = {
 _regex_shortest = {
     "+": "+?",
     "*": "*?",
+}
+
+
+alphabet_descriptions = {
+    "English": {
+        "Lowercase": "abcdefghijklmnopqrstuvwxyz",
+        "Uppercase": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    },
+    "Spanish": {
+        "Lowercase": "abcdefghijklmnñopqrstuvwxyz",
+        "Uppercase": "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ",
+    },
+    "Greek": {
+        "Lowercase": "αβγδεζηθικλμνξοπρστυφχψω",
+        "Uppercase": "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ",
+    },
+    "Cyrillic": {
+        "Lowercase": "абвгґдђѓеёєжзѕиіїйјклљмнњопрстћќуўфхцчџшщъыьэюя",
+        "Uppercase": "АБВГҐДЂЃЕЁЄЖЗЅИІЇЙЈКЛЉМНЊОПРСТЋЌУЎФХЦЧЏШЩЪЫЬЭЮЯ",
+    },
+}
+
+alphabet_alias={
+    "English": "English",
+    "French": "English",
+    "German": "English",
+    "Spanish": "Spanish",
+    "Greek": "Greek",
+    "Cyrillic": "Cyrillic",
+    "Russian": "Cyrillic",
 }
 
 
@@ -207,7 +247,7 @@ def to_regex(
         if patt is not None:
             if expr.leaves[1].has_form("Blank", 0):
                 pass  # ok, no warnings
-            elif not expr.leaves[1].same(patt):
+            elif not expr.leaves[1].sameQ(patt):
                 evaluation.message(
                     "StringExpression", "cond", expr.leaves[0], expr, expr.leaves[0]
                 )
@@ -636,6 +676,164 @@ class LetterCharacter(Builtin):
     """
 
 
+# FIXME: Generalize string.lower() and ord()
+def letter_number(chars: List[str], start_ord) -> List["Integer"]:
+    # Note caller has verified that everything isalpha() and
+    # each char has length 1.
+    return [Integer(ord(char.lower()) - start_ord) for char in chars]
+
+
+class Alphabet(Builtin):
+    """
+     <dl>
+      <dt>'Alphabet'[]
+      <dd>gives the list of lowercase letters a-z in the English alphabet .
+
+      <dt>'Alphabet[$type$]'
+      <dd> gives the alphabet for the language or class $type$.
+    </dl>
+
+    >> Alphabet[]
+     = {a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z}
+    >> Alphabet["German"]
+     = {a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z}
+
+    """
+    messages = {
+        "nalph": "The alphabet `` is not known or not available.",
+    }
+
+    rules = {
+        "Alphabet[]": """Alphabet["English"]""",
+    }
+
+    def apply(self, alpha, evaluation):
+        """Alphabet[alpha_String]"""
+        alphakey = alpha.get_string_value()
+        alphakey = alphabet_alias[alphakey]
+        if alphakey is None:
+            evaluation.message("Alphabet", "nalph", alpha)            
+            return
+        alphabet = alphabet_descriptions.get(alphakey, None)
+        if alphabet is None:
+            evaluation.message("Alphabet", "nalph", alpha)
+            return
+        return Expression(SymbolList, *[String(c) for c in alphabet["Lowercase"]])
+
+
+class LetterNumber(Builtin):
+    """
+    <dl>
+      <dt>'LetterNumber'[$c$]
+      <dd>returns the position of the character $c$ in the English alphabet.
+
+      <dt>'LetterNumber["string"]'
+      <dd>returns a list of the positions of characters in string.
+      <dt>'LetterNumber["string", $alpha$]'
+      <dd>returns a list of the positions of characters in string, regarding the alphabet $alpha$.
+    </dl>
+
+    >> LetterNumber["b"]
+     = 2
+
+    LetterNumber also works with uppercase characters
+    >> LetterNumber["B"]
+     = 2
+
+    >> LetterNumber["ss2!"]
+     = {19, 19, 0, 0}
+
+    Get positions of each of the letters in a string:
+    >> LetterNumber[Characters["Peccary"]]
+    = {16, 5, 3, 3, 1, 18, 25}
+
+    >> LetterNumber[{"P", "Pe", "P1", "eck"}]
+    = {16, {16, 5}, {16, 0}, {5, 3, 11}}
+
+    #> LetterNumber[4]
+     : The argument 4 is not a string.
+     = LetterNumber[4]
+
+    >> LetterNumber["\[Beta]", "Greek"]
+     = 2
+    
+    """
+    # FIXME: put the right unicode characters in a way that the
+    # following test works...
+    """
+    # #> LetterNumber["\[CapitalBeta]", "Greek"]
+    #  = 2
+
+    """
+    messages = {
+        "nalph": "The alphabet `` is not known or not available.",
+        "nas": ("The argument `1` is not a string."),
+    }
+
+    def apply_alpha_str(self, chars: List[Any], alpha: String, evaluation):
+        "LetterNumber[chars_, alpha_String]"
+        alphakey = alpha.get_string_value()
+        alphakey = alphabet_alias.get(alphakey, None)
+        if alphakey is None:
+            evaluation.message("LetterNumber", "nalph", alpha)
+            return
+        if alphakey == "English":
+            return self.apply(chars, evaluation)
+        alphabet = alphabet_descriptions.get(alphakey, None)
+        if alphabet is None:
+            evaluation.message("LetterNumber", "nalph", alpha)
+            return
+        # TODO: handle Uppercase
+        if isinstance(chars, String):
+            py_chars = chars.get_string_value()
+            if len(py_chars) == 1:
+                # FIXME generalize ord("a")
+                res = alphabet["Lowercase"].find(py_chars) + 1
+                if res == -1:
+                    res = alphabet["Uppercase"].find(py_chars) + 1
+                return Integer(res)
+            else:
+                r = []
+                for c in py_chars:
+                    cp = alphabet["Lowercase"].find(c) + 1
+                    if cp == -1:
+                        cp = alphabet["Uppercase"].find(c) + 1
+                    r.append(cp)
+                return Expression(SymbolList, *r)
+        elif chars.has_form("List", 1, None):
+            result = []
+            for leaf in chars.leaves:
+                result.append(self.apply_alpha_str(leaf, alpha, evaluation))
+            return Expression(SymbolList, *result)
+        else:
+            return evaluation.message(self.__class__.__name__, "nas", chars)
+        return None
+
+    def apply(self, chars: List[Any], evaluation):
+        "LetterNumber[chars_]"
+
+        start_ord = ord("a") - 1
+        if isinstance(chars, String):
+            py_chars = chars.get_string_value()
+            if len(py_chars) == 1:
+                # FIXME generalize ord("a")
+                return letter_number([py_chars[0]], start_ord)[0]
+            else:
+                r = [
+                    letter_number(c, start_ord)[0] if c.isalpha() else 0
+                    for c in py_chars
+                ]
+                return Expression(SymbolList, *r)
+        elif chars.has_form("List", 1, None):
+            result = []
+            for leaf in chars.leaves:
+                result.append(self.apply(leaf, evaluation))
+            return Expression(SymbolList, *result)
+        else:
+            return evaluation.message(self.__class__.__name__, "nas", chars)
+        return None
+
+
 class HexidecimalCharacter(Builtin):
     """
     <dl>
@@ -845,7 +1043,7 @@ class StringJoin(BinaryOperator):
         "StringJoin[items___]"
 
         result = ""
-        items = items.flatten(Symbol("List"))
+        items = items.flatten(SymbolList)
         if items.get_head_name() == "System`List":
             items = items.leaves
         else:
@@ -869,7 +1067,7 @@ class StringSplit(Builtin):
     <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
         <dd>splits $s$ using multiple delimiters.
     <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
-        <dd>returns a list with the result of applying the function to 
+        <dd>returns a list with the result of applying the function to
             each element.
     </dl>
 
@@ -930,7 +1128,7 @@ class StringSplit(Builtin):
 
         if string.get_head_name() == "System`List":
             leaves = [self.apply(s, patt, evaluation, options) for s in string._leaves]
-            return Expression("List", *leaves)
+            return Expression(SymbolList, *leaves)
 
         py_string = string.get_string_value()
 
@@ -958,7 +1156,7 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return string_list("List", [String(x) for x in result if x != ""], evaluation)
+        return string_list(SymbolList, [String(x) for x in result if x != ""], evaluation)
 
 
 class StringPosition(Builtin):
@@ -1089,7 +1287,7 @@ class StringPosition(Builtin):
                 self.do_apply(py_string, compiled_patts, py_n, overlap)
                 for py_string in py_strings
             ]
-            return Expression("List", *results)
+            return Expression(SymbolList, *results)
         else:
             py_string = string.get_string_value()
             if py_string is None:
@@ -1166,7 +1364,7 @@ class _StringFind(Builtin):
         raise NotImplementedError()
 
     def _apply(self, string, rule, n, evaluation, options, cases):
-        if n.same(Symbol("System`Private`Null")):
+        if n.sameQ(Symbol("System`Private`Null")):
             expr = Expression(self.get_name(), string, rule)
             n = None
         else:
@@ -1349,6 +1547,22 @@ class StringReplace(_StringFind):
         return self._apply(string, rule, n, evaluation, options, False)
 
 
+class StringReverse(Builtin):
+    """
+    <dl>
+      <dt>'StringReverse["$string$"]'
+      <dd>reverses the order of the characters in "string".
+      </dl>
+
+      >> StringReverse["live"]
+       = evil
+    """
+
+    def apply(self, string, evaluation):
+        "StringReverse[string_String]"
+        return String(string.get_string_value()[::-1])
+
+
 class StringCases(_StringFind):
     """
     <dl>
@@ -1408,7 +1622,7 @@ class StringCases(_StringFind):
                 else:
                     yield _evaluate_match(form, match, evaluation)
 
-        return Expression("List", *list(cases()))
+        return Expression(SymbolList, *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
         "%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]"
@@ -1492,7 +1706,7 @@ class Characters(Builtin):
     def apply(self, string, evaluation):
         "Characters[string_String]"
 
-        return Expression("List", *(String(c) for c in string.value))
+        return Expression(SymbolList, *(String(c) for c in string.value))
 
 
 class CharacterRange(Builtin):
@@ -1670,15 +1884,43 @@ class ToString(Builtin):
         return String(text)
 
 
+class InterpretedBox(PrefixOperator):
+    """
+    <dl>
+      <dt>'InterpretedBox[$box$]'
+      <dd>is the ad hoc fullform for \! $box$. just
+          for internal use...
+
+    >> \! \(2+2\)
+     = 4
+    </dl>
+    """
+
+    operator = "\\!"
+    precedence = 670
+
+    def apply_dummy(self, boxes, evaluation):
+        """InterpretedBox[boxes_]"""
+        # TODO: the following is a very raw and dummy way to
+        # handle these expressions.
+        # In the first place, this should handle different kind
+        # of boxes in different ways.
+        reinput = boxes.boxes_to_text()
+        return Expression("ToExpression", reinput).evaluate(evaluation)
+
+
 class ToExpression(Builtin):
     """
     <dl>
-    <dt>'ToExpression[$input$]'
+      <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
-    <dt>'ToExpression[$input$, $form$]'
+
+      <dt>'ToExpression[$input$, $form$]'
       <dd>reads the given input in the specified $form$.
-    <dt>'ToExpression[$input$, $form$, $h$]'
+
+      <dt>'ToExpression[$input$, $form$, $h$]'
       <dd>applies the head $h$ to the expression before evaluating it.
+
     </dl>
 
     >> ToExpression["1 + 2"]
@@ -1687,11 +1929,18 @@ class ToExpression(Builtin):
     >> ToExpression["{2, 3, 1}", InputForm, Max]
      = 3
 
+    >> ToExpression["2 3", InputForm]
+     = 6
+
+    Note that newlines are like semicolons, not blanks. So so the return value is the second-line value.
+    >> ToExpression["2\[NewLine]3"]
+     = 3
+
     #> ToExpression["log(x)", InputForm]
      = log x
 
     #> ToExpression["1+"]
-     : Incomplete expression; more input is needed (line 1 of "").
+     : Incomplete expression; more input is needed (line 1 of "ToExpression['1+']").
      = $Failed
 
     #> ToExpression[]
@@ -1703,10 +1952,11 @@ class ToExpression(Builtin):
     """
     >> ToExpression["log(x)", TraditionalForm]
      = Log[x]
+    >> ToExpression["log(x)", TraditionalForm]
+     = Log[x]
     #> ToExpression["log(x)", StandardForm]
      = log x
     """
-
     attributes = ("Listable", "Protected")
 
     messages = {
@@ -1745,12 +1995,27 @@ class ToExpression(Builtin):
             )
             return
 
-        # Apply the differnet forms
+        # Apply the different forms
         if form == Symbol("InputForm"):
             if isinstance(inp, String):
-                result = evaluation.parse(inp.get_string_value())
-                if result is None:
-                    return SymbolFailed
+
+                # TODO: turn the below up into a function and call that.
+                s = inp.get_string_value()
+                short_s = s[:15] + "..." if len(s) > 16 else s
+                with io.StringIO(s) as f:
+                    f.name = """ToExpression['%s']""" % short_s
+                    feeder = MathicsFileLineFeeder(f)
+                    while not feeder.empty():
+                        try:
+                            query = parse(evaluation.definitions, feeder)
+                        except TranslateError:
+                            return SymbolFailed
+                        finally:
+                            feeder.send_messages(evaluation)
+                        if query is None:  # blank line / comment
+                            continue
+                        result = query.evaluate(evaluation)
+
             else:
                 result = inp
         else:
@@ -1841,7 +2106,7 @@ class ToCharacterCode(Builtin):
         if encoding == "Unicode":
 
             def convert(s):
-                return Expression("List", *[Integer(ord(code)) for code in s])
+                return Expression(SymbolList, *[Integer(ord(code)) for code in s])
 
         else:
             py_encoding = to_python_encoding(encoding)
@@ -1855,7 +2120,7 @@ class ToCharacterCode(Builtin):
                 )
 
         if isinstance(string, list):
-            return Expression("List", *[convert(substring) for substring in string])
+            return Expression(SymbolList, *[convert(substring) for substring in string])
         elif isinstance(string, str):
             return convert(string)
 
@@ -1965,7 +2230,7 @@ class FromCharacterCode(Builtin):
                         evaluation.message(
                             "FromCharacterCode",
                             "notunicode",
-                            Expression("List", *l),
+                            Expression(SymbolList, *l),
                             Integer(i + 1),
                         )
                         raise _InvalidCodepointError
@@ -1990,7 +2255,7 @@ class FromCharacterCode(Builtin):
                         else:
                             stringi = convert_codepoint_list([leaf])
                         list_of_strings.append(String(stringi))
-                    return Expression("List", *list_of_strings)
+                    return Expression(SymbolList, *list_of_strings)
                 else:
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
@@ -2053,6 +2318,9 @@ class StringTake(Builtin):
 
       <dt>'StringTake["$string$", {$m$, $n$, $s$}]'
       <dd>gives characters $m$ through $n$ in steps of $s$.
+
+      <dt>'StringTake[{$s1$, $s2$, ...} $spec$}]'
+      <dd>gives the list of results for each of the $si$.
     </dl>
 
     >> StringTake["abcde", 2]
@@ -2068,6 +2336,10 @@ class StringTake(Builtin):
     >> StringTake["abcdefgh", {1, 5, 2}]
      = ace
 
+    Take the last 2 characters from several strings:
+    >> StringTake[{"abcdef", "stuv", "xyzw"}, -2]
+     = {ef, uv, zw}
+
     StringTake also supports standard sequence specifications
     >> StringTake["abcdef", All]
      = abcdef
@@ -2082,17 +2354,26 @@ class StringTake(Builtin):
     #> StringTake["abc", {0, 0}]
     : Cannot take positions 0 through 0 in "abc".
     = StringTake[abc, {0, 0}]
+
+    #> StringTake[{2, 4},2]
+     : String or list of strings expected at position 1.
+     = StringTake[{2, 4}, 2]
+
+    #> StringTake["kkkl",Graphics[{}]]
+     : Integer or a list of sequence specifications expected at position 2.
+     = StringTake[kkkl, -Graphics-]
     """
 
     messages = {
-        "strse": "String expected at position 1.",
-        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "strse": "String or list of strings expected at position 1.",
+        # FIXME: mseqs should be: Sequence specification (+n, -n, {+n}, {-n}, {m, n}, or {m, n, s}) or a list
+        # of sequence specifications expected at position 2 in
+        "mseqs": "Integer or a list of sequence specifications expected at position 2.",
         "take": 'Cannot take positions `1` through `2` in "`3`".',
     }
 
     def apply(self, string, seqspec, evaluation):
-        "StringTake[string_, seqspec_]"
-
+        "StringTake[string_String, seqspec_]"
         result = string.get_string_value()
         if result is None:
             return evaluation.message("StringTake", "strse")
@@ -2116,6 +2397,17 @@ class StringTake(Builtin):
             return evaluation.message("StringTake", "take", start, stop, string)
 
         return String(result[py_slice])
+
+    def apply_strings(self, strings, spec, evaluation):
+        "StringTake[strings__, spec_]"
+        result_list = []
+        for string in strings.leaves:
+            result = self.apply(string, spec, evaluation)
+            if result is None:
+                return None
+            result_list.append(result)
+        return Expression("List", *result_list)
+
 
 
 class StringDrop(Builtin):
@@ -2147,11 +2439,11 @@ class StringDrop(Builtin):
 
     messages = {
         "strse": "String expected at position 1.",
-        "mseqs": "Integer or list of two Intergers are expected at position 2.",
+        "mseqs": "Integer or list of two Integers are expected at position 2.",
         "drop": 'Cannot drop positions `1` through `2` in "`3`".',
     }
 
-    def apply1_(self, string, n, evaluation):
+    def apply_with_n(self, string, n, evaluation):
         "StringDrop[string_,n_Integer]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse")
@@ -2169,7 +2461,7 @@ class StringDrop(Builtin):
                 return string
         return evaluation.message("StringDrop", "mseqs")
 
-    def apply2_(self, string, ni, nf, evaluation):
+    def apply_with_ni_nf(self, string, ni, nf, evaluation):
         "StringDrop[string_,{ni_Integer,nf_Integer}]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse", string)
@@ -2191,7 +2483,7 @@ class StringDrop(Builtin):
             return string  # this is what actually mma does
         return String(fullstring[: (posi - 1)] + fullstring[posf:])
 
-    def apply3_(self, string, ni, evaluation):
+    def apply_with_ni(self, string, ni, evaluation):
         "StringDrop[string_,{ni_Integer}]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse", string)
@@ -2206,7 +2498,7 @@ class StringDrop(Builtin):
             return evaluation.message("StringDrop", "drop", ni, ni, fullstring)
         return String(fullstring[: (posi - 1)] + fullstring[posi:])
 
-    def apply4_(self, string, something, evaluation):
+    def apply(self, string, something, evaluation):
         "StringDrop[string_,something___]"
         if not isinstance(string, String):
             return evaluation.message("StringDrop", "strse")
@@ -2240,17 +2532,17 @@ class HammingDistance(Builtin):
     }
 
     @staticmethod
-    def _compute(u, v, same, evaluation):
+    def _compute(u, v, sameQ, evaluation):
         if len(u) != len(v):
             evaluation.message("HammingDistance", "idim", u, v)
             return None
         else:
-            return Integer(sum(0 if same(x, y) else 1 for x, y in zip(u, v)))
+            return Integer(sum(0 if sameQ(x, y) else 1 for x, y in zip(u, v)))
 
     def apply_list(self, u, v, evaluation):
         "HammingDistance[u_List, v_List]"
         return HammingDistance._compute(
-            u.leaves, v.leaves, lambda x, y: x.same(y), evaluation
+            u.leaves, v.leaves, lambda x, y: x.sameQ(y), evaluation
         )
 
     def apply_string(self, u, v, evaluation, options):
@@ -2285,7 +2577,7 @@ class _StringDistance(Builtin):
                     py_b = py_b.lower()
             return Integer(self._distance(py_a, py_b, lambda u, v: u == v))
         elif a.get_head_name() == "System`List" and b.get_head_name() == "System`List":
-            return Integer(self._distance(a.leaves, b.leaves, lambda u, v: u.same(v)))
+            return Integer(self._distance(a.leaves, b.leaves, lambda u, v: u.sameQ(v)))
         else:
             return Expression("EditDistance", a, b)
 
@@ -2325,14 +2617,14 @@ def _levenshtein_d0(s2):  # compute D(0, ...)
     return list(range(len(s2) + 1))  # see (1), (3)
 
 
-def _levenshtein_di(c1, s2, i, d_prev, same, cost):  # compute one new row
+def _levenshtein_di(c1, s2, i, d_prev, sameQ, cost):  # compute one new row
     # given c1 = s1[i], s2, i, d_prev = D(i - 1, ...), compute D(i, ...)
 
     yield i  # start with D(i, 0) = i, see (2)
     d_curr_prev_j = i  # d_curr_prev_j stores D(i, j - 1)
 
     for j, c2 in _one_based(enumerate(s2)):  # c2 = s2[[j]]
-        cond = 0 if same(c1, c2) else cost
+        cond = 0 if sameQ(c1, c2) else cost
 
         d_curr_j = min(  # see (4)
             d_prev[j - 1] + cond,  # D(i - 1, j - 1) + cond; substitution
@@ -2344,14 +2636,14 @@ def _levenshtein_di(c1, s2, i, d_prev, same, cost):  # compute one new row
         d_curr_prev_j = d_curr_j
 
 
-def _levenshtein(s1, s2, same):
+def _levenshtein(s1, s2, sameQ: Callable[..., bool]):
     d_prev = _levenshtein_d0(s2)
     for i, c1 in _one_based(enumerate(s1)):  # c1 = s1[[i]]
-        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, same, 1))
+        d_prev = list(_levenshtein_di(c1, s2, i, d_prev, sameQ, 1))
     return d_prev[-1]
 
 
-def _damerau_levenshtein(s1, s2, same):
+def _damerau_levenshtein(s1, s2, sameQ: Callable[..., bool]):
     # _damerau_levenshtein works like _levenshtein, except for one additional
     # rule covering transposition:
     #
@@ -2361,9 +2653,9 @@ def _damerau_levenshtein(s1, s2, same):
     def row(d_prev_prev, d_prev, i, prev_c1, c1, cost):
         # given c1 = s1[i], d_prev_prev = D(i - 2), d_prev = D(i - 1),
         # prev_c1 = s1[[i - 1]], c1 = s1[[i]], compute D(i, ...)
-        for j, d_curr_j in enumerate(_levenshtein_di(c1, s2, i, d_prev, same, cost)):
+        for j, d_curr_j in enumerate(_levenshtein_di(c1, s2, i, d_prev, sameQ, cost)):
             if i > 1 and j > 1:
-                if same(c1, s2[j - 2]) and same(prev_c1, s2[j - 1]):  # transposition?
+                if sameQ(c1, s2[j - 2]) and sameQ(prev_c1, s2[j - 1]):  # transposition?
                     # i.e. if s1[[i]] = s2[[j-1]] and s1[[i-1]] = s2[[j]]
                     d_curr_j = min(d_curr_j, d_prev_prev[j - 2] + cost)
             yield d_curr_j
@@ -2378,8 +2670,8 @@ def _damerau_levenshtein(s1, s2, same):
     return d_prev[-1]
 
 
-def _levenshtein_like_or_border_cases(s1, s2, same, compute):
-    if len(s1) == len(s2) and all(same(c1, c2) for c1, c2 in zip(s1, s2)):
+def _levenshtein_like_or_border_cases(s1, s2, sameQ: Callable[..., bool], compute):
+    if len(s1) == len(s2) and all(sameQ(c1, c2) for c1, c2 in zip(s1, s2)):
         return 0
 
     if len(s1) < len(s2):
@@ -2388,7 +2680,7 @@ def _levenshtein_like_or_border_cases(s1, s2, same, compute):
     if len(s2) == 0:
         return len(s1)
 
-    return compute(s1, s2, same)
+    return compute(s1, s2, sameQ)
 
 
 class EditDistance(_StringDistance):
@@ -2424,8 +2716,8 @@ class EditDistance(_StringDistance):
      = 2
     """
 
-    def _distance(self, s1, s2, same):
-        return _levenshtein_like_or_border_cases(s1, s2, same, _levenshtein)
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
+        return _levenshtein_like_or_border_cases(s1, s2, sameQ, _levenshtein)
 
 
 class DamerauLevenshteinDistance(_StringDistance):
@@ -2462,8 +2754,8 @@ class DamerauLevenshteinDistance(_StringDistance):
      = 1
     """
 
-    def _distance(self, s1, s2, same):
-        return _levenshtein_like_or_border_cases(s1, s2, same, _damerau_levenshtein)
+    def _distance(self, s1, s2, sameQ: Callable[..., bool]):
+        return _levenshtein_like_or_border_cases(s1, s2, sameQ, _damerau_levenshtein)
 
 
 class RemoveDiacritics(Builtin):
@@ -2669,7 +2961,7 @@ class StringInsert(Builtin):
      = {XXX, XXMathicsX}
 
     >> StringInsert["1234567890123456", ".", Range[-16, -4, 3]]
-     = 1.234.567.890.123.456    """
+     = 1.234.567.890.123.456"""
 
     messages = {
         "strse": "String or list of strings expected at position `1` in `2`.",
@@ -2779,7 +3071,7 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
             return evaluation.message(
                 name, "strse", Integer(1), Expression(name, string, patt)
             )
-        return Expression("List", *[_search(re_patts, s, flags, matched) for s in py_s])
+        return Expression(SymbolList, *[_search(re_patts, s, flags, matched) for s in py_s])
     else:
         py_s = string.get_string_value()
         if py_s is None:

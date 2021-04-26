@@ -370,11 +370,11 @@ class Definitions(object):
             return name
 
         with_context = current_context + name
-        if not self.have_definition(with_context):
-            for ctx in self.get_context_path():
-                n = ctx + name
-                if self.have_definition(n):
-                    return n
+        # if not self.have_definition(with_context):
+        for ctx in self.get_context_path():
+            n = ctx + name
+            if self.have_definition(n):
+                return n
         return with_context
 
     def get_package_names(self) -> typing.List[str]:
@@ -475,6 +475,8 @@ class Definitions(object):
             self.lookup_cache[original_name] = name
         elif not only_if_exists:
             definition = Definition(name=name)
+            if name[-1] != '`':
+                self.user[name] = definition
 
         return definition
 
@@ -722,7 +724,7 @@ def get_tag_position(pattern, name) -> typing.Optional[str]:
 
 def insert_rule(values, rule) -> None:
     for index, existing in enumerate(values):
-        if existing.pattern.same(rule.pattern):
+        if existing.pattern.sameQ(rule.pattern):
             del values[index]
             break
     # use insort_left to guarantee that if equal rules exist, newer rules will
@@ -818,7 +820,7 @@ class Definition(object):
         if position:
             values = self.get_values_list(position)
             for index, existing in enumerate(values):
-                if existing.pattern.expr.same(lhs):
+                if existing.pattern.expr.sameQ(lhs):
                     del values[index]
                     return True
         return False

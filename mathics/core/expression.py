@@ -7,7 +7,7 @@ import math
 import re
 
 import typing
-from typing import Any
+from typing import Any, Optional
 from itertools import chain
 from bisect import bisect_left
 from functools import lru_cache
@@ -16,6 +16,10 @@ from functools import lru_cache
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import base64
+
+# Imperical number that seems to work.
+# We have to be able to match mpmath values with sympy values
+COMPARE_PREC = 50
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -68,7 +72,7 @@ def system_symbols_dict(d):
 
 class BoxError(Exception):
     def __init__(self, box, form) -> None:
-        super(BoxError, self).__init__("Box %s cannot be formatted as %s" % (box, form))
+        super().__init__("Box %s cannot be formatted as %s" % (box, form))
         self.box = box
         self.form = form
 
@@ -259,6 +263,21 @@ class BaseExpression(KeyComparable):
     def clear_cache(self):
         self._cache = None
 
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+
+        # If the types are the same then we'll use the classes definition of == (or __eq__).
+        # Superclasses which need to specialized this behavior should redefine equal2()
+        #
+        # I would use `is` instead `==` here, to compare classes.
+        if type(self) is type(rhs):
+            return self == rhs
+        return None
+
     def has_changed(self, definitions):
         return True
 
@@ -345,8 +364,9 @@ class BaseExpression(KeyComparable):
         # __hash__ might only hash a sample of the data available.
         raise NotImplementedError
 
-    def same(self, other) -> bool:
-        pass
+    def sameQ(self, rhs) -> bool:
+        """Mathics SameQ"""
+        return id(self) == id(rhs)
 
     def get_sequence(self):
         if self.get_head().get_name() == "System`Sequence":
@@ -684,7 +704,7 @@ class Expression(BaseExpression):
     _sequences: Any
 
     def __new__(cls, head, *leaves, **kwargs) -> "Expression":
-        self = super(Expression, cls).__new__(cls)
+        self = super().__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
         self._head = head
@@ -708,6 +728,33 @@ class Expression(BaseExpression):
     @leaves.setter
     def leaves(self, value):
         raise ValueError("Expression.leaves is write protected.")
+
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+        # if rhs is an Atom, return None
+        elif isinstance(rhs, Atom):
+            return None
+
+        # Here we only need to deal with Expressions.
+        equal_heads = self._head.equal2(rhs._head)
+        if not equal_heads:
+            return equal_heads
+        # From here, we can assume that both heads are the same
+        if self.get_head_name() in ("System`List", "System`Sequence"):
+            if len(self._leaves) != len(rhs._leaves):
+                return False
+            for item1, item2 in zip(self._leaves, rhs._leaves):
+                result = item1.equal2(item2)
+                if not result:
+                    return result
+            return True
+        elif self.get_head_name() in ("System`DirectedInfinity",):
+            return self._leaves[0].equal2(rhs._leaves[0])
+        return None
 
     def slice(self, head, py_slice, evaluation):
         # faster equivalent to: Expression(head, *self.leaves[py_slice])
@@ -870,7 +917,7 @@ class Expression(BaseExpression):
                     last_evaluated, (symbolname,)
                 ):
                     return expr
-        expr = super(Expression, self).do_format(evaluation, form)
+        expr = super().do_format(evaluation, form)
         self._format_cache[form] = (evaluation.definitions.now, expr)
         return expr
 
@@ -1183,17 +1230,18 @@ class Expression(BaseExpression):
             else:
                 return [1 if self.is_numeric() else 2, 3, self._head, self._leaves, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if id(self) == id(other):
             return True
         if self.get_head_name() != other.get_head_name():
             return False
-        if not self._head.same(other.get_head()):
+        if not self._head.sameQ(other.get_head()):
             return False
         if len(self._leaves) != len(other.get_leaves()):
             return False
         for leaf, other in zip(self._leaves, other.get_leaves()):
-            if not leaf.same(other):
+            if not leaf.sameQ(other):
                 return False
         return True
 
@@ -1207,7 +1255,7 @@ class Expression(BaseExpression):
         sub_level = None if level is None else level - 1
         do_flatten = False
         for leaf in self._leaves:
-            if leaf.get_head().same(head) and (
+            if leaf.get_head().sameQ(head) and (
                 not pattern_only or leaf.pattern_sequence
             ):
                 do_flatten = True
@@ -1215,7 +1263,7 @@ class Expression(BaseExpression):
         if do_flatten:
             new_leaves = []
             for leaf in self._leaves:
-                if leaf.get_head().same(head) and (
+                if leaf.get_head().sameQ(head) and (
                     not pattern_only or leaf.pattern_sequence
                 ):
                     new_leaf = leaf.flatten(
@@ -1365,7 +1413,7 @@ class Expression(BaseExpression):
         if "System`Listable" in attributes:
             done, threaded = new.thread(evaluation)
             if done:
-                if threaded.same(new):
+                if threaded.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
@@ -1394,7 +1442,7 @@ class Expression(BaseExpression):
             if result is not None:
                 if isinstance(result, BoxConstruct):
                     return result, False
-                if result.same(new):
+                if result.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
@@ -1465,6 +1513,8 @@ class Expression(BaseExpression):
             )
         elif self.has_form("SuperscriptBox", 2):
             return "^".join([leaf.boxes_to_text(**options) for leaf in self._leaves])
+        elif self.has_form("FractionBox", 2):
+            return "/".join([" ( " + leaf.boxes_to_text(**options)+ " ) " for leaf in self._leaves])
         else:
             raise BoxError(self, "text")
 
@@ -1537,7 +1587,9 @@ class Expression(BaseExpression):
                     self._leaves[1].boxes_to_mathml(**options),
                 )
             elif name == "System`SqrtBox" and len(self._leaves) == 1:
-                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_mathml(**options))
+                return "<msqrt>%s</msqrt>" % (
+                    self._leaves[0].boxes_to_mathml(**options)
+                )
             elif name == "System`GraphBox":
                 return "<mi>%s</mi>" % (self._leaves[0].boxes_to_mathml(**options))
             else:
@@ -1640,9 +1692,7 @@ class Expression(BaseExpression):
             return Expression(expr._head, *[apply_leaf(leaf) for leaf in expr._leaves])
 
         if options is None:  # default ReplaceAll mode; replace breadth first
-            result, applied = super(Expression, self).apply_rules(
-                rules, evaluation, level, options
-            )
+            result, applied = super().apply_rules(rules, evaluation, level, options)
             if applied:
                 return result, True
             head, applied = self._head.apply_rules(rules, evaluation, level, options)
@@ -1753,7 +1803,7 @@ class Expression(BaseExpression):
         items = []
         dim = None
         for leaf in self._leaves:
-            if leaf.get_head().same(head):
+            if leaf.get_head().sameQ(head):
                 if dim is None:
                     dim = len(leaf._leaves)
                     items = [(items + [innerleaf]) for innerleaf in leaf._leaves]
@@ -1838,6 +1888,16 @@ class Atom(BaseExpression):
     def is_atom(self) -> bool:
         return True
 
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==)
+        returns True if self and rhs are identical.
+        """
+        if self.sameQ(rhs):
+            return True
+        if isinstance(rhs, Symbol) or not isinstance(rhs, Atom):
+            return None
+        return self == rhs
+
     def has_form(self, heads, *leaf_counts) -> bool:
         if leaf_counts:
             return False
@@ -1892,11 +1952,16 @@ class Atom(BaseExpression):
 class Symbol(Atom):
     name: str
     sympy_dummy: Any
+    defined_symbols = {}
 
     def __new__(cls, name, sympy_dummy=None):
-        self = super(Symbol, cls).__new__(cls)
-        self.name = ensure_context(name)
-        self.sympy_dummy = sympy_dummy
+        name = ensure_context(name)
+        self = cls.defined_symbols.get(name, None)
+        if self is None:
+            self = super(Symbol, cls).__new__(cls)
+            self.name = name
+            self.sympy_dummy = sympy_dummy
+            # cls.defined_symbols[name] = self
         return self
 
     def __str__(self) -> str:
@@ -1968,8 +2033,22 @@ class Symbol(Atom):
                 1,
             ]
 
-    def same(self, other) -> bool:
-        return isinstance(other, Symbol) and self.name == other.name
+    def equal2(self, rhs: Any) -> Optional[bool]:
+        """Mathics two-argument Equal (==) """
+        if self.sameQ(rhs):
+            return True
+
+        # Booleans are treated like constants, but all other symbols
+        # are treated None. We could create a Bool class and
+        # define equal2 in that, but for just this doesn't
+        # seem to be worth it. If other things come up, this may change.
+        if self in (SymbolTrue, SymbolFalse) and rhs in (SymbolTrue, SymbolFalse):
+            return self == rhs
+        return None
+
+    def sameQ(self, rhs: Any) -> bool:
+        """Mathics SameQ"""
+        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self.name == rhs.name
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
@@ -1986,7 +2065,7 @@ class Symbol(Atom):
         rules = evaluation.definitions.get_ownvalues(self.name)
         for rule in rules:
             result = rule.apply(self, evaluation, fully=True)
-            if result is not None and not result.same(self):
+            if result is not None and not result.sameQ(self):
                 return result.evaluate(evaluation)
         return self
 
@@ -2008,7 +2087,7 @@ class Symbol(Atom):
         return (self.name, self.sympy_dummy)
 
 
-# Some common Symbols
+# Some common Symbols. This list is sorted in alpabetic order.
 SymbolAborted = Symbol("$Aborted")
 SymbolAssociation = Symbol("Association")
 SymbolByteArray = Symbol("ByteArray")
@@ -2024,15 +2103,7 @@ SymbolNull = Symbol("Null")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
-SymbolAborted = Symbol("$Aborted")
-SymbolInfinity = Symbol("Infinity")
-SymbolList = Symbol("List")
-SymbolByteArray = Symbol("ByteArray")
-SymbolAssociation = Symbol("Association")
-SymbolMakeBoxes = Symbol("MakeBoxes")
-SymbolN = Symbol("N")
-SymbolRule = Symbol("Rule")
-SymbolSequence = Symbol("Sequence")
+SymbolUndefined = Symbol("Undefined")
 
 
 @lru_cache(maxsize=1024)
@@ -2114,6 +2185,10 @@ class Integer(Number):
         self.value = n
         return self
 
+    @lru_cache()
+    def __init__(self, value) -> "Integer":
+        super().__init__()
+
     def boxes_to_text(self, **options) -> str:
         return str(self.value)
 
@@ -2150,7 +2225,8 @@ class Integer(Number):
     def get_int_value(self) -> int:
         return self.value
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, Integer) and self.value == other.value
 
     def evaluate(self, evaluation):
@@ -2159,7 +2235,7 @@ class Integer(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Integer, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 0, self.value, 0, 1]
 
@@ -2183,9 +2259,13 @@ class Integer(Number):
         return self.value == 0
 
 
+Integer1 = Integer(1)
+
+
 class Rational(Number):
+    @lru_cache()
     def __new__(cls, numerator, denominator=1) -> "Rational":
-        self = super(Rational, cls).__new__(cls)
+        self = super().__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
 
@@ -2207,7 +2287,8 @@ class Rational(Number):
         else:
             return PrecisionReal(self.value.n(d))
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, Rational) and self.value == other.value
 
     def numerator(self) -> "Integer":
@@ -2244,7 +2325,7 @@ class Rational(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Rational, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             # HACK: otherwise "Bus error" when comparing 1==1.
             return [0, 0, sympy.Float(self.value), 0, 1]
@@ -2318,7 +2399,7 @@ class Real(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Real, self).get_sort_key(True)
+            return super().get_sort_key(True)
         return [0, 0, self.value, 0, 1]
 
     def __eq__(self, other) -> bool:
@@ -2380,7 +2461,8 @@ class MachineReal(Real):
     def round(self, d=None) -> "MachineReal":
         return self
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if isinstance(other, MachineReal):
             return self.value == other.value
         elif isinstance(other, PrecisionReal):
@@ -2459,7 +2541,8 @@ class PrecisionReal(Real):
             d = min(dps(self.get_precision()), d)
             return PrecisionReal(self.value.n(d))
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if isinstance(other, PrecisionReal):
             return self.value == other.value
         elif isinstance(other, MachineReal):
@@ -2500,13 +2583,13 @@ class Complex(Number):
     imag: Any
 
     def __new__(cls, real, imag):
-        self = super(Complex, cls).__new__(cls)
+        self = super().__new__(cls)
         if isinstance(real, Complex) or not isinstance(real, Number):
             raise ValueError("Argument 'real' must be a real number.")
         if isinstance(imag, Complex) or not isinstance(imag, Number):
             raise ValueError("Argument 'imag' must be a real number.")
 
-        if imag.same(Integer(0)):
+        if imag.sameQ(Integer(0)):
             return real
 
         if isinstance(real, MachineReal) and not isinstance(imag, MachineReal):
@@ -2542,7 +2625,7 @@ class Complex(Number):
         parts: typing.List[Any] = []
         if self.is_machine_precision() or not self.real.is_zero:
             parts.append(self.real)
-        if self.imag.same(Integer(1)):
+        if self.imag.sameQ(Integer(1)):
             parts.append(Symbol("I"))
         else:
             parts.append(Expression("Times", self.imag, Symbol("I")))
@@ -2562,11 +2645,12 @@ class Complex(Number):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(Complex, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 0, self.real.get_sort_key()[2], self.imag.get_sort_key()[2], 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return (
             isinstance(other, Complex)
             and self.real == other.real
@@ -2717,7 +2801,7 @@ class String(Atom):
     value: str
 
     def __new__(cls, value):
-        self = super(String, cls).__new__(cls)
+        self = super().__new__(cls)
         self.value = str(value)
         return self
 
@@ -2857,11 +2941,12 @@ class String(Atom):
 
     def get_sort_key(self, pattern_sort=False):
         if pattern_sort:
-            return super(String, self).get_sort_key(True)
+            return super().get_sort_key(True)
         else:
             return [0, 1, self.value, 0, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         return isinstance(other, String) and self.value == other.value
 
     def get_string_value(self) -> str:
@@ -2916,7 +3001,7 @@ class ByteArrayAtom(Atom):
         res = String('""' + self.__str__() + '""')
         return res
 
-    def do_copy(self) -> "ByteArray":
+    def do_copy(self) -> "ByteArrayAtom":
         return ByteArrayAtom(self.value)
 
     def default_format(self, evaluation, form) -> str:
@@ -2929,7 +3014,8 @@ class ByteArrayAtom(Atom):
         else:
             return [0, 1, self.value, 0, 1]
 
-    def same(self, other) -> bool:
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         # FIX: check
         if isinstance(other, ByteArrayAtom):
             return self.value == other.value
@@ -2961,7 +3047,7 @@ class ByteArrayAtom(Atom):
 
 class StringFromPython(String):
     def __new__(cls, value):
-        self = super(StringFromPython, cls).__new__(cls, value)
+        self = super().__new__(cls, value)
         if isinstance(value, sympy.NumberSymbol):
             self.value = "sympy." + str(value)
 
@@ -2987,7 +3073,7 @@ def get_default_value(name, evaluation, k=None, n=None):
             name, "System`DefaultValues", defaultexpr, evaluation
         )
         if result is not None:
-            if result.same(defaultexpr):
+            if result.sameQ(defaultexpr):
                 result = result.evaluate(evaluation)
             return result
     return None

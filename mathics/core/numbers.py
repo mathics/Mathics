@@ -90,7 +90,8 @@ def get_type(value) -> typing.Optional[str]:
         return None
 
 
-def same(v1, v2) -> bool:
+def sameQ(v1, v2) -> bool:
+    """Mathics SameQ"""
     return get_type(v1) == get_type(v2) and v1 == v2
 
 
