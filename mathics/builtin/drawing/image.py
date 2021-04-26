@@ -21,7 +21,7 @@ from mathics.core.expression import (
     SymbolRule,
     from_python,
 )
-from mathics.builtin.colors import (
+from mathics.builtin.drawing.colors import (
     convert as convert_color,
     colorspaces as known_colorspaces,
 )
@@ -1294,7 +1294,7 @@ class ColorConvert(Builtin):
         if isinstance(input, Image):
             return input.color_convert(colorspace.get_string_value())
         else:
-            from mathics.builtin.graphics import (
+            from mathics.builtin.drawing.graphics import (
                 expression_to_color,
                 color_to_expression,
             )
@@ -1599,7 +1599,7 @@ class Colorize(_ImageBuiltin):
         ):
             color_function = String("LakeColors")
 
-        from mathics.builtin.plot import gradient_palette
+        from mathics.builtin.drawing.plot import gradient_palette
 
         cmap = gradient_palette(color_function, n, evaluation)
         if not cmap:

@@ -34,7 +34,7 @@ from mathics.core.expression import (
     system_symbols_dict,
     from_python,
 )
-from mathics.builtin.colors import convert as convert_color
+from mathics.builtin.drawing.colors import convert as convert_color
 from mathics.core.numbers import machine_epsilon
 
 GRAPHICS_OPTIONS = {
@@ -60,7 +60,7 @@ class ColorError(BoxConstructError):
 
 
 def get_class(name):
-    from mathics.builtin.graphics3d import GLOBALS3D
+    from mathics.builtin.drawing.graphics3d import GLOBALS3D
 
     c = GLOBALS.get(name)
     if c is None:
@@ -524,7 +524,7 @@ class Graphics(Builtin):
                 options[option] = Expression(SymbolN, options[option]).evaluate(
                     evaluation
                 )
-        from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+        from mathics.builtin.drawing.graphics3d import Graphics3DBox, Graphics3D
 
         if type(self) is Graphics:
             return GraphicsBox(

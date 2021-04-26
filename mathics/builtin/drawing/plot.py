@@ -24,12 +24,13 @@ from mathics.core.expression import (
     SymbolN,
     SymbolRule,
 )
+
 from mathics.builtin.base import Builtin
-from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.drawing.graphics import Graphics
+from mathics.builtin.drawing.graphics3d import Graphics3D
+from mathics.builtin.numbers.numeric import chop
 from mathics.builtin.options import options_to_rules
-from mathics.builtin.numeric import chop
-from mathics.builtin.graphics import Graphics
-from mathics.builtin.graphics3d import Graphics3D
+from mathics.builtin.scoping import dynamic_scoping
 
 
 try:
@@ -64,7 +65,7 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
     if len(colors.leaves) != n:
         return
 
-    from mathics.builtin.graphics import expression_to_color, ColorError
+    from mathics.builtin.drawing.graphics import expression_to_color, ColorError
 
     try:
         objects = [expression_to_color(x) for x in colors.leaves]

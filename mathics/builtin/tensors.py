@@ -480,7 +480,7 @@ def get_default_distance(p):
     elif all(isinstance(q, String) for q in p):
         return "EditDistance"
     else:
-        from mathics.builtin.graphics import expression_to_color
+        from mathics.builtin.drawing.graphics import expression_to_color
 
         if all(expression_to_color(q) is not None for q in p):
             return "ColorDistance"

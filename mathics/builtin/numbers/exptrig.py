@@ -21,8 +21,8 @@ from mathics.core.expression import (
     Symbol,
 )
 
-from mathics.builtin.numeric import Fold
-from mathics.builtin.arithmetic import _MPMathFunction
+from mathics.builtin.numbers.numeric import Fold
+from mathics.builtin.numbers.arithmetic import _MPMathFunction
 
 
 class AnglePath(Builtin):

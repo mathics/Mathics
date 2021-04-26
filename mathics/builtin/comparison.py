@@ -13,7 +13,7 @@ from mathics.builtin.base import (
     SympyFunction,
 )
 
-from mathics.builtin.constants import mp_convert_constant
+from mathics.builtin.numbers.constants import mp_convert_constant
 
 from mathics.core.expression import (
     COMPARE_PREC,

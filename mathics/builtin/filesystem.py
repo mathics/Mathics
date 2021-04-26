@@ -15,7 +15,6 @@ import os.path as osp
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.expression import (
-    BaseExpression,
     Expression,
     String,
     Symbol,
@@ -38,8 +37,12 @@ from mathics.core.streams import (
 )
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.builtin.files import DIRECTORY_STACK, INITIAL_DIR, mathics_open
-from mathics.builtin.numeric import Hash
+from mathics.builtin.files import (
+    DIRECTORY_STACK,
+    INITIAL_DIR,  # noqa is used via global
+    mathics_open
+    )
+from mathics.builtin.numbers.numeric import Hash
 from mathics.builtin.strings import to_regex
 from mathics.builtin.base import MessageException
 import re
