@@ -1469,7 +1469,7 @@ class _CoefficientHandler(Builtin):
                 return powers
             return powers
 
-        def split_coeff_pow(term: Expression) -> tuple[Expression, Expression]:
+        def split_coeff_pow(term):
             """
             This function factorizes term in a coefficent free 
             of powers of the target variables, and a factor with
