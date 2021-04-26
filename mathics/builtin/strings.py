@@ -760,7 +760,7 @@ class LetterNumber(Builtin):
     """
     # FIXME: put the right unicode characters in a way that the
     # following test works...
-    """
+    r"""
     # #> LetterNumber["\[CapitalBeta]", "Greek"]
     #  = 2
 
@@ -1891,7 +1891,7 @@ class ToString(Builtin):
 
 
 class InterpretedBox(PrefixOperator):
-    """
+    r"""
     <dl>
       <dt>'InterpretedBox[$box$]'
       <dd>is the ad hoc fullform for \! $box$. just
@@ -1916,7 +1916,7 @@ class InterpretedBox(PrefixOperator):
 
 
 class ToExpression(Builtin):
-    """
+    r"""
     <dl>
       <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
