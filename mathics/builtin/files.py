@@ -2479,9 +2479,7 @@ class Close(Builtin):
     def apply(self, channel, evaluation):
         "Close[channel_]"
 
-        if channel.has_form("InputStream", 2) or channel.has_form(  # noqa
-            "OutputStream", 2
-        ):
+        if channel.has_form(("InputStream", "OutputStream"), 2):
             [name, n] = channel.get_leaves()
             stream = stream_manager.lookup_stream(n.get_int_value())
         else:

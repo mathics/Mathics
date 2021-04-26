@@ -370,11 +370,11 @@ class Definitions(object):
             return name
 
         with_context = current_context + name
-        if not self.have_definition(with_context):
-            for ctx in self.get_context_path():
-                n = ctx + name
-                if self.have_definition(n):
-                    return n
+        # if not self.have_definition(with_context):
+        for ctx in self.get_context_path():
+            n = ctx + name
+            if self.have_definition(n):
+                return n
         return with_context
 
     def get_package_names(self) -> typing.List[str]:
@@ -475,6 +475,8 @@ class Definitions(object):
             self.lookup_cache[original_name] = name
         elif not only_if_exists:
             definition = Definition(name=name)
+            if name[-1] != '`':
+                self.user[name] = definition
 
         return definition
 
