@@ -7,7 +7,7 @@ import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-# Get a list of file in this directory. We'll exclude from the start
+# Get a list of files in this directory. We'll exclude from the start
 # files with leading characters we don't want like __init__ with its leading underscore.
 __py_files__ = [
     osp.basename(f[0:-3])
@@ -17,10 +17,35 @@ __py_files__ = [
 from mathics.builtin.base import (
     Builtin,
     SympyObject,
-    BoxConstruct,
     Operator,
     PatternObject,
 )
+
+def import_builtins(module_names):
+    for module_name in module_names:
+        try:
+            module = importlib.import_module("mathics.builtin." + module_name)
+        except Exception as e:
+            print(e)
+            print(f"    Not able to load {module_name}. Check your installation.")
+            print(f"    mathics.builtin loads from {__file__[:-11]}")
+            continue
+
+        if __version__ != module.__version__:
+            print(
+                f"Version {module.__version__} in the module do not match with {__version__}"
+            )
+
+        modules.append(module)
+
+def is_builtin(var):
+    if var == Builtin:
+        return True
+    if hasattr(var, "__bases__"):
+        return any(is_builtin(base) for base in var.__bases__)
+    return False
+
+
 
 exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
 module_names = [
@@ -31,33 +56,10 @@ if ENABLE_FILES_MODULE:
     module_names += ["files", "importexport"]
 
 modules = []
-
-for module_name in module_names:
-    try:
-        module = importlib.import_module("mathics.builtin." + module_name)
-    except Exception as e:
-        print(e)
-        print(f"    Not able to load {module_name}. Check your installation.")
-        print(f"    mathics.builtin loads from {__file__[:-11]}")
-        continue
-
-    if __version__ != module.__version__:
-        print(
-            f"Version {module.__version__} in the module do not match with {__version__}"
-        )
-
-    modules.append(module)
+import_builtins(module_names)
 
 _builtins = []
 builtins_by_module = {}
-
-
-def is_builtin(var):
-    if var == Builtin:
-        return True
-    if hasattr(var, "__bases__"):
-        return any(is_builtin(base) for base in var.__bases__)
-    return False
 
 
 for module in modules:

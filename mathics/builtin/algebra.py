@@ -1257,7 +1257,7 @@ class CoefficientList(Builtin):
         if expr == Integer(0):
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0), Integer0)
+            return Expression("List", Integer(0))
         elif e_null and not f_null:
             return Expression("List", SymbolNull)
         elif f_null:

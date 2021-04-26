@@ -1307,8 +1307,10 @@ class Arg(_MPMathFunction):
     rules = {"Arg[DirectedInfinity[]]": "1",
              "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
-    sympy_name = "arg"
+    attributes = ("Listable", "NumericFunction")
+
     mpmath_name = "arg"
+    sympy_name = "arg"
 
 
 class Sign(SympyFunction):
