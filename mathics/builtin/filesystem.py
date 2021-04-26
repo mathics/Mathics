@@ -299,7 +299,9 @@ class CreateFile(Builtin):
         "OverwriteTarget": "True",
     }
 
-    def apply_1(self, filename, evaluation, **options):
+    attributes = ("Listable", "Protected")
+
+    def apply(self, filename, evaluation, **options):
         "CreateFile[filename_String, OptionsPattern[CreateFile]]"
         try:
             # TODO: Implement options

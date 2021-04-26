@@ -828,6 +828,8 @@ class Log2(Builtin):
      = 2 / Log[2]
     """
 
+    attributes = ("Listable", "NumericFunction", "Protected")
+
     rules = {
         "Log2[x_]": "Log[2, x]",
     }
@@ -847,6 +849,8 @@ class Log10(Builtin):
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     rules = {
         "Log10[x_]": "Log[10, x]",
@@ -876,6 +880,7 @@ class LogisticSigmoid(Builtin):
     attributes = (
         "Listable",
         "NumericFunction",
+        "Protected",
     )
 
     rules = {"LogisticSigmoid[z_?NumberQ]": "1 / (1 + Exp[-z])"}

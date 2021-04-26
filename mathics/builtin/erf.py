@@ -127,7 +127,8 @@ class InverseErf(_MPMathFunction):
      = {1.16309, Infinity, InverseErf[1.1]}
     """
 
-    # attributes = ("Listable", "NumericFunction") # inherited
+    # No inherited NumericFunction
+    attributes = ("Listable", "Protected")
 
     sympy_name = "erfinv"
     mpmath_name = "erfinv"
@@ -158,7 +159,8 @@ class InverseErfc(_MPMathFunction):
      = {Infinity, 0, -Infinity}
     """
 
-    # attributes = ("Listable", "NumericFunction") # inherited
+    # No inherited NumericFunction
+    attributes = ("Listable", "Protected")
     sympy_name = "erfcinv"
 
     rules = {

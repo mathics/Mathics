@@ -2333,6 +2333,8 @@ class Range(Builtin):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ]": "Range[imin, imax, 1]",
     }
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, imin, imax, di, evaluation):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]"
 
