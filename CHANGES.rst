@@ -20,6 +20,7 @@ New builtins
 Enhancements
 ++++++++++++
 
+* ``Attributes`` accepts a string parameter.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``FileNames`` returns a sorted list (#1250).
@@ -37,8 +38,9 @@ Bug fixes
 +++++++++
 
 * ``SetTagDelayed`` now does not evaluate the RHS before assignment.
-* ``$InstallationDirectory`` starts out `Unprotected`.
+* ``$InstallationDirectory`` starts out ``Unprotected``.
 * ``FindRoot`` now handles equations.
+* Functions gone over to ensure the ``Listable`` and ``NumericFunction`` properties are correct.
 
 
 2.1.0
