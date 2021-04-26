@@ -712,7 +712,7 @@ class Alphabet(Builtin):
         alphakey = alpha.get_string_value()
         alphakey = alphabet_alias[alphakey]
         if alphakey is None:
-            evaluation.message("Alphabet", "nalph", alpha)            
+            evaluation.message("Alphabet", "nalph", alpha)
             return
         alphabet = alphabet_descriptions.get(alphakey, None)
         if alphabet is None:
@@ -756,7 +756,7 @@ class LetterNumber(Builtin):
 
     >> LetterNumber["\[Beta]", "Greek"]
      = 2
-    
+
     """
     # FIXME: put the right unicode characters in a way that the
     # following test works...
@@ -1558,6 +1558,8 @@ class StringReverse(Builtin):
        = evil
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, string, evaluation):
         "StringReverse[string_String]"
         return String(string.get_string_value()[::-1])
@@ -1796,6 +1798,8 @@ class ToLowerCase(Builtin):
      = new york
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, s, evaluation):
         "ToLowerCase[s_String]"
         return String(s.get_string_value().lower())
@@ -1830,6 +1834,8 @@ class ToUpperCase(Builtin):
     >> ToUpperCase["New York"]
      = NEW YORK
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, s, evaluation):
         "ToUpperCase[s_String]"

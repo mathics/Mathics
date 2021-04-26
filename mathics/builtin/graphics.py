@@ -1698,6 +1698,7 @@ def _asy_bezier(*segments):
 
 
 class BernsteinBasis(Builtin):
+    attributes = ("Listable", "NumericFunction", "Protected")
     rules = {
         "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
     }

@@ -154,6 +154,8 @@ class EvenQ(Test):
      = False
     """
 
+    attributes = ("Listable", "Protected")
+
     def test(self, n):
         value = n.get_int_value()
         return value is not None and value % 2 == 0
@@ -214,6 +216,8 @@ class FactorInteger(Builtin):
     >> FactorInteger[2010 / 2011]
      = {{2, 1}, {3, 1}, {5, 1}, {67, 1}, {2011, -1}}
     """
+
+    attributes = ("Listable", "Protected")
 
     # TODO: GausianIntegers option
     # e.g. FactorInteger[5, GaussianIntegers -> True]
@@ -387,6 +391,8 @@ class IntegerExponent(Builtin):
     >> IntegerExponent[10, b]
      = IntegerExponent[10, b]
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "IntegerExponent[n_]": "IntegerExponent[n, 10]",
@@ -662,8 +668,8 @@ class NextPrime(Builtin):
 class OddQ(Test):
     """
     <dl>
-    <dt>'OddQ[$x$]'
-        <dd>returns 'True' if $x$ is odd, and 'False' otherwise.
+      <dt>'OddQ[$x$]'
+      <dd>returns 'True' if $x$ is odd, and 'False' otherwise.
     </dl>
 
     >> OddQ[-3]
@@ -671,6 +677,9 @@ class OddQ(Test):
     >> OddQ[0]
      = False
     """
+
+    attributes = ("Listable", "Protected")
+
 
     def test(self, n):
         value = n.get_int_value()
@@ -688,7 +697,7 @@ class PartitionsP(SympyFunction):
      = {0, 0, 1, 1, 2, 3, 5, 7, 11, 15, 22, 30, 42, 56, 77}
     """
 
-    attributes = ("Listable", "NumericFunction", "Orderless")
+    attributes = ("Listable", "NumericFunction", "Orderless", "Protected")
     sympy_name = "npartitions"
 
     def apply(self, n, evaluation):

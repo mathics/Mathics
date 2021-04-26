@@ -1084,7 +1084,7 @@ class DiscreteLimit(Builtin):
      = 1 / E
     """
 
-    attributes = ("Listable",)
+    attributes = ("Listable", "Protected")
 
     options = {
         "Trials": "5",

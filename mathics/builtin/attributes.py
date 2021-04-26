@@ -17,19 +17,28 @@ from mathics.builtin.assignment import get_symbol_list
 class Attributes(Builtin):
     """
     <dl>
-    <dt>'Attributes'[$symbol$]
-        <dd>returns the attributes of $symbol$.
-    <dt>'Attributes'[$symbol$] = {$attr1$, $attr2$}
-        <dd>sets the attributes of $symbol$, replacing any existing attributes.
+      <dt>'Attributes'[$symbol$]
+      <dd>returns the attributes of $symbol$.
+
+      <dt>'Attributes'["$string$"]
+      <dd>returns the attributes of 'Symbol'["$string$"].
+
+      <dt>'Attributes'[$symbol$] = {$attr1$, $attr2$}
+      <dd>sets the attributes of $symbol$, replacing any existing attributes.
     </dl>
 
     >> Attributes[Plus]
      = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+
+    >> Attributes["Plus"]
+     = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
+
     'Attributes' always considers the head of an expression:
     >> Attributes[a + b + c]
      = {Flat, Listable, NumericFunction, OneIdentity, Orderless, Protected}
 
     You can assign values to 'Attributes' to set attributes:
+
     >> Attributes[f] = {Flat, Orderless}
      = {Flat, Orderless}
     >> f[b, f[a, c]]
@@ -50,6 +59,8 @@ class Attributes(Builtin):
     def apply(self, expr, evaluation):
         "Attributes[expr_]"
 
+        if isinstance(expr, String):
+            expr = Symbol(expr.get_string_value())
         name = expr.get_lookup_name()
         attributes = list(evaluation.definitions.get_attributes(name))
         attributes.sort()
