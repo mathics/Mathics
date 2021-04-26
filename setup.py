@@ -64,17 +64,27 @@ except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
 else:
-    EXTENSIONS = {
-        "core": ["expression", "numbers", "rules", "pattern"],
-        "builtin": ["arithmetic", "numeric", "patterns", "graphics"],
+    EXTENSIONS_DICT = {
+        "core": ("expression", "numbers", "rules", "pattern"),
+        "builtin": ("patterns",),
     }
     EXTENSIONS = [
         Extension(
             "mathics.%s.%s" % (parent, module), ["mathics/%s/%s.py" % (parent, module)]
         )
-        for parent, modules in EXTENSIONS.items()
+        for parent, modules in EXTENSIONS_DICT.items()
         for module in modules
     ]
+    # EXTENSIONS_SUBDIR_DICT = {
+    #     "builtin": [("numbers", "arithmetic"), ("numbers", "numeric"), ("drawing", "graphics")],
+    # }
+    # EXTENSIONS.append(
+    #     Extension(
+    #         "mathics.%s.%s.%s" % (parent, module[0], module[1]), ["mathics/%s/%s/%s.py" % (parent, module[0], module[1])]
+    #     )
+    #     for parent, modules in EXTENSIONS_SUBDIR_DICT.items()
+    #     for module in modules
+    # )
     CMDCLASS = {"build_ext": build_ext}
     INSTALL_REQUIRES += ["cython>=0.15.1"]
 
