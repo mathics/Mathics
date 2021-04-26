@@ -630,7 +630,10 @@ class _StopGeneratorMatchQ(StopGenerator):
 
 class Matcher(object):
     def __init__(self, form):
-        self.form = Pattern.create(form)
+        if isinstance(form, Pattern):
+            self.form = form
+        else:
+            self.form = Pattern.create(form)
 
     def match(self, expr, evaluation):
         def yield_func(vars, rest):

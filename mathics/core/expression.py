@@ -2258,9 +2258,8 @@ class Integer(Number):
     def is_zero(self) -> bool:
         return self.value == 0
 
-
+Integer0 = Integer(0)
 Integer1 = Integer(1)
-
 
 class Rational(Number):
     @lru_cache()
@@ -2355,6 +2354,7 @@ class Rational(Number):
             self.numerator().is_zero
         )  # (implicit) and not (self.denominator().is_zero)
 
+RationalOneHalf = Rational(1, 2)
 
 class Real(Number):
     def __new__(cls, value, p=None) -> "Real":
