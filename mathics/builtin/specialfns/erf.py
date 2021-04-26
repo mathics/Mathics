@@ -6,7 +6,7 @@ Error Function and Related Functions
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
+from mathics.builtin.numbers.arithmetic import _MPMathFunction, _MPMathMultiFunction
 
 class Erf(_MPMathMultiFunction):
     """

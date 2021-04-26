@@ -52,7 +52,7 @@ from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
 from mathics.core.rules import Pattern
 from mathics.core.convert import from_sympy
-from mathics.builtin.algebra import cancel
+from mathics.builtin.numbers.algebra import cancel
 from mathics.algorithm.introselect import introselect
 from mathics.algorithm.clusters import (
     optimize,

@@ -35,7 +35,6 @@ from mathics.core.expression import (
     String,
     Symbol,
     SymbolFailed,
-    SymbolFalse,
     SymbolNull,
     SymbolTrue,
     from_mpmath,
@@ -46,10 +45,8 @@ from mathics.core.streams import (
     Stream,
     path_search,
     stream_manager,
-    urlsave_tmp,
 )
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
-from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_python_encoding
 from mathics.builtin.base import MessageException
 
