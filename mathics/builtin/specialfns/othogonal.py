@@ -1,19 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """
-Special Functions
+Orthogonal Polynomials
 """
-
-
-import mpmath
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin
-from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
-from mathics.core.expression import Integer, from_mpmath
-from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError
-from mathics.core.numbers import prec as _prec
 
+from mathics.builtin.arithmetic import _MPMathFunction
+from mathics.core.expression import Integer
 
 class ChebyshevT(_MPMathFunction):
     """
@@ -93,37 +85,6 @@ class HermiteH(_MPMathFunction):
     sympy_name = "hermite"
     mpmath_name = "hermite"
 
-class ExpIntegralE(_MPMathFunction):
-    """
-    <dl>
-    <dt>'ExpIntegralE[$n$, $z$]'
-      <dd>returns the exponential integral function $E_n(z)$.
-    </dl>
-
-    >> ExpIntegralE[2.0, 2.0]
-     = 0.0375343
-    """
-
-    nargs = 2
-    sympy_name = "expint"
-    mpmath_name = "expint"
-
-
-class ExpIntegralEi(_MPMathFunction):
-    """
-    <dl>
-    <dt>'ExpIntegralEi[$z$]'
-      <dd>returns the exponential integral function $Ei(z)$.
-    </dl>
-
-    >> ExpIntegralEi[2.0]
-     = 4.95423
-    """
-
-    sympy_name = "Ei"
-    mpmath_name = "ei"
-
-
 class JacobiP(_MPMathFunction):
     """
     <dl>
@@ -141,38 +102,6 @@ class JacobiP(_MPMathFunction):
     nargs = 4
     sympy_name = "jacobi"
     mpmath_name = "jacobi"
-
-
-class LerchPhi(_MPMathFunction):
-    """
-    <dl>
-    <dt>'LerchPhi[z,s,a]'
-        <dd>gives the Lerch transcendent Φ(z,s,a).
-    </dl>
-
-    >> LerchPhi[2, 3, -1.5]
-     = 19.3893 - 2.1346 I
-
-    >> LerchPhi[1, 2, 1/4]
-     = 17.1973
-    """
-
-    # attributes = ("Listable", "NumericFunction") # inherited
-
-    mpmath_name = "lerchphi"
-    sympy_name = "lerchphi"
-
-    def apply(self, z, s, a, evaluation):
-        "%(name)s[z_, s_, a_]"
-
-        py_z = z.to_python()
-        py_s = s.to_python()
-        py_a = a.to_python()
-        try:
-            return from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
-        except:
-            pass
-            # return sympy.expand_func(sympy.lerchphi(py_z, py_s, py_a))
 
 
 class LaguerreL(_MPMathFunction):
@@ -207,38 +136,94 @@ class LaguerreL(_MPMathFunction):
             return [leaves[0], leaves[2], leaves[1]]
         return leaves
 
-class ProductLog(_MPMathFunction):
+class LegendreP(_MPMathFunction):
     """
     <dl>
-    <dt>'ProductLog[$z$]'
-        <dd>returns the value of the Lambert W function at $z$.
+    <dt>'LegendreP[$n$, $x$]'
+      <dd>returns the Legendre polynomial P_$n$($x$).
+    <dt>'LegendreP[$n$, $m$, $x$]'
+      <dd>returns the associated Legendre polynomial P^$m$_$n$($x$).
     </dl>
 
-    The defining equation:
-    >> z == ProductLog[z] * E ^ ProductLog[z]
-     = True
+    >> LegendreP[4, x]
+     = 3 / 8 - 15 x ^ 2 / 4 + 35 x ^ 4 / 8
 
-    Some special values:
-    >> ProductLog[0]
-     = 0
-    >> ProductLog[E]
-     = 1
+    >> LegendreP[5/2, 1.5]
+     = 4.17762
 
-    The graph of 'ProductLog':
-    >> Plot[ProductLog[x], {x, -1/E, E}]
+    >> LegendreP[1.75, 1.4, 0.53]
+     = -1.32619
+
+    >> LegendreP[1.6, 3.1, 1.5]
+     = -0.303998 - 1.91937 I
+
+    'LegendreP' can be used to draw generalized Lissajous figures:
+    >> ParametricPlot[ {LegendreP[7, x], LegendreP[5, x]}, {x, -1, 1}]
      = -Graphics-
     """
 
-    sympy_name = "LambertW"  # function called LambertW in SymPy
-    mpmath_name = "lambertw"
+    # FIXME: Sympy can't handle associated polynomials
+    """
+    >> LegendreP[2, 1, x]
+     = -3 x Sqrt[1 - x^2]
+    """
 
     rules = {
-        "ProductLog[0]": "0",
-        "ProductLog[E]": "1",
-        "ProductLog[z_] * E ^ ProductLog[z_]": "z",
-        "Derivative[1][ProductLog]": "ProductLog[#] / (# (ProductLog[#] + 1))&",
+        "LegendreP[n_, x_]": "LegendreP[n, 0, x]",
+        "Derivative[0,1][LegendreP]": "(((-1 - #1)*x*LegendreP[#1, #2] + (1 + #1)*LegendreP[1 + #1, #2])/(-1 + #2^2))&",
+        "Derivative[0,0,1][LegendreP]": "((LegendreP[1 + #1, #2, #3]*(1 + #1 - #2) + LegendreP[#1, #2, #3]*(-1 - #1)*#3)/(-1 + #3^2))&",
     }
 
+    nargs = 3
+    sympy_name = "legendre"
+    mpmath_name = "legenp"
+
+    def prepare_sympy(self, leaves):
+        if leaves[1] == Integer(0):
+            return leaves[:1] + leaves[2:]
+        return leaves
+
+
+class LegendreQ(_MPMathFunction):
+    """
+    <dl>
+    <dt>'LegendreQ[$n$, $x$]'
+      <dd>returns the Legendre function of the second kind Q_$n$($x$).
+    <dt>'LegendreQ[$n$, $m$, $x$]'
+      <dd>returns the associated Legendre function of the second Q^$m$_$n$($x$).
+    </dl>
+
+    >> LegendreQ[5/2, 1.5]
+     = 0.036211 - 6.56219 I
+
+    >> LegendreQ[1.75, 1.4, 0.53]
+     = 2.05499
+
+    >> LegendreQ[1.6, 3.1, 1.5]
+     = -1.71931 - 7.70273 I
+    """
+
+    # FIXME: Sympy is missing the Legendre function of the second kind so
+    # symbolic manipulations are limited
+    """
+    >> LegendreQ[2, x]
+     = -3 x / 2 - 3 x ^ 2 Log[1 - x] / 4 + 3 x ^ 2 Log[1 + x] / 4 - Log[1 + x] / 4 + Log[1 - x] / 4
+    """
+
+    rules = {
+        "LegendreQ[n_, x_]": "LegendreQ[n, 0, x]",
+        "Derivative[0,1][LegendreQ]": "((LegendreQ[1 + #1, #2]*(1 + #1) + LegendreQ[#1, #2]*(-1 - #1)*#2)/(-1 + #2^2))&",
+        "Derivative[0,0,1][LegendreQ]": "((LegendreQ[1 + #1, #2, #3]*(1 + #1 - #2) + LegendreQ[#1, #2, #3]*(-1 - #1)*#3)/(-1 + #3^2))&",
+    }
+
+    nargs = 3
+    sympy_name = ""
+    mpmath_name = "legenq"
+
+    def prepare_sympy(self, leaves):
+        if leaves[1] == Integer(0):
+            return leaves[:1] + leaves[2:]
+        return leaves
 
 class SphericalHarmonicY(_MPMathFunction):
     """
@@ -292,20 +277,3 @@ class SphericalHarmonicY(_MPMathFunction):
 #    nargs = 3
 #    sympy_name = ''
 #    mpmath_name = ''
-
-class Zeta(_MPMathFunction):
-    """
-    <dl>
-    <dt>'Zeta[$z$]'
-      <dd>returns the Riemann zeta function of $z$.
-    </dl>
-
-    >> Zeta[2]
-     = Pi ^ 2 / 6
-
-    >> Zeta[-2.5 + I]
-     = 0.0235936 + 0.0014078 I
-    """
-
-    sympy_name = "zeta"
-    mpmath_name = "zeta"

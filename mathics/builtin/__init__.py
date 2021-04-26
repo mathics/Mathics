@@ -7,6 +7,8 @@ import os.path as osp
 from mathics.settings import ENABLE_FILES_MODULE
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+from typing import List
+
 # Get a list of files in this directory. We'll exclude from the start
 # files with leading characters we don't want like __init__ with its leading underscore.
 __py_files__ = [
@@ -21,10 +23,11 @@ from mathics.builtin.base import (
     PatternObject,
 )
 
-def import_builtins(module_names):
+def import_builtins(module_names: List[str], submodule_name=None) -> None:
     for module_name in module_names:
+        import_name = f"mathics.builtin.{submodule_name}.{module_name}" if submodule_name else f"mathics.builtin.{module_name}"
         try:
-            module = importlib.import_module("mathics.builtin." + module_name)
+            module = importlib.import_module(import_name)
         except Exception as e:
             print(e)
             print(f"    Not able to load {module_name}. Check your installation.")
@@ -61,6 +64,15 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
+for subdir in ("specialfns",):
+    __py_files__ = [
+        osp.basename(f[0:-3])
+        for f in glob.glob(osp.join(osp.dirname(__file__), subdir, "[a-z]*.py"))
+    ]
+    submodule_names = [
+        f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
+    ]
+    import_builtins(submodule_names, subdir)
 
 for module in modules:
     builtins_by_module[module.__name__] = []
