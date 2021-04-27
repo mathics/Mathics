@@ -712,7 +712,7 @@ class Alphabet(Builtin):
         alphakey = alpha.get_string_value()
         alphakey = alphabet_alias[alphakey]
         if alphakey is None:
-            evaluation.message("Alphabet", "nalph", alpha)            
+            evaluation.message("Alphabet", "nalph", alpha)
             return
         alphabet = alphabet_descriptions.get(alphakey, None)
         if alphabet is None:
@@ -756,11 +756,11 @@ class LetterNumber(Builtin):
 
     >> LetterNumber["\[Beta]", "Greek"]
      = 2
-    
+
     """
     # FIXME: put the right unicode characters in a way that the
     # following test works...
-    """
+    r"""
     # #> LetterNumber["\[CapitalBeta]", "Greek"]
     #  = 2
 
@@ -1558,6 +1558,8 @@ class StringReverse(Builtin):
        = evil
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, string, evaluation):
         "StringReverse[string_String]"
         return String(string.get_string_value()[::-1])
@@ -1796,6 +1798,8 @@ class ToLowerCase(Builtin):
      = new york
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, s, evaluation):
         "ToLowerCase[s_String]"
         return String(s.get_string_value().lower())
@@ -1830,6 +1834,8 @@ class ToUpperCase(Builtin):
     >> ToUpperCase["New York"]
      = NEW YORK
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, s, evaluation):
         "ToUpperCase[s_String]"
@@ -1885,7 +1891,7 @@ class ToString(Builtin):
 
 
 class InterpretedBox(PrefixOperator):
-    """
+    r"""
     <dl>
       <dt>'InterpretedBox[$box$]'
       <dd>is the ad hoc fullform for \! $box$. just
@@ -1910,7 +1916,7 @@ class InterpretedBox(PrefixOperator):
 
 
 class ToExpression(Builtin):
-    """
+    r"""
     <dl>
       <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.

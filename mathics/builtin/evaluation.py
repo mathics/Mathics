@@ -384,7 +384,7 @@ class In(Builtin):
     >> In[-1]
      = 5
     >> Definition[In]
-     = Attributes[In] = {Protected}
+     = Attributes[In] = {Listable, Protected}
      .
      . In[6] = Definition[In]
      .
@@ -398,6 +398,8 @@ class In(Builtin):
      .
      . In[1] = x = 1
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "In[k_Integer?Negative]": "In[$Line + k]",
@@ -441,6 +443,8 @@ class Out(Builtin):
     #> Out[] + 1
      = 12
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "Out[k_Integer?Negative]": "Out[$Line + k]",

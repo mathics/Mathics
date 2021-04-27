@@ -261,8 +261,8 @@ def find_exponents(expr, var):
 class Cancel(Builtin):
     """
     <dl>
-    <dt>'Cancel[$expr$]'
-        <dd>cancels out common factors in numerators and denominators.
+      <dt>'Cancel[$expr$]'
+      <dd>cancels out common factors in numerators and denominators.
     </dl>
 
     >> Cancel[x / x ^ 2]
@@ -274,6 +274,8 @@ class Cancel(Builtin):
     >> Cancel[f[x] / x + x * f[x] / x ^ 2]
      = 2 f[x] / x
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, expr, evaluation):
         "Cancel[expr_]"
@@ -825,6 +827,8 @@ class Numerator(Builtin):
      = a + b
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, expr, evaluation):
         "Numerator[expr_]"
 
@@ -849,6 +853,8 @@ class Denominator(Builtin):
     >> Denominator[a + b]
      = 1
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, expr, evaluation):
         "Denominator[expr_]"
@@ -1258,7 +1264,7 @@ class CoefficientList(Builtin):
         if expr == Integer(0):
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0), Integer0)
+            return Expression("List", Integer(0))
         elif e_null and not f_null:
             return Expression("List", SymbolNull)
         elif f_null:
@@ -1389,6 +1395,8 @@ class Exponent(Builtin):
      : Exponent called with 1 argument; 2 or 3 arguments are expected.
      = Exponent[x ^ 2]
     """
+
+    attributes = ("Listable", "Protected")
 
     messages = {
         "argtu": "Exponent called with `1` argument; 2 or 3 arguments are expected.",
