@@ -22,7 +22,7 @@ from mathics.core.expression import (
 )
 
 from mathics.builtin.numbers.numeric import Fold
-from mathics.builtin.numbers.arithmetic import _MPMathFunction
+from mathics.builtin.arithmetic import _MPMathFunction
 
 
 class AnglePath(Builtin):

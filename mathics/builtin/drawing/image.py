@@ -1294,7 +1294,7 @@ class ColorConvert(Builtin):
         if isinstance(input, Image):
             return input.color_convert(colorspace.get_string_value())
         else:
-            from mathics.builtin.drawing.graphics import (
+            from mathics.builtin.graphics import (
                 expression_to_color,
                 color_to_expression,
             )

@@ -26,7 +26,7 @@ from mathics.core.expression import (
 )
 
 from mathics.builtin.base import Builtin
-from mathics.builtin.drawing.graphics import Graphics
+from mathics.builtin.graphics import Graphics
 from mathics.builtin.drawing.graphics3d import Graphics3D
 from mathics.builtin.numbers.numeric import chop
 from mathics.builtin.options import options_to_rules
@@ -39,7 +39,6 @@ try:
     has_compile = True
 except ImportError:
     has_compile = False
-
 
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
@@ -65,7 +64,7 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
     if len(colors.leaves) != n:
         return
 
-    from mathics.builtin.drawing.graphics import expression_to_color, ColorError
+    from mathics.builtin.graphics import expression_to_color, ColorError
 
     try:
         objects = [expression_to_color(x) for x in colors.leaves]
@@ -341,7 +340,6 @@ def get_plot_range(values, all_values, option):
 
 
 class _Plot(Builtin):
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -705,8 +703,6 @@ class _Plot(Builtin):
 
 class _Chart(Builtin):
     attributes = ("HoldAll",)
-
-    from .graphics import Graphics
 
     options = Graphics.options.copy()
     options.update(
@@ -1135,8 +1131,6 @@ class Histogram(Builtin):
     >> Histogram[{{1, 2, 10, 5, 50, 20}, {90, 100, 101, 120, 80}}]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2225,8 +2219,6 @@ class ListPlot(_ListPlot):
      = -Graphics-
     """
 
-    from .graphics import Graphics
-
     attributes = ("HoldAll",)
 
     options = Graphics.options.copy()
@@ -2264,8 +2256,6 @@ class ListLinePlot(_ListPlot):
     >> ListLinePlot[{{-2, -1}, {-1, -1}}]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2344,8 +2334,6 @@ class Plot3D(_Plot3D):
     """
     #> Plot3D[x + 2y, {x, -2, 2}, {y, -2, 2}] // TeXForm
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2428,8 +2416,6 @@ class DensityPlot(_Plot3D):
     >> DensityPlot[x^2 y, {x, -1, 1}, {y, -1, 1}, Mesh->All]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 

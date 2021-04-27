@@ -29,7 +29,6 @@ from mathics.core.expression import (
     SymbolList,
     SymbolN,
     SymbolMakeBoxes,
-    strip_context,
     system_symbols,
     system_symbols_dict,
     from_python,
@@ -119,7 +118,9 @@ def cut(value):
     return value
 
 
-def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None, opacity=1.0):
+def create_css(
+    edge_color=None, face_color=None, stroke_width=None, font_color=None, opacity=1.0
+):
     css = []
     if edge_color is not None:
         color, stroke_opacity = edge_color.to_css()
@@ -1004,7 +1005,7 @@ class ColorDistance(Builtin):
                     else:
                         return Expression(
                             "List",
-                            *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)]
+                            *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)],
                         )
                 else:
                     return Expression(SymbolList, *[distance(c, c2) for c in c1.leaves])
@@ -1805,7 +1806,7 @@ class FilledCurveBox(_GraphicsElement):
                         k = spline_degree.get_int_value()
                     elif head == "System`BSplineCurve":
                         raise NotImplementedError  # FIXME convert bspline to bezier here
-                        parts = segment.leaves
+                        # parts = segment.leaves
                     else:
                         raise BoxConstructError
 
@@ -2569,7 +2570,16 @@ class ArrowBox(_Polyline):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0), opacity=1.0):
+    def init(
+        self,
+        graphics,
+        style,
+        item=None,
+        content=None,
+        pos=None,
+        opos=(0, 0),
+        opacity=1.0,
+    ):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option("System`FontColor")
@@ -2618,15 +2628,16 @@ class InsetBox(_GraphicsElement):
             svg = "\n" + content + "\n"
         else:
             css_style = create_css(
-                font_color=self.color, edge_color=self.color, face_color=self.color, opacity=self.opacity
+                font_color=self.color,
+                edge_color=self.color,
+                face_color=self.color,
+                opacity=self.opacity,
             )
             text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
             # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
             text_style_opts = "text-anchor:middle; dominant-baseline:middle;"
             content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
-            svg = (
-                f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
-            )
+            svg = f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
 
         # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
         # style = create_css(font_color=self.color)
