@@ -7,7 +7,7 @@ import mpmath
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.numbers.arithmetic import _MPMathFunction
+from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.builtin.base import Builtin
 from mathics.core.expression import from_mpmath
 from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError

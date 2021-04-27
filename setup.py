@@ -66,7 +66,7 @@ except ImportError:
 else:
     EXTENSIONS_DICT = {
         "core": ("expression", "numbers", "rules", "pattern"),
-        "builtin": ("patterns",),
+        "builtin": ["arithmetic", "numeric", "patterns", "graphics"],
     }
     EXTENSIONS = [
         Extension(
@@ -123,6 +123,8 @@ setup(
         "mathics.core.parser",
         "mathics.builtin",
         "mathics.builtin.compile",
+        "mathics.builtin.drawing",
+        "mathics.builtin.numbers",
         "mathics.builtin.numpy_utils",
         "mathics.builtin.pymimesniffer",
         "mathics.builtin.pympler",

@@ -9,7 +9,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, SymbolTrue, SymbolFalse
-from mathics.builtin.numbers.arithmetic import _MPMathFunction
+from mathics.builtin.arithmetic import _MPMathFunction
 from itertools import combinations
 
 
