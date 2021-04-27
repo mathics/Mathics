@@ -164,7 +164,7 @@ class D(SympyFunction):
             return IntegerZero
         elif f == x:
             return Integer1
-        elif f.is_atom():  # Shouldn't happen
+        elif f.is_atom(): # Shouldn't happen
             1 / 0
             return
         # So, this is not an atom...
