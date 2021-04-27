@@ -1335,7 +1335,7 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
-        from mathics.builtin import BoxConstruct
+        from mathics.builtin.base import BoxConstruct
 
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)

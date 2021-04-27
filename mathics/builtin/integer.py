@@ -50,6 +50,9 @@ class Floor(SympyFunction):
      = -10
     """
 
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    sympy_name = "floor"
     rules = {"Floor[x_, a_]": "Floor[x / a] * a"}
 
     def apply_real(self, x, evaluation):
@@ -75,6 +78,8 @@ class Ceiling(SympyFunction):
     >> Ceiling[1.3 + 0.7 I]
      = 2 + I
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     rules = {"Ceiling[x_, a_]": "Ceiling[x / a] * a"}
 
@@ -119,6 +124,8 @@ class IntegerLength(Builtin):
     #> IntegerLength /@ (10 ^ Range[100] - 1) == Range[1, 100]
      = True
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "IntegerLength[n_]": "IntegerLength[n, 10]",
@@ -180,6 +187,8 @@ class BitLength(Builtin):
     >> BitLength[0]
      = 0
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, n, evaluation):
         "BitLength[n_Integer]"
@@ -243,6 +252,8 @@ class IntegerString(Builtin):
     >> IntegerString[98765, 20]
      = c6i5
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "IntegerString[n_Integer]": "IntegerString[n, 10]",

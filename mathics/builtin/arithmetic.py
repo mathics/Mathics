@@ -69,7 +69,16 @@ def call_mpmath(mpmath_function, mpmath_args):
 
 class _MPMathFunction(SympyFunction):
 
-    attributes = ("Listable", "NumericFunction")
+    # These below attributes are the default attributes:
+    #
+    # * functions take lists as an argument
+    # * functions take numeric values only
+    # * functions can't be changed
+    #
+    # However hey are not correct for some derived classes, like
+    # InverseErf or InverseErfc.
+    # So those classes should expclicitly set/override this.
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     mpmath_name = None
 
@@ -1308,8 +1317,10 @@ class Arg(_MPMathFunction):
     rules = {"Arg[DirectedInfinity[]]": "1",
              "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
-    sympy_name = "arg"
+    attributes = ("Listable", "NumericFunction")
+
     mpmath_name = "arg"
+    sympy_name = "arg"
 
 
 class Sign(SympyFunction):
@@ -1438,6 +1449,8 @@ class PossibleZeroQ(SympyFunction):
     >> PossibleZeroQ[Sqrt[x^2] - x]
      = False
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     sympy_name = "_iszero"
 
@@ -1894,6 +1907,8 @@ class Pochhammer(SympyFunction):
     >> Pochhammer[4, 8]
      = 6652800
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     sympy_name = "RisingFactorial"
 
