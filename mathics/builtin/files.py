@@ -106,6 +106,9 @@ class mathics_open(Stream):
 
         # open the stream
         fp = io.open(path, self.mode, encoding=self.encoding)
+        global INPUTFILE_VAR
+        INPUTFILE_VAR = osp.abspath(path)
+
         stream_manager.add(
             name=path,
             mode=self.mode,
