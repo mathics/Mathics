@@ -722,7 +722,7 @@ class Alphabet(Builtin):
 
 
 class LetterNumber(Builtin):
-    """
+    r"""
     <dl>
       <dt>'LetterNumber'[$c$]
       <dd>returns the position of the character $c$ in the English alphabet.
