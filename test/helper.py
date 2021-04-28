@@ -32,7 +32,6 @@ def check_evaluation(
         expected = evaluate(str_expr)
 
     print(time.asctime())
-    print(message)
     if message:
         print((result, expected))
         assert result == expected, message

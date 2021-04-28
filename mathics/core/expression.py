@@ -1335,7 +1335,7 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
-        from mathics.builtin import BoxConstruct
+        from mathics.builtin.base import BoxConstruct
 
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
@@ -1513,6 +1513,8 @@ class Expression(BaseExpression):
             )
         elif self.has_form("SuperscriptBox", 2):
             return "^".join([leaf.boxes_to_text(**options) for leaf in self._leaves])
+        elif self.has_form("FractionBox", 2):
+            return "/".join([" ( " + leaf.boxes_to_text(**options)+ " ) " for leaf in self._leaves])
         else:
             raise BoxError(self, "text")
 
