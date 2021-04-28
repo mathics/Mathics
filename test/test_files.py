@@ -11,18 +11,33 @@ definitions = Definitions(add_builtin=True)
 evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
 
 
-
-
 def _evaluate(str_expression):
     expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
     return expr.evaluate(evaluation)
 
 
 def test_put_and_get_and_InputFileName():
-    check_evaluation('Put[HoldForm[$InputFileName], $TemporaryDirectory<>"/getme.m"]', 'Null')
-    check_evaluation('Get[$TemporaryDirectory<>"/getme.m"]', '$TemporaryDirectory<>"/getme.m"')
+    check_evaluation(
+        'Put[HoldForm[$InputFileName], $TemporaryDirectory<>"/getme.m"]', "Null"
+    )
+    check_evaluation(
+        'Get[$TemporaryDirectory<>"/getme.m"]', '$TemporaryDirectory<>"/getme.m"'
+    )
 
 
+def test_put_and_get_and_InputFileName_recursive():
+    check_evaluation(
+        'Put[HoldForm[$InputFileName], $TemporaryDirectory<>"/getmeA.m"]', "Null"
+    )
+    check_evaluation(
+        'stream=OpenWrite[$TemporaryDirectory<>"/getmeB.m"];'
+        'cmd="Get[\\"" <> $TemporaryDirectory<>"/getmeA.m"<>"\\"]";'
+        "Write[stream,cmd];Close[stream]",
+        '"/tmp/getmeB.m"',
+    )
+    check_evaluation(
+        'Get[$TemporaryDirectory<>"/getmeB.m"]', '$TemporaryDirectory<>"/getmeA.m"'
+    )
 
 
 def test_compress():
