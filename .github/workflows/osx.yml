@@ -30,4 +30,4 @@ jobs:
     - name: Test Mathics
       run: |
         pip install pytest pexpect
-        make -j3 check
+        make check
