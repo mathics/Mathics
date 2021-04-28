@@ -33,7 +33,7 @@ def test_put_and_get_and_InputFileName_recursive():
         'stream=OpenWrite[$TemporaryDirectory<>"/getmeB.m"];'
         'cmd="Get[\\"" <> $TemporaryDirectory<>"/getmeA.m"<>"\\"]";'
         "Write[stream,cmd];Close[stream]",
-        '"/tmp/getmeB.m"',
+        '$TemporaryDirectory<>"/getmeB.m"',
     )
     check_evaluation(
         'Get[$TemporaryDirectory<>"/getmeB.m"]', '$TemporaryDirectory<>"/getmeA.m"'
