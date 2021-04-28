@@ -32,5 +32,5 @@ jobs:
     - name: Test Mathics
       run: |
         pip install pytest
-        py.test test
-        python mathics/test.py
+        make -j3 check
+
