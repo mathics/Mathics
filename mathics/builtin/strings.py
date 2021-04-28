@@ -11,16 +11,23 @@ from sys import version_info
 import unicodedata
 from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
-from typing import Callable
+from typing import Any, Callable, List
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
+from mathics.builtin.base import (
+    BinaryOperator,
+    Builtin,
+    Test,
+    Predefined,
+    PrefixOperator,
+)
 from mathics.core.expression import (
     Expression,
     Symbol,
     SymbolFailed,
     SymbolFalse,
     SymbolTrue,
+    SymbolList,
     String,
     Integer,
     from_python,
@@ -39,6 +46,36 @@ _regex_longest = {
 _regex_shortest = {
     "+": "+?",
     "*": "*?",
+}
+
+
+alphabet_descriptions = {
+    "English": {
+        "Lowercase": "abcdefghijklmnopqrstuvwxyz",
+        "Uppercase": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    },
+    "Spanish": {
+        "Lowercase": "abcdefghijklmnñopqrstuvwxyz",
+        "Uppercase": "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ",
+    },
+    "Greek": {
+        "Lowercase": "αβγδεζηθικλμνξοπρστυφχψω",
+        "Uppercase": "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ",
+    },
+    "Cyrillic": {
+        "Lowercase": "абвгґдђѓеёєжзѕиіїйјклљмнњопрстћќуўфхцчџшщъыьэюя",
+        "Uppercase": "АБВГҐДЂЃЕЁЄЖЗЅИІЇЙЈКЛЉМНЊОПРСТЋЌУЎФХЦЧЏШЩЪЫЬЭЮЯ",
+    },
+}
+
+alphabet_alias={
+    "English": "English",
+    "French": "English",
+    "German": "English",
+    "Spanish": "Spanish",
+    "Greek": "Greek",
+    "Cyrillic": "Cyrillic",
+    "Russian": "Cyrillic",
 }
 
 
@@ -639,6 +676,164 @@ class LetterCharacter(Builtin):
     """
 
 
+# FIXME: Generalize string.lower() and ord()
+def letter_number(chars: List[str], start_ord) -> List["Integer"]:
+    # Note caller has verified that everything isalpha() and
+    # each char has length 1.
+    return [Integer(ord(char.lower()) - start_ord) for char in chars]
+
+
+class Alphabet(Builtin):
+    """
+     <dl>
+      <dt>'Alphabet'[]
+      <dd>gives the list of lowercase letters a-z in the English alphabet .
+
+      <dt>'Alphabet[$type$]'
+      <dd> gives the alphabet for the language or class $type$.
+    </dl>
+
+    >> Alphabet[]
+     = {a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z}
+    >> Alphabet["German"]
+     = {a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z}
+
+    """
+    messages = {
+        "nalph": "The alphabet `` is not known or not available.",
+    }
+
+    rules = {
+        "Alphabet[]": """Alphabet["English"]""",
+    }
+
+    def apply(self, alpha, evaluation):
+        """Alphabet[alpha_String]"""
+        alphakey = alpha.get_string_value()
+        alphakey = alphabet_alias[alphakey]
+        if alphakey is None:
+            evaluation.message("Alphabet", "nalph", alpha)
+            return
+        alphabet = alphabet_descriptions.get(alphakey, None)
+        if alphabet is None:
+            evaluation.message("Alphabet", "nalph", alpha)
+            return
+        return Expression(SymbolList, *[String(c) for c in alphabet["Lowercase"]])
+
+
+class LetterNumber(Builtin):
+    r"""
+    <dl>
+      <dt>'LetterNumber'[$c$]
+      <dd>returns the position of the character $c$ in the English alphabet.
+
+      <dt>'LetterNumber["string"]'
+      <dd>returns a list of the positions of characters in string.
+      <dt>'LetterNumber["string", $alpha$]'
+      <dd>returns a list of the positions of characters in string, regarding the alphabet $alpha$.
+    </dl>
+
+    >> LetterNumber["b"]
+     = 2
+
+    LetterNumber also works with uppercase characters
+    >> LetterNumber["B"]
+     = 2
+
+    >> LetterNumber["ss2!"]
+     = {19, 19, 0, 0}
+
+    Get positions of each of the letters in a string:
+    >> LetterNumber[Characters["Peccary"]]
+    = {16, 5, 3, 3, 1, 18, 25}
+
+    >> LetterNumber[{"P", "Pe", "P1", "eck"}]
+    = {16, {16, 5}, {16, 0}, {5, 3, 11}}
+
+    #> LetterNumber[4]
+     : The argument 4 is not a string.
+     = LetterNumber[4]
+
+    >> LetterNumber["\[Beta]", "Greek"]
+     = 2
+
+    """
+    # FIXME: put the right unicode characters in a way that the
+    # following test works...
+    r"""
+    # #> LetterNumber["\[CapitalBeta]", "Greek"]
+    #  = 2
+
+    """
+    messages = {
+        "nalph": "The alphabet `` is not known or not available.",
+        "nas": ("The argument `1` is not a string."),
+    }
+
+    def apply_alpha_str(self, chars: List[Any], alpha: String, evaluation):
+        "LetterNumber[chars_, alpha_String]"
+        alphakey = alpha.get_string_value()
+        alphakey = alphabet_alias.get(alphakey, None)
+        if alphakey is None:
+            evaluation.message("LetterNumber", "nalph", alpha)
+            return
+        if alphakey == "English":
+            return self.apply(chars, evaluation)
+        alphabet = alphabet_descriptions.get(alphakey, None)
+        if alphabet is None:
+            evaluation.message("LetterNumber", "nalph", alpha)
+            return
+        # TODO: handle Uppercase
+        if isinstance(chars, String):
+            py_chars = chars.get_string_value()
+            if len(py_chars) == 1:
+                # FIXME generalize ord("a")
+                res = alphabet["Lowercase"].find(py_chars) + 1
+                if res == -1:
+                    res = alphabet["Uppercase"].find(py_chars) + 1
+                return Integer(res)
+            else:
+                r = []
+                for c in py_chars:
+                    cp = alphabet["Lowercase"].find(c) + 1
+                    if cp == -1:
+                        cp = alphabet["Uppercase"].find(c) + 1
+                    r.append(cp)
+                return Expression(SymbolList, *r)
+        elif chars.has_form("List", 1, None):
+            result = []
+            for leaf in chars.leaves:
+                result.append(self.apply_alpha_str(leaf, alpha, evaluation))
+            return Expression(SymbolList, *result)
+        else:
+            return evaluation.message(self.__class__.__name__, "nas", chars)
+        return None
+
+    def apply(self, chars: List[Any], evaluation):
+        "LetterNumber[chars_]"
+
+        start_ord = ord("a") - 1
+        if isinstance(chars, String):
+            py_chars = chars.get_string_value()
+            if len(py_chars) == 1:
+                # FIXME generalize ord("a")
+                return letter_number([py_chars[0]], start_ord)[0]
+            else:
+                r = [
+                    letter_number(c, start_ord)[0] if c.isalpha() else 0
+                    for c in py_chars
+                ]
+                return Expression(SymbolList, *r)
+        elif chars.has_form("List", 1, None):
+            result = []
+            for leaf in chars.leaves:
+                result.append(self.apply(leaf, evaluation))
+            return Expression(SymbolList, *result)
+        else:
+            return evaluation.message(self.__class__.__name__, "nas", chars)
+        return None
+
+
 class HexidecimalCharacter(Builtin):
     """
     <dl>
@@ -848,7 +1043,7 @@ class StringJoin(BinaryOperator):
         "StringJoin[items___]"
 
         result = ""
-        items = items.flatten(Symbol("List"))
+        items = items.flatten(SymbolList)
         if items.get_head_name() == "System`List":
             items = items.leaves
         else:
@@ -933,7 +1128,7 @@ class StringSplit(Builtin):
 
         if string.get_head_name() == "System`List":
             leaves = [self.apply(s, patt, evaluation, options) for s in string._leaves]
-            return Expression("List", *leaves)
+            return Expression(SymbolList, *leaves)
 
         py_string = string.get_string_value()
 
@@ -961,7 +1156,7 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return string_list("List", [String(x) for x in result if x != ""], evaluation)
+        return string_list(SymbolList, [String(x) for x in result if x != ""], evaluation)
 
 
 class StringPosition(Builtin):
@@ -1092,7 +1287,7 @@ class StringPosition(Builtin):
                 self.do_apply(py_string, compiled_patts, py_n, overlap)
                 for py_string in py_strings
             ]
-            return Expression("List", *results)
+            return Expression(SymbolList, *results)
         else:
             py_string = string.get_string_value()
             if py_string is None:
@@ -1362,6 +1557,9 @@ class StringReverse(Builtin):
       >> StringReverse["live"]
        = evil
     """
+
+    attributes = ("Listable", "Protected")
+
     def apply(self, string, evaluation):
         "StringReverse[string_String]"
         return String(string.get_string_value()[::-1])
@@ -1426,7 +1624,7 @@ class StringCases(_StringFind):
                 else:
                     yield _evaluate_match(form, match, evaluation)
 
-        return Expression("List", *list(cases()))
+        return Expression(SymbolList, *list(cases()))
 
     def apply(self, string, rule, n, evaluation, options):
         "%(name)s[string_, rule_, OptionsPattern[%(name)s], n_:System`Private`Null]"
@@ -1510,7 +1708,7 @@ class Characters(Builtin):
     def apply(self, string, evaluation):
         "Characters[string_String]"
 
-        return Expression("List", *(String(c) for c in string.value))
+        return Expression(SymbolList, *(String(c) for c in string.value))
 
 
 class CharacterRange(Builtin):
@@ -1600,6 +1798,8 @@ class ToLowerCase(Builtin):
      = new york
     """
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, s, evaluation):
         "ToLowerCase[s_String]"
         return String(s.get_string_value().lower())
@@ -1634,6 +1834,8 @@ class ToUpperCase(Builtin):
     >> ToUpperCase["New York"]
      = NEW YORK
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, s, evaluation):
         "ToUpperCase[s_String]"
@@ -1688,8 +1890,33 @@ class ToString(Builtin):
         return String(text)
 
 
-class ToExpression(Builtin):
+class InterpretedBox(PrefixOperator):
+    r"""
+    <dl>
+      <dt>'InterpretedBox[$box$]'
+      <dd>is the ad hoc fullform for \! $box$. just
+          for internal use...
+
+    >> \! \(2+2\)
+     = 4
+    </dl>
     """
+
+    operator = "\\!"
+    precedence = 670
+
+    def apply_dummy(self, boxes, evaluation):
+        """InterpretedBox[boxes_]"""
+        # TODO: the following is a very raw and dummy way to
+        # handle these expressions.
+        # In the first place, this should handle different kind
+        # of boxes in different ways.
+        reinput = boxes.boxes_to_text()
+        return Expression("ToExpression", reinput).evaluate(evaluation)
+
+
+class ToExpression(Builtin):
+    r"""
     <dl>
       <dt>'ToExpression[$input$]'
       <dd>inteprets a given string as Mathics input.
@@ -1736,7 +1963,6 @@ class ToExpression(Builtin):
     #> ToExpression["log(x)", StandardForm]
      = log x
     """
-
     attributes = ("Listable", "Protected")
 
     messages = {
@@ -1886,7 +2112,7 @@ class ToCharacterCode(Builtin):
         if encoding == "Unicode":
 
             def convert(s):
-                return Expression("List", *[Integer(ord(code)) for code in s])
+                return Expression(SymbolList, *[Integer(ord(code)) for code in s])
 
         else:
             py_encoding = to_python_encoding(encoding)
@@ -1900,7 +2126,7 @@ class ToCharacterCode(Builtin):
                 )
 
         if isinstance(string, list):
-            return Expression("List", *[convert(substring) for substring in string])
+            return Expression(SymbolList, *[convert(substring) for substring in string])
         elif isinstance(string, str):
             return convert(string)
 
@@ -2010,7 +2236,7 @@ class FromCharacterCode(Builtin):
                         evaluation.message(
                             "FromCharacterCode",
                             "notunicode",
-                            Expression("List", *l),
+                            Expression(SymbolList, *l),
                             Integer(i + 1),
                         )
                         raise _InvalidCodepointError
@@ -2035,7 +2261,7 @@ class FromCharacterCode(Builtin):
                         else:
                             stringi = convert_codepoint_list([leaf])
                         list_of_strings.append(String(stringi))
-                    return Expression("List", *list_of_strings)
+                    return Expression(SymbolList, *list_of_strings)
                 else:
                     return String(convert_codepoint_list(n.get_leaves()))
             else:
@@ -2450,9 +2676,7 @@ def _damerau_levenshtein(s1, s2, sameQ: Callable[..., bool]):
     return d_prev[-1]
 
 
-def _levenshtein_like_or_border_cases(
-    s1, s2, sameQ: Callable[..., bool], compute
-):
+def _levenshtein_like_or_border_cases(s1, s2, sameQ: Callable[..., bool], compute):
     if len(s1) == len(s2) and all(sameQ(c1, c2) for c1, c2 in zip(s1, s2)):
         return 0
 
@@ -2853,7 +3077,7 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
             return evaluation.message(
                 name, "strse", Integer(1), Expression(name, string, patt)
             )
-        return Expression("List", *[_search(re_patts, s, flags, matched) for s in py_s])
+        return Expression(SymbolList, *[_search(re_patts, s, flags, matched) for s in py_s])
     else:
         py_s = string.get_string_value()
         if py_s is None:

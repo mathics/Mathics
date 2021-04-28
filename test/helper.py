@@ -27,7 +27,6 @@ def check_evaluation(
         expected = session.evaluate(str_expected)
 
     print(time.asctime())
-    print(message)
     if message:
         print((result, expected))
         assert result == expected, message

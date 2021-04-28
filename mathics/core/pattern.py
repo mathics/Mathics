@@ -293,6 +293,7 @@ class ExpressionPattern(Pattern):
                 return
         if (
             wrap_oneid
+            and not evaluation.ignore_oneidentity
             and "System`OneIdentity" in attributes
             and expression.get_head() != self.head  # nopep8
             and expression != self.head

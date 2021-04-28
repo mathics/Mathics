@@ -18,6 +18,7 @@ prefix_ops = {
     "Not": 230,
     "Information": 5001,
     "Definition": 5000,
+    "InterpretedBox": 670,
 }
 
 postfix_ops = {
