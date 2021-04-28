@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .helper import check_evaluation, session
+from .helper import check_evaluation, evaluate
 
 
 def test_compress():
@@ -20,7 +20,7 @@ def test_unprotected():
 
 
 def test_get_and_put():
-    temp_filename = session.evaluate('$TemporaryDirectory<>"/testfile"').to_python()
+    temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
     temp_filename_strip = temp_filename[1:-1]
     check_evaluation(f"40! >> {temp_filename_strip}", "Null")
     check_evaluation(f"<< {temp_filename_strip}", "40!")

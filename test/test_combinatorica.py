@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
+from .helper import evaluate, check_evaluation
 
-session.evaluate(
+evaluate(
     """
     Needs["DiscreteMath`CombinatoricaV0.9`"]
     """
