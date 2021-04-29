@@ -42,7 +42,7 @@ from mathics.builtin.files import (
     INITIAL_DIR,  # noqa is used via global
     mathics_open
     )
-from mathics.builtin.numbers.numeric import Hash
+from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_regex
 from mathics.builtin.base import MessageException
 import re

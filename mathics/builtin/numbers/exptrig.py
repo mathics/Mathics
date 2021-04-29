@@ -21,7 +21,7 @@ from mathics.core.expression import (
     Symbol,
 )
 
-from mathics.builtin.numbers.numeric import Fold
+from mathics.builtin.numeric import Fold
 from mathics.builtin.arithmetic import _MPMathFunction
 
 
