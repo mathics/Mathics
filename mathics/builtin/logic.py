@@ -137,7 +137,7 @@ class Implies(BinaryOperator):
     If an expression does not evaluate to 'True' or 'False', 'Implies'
     returns a result in symbolic form:
     >> Implies[a, Implies[b, Implies[True, c]]]
-     = a \uF523 b \uF523 c
+     = a ⟹ b ⟹ c
     """
 
     operator = "\uF523"
@@ -171,7 +171,7 @@ class Equivalent(BinaryOperator):
      If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
      returns a result in symbolic form:
      >> Equivalent[a, b, c]
-      = a \u29E6 b \u29E6 c
+      = a ⇔ b ⇔ c
       Otherwise, 'Equivalent' returns a result in DNF
      >> Equivalent[a, b, True, c]
       = a && b && c
