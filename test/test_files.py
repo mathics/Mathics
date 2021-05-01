@@ -28,7 +28,7 @@ if sys.platform not in ("win32",):
         check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
 
 
-# I do not know what is it supposed to test with this...
+# I do not know what this is it supposed to test with this...
 # def test_Inputget_and_put():
 #    stream = Expression('Plus', Symbol('x'), Integer(2))
 
