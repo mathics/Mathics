@@ -272,9 +272,6 @@ def get_assumption_rules_dispatch(evaluation):
     if val_consistent_assumptions == SymbolFalse:
         evaluation.message("Inconsistent assumptions")
 
-    if assumptions_list is None:
-        return remove_nots_when_unnecesary(pred, evaluation).evaluate(evaluation)
-
     # Expands Logically
     assumptions_list, cont = logical_expand_assumptions(assumptions_list, evaluation)
     while cont:
@@ -345,9 +342,8 @@ def get_assumption_rules_dispatch(evaluation):
             assumption_rules.append(Rule(pat, symbol_value))
     # TODO: expand the pred and assumptions into an standard,
     # atomized form, and then apply the rules...
-    print("assumptions:")
-    for assump in assumption_rules:
-        print("* ", assump)
+    if len(assumption_rules) == 0:
+        return None
     return assumption_rules
 
 
@@ -372,6 +368,9 @@ def evaluate_predicate(pred, evaluation):
             return pred
 
     assumption_rules = get_assumption_rules_dispatch(evaluation)
+    if assumption_rules is None:
+        return remove_nots_when_unnecesary(pred, evaluation).evaluate(evaluation)
+
     if assumption_rules is not None:
         debug_logical_expr(" Now, using the assumptions over ", pred, evaluation)
         changed = True
