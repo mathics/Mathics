@@ -147,7 +147,7 @@ if sys.platform != "win32":
          = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
 
         >> a=1; s
-        = -Cos[x] + Cos[x] ^ 3 / 3
+        =  Cos[x] (-5 + Cos[2 x]) / 6
 
         Possible issues: for certain time-consuming functions (like simplify)
         which are based on sympy or other libraries, it is possible that

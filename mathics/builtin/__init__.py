@@ -130,7 +130,7 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
-for subdir in ("specialfns",):
+for subdir in ("drawing", "numbers", "specialfns",):
     import_name = f"{__name__}.{subdir}"
     builtin_module = importlib.import_module(import_name)
     submodule_names = [

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
+from .helper import evaluate, check_evaluation
 
 import sys
 import pytest
@@ -53,8 +53,8 @@ import pytest
     ],
 )
 def test_evaluation(str_expr: str, str_expected: str, message=""):
-    result = session.evaluate(str_expr)
-    expected = session.evaluate(str_expected)
+    result = evaluate(str_expr)
+    expected = evaluate(str_expected)
 
     if message:
         assert result == expected, message
@@ -73,8 +73,8 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
         # Try with and without a name
         (r'Options[f3]:={a->12};f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]',r'f3[y]', r'y ^ 4', None),
         (r'Options[f4]:={a->12};f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]', r'f4[y]', r'y ^ 4', None),
-        # OptionValue outside a function    
-        (r'Options[F]:={a->89,b->37}', r'OptionValue[F, a]', r'89', None),    
+        # OptionValue outside a function
+        (r'Options[F]:={a->89,b->37}', r'OptionValue[F, a]', r'89', None),
         (None, r'OptionValue[F, {a,b}]',r'{89, 37}', None),
         (None, r'OptionValue[F, {a,b, l}]',r'{89, 37, l}', r"OptionValue::optnf: Option name l not found."),
         (r'Options[f5]:={"a"->12};f5[x_,opt:OptionsPattern[]]:=x^OptionValue[a]', r'f5[y]', r'y ^ 12', None),
@@ -87,9 +87,9 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
 )
 def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str , messages=""):
     if str_setup:
-        session.evaluate(str_setup)
-    result =  session.evaluate(str_expr)
-    expected = session.evaluate(str_expected)
+        evaluate(str_setup)
+    result =  evaluate(str_expr)
+    expected = evaluate(str_expected)
     if msg:
         assert result == expected, msg
     else:
@@ -98,7 +98,7 @@ def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str 
 if sys.platform in ("linux",):
 
     def test_system_specific_long_integer():
-        session.evaluate("""
+        evaluate("""
         WRb[bytes_, form_] := Module[{str, res={}, byte}, str = OpenWrite[BinaryFormat -> True];
         BinaryWrite[str, bytes, form];
         str = OpenRead[Close[str], BinaryFormat -> True];
@@ -154,7 +154,7 @@ if sys.platform in ("linux",):
 # import os.path as osp
 # def check_evaluation_with_err(str_expr: str, expected: str, message=""):
 #     import pdb; pdb.set_trace()
-#     result = session.evaluate(str_expr)
+#     result = evaluate(str_expr)
 
 #     if message:
 #         assert result == expected, message
@@ -182,13 +182,13 @@ if sys.platform in ("linux",):
 def test_exit():
     global session
     try:
-        session.evaluate("Exit[-37]")
+        evaluate("Exit[-37]")
     except SystemExit as e:
         assert e.code == -37
 
 
 def test_quit():
     try:
-        session.evaluate("Quit[-37]")
+        evaluate("Quit[-37]")
     except SystemExit as e:
         assert e.code == -37
