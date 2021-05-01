@@ -2,7 +2,6 @@
 import sys
 from .helper import check_evaluation, evaluate
 
-
 def test_compress():
     for text in ("", "abc", " "):
         str_expr = f'Uncompress[Compress["{text}"]]'
