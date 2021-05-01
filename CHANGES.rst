@@ -35,6 +35,7 @@ Enhancements
 * ``ToExpression`` handles multi-line string input
 * The implementation of Streams was redone.
 
+
 Bug fixes
 +++++++++
 
@@ -44,6 +45,11 @@ Bug fixes
 * Functions gone over to ensure the ``Listable`` and ``NumericFunction`` properties are correct.
 
 
+Internal changes
+----------------
+
+* doctest  accepts the option `-d` to show how long it takes to parse, evaluate and compare each individual test.
+  
 
 2.1.0
 -----
