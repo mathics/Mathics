@@ -986,7 +986,11 @@ It is not very sophisticated from a mathematical point of view, but it\'s beauti
 
 <chapter title="Django-based Web Interface">
 
-In the future we plan on providing an interface to Jupyter as a separate package. However currently as part \Mathics, we distribute a browser-based interface using Django 3.1. Since a Jupyter-based interface seems preferable to the home-grown interface described here, it is doubtful whether there will be future improvements to the this interface.
+In the future, we plan on providing an interface to Jupyter as a separate package.
+
+However currently as part \Mathics, we distribute a browser-based interface using long-term-release (LTS) Django 3.2.
+
+Since a Jupyter-based interface seems preferable to the home-grown interface described here, it is doubtful whether there will be future improvements to the this interface.
 
 When you enter Mathics in the top after the Mathics logo and the word "Mathics" you'll see a <i>menubar</i>.
 
@@ -995,6 +999,20 @@ It looks like this:
 <imgpng src="menubar.png" title="Mathic Menu Bar" label="menubar">
 
 
+<section title="URIs">
+
+For the most part, the application is a single-page application.
+Assuming your are running locally or on a host called 'localhost' using the default port, 8000, here are some URLs and what they do:
+
+<dl>
+  <dt><url>http://localhost:8000</url>
+  <dd>The single-page application; the main page.
+  <dt><url>http://localhost:8000/about</url>
+  <dd>A page giving the versions of this package and version information of important software this uses.
+  <dt><url>http://localhost:8000/doc</url>
+  <dd>An on-line formatted version of the documentation, which include this text. You can see this as a right side frame of the main page, when clicking "?" on the right-hand upper corner.
+</dl>
+</section>
 <section title="Saving, Loading, and Deleting Worksheets">
 
 <subsection title="Saving Worksheets">
