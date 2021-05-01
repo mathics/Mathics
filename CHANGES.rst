@@ -11,6 +11,7 @@ New builtins
 * ``Arg``
 * ``Dispatch``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``Nand`` and ``Nor`` logical functions.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
