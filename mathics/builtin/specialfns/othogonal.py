@@ -5,7 +5,7 @@ Orthogonal Polynomials
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.arithmetic import _MPMathFunction
-from mathics.core.expression import Integer
+from mathics.core.expression import Integer0
 
 class ChebyshevT(_MPMathFunction):
     """
@@ -179,7 +179,7 @@ class LegendreP(_MPMathFunction):
     mpmath_name = "legenp"
 
     def prepare_sympy(self, leaves):
-        if leaves[1] == Integer(0):
+        if leaves[1] == Integer0:
             return leaves[:1] + leaves[2:]
         return leaves
 
@@ -221,7 +221,7 @@ class LegendreQ(_MPMathFunction):
     mpmath_name = "legenq"
 
     def prepare_sympy(self, leaves):
-        if leaves[1] == Integer(0):
+        if leaves[1] == Integer0:
             return leaves[:1] + leaves[2:]
         return leaves
 

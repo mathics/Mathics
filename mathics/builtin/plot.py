@@ -18,6 +18,7 @@ from mathics.core.expression import (
     Symbol,
     String,
     Integer,
+    Integer0,
     from_python,
     SymbolList,
     SymbolN,
@@ -910,9 +911,9 @@ class PieChart(_Chart):
         sector_spacing = self.get_option(options, "SectorSpacing", evaluation)
         if isinstance(sector_spacing, Symbol):
             if sector_spacing.get_name() == "System`Automatic":
-                sector_spacing = Expression(SymbolList, Integer(0), Real(0.2))
+                sector_spacing = Expression(SymbolList, Integer0, Real(0.2))
             elif sector_spacing.get_name() == "System`None":
-                sector_spacing = Expression(SymbolList, Integer(0), Integer(0))
+                sector_spacing = Expression(SymbolList, Integer0, Integer0)
             else:
                 return
         if not sector_spacing.has_form("List", 2):

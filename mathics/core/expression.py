@@ -2259,6 +2259,7 @@ class Integer(Number):
         return self.value == 0
 
 
+Integer0 = Integer(0)
 Integer1 = Integer(1)
 
 
@@ -2589,7 +2590,7 @@ class Complex(Number):
         if isinstance(imag, Complex) or not isinstance(imag, Number):
             raise ValueError("Argument 'imag' must be a real number.")
 
-        if imag.sameQ(Integer(0)):
+        if imag.sameQ(Integer0):
             return real
 
         if isinstance(real, MachineReal) and not isinstance(imag, MachineReal):

@@ -15,6 +15,7 @@ from mathics.builtin.base import (
 from mathics.core.expression import (
     Expression,
     Integer,
+    Integer0,
     Symbol,
 )
 
@@ -93,7 +94,7 @@ class SparseArray(Builtin):
                 "SparseArray",
                 Symbol("Automatic"),
                 dims,
-                Integer(0),
+                Integer0,
                 Expression("List", *leaves),
             )
         # Now, reformat the list of sparse arrays as a single sparse array
@@ -108,7 +109,7 @@ class SparseArray(Builtin):
             "SparseArray",
             Symbol("Automatic"),
             dims,
-            Integer(0),
+            Integer0,
             Expression("List", *rules),
         )
 
@@ -160,12 +161,12 @@ class SparseArray(Builtin):
             dims = self.find_dimensions(rules.leaves, evaluation)
             if dims is None:
                 return
-            return self.apply_3(rules, dims, Integer(0), evaluation)
+            return self.apply_3(rules, dims, Integer0, evaluation)
         return self.list_to_sparse(rules, evaluation)
 
     def apply_2(self, rules, dims, evaluation):
         """SparseArray[rules_List, dims_List]"""
-        return self.apply_3(rules, dims, Integer(0), evaluation)
+        return self.apply_3(rules, dims, Integer0, evaluation)
 
     def apply_3(self, rules, dims, default, evaluation):
         """SparseArray[rules_List, dims_List, default_]"""

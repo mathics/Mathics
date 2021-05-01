@@ -11,7 +11,7 @@ from mathics_scanner import (
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse
-from mathics.core.expression import Symbol, Integer, Expression, Real, Rational, String
+from mathics.core.expression import Symbol, Integer, Integer0, Integer1, Expression, Real, Rational, String
 
 
 definitions = Definitions(add_builtin=True)
@@ -48,8 +48,8 @@ class ConvertTests(unittest.TestCase):
         self.check("`context`name", Symbol("Global`context`name"))
 
     def testInteger(self):
-        self.check("0", Integer(0))
-        self.check("1", Integer(1))
+        self.check("0", Integer0)
+        self.check("1", Integer1)
         self.check("-1", Integer(-1))
 
         self.check("8^^23", Integer(19))
@@ -103,7 +103,7 @@ class ConvertTests(unittest.TestCase):
 
     def testDerivative(self):
         f = Symbol("Global`f")
-        self.check("f'", Expression(Expression("Derivative", Integer(1)), f))
+        self.check("f'", Expression(Expression("Derivative", Integer1), f))
         self.check("f''", Expression(Expression("Derivative", Integer(2)), f))
         self.check(
             "(f'')'''",

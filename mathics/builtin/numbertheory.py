@@ -12,6 +12,7 @@ from mathics.builtin.base import Builtin, Test, SympyFunction
 from mathics.core.expression import (
     Expression,
     Integer,
+    Integer0,
     Rational,
     Symbol,
     from_python,
@@ -132,7 +133,7 @@ class Divisors(Builtin):
 
     def apply(self, n, evaluation):
         "Divisors[n_Integer]"
-        if n == Integer(0):
+        if n == Integer0:
             return None
         return Expression(
             "List", *[from_sympy(i) for i in sympy.divisors(n.to_sympy())]
