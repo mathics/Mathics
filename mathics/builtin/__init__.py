@@ -127,7 +127,7 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
-disable_file_module_names = ["files_io.files", "files_io.importexport"] if ENABLE_FILES_MODULE else []
+disable_file_module_names = [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
 
 for subdir in ("drawing", "files_io", "numbers", "specialfns",):
     import_name = f"{__name__}.{subdir}"
