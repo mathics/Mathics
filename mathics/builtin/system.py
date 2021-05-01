@@ -450,7 +450,7 @@ class VersionNumber(Predefined):
     """
 
     name = "$VersionNumber"
-    value = 6.0
+    value = 10.0
 
     def evaluate(self, evaluation) -> Real:
         # Make this be whatever the latest Mathematica release is,
@@ -474,6 +474,7 @@ class SystemMemory(Predefined):
     def evaluate(self, evaluation) -> Integer:
         try:
             import psutil
+
             totalmem = psutil.virtual_memory().total
             return Integer(total)
         except:
@@ -495,6 +496,7 @@ class MemoryAvailable(Builtin):
         """MemoryAvailable[]"""
         try:
             import psutil
+
             totalmem = psutil.virtual_memory().available
             return Integer(total)
         except:
@@ -517,14 +519,18 @@ class MemoryInUse(Builtin):
         # Partially borrowed from https://code.activestate.com/recipes/577504/
         from itertools import chain
         from sys import getsizeof
+
         definitions = evaluation.definitions
         seen = set()
         default_size = getsizeof(0)
-        handlers = {tuple: iter,
-                    list: iter,
-                    dict: (lambda d: chain.from_iterable(d.items())),
-                    set: iter,
-                    frozenset: iter,}
+        handlers = {
+            tuple: iter,
+            list: iter,
+            dict: (lambda d: chain.from_iterable(d.items())),
+            set: iter,
+            frozenset: iter,
+        }
+
         def sizeof(obj):
             if id(obj) in seen:
                 return 0
@@ -537,10 +543,6 @@ class MemoryInUse(Builtin):
             return s
 
         return Integer(sizeof(definitions))
-
-
-
-
 
 
 class Share(Builtin):
