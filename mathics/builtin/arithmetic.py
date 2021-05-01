@@ -1298,12 +1298,26 @@ class Abs(_MPMathFunction):
 
 class Arg(_MPMathFunction):
     """
-    <dl>
-    <dt>'Arg[$z$]'
-        <dd>returns the argument of a complex value $z$.
-    </dl>
-    >> Arg[-3]
-     = Pi
+     <dl>
+       <dt>'Arg'[$z$, $method_option$]</dt>
+       <dd>returns the argument of a complex value $z$.</dd>
+
+       <ul>
+         <li>'Arg'[$z$] is left unevaluated if $z$ is not a numeric quantity.
+         <li>'Arg'[$z$] gives the phase angle of $z$ in radians.
+         <li>The result from 'Arg'[$z$] is always between -Pi and +Pi.
+         <li>'Arg'[$z$] has a branch cut discontinuity in the complex $z$ plane running from -Infinity to 0.
+         <li>'Arg'[0] is 0.
+      </ul>
+     </dl>
+
+     >> Arg[-3]
+      = Pi
+
+     Same as above using sympy's method:
+     >> Arg[-3, Method->"sympy"]
+      = Pi
+
     >> Arg[1-I]
      = -Pi / 4
 
@@ -1313,14 +1327,39 @@ class Arg(_MPMathFunction):
      = Pi / 4
     >> Arg[DirectedInfinity[]]
      = 1
+    Arg for 0 is assumed to be 0:
+    >> Arg[0]
+     = 0
     """
-    rules = {"Arg[DirectedInfinity[]]": "1",
-             "Arg[DirectedInfinity[a_]]": "Arg[a]",
+    rules = {
+        "Arg[0]": "0",
+        "Arg[DirectedInfinity[]]": "1",
+        "Arg[DirectedInfinity[a_]]": "Arg[a]",
     }
-    attributes = ("Listable", "NumericFunction")
 
+    attributes = ("Listable", "NumericFunction")
+    options = {"Method": "Automatic"}
+
+    numpy_name = "angle" # for later
     mpmath_name = "arg"
     sympy_name = "arg"
+
+    def apply(self, z, evaluation, options={}):
+        "%(name)s[z_, OptionsPattern[%(name)s]]"
+        if Expression("PossibleZeroQ", z).evaluate(evaluation) == SymbolTrue:
+            return Integer0
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
+        if preference is None or preference == "Automatic":
+            return super(Arg, self).apply(z, evaluation)
+        elif preference == "mpmath":
+            return _MPMathFunction.apply(self, z, evaluation)
+        elif preference == "sympy":
+            return SympyFunction.apply(self, z)
+        # TODO: add NumpyFunction
+        evaluation.message(
+            "meth", f'Arg Method {preference} not in ("sympy", "mpmath")'
+        )
+        return
 
 
 class Sign(SympyFunction):
