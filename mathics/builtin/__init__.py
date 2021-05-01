@@ -116,13 +116,10 @@ def is_builtin(var):
 
 
 # FIXME: redo using importlib since that is probably less fragile.
-exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
+exclude_files = set(("codetables", "base"))
 module_names = [
     f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
 ]
-
-if ENABLE_FILES_MODULE:
-    module_names += ["files", "importexport"]
 
 modules = []
 import_builtins(module_names)
@@ -130,8 +127,14 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
-for subdir in ("drawing", "numbers", "specialfns",):
+disable_file_module_names = ["files_io.files", "files_io.importexport"] if ENABLE_FILES_MODULE else []
+
+for subdir in ("drawing", "files_io", "numbers", "specialfns",):
     import_name = f"{__name__}.{subdir}"
+
+    if import_name in disable_file_module_names:
+        continue
+
     builtin_module = importlib.import_module(import_name)
     submodule_names = [
         modname
