@@ -39,6 +39,7 @@ from mathics.core.expression import (
     SymbolAssociation,
     SymbolSequence,
     Integer,
+    Integer0,
     Number,
     Real,
     strip_context,
@@ -369,7 +370,7 @@ class Length(Builtin):
         "Length[expr_]"
 
         if expr.is_atom():
-            return Integer(0)
+            return Integer0
         else:
             return Integer(len(expr.leaves))
 
@@ -2466,7 +2467,7 @@ class _IterationFunction(Builtin):
         result = []
         compare_type = (
             "GreaterEqual"
-            if Expression("Less", di, Integer(0)).evaluate(evaluation).to_python()
+            if Expression("Less", di, Integer0).evaluate(evaluation).to_python()
             else "LessEqual"
         )
         while True:
@@ -3212,7 +3213,7 @@ class UnitVector(Builtin):
             if i == k:
                 return Integer(1)
             else:
-                return Integer(0)
+                return Integer0
 
         return Expression(SymbolList, *(item(i) for i in range(1, n + 1)))
 
@@ -4845,8 +4846,8 @@ class _Pad(Builtin):
         return self._pad(
             l,
             n,
-            Integer(0),
-            Integer(0),
+            Integer0,
+            Integer0,
             evaluation,
             lambda: Expression(self.get_name(), l, n),
         )
@@ -4857,7 +4858,7 @@ class _Pad(Builtin):
             l,
             n,
             x,
-            Integer(0),
+            Integer0,
             evaluation,
             lambda: Expression(self.get_name(), l, n, x),
         )

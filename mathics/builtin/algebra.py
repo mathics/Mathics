@@ -10,6 +10,7 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Symbol,
@@ -61,7 +62,7 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
         return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
 
     if kwargs["modulus"] is not None and kwargs["modulus"] <= 0:
-        return Integer(0)
+        return Integer0
 
     # A special case for trigonometric functions
     if "trig" in kwargs and kwargs["trig"]:
@@ -496,8 +497,8 @@ class FactorTermsList(Builtin):
 
     def apply_list(self, expr, vars, evaluation):
         "FactorTermsList[expr_, vars_List]"
-        if expr == Integer(0):
-            return Expression("List", Integer1, Integer(0))
+        if expr == Integer0:
+            return Expression("List", Integer1, Integer0)
         elif isinstance(expr, Number):
             return Expression("List", expr, Integer1)
 
@@ -1053,7 +1054,7 @@ class PolynomialQ(Builtin):
 # Get a coefficient of form in an expression
 def _coefficient(name, expr, form, n, evaluation):
     if expr == SymbolNull or form == SymbolNull or n == SymbolNull:
-        return Integer(0)
+        return Integer0
 
     if not (isinstance(form, Symbol)) and not (isinstance(form, Expression)):
         return evaluation.message(name, "ivar", form)
@@ -1260,10 +1261,10 @@ class CoefficientList(Builtin):
         # special cases for expr and form
         e_null = expr == SymbolNull
         f_null = form == SymbolNull
-        if expr == Integer(0):
+        if expr == Integer0:
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0))
+            return Expression("List", Integer0)
         elif e_null and not f_null:
             return Expression("List", SymbolNull)
         elif f_null:
@@ -1411,7 +1412,7 @@ class Exponent(Builtin):
 
     def apply(self, expr, form, h, evaluation):
         "Exponent[expr_, form_, h_]"
-        if expr == Integer(0):
+        if expr == Integer0:
             return Expression("DirectedInfinity", Integer(-1))
 
         if not form.has_form("List", None):

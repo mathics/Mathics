@@ -116,6 +116,8 @@ def from_sympy(expr):
     from mathics.core.expression import (
         Symbol,
         Integer,
+        Integer0,
+        Integer1,
         Rational,
         Real,
         Complex,
@@ -181,7 +183,7 @@ def from_sympy(expr):
         elif isinstance(expr, sympy.core.numbers.NegativeInfinity):
             return Expression("Times", Integer(-1), Symbol("Infinity"))
         elif isinstance(expr, sympy.core.numbers.ImaginaryUnit):
-            return Complex(Integer(0), Integer(1))
+            return Complex(Integer0, Integer1)
         elif isinstance(expr, sympy.Integer):
             return Integer(int(expr))
         elif isinstance(expr, sympy.Rational):
@@ -258,7 +260,7 @@ def from_sympy(expr):
             if factors:
                 result.append(Expression("Times", *factors))
             else:
-                result.append(Integer(1))
+                result.append(Integer1)
         return Expression("Function", Expression("Plus", *result))
     elif isinstance(expr, sympy.CRootOf):
         try:

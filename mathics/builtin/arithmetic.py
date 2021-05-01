@@ -26,6 +26,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Rational,
@@ -384,13 +385,13 @@ class Plus(BinaryOperator, SympyFunction):
             else:
                 number = from_sympy(sum(item.to_sympy() for item in numbers))
         else:
-            number = Integer(0)
+            number = Integer0
 
-        if not number.sameQ(Integer(0)):
+        if not number.sameQ(Integer0):
             leaves.insert(0, number)
 
         if not leaves:
-            return Integer(0)
+            return Integer0
         elif len(leaves) == 1:
             return leaves[0]
         else:
@@ -1227,7 +1228,7 @@ class Im(SympyFunction):
     def apply_number(self, number, evaluation):
         "Im[number_?NumberQ]"
 
-        return Integer(0)
+        return Integer0
 
     def apply(self, number, evaluation):
         "Im[number_]"
@@ -1391,7 +1392,7 @@ class I(Predefined):
     python_equivalent = 1j
 
     def evaluate(self, evaluation):
-        return Complex(Integer(0), Integer1)
+        return Complex(Integer0, Integer1)
 
 
 class NumberQ(Test):
@@ -1474,7 +1475,7 @@ class PossibleZeroQ(SympyFunction):
             ):
                 return (
                     SymbolTrue
-                    if Expression("Simplify", expr).evaluate(evaluation) == Integer(0)
+                    if Expression("Simplify", expr).evaluate(evaluation) == Integer0
                     else SymbolFalse
                 )
 
@@ -1891,7 +1892,7 @@ class Gamma(_MPMathMultiFunction):
         if sympy_name == "lowergamma":
             # lowergamma(z, x) -> Gamma[z, 0, x]
             z, x = leaves
-            return Expression(self.get_name(), z, Integer(0), x)
+            return Expression(self.get_name(), z, Integer0, x)
         else:
             return Expression(self.get_name(), *leaves)
 
@@ -2240,7 +2241,7 @@ class Piecewise(SympyFunction):
         if len(leaves) == 2:  # default case
             sympy_cases.append((leaves[1].to_sympy(**kwargs), True))
         else:
-            sympy_cases.append((Integer(0).to_sympy(**kwargs), True))
+            sympy_cases.append((Integer0.to_sympy(**kwargs), True))
 
         return sympy.Piecewise(*sympy_cases)
 
@@ -2274,7 +2275,7 @@ class Boole(Builtin):
             if expr == SymbolTrue:
                 return Integer1
             elif expr == SymbolFalse:
-                return Integer(0)
+                return Integer0
         return None
 
 
