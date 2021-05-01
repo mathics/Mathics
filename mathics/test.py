@@ -323,7 +323,6 @@ def make_doc(quiet=False):
         output_tex = {}
         for tests in documentation.get_tests():
             create_output(tests, output_xml, output_tex)
-        builtin_count = len(builtins)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return

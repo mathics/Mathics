@@ -10,9 +10,6 @@ from mathics.core.expression import (
     SymbolFalse,
 )
 
-from mathics.core.rules import Rule
-
-
 class Or(BinaryOperator):
     """
     <dl>
@@ -86,8 +83,8 @@ class And(BinaryOperator):
         leaves = []
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol("False"):
-                return Symbol("False")
+            if result == SymbolFalse:
+                return SymbolFalse
             elif not result.is_true():
                 leaves.append(result)
         if leaves:
