@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 from .helper import check_evaluation, evaluate
 
 def test_compress():
@@ -18,12 +19,13 @@ def test_unprotected():
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_get_and_put():
-    temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
-    temp_filename_strip = temp_filename[1:-1]
-    check_evaluation(f"40! >> {temp_filename_strip}", "Null")
-    check_evaluation(f"<< {temp_filename_strip}", "40!")
-    check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
+if sys.platform not in ("win32",):
+    def test_get_and_put():
+        temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
+        temp_filename_strip = temp_filename[1:-1]
+        check_evaluation(f"40! >> {temp_filename_strip}", "Null")
+        check_evaluation(f"<< {temp_filename_strip}", "40!")
+        check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
 
 
 # I do not know what is it supposed to test with this...

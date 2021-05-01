@@ -21,7 +21,7 @@ from mathics.core.expression import (
     SymbolRule,
     from_python,
 )
-from mathics.builtin.colors import (
+from mathics.builtin.drawing.colors import (
     convert as convert_color,
     colorspaces as known_colorspaces,
 )
@@ -1599,7 +1599,7 @@ class Colorize(_ImageBuiltin):
         ):
             color_function = String("LakeColors")
 
-        from mathics.builtin.plot import gradient_palette
+        from mathics.builtin.drawing.plot import gradient_palette
 
         cmap = gradient_palette(color_function, n, evaluation)
         if not cmap:

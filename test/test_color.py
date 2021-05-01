@@ -6,7 +6,7 @@ import unittest
 from random import random
 
 
-import mathics.builtin.colors as colors
+import mathics.builtin.drawing.colors as colors
 from mathics.builtin.numpy_utils import array, stacked, vectorize
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
