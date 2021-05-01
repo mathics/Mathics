@@ -26,9 +26,11 @@ Enhancements
 * ``Attributes`` accepts a string parameter.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
+* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
+* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`)
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
-* ``FixedPoint`` now supports the ``SameTest`` option.  
+* ``FixedPoint`` now supports the ``SameTest`` option.
 * ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``Simplify`` performs a more sophisticated set of simplifications.
@@ -36,9 +38,8 @@ Enhancements
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
-* ``ToExpression`` handles multi-line string input
-* The implementation of Streams was redone.
-  
+* ``ToExpression`` handles multi-line string input.
+*  The implementation of Streams was redone.
 
 
 Bug fixes
@@ -54,7 +55,7 @@ Internal changes
 ----------------
 
 * doctest  accepts the option `-d` to show how long it takes to parse, evaluate and compare each individual test.
-  
+
 
 2.1.0
 -----
