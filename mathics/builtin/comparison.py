@@ -20,6 +20,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Symbol,
@@ -459,7 +460,7 @@ def do_cplx_equal(x, y) -> Optional[int]:
             else:
                 return True
         else:
-            c = do_cmp(x.imag, Integer(0))
+            c = do_cmp(x.imag, Integer0)
             if c is None:
                 return
             if c != 0:

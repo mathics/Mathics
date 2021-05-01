@@ -10,6 +10,7 @@ from mathics.core.expression import (
     Expression,
     String,
     Integer,
+    Integer0,
     Integer1,
     Number,
     Rational,
@@ -19,6 +20,7 @@ from mathics.core.expression import (
     SymbolList,
     SymbolN,
     SymbolRule,
+    SymbolUndefined,
     from_python,
 )
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_sympy
@@ -443,7 +445,7 @@ class Integrate(SympyFunction):
 
     Integrate a polynomial:
     >> Integrate[6 x ^ 2 + 3 x ^ 2 - 4 x + 10, x]
-     = 10 x - 2 x ^ 2 + 3 x ^ 3
+     = x (10 - 2 x + 3 x ^ 2)
 
     Integrate trigonometric functions:
     >> Integrate[Sin[x] ^ 5, x]
@@ -457,7 +459,7 @@ class Integrate(SympyFunction):
 
     Some other integrals:
     >> Integrate[1 / (1 - 4 x + x^2), x]
-     = -Sqrt[3] Log[-2 + Sqrt[3] + x] / 6 + Sqrt[3] Log[-2 - Sqrt[3] + x] / 6
+     = Sqrt[3] (Log[-2 - Sqrt[3] + x] - Log[-2 + Sqrt[3] + x]) / 6
     >> Integrate[4 Sin[x] Cos[x], x]
      = 2 Sin[x] ^ 2
 
@@ -474,6 +476,8 @@ class Integrate(SympyFunction):
      = {}
     #> Definition[Integrate]
      = Attributes[Integrate] = {Protected, ReadProtected}
+     .
+     . Options[Integrate] = {Assumptions -> $Assumptions, GenerateConditions -> Automatic, PrincipalValue -> False}
     #> Integrate[Hold[x + x], {x, a, b}]
      = Integrate[Hold[x + x], {x, a, b}]
     #> Integrate[sin[x], x]
@@ -491,7 +495,7 @@ class Integrate(SympyFunction):
      = MachinePrecision
 
     #> Integrate[1/(x^5+1), x]
-     = RootSum[625 #1 ^ 4 + 125 #1 ^ 3 + 25 #1 ^ 2 + 5 #1 + 1&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
+     = RootSum[1 + 5 #1 + 25 #1 ^ 2 + 125 #1 ^ 3 + 625 #1 ^ 4&, Log[x + 5 #1] #1&] + Log[1 + x] / 5
 
     #> Integrate[ArcTan(x), x]
      = x ^ 2 ArcTan / 2
@@ -509,21 +513,31 @@ class Integrate(SympyFunction):
 
     >> Integrate[f'[x], {x, a, b}]
      = f[b] - f[a]
+    >> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
+     = ConditionalExpression[t / 2, Abs[Arg[t]] < Pi / 2]
+    # This should work after merging the more sophisticated predicate_evaluation routine 
+    # be merged...
+    # >> Assuming[Abs[Arg[t]] < Pi / 2, Integrate[x/Exp[x^2/t], {x, 0, Infinity}]]
+    # = t / 2
+    #
     """
 
     # TODO
     """
     >> Integrate[Sqrt[Tan[x]], x]
      = 1/4 Log[1 + Tan[x] - Sqrt[2] Sqrt[Tan[x]]] Sqrt[2] + 1/2 ArcTan[-1/2 (Sqrt[2] - 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] + 1/2 ArcTan[1/2 (Sqrt[2] + 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] - 1/4 Log[1 + Tan[x] + Sqrt[2] Sqrt[Tan[x]]] Sqrt[2]
-    #> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
-     = ConditionalExpression[-, Re[t] > 0]
     >> Integrate[f'[x], {x, a, b}]
      = f[b] - f[a]
     """
-
     attributes = ("ReadProtected",)
 
     sympy_name = "Integral"
+
+    options = {
+        "Assumptions": "$Assumptions",
+        "GenerateConditions": "Automatic",
+        "PrincipalValue": "False",
+    }
 
     messages = {
         "idiv": "Integral of `1` does not converge on `2`.",
@@ -559,9 +573,10 @@ class Integrate(SympyFunction):
         new_leaves = [leaves[0]] + args
         return Expression(self.get_name(), *new_leaves)
 
-    def apply(self, f, xs, evaluation):
-        "Integrate[f_, xs__]"
-
+    def apply(self, f, xs, evaluation, options):
+        "Integrate[f_, xs__, OptionsPattern[]]"
+        self.patpow0 = Pattern.create(Expression("Power", Integer0, Expression("Blank")))
+        assuming = options["System`Assumptions"].evaluate(evaluation)
         f_sympy = f.to_sympy()
         if f_sympy is None or isinstance(f_sympy, SympyExpression):
             return
@@ -604,11 +619,51 @@ class Integrate(SympyFunction):
             # e.g. NotImplementedError: Result depends on the sign of
             # -sign(_Mathics_User_j)*sign(_Mathics_User_w)
             return
-
         if prec is not None and isinstance(result, sympy.Integral):
             # TODO MaxExtaPrecision -> maxn
             result = result.evalf(dps(prec))
-        result = from_sympy(result)
+        else:
+            result = from_sympy(result)
+        # If the result is defined as a Piecewise expression,
+        # use ConditionalExpression.
+        # This does not work now because the form sympy returns the values
+        if result.get_head_name() == "System`Piecewise":
+            cases = result._leaves[0]._leaves
+            if len(result._leaves) == 1:
+                if cases[-1]._leaves[1].is_true():
+                    default = cases[-1]._leaves[0]
+                    cases = result._leaves[0]._leaves[:-1]
+                else:
+                    default = SymbolUndefined
+            else:
+                cases = result._leaves[0]._leaves
+                default = result._leaves[1]
+            if default.has_form("Integrate", None):
+                if default._leaves[0] == f:
+                    default = SymbolUndefined
+
+            simplified_cases = []
+            for case in cases:
+                # TODO: if something like 0^n or 1/expr appears,
+                # put the condition n!=0 or expr!=0 accordingly in the list of
+                # conditions...
+                cond = Expression("Simplify", case._leaves[1], assuming).evaluate(evaluation)
+                resif = Expression("Simplify", case._leaves[0], assuming).evaluate(evaluation)
+                if cond.is_true():
+                    return resif
+                if resif.has_form("ConditionalExpression", 2):
+                    cond = Expression("And", resif._leaves[1] ,cond)
+                    cond = Expression("Simplify", cond, assuming).evaluate(evaluation)
+                    resif = resif._leaves[0]
+                simplified_cases.append(Expression(SymbolList, resif, cond))
+            cases = simplified_cases
+            if default == SymbolUndefined and len(cases)==1:
+                cases = cases[0]
+                result = Expression("ConditionalExpression", *(cases._leaves))
+            else:
+                result = Expression(result._head, cases, default)
+        else:
+            result = Expression("Simplify", result, assuming).evaluate(evaluation)
         return result
 
 

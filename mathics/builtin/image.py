@@ -10,6 +10,8 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer0,
+    Integer1,
     Rational,
     Real,
     MachineReal,
@@ -1063,7 +1065,7 @@ class BoxMatrix(_ImageBuiltin):
         "BoxMatrix[r_?RealNumberQ]"
         py_r = abs(r.round_to_float())
         s = int(math.floor(1 + 2 * py_r))
-        return _matrix([[Integer(1)] * s] * s)
+        return _matrix([[Integer1] * s] * s)
 
 
 class DiskMatrix(_ImageBuiltin):
@@ -1082,7 +1084,7 @@ class DiskMatrix(_ImageBuiltin):
         py_r = abs(r.round_to_float())
         s = int(math.floor(0.5 + py_r))
 
-        m = (Integer(0), Integer(1))
+        m = (Integer0, Integer1)
         r_sqr = (py_r + 0.5) * (py_r + 0.5)
 
         def rows():
@@ -1108,8 +1110,8 @@ class DiamondMatrix(_ImageBuiltin):
         py_r = abs(r.round_to_float())
         t = int(math.floor(0.5 + py_r))
 
-        zero = Integer(0)
-        one = Integer(1)
+        zero = Integer0
+        one = Integer1
 
         def rows():
             for d in range(0, t):

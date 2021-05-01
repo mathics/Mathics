@@ -18,6 +18,8 @@ from mathics.core.expression import (
     SymbolTrue,
     SymbolList,
     Integer,
+    Integer0,
+    Integer1,
     Rational,
     strip_context,
 )
@@ -345,11 +347,11 @@ class Order(Builtin):
     def apply(self, x, y, evaluation):
         "Order[x_, y_]"
         if x < y:
-            return Integer(1)
+            return Integer1
         elif x > y:
             return Integer(-1)
         else:
-            return Integer(0)
+            return Integer0
 
 
 class Head(Builtin):
