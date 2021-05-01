@@ -1922,11 +1922,11 @@ class LoadModule(Builtin):
     def apply(self, module, evaluation):
         "LoadModule[module_String]"
         try:
-            module_loaded = evaluation.definitions.load_pymathics_module(module.value)
-        except PyMathicsLoadException as e:
+            evaluation.definitions.load_pymathics_module(module.value)
+        except PyMathicsLoadException:
             evaluation.message(self.name, "notmathicslib", module)
             return SymbolFailed
-        except ImportError as e:
+        except ImportError:
             evaluation.message(self.get_name(), "notfound", module)
             return SymbolFailed
         else:

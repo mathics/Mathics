@@ -15,6 +15,7 @@ import subprocess
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression,
+    Integer0,
     Integer,
     Real,
     String,
@@ -564,7 +565,7 @@ class Share(Builtin):
         # collecting repeated symbols and expressions, and then
         # remplace them by references.
         # Return the amount of memory recovered.
-        return Integer(0)
+        return Integer0
 
     def apply_1(self, symbol, evaluation) -> Integer:
         """Share[symbol_Symbol]"""
@@ -572,4 +573,4 @@ class Share(Builtin):
         # collecting repeated symbols and expressions, and then
         # remplace them by references.
         # Return the amount of memory recovered.
-        return Integer(0)
+        return Integer0

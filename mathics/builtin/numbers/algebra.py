@@ -3,6 +3,7 @@
 Algebraic Manipulation
 """
 
+
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
@@ -21,7 +22,8 @@ from mathics.core.expression import (
     SymbolTrue,
 )
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
-from mathics.core.rules import Pattern
+from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.inference import evaluate_predicate
 
 import sympy
 
@@ -65,7 +67,8 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
         return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
 
     if kwargs["modulus"] is not None and kwargs["modulus"] <= 0:
-        return Integer(0)
+        return Integer0
+
     # A special case for trigonometric functions
     if "trig" in kwargs and kwargs["trig"]:
         if expr.has_form("Sin", 1):
@@ -288,6 +291,8 @@ class Simplify(Builtin):
     <dl>
     <dt>'Simplify[$expr$]'
         <dd>simplifies $expr$.
+    <dt>'Simplify[$expr$, $assump$]'
+        <dd>simplifies $expr$ assuming $assump$ instead of $Assumptions$.
     </dl>
 
     >> Simplify[2*Sin[x]^2 + 2*Cos[x]^2]
@@ -296,6 +301,16 @@ class Simplify(Builtin):
      = x
     >> Simplify[f[x]]
      = f[x]
+
+    Simplify over conditional expressions uses $Assumptions, or $assump$
+    to evaluate the condition:
+    # TODO: enable this once the logic for conditional expression
+    # be restaured.
+    # >> $Assumptions={a <= 0};
+    # >> Simplify[ConditionalExpression[1, a > 0]]
+    # = Undefined
+    # >> Simplify[ConditionalExpression[1, a > 0], { a > 0 }]
+    # = 1
 
     #> Simplify[a*x^2+b*x^2]
      = x ^ 2 (a + b)
@@ -308,17 +323,62 @@ class Simplify(Builtin):
     rules = {
         "Simplify[list_List]": "Simplify /@ list",
         "Simplify[rule_Rule]": "Simplify /@ rule",
-        "Simplify[eq_Equal]": "Simplify /@ eq",
+        "Simplify[list_List, assum_]": "Simplify[#1, assum]& /@ list",
+        "Simplify[rule_Rule, assum_]": "Simplify[#1, assum]& /@ rule",
+        "Simplify[0^a_, assum_]": "ConditionalExpression[0,Simplify[a>0]]",
+        "Simplify[b_^a_, assum_]": "ConditionalExpression[b,Simplify[{Or[a>0, b!=0]}]]",
     }
 
+    def apply_assuming(self, expr, assumptions, evaluation):
+        "%(name)s[expr_, assumptions_]"
+        assumptions = assumptions.evaluate(evaluation)
+        return dynamic_scoping(
+            lambda ev: self.apply(expr, ev),
+            {"System`$Assumptions": assumptions},
+            evaluation,
+        )
+
     def apply(self, expr, evaluation):
-        "Simplify[expr_]"
+        "%(name)s[expr_]"
+        # Check first if we are dealing with a logic expression...
+        expr = evaluate_predicate(expr, evaluation)
+        if expr.is_atom():
+            return expr
+        # else, use sympy:
+        leaves = [self.apply(leaf, evaluation) for leaf in expr._leaves]
+        head = self.apply(expr.get_head(), evaluation)
+        expr = Expression(head, *leaves)
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
             return
         sympy_result = sympy.simplify(sympy_expr)
         return from_sympy(sympy_result)
+
+
+class FullSimplify(Simplify):
+    """
+    <dl>
+    <dt>'FullSimplify[$expr$]'
+        <dd>simplifies $expr$ using an extended set of simplification rules.
+    <dt>'FullSimplify[$expr$, $assump$]'
+        <dd>simplifies $expr$ assuming $assump$ instead of $Assumptions$.
+    </dl>
+    TODO: implement the extension. By now, this does the same than Simplify...
+
+    >> FullSimplify[2*Sin[x]^2 + 2*Cos[x]^2]
+     = 2
+
+    """
+
+    rules = {
+        "FullSimplify[list_List]": "FullSimplify /@ list",
+        "FullSimplify[rule_Rule]": "FullSimplify /@ rule",
+        "FullSimplify[eq_Equal]": "FullSimplify /@ eq",
+        "FullSimplify[list_List, assum_]": "FullSimplify[#1, assum]& /@ list",
+        "FullSimplify[rule_Rule, assum_]": "FullSimplify[#1, assum]& /@ rule",
+        "FullSimplify[eq_Equal, assum_]": "FullSimplify[#1, assum]& /@ eq",
+    }
 
 
 class Together(Builtin):
@@ -497,8 +557,8 @@ class FactorTermsList(Builtin):
 
     def apply_list(self, expr, vars, evaluation):
         "FactorTermsList[expr_, vars_List]"
-        if expr == Integer(0):
-            return Expression("List", Integer1, Integer(0))
+        if expr == Integer0:
+            return Expression("List", Integer1, Integer0)
         elif isinstance(expr, Number):
             return Expression("List", expr, Integer1)
 
@@ -1054,7 +1114,7 @@ class PolynomialQ(Builtin):
 # Get a coefficient of form in an expression
 def _coefficient(name, expr, form, n, evaluation):
     if expr == SymbolNull or form == SymbolNull or n == SymbolNull:
-        return Integer(0)
+        return Integer0
 
     if not (isinstance(form, Symbol)) and not (isinstance(form, Expression)):
         return evaluation.message(name, "ivar", form)
@@ -1261,10 +1321,10 @@ class CoefficientList(Builtin):
         # special cases for expr and form
         e_null = expr == SymbolNull
         f_null = form == SymbolNull
-        if expr == Integer(0):
+        if expr == Integer0:
             return Expression("List")
         elif e_null and f_null:
-            return Expression("List", Integer(0))
+            return Expression(SymbolList, Integer0)
         elif e_null and not f_null:
             return Expression("List", SymbolNull)
         elif f_null:
@@ -1412,7 +1472,7 @@ class Exponent(Builtin):
 
     def apply(self, expr, form, h, evaluation):
         "Exponent[expr_, form_, h_]"
-        if expr == Integer(0):
+        if expr == Integer0:
             return Expression("DirectedInfinity", Integer(-1))
 
         if not form.has_form("List", None):

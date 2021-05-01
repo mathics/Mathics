@@ -30,6 +30,8 @@ from mathics.core.expression import (
     SymbolList,
     String,
     Integer,
+    Integer0,
+    Integer1,
     from_python,
     string_list,
 )
@@ -994,7 +996,7 @@ class StringMatchQ(Builtin):
             return evaluation.message(
                 "StringMatchQ",
                 "strse",
-                Integer(1),
+                Integer1,
                 Expression("StringMatchQ", string, patt),
             )
 
@@ -1134,7 +1136,7 @@ class StringSplit(Builtin):
 
         if py_string is None:
             return evaluation.message(
-                "StringSplit", "strse", Integer(1), Expression("StringSplit", string)
+                "StringSplit", "strse", Integer1, Expression("StringSplit", string)
             )
 
         if patt.has_form("List", None):
@@ -1235,7 +1237,7 @@ class StringPosition(Builtin):
         return self.apply_n(
             string,
             patt,
-            Expression("DirectedInfinity", Integer(1)),
+            Expression("DirectedInfinity", Integer1),
             evaluation,
             options,
         )
@@ -1374,11 +1376,11 @@ class _StringFind(Builtin):
         if string.has_form("List", None):
             py_strings = [stri.get_string_value() for stri in string.leaves]
             if None in py_strings:
-                return evaluation.message(self.get_name(), "strse", Integer(1), expr)
+                return evaluation.message(self.get_name(), "strse", Integer1, expr)
         else:
             py_strings = string.get_string_value()
             if py_strings is None:
-                return evaluation.message(self.get_name(), "strse", Integer(1), expr)
+                return evaluation.message(self.get_name(), "strse", Integer1, expr)
 
         # convert rule
         def convert_rule(r):
@@ -1408,7 +1410,7 @@ class _StringFind(Builtin):
         # convert n
         if n is None:
             py_n = 0
-        elif n == Expression("DirectedInfinity", Integer(1)):
+        elif n == Expression("DirectedInfinity", Integer1):
             py_n = 0
         else:
             py_n = n.get_int_value()
@@ -1996,7 +1998,7 @@ class ToExpression(Builtin):
                 "argb",
                 "ToExpression",
                 Integer(len(py_seq)),
-                Integer(1),
+                Integer1,
                 Integer(3),
             )
             return
@@ -2037,7 +2039,7 @@ class ToExpression(Builtin):
     def apply_empty(self, evaluation):
         "ToExpression[]"
         evaluation.message(
-            "ToExpression", "argb", "ToExpression", Integer(0), Integer(1), Integer(3)
+            "ToExpression", "argb", "ToExpression", Integer0, Integer1, Integer(3)
         )
         return
 
@@ -2101,12 +2103,12 @@ class ToCharacterCode(Builtin):
         if string.has_form("List", None):
             string = [substring.get_string_value() for substring in string.leaves]
             if any(substring is None for substring in string):
-                evaluation.message("ToCharacterCode", "strse", Integer(1), exp)
+                evaluation.message("ToCharacterCode", "strse", Integer1, exp)
                 return None
         else:
             string = string.get_string_value()
             if string is None:
-                evaluation.message("ToCharacterCode", "strse", Integer(1), exp)
+                evaluation.message("ToCharacterCode", "strse", Integer1, exp)
                 return None
 
         if encoding == "Unicode":
@@ -2268,7 +2270,7 @@ class FromCharacterCode(Builtin):
                 pyn = n.get_int_value()
                 if not (isinstance(pyn, int) and pyn > 0 and pyn < sys.maxsize):
                     return evaluation.message(
-                        "FromCharacterCode", "intnm", exp, Integer(1)
+                        "FromCharacterCode", "intnm", exp, Integer1
                     )
                 return String(convert_codepoint_list([n]))
         except _InvalidCodepointError:
@@ -3033,7 +3035,7 @@ class StringInsert(Builtin):
         if strsource.has_form("List", None):
             py_strsource = [sub.get_string_value() for sub in strsource.leaves]
             if any(sub is None for sub in py_strsource):
-                return evaluation.message("StringInsert", "strse", Integer(1), exp)
+                return evaluation.message("StringInsert", "strse", Integer1, exp)
             return Expression(
                 "List",
                 *[
@@ -3044,7 +3046,7 @@ class StringInsert(Builtin):
         else:
             py_strsource = strsource.get_string_value()
             if py_strsource is None:
-                return evaluation.message("StringInsert", "strse", Integer(1), exp)
+                return evaluation.message("StringInsert", "strse", Integer1, exp)
             return String(self._insert(py_strsource, py_strnew, listpos, evaluation))
 
 
@@ -3075,14 +3077,14 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
         py_s = [s.get_string_value() for s in string.leaves]
         if any(s is None for s in py_s):
             return evaluation.message(
-                name, "strse", Integer(1), Expression(name, string, patt)
+                name, "strse", Integer1, Expression(name, string, patt)
             )
         return Expression(SymbolList, *[_search(re_patts, s, flags, matched) for s in py_s])
     else:
         py_s = string.get_string_value()
         if py_s is None:
             return evaluation.message(
-                name, "strse", Integer(1), Expression(name, string, patt)
+                name, "strse", Integer1, Expression(name, string, patt)
             )
         return _search(re_patts, py_s, flags, matched)
 
@@ -3373,7 +3375,7 @@ class StringRiffle(Builtin):
 
         # Validate list of string
         if not liststr.has_form("List", None):
-            evaluation.message("StringRiffle", "list", Integer(1), exp)
+            evaluation.message("StringRiffle", "list", Integer1, exp)
             return evaluation.message("StringRiffle", "argmu", exp)
         elif any(leaf.has_form("List", None) for leaf in liststr.leaves):
             return evaluation.message("StringRiffle", "sublist")
