@@ -18,17 +18,19 @@ from mathics.core.expression import (
     Symbol,
     String,
     Integer,
+    Integer0,
     from_python,
     SymbolList,
     SymbolN,
     SymbolRule,
 )
+
 from mathics.builtin.base import Builtin
-from mathics.builtin.scoping import dynamic_scoping
-from mathics.builtin.options import options_to_rules
-from mathics.builtin.numeric import chop
 from mathics.builtin.graphics import Graphics
-from mathics.builtin.graphics3d import Graphics3D
+from mathics.builtin.drawing.graphics3d import Graphics3D
+from mathics.builtin.numeric import chop
+from mathics.builtin.options import options_to_rules
+from mathics.builtin.scoping import dynamic_scoping
 
 
 try:
@@ -37,7 +39,6 @@ try:
     has_compile = True
 except ImportError:
     has_compile = False
-
 
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
@@ -339,7 +340,6 @@ def get_plot_range(values, all_values, option):
 
 
 class _Plot(Builtin):
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -704,8 +704,6 @@ class _Plot(Builtin):
 class _Chart(Builtin):
     attributes = ("HoldAll",)
 
-    from .graphics import Graphics
-
     options = Graphics.options.copy()
     options.update(
         {
@@ -910,9 +908,9 @@ class PieChart(_Chart):
         sector_spacing = self.get_option(options, "SectorSpacing", evaluation)
         if isinstance(sector_spacing, Symbol):
             if sector_spacing.get_name() == "System`Automatic":
-                sector_spacing = Expression(SymbolList, Integer(0), Real(0.2))
+                sector_spacing = Expression(SymbolList, Integer0, Real(0.2))
             elif sector_spacing.get_name() == "System`None":
-                sector_spacing = Expression(SymbolList, Integer(0), Integer(0))
+                sector_spacing = Expression(SymbolList, Integer0, Integer0)
             else:
                 return
         if not sector_spacing.has_form("List", 2):
@@ -1133,8 +1131,6 @@ class Histogram(Builtin):
     >> Histogram[{{1, 2, 10, 5, 50, 20}, {90, 100, 101, 120, 80}}]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2223,8 +2219,6 @@ class ListPlot(_ListPlot):
      = -Graphics-
     """
 
-    from .graphics import Graphics
-
     attributes = ("HoldAll",)
 
     options = Graphics.options.copy()
@@ -2262,8 +2256,6 @@ class ListLinePlot(_ListPlot):
     >> ListLinePlot[{{-2, -1}, {-1, -1}}]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2342,8 +2334,6 @@ class Plot3D(_Plot3D):
     """
     #> Plot3D[x + 2y, {x, -2, 2}, {y, -2, 2}] // TeXForm
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2426,8 +2416,6 @@ class DensityPlot(_Plot3D):
     >> DensityPlot[x^2 y, {x, -1, 1}, {y, -1, 1}, Mesh->All]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 

@@ -5,6 +5,7 @@ Options and Default Arguments
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.builtin.base import Builtin, Test, get_option
 from mathics.core.expression import (
     Symbol,
@@ -14,8 +15,7 @@ from mathics.core.expression import (
     ensure_context,
     strip_context,
 )
-from mathics.builtin.image import Image
-from mathics.core.expression import strip_context
+from mathics.builtin.drawing.image import Image
 
 
 class Options(Builtin):

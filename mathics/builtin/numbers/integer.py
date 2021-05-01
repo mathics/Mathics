@@ -12,7 +12,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Integer, String, Expression
+from mathics.core.expression import Integer, Integer0, String, Expression
 
 
 class Floor(SympyFunction):
@@ -148,7 +148,7 @@ class IntegerLength(Builtin):
 
         if n == 0:
             # special case
-            return Integer(0)
+            return Integer0
 
         n = abs(n)
 
@@ -344,7 +344,7 @@ class IntegerDigits(_IntBaseBuiltin):
         "IntegerDigits[n_Integer]": "IntegerDigits[n, 10]",
     }
 
-    _padding = [Integer(0)]
+    _padding = [Integer0]
 
     def apply_n_b(self, n, b, evaluation):
         "IntegerDigits[n_Integer, b_Integer]"
@@ -515,7 +515,7 @@ class FromDigits(Builtin):
         code_a = ord("a")
         assert code_a > code_0
 
-        value = Integer(0)
+        value = Integer0
         for char in s.lower():
             code = ord(char)
             if code >= code_a:
@@ -534,7 +534,7 @@ class FromDigits(Builtin):
     def apply(self, l, b, evaluation):
         "FromDigits[l_, b_]"
         if l.get_head_name() == "System`List":
-            value = Integer(0)
+            value = Integer0
             for leaf in l.leaves:
                 value = Expression("Plus", Expression("Times", value, b), leaf)
             return value

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
+from .helper import evaluate, check_evaluation
 
-session.evaluate(
+evaluate(
     """
     Needs["DiscreteMath`CombinatoricaV0.9`"]
     """
@@ -280,7 +280,7 @@ def test_permutations_groups_1_2():
             "Factor example in Polya polynomial 1.2.6, Page 26",
         ),
     ):
-        check_evaluation(str_expr, str_expected, message)
+        check_evaluation(str_expr, str_expected, message, to_string_expr=True)
 
 
 def test_inversions_and_inversion_vectors_1_3():

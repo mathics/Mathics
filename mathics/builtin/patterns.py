@@ -803,7 +803,9 @@ class Pattern_(PatternObject):
     def init(self, expr):
         super(Pattern_, self).init(expr)
         self.varname = expr.leaves[0].get_name()
-        if self.varname is None:
+        if self.varname is None or self.varname == "":
+            print("------------------->")
+            print("                    expr that raise the error =",expr)
             self.error("patvar", expr)
         self.pattern = Pattern.create(expr.leaves[1])
 

@@ -1,19 +1,6 @@
 # -*- coding: utf-8 -*-
-from .helper import check_evaluation
-from mathics.core.parser import parse, MathicsSingleLineFeeder
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-import pathlib
 import sys
-
-
-definitions = Definitions(add_builtin=True)
-evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
-
-
-def _evaluate(str_expression):
-    expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
-    return expr.evaluate(evaluation)
+from .helper import check_evaluation, evaluate
 
 
 def test_compress():
@@ -33,27 +20,18 @@ def test_unprotected():
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_get_and_put():
-    temp_directory = _evaluate("$TemporaryDirectory").to_python()
-    if len(temp_directory) < 3:
-        return
-    temp_directory = temp_directory[1:-1]
-    temp_filename = str(pathlib.Path(temp_directory, "testfile"))
-    print(temp_filename)
-    result = _evaluate(f"40! >> {temp_filename}").to_python()
+if sys.platform not in ("win32",):
+    def test_get_and_put():
+        temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
+        temp_filename_strip = temp_filename[1:-1]
+        check_evaluation(f"40! >> {temp_filename_strip}", "Null")
+        check_evaluation(f"<< {temp_filename_strip}", "40!")
+        check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
 
-    # This needs going over in Windows
-    if sys.platform not in {
-        "win32",
-    }:
-        assert result is None
 
-        result = _evaluate(f"<< {temp_filename}")
-        assert result == _evaluate("40!")
-
-        result = _evaluate(f'DeleteFile["{temp_filename}"]').to_python()
-        assert result is None
-
+# I do not know what is it supposed to test with this...
+# def test_Inputget_and_put():
+#    stream = Expression('Plus', Symbol('x'), Integer(2))
 
 # TODO: add these Unix-specific test. Be sure not to test
 # sys.platform for not Windows and to test for applicability

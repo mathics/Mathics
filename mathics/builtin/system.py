@@ -15,6 +15,7 @@ import subprocess
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression,
+    Integer0,
     Integer,
     Real,
     String,
@@ -469,7 +470,7 @@ class SystemMemory(Predefined):
     """
 
     name = "$SystemMemory"
-    
+
     def evaluate(self, evaluation) -> Integer:
         try:
             import psutil
@@ -477,7 +478,7 @@ class SystemMemory(Predefined):
             return Integer(total)
         except:
             return String(SymbolFailed)
-    
+
 
 class MemoryAvailable(Builtin):
     """
@@ -489,7 +490,7 @@ class MemoryAvailable(Builtin):
     >> MemoryAvailable[]
      = ...
     """
-    
+
     def apply_0(self, evaluation) -> Integer:
         """MemoryAvailable[]"""
         try:
@@ -510,7 +511,7 @@ class MemoryInUse(Builtin):
     >> MemoryInUse[]
      = ...
     """
-    
+
     def apply_0(self, evaluation) -> Integer:
         """MemoryInUse[]"""
         # Partially borrowed from https://code.activestate.com/recipes/577504/
@@ -537,9 +538,9 @@ class MemoryInUse(Builtin):
 
         return Integer(sizeof(definitions))
 
-                
-            
-        
+
+
+
 
 
 class Share(Builtin):
@@ -555,14 +556,14 @@ class Share(Builtin):
     >> Share[]
      = ...
     """
-    
+
     def apply_0(self, evaluation) -> Integer:
         """Share[]"""
         # TODO: implement a routine that swap all the definitions,
         # collecting repeated symbols and expressions, and then
         # remplace them by references.
         # Return the amount of memory recovered.
-        return Integer(0)
+        return Integer0
 
     def apply_1(self, symbol, evaluation) -> Integer:
         """Share[symbol_Symbol]"""
@@ -570,6 +571,4 @@ class Share(Builtin):
         # collecting repeated symbols and expressions, and then
         # remplace them by references.
         # Return the amount of memory recovered.
-        return Integer(0)
-
-
+        return Integer0
