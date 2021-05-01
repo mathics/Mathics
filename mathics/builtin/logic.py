@@ -10,6 +10,7 @@ from mathics.core.expression import (
     SymbolFalse,
 )
 
+
 class Or(BinaryOperator):
     """
     <dl>
@@ -33,6 +34,11 @@ class Or(BinaryOperator):
     precedence = 215
     attributes = ("Flat", "HoldAll", "OneIdentity")
 
+    #    rules = {
+    #        "Or[a_]": "a",
+    #        "Or[a_, a_]": "a",
+    #        "Or[pred1___, a_, pred2___, a_, pred3___]": "Or[pred1, a, pred2, pred3]",
+    #    }
     def apply(self, args, evaluation):
         "Or[args___]"
 
@@ -75,6 +81,12 @@ class And(BinaryOperator):
     operator = "&&"
     precedence = 215
     attributes = ("Flat", "HoldAll", "OneIdentity")
+
+    #    rules = {
+    #        "And[a_]": "a",
+    #        "And[a_, a_]": "a",
+    #        "And[pred1___, a_, pred2___, a_, pred3___]": "And[pred1, a, pred2, pred3]",
+    #    }
 
     def apply(self, args, evaluation):
         "And[args___]"

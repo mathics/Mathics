@@ -82,7 +82,7 @@ class FresnelC(_MPMathFunction):
 
     ## SymPy can't currently simplify this all the way to FresnelC[z].
     >> Integrate[Cos[x^2 Pi/2], {x, 0, z}]
-     = FresnelC[z] Gamma[1 / 4] / (4 Gamma[5 / 4])
+     = FresnelC[z]
     """
 
     rules = {
@@ -102,7 +102,7 @@ class FresnelS(_MPMathFunction):
 
     ## SymPy can't currently simplify this all the way to FresnelS[z].
     >> Integrate[Sin[x^2 Pi/2], {x, 0, z}]
-     = 3 FresnelS[z] Gamma[3 / 4] / (4 Gamma[7 / 4])
+     = FresnelS[z]
     """
 
     rules = {
