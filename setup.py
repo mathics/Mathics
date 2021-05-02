@@ -97,6 +97,7 @@ INSTALL_REQUIRES += [
     "palettable",
     "pint",
     "python-dateutil",
+    "psutil",  # for $SystemMemory
     "llvmlite",
     "requests",
     "scikit-image",
