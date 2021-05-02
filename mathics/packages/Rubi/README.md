@@ -5,10 +5,19 @@ Note:
 * The code here should not be widely distributed until Mathics fully supports Rubi and is able to successfully pass Rubi's entire test-suite.
 * When and if that time comes, coordinate with Albert Rich to ensure we have Rubi's latest rules and test-suite.
 
-Run
+Run:
 
 ```
 In[1]:= Needs["Ruby`RubiCLI`"]
 ```
 
 to load this package.
+
+After this loads:
+
+``
+In[2]:= Int[1, x]
+Out[2]= x
+```
+
+to try something.

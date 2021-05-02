@@ -69,9 +69,10 @@ $LoadShowSteps=False;
 (* ::Section:: *)
 (*Load Rubi's integration rules and test routines*)
 
-(* FIXME: Remove this afer we have implemented TimeConstrained *)
+(* FIXME: Remove this afer we have implemented TimeConstrained
 TimeConstrained[expr_, time_] := expr;
 TimeConstrained[expr_, time_, fail_] := expr;
+ *)
 
 
 Get[FileNameJoin[{RulesDirectory,"Load Rubi.m"}], Trace->True];
