@@ -85,26 +85,37 @@ def get_module_doc(module):
     return title, text
 
 def import_builtins(module_names: List[str], submodule_name=None) -> None:
-    for module_name in module_names:
-        import_name = (
-            f"mathics.builtin.{submodule_name}.{module_name}"
-            if submodule_name
-            else f"mathics.builtin.{module_name}"
-        )
+    """
+    Imports the list of Mathics Built-in modules so that inside
+    Mathics we have these Builtin Functions, like Plus[], List[] are defined.
+
+    """
+    def import_module(module_name: str, import_name: str):
         try:
             module = importlib.import_module(import_name)
         except Exception as e:
             print(e)
             print(f"    Not able to load {module_name}. Check your installation.")
             print(f"    mathics.builtin loads from {__file__[:-11]}")
-            continue
+            return None
 
         if __version__ != module.__version__:
             print(
-                f"Version {module.__version__} in the module do not match with {__version__}"
+                f"Version {module.__version__} in the module does not match top-level Mathics version {__version__}"
             )
+        if module:
+            modules.append(module)
 
-        modules.append(module)
+    if submodule_name:
+        import_module(submodule_name, f"mathics.builtin.{submodule_name}")
+
+    for module_name in module_names:
+        import_name = (
+            f"mathics.builtin.{submodule_name}.{module_name}"
+            if submodule_name
+            else f"mathics.builtin.{module_name}"
+        )
+        import_module(module_name, import_name)
 
 
 def is_builtin(var):
