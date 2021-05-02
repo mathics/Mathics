@@ -139,7 +139,7 @@ class Nand(Builtin):
     <dl>
     <dt>'Nand[$expr1$, $expr2$, ...]'
     <dt>'$expr1$ && $expr2$ && ...'
-        <dd> Implements the logical `NOR` function.  The same that Not[And[$expr1$, $expr2$, ...]]
+        <dd> Implements the logical NAND function.  The same as 'Not[And['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nand[True, False]
      = True
@@ -155,7 +155,7 @@ class Nor(Builtin):
     <dl>
     <dt>'Nor[$expr1$, $expr2$, ...]'
     <dt>'$expr1$ && $expr2$ && ...'
-        <dd>Implements the logical `NOR` function.  The same that Not[Or[$expr1$, $expr2$, ...]]
+        <dd>Implements the logical NOR function.  The same as 'Not[Or['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nor[True, False]
      = False

@@ -5,16 +5,19 @@ CHANGES
 2.1.1
 -----
 
-New builtins
-++++++++++++
+New variables and builtins
+++++++++++++++++++++++++++
 
 * ``Arg``
 * ``Dispatch``
 * ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``MemoryAvailable``
+* ``MemoryInUse``
 * ``Nand`` and ``Nor`` logical functions.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
+* ``$SystemMemory``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
 
 
@@ -37,9 +40,11 @@ Enhancements
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
-* ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input.
+* ``ToString`` accepts an optional *form* parameter.
 *  The implementation of Streams was redone.
+* ``ToExpression`` handles multi-line string input
+* The implementation of Streams was redone.
 
 
 Bug fixes
