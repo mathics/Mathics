@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from html import escape as html_escape
 import re
 from os import getenv, listdir
 import pickle
 import importlib
-import pkgutil
 
 from mathics import settings
+from html import escape as html_escape
 
 from mathics import builtin
 from mathics.builtin import get_module_doc
@@ -110,15 +109,6 @@ try:
         xml_data = pickle.load(xml_data_file)
 except IOError:
     xml_data = {}
-
-def get_submodule_names(object):
-    modpkgs = []
-    if hasattr(object, '__path__'):
-        for importer, modname, ispkg in pkgutil.iter_modules(object.__path__):
-            modpkgs.append(modname)
-        modpkgs.sort()
-    return modpkgs
-
 
 
 def filter_comments(doc):
@@ -252,23 +242,15 @@ def escape_latex(text):
         [
             ("$", r"\$"),
             ("\u03c0", r"$\pi$"),
-            (" ", r"$\ge$"),
-            (" ", r"$\le$"),
-            (" ", r"$\ne$"),
-
+            ("≥", r"$\ge$"),
+            ("≤", r"$\le$"),
+            ("≠", r"$\ne$"),
             ("ç", r"\c{c}"),
             ("é", r"\'e"),
             ("ê", r"\^e"),
             ("ñ", r"\~n"),
             ("∫", r"\int"),
             ("", r"d"),
-            # Redo above as something like:
-            # ("\u00e7", r"\c{c}"),
-            # ("\u00e9", r"\'e"),
-            # ("\u00ea", r"\^e"),
-            # ("\00f1", r"\~n"),
-            # ("\u222b", r"\int"),
-            # ("\uf74c", r"d"),
         ],
     )
 
@@ -495,7 +477,6 @@ def post_sub(text, post_substitutions):
     return text
 
 
-# FIXME: can we replace this with Python 3's html.escape ?
 def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
     def repl_python(match):
         return (
@@ -636,7 +617,6 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = text.replace("\\" + key, xml)
 
     if not single_line:
-        # FIXME: linebreaks() is not defined
         # text = linebreaks(text)
         text = text.replace("<br />", "\n").replace("<br>", "<br />")
 
@@ -677,7 +657,7 @@ class DocElement(object):
         return prev, next
 
     def get_title_html(self):
-        return escape_html(self.title, single_line=True)
+        return html_escape(self.title, single_line=True)
 
 
 class Documentation(DocElement):
@@ -811,13 +791,7 @@ class MathicsMainDocumentation(Documentation):
                 title, text = get_module_doc(module)
                 chapter = DocChapter(builtin_part, title, Doc(text))
                 builtins = builtins_by_module[module.__name__]
-
-                if module.__file__.endswith("__init__.py"):
-                    section_names = get_submodule_names(module)
-                else:
-                    section_names = builtins
-
-                for instance in section_names:
+                for instance in builtins:
                     installed = True
                     for package in getattr(instance, "requires", []):
                         try:
@@ -825,22 +799,13 @@ class MathicsMainDocumentation(Documentation):
                         except ImportError:
                             installed = False
                             break
-                    if isinstance(instance, str):
-                        section = DocSection(
-                            chapter,
-                            instance,
-                            "",
-                            None,
-                            installed=installed,
-                        )
-                    else:
-                        section = DocSection(
-                            chapter,
-                            strip_system_prefix(instance.get_name()),
-                            instance.__doc__ or "",
-                            operator=instance.get_operator(),
-                            installed=installed,
-                        )
+                    section = DocSection(
+                        chapter,
+                        strip_system_prefix(instance.get_name()),
+                        instance.__doc__ or "",
+                        operator=instance.get_operator(),
+                        installed=installed,
+                    )
                     chapter.sections.append(section)
                 builtin_part.chapters.append(chapter)
             self.parts.append(builtin_part)
@@ -1205,7 +1170,7 @@ class Doc(object):
 
     def html(self):
         counters = {}
-        return html_escape(
+        return escape_html(
             "\n".join(
                 item.html(counters) for item in self.items if not item.is_private()
             )
