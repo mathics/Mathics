@@ -2962,7 +2962,11 @@ class String(Atom):
         return None
 
     def to_python(self, *args, **kwargs) -> str:
-        return '"%s"' % self.value  # add quotes to distinguish from Symbols
+        if kwargs.get("string_quotes", True):
+            return '"%s"' % self.value  # add quotes to distinguish from Symbols
+        else:
+            return self.value
+
 
     def __hash__(self):
         return hash(("String", self.value))

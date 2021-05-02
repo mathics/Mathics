@@ -27,6 +27,7 @@ from mathics.core.expression import (
     valid_context_name,
 )
 
+import mathics.core.streams
 from mathics.core.streams import (
     HOME_DIR,
     PATH_VAR,
