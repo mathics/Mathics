@@ -124,6 +124,7 @@ setup(
         "mathics.builtin",
         "mathics.builtin.compile",
         "mathics.builtin.drawing",
+        "mathics.builtin.files_io",
         "mathics.builtin.numbers",
         "mathics.builtin.numpy_utils",
         "mathics.builtin.pymimesniffer",
