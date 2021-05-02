@@ -46,6 +46,7 @@ from mathics.core.streams import (
     path_search,
     stream_manager,
 )
+import mathics
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
 from mathics.builtin.strings import to_python_encoding
 from mathics.builtin.base import MessageException
@@ -57,7 +58,7 @@ INPUT_VAR = ""
 INPUTFILE_VAR = ""
 
 TMP_DIR = tempfile.gettempdir()
-
+SymbolPath = Symbol("$Path")
 
 def _channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
@@ -2024,6 +2025,7 @@ class Get(PrefixOperator):
         result = None
         pypath = path.get_string_value()
         definitions = evaluation.definitions
+        mathics.core.streams.PATH_VAR = SymbolPath.evaluate(evaluation).to_python(string_quotes=False)
         try:
             if trace_fn:
                 trace_fn(pypath)

@@ -5,9 +5,9 @@ The Main Loop
 An interactive session operates a loop, called the "main loop" in this way:
 
 <ul>
-  <li>read input</li>
-  <li>process input</li>
-  <li>format and print results</li>
+  <li>read input
+  <li>process input
+  <li>format and print results
   <li>repeat
 </ul>
 
