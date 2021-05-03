@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import re
-from os import getenv, listdir, path
+from os import getenv, listdir
 import pickle
 import importlib
 
 from mathics import settings
+from html import escape as html_escape
 
 from mathics import builtin
 from mathics.builtin import get_module_doc
@@ -255,7 +256,9 @@ def escape_latex(text):
 
     def repl_char(match):
         char = match.group(1)
-        return {"^": "$^\wedge$",}[char]
+        return {
+            "^": "$^\wedge$",
+        }[char]
 
     text = LATEX_CHAR_RE.sub(repl_char, text)
 
@@ -614,7 +617,7 @@ def escape_html(text, verbatim_mode=False, counters=None, single_line=False):
         text = text.replace("\\" + key, xml)
 
     if not single_line:
-        text = linebreaks(text)
+        # text = linebreaks(text)
         text = text.replace("<br />", "\n").replace("<br>", "<br />")
 
     text = post_sub(text, post_substitutions)
@@ -654,7 +657,7 @@ class DocElement(object):
         return prev, next
 
     def get_title_html(self):
-        return mark_safe(escape_html(self.title, single_line=True))
+        return html_escape(self.title, single_line=True)
 
 
 class Documentation(DocElement):
@@ -1167,7 +1170,7 @@ class Doc(object):
 
     def html(self):
         counters = {}
-        return mark_safe(
+        return escape_html(
             "\n".join(
                 item.html(counters) for item in self.items if not item.is_private()
             )

@@ -27,6 +27,7 @@ from mathics.core.expression import (
     valid_context_name,
 )
 
+import mathics.core.streams
 from mathics.core.streams import (
     HOME_DIR,
     PATH_VAR,
@@ -37,7 +38,7 @@ from mathics.core.streams import (
 )
 
 from mathics.builtin.base import Builtin, Predefined
-from mathics.builtin.files import (
+from mathics.builtin.files_io.files import (
     DIRECTORY_STACK,
     INITIAL_DIR,  # noqa is used via global
     mathics_open

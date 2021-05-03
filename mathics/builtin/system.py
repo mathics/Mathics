@@ -8,6 +8,7 @@ Global System Information
 
 import os
 import platform
+import psutil
 import sys
 import re
 import subprocess
@@ -472,13 +473,8 @@ class SystemMemory(Predefined):
     name = "$SystemMemory"
 
     def evaluate(self, evaluation) -> Integer:
-        try:
-            import psutil
-            totalmem = psutil.virtual_memory().total
-            return Integer(total)
-        except:
-            return String(SymbolFailed)
-
+        totalmem = psutil.virtual_memory().total
+        return Integer(totalmem)
 
 class MemoryAvailable(Builtin):
     """
@@ -491,14 +487,10 @@ class MemoryAvailable(Builtin):
      = ...
     """
 
-    def apply_0(self, evaluation) -> Integer:
+    def apply(self, evaluation) -> Integer:
         """MemoryAvailable[]"""
-        try:
-            import psutil
-            totalmem = psutil.virtual_memory().available
-            return Integer(total)
-        except:
-            return String(SymbolFailed)
+        totalmem = psutil.virtual_memory().available
+        return Integer(totalmem)
 
 
 class MemoryInUse(Builtin):
