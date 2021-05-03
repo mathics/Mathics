@@ -27,6 +27,7 @@ Enhancements
 
 * a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
 * ``Attributes`` accepts a string parameter.
+* ``Cases`` accepts Heads option. Issue #1302.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``FileNames`` returns a sorted list (#1250).

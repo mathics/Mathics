@@ -2008,7 +2008,9 @@ class Cases(Builtin):
         "Cases[pattern_][list_]": "Cases[list, pattern]",
     }
 
-    options = {"Heads": "False",}
+    options = {
+        "Heads": "False",
+    }
 
     def apply(self, items, pattern, ls, evaluation, options):
         "Cases[items_, pattern_, ls_:{1}, OptionsPattern[]]"
@@ -2045,10 +2047,7 @@ class Cases(Builtin):
                     results.append(level)
                 return level
 
-        # TODO
-        heads = self.get_option(options, 'Heads', evaluation).is_true()
-        # heads = False
-
+        heads = self.get_option(options, "Heads", evaluation).is_true()
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
         return Expression(SymbolList, *results)
