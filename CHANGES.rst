@@ -42,9 +42,10 @@ Enhancements
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
-* ``ToExpression`` handles multi-line string input.
 * ``ToString`` accepts an optional *form* parameter.
+* ``ToExpression`` handles multi-line string input.
 * The implementation of Streams was redone.
+
 
 
 Bug fixes
