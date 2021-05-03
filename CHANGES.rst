@@ -28,6 +28,7 @@ Enhancements
 
 * a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
 * ``Attributes`` accepts a string parameter.
+* ``Cases`` accepts Heads option. Issue #1302.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
@@ -41,8 +42,8 @@ Enhancements
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
-* ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input.
+* ``ToString`` accepts an optional *form* parameter.
 * The implementation of Streams was redone.
 
 
