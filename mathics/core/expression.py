@@ -2263,7 +2263,6 @@ class Integer(Number):
     def is_zero(self) -> bool:
         return self.value == 0
 
-
 Integer0 = Integer(0)
 Integer1 = Integer(1)
 

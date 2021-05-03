@@ -30,6 +30,8 @@ Enhancements
 * ``Cases`` accepts Heads option. Issue #1302.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
+* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
+* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`)
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
@@ -39,10 +41,11 @@ Enhancements
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
 * ``StringTake`` now accepts form containing a list of strings and specification (#1297).
 * ``Table`` [*expr*, *n*] is supported.
+* ``ToExpression`` handles multi-line string input.
 * ``ToString`` accepts an optional *form* parameter.
+*  The implementation of Streams was redone.
 * ``ToExpression`` handles multi-line string input
 * The implementation of Streams was redone.
-
 
 
 Bug fixes
