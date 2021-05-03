@@ -27,7 +27,7 @@ from mathics.builtin.base import (
     get_option,
 )
 
-from .pymimesniffer import magic
+from mathics.builtin.pymimesniffer import magic
 import mimetypes
 import sys
 from itertools import chain

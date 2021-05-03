@@ -1,5 +1,5 @@
 """
-Bessell and Related Functions
+Bessel and Related Functions
 """
 
 import mpmath

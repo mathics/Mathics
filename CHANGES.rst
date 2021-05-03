@@ -5,17 +5,20 @@ CHANGES
 2.1.1
 -----
 
-New builtins
-++++++++++++
+New variables and builtins
+++++++++++++++++++++++++++
 
 * ``Arg``
 * ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
 * ``Dispatch``
 * ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``MemoryAvailable``
+* ``MemoryInUse``
 * ``Nand`` and ``Nor`` logical functions.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
+* ``$SystemMemory``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
 
 
@@ -25,6 +28,7 @@ Enhancements
 
 * a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
 * ``Attributes`` accepts a string parameter.
+* ``Cases`` accepts Heads option. Issue #1302.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
 * ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
@@ -40,7 +44,8 @@ Enhancements
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input.
-*  The implementation of Streams was redone.
+* The implementation of Streams was redone.
+
 
 
 Bug fixes
