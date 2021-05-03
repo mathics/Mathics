@@ -85,26 +85,37 @@ def get_module_doc(module):
     return title, text
 
 def import_builtins(module_names: List[str], submodule_name=None) -> None:
-    for module_name in module_names:
-        import_name = (
-            f"mathics.builtin.{submodule_name}.{module_name}"
-            if submodule_name
-            else f"mathics.builtin.{module_name}"
-        )
+    """
+    Imports the list of Mathics Built-in modules so that inside
+    Mathics we have these Builtin Functions, like Plus[], List[] are defined.
+
+    """
+    def import_module(module_name: str, import_name: str):
         try:
             module = importlib.import_module(import_name)
         except Exception as e:
             print(e)
             print(f"    Not able to load {module_name}. Check your installation.")
             print(f"    mathics.builtin loads from {__file__[:-11]}")
-            continue
+            return None
 
         if __version__ != module.__version__:
             print(
-                f"Version {module.__version__} in the module do not match with {__version__}"
+                f"Version {module.__version__} in the module does not match top-level Mathics version {__version__}"
             )
+        if module:
+            modules.append(module)
 
-        modules.append(module)
+    if submodule_name:
+        import_module(submodule_name, f"mathics.builtin.{submodule_name}")
+
+    for module_name in module_names:
+        import_name = (
+            f"mathics.builtin.{submodule_name}.{module_name}"
+            if submodule_name
+            else f"mathics.builtin.{module_name}"
+        )
+        import_module(module_name, import_name)
 
 
 def is_builtin(var):
@@ -116,13 +127,10 @@ def is_builtin(var):
 
 
 # FIXME: redo using importlib since that is probably less fragile.
-exclude_files = set(("files", "codetables", "base", "importexport", "colors"))
+exclude_files = set(("codetables", "base"))
 module_names = [
     f for f in __py_files__ if re.match("^[a-z0-9]+$", f) if f not in exclude_files
 ]
-
-if ENABLE_FILES_MODULE:
-    module_names += ["files", "importexport"]
 
 modules = []
 import_builtins(module_names)
@@ -130,8 +138,14 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
-for subdir in ("drawing", "numbers", "specialfns",):
+disable_file_module_names = [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
+
+for subdir in ("drawing", "files_io", "numbers", "specialfns",):
     import_name = f"{__name__}.{subdir}"
+
+    if import_name in disable_file_module_names:
+        continue
+
     builtin_module = importlib.import_module(import_name)
     submodule_names = [
         modname

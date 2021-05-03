@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import os.path as osp
 import sys
 from .helper import check_evaluation, evaluate
+
 
 def test_compress():
     for text in ("", "abc", " "):
@@ -20,12 +22,20 @@ def test_unprotected():
 
 
 if sys.platform not in ("win32",):
+
     def test_get_and_put():
         temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
         temp_filename_strip = temp_filename[1:-1]
         check_evaluation(f"40! >> {temp_filename_strip}", "Null")
         check_evaluation(f"<< {temp_filename_strip}", "40!")
         check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
+
+    def test_get_path_search():
+        # Check that AppendTo[$Path] works in conjunction with Get[]
+        dirname = osp.join(osp.dirname(osp.abspath(__file__)), "data")
+        evaled = evaluate(f"""AppendTo[$Path, "{dirname}"]""")
+        assert evaled.has_form("List", 1, None)
+        check_evaluation('Get["fortytwo.m"]', "42")
 
 
 # I do not know what this is it supposed to test with this...

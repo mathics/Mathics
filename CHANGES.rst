@@ -5,17 +5,20 @@ CHANGES
 2.1.1
 -----
 
-New builtins
-++++++++++++
+New variables and builtins
+++++++++++++++++++++++++++
 
 * ``Arg``
 * ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
 * ``Dispatch``
 * ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``MemoryAvailable``
+* ``MemoryInUse``
 * ``Nand`` and ``Nor`` logical functions.
 * ``Series``,  ``O`` and ``SeriesData``
 * ``StringReverse``
+* ``$SystemMemory``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
 
 
@@ -40,7 +43,7 @@ Enhancements
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToString`` accepts an optional *form* parameter.
 * ``ToExpression`` handles multi-line string input.
-*  The implementation of Streams was redone.
+* The implementation of Streams was redone.
 
 
 Bug fixes

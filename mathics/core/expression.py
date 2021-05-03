@@ -2619,7 +2619,8 @@ class Complex(Number):
         return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
 
     def to_python(self, *args, **kwargs):
-        return complex(self.real.to_python(), self.imag.to_python())
+        return complex(self.real.to_python(*args, **kwargs),
+                       self.imag.to_python(*args, **kwargs))
 
     def to_mpmath(self):
         return mpmath.mpc(self.real.to_mpmath(), self.imag.to_mpmath())
@@ -2964,7 +2965,11 @@ class String(Atom):
         return None
 
     def to_python(self, *args, **kwargs) -> str:
-        return '"%s"' % self.value  # add quotes to distinguish from Symbols
+        if kwargs.get("string_quotes", True):
+            return '"%s"' % self.value  # add quotes to distinguish from Symbols
+        else:
+            return self.value
+
 
     def __hash__(self):
         return hash(("String", self.value))

@@ -15,12 +15,10 @@ from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import MathicsSingleLineFeeder
 from mathics.builtin import builtins_dict
 
-builtins = builtins_dict()
-
 from mathics import version_string
 from mathics import settings
 
-
+builtins = builtins_dict()
 
 
 class TestOutput(Output):
@@ -46,6 +44,7 @@ def print_and_log(*args):
     print(string)
     if logfile:
         logfile.write(string)
+
 
 def compare(result, wanted):
     if result == wanted:
@@ -93,16 +92,15 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         time_parsing = datetime.now()
         query = evaluation.parse_feeder(feeder)
         if check_partial_enlapsed_time:
-            print("   parsing took", datetime.now()-time_parsing)
+            print("   parsing took", datetime.now() - time_parsing)
         if query is None:
             # parsed expression is None
             result = None
             out = evaluation.out
         else:
-            time_evaluating = datetime.now()
             result = evaluation.evaluate(query)
             if check_partial_enlapsed_time:
-                print("   evaluation took", datetime.now()-time_parsing)
+                print("   evaluation took", datetime.now() - time_parsing)
             out = result.out
             result = result.result
     except Exception as exc:
@@ -114,7 +112,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
     time_comparing = datetime.now()
     comparison_result = compare(result, wanted)
     if check_partial_enlapsed_time:
-        print("   comparison took ", datetime.now()-time_comparing)
+        print("   comparison took ", datetime.now() - time_comparing)
     if not comparison_result:
         print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
@@ -132,7 +130,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
                 output_ok = False
                 break
     if check_partial_enlapsed_time:
-        print("   comparing messages took ", datetime.now()-time_comparing)
+        print("   comparing messages took ", datetime.now() - time_comparing)
     if not output_ok:
         return fail(
             "Output:\n%s\nWanted:\n%s"
@@ -199,7 +197,6 @@ def test_section(sections: set, quiet=False, stop_on_failure=False):
     sections |= {"$" + s for s in sections}
     for tests in documentation.get_tests():
         if tests.section in sections:
-            found = True
             for test in tests.tests:
                 if test.ignore:
                     continue
@@ -366,11 +363,19 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
-        "You can list multiple sections by adding a comma (and no space) in between section names."
+        "--sections",
+        "-s",
+        dest="section",
+        metavar="SECTION",
+        help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names.",
     )
     parser.add_argument(
-        "--logfile", "-f", dest="logfilename", metavar="LOGFILENAME", help="stores the output in [logfilename]. "
+        "--logfile",
+        "-f",
+        dest="logfilename",
+        metavar="LOGFILENAME",
+        help="stores the output in [logfilename]. ",
     )
     parser.add_argument(
         "--pymathics",
@@ -418,7 +423,7 @@ def main():
         help="create documentation even if there is a test failure",
     )
     parser.add_argument(
-        "--stop-on-failure", action="store_true", help="stop on failure"
+        "--stop-on-failure", "-x", action="store_true", help="stop on failure"
     )
     parser.add_argument(
         "--skip",
@@ -443,7 +448,7 @@ def main():
     # If a test for a specific section is called
     # just test it
     if args.logfilename:
-        logfile = open(args.logfilename,"wt")
+        logfile = open(args.logfilename, "wt")
 
     if args.section:
         sections = set(args.section.split(","))
