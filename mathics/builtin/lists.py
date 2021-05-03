@@ -25,6 +25,7 @@ from mathics.builtin.base import (
     MessageException,
     NegativeIntegerException,
     CountableInteger,
+
 )
 from mathics.core.expression import (
     Expression,
@@ -50,7 +51,7 @@ from mathics.core.expression import (
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
-from mathics.core.rules import Pattern
+from mathics.core.rules import Pattern, Rule
 from mathics.core.convert import from_sympy
 from mathics.builtin.numbers.algebra import cancel
 from mathics.algorithm.introselect import introselect
@@ -1970,16 +1971,28 @@ class Pick(Builtin):
 class Cases(Builtin):
     """
     <dl>
-    <dt>'Cases[$list$, $pattern$]'
-        <dd>returns the elements of $list$ that match $pattern$.
-    <dt>'Cases[$list$, $pattern$, $ls$]'
-        <dd>returns the elements matching at levelspec $ls$.
+      <dt>'Cases[$list$, $pattern$]'
+      <dd>returns the elements of $list$ that match $pattern$.
+
+      <dt>'Cases[$list$, $pattern$, $ls$]'
+      <dd>returns the elements matching at levelspec $ls$.
+
+      <dt>'Cases[$list$, $pattern$, Head->$bool$]'
+      <dd>Match including the head of the expression in the search.
     </dl>
 
     >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
      = {1, 2.5}
     >> Cases[_Complex][{1, 2I, 3, 4-I, 5}]
      = {2 I, 4 - I}
+
+    Find symbols among the elements of an expression:
+    >> Cases[{b, 6, \[Pi]}, _Symbol]
+     = {b, Pi}
+
+    Also include the head of the expression in the previous search:
+    >> Cases[{b, 6, \[Pi]}, _Symbol, Heads -> True]
+     = {List, b, Pi}
 
     #> Cases[1, 2]
      = {}
@@ -2017,6 +2030,16 @@ class Cases(Builtin):
         if items.is_atom():
             return Expression(SymbolList)
 
+        from mathics.builtin.patterns import Matcher
+        if ls.has_form("Rule", 2):
+            if ls.leaves[0].get_name() == "System`Heads":
+                heads = ls.leaves[1].is_true()
+                ls = Expression("List", 1)
+            else:
+                return evaluation.message("Position", "level", ls)
+        else:
+            heads = self.get_option(options, "Heads", evaluation).is_true()
+
         try:
             start, stop = python_levelspec(ls)
         except InvalidLevelspecError:
@@ -2024,10 +2047,7 @@ class Cases(Builtin):
 
         results = []
 
-        from mathics.builtin.patterns import Matcher
-
         if pattern.has_form("Rule", 2) or pattern.has_form("RuleDelayed", 2):
-            from mathics.core.rules import Rule
 
             match = Matcher(pattern.leaves[0]).match
             rule = Rule(pattern.leaves[0], pattern.leaves[1])
@@ -2047,7 +2067,6 @@ class Cases(Builtin):
                     results.append(level)
                 return level
 
-        heads = self.get_option(options, "Heads", evaluation).is_true()
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
         return Expression(SymbolList, *results)
