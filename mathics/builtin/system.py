@@ -485,6 +485,10 @@ class MemoryAvailable(Builtin):
 
     >> MemoryAvailable[]
      = ...
+
+    The relationship between $SystemMemory, MemoryAvailable, and MemoryInUse:
+    >> $SystemMemory > MemoryAvailable[] > MemoryInUse[]
+     = True
     """
 
     def apply(self, evaluation) -> Integer:
