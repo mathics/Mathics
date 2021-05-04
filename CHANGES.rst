@@ -36,6 +36,7 @@ Enhancements
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
 * ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
+* ``Read`` with ``Hold[Expression]`` now supported. (#1242)
 * ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
 * ``Simplify`` performs a more sophisticated set of simplifications.
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
