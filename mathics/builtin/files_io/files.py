@@ -238,18 +238,24 @@ class Read(Builtin):
       <dt>'Read[$stream$, $type$]'
       <dd>reads the input stream and returns an object of the given type.
 
+      <dt>'Read[$stream$, $type$]'
+      <dd>reads the input stream and returns an object of the given type.
+
+      <dt>'Read[$stream$, Hold[Expression]]'
+      <dd>reads the input stream for an Expression and puts it inside 'Hold'.
+
     </dl>
     $type$ is one of:
     <ul>
-      <li>Byte</li>
-      <li>Character</li>
-      <li>Expression</li>
-      <li>HoldExpression</li>
-      <li>Number</li>
-      <li>Real</li>
-      <li>Record</li>
-      <li>String</li>
-      <li>Word</li>
+      <li>Byte
+      <li>Character
+      <li>Expression
+      <li>HoldExpression
+      <li>Number
+      <li>Real
+      <li>Record
+      <li>String
+      <li>Word
     </ul>
 
     ## Malformed InputString
@@ -332,10 +338,22 @@ class Read(Builtin):
 
     ## HoldExpression:
     >> stream = StringToStream["2+2\\n2+3"];
+
+    'Read' with a 'Hold[Expression]' returns the expression it reads unevaluated so it can be later inspected and evaluated:
+
     >> Read[stream, Hold[Expression]]
      = Hold[2 + 2]
+
     >> Read[stream, Expression]
      = 5
+    >> Close[stream];
+
+    Reading a comment however will return the empy list:
+    >> stream = StringToStream["(* ::Package:: *)"];
+
+    >> Read[stream, Hold[Expression]]
+     = {}
+
     >> Close[stream];
 
     ## Multiple types
@@ -629,7 +647,7 @@ class Read(Builtin):
                             expr = Expression("Hold", expr)
                         result.append(expr)
                     # else:
-                    #  TO: Supposedly we can't get here
+                    #  TODO: Supposedly we can't get here
                     # what code should we put here?
 
                 elif typ == Symbol("Number"):
