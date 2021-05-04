@@ -167,6 +167,8 @@ class EndOfFile(Builtin):
     </dl>
     """
 
+SymbolEndOfFile = Symbol("EndOfFile")
+
 
 # TODO: Improve docs for these Read[] arguments.
 class Byte(Builtin):
@@ -612,12 +614,12 @@ class Read(Builtin):
                                 nextline = next(read_record)
                                 tmp = tmp + "\n" + nextline
                             except EOFError:
-                                expr = Symbol("EndOfFile")
+                                expr = SymbolEndOfFile
                                 break
                         except Exception as e:
                             print(e)
 
-                    if expr == Symbol("EndOfFile"):
+                    if expr == SymbolEndOfFile:
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
@@ -626,6 +628,9 @@ class Read(Builtin):
                         if typ == Symbol("HoldExpression"):
                             expr = Expression("Hold", expr)
                         result.append(expr)
+                    # else:
+                    #  TO: Supposedly we can't get here
+                    # what code should we put here?
 
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
@@ -663,7 +668,7 @@ class Read(Builtin):
                     result.append(next(read_word))
 
             except EOFError:
-                return Symbol("EndOfFile")
+                return SymbolEndOfFile
             except UnicodeDecodeError:
                 evaluation.message("General", "ucdec")
 
@@ -1695,7 +1700,7 @@ class BinaryRead(Builtin):
             try:
                 result.append(self.readers[t](stream.io))
             except struct.error:
-                result.append(Symbol("EndOfFile"))
+                result.append(SymbolEndOfFile)
 
         if typ.has_form("List", None):
             return Expression("List", *result)
@@ -2324,7 +2329,7 @@ class ReadList(Read):
             if tmp == SymbolFailed:
                 return
 
-            if tmp == Symbol("EndOfFile"):
+            if tmp == SymbolEndOfFile:
                 break
             result.append(tmp)
         return from_python(result)
@@ -2686,7 +2691,7 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(channel, types, evaluation, options)
-            if result == Symbol("EndOfFile"):
+            if result == SymbolEndOfFile:
                 return result
         return SymbolNull
 
