@@ -380,7 +380,7 @@ class All(Predefined):
     """
     <dl>
       <dt>'All'
-      <dd>is a possible value for 'Span' and 'Quiet'.
+      <dd>is a possible option value for 'Span' and 'Quiet'. 'All' specifies all parts a a particular level.
     </dl>
     """
     attributes = ("Unprotected",)
