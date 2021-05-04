@@ -1977,7 +1977,7 @@ class Cases(Builtin):
       <dt>'Cases[$list$, $pattern$, $ls$]'
       <dd>returns the elements matching at levelspec $ls$.
 
-      <dt>'Cases[$list$, $pattern$, Head->$bool$]'
+      <dt>'Cases[$list$, $pattern$, Heads->$bool$]'
       <dd>Match including the head of the expression in the search.
     </dl>
 
