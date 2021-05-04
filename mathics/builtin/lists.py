@@ -379,10 +379,11 @@ class Length(Builtin):
 class All(Predefined):
     """
     <dl>
-    <dt>'All'
-        <dd>is a possible value for 'Span' and 'Quiet'.
+      <dt>'All'
+      <dd>is a possible value for 'Span' and 'Quiet'.
     </dl>
     """
+    attributes = ("Unprotected",)
 
     pass
 
