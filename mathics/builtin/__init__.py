@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Mathics Built-in Functions and Variables.
+
+Mathics has over a thousand Built-in Functions and variables, all of which are defined here.
+"""
 
 import glob
 import importlib
