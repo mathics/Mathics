@@ -11,6 +11,7 @@ For ordering information, call 1-800-447-2226.
  *)
 Get[ "DiscreteMath`CombinatoricaV0.6" ]
 Get[ "DiscreteMath`CombinatoricaV0.9" ]
+Get[ "DiscreteMath`CombinatoricaV2.0" ]
 
 (* The below is from https://library.wolfram.com/infocenter/MathSource/6825/
  An alpha test version is at:
