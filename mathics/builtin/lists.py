@@ -383,7 +383,6 @@ class All(Predefined):
       <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
     </dl>
     """
-    attributes = ("Unprotected",)
 
     pass
 
@@ -1040,7 +1039,7 @@ class Part(Builtin):
 
     The 3d column of a matrix:
     >> {{a, b, c}, {d, e, f}, {g, h, i}}[[All, 3]]
-     = {c,f,i}
+     = {c, f, i}
 
     Further examples:
     >> (a+b+c+d)[[-1;;-2]]

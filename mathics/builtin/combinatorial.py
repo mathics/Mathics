@@ -454,7 +454,6 @@ class Subsets(Builtin):
      = {}
     """
 
-    attributes = ("Unprotected",)
     rules = {
         "Subsets[list_ , Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]": "Take[Subsets[list, n], spec]",
     }
