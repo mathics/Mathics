@@ -167,6 +167,8 @@ class EndOfFile(Builtin):
     </dl>
     """
 
+SymbolEndOfFile = Symbol("EndOfFile")
+
 
 # TODO: Improve docs for these Read[] arguments.
 class Byte(Builtin):
@@ -236,18 +238,24 @@ class Read(Builtin):
       <dt>'Read[$stream$, $type$]'
       <dd>reads the input stream and returns an object of the given type.
 
+      <dt>'Read[$stream$, $type$]'
+      <dd>reads the input stream and returns an object of the given type.
+
+      <dt>'Read[$stream$, Hold[Expression]]'
+      <dd>reads the input stream for an Expression and puts it inside 'Hold'.
+
     </dl>
     $type$ is one of:
     <ul>
-      <li>Byte</li>
-      <li>Character</li>
-      <li>Expression</li>
-      <li>HoldExpression</li>
-      <li>Number</li>
-      <li>Real</li>
-      <li>Record</li>
-      <li>String</li>
-      <li>Word</li>
+      <li>Byte
+      <li>Character
+      <li>Expression
+      <li>HoldExpression
+      <li>Number
+      <li>Real
+      <li>Record
+      <li>String
+      <li>Word
     </ul>
 
     ## Malformed InputString
@@ -330,10 +338,22 @@ class Read(Builtin):
 
     ## HoldExpression:
     >> stream = StringToStream["2+2\\n2+3"];
+
+    'Read' with a 'Hold[Expression]' returns the expression it reads unevaluated so it can be later inspected and evaluated:
+
     >> Read[stream, Hold[Expression]]
      = Hold[2 + 2]
+
     >> Read[stream, Expression]
      = 5
+    >> Close[stream];
+
+    Reading a comment however will return the empy list:
+    >> stream = StringToStream["(* ::Package:: *)"];
+
+    >> Read[stream, Hold[Expression]]
+     = {}
+
     >> Close[stream];
 
     ## Multiple types
@@ -612,12 +632,12 @@ class Read(Builtin):
                                 nextline = next(read_record)
                                 tmp = tmp + "\n" + nextline
                             except EOFError:
-                                expr = Symbol("EndOfFile")
+                                expr = SymbolEndOfFile
                                 break
                         except Exception as e:
                             print(e)
 
-                    if expr == Symbol("EndOfFile"):
+                    if expr == SymbolEndOfFile:
                         evaluation.message(
                             "Read", "readt", tmp, Expression("InputSteam", name, n)
                         )
@@ -626,6 +646,9 @@ class Read(Builtin):
                         if typ == Symbol("HoldExpression"):
                             expr = Expression("Hold", expr)
                         result.append(expr)
+                    # else:
+                    #  TODO: Supposedly we can't get here
+                    # what code should we put here?
 
                 elif typ == Symbol("Number"):
                     tmp = next(read_number)
@@ -663,7 +686,7 @@ class Read(Builtin):
                     result.append(next(read_word))
 
             except EOFError:
-                return Symbol("EndOfFile")
+                return SymbolEndOfFile
             except UnicodeDecodeError:
                 evaluation.message("General", "ucdec")
 
@@ -1695,7 +1718,7 @@ class BinaryRead(Builtin):
             try:
                 result.append(self.readers[t](stream.io))
             except struct.error:
-                result.append(Symbol("EndOfFile"))
+                result.append(SymbolEndOfFile)
 
         if typ.has_form("List", None):
             return Expression("List", *result)
@@ -2324,7 +2347,7 @@ class ReadList(Read):
             if tmp == SymbolFailed:
                 return
 
-            if tmp == Symbol("EndOfFile"):
+            if tmp == SymbolEndOfFile:
                 break
             result.append(tmp)
         return from_python(result)
@@ -2686,7 +2709,7 @@ class Skip(Read):
             return
         for i in range(py_m):
             result = super(Skip, self).apply(channel, types, evaluation, options)
-            if result == Symbol("EndOfFile"):
+            if result == SymbolEndOfFile:
                 return result
         return SymbolNull
 
