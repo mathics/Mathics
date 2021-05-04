@@ -380,7 +380,7 @@ class All(Predefined):
     """
     <dl>
       <dt>'All'
-      <dd>is a possible option value for 'Span' and 'Quiet'. 'All' specifies all parts a a particular level.
+      <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
     </dl>
     """
     attributes = ("Unprotected",)
@@ -992,8 +992,8 @@ def convert_seq(seq):
 class Part(Builtin):
     """
     <dl>
-    <dt>'Part[$expr$, $i$]'
-        <dd>returns part $i$ of $expr$.
+      <dt>'Part[$expr$, $i$]'
+      <dd>returns part $i$ of $expr$.
     </dl>
 
     Extract an element from a list:
@@ -1031,10 +1031,16 @@ class Part(Builtin):
     >> B = {{a, b, c}, {d, e, f}, {g, h, i}};
     >> B[[;;, 2]]
      = {b, e, h}
+
     Extract a submatrix of 1st and 3rd row and the two last columns:
     >> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
     >> B[[{1, 3}, -2;;-1]]
      = {{2, 3}, {8, 9}}
+
+    The 3d column of a matrix:
+    >> {{a, b, c}, {d, e, f}, {g, h, i}}[[All, 3]]
+     = {c,f,i}
 
     Further examples:
     >> (a+b+c+d)[[-1;;-2]]
