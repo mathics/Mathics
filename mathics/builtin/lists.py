@@ -383,7 +383,6 @@ class All(Predefined):
       <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
     </dl>
     """
-    attributes = ("Unprotected",)
 
     pass
 
