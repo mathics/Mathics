@@ -433,15 +433,15 @@ class Graphics(Builtin):
     Options include:
 
     <ul>
-      <li>Axes
-      <li>TicksStyle
-      <li>AxesStyle
-      <li>LabelStyle
-      <li>AspectRatio
-      <li>PlotRange
-      <li>PlotRangePadding
-      <li>ImageSize
-      <li>Background
+      <li>Axes</li>
+      <li>TicksStyle</li>
+      <li>AxesStyle</li>
+      <li>LabelStyle</li>
+      <li>AspectRatio</li>
+      <li>PlotRange</li>
+      <li>PlotRangePadding</li>
+      <li>ImageSize</li>
+      <li>Background</li>
     </ul>
 
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]

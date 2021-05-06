@@ -1969,7 +1969,7 @@ class Pick(Builtin):
 
 
 class Cases(Builtin):
-    r"""
+    """
     <dl>
       <dt>'Cases[$list$, $pattern$]'
       <dd>returns the elements of $list$ that match $pattern$.

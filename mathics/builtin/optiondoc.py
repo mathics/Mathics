@@ -179,10 +179,10 @@ class PlotRange(Builtin):
       <dd>is an option for 'Plot' that gives the range of coordinates to include in a plot.
     </dl>
     <ul>
-      <li>All all points are included.
-      <li>Automatic - outlying points are dropped.
-      <li>$max$ - explicit limit for each function.
-      <li>{$min$, $max$} - explicit limits for $y$ (2D), $z$ (3D), or array values.
+      <li>All all points are included.</li>
+      <li>Automatic - outlying points are dropped.</li>
+      <li>$max$ - explicit limit for each function.</li>
+      <li>{$min$, $max$} - explicit limits for $y$ (2D), $z$ (3D), or array value.s</li>
       <li>{{$x$_$min$, $x$_$max$}, {{$y_min}, {$y_max}} - explit limits for $x$ and $y$.
     </ul>
 
@@ -202,8 +202,8 @@ class TicksStyle(Builtin):
     </dl>
 
     <ul>
-    <li>TicksStyle gives styles for both tick marks and tick labels.
-    <li>TicksStyle can be used in both two  and three-dimensional graphics.
+    <li>TicksStyle gives styles for both tick marks and tick labels.</li>
+    <li>TicksStyle can be used in both two  and three-dimensional graphics.</li>
     <li>TicksStyle->$list$ specifies the colors of each of the axes.
     </ul>
 
