@@ -1,0 +1,592 @@
+(************** Content-type: application/mathematica **************
+                     CreatedBy='Mathematica 5.2'
+
+                    Mathematica-Compatible Notebook
+
+This notebook can be used with any Mathematica-compatible
+application, such as Mathematica, MathReader or Publicon. The data
+for the notebook starts with the line containing stars above.
+
+To get the notebook into a Mathematica-compatible application, do
+one of the following:
+
+* Save the data starting with the line of stars above into a file
+  with a name ending in .nb, then open the file inside the
+  application;
+
+* Copy the data starting with the line of stars above to the
+  clipboard, then use the Paste menu command inside the application.
+
+Data for notebooks contains only printable 7-bit ASCII and can be
+sent directly in email or through ftp in text mode.  Newlines can be
+CR, LF or CRLF (Unix, Macintosh or MS-DOS style).
+
+NOTE: If you modify the data for this notebook not in a Mathematica-
+compatible application, you must delete the line below containing
+the word CacheID, otherwise Mathematica-compatible applications may
+try to use invalid cache data.
+
+For more information on notebooks and Mathematica-compatible 
+applications, contact Wolfram Research:
+  web: http://www.wolfram.com
+  email: info@wolfram.com
+  phone: +1-217-398-0700 (U.S.)
+
+Notebook reader applications are available free of charge from 
+Wolfram Research.
+*******************************************************************)
+
+(*CacheID: 232*)
+
+
+(*NotebookFileLineBreakTest
+NotebookFileLineBreakTest*)
+(*NotebookOptionsPosition[     16163,        438]*)
+(*NotebookOutlinePosition[     16844,        461]*)
+(*  CellTagsIndexPosition[     16800,        457]*)
+(*WindowFrame->Normal*)
+
+
+
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["BraidAction package", "Subtitle",
+  InitializationCell->True],
+
+Cell["\<\
+A subpackage for QuantumGroups v2.
+Version 2.0, June 8, 2006, Scott Morrison\
+\>", "Text",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section",
+  InitializationCell->True],
+
+Cell["\<\
+This package defines the action of braid groups on the generators of a \
+quantum group.\
+\>", "Text",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Start of package", "Subsection"],
+
+Cell["Specify package dependencies:", "Text"],
+
+Cell[BoxData[
+    \(\(BeginPackage["\<QuantumGroups`BraidAction`\>", {"\<QuantumGroups`\>", \
+"\<QuantumGroups`Utilities`Debugging`\>", "\<QuantumGroups`RootSystems`\>", "\
+\<QuantumGroups`Algebra`\>", "\<QuantumGroups`Representations`\>"}];\)\)], \
+"Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Usage messages", "Subsection"],
+
+Cell[BoxData[
+    \(\(T;\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction::usage = \*"\"\<BraidAction[\[CapitalGamma]][{\!\(T\_i\),\
+\!\(T\_j\),...}, Z] computes the action of \!\(T\_i\)\!\(T\_j\)... on \
+Z.\>\"";\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[{
+    \(\(BraidRelations::usage = "\<BraidRelations[\[CapitalGamma]] returns \
+the braid relations for the braid group associated to \
+\[CapitalGamma].\>";\)\), "\[IndentingNewLine]", 
+    \(\(CheckBraidRelations::usage = "\<CheckBraidRelations[\[CapitalGamma]] \
+checks that the action specified by BraidAction[\[CapitalGamma]] satisfies \
+the relations returned by BraidRelations[\[CapitalGamma]] on the generators \
+of \[CapitalGamma].\>";\)\)}], "Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Internals", "Subsection"],
+
+Cell[BoxData[
+    \(\(Begin["\<`Private`\>"];\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(q = Global`q;\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(ExpandReducedPowers[\[CapitalGamma]_]\)[
+        F_] := \(F /. \[IndentingNewLine]{ReducedPower[\(X\_i_\^+\), 
+                n_] \[RuleDelayed] 
+              With[{d = \(CartanFactors[\[CapitalGamma]]\)\[LeftDoubleBracket]
+                      i\[RightDoubleBracket]}, 
+                NonCommutativePower[\(X\_i\^+\), \
+n]\/\(qFactorial[n]\)[q\^d]], \[IndentingNewLine]ReducedPower[\(X\_i_\^-\), 
+                n_] \[RuleDelayed] 
+              With[{d = \(CartanFactors[\[CapitalGamma]]\)\[LeftDoubleBracket]
+                      i\[RightDoubleBracket]}, 
+                NonCommutativePower[\(X\_i\^-\), \
+n]\/\(qFactorial[n]\)[q\^d]]}\) /. OrderingRules[\[CapitalGamma]]\)], "Input",\
+
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{word___}, 0] := 0\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T\_i_}, \(X\_j_\^+\)] := \
+\(\(BraidAction[\[CapitalGamma]]\)[{T\_i}, \(X\_j\^+\)] = \
+\[IndentingNewLine]If[i \[Equal] j, \(-\(X\_i\^-\) ** K\_i\), 
+          With[{a = \(CartanMatrix[\[CapitalGamma]]\)\[LeftDoubleBracket]i, 
+                  j\[RightDoubleBracket], 
+              d = \(CartanFactors[\[CapitalGamma]]\)\[LeftDoubleBracket]
+                  i\[RightDoubleBracket]}, \(ExpandReducedPowers[\
+\[CapitalGamma]]\)[\[Sum]\+\(r = 0\)\%\(-a\)\(\((\(-1\))\)\^\(r - 
+                        a\)\) \(q\^\(\(-d\)\ r\)\) 
+                  ReducedPower[\(X\_i\^+\), \(-a\) - r] ** \(X\_j\^+\) ** 
+                    ReducedPower[\(X\_i\^+\), r]]]]\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T\_i_}, \(X\_j_\^-\)] := \
+\(\(BraidAction[\[CapitalGamma]]\)[{T\_i}, \(X\_j\^-\)] = \
+\[IndentingNewLine]If[i \[Equal] j, \(-K\_i\^\(-1\) ** \(X\_i\^+\)\), 
+          With[{a = \(CartanMatrix[\[CapitalGamma]]\)\[LeftDoubleBracket]i, 
+                  j\[RightDoubleBracket], 
+              d = \(CartanFactors[\[CapitalGamma]]\)\[LeftDoubleBracket]
+                  i\[RightDoubleBracket]}, \(ExpandReducedPowers[\
+\[CapitalGamma]]\)[\[Sum]\+\(r = 0\)\%\(-a\)\(\((\(-1\))\)\^\(r - 
+                        a\)\) \(q\^\(d\ r\)\) 
+                  ReducedPower[\(X\_i\^-\), r] ** \(X\_j\^-\) ** 
+                    ReducedPower[\(X\_i\^-\), \(-a\) - r]]]]\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T\_i_}, K\_j_] := 
+      K\_j ** NonCommutativePower[
+          K\_i, \(-\(CartanMatrix[\[CapitalGamma]]\)\[LeftDoubleBracket]i, 
+              j\[RightDoubleBracket]\)]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T\_i_}, K\_j_\^\(-1\)] := 
+      NonCommutativePower[
+          K\_i, \(CartanMatrix[\[CapitalGamma]]\)\[LeftDoubleBracket]i, 
+            j\[RightDoubleBracket]] ** K\_j\^\(-1\)\)], "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(OrderingRules[\[CapitalGamma]_] := \(OrderingRules[\[CapitalGamma]] = 
+        With[{d = CartanFactors[\[CapitalGamma]], 
+            a = CartanMatrix[\[CapitalGamma]]}, {\[IndentingNewLine]K\_i_ ** 
+                K\_i_\^\(-1\) \[RuleDelayed] \[ScriptOne], \
+\[IndentingNewLine]K\_i_\^\(-1\) ** 
+                K\_i_ \[RuleDelayed] \[ScriptOne], \[IndentingNewLine]Y___ ** 
+                  K\_i_\^n_.  ** K\_j_\^m_.  ** Z___ /; i > j \[RuleDelayed] 
+              Y ** K\_j\^m ** K\_i\^n ** Z, \[IndentingNewLine]\(X\_j_\^+\) ** 
+                K\_i_\^n_.  \[RuleDelayed] \(q\^\(\(-n\)\ d\
+\[LeftDoubleBracket]i\[RightDoubleBracket] 
+                      a\[LeftDoubleBracket]i, j\[RightDoubleBracket]\)\) 
+                K\_i\^n ** \(X\_j\^+\), \[IndentingNewLine]K\_i_\^n_.  ** \(X\
+\_j_\^-\) \[RuleDelayed] \(q\^\(\(-n\)\ d\[LeftDoubleBracket]
+                        i\[RightDoubleBracket] 
+                      a\[LeftDoubleBracket]i, 
+                        j\[RightDoubleBracket]\)\) \(X\_j\^-\) ** 
+                  K\_i\^n, \[IndentingNewLine]\(X\_i_\^+\) ** \(X\_j_\^-\) \
+\[RuleDelayed] \(X\_j\^-\) ** \(X\_i\^+\) + 
+                DiscreteDelta[
+                    i - j] \(K\_i - \
+K\_i\^\(-1\)\)\/\(q\^d\[LeftDoubleBracket]i\[RightDoubleBracket] - q\^\(-d\
+\[LeftDoubleBracket]i\[RightDoubleBracket]\)\)\[IndentingNewLine]}]\)\)], \
+"Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(MemoryConserve::"start" \(\(:\)\(\ \)\) 
+      "Running Share[] to conserve memory."\)], "Message"],
+
+Cell[BoxData[
+    \(MemoryConserve::"end" \(\(:\)\(\ \)\) 
+      "Finished running Share[]; \!\(11776\) bytes of memory freed."\)], \
+"Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(ExtraOrderingRules[\[CapitalGamma]_] := \(ExtraOrderingRules[\
+\[CapitalGamma]] = 
+        With[{d = CartanFactors[\[CapitalGamma]], 
+            a = CartanMatrix[\[CapitalGamma]]}, {Y___ ** \(X\_i_\^+\) ** \
+\(X\_j_\^+\) ** Z___ /; \((i < j \[And] 
+                    a\[LeftDoubleBracket]i, j\[RightDoubleBracket] \[Equal] 
+                      0)\) \[RuleDelayed] 
+              Y ** \(X\_j\^+\) ** \(X\_i\^+\) ** 
+                Z, \[IndentingNewLine]Y___ ** \(X\_i_\^-\) ** \(X\_j_\^-\) ** 
+                  Z___ /; \((i < j \[And] 
+                    a\[LeftDoubleBracket]i, j\[RightDoubleBracket] \[Equal] 
+                      0)\) \[RuleDelayed] 
+              Y ** \(X\_j\^-\) ** \(X\_i\^-\) ** Z}]\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(CollectTerms[Z_] := 
+      Collect[Z, _NonCommutativeMultiply, Together]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(differ[Z1_, Z2_] := CollectTerms[Z1 - Z2] =!= 0\)], "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(fixedPoint[function_, expr_, test_] := 
+      NestWhile[function, expr, test, 2]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    RowBox[{\(General::"spell1"\), \(\(:\)\(\ \)\), "\<\"Possible spelling \
+error: new symbol name \\\"\\!\\(fixedPoint\\)\\\" is similar to existing \
+symbol \\\"\\!\\(FixedPoint\\)\\\". \
+\\!\\(\\*ButtonBox[\\\"More\[Ellipsis]\\\", ButtonStyle->\\\"RefGuideLinkText\
+\\\", ButtonFrame->None, ButtonData:>\\\"General::spell1\\\"]\\)\"\>"}]], \
+"Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(ReorderQuantumMonomial[\[CapitalGamma]_]\)[Z_] := 
+      fixedPoint[CollectTerms[# /. OrderingRules[\[CapitalGamma]]] &, Z, 
+        differ]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[{
+    \(\(ReorderQuantumMonomial[\[CapitalGamma]_]\)[Z_Plus] /; 
+        Length[Z] \[LessEqual] termThreshold := 
+      CollectTerms[
+        ReorderQuantumMonomial[\[CapitalGamma]] /@ 
+          Z]\), "\[IndentingNewLine]", 
+    \(\(ReorderQuantumMonomial[\[CapitalGamma]_]\)[Z_Plus] /; 
+        Length[Z] > termThreshold := 
+      CollectTerms[
+        Plus @@ \((ReorderQuantumMonomial[\[CapitalGamma]] /@ 
+              partialPartition[Z, termThreshold])\)]\)}], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T_}, 
+        Z_NonCommutativeMultiply] := \(\(BraidAction[\[CapitalGamma]]\)[{T}, 
+          Z] = Module[{result}, \
+\[IndentingNewLine]DebugPrintHeld["\<Calculating \>", \(BraidAction[\
+\[CapitalGamma]]\)[{T}, 
+              Z]]; \[IndentingNewLine]result = \(ReorderQuantumMonomial[\
+\[CapitalGamma]]\)[\(\(BraidAction[\[CapitalGamma]]\)[{T}, #] &\) /@ 
+                Z]; \[IndentingNewLine]DebugPrintHeld["\<Finished calculating \
+\>", \(BraidAction[\[CapitalGamma]]\)[{T}, 
+              Z]]; \[IndentingNewLine]result\[IndentingNewLine]]\)\)], "Input",\
+
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(termThreshold = 20;\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(partialPartition[Z_, n_Integer] := 
+      With[{h = Head[Z]}, \(h @@ # &\) /@ 
+          Partition[List @@ Z, n, n, {1, 1}, {}]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[{
+    \(\(BraidAction[\[CapitalGamma]_]\)[{word__}, Z_Plus] /; 
+        Length[Z] \[LessEqual] termThreshold := 
+      CollectTerms[\(\(BraidAction[\[CapitalGamma]]\)[{word}, #] &\) /@ 
+          Z]\), "\[IndentingNewLine]", 
+    \(\(BraidAction[\[CapitalGamma]_]\)[{word__}, Z_Plus] /; 
+        Length[Z] > termThreshold := 
+      Module[{sum}, \[IndentingNewLine]DebugPrint["\<Distributing \
+BraidAction[\>", \[CapitalGamma], "\<][\>", {word}, "\<, ...] over \>", 
+          Length[Z], "\< terms.\>"]; \[IndentingNewLine]sum = 
+          Plus @@ \((\[IndentingNewLine]\(\((DebugPrint["\< ... computing \
+\>", termThreshold, \ "\< terms\>"]; \(BraidAction[\[CapitalGamma]]\)[{word}, \
+#])\) &\) /@ partialPartition[Z, 
+                  termThreshold]\[IndentingNewLine])\); \
+\[IndentingNewLine]DebugPrint["\< ... and assembling all the terms\>"]; \
+\[IndentingNewLine]CollectTerms[
+          sum]\[IndentingNewLine]]\), "\[IndentingNewLine]", 
+    \(\(BraidAction[\[CapitalGamma]_]\)[{word__}, \[Alpha]_?
+            qNumberQ\ Z_] := \[Alpha]\ \
+\(BraidAction[\[CapitalGamma]]\)[{word}, Z]\)}], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{T_, S__}, 
+        Z_] := \(\(BraidAction[\[CapitalGamma]]\)[{T, S}, Z] = 
+        Module[{result}, \[IndentingNewLine]DebugPrintHeld["\<Calculating \
+\>", \ \(BraidAction[\[CapitalGamma]]\)[{T, S}, 
+              Z]]; \[IndentingNewLine]result = 
+            CollectTerms[\(BraidAction[\[CapitalGamma]]\)[{T}, \(BraidAction[\
+\[CapitalGamma]]\)[{S}, 
+                  Z]]]; \[IndentingNewLine]DebugPrintHeld["\<Finished \
+calculating \>", \ \(BraidAction[\[CapitalGamma]]\)[{T, S}, 
+              Z]]; \[IndentingNewLine]result\[IndentingNewLine]]\)\)], "Input",\
+
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(BraidAction[\[CapitalGamma]_]\)[{}, Z_] := Z\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(BraidRelations[\[CapitalGamma]_] := 
+      Module[{m = 
+            CartanMatrix[\[CapitalGamma]] 
+                Transpose[
+                  CartanMatrix[\[CapitalGamma]]] /. {\(n_?# \[GreaterEqual] 
+                      4 &\) \[RuleDelayed] \[Infinity], 3 \[Rule] 6, 
+                2 \[Rule] 4, 1 \[Rule] 3, 0 \[Rule] 2}, 
+          w}, \[IndentingNewLine]w[i_, j_, n_] := 
+          Take[{T\_i, T\_j, T\_i, T\_j, T\_i, T\_j}, n]; 
+        DeleteCases[
+          Flatten[Table[
+              If[m\[LeftDoubleBracket]i, 
+                    j\[RightDoubleBracket] < \[Infinity], 
+                w[i, j, 
+                    m\[LeftDoubleBracket]i, j\[RightDoubleBracket]] \[Equal] 
+                  w[j, i, m\[LeftDoubleBracket]i, j\[RightDoubleBracket]], 
+                True], {i, 1, Rank[\[CapitalGamma]]}, {j, i, 
+                Rank[\[CapitalGamma]]}]], 
+          True]\[IndentingNewLine]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(CheckBraidRelation[\[CapitalGamma]_]\)[word1_ \[Equal] word2_] := 
+      And @@ Simplify[\(\(BraidAction[\[CapitalGamma]]\)[
+                    word1, #] \[Equal] \(BraidAction[\[CapitalGamma]]\)[
+                    word2, #] &\) /@ Generators[\[CapitalGamma]] //. 
+            OrderingRules[\[CapitalGamma]]~Join~
+              ExtraOrderingRules[\[CapitalGamma]]]\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(CheckBraidRelations[\[CapitalGamma]_] := 
+      And @@ \((CheckBraidRelation[\[CapitalGamma]] /@ 
+            BraidRelations[\[CapitalGamma]])\)\)], "Input",
+  InitializationCell->True],
+
+Cell[BoxData[
+    \(\(End[];\)\)], "Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["End of package", "Subsection"],
+
+Cell[BoxData[
+    \(\(EndPackage[];\)\)], "Input",
+  InitializationCell->True]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Testing", "Subsubtitle"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(CheckBraidRelations[B\_2]\)], "Input"],
+
+Cell[BoxData[
+    \(True\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(\(\( (*CheckBraidRelations[B\_3]*) \)\( (*This\ doesn' t\ work, \ 
+      because\ it\ needs\ Serre\ relations\ to\ simplify\ the\ results ... *) \
+\)\)\)], "Input"],
+
+Cell[BoxData[
+    \(MemoryConserve::"start" \(\(:\)\(\ \)\) 
+      "Running Share[] to conserve memory."\)], "Message"],
+
+Cell[BoxData[
+    \(MemoryConserve::"end" \(\(:\)\(\ \)\) 
+      "Finished running Share[]; \!\(68528\) bytes of memory freed."\)], \
+"Message"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+},
+FrontEndVersion->"5.2 for Microsoft Windows",
+ScreenRectangle->{{0, 1280}, {0, 713}},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1010, 589},
+WindowMargins->{{Automatic, 115}, {Automatic, -12}}
+]
+
+(*******************************************************************
+Cached data follows.  If you edit this Notebook file directly, not
+using Mathematica, you must remove the line containing CacheID at
+the top of  the file.  The cache data will then be recreated when
+you save this file from within Mathematica.
+*******************************************************************)
+
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+
+(*NotebookFileOutline
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[1776, 53, 67, 1, 51, "Subtitle",
+  InitializationCell->True],
+Cell[1846, 56, 128, 4, 52, "Text",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+Cell[1999, 64, 59, 1, 73, "Section",
+  InitializationCell->True],
+Cell[2061, 67, 139, 4, 33, "Text",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[2237, 76, 61, 1, 73, "Section",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+Cell[2323, 81, 38, 0, 38, "Subsection"],
+Cell[2364, 83, 45, 0, 33, "Text"],
+Cell[2412, 85, 286, 5, 70, "Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[2735, 95, 36, 0, 38, "Subsection"],
+Cell[2774, 97, 67, 2, 30, "Input",
+  InitializationCell->True],
+Cell[2844, 101, 216, 4, 30, "Input",
+  InitializationCell->True],
+Cell[3063, 107, 499, 8, 90, "Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[3599, 120, 31, 0, 38, "Subsection"],
+Cell[3633, 122, 88, 2, 30, "Input",
+  InitializationCell->True],
+Cell[3724, 126, 78, 2, 30, "Input",
+  InitializationCell->True],
+Cell[3805, 130, 746, 14, 101, "Input",
+  InitializationCell->True],
+Cell[4554, 146, 113, 2, 30, "Input",
+  InitializationCell->True],
+Cell[4670, 150, 753, 12, 93, "Input",
+  InitializationCell->True],
+Cell[5426, 164, 756, 12, 93, "Input",
+  InitializationCell->True],
+Cell[6185, 178, 265, 5, 31, "Input",
+  InitializationCell->True],
+Cell[6453, 185, 274, 5, 31, "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+Cell[6752, 194, 1416, 24, 197, "Input",
+  InitializationCell->True],
+Cell[8171, 220, 119, 2, 22, "Message"],
+Cell[8293, 224, 144, 3, 22, "Message"]
+}, Open  ]],
+Cell[8452, 230, 777, 14, 92, "Input",
+  InitializationCell->True],
+Cell[9232, 246, 133, 3, 30, "Input",
+  InitializationCell->True],
+Cell[9368, 251, 108, 2, 30, "Input",
+  InitializationCell->True],
+
+Cell[CellGroupData[{
+Cell[9501, 257, 141, 3, 30, "Input",
+  InitializationCell->True],
+Cell[9645, 262, 370, 6, 22, "Message"]
+}, Open  ]],
+Cell[10030, 271, 203, 4, 30, "Input",
+  InitializationCell->True],
+Cell[10236, 277, 517, 11, 70, "Input",
+  InitializationCell->True],
+Cell[10756, 290, 645, 12, 130, "Input",
+  InitializationCell->True],
+Cell[11404, 304, 84, 2, 30, "Input",
+  InitializationCell->True],
+Cell[11491, 308, 189, 4, 30, "Input",
+  InitializationCell->True],
+Cell[11683, 314, 1147, 20, 210, "Input",
+  InitializationCell->True],
+Cell[12833, 336, 649, 12, 130, "Input",
+  InitializationCell->True],
+Cell[13485, 350, 107, 2, 30, "Input",
+  InitializationCell->True],
+Cell[13595, 354, 966, 20, 90, "Input",
+  InitializationCell->True],
+Cell[14564, 376, 430, 7, 70, "Input",
+  InitializationCell->True],
+Cell[14997, 385, 205, 4, 30, "Input",
+  InitializationCell->True],
+Cell[15205, 391, 71, 2, 30, "Input",
+  InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[15313, 398, 36, 0, 38, "Subsection"],
+Cell[15352, 400, 78, 2, 30, "Input",
+  InitializationCell->True]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[15479, 408, 30, 0, 30, "Subsubtitle"],
+
+Cell[CellGroupData[{
+Cell[15534, 412, 58, 1, 30, "Input"],
+Cell[15595, 415, 38, 1, 29, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[15670, 421, 184, 3, 30, "Input"],
+Cell[15857, 426, 119, 2, 22, "Message"],
+Cell[15979, 430, 144, 3, 22, "Message"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+
+
+(*******************************************************************
+End of Mathematica Notebook file.
+*******************************************************************)
+

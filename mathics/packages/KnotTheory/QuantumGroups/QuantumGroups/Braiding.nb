@@ -1,0 +1,1196 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     40990,       1187]
+NotebookOptionsPosition[     37585,       1072]
+NotebookOutlinePosition[     37957,       1088]
+CellTagsIndexPosition[     37914,       1085]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Braiding package", "Subtitle",
+ InitializationCell->True],
+
+Cell["\<\
+A subpackage for QuantumGroups v2.
+Version 2.0, June 22, 2006, Scott Morrison\
+\>", "Text",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section",
+ InitializationCell->True],
+
+Cell["\<\
+This package calculates braid group actions on tensor products of \
+representations, and restrictions to high weight vectors.\
+\>", "Text",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell["Start of package", "Subsection"],
+
+Cell["Specify package dependencies:", "Text"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"BeginPackage", "[", 
+   RowBox[{"\"\<QuantumGroups`Braiding`\>\"", ",", 
+    RowBox[{"{", 
+     RowBox[{
+     "\"\<QuantumGroups`\>\"", ",", "\"\<WikiLink`\>\"", ",", 
+      "\"\<QuantumGroups`Utilities`MatrixWrapper`\>\"", ",", 
+      "\"\<QuantumGroups`Utilities`Debugging`\>\"", ",", 
+      "\"\<QuantumGroups`Utilities`DataPackage`\>\"", ",", 
+      "\"\<QuantumGroups`Representations`\>\"", ",", 
+      "\"\<QuantumGroups`MatrixPresentations`\>\"", ",", 
+      "\"\<QuantumGroups`RepresentationTensors`\>\""}], "}"}]}], "]"}], 
+  ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"BR", "=", "KnotTheory`BR"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Usage messages", "Subsection"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"CheckBraidingData", "::", "usage"}], "=", "\"\<\>\""}], 
+  ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BraidingData", "::", "usage"}], "=", "\"\<\>\""}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"PackageBraidingData", "::", "usage"}], "=", 
+   "\"\<PackageBraidingData[\[CapitalGamma]] writes currently known braiding \
+data for the quantum group \[CapitalGamma] into a data directory in the \
+QuantumGroups` package.\>\""}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"WriteBraidingDataToWiki", "::", "usage"}], "=", 
+   "\"\<WriteBraidingDataToWiki[V,k] tries to calculate braiding data for the \
+k-fold tensor power of a representation V, and saves the results in the Knot \
+Atlas.\>\""}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"LoadAllBraidingDataFromWiki", "::", "usage"}], "=", 
+   "\"\<LoadAllBraidingDataFromWiki[] retrieves all currently calculated \
+braiding data from the Knot Atlas.\>\""}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Internals", "Subsection"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"2", ",", 
+     RowBox[{"{", "1", "}"}]}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", 
+    RowBox[{"{", 
+     RowBox[{"V1_", ",", "V2_"}], "}"}], ",", "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{"NormalisedBraidingMap", "[", 
+   RowBox[{"\[CapitalGamma]", ",", 
+    RowBox[{"V1", "\[CircleTimes]", "V2"}], ",", "\[Beta]"}], 
+   "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n_", ",", 
+     RowBox[{"{", "1", "}"}]}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"{", "1", "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Fold", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"#1", "\[CircleTimes]", "#2"}], "&"}], ",", 
+     RowBox[{"NormalisedBraidingMap", "[", 
+      RowBox[{"\[CapitalGamma]", ",", 
+       RowBox[{
+        RowBox[{"V", "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}], 
+        "\[CircleTimes]", 
+        RowBox[{"V", "\[LeftDoubleBracket]", "2", "\[RightDoubleBracket]"}]}],
+        ",", "\[Beta]"}], "]"}], ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"IdentityMap", "[", 
+        RowBox[{"\[CapitalGamma]", ",", "#", ",", "\[Beta]"}], "]"}], "&"}], "/@", 
+      RowBox[{"Drop", "[", 
+       RowBox[{"V", ",", "2"}], "]"}]}]}], "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n_", ",", 
+     RowBox[{"{", 
+      RowBox[{"-", "1"}], "}"}]}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"{", 
+       RowBox[{"-", "1"}], "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Inverse", "[", 
+    RowBox[{
+     RowBox[{"BR", "[", 
+      RowBox[{"n", ",", 
+       RowBox[{"{", "1", "}"}]}], "]"}], "[", 
+     RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n_", ",", 
+      RowBox[{"{", "k_Integer", "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], "/;", 
+   RowBox[{"1", "<", "k", "<", "n"}]}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"{", "k", "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"ib", ",", "as", ",", "ias", ",", "aib", ",", "r"}], "}"}], ",",
+      "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"DebugPrintHeld", "[", 
+       RowBox[{"\"\<Calculating (what a waste!) \>\"", ",", 
+        RowBox[{
+         RowBox[{"BR", "[", 
+          RowBox[{"n", ",", 
+           RowBox[{"{", "k", "}"}]}], "]"}], "[", 
+         RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}]}], 
+       "]"}], ";", "\[IndentingNewLine]", 
+      RowBox[{"ib", "=", 
+       RowBox[{
+        RowBox[{"IdentityMap", "[", 
+         RowBox[{"\[CapitalGamma]", ",", 
+          RowBox[{"TensorProduct", "@@", 
+           RowBox[{"Take", "[", 
+            RowBox[{"V", ",", 
+             RowBox[{"k", "-", "1"}]}], "]"}]}], ",", "\[Beta]"}], "]"}], 
+        "\[CircleTimes]", 
+        RowBox[{"NormalisedBraidingMap", "[", 
+         RowBox[{"\[CapitalGamma]", ",", 
+          RowBox[{
+           RowBox[{
+           "V", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}], 
+           "\[CircleTimes]", 
+           RowBox[{"V", "\[LeftDoubleBracket]", 
+            RowBox[{"k", "+", "1"}], "\[RightDoubleBracket]"}]}], ",", 
+          "\[Beta]"}], "]"}]}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"as", "=", 
+       RowBox[{"Associator", "[", 
+        RowBox[{"\[CapitalGamma]", ",", 
+         RowBox[{"TensorProduct", "@@", 
+          RowBox[{"Take", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{"k", "-", "1"}]}], "]"}]}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}], 
+         ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{"k", "+", "1"}], "\[RightDoubleBracket]"}], ",", 
+         "\[Beta]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"ias", "=", 
+       RowBox[{"InverseAssociator", "[", 
+        RowBox[{"\[CapitalGamma]", ",", 
+         RowBox[{"TensorProduct", "@@", 
+          RowBox[{"Take", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{"k", "-", "1"}]}], "]"}]}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}], 
+         ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{"k", "+", "1"}], "\[RightDoubleBracket]"}], ",", 
+         "\[Beta]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"aib", "=", 
+       RowBox[{"as", ".", "ib", ".", "ias"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"r", "=", 
+       RowBox[{"Fold", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"#1", "\[CircleTimes]", "#2"}], "&"}], ",", "aib", ",", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"IdentityMap", "[", 
+            RowBox[{"\[CapitalGamma]", ",", "#", ",", "\[Beta]"}], "]"}], 
+           "&"}], "/@", 
+          RowBox[{"Drop", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{"k", "+", "1"}]}], "]"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"DebugPrint", "[", 
+       RowBox[{"\"\<... finished calculating, result \>\"", ",", 
+        RowBox[{"ByteCount", "[", "r", "]"}], ",", " ", "\"\< bytes\>\""}], 
+       "]"}], ";", "\[IndentingNewLine]", "r"}]}], "\[IndentingNewLine]", 
+    "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.450368514657545*^9, 3.4503685465744963`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n_", ",", 
+      RowBox[{"{", "k_Integer", "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], "/;", 
+   RowBox[{"1", "<", 
+    RowBox[{"-", "k"}], "<", "n"}]}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"{", "k", "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"ib", ",", "as", ",", "ias", ",", "aib", ",", "r"}], "}"}], ",",
+      "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"DebugPrintHeld", "[", 
+       RowBox[{"\"\<Calculating (what a waste!) \>\"", ",", 
+        RowBox[{
+         RowBox[{"BR", "[", 
+          RowBox[{"n", ",", 
+           RowBox[{"{", "k", "}"}]}], "]"}], "[", 
+         RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}]}], 
+       "]"}], ";", "\[IndentingNewLine]", 
+      RowBox[{"ib", "=", 
+       RowBox[{
+        RowBox[{"IdentityMap", "[", 
+         RowBox[{"\[CapitalGamma]", ",", 
+          RowBox[{"TensorProduct", "@@", 
+           RowBox[{"Take", "[", 
+            RowBox[{"V", ",", 
+             RowBox[{
+              RowBox[{"(", 
+               RowBox[{"-", "k"}], ")"}], "-", "1"}]}], "]"}]}], ",", 
+          "\[Beta]"}], "]"}], "\[CircleTimes]", 
+        RowBox[{"InverseNormalisedBraidingMap", "[", 
+         RowBox[{"\[CapitalGamma]", ",", 
+          RowBox[{
+           RowBox[{"V", "\[LeftDoubleBracket]", 
+            RowBox[{"-", "k"}], "\[RightDoubleBracket]"}], "\[CircleTimes]", 
+           RowBox[{"V", "\[LeftDoubleBracket]", 
+            RowBox[{
+             RowBox[{"-", "k"}], "+", "1"}], "\[RightDoubleBracket]"}]}], ",",
+           "\[Beta]"}], "]"}]}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"as", "=", 
+       RowBox[{"Associator", "[", 
+        RowBox[{"\[CapitalGamma]", ",", 
+         RowBox[{"TensorProduct", "@@", 
+          RowBox[{"Take", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{
+             RowBox[{"-", "k"}], "-", "1"}]}], "]"}]}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{"-", "k"}], "\[RightDoubleBracket]"}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{
+           RowBox[{"-", "k"}], "+", "1"}], "\[RightDoubleBracket]"}], ",", 
+         "\[Beta]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"ias", "=", 
+       RowBox[{"InverseAssociator", "[", 
+        RowBox[{"\[CapitalGamma]", ",", 
+         RowBox[{"TensorProduct", "@@", 
+          RowBox[{"Take", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{
+             RowBox[{"-", "k"}], "-", "1"}]}], "]"}]}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{"-", "k"}], "\[RightDoubleBracket]"}], ",", 
+         RowBox[{"V", "\[LeftDoubleBracket]", 
+          RowBox[{
+           RowBox[{"-", "k"}], "+", "1"}], "\[RightDoubleBracket]"}], ",", 
+         "\[Beta]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"aib", "=", 
+       RowBox[{"as", ".", "ib", ".", "ias"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"r", "=", 
+       RowBox[{"Fold", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"#1", "\[CircleTimes]", "#2"}], "&"}], ",", "aib", ",", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"IdentityMap", "[", 
+            RowBox[{"\[CapitalGamma]", ",", "#", ",", "\[Beta]"}], "]"}], 
+           "&"}], "/@", 
+          RowBox[{"Drop", "[", 
+           RowBox[{"V", ",", 
+            RowBox[{
+             RowBox[{"-", "k"}], "+", "1"}]}], "]"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"DebugPrint", "[", 
+       RowBox[{"\"\<... finished calculating, result \>\"", ",", 
+        RowBox[{"ByteCount", "[", "r", "]"}], ",", " ", "\"\< bytes\>\""}], 
+       "]"}], ";", "\[IndentingNewLine]", "r"}]}], "\[IndentingNewLine]", 
+    "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.450368530713499*^9, 3.450368549388978*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n_Integer", ",", 
+     RowBox[{"{", 
+      RowBox[{"k1_Integer", ",", "k2_Integer"}], "}"}]}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"{", 
+       RowBox[{"k1", ",", "k2"}], "}"}]}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Simplify", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"BR", "[", 
+       RowBox[{"n", ",", 
+        RowBox[{"{", "k1", "}"}]}], "]"}], "[", 
+      RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], ".", 
+     RowBox[{
+      RowBox[{"BR", "[", 
+       RowBox[{"n", ",", 
+        RowBox[{"{", "k2", "}"}]}], "]"}], "[", 
+      RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}]}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n_Integer", ",", "k_"}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", 
+    RowBox[{"V", ":", 
+     RowBox[{
+      RowBox[{"Irrep", "[", "\[CapitalGamma]_", "]"}], "[", "_", "]"}]}], ",",
+     "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n", ",", "k"}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]", ",", 
+    RowBox[{"Table", "[", 
+     RowBox[{"V", ",", 
+      RowBox[{"{", "n", "}"}]}], "]"}], ",", "\[Beta]"}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BR", "[", 
+    RowBox[{"n_Integer", ",", 
+     RowBox[{"ks", ":", 
+      RowBox[{"{", "__Integer", "}"}]}]}], "]"}], "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "V_List", ",", "\[Beta]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BR", "[", 
+     RowBox[{"n", ",", "ks"}], "]"}], "[", 
+    RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], "=", 
+   RowBox[{"Simplify", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"BR", "[", 
+       RowBox[{"n", ",", 
+        RowBox[{"Take", "[", 
+         RowBox[{"ks", ",", 
+          RowBox[{"Floor", "[", 
+           RowBox[{
+            RowBox[{"Length", "[", "ks", "]"}], "/", "2"}], "]"}]}], "]"}]}], 
+       "]"}], "[", 
+      RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}], ".", 
+     RowBox[{
+      RowBox[{"BR", "[", 
+       RowBox[{"n", ",", 
+        RowBox[{"Drop", "[", 
+         RowBox[{"ks", ",", 
+          RowBox[{"Floor", "[", 
+           RowBox[{
+            RowBox[{"Length", "[", "ks", "]"}], "/", "2"}], "]"}]}], "]"}]}], 
+       "]"}], "[", 
+      RowBox[{"\[CapitalGamma]", ",", "V", ",", "\[Beta]"}], "]"}]}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell["\<\
+(*For the future; this is a bottleneck. Perhaps we could replace LinearSolve \
+with a hand-written algorithm using interpolation.*)\
+\>", "Text",
+ CellChangeTimes->{{3.4098601738900704`*^9, 3.409860210723034*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ChangeBasis", "[", 
+   RowBox[{"map_", ",", "basis_"}], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"DebugPrint", "[", 
+      RowBox[{"\"\<ChangeBasis called with \>\"", ",", 
+       RowBox[{"Dimensions", "[", "map", "]"}], ",", "\"\< \>\"", ",", 
+       RowBox[{"Length", "[", "basis", "]"}]}], "]"}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{"lastChangeBasisArguments", "=", 
+      RowBox[{"{", 
+       RowBox[{"map", ",", "basis"}], "}"}]}], ";", "\[IndentingNewLine]", 
+     RowBox[{"Together", "[", 
+      RowBox[{"Transpose", "[", 
+       RowBox[{"LinearSolve", "[", 
+        RowBox[{
+         RowBox[{"Transpose", "[", "basis", "]"}], ",", 
+         RowBox[{"Together", "[", 
+          RowBox[{"map", ".", 
+           RowBox[{"Transpose", "[", "basis", "]"}]}], "]"}], ",", 
+         RowBox[{"Method", "\[Rule]", "OneStepRowReduction"}]}], "]"}], "]"}],
+       "]"}]}]}], "\[IndentingNewLine]", "]"}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4189424085823345`*^9, 3.418942410685358*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BraidingMatrices", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"V_", ",", "n_Integer", ",", "\[Lambda]_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"BraidingMatrices", "[", "\[CapitalGamma]", "]"}], "[", 
+    RowBox[{"V", ",", "n", ",", "\[Lambda]"}], "]"}], "=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"a", ",", "hwv", ",", "matrices", ",", "inverses"}], "}"}], ",",
+      "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"DebugPrintHeld", "[", 
+       RowBox[{"\"\<Calculating \>\"", ",", 
+        RowBox[{
+         RowBox[{"BraidingMatrices", "[", "\[CapitalGamma]", "]"}], "[", 
+         RowBox[{"V", ",", "n", ",", "\[Lambda]"}], "]"}]}], "]"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"hwv", "=", 
+       RowBox[{
+        RowBox[{"HighWeightVectors", "[", "\[CapitalGamma]", "]"}], "[", 
+        RowBox[{
+         SuperscriptBox["V", 
+          RowBox[{"\[CircleTimes]", "n"}]], ",", "FundamentalBasis", ",", 
+         "\[Lambda]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      RowBox[{"DebugPrint", "[", "\"\<Changing basis ...\>\"", "]"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"matrices", "=", 
+       RowBox[{"Table", "[", 
+        RowBox[{
+         RowBox[{"ChangeBasis", "[", 
+          RowBox[{
+           RowBox[{"MatrixData", "[", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"BR", "[", 
+               RowBox[{"n", ",", 
+                RowBox[{"{", "i", "}"}]}], "]"}], "[", 
+              RowBox[{"\[CapitalGamma]", ",", "V", ",", "FundamentalBasis"}], 
+              "]"}], "[", "\[Lambda]", "]"}], "]"}], ",", "hwv"}], "]"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"i", ",", "1", ",", 
+           RowBox[{"n", "-", "1"}]}], "}"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+      "DebugPrint", "[", "\"\<Computing inverses directly ...\>\"", "]"}], 
+      ";", "\[IndentingNewLine]", 
+      RowBox[{"inverses", "=", 
+       RowBox[{"MatrixInverse", "/@", "matrices"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+      "DebugPrint", "[", "\"\<Computing inverses again! ...\>\"", "]"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"inverses", "=", 
+       RowBox[{"Table", "[", 
+        RowBox[{
+         RowBox[{"ChangeBasis", "[", 
+          RowBox[{
+           RowBox[{"MatrixData", "[", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"BR", "[", 
+               RowBox[{"n", ",", 
+                RowBox[{"{", 
+                 RowBox[{"-", "i"}], "}"}]}], "]"}], "[", 
+              RowBox[{"\[CapitalGamma]", ",", "V", ",", "FundamentalBasis"}], 
+              "]"}], "[", "\[Lambda]", "]"}], "]"}], ",", "hwv"}], "]"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"i", ",", "1", ",", 
+           RowBox[{"n", "-", "1"}]}], "}"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{
+      "DebugPrint", "[", "\"\<Finished calculating braiding matrices.\>\"", 
+       "]"}], ";", "\[IndentingNewLine]", 
+      RowBox[{"Together", "[", 
+       RowBox[{"{", 
+        RowBox[{"matrices", ",", "inverses"}], "}"}], "]"}]}]}], 
+    "\[IndentingNewLine]", "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4189430231260047`*^9, 3.418943056363798*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"LoadBraidingData", "[", 
+   SubscriptBox["\[CapitalGamma]_", "n_"], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Off", "[", 
+      RowBox[{
+       RowBox[{"Get", "::", "noopen"}], ",", 
+       RowBox[{"Needs", "::", "nocont"}]}], "]"}], ";", "\[IndentingNewLine]", 
+     RowBox[{"Needs", "[", 
+      RowBox[{"\"\<QuantumGroups`Data`\>\"", "<>", 
+       RowBox[{"SymbolName", "[", "\[CapitalGamma]", "]"}], "<>", 
+       RowBox[{"ToString", "[", "n", "]"}], "<>", "\"\<`BraidingData`\>\""}], 
+      "]"}], ";", "\[IndentingNewLine]", 
+     RowBox[{"On", "[", 
+      RowBox[{
+       RowBox[{"Get", "::", "noopen"}], ",", 
+       RowBox[{"Needs", "::", "nocont"}]}], "]"}], ";", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"LoadBraidingData", "[", 
+       SubscriptBox["\[CapitalGamma]", "n"], "]"}], "=", "False"}], ";", 
+     "\[IndentingNewLine]", "True"}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"autosaveBraidingData", "=", "True"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"BraidingData", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"V_", ",", "n_Integer"}], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", "result", "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"BraidingData", "[", "\[CapitalGamma]", "]"}], "[", 
+       RowBox[{"V", ",", "n"}], "]"}], "=", 
+      RowBox[{"result", "=", "\[IndentingNewLine]", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"LoadBraidingData", "[", "\[CapitalGamma]", "]"}], ",", 
+         RowBox[{
+          RowBox[{"BraidingData", "[", "\[CapitalGamma]", "]"}], "[", 
+          RowBox[{"V", ",", "n"}], "]"}], ",", "\[IndentingNewLine]", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"qDimension", "[", "\[CapitalGamma]", "]"}], "[", 
+              RowBox[{
+               RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "#", 
+               "]"}], "]"}], ",", 
+             RowBox[{
+              RowBox[{"BraidingMatrices", "[", "\[CapitalGamma]", "]"}], "[", 
+              RowBox[{"V", ",", "n", ",", "#"}], "]"}]}], "}"}], "&"}], "/@", 
+          RowBox[{"HighWeights", "[", 
+           RowBox[{"\[CapitalGamma]", ",", 
+            SuperscriptBox["V", 
+             RowBox[{"\[CircleTimes]", "n"}]]}], "]"}]}]}], 
+        "\[IndentingNewLine]", "]"}]}]}], ";", "\[IndentingNewLine]", 
+     RowBox[{"If", "[", 
+      RowBox[{"autosaveBraidingData", ",", 
+       RowBox[{"PackageBraidingData", "[", "\[CapitalGamma]", "]"}]}], "]"}], 
+     ";", "\[IndentingNewLine]", "result"}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"CheckBraidingData", "[", 
+   RowBox[{"m", ":", 
+    RowBox[{"{", 
+     RowBox[{"__", "?", "MatrixQ"}], "}"}]}], "]"}], ":=", 
+  RowBox[{"And", "@@", 
+   RowBox[{"Table", "[", 
+    RowBox[{
+     RowBox[{"ZeroMatrixQ", "[", 
+      RowBox[{"Matrix", "[", 
+       RowBox[{"Simplify", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"m", "\[LeftDoubleBracket]", "i", "\[RightDoubleBracket]"}],
+           ".", 
+          RowBox[{"m", "\[LeftDoubleBracket]", 
+           RowBox[{"i", "+", "1"}], "\[RightDoubleBracket]"}], ".", 
+          RowBox[{
+          "m", "\[LeftDoubleBracket]", "i", "\[RightDoubleBracket]"}]}], "-", 
+         RowBox[{
+          RowBox[{"m", "\[LeftDoubleBracket]", 
+           RowBox[{"i", "+", "1"}], "\[RightDoubleBracket]"}], ".", 
+          RowBox[{"m", "\[LeftDoubleBracket]", "i", "\[RightDoubleBracket]"}],
+           ".", 
+          RowBox[{"m", "\[LeftDoubleBracket]", 
+           RowBox[{"i", "+", "1"}], "\[RightDoubleBracket]"}]}]}], "]"}], 
+       "]"}], "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", "1", ",", 
+       RowBox[{
+        RowBox[{"Length", "[", "m", "]"}], "-", "1"}]}], "}"}]}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"CheckBraidingData", "[", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"m", ":", 
+      RowBox[{"{", 
+       RowBox[{"__", "?", "MatrixQ"}], "}"}]}], ",", 
+     RowBox[{"i", ":", 
+      RowBox[{"{", 
+       RowBox[{"__", "?", "MatrixQ"}], "}"}]}]}], "}"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"Length", "[", "m", "]"}], "\[Equal]", 
+     RowBox[{"Length", "[", "i", "]"}]}], ")"}], "\[And]", 
+   RowBox[{"(", 
+    RowBox[{"And", "@@", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"ZeroMatrixQ", "[", 
+        RowBox[{"Matrix", "[", 
+         RowBox[{"Simplify", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "m", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}], ".", 
+            RowBox[{
+            "i", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}]}], 
+           "-", 
+           RowBox[{"IdentityMatrix", "[", 
+            RowBox[{"Length", "[", 
+             RowBox[{
+             "m", "\[LeftDoubleBracket]", "k", "\[RightDoubleBracket]"}], 
+             "]"}], "]"}]}], "]"}], "]"}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"k", ",", "1", ",", 
+         RowBox[{"Length", "[", "m", "]"}]}], "}"}]}], "]"}]}], ")"}], 
+   "\[And]", 
+   RowBox[{"CheckBraidingData", "[", "m", "]"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"CheckBraidingData", "[", 
+   RowBox[{"d", ":", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"_", ",", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"__", "?", "MatrixQ"}], "}"}], ",", 
+          RowBox[{"{", 
+           RowBox[{"__", "?", "MatrixQ"}], "}"}]}], "}"}]}], "}"}], ".."}], 
+     "}"}]}], "]"}], ":=", 
+  RowBox[{"And", "@@", 
+   RowBox[{"(", 
+    RowBox[{"CheckBraidingData", "/@", 
+     RowBox[{"(", 
+      RowBox[{"Last", "/@", "d"}], ")"}]}], ")"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"CheckBraidingData", "[", "\[CapitalGamma]_", "]"}], "[", 
+   RowBox[{"V_", ",", "k_"}], "]"}], ":=", 
+  RowBox[{"CheckBraidingData", "[", 
+   RowBox[{
+    RowBox[{"BraidingData", "[", "\[CapitalGamma]", "]"}], "[", 
+    RowBox[{"V", ",", "k"}], "]"}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"PackageBraidingData", "[", 
+   SubscriptBox["\[CapitalGamma]_", "n_"], "]"}], ":=", 
+  RowBox[{"PackageData", "[", "\[IndentingNewLine]", 
+   RowBox[{"BraidingData", ",", 
+    RowBox[{
+     RowBox[{"BraidingData", "[", 
+      SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", 
+     RowBox[{"_", ",", "_"}], "]"}], ",", "\[IndentingNewLine]", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"ToString", "[", "\[CapitalGamma]", "]"}], "<>", 
+       RowBox[{"ToString", "[", "n", "]"}]}], ",", "\"\<BraidingData\>\""}], 
+     "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{"\"\<Needs\>\"", "\[Rule]", 
+     RowBox[{"{", 
+      RowBox[{
+      "\"\<QuantumGroups`\>\"", ",", "\"\<QuantumGroups`Braiding`\>\""}], 
+      "}"}]}], ",", "\[IndentingNewLine]", 
+    RowBox[{"\"\<ExtraPrivateCode\>\"", "\[Rule]", "\"\<q=Global`q;\>\""}]}], 
+   "\[IndentingNewLine]", "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"listToString", "[", "x_List", "]"}], ":=", 
+  RowBox[{"listToString", "[", 
+   RowBox[{"x", ",", "\"\<,\>\""}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"listToString", "[", 
+   RowBox[{"x_List", ",", "s_String"}], "]"}], ":=", 
+  RowBox[{"StringJoin", "[", 
+   RowBox[{"Drop", "[", 
+    RowBox[{
+     RowBox[{"Flatten", "[", 
+      RowBox[{"Transpose", "[", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"ToString", "/@", "x"}], ",", 
+         RowBox[{"Table", "[", 
+          RowBox[{"s", ",", 
+           RowBox[{"{", 
+            RowBox[{"Length", "[", "x", "]"}], "}"}]}], "]"}]}], "}"}], "]"}],
+       "]"}], ",", 
+     RowBox[{"-", "1"}]}], "]"}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"WriteBraidingDataToWiki", "[", 
+   RowBox[{"V_", ",", "k_"}], "]"}], ":=", 
+  RowBox[{"WriteBraidingDataToWiki", "[", 
+   RowBox[{"V", ",", "k", ",", 
+    RowBox[{"200", "*", 
+     SuperscriptBox["10", "6"]}]}], "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"WriteBraidingDataToWiki", "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Irrep", "[", 
+      SubscriptBox["\[CapitalGamma]_", "n_"], "]"}], "[", "\[Lambda]_", "]"}],
+     ",", "k_", ",", "M_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"MemoryConstrained", "[", 
+    RowBox[{
+     RowBox[{"Module", "[", 
+      RowBox[{
+       RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{"CheckBraidingData", "[", 
+             SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"Irrep", "[", 
+               SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", "\[Lambda]", 
+              "]"}], ",", "k"}], "]"}], "=!=", "True"}], ",", 
+          RowBox[{
+           RowBox[{"Print", "[", 
+            RowBox[{"\"\<The braiding data for \>\"", ",", 
+             SuperscriptBox[
+              RowBox[{
+               RowBox[{"Irrep", "[", 
+                SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", "\[Lambda]",
+                "]"}], 
+              RowBox[{"\"\<\[CircleTimes]\>\"", "<>", 
+               RowBox[{"ToString", "[", "k", "]"}]}]], ",", 
+             "\"\< is invalid!\>\""}], "]"}], ";", 
+           RowBox[{"Return", "[", "$Failed", "]"}]}]}], "]"}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"PackageBraidingData", "[", 
+         SubscriptBox["\[CapitalGamma]", "n"], "]"}], ";", 
+        "\[IndentingNewLine]", 
+        RowBox[{"WikiSetPageText", "[", 
+         RowBox[{
+          RowBox[{"\"\<Data:Braiding/\>\"", "<>", 
+           RowBox[{"ToString", "[", "\[CapitalGamma]", "]"}], "<>", 
+           "\"\<_\>\"", "<>", 
+           RowBox[{"ToString", "[", "n", "]"}], "<>", "\"\</\>\"", "<>", 
+           RowBox[{"listToString", "[", "\[Lambda]", "]"}], "<>", "\"\</\>\"",
+            "<>", 
+           RowBox[{"ToString", "[", "k", "]"}]}], ",", 
+          RowBox[{"ToString", "[", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"BraidingData", "[", 
+              SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"Irrep", "[", 
+                SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", "\[Lambda]",
+                "]"}], ",", "k"}], "]"}], ",", "InputForm"}], "]"}]}], 
+         "]"}]}]}], "\[IndentingNewLine]", "]"}], ",", "\[IndentingNewLine]", 
+     "M"}], "]"}], "/.", 
+   RowBox[{"$Aborted", "\[RuleDelayed]", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"Print", "[", 
+       RowBox[{
+       "\"\<Aborted because the calculation exceeded the current memory \
+limit: \>\"", ",", "M"}], "]"}], ";", "$Aborted"}], ")"}]}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"LoadBraidingDataFromWiki", "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Irrep", "[", 
+      SubscriptBox["\[CapitalGamma]_", "n_"], "]"}], "[", "\[Lambda]_", "]"}],
+     ",", "k_"}], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", "text", "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"text", "=", 
+      RowBox[{"WikiGetPageText", "[", 
+       RowBox[{"\"\<Data:Braiding/\>\"", "<>", 
+        RowBox[{"ToString", "[", "\[CapitalGamma]", "]"}], "<>", "\"\<_\>\"", 
+        "<>", 
+        RowBox[{"ToString", "[", "n", "]"}], "<>", "\"\</\>\"", "<>", 
+        RowBox[{"listToString", "[", "\[Lambda]", "]"}], "<>", "\"\</\>\"", "<>", 
+        RowBox[{"ToString", "[", "k", "]"}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"text", "==", "\"\<\>\""}], "\[Or]", 
+        RowBox[{"text", "\[Equal]", "$Failed"}]}], ",", 
+       RowBox[{"Return", "[", "$Failed", "]"}]}], "]"}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"BraidingData", "[", 
+        SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"Irrep", "[", 
+          SubscriptBox["\[CapitalGamma]", "n"], "]"}], "[", "\[Lambda]", 
+         "]"}], ",", "k"}], "]"}], "=", 
+      RowBox[{"ToExpression", "[", 
+       RowBox[{"text", ",", "InputForm"}], "]"}]}]}]}], "\[IndentingNewLine]",
+    "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"General", "::", "\<\"spell1\"\>"}], ":", 
+  " ", "\<\"Possible spelling error: new symbol name \\\"\\!\\(text\\)\\\" is \
+similar to existing symbol \\\"\\!\\(Text\\)\\\". \\!\\(\\*ButtonBox[\\\"More\
+\[Ellipsis]\\\", ButtonStyle->\\\"RefGuideLinkText\\\", ButtonFrame->None, \
+ButtonData:>\\\"General::spell1\\\"]\\)\"\>"}]], "Message",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"LoadAllBraidingDataFromWiki", "[", "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"targets", ",", "irrep", ",", 
+      RowBox[{"results", "=", 
+       RowBox[{"{", "}"}]}]}], "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"targets", "=", 
+      RowBox[{"WikiAllPages", "[", 
+       RowBox[{
+       "\"\<http://katlas.math.toronto.edu/w/index.php\>\"", ",", 
+        "\"\<Braiding\>\"", ",", "\"\<Data\>\"", ",", "100"}], "]"}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"StringCases", "[", 
+        RowBox[{"#", ",", 
+         RowBox[{
+          RowBox[{"\"\<Data:Braiding/\>\"", "~~", 
+           RowBox[{"\[CapitalGamma]_", "~~", 
+            RowBox[{
+             RowBox[{"\"\<_\>\"", "|", "\"\< \>\""}], "~~", 
+             RowBox[{
+              RowBox[{"n", ":", 
+               RowBox[{"(", 
+                RowBox[{"DigitCharacter", ".."}], ")"}]}], "~~", 
+              RowBox[{"\"\</\>\"", "~~", 
+               RowBox[{
+                RowBox[{"\[Lambda]", ":", 
+                 RowBox[{"(", 
+                  RowBox[{
+                   RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{
+                    RowBox[{"DigitCharacter", ".."}], "~~", "\"\<,\>\""}], 
+                    ")"}], "..."}], "~~", 
+                   RowBox[{"DigitCharacter", ".."}]}], ")"}]}], "~~", 
+                RowBox[{"\"\</\>\"", "~~", 
+                 RowBox[{"k", ":", 
+                  RowBox[{"(", 
+                   RowBox[{"DigitCharacter", ".."}], ")"}]}]}]}]}]}]}]}]}], 
+          "\[RuleDelayed]", "\[IndentingNewLine]", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"irrep", "=", 
+             RowBox[{
+              RowBox[{"Irrep", "[", 
+               SubscriptBox[
+                RowBox[{"ToExpression", "[", "\[CapitalGamma]", "]"}], 
+                RowBox[{"ToExpression", "[", "n", "]"}]], "]"}], "[", 
+              RowBox[{"ToExpression", "[", 
+               RowBox[{"\"\<{\>\"", "<>", "\[Lambda]", "<>", "\"\<}\>\""}], 
+               "]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+            RowBox[{"Print", "[", 
+             RowBox[{"\"\<Loading braiding data for \>\"", ",", 
+              SuperscriptBox["irrep", 
+               RowBox[{"\"\<\[CircleTimes]\>\"", "<>", "k"}]]}], "]"}], ";", 
+            RowBox[{"results", "=", 
+             RowBox[{"results", "~", "Join", "~", 
+              RowBox[{"{", 
+               RowBox[{"{", 
+                RowBox[{"irrep", ",", 
+                 RowBox[{"ToExpression", "[", "k", "]"}]}], "}"}], "}"}]}]}], 
+            ";", "\[IndentingNewLine]", 
+            RowBox[{"LoadBraidingDataFromWiki", "[", 
+             RowBox[{"irrep", ",", 
+              RowBox[{"ToExpression", "[", "k", "]"}]}], "]"}]}], ")"}]}]}], 
+        "\[IndentingNewLine]", "]"}], "&"}], " ", "/@", " ", "targets"}], ";",
+      "\[IndentingNewLine]", "results"}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"End", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["End of package", "Subsection"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"EndPackage", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1436, 856},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (November 10, 2008)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[567, 22, 63, 1, 46, "Subtitle",
+ InitializationCell->True],
+Cell[633, 25, 128, 4, 41, "Text",
+ InitializationCell->True],
+Cell[CellGroupData[{
+Cell[786, 33, 58, 1, 67, "Section",
+ InitializationCell->True],
+Cell[847, 36, 176, 4, 26, "Text",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[1060, 45, 60, 1, 67, "Section",
+ InitializationCell->True],
+Cell[CellGroupData[{
+Cell[1145, 50, 38, 0, 34, "Subsection"],
+Cell[1186, 52, 45, 0, 26, "Text"],
+Cell[1234, 54, 613, 14, 43, "Input",
+ InitializationCell->True],
+Cell[1850, 70, 107, 3, 27, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[1994, 78, 36, 0, 34, "Subsection"],
+Cell[2033, 80, 149, 5, 27, "Input",
+ InitializationCell->True],
+Cell[2185, 87, 141, 4, 27, "Input",
+ InitializationCell->True],
+Cell[2329, 93, 320, 7, 27, "Input",
+ InitializationCell->True],
+Cell[2652, 102, 313, 7, 43, "Input",
+ InitializationCell->True],
+Cell[2968, 111, 261, 6, 27, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3266, 122, 31, 0, 34, "Subsection"],
+Cell[3300, 124, 119, 3, 27, "Input",
+ InitializationCell->True],
+Cell[3422, 129, 443, 13, 27, "Input",
+ InitializationCell->True],
+Cell[3868, 144, 1095, 30, 27, "Input",
+ InitializationCell->True],
+Cell[4966, 176, 697, 22, 27, "Input",
+ InitializationCell->True],
+Cell[5666, 200, 3771, 93, 163, "Input",
+ InitializationCell->True],
+Cell[9440, 295, 4070, 101, 163, "Input",
+ InitializationCell->True],
+Cell[13513, 398, 945, 28, 27, "Input",
+ InitializationCell->True],
+Cell[14461, 428, 561, 17, 27, "Input",
+ InitializationCell->True],
+Cell[15025, 447, 1204, 36, 27, "Input",
+ InitializationCell->True],
+Cell[16232, 485, 223, 4, 26, "Text"],
+Cell[16458, 491, 1144, 27, 88, "Input",
+ InitializationCell->True],
+Cell[17605, 520, 3304, 82, 209, "Input",
+ InitializationCell->True],
+Cell[20912, 604, 1062, 26, 126, "Input",
+ InitializationCell->True],
+Cell[21977, 632, 116, 3, 27, "Input",
+ InitializationCell->True],
+Cell[22096, 637, 1743, 42, 158, "Input",
+ InitializationCell->True],
+Cell[23842, 681, 1236, 33, 27, "Input",
+ InitializationCell->True],
+Cell[25081, 716, 1365, 40, 43, "Input",
+ InitializationCell->True],
+Cell[26449, 758, 601, 20, 27, "Input",
+ InitializationCell->True],
+Cell[27053, 780, 344, 9, 27, "Input",
+ InitializationCell->True],
+Cell[27400, 791, 953, 23, 111, "Input",
+ InitializationCell->True],
+Cell[28356, 816, 192, 5, 27, "Input",
+ InitializationCell->True],
+Cell[28551, 823, 591, 18, 27, "Input",
+ InitializationCell->True],
+Cell[29145, 843, 292, 8, 33, "Input",
+ InitializationCell->True],
+Cell[29440, 853, 2806, 70, 127, "Input",
+ InitializationCell->True],
+Cell[CellGroupData[{
+Cell[32271, 927, 1525, 40, 96, "Input",
+ InitializationCell->True],
+Cell[33799, 969, 399, 7, 20, "Message",
+ InitializationCell->True]
+}, Open  ]],
+Cell[34213, 979, 3054, 73, 185, "Input",
+ InitializationCell->True],
+Cell[37270, 1054, 96, 3, 27, "Input",
+ InitializationCell->True]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[37403, 1062, 36, 0, 34, "Subsection"],
+Cell[37442, 1064, 103, 3, 27, "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
