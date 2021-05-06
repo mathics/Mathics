@@ -2283,9 +2283,9 @@ class Plot3D(_Plot3D):
 
     Plot3D has the same options as Graphics3D, in particular:
     <ul>
-    <li>Mesh</li>
-    <li>PlotPoints</li>
-    <li>MaxRecursion</li>
+    <li>Mesh
+    <li>PlotPoints
+    <li>MaxRecursion
     </ul>
 
 
