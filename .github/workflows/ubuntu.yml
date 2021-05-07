@@ -28,5 +28,5 @@ jobs:
         make develop
     - name: Test Mathics
       run: |
-        pip install pytest pexpect
-        make -j3 check
+        pip install -r requirements-dev.txt
+        PYTEST_WORKERS=-n3 make -j3 check
