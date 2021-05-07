@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
+import pytest
+
 from .helper import evaluate, check_evaluation
 
 import pytest
@@ -10,6 +13,8 @@ evaluate(
 )
 
 
+@pytest.mark.skipif(not os.environ.get("KnotTheory", False),
+                    reason="set environment varable KnotTheory to run this test")
 def test_knottheory():
     evaluate(
         """K = PD[X[1,9,2,8], X[3,10,4,11],

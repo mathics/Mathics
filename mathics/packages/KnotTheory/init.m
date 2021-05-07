@@ -767,7 +767,9 @@ TubePlot[gamma_, {t_, t1_, t2_}, r_, opts___Rule] := Module[
 
 End[]; EndPackage[]
 
-BeginPackage["KnotTheory`", {"TubePlot`"}]
+(* BeginPackage["KnotTheory`", {"TubePlot`"}]*)
+Needs["TubePlot`"];
+BeginPackage["KnotTheory`"]
 
 TorusKnot;
 
@@ -781,7 +783,7 @@ TubePlot[TorusKnot[m_, n_], opts___] := TubePlot[
   TubePlotPrelude -> EdgeForm[{}], Boxed -> False, ViewPoint -> {0, 0, 1}
 ];
 
-End[]; (*EndPackage[]*)
+End[]; EndPackage[]
 (* End source file src/TubePlot.m*)
 
 
