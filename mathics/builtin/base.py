@@ -721,11 +721,17 @@ class BoxConstruct(InstanceableBuiltin):
 class PatternError(Exception):
     def __init__(self, name, tag, *args):
         super().__init__()
+        self.name = name
+        self.tag = tag
+        self.args = args
 
 
 class PatternArgumentError(PatternError):
     def __init__(self, name, count, expected):
         super().__init__(None, None)
+        self.name = name
+        self.count = count
+        self.expected = expected
 
 
 class PatternObject(InstanceableBuiltin, Pattern):

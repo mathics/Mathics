@@ -34,18 +34,22 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
+from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator, AtomBuiltin
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
+    Atom,
+    String,
     Symbol,
     Expression,
     Number,
     Integer,
     Rational,
     Real,
+    SymbolFalse,
     SymbolList,
+    SymbolTrue,
 )
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
@@ -101,13 +105,16 @@ class RuleDelayed(BinaryOperator):
 
 
 def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
-    if rules_expr.has_form("Dispatch", None):
-        rules_expr = rules_expr.leaves[0]
+    if isinstance(rules_expr, Dispatch):
+        return rules_expr.rules, False
+    elif rules_expr.has_form("Dispatch", None):
+        return Dispatch(rules_expr._leaves, evaluation)
+
     if rules_expr.has_form("List", None):
         rules = rules_expr.leaves
     else:
         rules = [rules_expr]
-    any_lists = any(item.has_form("List", None) for item in rules)
+    any_lists = any(item.has_form(("List", "Dispatch"), None) for item in rules)
     if any_lists:
         all_lists = all(item.has_form("List", None) for item in rules)
         if all_lists:
@@ -285,10 +292,8 @@ class ReplaceAll(BinaryOperator):
         "ReplaceAll[expr_, rules_]"
         try:
             rules, ret = create_rules(rules, expr, "ReplaceAll", evaluation)
-
             if ret:
                 return rules
-
             result, applied = expr.apply_rules(rules, evaluation)
             return result
         except PatternError:
@@ -450,6 +455,9 @@ class PatternTest(BinaryOperator, PatternObject):
     >> MatchQ[3, _Integer?(#>0&)]
      = True
     >> MatchQ[-3, _Integer?(#>0&)]
+     = False
+    >> MatchQ[3, Pattern[3]]
+     : First element in pattern Pattern[3] is not a valid pattern name.
      = False
     """
 
@@ -630,7 +638,10 @@ class _StopGeneratorMatchQ(StopGenerator):
 
 class Matcher(object):
     def __init__(self, form):
-        self.form = Pattern.create(form)
+        if isinstance(form, Pattern):
+            self.form = form
+        else:
+            self.form = Pattern.create(form)
 
     def match(self, expr, evaluation):
         def yield_func(vars, rest):
@@ -660,6 +671,9 @@ class MatchQ(Builtin):
      = False
     >> MatchQ[_Integer][123]
      = True
+    >> MatchQ[3, Pattern[3]]
+     : First element in pattern Pattern[3] is not a valid pattern name.
+     = False
     """
 
     rules = {"MatchQ[form_][expr_]": "MatchQ[expr, form]"}
@@ -667,9 +681,13 @@ class MatchQ(Builtin):
     def apply(self, expr, form, evaluation):
         "MatchQ[expr_, form_]"
 
-        if match(expr, form, evaluation):
-            return Symbol("True")
-        return Symbol("False")
+        try:
+            if match(expr, form, evaluation):
+                return SymbolTrue
+            return SymbolFalse
+        except PatternError as e:
+            evaluation.message(e.name, e.tag, *(e.args))
+            return SymbolFalse
 
 
 class Verbatim(PatternObject):
@@ -801,10 +819,13 @@ class Pattern_(PatternObject):
     }
 
     def init(self, expr):
-        super(Pattern_, self).init(expr)
-        self.varname = expr.leaves[0].get_name()
-        if self.varname is None:
+        if len(expr.leaves) != 2:
             self.error("patvar", expr)
+        varname = expr.leaves[0].get_name()
+        if varname is None or varname == "":
+            self.error("patvar", expr)
+        super(Pattern_, self).init(expr)
+        self.varname = varname
         self.pattern = Pattern.create(expr.leaves[1])
 
     def __repr__(self):
@@ -1450,7 +1471,33 @@ def item_is_free(item, form, evaluation):
         )
 
 
-class Dispatch(Builtin):
+class Dispatch(Atom):
+    def __init__(self, rulelist, evaluation):
+        self.src = Expression(SymbolList, *rulelist)
+        self.rules = [Rule(rule._leaves[0], rule._leaves[1]) for rule in rulelist]
+        self._leaves = None
+        self._head = Symbol("Dispatch")
+
+    def get_sort_key(self):
+        return self.src.get_sort_key()
+
+    def get_atom_name(self):
+        return "System`Dispatch"
+
+    def __repr__(self):
+        return "dispatch"
+
+    def atom_to_boxes(self, f, evaluation):
+        leaves = self.src.format(evaluation, f.get_name())
+        return Expression(
+            "RowBox",
+            Expression(
+                SymbolList, String("Dispatch"), String("["), leaves, String("]")
+            ),
+        )
+
+
+class DispatchAtom(AtomBuiltin):
     """
     <dl>
     <dt>'Dispatch[$rulelist$]'
@@ -1458,10 +1505,23 @@ class Dispatch(Builtin):
             In the future, it should return an optimized DispatchRules atom,
             containing an optimized set of rules.
     </dl>
-
+    >> rules = {{a_,b_}->a^b, {1,2}->3., F[x_]->x^2};
+    >> F[2] /. rules
+     = 4
+    >> dispatchrules = Dispatch[rules]
+     =  Dispatch[{{a_, b_} -> a ^ b, {1, 2} -> 3., F[x_] -> x ^ 2}]
+    >>  F[2] /. dispatchrules
+     = 4
     """
 
-    def apply_stub(self, rules, evaluation):
+    messages = {
+        "invrpl": "`1` is not a valid rule or list of rules.",
+    }
+
+    def __repr__(self):
+        return "dispatchatom"
+
+    def apply_create(self, rules, evaluation):
         """Dispatch[rules_List]"""
         # TODO:
         # The next step would be to enlarge this method, in order to
@@ -1471,4 +1531,43 @@ class Dispatch(Builtin):
         # compiled patters, and modify Replace and ReplaceAll to handle this
         # kind of objects.
         #
-        return rules
+        if isinstance(rules, Dispatch):
+            return rules
+        if rules.is_symbol():
+            rules = rules.evaluate(evaluation)
+
+        if rules.has_form("List", None):
+            rules = rules._leaves
+        else:
+            rules = [rules]
+
+        all_list = all(rule.has_form("List", None) for rule in rules)
+        if all_list:
+            leaves = [self.apply_create(rule, evaluation) for rule in rules]
+            return Expression(SymbolList, *leaves)
+        flatten_list = []
+        for rule in rules:
+            if rule.is_symbol():
+                rule = rule.evaluate(evaluation)
+            if rule.has_form("List", None):
+                flatten_list.extend(rule._leaves)
+            elif rule.has_form(("Rule", "RuleDelayed"), 2):
+                flatten_list.append(rule)
+            elif isinstance(rule, Dispatch):
+                flatten_list.extend(rule.src._leaves)
+            else:
+                # WMA does not raise this message: just leave it unevaluated,
+                # and raise an error when the dispatch rule is used.
+                evaluation.message("Dispatch", "invrpl", rule)
+                return
+        try:
+            return Dispatch(flatten_list, evaluation)
+        except:
+            return
+
+    def apply_normal(self, dispatch, evaluation):
+        """Normal[dispatch_Dispatch]"""
+        if isinstance(dispatch, Dispatch):
+            return dispatch.src
+        else:
+            return dispatch._leaves[0]

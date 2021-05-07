@@ -2361,6 +2361,9 @@ class Rational(Number):
         )  # (implicit) and not (self.denominator().is_zero)
 
 
+RationalOneHalf = Rational(1, 2)
+
+
 class Real(Number):
     def __new__(cls, value, p=None) -> "Real":
         if isinstance(value, str):
