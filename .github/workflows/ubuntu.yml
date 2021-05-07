@@ -29,4 +29,4 @@ jobs:
     - name: Test Mathics
       run: |
         pip install -r requirements-dev.txt
-        PYTEST_WORKERS=-n3 make -j3 check
+        make -j3 check

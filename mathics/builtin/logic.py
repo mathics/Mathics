@@ -320,8 +320,8 @@ class Xor(BinaryOperator):
 class True_(Predefined):
     """
     <dl>
-    <dt>'True'
-        <dd>represents the Boolean true value.
+      <dt>'True'
+      <dd>represents the Boolean true value.
     </dl>
     """
 
