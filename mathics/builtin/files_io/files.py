@@ -189,6 +189,52 @@ def read_get_separators(options, name):
     py_name = name.to_python()
     return record_separators, word_separators, py_name
 
+def reader(stream, word_separators, evaluation, accepted=None):
+    while True:
+        word = ""
+        while True:
+            try:
+                tmp = stream.io.read(1)
+            except UnicodeDecodeError:
+                tmp = " "  # ignore
+                evaluation.message("General", "ucdec")
+
+            if tmp == "":
+                if word == "":
+                    pos = stream.io.tell()
+                    newchar = stream.io.read(1)
+                    if pos == stream.io.tell():
+                        raise EOFError
+                    else:
+                        if newchar:
+                            word = newchar
+                            continue
+                        else:
+                            yield word
+                            continue
+                last_word = word
+                word = ""
+                yield last_word
+                break
+
+            if tmp in word_separators:
+                if word == "":
+                    continue
+                if stream.io.seekable():
+                    # stream.io.seek(-1, 1) #Python3
+                    stream.io.seek(stream.io.tell() - 1)
+                last_word = word
+                word = ""
+                yield last_word
+                break
+
+            if accepted is not None and tmp not in accepted:
+                last_word = word
+                word = ""
+                yield last_word
+                break
+
+            word += tmp
 
 class mathics_open(Stream):
     def __init__(self, name, mode="r", encoding=None):
@@ -567,63 +613,19 @@ class Read(Builtin):
 
         result = []
 
-        def reader(stream, word_separators, accepted=None):
-            while True:
-                word = ""
-                while True:
-                    try:
-                        tmp = stream.io.read(1)
-                    except UnicodeDecodeError:
-                        tmp = " "  # ignore
-                        evaluation.message("General", "ucdec")
 
-                    if tmp == "":
-                        if word == "":
-                            pos = stream.io.tell()
-                            newchar = stream.io.read(1)
-                            if pos == stream.io.tell():
-                                raise EOFError
-                            else:
-                                if newchar:
-                                    word = newchar
-                                    continue
-                                else:
-                                    yield word
-                                    continue
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    if tmp in word_separators:
-                        if word == "":
-                            continue
-                        if stream.io.seekable():
-                            # stream.io.seek(-1, 1) #Python3
-                            stream.io.seek(stream.io.tell() - 1)
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    if accepted is not None and tmp not in accepted:
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    word += tmp
-
-        read_word = reader(stream, word_separators)
-        read_record = reader(stream, record_separators)
+        read_word = reader(stream, word_separators, evaluation)
+        read_record = reader(stream, record_separators, evaluation)
         read_number = reader(
             stream,
             word_separators + record_separators,
+            evaluation,
             ["+", "-", "."] + [str(i) for i in range(10)],
         )
         read_real = reader(
             stream,
             word_separators + record_separators,
+            evaluation,
             ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
         )
         for typ in types.leaves:
