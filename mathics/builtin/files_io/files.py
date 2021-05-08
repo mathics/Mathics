@@ -188,6 +188,19 @@ def read_check_options(options):
 
     return result
 
+def read_preamble(options, name):
+    # Options
+    # TODO Implement extra options
+    py_options = read_check_options(options)
+    # null_records = py_options['NullRecords']
+    # null_words = py_options['NullWords']
+    record_separators = py_options["RecordSeparators"]
+    # token_words = py_options['TokenWords']
+    word_separators = py_options["WordSeparators"]
+
+    py_name = name.to_python()
+    return record_separators, word_separators, py_name
+
 class Input(Predefined):
     """
     <dl>
@@ -492,6 +505,7 @@ class Read(Builtin):
         if stream is None:
             evaluation.message("Read", "openx", strm)
             return
+
         if stream.io is None:
             stream.__enter__()
 
@@ -538,16 +552,7 @@ class Read(Builtin):
                 evaluation.message("Read", "readf", typ)
                 return SymbolFailed
 
-        # Options
-        # TODO Implement extra options
-        py_options = read_check_options(options)
-        # null_records = py_options['NullRecords']
-        # null_words = py_options['NullWords']
-        record_separators = py_options["RecordSeparators"]
-        # token_words = py_options['TokenWords']
-        word_separators = py_options["WordSeparators"]
-
-        name = name.to_python()
+        record_separators, word_separators, py_name = read_preamble(options, name)
 
         result = []
 
@@ -641,7 +646,7 @@ class Read(Builtin):
 
                     if expr == SymbolEndOfFile:
                         evaluation.message(
-                            "Read", "readt", tmp, Expression("InputSteam", name, n)
+                            "Read", "readt", tmp, Expression("InputSteam", py_name, n)
                         )
                         return SymbolFailed
                     elif isinstance(expr, BaseExpression):
@@ -661,7 +666,7 @@ class Read(Builtin):
                             tmp = float(tmp)
                         except ValueError:
                             evaluation.message(
-                                "Read", "readn", Expression("InputSteam", name, n)
+                                "Read", "readn", Expression("InputSteam", py_name, n)
                             )
                             return SymbolFailed
                     result.append(tmp)
@@ -673,7 +678,7 @@ class Read(Builtin):
                         tmp = float(tmp)
                     except ValueError:
                         evaluation.message(
-                            "Read", "readn", Expression("InputSteam", name, n)
+                            "Read", "readn", Expression("InputSteam", py_name, n)
                         )
                         return SymbolFailed
                     result.append(tmp)
