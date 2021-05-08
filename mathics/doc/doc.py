@@ -251,6 +251,8 @@ def escape_latex(text):
         text,
         [
             ("$", r"\$"),
+            ("\u22bc", "nand"),  # \barwedge isn't working
+            ("\u22bd", "nor"),   # \vebarr isn't working
             ("\u03c0", r"$\pi$"),
             ("\u2265", r"$\ge$"),
             ("\u2264", r"$\le$"),
