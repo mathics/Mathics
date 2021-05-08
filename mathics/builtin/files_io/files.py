@@ -63,7 +63,9 @@ SymbolPath = Symbol("$Path")
 ### FIXME: All of this is related to Read[]
 ### it can be moved somewhere else.
 
+
 def channel_to_stream(channel, mode="r"):
+
     if isinstance(channel, String):
         name = channel.get_string_value()
         opener = mathics_open(name, mode)
@@ -82,6 +84,7 @@ def channel_to_stream(channel, mode="r"):
         return channel
     else:
         return None
+
 
 def read_name_and_stream_from_channel(channel, evaluation):
     if channel.has_form("OutputStream", 2):
@@ -148,9 +151,7 @@ def read_check_options(options: dict) -> dict:
     if "System`WordSeparators" in keys:
         word_separators = options["System`WordSeparators"].to_python()
         assert isinstance(word_separators, list)
-        assert all(
-            isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators
-        )
+        assert all(isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators)
         word_separators = [s[1:-1] for s in word_separators]
         result["WordSeparators"] = word_separators
 
@@ -173,6 +174,7 @@ def read_check_options(options: dict) -> dict:
         result["TokenWords"] = token_words
 
     return result
+
 
 def read_get_separators(options, name):
     # Options
@@ -228,6 +230,7 @@ class mathics_open(Stream):
         INPUTFILE_VAR = self.old_inputfile_var or ""
         super().__exit__(type, value, traceback)
 
+
 class Input(Predefined):
     """
     <dl>
@@ -245,6 +248,7 @@ class Input(Predefined):
     def evaluate(self, evaluation):
         global INPUT_VAR
         return String(INPUT_VAR)
+
 
 class InputFileName(Predefined):
     """
@@ -653,7 +657,10 @@ class Read(Builtin):
 
                     if expr == SymbolEndOfFile:
                         evaluation.message(
-                            "Read", "readt", tmp, Expression("InputSteam", py_name, n)
+                            "Read",
+                            "readt",
+                            tmp,
+                            Expression("InputSteam", py_name, stream),
                         )
                         return SymbolFailed
                     elif isinstance(expr, BaseExpression):
@@ -673,7 +680,9 @@ class Read(Builtin):
                             tmp = float(tmp)
                         except ValueError:
                             evaluation.message(
-                                "Read", "readn", Expression("InputSteam", py_name, n)
+                                "Read",
+                                "readn",
+                                Expression("InputSteam", py_name, stream),
                             )
                             return SymbolFailed
                     result.append(tmp)
@@ -685,7 +694,7 @@ class Read(Builtin):
                         tmp = float(tmp)
                     except ValueError:
                         evaluation.message(
-                            "Read", "readn", Expression("InputSteam", py_name, n)
+                            "Read", "readn", Expression("InputSteam", py_name, stream)
                         )
                         return SymbolFailed
                     result.append(tmp)
@@ -2590,7 +2599,7 @@ class SetStreamPosition(Builtin):
      = is
 
     #> SetStreamPosition[stream, -5]
-     : Python2 cannot handle negative seeks.
+     : Invalid I/O Seek.
      = 10
 
     >> SetStreamPosition[stream, Infinity]
@@ -2609,7 +2618,7 @@ class SetStreamPosition(Builtin):
             "Cannot set the current point in stream `1` to position `2`. The "
             "requested position exceeds the number of characters in the file"
         ),
-        "python2": "Python2 cannot handle negative seeks.",  # FIXME: Python3?
+        "seek": "Invalid I/O Seek.",
     }
 
     attributes = "Protected"
@@ -2641,7 +2650,7 @@ class SetStreamPosition(Builtin):
                 else:
                     stream.io.seek(seekpos)
         except IOError:
-            evaluation.message("SetStreamPosition", "python2")
+            evaluation.message("SetStreamPosition", "seek")
 
         return from_python(stream.io.tell())
 
