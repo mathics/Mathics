@@ -2176,6 +2176,7 @@ class ReadList(Read):
      = {123, abc}
     """
 
+    # """
     rules = {
         "ReadList[stream_]": "ReadList[stream, Expression]",
     }
@@ -2202,10 +2203,28 @@ class ReadList(Read):
         # token_words = py_options['TokenWords']
         # word_separators = py_options['WordSeparators']
 
+        name, n, stream = read_name_and_stream_from_channel(channel, evaluation)
+        if name is None:
+            return
+
+        types_list = read_list_from_types(types)
+
+        # FIXME: reinstate this code
+        # for typ in types_list.leaves:
+        #     if typ not in READ_TYPES:
+        #         evaluation.message("Read", "readf", typ)
+        #         return SymbolFailed
+
+        record_separators, word_separators = read_get_separators(options)
+        py_name = name.to_python()
+
         result = []
         while True:
+            # FIXME: use this code instead of "super()"
+            # tmp = read_from_stream(stream, types_list, record_separators, word_separators, evaluation)
             tmp = super(ReadList, self).apply(channel, types, evaluation, options)
 
+            # FIXME: Figure out what to do here...
             if tmp is None:
                 return
 
