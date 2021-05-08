@@ -197,6 +197,27 @@ class MathicsOpen(Stream):
         super().__exit__(type, value, traceback)
 
 
+def channel_to_stream(channel, mode="r"):
+    if isinstance(channel, String):
+        name = channel.get_string_value()
+        opener = MathicsOpen(name, mode)
+        opener.__enter__()
+        n = opener.n
+        if mode in ["r", "rb"]:
+            head = "InputStream"
+        elif mode in ["w", "a", "wb", "ab"]:
+            head = "OutputStream"
+        else:
+            raise ValueError(f"Unknown format {mode}")
+        return Expression(head, channel, Integer(n))
+    elif channel.has_form("InputStream", 2):
+        return channel
+    elif channel.has_form("OutputStream", 2):
+        return channel
+    else:
+        return None
+
+
 def read_name_and_stream_from_channel(channel, evaluation):
     if channel.has_form("OutputStream", 2):
         evaluation.message("General", "openw", channel)
@@ -526,110 +547,12 @@ class Read(Builtin):
         record_separators, word_separators = read_get_separators(options)
         py_name = name.to_python()
 
-        read_word = reader(stream, word_separators, evaluation)
-        read_record = reader(stream, record_separators, evaluation)
-        read_number = reader(
-            stream,
-            word_separators + record_separators,
-            evaluation,
-            ["+", "-", "."] + [str(i) for i in range(10)],
-        )
-        read_real = reader(
-            stream,
-            word_separators + record_separators,
-            evaluation,
-            ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
+        result = read_from_stream(
+            stream, types_list, record_separators, word_separators, evaluation
         )
 
-        result = []
-
-        for typ in types_list.leaves:
-            try:
-                if typ == Symbol("Byte"):
-                    tmp = stream.io.read(1)
-                    if tmp == "":
-                        raise EOFError
-                    result.append(ord(tmp))
-                elif typ == Symbol("Character"):
-                    tmp = stream.io.read(1)
-                    if tmp == "":
-                        raise EOFError
-                    result.append(tmp)
-                elif typ == Symbol("Expression") or typ == Symbol("HoldExpression"):
-                    tmp = next(read_record)
-                    while True:
-                        try:
-                            feeder = MathicsMultiLineFeeder(tmp)
-                            expr = parse(evaluation.definitions, feeder)
-                            break
-                        except (IncompleteSyntaxError, InvalidSyntaxError):
-                            try:
-                                nextline = next(read_record)
-                                tmp = tmp + "\n" + nextline
-                            except EOFError:
-                                expr = SymbolEndOfFile
-                                break
-                        except Exception as e:
-                            print(e)
-
-                    if expr == SymbolEndOfFile:
-                        evaluation.message(
-                            "Read",
-                            "readt",
-                            tmp,
-                            Expression("InputSteam", py_name, stream),
-                        )
-                        return SymbolFailed
-                    elif isinstance(expr, BaseExpression):
-                        if typ == Symbol("HoldExpression"):
-                            expr = Expression("Hold", expr)
-                        result.append(expr)
-                    # else:
-                    #  TODO: Supposedly we can't get here
-                    # what code should we put here?
-
-                elif typ == Symbol("Number"):
-                    tmp = next(read_number)
-                    try:
-                        tmp = int(tmp)
-                    except ValueError:
-                        try:
-                            tmp = float(tmp)
-                        except ValueError:
-                            evaluation.message(
-                                "Read",
-                                "readn",
-                                Expression("InputSteam", py_name, stream),
-                            )
-                            return SymbolFailed
-                    result.append(tmp)
-
-                elif typ == Symbol("Real"):
-                    tmp = next(read_real)
-                    tmp = tmp.replace("*^", "E")
-                    try:
-                        tmp = float(tmp)
-                    except ValueError:
-                        evaluation.message(
-                            "Read", "readn", Expression("InputSteam", py_name, stream)
-                        )
-                        return SymbolFailed
-                    result.append(tmp)
-                elif typ == Symbol("Record"):
-                    result.append(next(read_record))
-                elif typ == Symbol("String"):
-                    tmp = stream.io.readline()
-                    if len(tmp) == 0:
-                        raise EOFError
-                    result.append(tmp.rstrip("\n"))
-                elif typ == Symbol("Word"):
-                    result.append(next(read_word))
-
-            except EOFError:
-                return SymbolEndOfFile
-            except UnicodeDecodeError:
-                evaluation.message("General", "ucdec")
-
+        if isinstance(result, Symbol):
+            return result
         if len(result) == 1:
             return from_python(*result)
 
