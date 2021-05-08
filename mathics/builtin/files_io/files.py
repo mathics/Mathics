@@ -523,7 +523,8 @@ class Read(Builtin):
                 evaluation.message("Read", "readf", typ)
                 return SymbolFailed
 
-        record_separators, word_separators, py_name = read_get_separators(options, name)
+        record_separators, word_separators = read_get_separators(options)
+        py_name = name.to_python()
 
         read_word = reader(stream, word_separators, evaluation)
         read_record = reader(stream, record_separators, evaluation)

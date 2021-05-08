@@ -21,7 +21,10 @@ READ_TYPES = [
 
 
 def read_list_from_types(read_types):
-    # Wrap types in a list (if it isn't already one)
+    """Return a Mathics List from a list of read_type names or a single read_type
+    """
+
+    # Trun read_types into a list if it isn't already one.
     if read_types.has_form("List", None):
         read_types = read_types._leaves
     else:
@@ -106,7 +109,9 @@ def read_check_options(options: dict) -> dict:
     return result
 
 
-def read_get_separators(options, name):
+def read_get_separators(options):
+    """Get record and word separators from apply "options".
+    """
     # Options
     # TODO Implement extra options
     py_options = read_check_options(options)
@@ -116,8 +121,7 @@ def read_get_separators(options, name):
     # token_words = py_options['TokenWords']
     word_separators = py_options["WordSeparators"]
 
-    py_name = name.to_python()
-    return record_separators, word_separators, py_name
+    return record_separators, word_separators
 
 
 def reader(stream, word_separators, evaluation, accepted=None):
