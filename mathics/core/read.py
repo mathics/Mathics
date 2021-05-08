@@ -2,6 +2,46 @@
 Functions to support Read[]
 """
 
+from mathics.core.expression import Expression, Symbol
+
+READ_TYPES = [
+    Symbol(k)
+    for k in [
+        "Byte",
+        "Character",
+        "Expression",
+        "HoldExpression",
+        "Number",
+        "Real",
+        "Record",
+        "String",
+        "Word",
+    ]
+]
+
+
+def read_list_from_types(read_types):
+    # Wrap types in a list (if it isn't already one)
+    if read_types.has_form("List", None):
+        read_types = read_types._leaves
+    else:
+        read_types = (read_types,)
+
+    # TODO: look for a better implementation handling "Hold[Expression]".
+    #
+    read_types = (
+        Symbol("HoldExpression")
+        if (
+            typ.get_head_name() == "System`Hold"
+            and typ.leaves[0].get_name() == "System`Expression"
+        )
+        else typ
+        for typ in read_types
+    )
+
+    return Expression("List", *read_types)
+
+
 def read_check_options(options: dict) -> dict:
     # Options
     # TODO Proper error messages
@@ -41,9 +81,7 @@ def read_check_options(options: dict) -> dict:
     if "System`WordSeparators" in keys:
         word_separators = options["System`WordSeparators"].to_python()
         assert isinstance(word_separators, list)
-        assert all(
-            isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators
-        )
+        assert all(isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators)
         word_separators = [s[1:-1] for s in word_separators]
         result["WordSeparators"] = word_separators
 
@@ -67,6 +105,7 @@ def read_check_options(options: dict) -> dict:
 
     return result
 
+
 def read_get_separators(options, name):
     # Options
     # TODO Implement extra options
@@ -79,6 +118,7 @@ def read_get_separators(options, name):
 
     py_name = name.to_python()
     return record_separators, word_separators, py_name
+
 
 def reader(stream, word_separators, evaluation, accepted=None):
     while True:

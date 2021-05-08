@@ -24,6 +24,8 @@ from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, parse
 from mathics.core.read import (
     read_get_separators,
+    read_list_from_types,
+    READ_TYPES,
     reader,
 )
 
@@ -514,48 +516,14 @@ class Read(Builtin):
         if name is None:
             return
 
-        # Wrap types in a list (if it isn't already one)
-        if types.has_form("List", None):
-            types = types._leaves
-        else:
-            types = (types,)
+        types_list = read_list_from_types(types)
 
-        # TODO: look for a better implementation handling "Hold[Expression]".
-        #
-        types = (
-            Symbol("HoldExpression")
-            if (
-                typ.get_head_name() == "System`Hold"
-                and typ.leaves[0].get_name() == "System`Expression"
-            )
-            else typ
-            for typ in types
-        )
-        types = Expression("List", *types)
-
-        READ_TYPES = [
-            Symbol(k)
-            for k in [
-                "Byte",
-                "Character",
-                "Expression",
-                "HoldExpression",
-                "Number",
-                "Real",
-                "Record",
-                "String",
-                "Word",
-            ]
-        ]
-
-        for typ in types.leaves:
+        for typ in types_list.leaves:
             if typ not in READ_TYPES:
                 evaluation.message("Read", "readf", typ)
                 return SymbolFailed
 
         record_separators, word_separators, py_name = read_get_separators(options, name)
-
-        result = []
 
         read_word = reader(stream, word_separators, evaluation)
         read_record = reader(stream, record_separators, evaluation)
@@ -571,7 +539,10 @@ class Read(Builtin):
             evaluation,
             ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
         )
-        for typ in types.leaves:
+
+        result = []
+
+        for typ in types_list.leaves:
             try:
                 if typ == Symbol("Byte"):
                     tmp = stream.io.read(1)
