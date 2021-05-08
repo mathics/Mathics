@@ -57,7 +57,7 @@ clean:
 
 #: Run py.test tests. Use environment variable "o" for pytest options
 pytest:
-	py.test test $o
+	py.test $(PYTEST_WORKERS) test $o
 
 
 #: Run a more extensive pattern-matching test
