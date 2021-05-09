@@ -2918,8 +2918,11 @@ class AppendTo(Builtin):
 class Prepend(Builtin):
     """
     <dl>
-    <dt>'Prepend[$expr$, $item$]'
-        <dd>returns $expr$ with $item$ prepended to its leaves.
+     <dt>'Prepend[$expr$, $item$]'
+     <dd>returns $expr$ with $item$ prepended to its leaves.
+
+     <dt>'Prepend[$expr$]'
+     <dd>'Prepend[$elem$][$expr$]' is equivalent to 'Prepend[$expr$,$elem$]'.
     </dl>
 
     'Prepend' is similar to 'Append', but adds $item$ to the beginning
