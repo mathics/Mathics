@@ -5,6 +5,11 @@ CHANGES
 2.1.1
 -----
 
+Package update
+++++++++++++++
+
+- SymPy 1.8
+
 New variables and builtins
 ++++++++++++++++++++++++++
 
