@@ -14,6 +14,7 @@ New variables and builtins
 ++++++++++++++++++++++++++
 
 * ``Arg``
+* ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
 * ``Dispatch``
 * ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
@@ -24,7 +25,7 @@ New variables and builtins
 * ``StringReverse``
 * ``$SystemMemory``
 * Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
-* ``Collect``
+
 
 
 Enhancements
