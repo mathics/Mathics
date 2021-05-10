@@ -53,6 +53,7 @@ Enhancements
 * ``ToString`` accepts an optional *form* parameter.
 *  The implementation of Streams was redone.
 * ``ToExpression`` handles multi-line string input
+* ``$VersionNumber`` now set to 10.0 (was 6.0)
 * The implementation of Streams was redone.
 
 
