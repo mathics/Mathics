@@ -173,7 +173,7 @@ def escape_latex_code(text):
 
     text = escape_latex_output(text)
     escape_char = get_latex_escape_char(text)
-    return "\\lstinline%s%s%s" % (escape_char, text, escape_char)
+    return "%s%s%s" % (escape_char, text, escape_char)
 
 
 def escape_latex(text):
@@ -216,7 +216,7 @@ def escape_latex(text):
                 text = r"\ " + text[1:]
             if text.endswith(" "):
                 text = text[:-1] + r"\ "
-            return "\\code{\\lstinline%s%s%s}" % (escape_char, text, escape_char)
+            return "\\code{%s%s%s}" % (escape_char, text, escape_char)
         else:
             # treat double '' literaly
             return "''"
