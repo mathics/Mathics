@@ -1623,7 +1623,7 @@ class _CoefficientHandler(Builtin):
             target_pat = Pattern.create(Expression("Alternatives", *var_exprs))
             var_pats = [Pattern.create(var) for var in var_exprs]
 
-        ####### Auxiliar functions #########
+        ####### Auxiliary functions #########
         def key_powers(lst):
             key = Expression("Plus", *lst)
             key = key.evaluate(evaluation)
@@ -1662,7 +1662,7 @@ class _CoefficientHandler(Builtin):
 
         def split_coeff_pow(term):
             """
-            This function factorizes term in a coefficent free 
+            This function factorizes term in a coefficent free
             of powers of the target variables, and a factor with
             that powers.
             """
@@ -1927,7 +1927,7 @@ class Collect(_CoefficientHandler):
     <dt>'Collect[$expr$, $x$]'
     <dd> Expands $expr$ and collect together terms having the same power of $x$.
     <dt>'Collect[$expr$, {$x_1$, $x_2$, ...}]'
-    <dd> Expands $expr$ and collect together terms having the same powers of 
+    <dd> Expands $expr$ and collect together terms having the same powers of
          $x_1$, $x_2$, ....
     <dt>'Collect[$expr$, {$x_1$, $x_2$, ...}, $filter$]'
     <dd> After collect the terms, applies $filter$ to each coefficient.
@@ -1939,7 +1939,7 @@ class Collect(_CoefficientHandler):
      = 2 x Sin[x z] + 2 x Sin[x z] Sin[y] + 4 y ^ 2 Sin[x z]
     >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, y]
      = 4 x Sin[x z] + x ^ 3 + y (3 x + 3 x ^ 2) + y ^ 2 (3 x + 4 Sin[x z]) + y ^ 3
-    >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, {x,y}]
+    >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, {x,y}]w
      = 4 x Sin[x z] + x ^ 3 + 3 x y + 3 x ^ 2 y + 4 y ^ 2 Sin[x z] + 3 x y ^ 2 + y ^ 3
     >> Collect[3 x y+2 Sin[x z] (x+2 y^2 + x) + (x+y)^3, {x,y}, h]
      = x h[4 Sin[x z]] + x ^ 3 h[1] + x y h[3] + x ^ 2 y h[3] + y ^ 2 h[4 Sin[x z]] + x y ^ 2 h[3] + y ^ 3 h[1]
