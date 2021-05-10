@@ -1,0 +1,4 @@
+# Additional packages used in testing
+pytest
+pytest-xdist
+pexpect

@@ -1516,9 +1516,18 @@ class Quiet(Builtin):
         <dd>evaluates $expr$, with messages $off$ being suppressed, but messages $on$ being displayed.
     </dl>
 
+    Evaluate without generating messages:
+    >> Quiet[1/0]
+     = ComplexInfinity
+
+    Same as above:
+    >> Quiet[1/0, All]
+     = ComplexInfinity
+
     >> a::b = "Hello";
     >> Quiet[x+x, {a::b}]
      = 2 x
+
     >> Quiet[Message[a::b]; x+x, {a::b}]
      = 2 x
 
@@ -1527,7 +1536,7 @@ class Quiet(Builtin):
      : Hello
      = 2 x
 
-    >> Quiet[expr, All, All]
+    #> Quiet[expr, All, All]
      : Arguments 2 and 3 of Quiet[expr, All, All] should not both be All.
      = Quiet[expr, All, All]
     >> Quiet[x + x, {a::b}, {a::b}]
