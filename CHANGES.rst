@@ -14,6 +14,7 @@ New variables and builtins
 ++++++++++++++++++++++++++
 
 * ``Arg``
+* ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
 * ``Dispatch``
 * ``FullSimplify``
 * ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
@@ -52,6 +53,7 @@ Enhancements
 * ``ToString`` accepts an optional *form* parameter.
 *  The implementation of Streams was redone.
 * ``ToExpression`` handles multi-line string input
+* ``$VersionNumber`` now set to 10.0 (was 6.0)
 * The implementation of Streams was redone.
 
 
