@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: language_level=3
+
 
 """
 HTML
@@ -9,9 +9,6 @@ Basic implementation for a HTML importer
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-
-
-from __future__ import unicode_literals
 
 
 from mathics.builtin.base import Builtin
