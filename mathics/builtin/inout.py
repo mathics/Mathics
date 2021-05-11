@@ -2115,6 +2115,55 @@ class MathMLForm(Builtin):
         return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
 
+class HTMLForm(Builtin):
+    """
+    <dl>
+    <dt>'HTMLForm[$expr$]'
+        <dd>displays $expr$ as a HTML expression.
+    </dl>
+
+    >> HTMLForm[HoldForm[Sqrt[a^3]]]
+     = ...
+
+    ## Test cases for Unicode - redo please as a real test
+    >> MathMLForm[\\[Mu]]
+    = ...
+
+    # This can causes the TeX to fail
+    # >> MathMLForm[Graphics[Text["\u03bc"]]]
+    #  = ...
+
+    ## The <mo> should contain U+2062 INVISIBLE TIMES
+    ## MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
+    = ...
+    """
+
+    def apply_hml(self, expr, evaluation) -> Expression:
+        "MakeBoxes[expr_, HTMLForm]"
+
+        boxes = MakeBoxes(expr).evaluate(evaluation)
+        try:
+            xml = boxes.boxes_to_mathml(evaluation=evaluation)
+        except BoxError:
+            evaluation.message(
+                "General",
+                "notboxes",
+                Expression("FullForm", boxes).evaluate(evaluation),
+            )
+            xml = ""
+        is_a_picture = xml[:6] == "<mtext"
+
+        # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
+        # #convert_box(boxes)
+        query = evaluation.parse("System`$UseSansSerif")
+        usesansserif = query.evaluate(evaluation).to_python()
+        if not is_a_picture:
+            if usesansserif:
+                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+
+        mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
+        return Expression("RowBox", Expression(SymbolList, String(mathml)))
+
 class PythonForm(Builtin):
     """
     <dl>
