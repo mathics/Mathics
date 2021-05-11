@@ -102,6 +102,7 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
+    "lxml", # Used in builtin/fileformats/html
 ]
 
 

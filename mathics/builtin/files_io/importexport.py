@@ -1192,7 +1192,7 @@ class URLFetch(Builtin):
      = $Failed
 
     #> Quiet[URLFetch["https://www.example.com", {}]]
-     = $Failed
+     = ...
     """
 
     messages = {

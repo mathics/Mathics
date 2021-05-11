@@ -23,6 +23,7 @@ import sys
 try:
     import lxml.html as lhtml
 except ImportError:
+    print("lxml.html is not available...")
     pass
 
 

@@ -7,6 +7,7 @@ def get_testdir():
     return osp.realpath(filename)
 
 def test_returncode():
+    subprocess.run(["dir", r"..\builtins\fileformats"])
     assert subprocess.run(["mathics", "-e", "Quit[5]"]).returncode == 5
     assert subprocess.run(["mathics", "-e", "1 + 2'"]).returncode == 0
     assert subprocess.run(["mathics", "-e", "Quit[0]"]).returncode == 0
