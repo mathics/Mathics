@@ -110,7 +110,7 @@ class TerminalShell(MathicsLineFeeder):
             return self.rl_read_line(prompt)
         return input(prompt)
 
-    def print_result(self, result, no_out_prompt=False):
+    def print_result(self, result, no_out_prompt=False, strict_wl_output=False):
         if result is None:
             # FIXME decide what to do here
             return
@@ -125,7 +125,7 @@ class TerminalShell(MathicsLineFeeder):
                 return
 
         out_str = str(result.result)
-        if eval_type == "System`String":
+        if eval_type == "System`String" and not strict_wl_output:
             out_str = '"' + out_str.replace('"', r'\"') + '"'
         if eval_type == "System`Graph":
             out_str = "-Graph-"
@@ -286,6 +286,12 @@ Please contribute to Mathics!""",
         "--version", "-v", action="version", version="%(prog)s " + __version__
     )
 
+    argparser.add_argument(
+        "--strict-wl-output",
+        help="Most WL-output compatible (at the expense of useability).",
+        action="store_true",
+    )
+
     args, script_args = argparser.parse_known_args()
 
     quit_command = "CTRL-BREAK" if sys.platform == "win32" else "CONTROL-D"
@@ -331,7 +337,7 @@ Please contribute to Mathics!""",
         for expr in args.execute:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(result, no_out_prompt=True)
+            shell.print_result(result, no_out_prompt=True, strict_wl_output=args.strict_wl_output)
             if evaluation.exc_result == Symbol("Null"):
                 exit_rc = 0
             elif evaluation.exc_result == Symbol("$Aborted"):
@@ -385,7 +391,7 @@ Please contribute to Mathics!""",
                 print(query)
             result = evaluation.evaluate(query, timeout=settings.TIMEOUT)
             if result is not None:
-                shell.print_result(result)
+                shell.print_result(result, strict_wl_output=args.strict_wl_output)
         except (KeyboardInterrupt):
             print("\nKeyboardInterrupt")
         except EOFError:
