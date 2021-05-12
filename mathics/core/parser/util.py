@@ -4,8 +4,8 @@
 from typing import Any, FrozenSet, Tuple
 
 from mathics.core.parser.parser import Parser
+from mathics.core.parser.feed import MathicsSingleLineFeeder
 from mathics.core.parser.convert import convert
-from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.expression import ensure_context
 
 parser = Parser()
@@ -72,12 +72,12 @@ SYSTEM_LIST: FrozenSet[str] = frozenset(
 class PyMathicsDefinitions(object):
     """
     Dummy Definitions object that puts every unqualified symbol in
-    PyMathics`.
+    Pymathics`.
     """
 
     def lookup_name(self, name):
         assert isinstance(name, str)
-        context = "System`" if name in SYSTEM_LIST else "PyMathics`"
+        context = "System`" if name in SYSTEM_LIST else "Pymathics`"
         # print("XXX", name, context)
         return ensure_context(name, context)
 
@@ -87,4 +87,4 @@ def parse_builtin_rule(string, definitions=SystemDefinitions()):
     Parse rules specified in builtin docstrings/attributes. Every symbol
     in the input is created in the System` context.
     """
-    return parse(definitions, SingleLineFeeder(string, "<builtin_rules>"))
+    return parse(definitions, MathicsSingleLineFeeder(string, "<builtin_rules>"))

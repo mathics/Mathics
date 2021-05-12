@@ -148,6 +148,7 @@ misc_ops = {
     'Pattern': 150,
     'Optional': 140,
     'SqrtBox': 670,
+    'RadicalBox': 670,
     'FractionBox': 670,
     'OverscriptBox': 710,
     'UnderscriptBox': 710,

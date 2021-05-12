@@ -34,16 +34,18 @@ from mathics.core.numbers import (
     PrecisionValueError,
 )
 from mathics.core.expression import (
-    Integer,
-    Real,
     Complex,
     Expression,
-    Number,
-    Symbol,
-    Rational,
-    from_python,
+    Integer,
     MachineReal,
+    Number,
     PrecisionReal,
+    Rational,
+    Real,
+    Symbol,
+    SymbolFalse,
+    SymbolTrue,
+    from_python,
 )
 from mathics.core.convert import from_sympy
 
@@ -748,7 +750,7 @@ class NumericQ(Builtin):
             else:
                 return expr.is_numeric()
 
-        return Symbol("True") if test(expr) else Symbol("False")
+        return SymbolTrue if test(expr) else SymbolFalse
 
 
 class RealValuedNumericQ(Builtin):
@@ -1338,6 +1340,8 @@ class Hash(Builtin):
     <dt>'Hash[$expr$, $type$]'
       <dd>returns an integer hash of the specified $type$ for the given $expr$.</dd>
       <dd>The types supported are "MD5", "Adler32", "CRC32", "SHA", "SHA224", "SHA256", "SHA384", and "SHA512".</dd>
+    <dt>'Hash[$expr$, $type$, $format$]'
+      <dd>Returns the hash in the  especified format.</dd>
     </dl>
 
     > Hash["The Adventures of Huckleberry Finn"]
@@ -1356,11 +1360,12 @@ class Hash(Builtin):
     = 58042316473471877315442015469706095084
 
     >> Hash[{a, b, c}, "xyzstr"]
-     = Hash[{a, b, c}, xyzstr]
+     = Hash[{a, b, c}, xyzstr, Integer]
     """
 
     rules = {
-        "Hash[expr_]": 'Hash[expr, "MD5"]',
+        "Hash[expr_]": 'Hash[expr, "MD5", "Integer"]',
+        "Hash[expr_, type_String]": 'Hash[expr, type, "Integer"]',
     }
 
     attributes = ("Protected", "ReadProtected")
@@ -1378,17 +1383,30 @@ class Hash(Builtin):
     }
 
     @staticmethod
-    def compute(user_hash, py_hashtype):
+    def compute(user_hash, py_hashtype, py_format):
         hash_func = Hash._supported_hashes.get(py_hashtype)
         if hash_func is None:  # unknown hash function?
             return  # in order to return original Expression
         h = hash_func()
         user_hash(h.update)
-        return from_python(int(h.hexdigest(), 16))
+        res = h.hexdigest()
+        if  py_format in ('HexString', "HexStringLittleEndian") :
+            return from_python(res)
+        res = int(res, 16)
+        if py_format == "DecimalString":
+            return from_python(str(res))
+        elif py_format == "ByteArray":
+            print("Not implemented. Return a string")
+            return from_python(str(res))
+        # Default: Integer
+        return from_python(res)
+        
 
-    def apply(self, expr, hashtype, evaluation):
-        "Hash[expr_, hashtype_String]"
-        return Hash.compute(expr.user_hash, hashtype.get_string_value())
+    def apply(self, expr, hashtype, outformat, evaluation):
+        "Hash[expr_, hashtype_String, outformat_String]"
+        return Hash.compute(expr.user_hash,
+                           hashtype.get_string_value(),
+                           outformat.get_string_value())
 
 
 class TypeEscalation(Exception):
