@@ -8,14 +8,18 @@ import re
 import subprocess
 import sys
 
+import os.path as osp
 from mathics.core.parser import MathicsFileLineFeeder, MathicsLineFeeder
 
-from mathics.core.definitions import Definitions, Symbol
+from mathics.core.definitions import autoload_files, Definitions, Symbol
 from mathics.core.expression import strip_context
 from mathics.core.evaluation import Evaluation, Output
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
+def get_srcdir():
+    filename = osp.normcase(osp.dirname(osp.abspath(__file__)))
+    return osp.realpath(filename)
 
 class TerminalShell(MathicsLineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
@@ -82,6 +86,7 @@ class TerminalShell(MathicsLineFeeder):
 
         self.incolors, self.outcolors = term_colors
         self.definitions = definitions
+        autoload_files(definitions, get_srcdir(), "autoload-cli")
 
     def get_last_line_number(self):
         return self.definitions.get_line_no()

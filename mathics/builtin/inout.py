@@ -18,7 +18,6 @@ from mathics.builtin.base import (
     BoxConstruct,
     BoxConstructError,
     Operator,
-    Predefined,
 )
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
@@ -49,35 +48,6 @@ from mathics.core.numbers import (
 from mathics.core.evaluation import Message as EvaluationMessage
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
-
-
-class UseSansSerif(Predefined):
-    """
-    <dl>
-      <dt>'$UseSansSerif'
-      <dd>controls whether the Web interfaces use a Sans-Serif font.
-    </dl>
-
-    When set True, the output in MathMLForm uses SansSerif fonts instead
-    of the standard fonts.
-
-    X> $UseSansSerif
-     = True
-    X> $UseSansSerif = False
-
-    """
-
-    context = "System`"
-    name = "$UseSansSerif"
-    attributes = ("Unprotected",)
-    value = True
-
-    rules = {"$UseSansSerif": str(value)}
-
-    messages = {}
-
-    def evaluate(self, evaluation):
-        return Integer(self.value)
 
 
 class Format(Builtin):
@@ -2105,10 +2075,10 @@ class MathMLForm(Builtin):
 
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        query = evaluation.parse("System`$UseSansSerif")
+        query = evaluation.parse("Settings`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
         if not is_a_picture:
-            if usesansserif:
+            if isinstance(usesansserif, bool) and usesansserif:
                 xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
