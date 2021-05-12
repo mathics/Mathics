@@ -41,7 +41,7 @@ def valuesname(name) -> str:
         return name[7:-6].lower()
 
 
-def autoload_file(defs, root_dir_path: str, autoload_dir):
+def autoload_files(defs, root_dir_path: str, autoload_dir):
     from mathics.core.evaluation import Evaluation
 
     # Load symbols from the autoload folder
@@ -109,7 +109,7 @@ class Definitions(object):
                     builtin_file = open(builtin_filename, "wb")
                     pickle.dump(self.builtin, builtin_file, -1)
 
-            autoload_file(self, ROOT_DIR, "autoload")
+            autoload_files(self, ROOT_DIR, "autoload")
             # Load symbols from the autoload folder
             for root, dirs, files in os.walk(os.path.join(ROOT_DIR, "autoload")):
                 for path in [os.path.join(root, f) for f in files if f.endswith(".m")]:

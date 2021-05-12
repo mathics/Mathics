@@ -18,7 +18,6 @@ from mathics.builtin.base import (
     BoxConstruct,
     BoxConstructError,
     Operator,
-    Predefined,
 )
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
@@ -49,35 +48,6 @@ from mathics.core.numbers import (
 from mathics.core.evaluation import Message as EvaluationMessage
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
-
-
-class UseSansSerif(Predefined):
-    """
-    <dl>
-      <dt>'$UseSansSerif'
-      <dd>controls whether the Web interfaces use a Sans-Serif font.
-    </dl>
-
-    When set True, the output in MathMLForm uses SansSerif fonts instead
-    of the standard fonts.
-
-    X> $UseSansSerif
-     = True
-    X> $UseSansSerif = False
-
-    """
-
-    context = "System`"
-    name = "$UseSansSerif"
-    attributes = ("Unprotected",)
-    value = True
-
-    rules = {"$UseSansSerif": str(value)}
-
-    messages = {}
-
-    def evaluate(self, evaluation):
-        return Integer(self.value)
 
 
 class Format(Builtin):
@@ -2105,7 +2075,7 @@ class MathMLForm(Builtin):
 
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        query = evaluation.parse("System`$UseSansSerif")
+        query = evaluation.parse("Settings`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
         if not is_a_picture:
             if usesansserif:
@@ -2114,55 +2084,6 @@ class MathMLForm(Builtin):
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
         return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
-
-class HTMLForm(Builtin):
-    """
-    <dl>
-    <dt>'HTMLForm[$expr$]'
-        <dd>displays $expr$ as a HTML expression.
-    </dl>
-
-    >> HTMLForm[HoldForm[Sqrt[a^3]]]
-     = ...
-
-    ## Test cases for Unicode - redo please as a real test
-    >> MathMLForm[\\[Mu]]
-    = ...
-
-    # This can causes the TeX to fail
-    # >> MathMLForm[Graphics[Text["\u03bc"]]]
-    #  = ...
-
-    ## The <mo> should contain U+2062 INVISIBLE TIMES
-    ## MathMLForm[MatrixForm[{{2*a, 0},{0,0}}]]
-    = ...
-    """
-
-    def apply_hml(self, expr, evaluation) -> Expression:
-        "MakeBoxes[expr_, HTMLForm]"
-
-        boxes = MakeBoxes(expr).evaluate(evaluation)
-        try:
-            xml = boxes.boxes_to_mathml(evaluation=evaluation)
-        except BoxError:
-            evaluation.message(
-                "General",
-                "notboxes",
-                Expression("FullForm", boxes).evaluate(evaluation),
-            )
-            xml = ""
-        is_a_picture = xml[:6] == "<mtext"
-
-        # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
-        # #convert_box(boxes)
-        query = evaluation.parse("System`$UseSansSerif")
-        usesansserif = query.evaluate(evaluation).to_python()
-        if not is_a_picture:
-            if usesansserif:
-                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
-
-        mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
-        return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
 class PythonForm(Builtin):
     """
