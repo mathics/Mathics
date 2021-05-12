@@ -1474,12 +1474,6 @@ class Expression(BaseExpression):
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
         head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_text(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, "text")
         if self.has_form("RowBox", 1) and self._leaves[0].has_form(  # nopep8
             "List", None
         ):
