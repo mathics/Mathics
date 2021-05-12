@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pickle
 from queue import Queue
 
 import os
@@ -13,9 +12,15 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull,
+from mathics.core.expression import (
+    ensure_context,
+    KeyComparable,
+    SymbolAborted,
+    SymbolList,
+    SymbolNull,
     make_boxes_strategy,
     Omissions,
+)
 
 FORMATS = [
     "StandardForm",
