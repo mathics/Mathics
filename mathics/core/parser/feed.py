@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-from mathics_scanner import FileLineFeeder, LineFeeder, MultiLineFeeder, SingleLineFeeder
+from mathics_scanner import (
+    FileLineFeeder,
+    LineFeeder,
+    MultiLineFeeder,
+    SingleLineFeeder,
+)
 
 
 class MathicsLineFeeder(LineFeeder):
@@ -7,6 +12,7 @@ class MathicsLineFeeder(LineFeeder):
         for message in self.messages:
             evaluation.message(*message)
         self.messages = []
+
 
 class MathicsSingleLineFeeder(SingleLineFeeder, MathicsLineFeeder):
     "A feeder that feeds lines from an open ``File`` object"

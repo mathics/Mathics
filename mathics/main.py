@@ -62,9 +62,10 @@ class TerminalShell(MathicsLineFeeder):
 
         color_schemes = {
             "NOCOLOR": (["", "", "", ""], ["", "", "", ""]),
+            "NONE": (["", "", "", ""], ["", "", "", ""]),
             "LINUX": (
-                ["\033[32m", "\033[1m", "\033[22m", "\033[39m"],
-                ["\033[31m", "\033[1m", "\033[22m", "\033[39m"],
+                ["\033[32m", "\033[1m", "\033[0m\033[32m", "\033[39m"],
+                ["\033[31m", "\033[1m", "\033[0m\033[32m", "\033[39m"],
             ),
             "LIGHTBG": (
                 ["\033[34m", "\033[1m", "\033[22m", "\033[39m"],
@@ -248,7 +249,11 @@ def main() -> int:
         "multiple times)",
     )
 
-    argparser.add_argument("--colors", nargs="?", help="interactive shell colors")
+    argparser.add_argument(
+        "--colors",
+        nargs="?",
+        help="interactive shell colors. Use value 'NoColor' or 'None' to disable ANSI color decoration",
+    )
 
     argparser.add_argument(
         "--no-completion", help="disable tab completion", action="store_true"
@@ -288,7 +293,7 @@ def main() -> int:
     )
 
     if args.initfile:
-        feeder = FileLineFeeder(args.initfile)
+        feeder = MathicsFileLineFeeder(args.initfile)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
@@ -323,7 +328,7 @@ def main() -> int:
             return exit_rc
 
     if args.FILE is not None:
-        feeder = FileLineFeeder(args.FILE)
+        feeder = MathicsFileLineFeeder(args.FILE)
         try:
             while not feeder.empty():
                 evaluation = Evaluation(
@@ -347,7 +352,7 @@ def main() -> int:
         print()
         print(version_string + "\n")
         print(license_string + "\n")
-        print("Quit by pressing {0}\n".format(quit_command))
+        print(f"Quit by evaluating Quit[] or by pressing {quit_command}.\n")
 
     while True:
         try:
@@ -376,6 +381,7 @@ def main() -> int:
         finally:
             shell.reset_lineno()
     return exit_rc
+
 
 if __name__ == "__main__":
     sys.exit(main())

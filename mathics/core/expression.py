@@ -1,22 +1,21 @@
-#!/usr/bin/env python3
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
-import ast
 import sympy
 import mpmath
 import math
-import inspect
 import re
 
 import typing
 from typing import Any
 from itertools import chain
 from bisect import bisect_left
+from functools import lru_cache
 
 
 from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precision
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
+import base64
 
 
 def fully_qualified_symbol_name(name) -> bool:
@@ -112,6 +111,7 @@ def from_python(arg):
     convert backtick (context) symbols into some Python identifier
     symbol like underscore.
     """
+    from mathics.builtin.base import BoxConstruct
 
     number_type = get_type(arg)
     if arg is None:
@@ -138,18 +138,22 @@ def from_python(arg):
         entries = [
             Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
-        return Expression("List", *entries)
+        return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
         return arg
+    elif isinstance(arg, BoxConstruct):
+        return arg
     elif isinstance(arg, list) or isinstance(arg, tuple):
-        return Expression("List", *[from_python(leaf) for leaf in arg])
+        return Expression(SymbolList, *[from_python(leaf) for leaf in arg])
+    elif isinstance(arg, bytearray) or isinstance(arg, bytes):
+        return Expression(SymbolByteArray, ByteArrayAtom(arg))
     else:
         raise NotImplementedError
 
 
 class KeyComparable(object):
     def get_sort_key(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __lt__(self, other) -> bool:
         return self.get_sort_key() < other.get_sort_key()
@@ -478,7 +482,9 @@ class BaseExpression(KeyComparable):
                 head != "System`NumberForm"
                 and not expr.is_atom()
                 and head != "System`Graphics"
+                and head != "System`Graphics3D"
             ):
+                # print("Not inside graphics or numberform, and not is atom")
                 new_leaves = [leaf.do_format(evaluation, form) for leaf in expr.leaves]
                 expr = Expression(expr.head.do_format(evaluation, form), *new_leaves)
 
@@ -489,7 +495,9 @@ class BaseExpression(KeyComparable):
         finally:
             evaluation.dec_recursion_depth()
 
-    def format(self, evaluation, form) -> typing.Union["Expression", "Symbol"]:
+    def format(
+        self, evaluation, form, **kwargs
+    ) -> typing.Union["Expression", "Symbol"]:
         """
         Applies formats associated to the expression, and then calls Makeboxes
         """
@@ -517,7 +525,7 @@ class BaseExpression(KeyComparable):
     def get_option_values(self, evaluation, allow_symbols=False, stop_on_error=True):
         options = self
         if options.has_form("List", None):
-            options = options.flatten(Symbol("List"))
+            options = options.flatten(SymbolList)
             values = options.leaves
         else:
             values = [options]
@@ -574,7 +582,7 @@ class BaseExpression(KeyComparable):
         if evaluation is None:
             value = self
         else:
-            value = Expression("N", self).evaluate(evaluation)
+            value = Expression(SymbolN, self).evaluate(evaluation)
         if isinstance(value, Number):
             value = value.round()
             return value.get_float_value(permit_complex=permit_complex)
@@ -691,7 +699,7 @@ class Expression(BaseExpression):
     leaves: typing.List[Any]
     _sequences: Any
 
-    def __new__(cls, head, *leaves) -> "Expression":
+    def __new__(cls, head, *leaves, **kwargs) -> "Expression":
         self = super(Expression, cls).__new__(cls)
         if isinstance(head, str):
             head = Symbol(head)
@@ -1021,16 +1029,23 @@ class Expression(BaseExpression):
         Null       -> None
         Symbol     -> '...'
         String     -> '"..."'
+        Function   -> python function
         numbers    -> Python number
         If kwarg n_evaluation is given, apply N first to the expression.
         """
         from mathics.builtin.base import mathics_to_python
 
         n_evaluation = kwargs.get("n_evaluation")
-        if n_evaluation is not None:
-            value = Expression("N", self).evaluate(n_evaluation)
-            return value.to_python()
         head_name = self._head.get_name()
+        if n_evaluation is not None:
+            if head_name == "System`Function":
+                compiled = Expression("System`Compile", *(self._leaves))
+                compiled = compiled.evaluate(n_evaluation)
+                if compiled.get_head_name() == "System`CompiledFunction":
+                    return compiled.leaves[2].cfunc
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
+            return value.to_python()
+
         if head_name == "System`DirectedInfinity" and len(self._leaves) == 1:
             direction = self._leaves[0].get_int_value()
             if direction == 1:
@@ -1039,6 +1054,7 @@ class Expression(BaseExpression):
                 return -math.inf
         elif head_name == "System`List":
             return [leaf.to_python(*args, **kwargs) for leaf in self._leaves]
+
         if head_name in mathics_to_python:
             py_obj = mathics_to_python[head_name]
             # Start here
@@ -1287,6 +1303,8 @@ class Expression(BaseExpression):
         return expr
 
     def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
+        from mathics.builtin import BoxConstruct
+
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
@@ -1304,7 +1322,9 @@ class Expression(BaseExpression):
             for index in indices:
                 leaf = leaves[index]
                 if not leaf.has_form("Unevaluated", 1):
-                    leaves[index] = leaf.evaluate(evaluation)
+                    leaf = leaf.evaluate(evaluation)
+                    if leaf:
+                        leaves[index] = leaf
 
         if "System`HoldAll" in attributes or "System`HoldAllComplete" in attributes:
             # eval_range(range(0, 0))
@@ -1388,6 +1408,8 @@ class Expression(BaseExpression):
         for rule in rules():
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False
                 if result.same(new):
                     new._timestamp_cache(evaluation)
                     return new, False
@@ -1448,9 +1470,6 @@ class Expression(BaseExpression):
             return False, options
 
     def boxes_to_text(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
@@ -1472,22 +1491,10 @@ class Expression(BaseExpression):
         else:
             raise BoxError(self, "text")
 
-    def boxes_to_xml(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
+    def boxes_to_mathml(self, **options) -> str:
         is_style, options = self.process_style_box(options)
         if is_style:
-            return self._leaves[0].boxes_to_xml(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_xml(self._leaves, **options)
-            except BoxConstructError:
-                # raise # uncomment this to see what is going wrong in
-                # constructing boxes
-                raise BoxError(self, "xml")
+            return self._leaves[0].boxes_to_mathml(**options)
         name = self._head.get_name()
         if (
             name == "System`RowBox"
@@ -1526,43 +1533,40 @@ class Expression(BaseExpression):
                 options["inside_row"] = True
 
             for leaf in self._leaves[0].get_leaves():
-                result.append(leaf.boxes_to_xml(**options))
+                result.append(leaf.boxes_to_mathml(**options))
             return "<mrow>%s</mrow>" % " ".join(result)
         else:
             options = options.copy()
             options["inside_row"] = True
             if name == "System`SuperscriptBox" and len(self._leaves) == 2:
                 return "<msup>%s %s</msup>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0].boxes_to_mathml(**options),
+                    self._leaves[1].boxes_to_mathml(**options),
                 )
             if name == "System`SubscriptBox" and len(self._leaves) == 2:
                 return "<msub>%s %s</msub>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0].boxes_to_mathml(**options),
+                    self._leaves[1].boxes_to_mathml(**options),
                 )
             if name == "System`SubsuperscriptBox" and len(self._leaves) == 3:
                 return "<msubsup>%s %s %s</msubsup>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
-                    self._leaves[2].boxes_to_xml(**options),
+                    self._leaves[0].boxes_to_mathml(**options),
+                    self._leaves[1].boxes_to_mathml(**options),
+                    self._leaves[2].boxes_to_mathml(**options),
                 )
             elif name == "System`FractionBox" and len(self._leaves) == 2:
                 return "<mfrac>%s %s</mfrac>" % (
-                    self._leaves[0].boxes_to_xml(**options),
-                    self._leaves[1].boxes_to_xml(**options),
+                    self._leaves[0].boxes_to_mathml(**options),
+                    self._leaves[1].boxes_to_mathml(**options),
                 )
             elif name == "System`SqrtBox" and len(self._leaves) == 1:
-                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_xml(**options))
+                return "<msqrt>%s</msqrt>" % (self._leaves[0].boxes_to_mathml(**options))
             elif name == "System`GraphBox":
-                return "<mi>%s</mi>" % (self._leaves[0].boxes_to_xml(**options))
+                return "<mi>%s</mi>" % (self._leaves[0].boxes_to_mathml(**options))
             else:
                 raise BoxError(self, "xml")
 
     def boxes_to_tex(self, **options) -> str:
-        from mathics.builtin import box_constructs
-        from mathics.builtin.base import BoxConstructError
-
         def block(tex, only_subsup=False):
             if len(tex) == 1:
                 return tex
@@ -1575,13 +1579,6 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_tex(**options)
-        head = self._head.get_name()
-        box_construct = box_constructs.get(head)
-        if box_construct is not None:
-            try:
-                return box_construct.boxes_to_tex(self._leaves, **options)
-            except BoxConstructError:
-                raise BoxError(self, "tex")
         name = self._head.get_name()
         if (
             name == "System`RowBox"
@@ -1673,9 +1670,9 @@ class Expression(BaseExpression):
 
     def apply_rules(self, rules, evaluation, level=0, options=None):
         """for rule in rules:
-            result = rule.apply(self, evaluation, fully=False)
-            if result is not None:
-                return result"""
+        result = rule.apply(self, evaluation, fully=False)
+        if result is not None:
+            return result"""
 
         # to be able to access it inside inner function
         new_applied = [False]
@@ -1753,7 +1750,7 @@ class Expression(BaseExpression):
                     func_params = [Symbol(name + "$") for name in func_params]
                     body = body.replace_vars(replacement, options, in_scoping)
                     leaves = chain(
-                        [Expression("List", *func_params), body], self._leaves[2:]
+                        [Expression(SymbolList, *func_params), body], self._leaves[2:]
                     )
 
         if not vars:  # might just be a symbol set via Set[] we looked up here
@@ -1786,7 +1783,7 @@ class Expression(BaseExpression):
                 slot = self._leaves[0].get_int_value()
                 if slot is None or slot < 1:
                     evaluation.error("Function", "slot", self._leaves[0])
-            return Expression("Sequence", *slots[slot:])
+            return Expression(SymbolSequence, *slots[slot:])
         elif self._head.get_name() == "System`Function" and len(self._leaves) == 1:
             # do not replace Slots in nested Functions
             return self
@@ -1854,7 +1851,7 @@ class Expression(BaseExpression):
                 # automatically by the processing function,
                 # and we don't want to lose exactness in e.g. 1.0+I.
                 if not isinstance(leaf, Number):
-                    n_expr = Expression("N", leaf, Integer(dps(_prec)))
+                    n_expr = Expression(SymbolN, leaf, Integer(dps(_prec)))
                     n_result = n_expr.evaluate(evaluation)
                     if isinstance(n_result, Number):
                         new_leaves[index] = n_result
@@ -1987,7 +1984,7 @@ class Symbol(Atom):
             return None
         n_evaluation = kwargs.get("n_evaluation")
         if n_evaluation is not None:
-            value = Expression("N", self).evaluate(n_evaluation)
+            value = Expression(SymbolN, self).evaluate(n_evaluation)
             return value.to_python()
 
         if kwargs.get("python_form", False):
@@ -2061,34 +2058,55 @@ class Symbol(Atom):
 
 
 # Some common Symbols
-SymbolFalse = Symbol("False")
+SymbolAborted = Symbol("$Aborted")
+SymbolAssociation = Symbol("Association")
+SymbolByteArray = Symbol("ByteArray")
+SymbolComplexInfinity = Symbol("ComplexInfinity")
+SymbolDirectedInfinity = Symbol("DirectedInfinity")
 SymbolFailed = Symbol("$Failed")
+SymbolFalse = Symbol("False")
+SymbolInfinity = Symbol("Infinity")
+SymbolList = Symbol("List")
+SymbolMakeBoxes = Symbol("MakeBoxes")
+SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolRule = Symbol("Rule")
+SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
 SymbolAborted = Symbol("$Aborted")
 SymbolInfinity = Symbol("Infinity")
+SymbolList = Symbol("List")
+SymbolByteArray = Symbol("ByteArray")
+SymbolAssociation = Symbol("Association")
+SymbolMakeBoxes = Symbol("MakeBoxes")
+SymbolN = Symbol("N")
+SymbolRule = Symbol("Rule")
+SymbolSequence = Symbol("Sequence")
+
+
+@lru_cache(maxsize=1024)
+def from_mpmath(value, prec=None):
+    "Converts mpf or mpc to Number."
+    if isinstance(value, mpmath.mpf):
+        if prec is None:
+            return MachineReal(float(value))
+        else:
+            # HACK: use str here to prevent loss of precision
+            return PrecisionReal(sympy.Float(str(value), prec))
+    elif isinstance(value, mpmath.mpc):
+        if value.imag == 0.0:
+            return from_mpmath(value.real, prec)
+        real = from_mpmath(value.real, prec)
+        imag = from_mpmath(value.imag, prec)
+        return Complex(real, imag)
+    else:
+        raise TypeError(type(value))
+
 
 
 class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
-
-    def from_mpmath(value, prec=None):
-        "Converts mpf or mpc to Number."
-        if isinstance(value, mpmath.mpf):
-            if prec is None:
-                return MachineReal(float(value))
-            else:
-                # HACK: use str here to prevent loss of precision
-                return PrecisionReal(sympy.Float(str(value), prec))
-        elif isinstance(value, mpmath.mpc):
-            if value.imag == 0.0:
-                return Number.from_mpmath(value.real, prec)
-            real = Number.from_mpmath(value.real, prec)
-            imag = Number.from_mpmath(value.imag, prec)
-            return Complex(real, imag)
-        else:
-            raise TypeError(type(value))
 
     def is_numeric(self) -> bool:
         return True
@@ -2097,7 +2115,7 @@ class Number(Atom):
 def _ExponentFunction(value):
     n = value.get_int_value()
     if -5 <= n <= 5:
-        return Symbol("Null")
+        return SymbolNull
     else:
         return value
 
@@ -2109,7 +2127,7 @@ def _NumberFormat(man, base, exp, options):
             "System`OutputForm",
             "System`FullForm",
         ):
-            return Expression("RowBox", Expression("List", man, String("*^"), exp))
+            return Expression("RowBox", Expression(SymbolList, man, String("*^"), exp))
         else:
             return Expression(
                 "RowBox",
@@ -2149,11 +2167,11 @@ class Integer(Number):
     def boxes_to_text(self, **options) -> str:
         return str(self.value)
 
-    def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes("MathMLForm").boxes_to_xml(**options)
-
     def output_cost(self):
         return len(str(self.value))
+
+    def boxes_to_mathml(self, **options) -> str:
+        return self.make_boxes("MathMLForm").boxes_to_mathml(**options)
 
     def boxes_to_tex(self, **options) -> str:
         return str(self.value)
@@ -2309,7 +2327,9 @@ class Rational(Number):
 
     @property
     def is_zero(self) -> bool:
-        return self.numerator().is_zero and not self.denominator().is_zero()
+        return (
+            self.numerator().is_zero
+        )  # (implicit) and not (self.denominator().is_zero)
 
 
 class Real(Number):
@@ -2343,8 +2363,8 @@ class Real(Number):
     def boxes_to_text(self, **options) -> str:
         return self.make_boxes("System`OutputForm").boxes_to_text(**options)
 
-    def boxes_to_xml(self, **options) -> str:
-        return self.make_boxes("System`MathMLForm").boxes_to_xml(**options)
+    def boxes_to_mathml(self, **options) -> str:
+        return self.make_boxes("System`MathMLForm").boxes_to_mathml(**options)
 
     def boxes_to_tex(self, **options) -> str:
         return self.make_boxes("System`TeXForm").boxes_to_tex(**options)
@@ -2411,7 +2431,7 @@ class MachineReal(Real):
     def to_python(self, *args, **kwargs) -> float:
         return self.value
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return sympy.Float(self.value)
 
     def to_mpmath(self):
@@ -2486,7 +2506,7 @@ class PrecisionReal(Real):
     def to_python(self, *args, **kwargs):
         return float(self.value)
 
-    def to_sympy(self):
+    def to_sympy(self, *args, **kwargs):
         return self.value
 
     def to_mpmath(self):
@@ -2782,15 +2802,17 @@ class String(Atom):
 
         return value
 
-    def boxes_to_xml(self, show_string_characters=False, **options) -> str:
+    def boxes_to_mathml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                # name = builtin.get_name()
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 
@@ -2828,13 +2850,15 @@ class String(Atom):
                 return outtext
 
     def boxes_to_tex(self, show_string_characters=False, **options) -> str:
-        from mathics.builtin import builtins
+        from mathics.builtin import builtins_by_module
 
         operators = set()
-        for name, builtin in builtins.items():
-            operator = builtin.get_operator_display()
-            if operator is not None:
-                operators.add(operator)
+
+        for modname, builtins in builtins_by_module.items():
+            for builtin in builtins:
+                operator = builtin.get_operator_display()
+                if operator is not None:
+                    operators.add(operator)
 
         text = self.value
 
@@ -2922,6 +2946,80 @@ class String(Atom):
         # hashing a String is the one case where the user gets the untampered
         # hash value of the string's text. this corresponds to MMA behavior.
         update(self.value.encode("utf8"))
+
+    def __getnewargs__(self):
+        return (self.value,)
+
+
+class ByteArrayAtom(Atom):
+    value: str
+
+    def __new__(cls, value):
+        self = super().__new__(cls)
+        if type(value) in (bytes, bytearray):
+            self.value = value
+        elif type(value) is list:
+            self.value = bytearray(list)
+        elif type(value) is str:
+            self.value = base64.b64decode(value)
+        else:
+            raise Exception("value does not belongs to a valid type")
+        return self
+
+    def __str__(self) -> str:
+        return base64.b64encode(self.value).decode("utf8")
+
+    def boxes_to_text(self, **options) -> str:
+        return '"' + self.__str__() + '"'
+
+    def boxes_to_mathml(self, **options) -> str:
+        return encode_mathml(String('"' + self.__str__() + '"'))
+
+    def boxes_to_tex(self, **options) -> str:
+        return encode_tex(String('"' + self.__str__() + '"'))
+
+    def atom_to_boxes(self, f, evaluation):
+        res = String('""' + self.__str__() + '""')
+        return res
+
+    def do_copy(self) -> "ByteArray":
+        return ByteArrayAtom(self.value)
+
+    def default_format(self, evaluation, form) -> str:
+        value = self.value
+        return '"' + value.__str__() + '"'
+
+    def get_sort_key(self, pattern_sort=False):
+        if pattern_sort:
+            return super().get_sort_key(True)
+        else:
+            return [0, 1, self.value, 0, 1]
+
+    def same(self, other) -> bool:
+        # FIX: check
+        if isinstance(other, ByteArrayAtom):
+            return self.value == other.value
+        return False
+
+    def get_string_value(self) -> str:
+        try:
+            return self.value.decode("utf-8")
+        except:
+            return None
+
+    def to_sympy(self, **kwargs):
+        return None
+
+    def to_python(self, *args, **kwargs) -> str:
+        return self.value
+
+    def __hash__(self):
+        return hash(("ByteArrayAtom", self.value))
+
+    def user_hash(self, update):
+        # hashing a String is the one case where the user gets the untampered
+        # hash value of the string's text. this corresponds to MMA behavior.
+        update(self.value)
 
     def __getnewargs__(self):
         return (self.value,)

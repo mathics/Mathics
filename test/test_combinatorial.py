@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
-
-import sys
-
+from .helper import check_evaluation
 
 def test_combinatorial():
 

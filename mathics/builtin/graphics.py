@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # cython: language_level=3
 
@@ -12,9 +11,10 @@ import json
 import base64
 from itertools import chain
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
     Builtin,
-    InstancableBuiltin,
+    InstanceableBuiltin,
     BoxConstruct,
     BoxConstructError,
 )
@@ -26,6 +26,9 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolList,
+    SymbolN,
+    SymbolMakeBoxes,
     strip_context,
     system_symbols,
     system_symbols_dict,
@@ -116,25 +119,26 @@ def cut(value):
     return value
 
 
-def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None):
+def create_css(edge_color=None, face_color=None, stroke_width=None, font_color=None, opacity=1.0):
     css = []
     if edge_color is not None:
-        color, opacity = edge_color.to_css()
+        color, stroke_opacity = edge_color.to_css()
         css.append("stroke: %s" % color)
-        css.append("stroke-opacity: %s" % opacity)
+        css.append("stroke-opacity: %s" % stroke_opacity)
     else:
         css.append("stroke: none")
     if stroke_width is not None:
         css.append("stroke-width: %fpx" % stroke_width)
     if face_color is not None:
-        color, opacity = face_color.to_css()
+        color, fill_opacity = face_color.to_css()
         css.append("fill: %s" % color)
-        css.append("fill-opacity: %s" % opacity)
+        css.append("fill-opacity: %s" % fill_opacity)
     else:
         css.append("fill: none")
     if font_color is not None:
-        color, opacity = font_color.to_css()
+        color, _ = font_color.to_css()
         css.append("color: %s" % color)
+    css.append("opacity: %s" % opacity)
     return "; ".join(css)
 
 
@@ -290,9 +294,9 @@ def _CMC_distance(lab1, lab2, l, c):
 
 
 def _extract_graphics(graphics, format, evaluation):
-    graphics_box = Expression("MakeBoxes", graphics).evaluate(evaluation)
-    builtin = GraphicsBox(expression=False)
-    elements, calc_dimensions = builtin._prepare_elements(
+    graphics_box = Expression(SymbolMakeBoxes, graphics).evaluate(evaluation)
+    # builtin = GraphicsBox(expression=False)
+    elements, calc_dimensions = graphics_box._prepare_elements(
         graphics_box.leaves, {"evaluation": evaluation}, neg_y=True
     )
     xmin, xmax, ymin, ymax, _, _, _, _ = calc_dimensions()
@@ -398,7 +402,9 @@ class Show(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression("N", options[option]).evaluate(evaluation)
+                options[option] = Expression(SymbolN, options[option]).evaluate(
+                    evaluation
+                )
 
         # The below could probably be done with graphics.filter..
         new_leaves = []
@@ -475,7 +481,9 @@ class Graphics(Builtin):
             head = content.get_head_name()
 
             if head == "System`List":
-                return Expression("List", *[convert(item) for item in content.leaves])
+                return Expression(
+                    SymbolList, *[convert(item) for item in content.leaves]
+                )
             elif head == "System`Style":
                 return Expression(
                     "StyleBox", *[convert(item) for item in content.leaves]
@@ -491,13 +499,20 @@ class Graphics(Builtin):
                     for atom in atoms
                 ):
                     if head == "System`Inset":
-                        n_leaves = [content.leaves[0]] + [
-                            Expression("N", leaf).evaluate(evaluation)
+                        inset = content.leaves[0]
+                        if inset.get_head_name() == "System`Graphics":
+                            opts = {}
+                            # opts = dict(opt._leaves[0].name:opt_leaves[1]   for opt in  inset._leaves[1:])
+                            inset = self.apply_makeboxes(
+                                inset._leaves[0], evaluation, opts
+                            )
+                        n_leaves = [inset] + [
+                            Expression(SymbolN, leaf).evaluate(evaluation)
                             for leaf in content.leaves[1:]
                         ]
                     else:
                         n_leaves = (
-                            Expression("N", leaf).evaluate(evaluation)
+                            Expression(SymbolN, leaf).evaluate(evaluation)
                             for leaf in content.leaves
                         )
                 else:
@@ -507,17 +522,28 @@ class Graphics(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression("N", options[option]).evaluate(evaluation)
-        box_name = "Graphics" + self.box_suffix
-        return Expression(box_name, convert(content), *options_to_rules(options))
+                options[option] = Expression(SymbolN, options[option]).evaluate(
+                    evaluation
+                )
+        from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+
+        if type(self) is Graphics:
+            return GraphicsBox(
+                convert(content), evaluation=evaluation, *options_to_rules(options)
+            )
+        elif type(self) is Graphics3D:
+            return Graphics3DBox(
+                convert(content), evaluation=evaluation, *options_to_rules(options)
+            )
 
 
-class _GraphicsElement(InstancableBuiltin):
-    def init(self, graphics, item=None, style=None):
+class _GraphicsElement(InstanceableBuiltin):
+    def init(self, graphics, item=None, style=None, opacity=1.0):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
+        self.opacity = opacity
         self.is_completely_visible = False  # True for axis elements
 
     @staticmethod
@@ -537,9 +563,7 @@ class _Color(_GraphicsElement):
         + "ImageSizeMultipliers -> {1, 1}]"
     }
 
-    rules = {
-        "%(name)s[x_List]": "Apply[%(name)s, x]",
-    }
+    rules = {"%(name)s[x_List]": "Apply[%(name)s, x]"}
 
     components_sizes = []
     default_components = []
@@ -838,9 +862,7 @@ class ColorDistance(Builtin):
 
     """
 
-    options = {
-        "DistanceFunction": "Automatic",
-    }
+    options = {"DistanceFunction": "Automatic"}
 
     messages = {
         "invdist": "`1` is not Automatic or a valid distance specification.",
@@ -986,9 +1008,9 @@ class ColorDistance(Builtin):
                             *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)]
                         )
                 else:
-                    return Expression("List", *[distance(c, c2) for c in c1.leaves])
+                    return Expression(SymbolList, *[distance(c, c2) for c in c1.leaves])
             elif c2.get_head_name() == "System`List":
-                return Expression("List", *[distance(c1, c) for c in c2.leaves])
+                return Expression(SymbolList, *[distance(c1, c) for c in c2.leaves])
             else:
                 return distance(c1, c2)
         except ColorError:
@@ -1055,9 +1077,7 @@ class Thin(Builtin):
     </dl>
     """
 
-    rules = {
-        "Thin": "AbsoluteThickness[0.5]",
-    }
+    rules = {"Thin": "AbsoluteThickness[0.5]"}
 
 
 class Thick(Builtin):
@@ -1068,9 +1088,7 @@ class Thick(Builtin):
     </dl>
     """
 
-    rules = {
-        "Thick": "AbsoluteThickness[2]",
-    }
+    rules = {"Thick": "AbsoluteThickness[2]"}
 
 
 class PointSize(_Size):
@@ -1116,9 +1134,7 @@ class Rectangle(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Rectangle[]": "Rectangle[{0, 0}]",
-    }
+    rules = {"Rectangle[]": "Rectangle[{0, 0}]"}
 
 
 class Disk(Builtin):
@@ -1149,9 +1165,7 @@ class Disk(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Disk[]": "Disk[{0, 0}]",
-    }
+    rules = {"Disk[]": "Disk[{0, 0}]"}
 
 
 class Circle(Builtin):
@@ -1173,9 +1187,7 @@ class Circle(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Circle[]": "Circle[{0, 0}]",
-    }
+    rules = {"Circle[]": "Circle[{0, 0}]"}
 
 
 class Inset(Builtin):
@@ -1219,7 +1231,7 @@ class RectangleBox(_GraphicsElement):
             )
         return result
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=True)
         x1, y1 = self.p1.pos()
         x2, y2 = self.p2.pos()
@@ -1227,6 +1239,9 @@ class RectangleBox(_GraphicsElement):
         ymin = min(y1, y2)
         w = max(x1, x2) - xmin
         h = max(y1, y2) - ymin
+        if offset:
+            x1, x2 = x1 + offset[0], x2 + offset[0]
+            y1, y2 = y1 + offset[1], y2 + offset[1]
         style = create_css(self.edge_color, self.face_color, l)
         return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
             xmin,
@@ -1260,7 +1275,7 @@ class _RoundBox(_GraphicsElement):
 
     def init(self, graphics, style, item):
         super(_RoundBox, self).init(graphics, item, style)
-        if len(item.leaves) not in (1, 2):
+        if len(item._leaves) not in (1, 2):
             raise BoxConstructError
         self.edge_color, self.face_color = style.get_style(
             _Color, face_element=self.face_element
@@ -1287,7 +1302,7 @@ class _RoundBox(_GraphicsElement):
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         x, y = self.c.pos()
         rx, ry = self.r.pos()
         rx -= x
@@ -1374,9 +1389,9 @@ class _ArcBox(_RoundBox):
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         if self.arc is None:
-            return super(_ArcBox, self).to_svg()
+            return super(_ArcBox, self).to_svg(offset)
 
         x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
@@ -1446,7 +1461,7 @@ class _Polyline(_GraphicsElement):
             leaves = points.leaves
             self.multi_parts = True
         else:
-            leaves = [Expression("List", *points.leaves)]
+            leaves = [Expression(SymbolList, *points.leaves)]
             self.multi_parts = False
         lines = []
         for leaf in leaves:
@@ -1502,12 +1517,12 @@ class PointBox(_Polyline):
             points = item.leaves[0]
             if points.has_form("List", None) and len(points.leaves) != 0:
                 if all(not leaf.has_form("List", None) for leaf in points.leaves):
-                    points = Expression("List", points)
+                    points = Expression(SymbolList, points)
             self.do_init(graphics, points)
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         point_size, _ = self.style.get_style(PointSize, face_element=False)
         if point_size is None:
             point_size = PointSize(self.graphics, value=0.005)
@@ -1571,7 +1586,7 @@ class LineBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=l)
         svg = ""
@@ -1685,13 +1700,13 @@ def _asy_bezier(*segments):
 
 class BernsteinBasis(Builtin):
     rules = {
-        "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]",
+        "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
     }
 
 
 class BezierFunction(Builtin):
     rules = {
-        "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]",
+        "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
     }
 
 
@@ -1709,9 +1724,7 @@ class BezierCurve(Builtin):
      = -Graphics-
     """
 
-    options = {
-        "SplineDegree": "3",
-    }
+    options = {"SplineDegree": "3"}
 
 
 class BezierCurveBox(_Polyline):
@@ -1727,7 +1740,7 @@ class BezierCurveBox(_Polyline):
             raise BoxConstructError
         self.spline_degree = spline_degree.get_int_value()
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=l)
 
@@ -1814,7 +1827,7 @@ class FilledCurveBox(_GraphicsElement):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=False)
         style = create_css(
             edge_color=self.edge_color, face_color=self.face_color, stroke_width=l
@@ -1902,7 +1915,7 @@ class PolygonBox(_Polyline):
             self.vertex_colors = [[black] * len(line) for line in self.lines]
             colors = value.leaves
             if not self.multi_parts:
-                colors = [Expression("List", *colors)]
+                colors = [Expression(SymbolList, *colors)]
             for line_index, line in enumerate(self.lines):
                 if line_index >= len(colors):
                     break
@@ -1919,7 +1932,7 @@ class PolygonBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         l = self.style.get_line_width(face_element=True)
         if self.vertex_colors is None:
             face_color = self.face_color
@@ -2058,7 +2071,7 @@ class RegularPolygonBox(PolygonBox):
                     )
 
             new_item = Expression(
-                "RegularPolygonBox", Expression("List", *list(vertices()))
+                "RegularPolygonBox", Expression(SymbolList, *list(vertices()))
             )
         else:
             raise BoxConstructError
@@ -2500,7 +2513,7 @@ class ArrowBox(_Polyline):
 
         return make
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         width = self.style.get_line_width(face_element=False)
         style = create_css(edge_color=self.edge_color, stroke_width=width)
         polyline = self.curve.make_draw_svg(style)
@@ -2556,12 +2569,13 @@ class ArrowBox(_Polyline):
 
 
 class InsetBox(_GraphicsElement):
-    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0)):
+    def init(self, graphics, style, item=None, content=None, pos=None, opos=(0, 0), opacity=1.0):
         super(InsetBox, self).init(graphics, item, style)
 
         self.color = self.style.get_option("System`FontColor")
         if self.color is None:
             self.color, _ = style.get_style(_Color, face_element=False)
+        self.opacity = opacity
 
         if item is not None:
             if len(item.leaves) not in (1, 2, 3):
@@ -2593,14 +2607,33 @@ class InsetBox(_GraphicsElement):
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
 
-    def to_svg(self):
+    def to_svg(self, offset=None):
         x, y = self.pos.pos()
-        content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
-        style = create_css(font_color=self.color)
-        svg = (
-            '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-            "<math>%s</math></foreignObject>"
-        ) % (x, y, self.opos[0], self.opos[1], style, content)
+        if offset:
+            x = x + offset[0]
+            y = y + offset[1]
+
+        if hasattr(self.content, "to_svg"):
+            content = self.content.to_svg(noheader=True, offset=(x, y))
+            svg = "\n" + content + "\n"
+        else:
+            css_style = create_css(
+                font_color=self.color, edge_color=self.color, face_color=self.color, opacity=self.opacity
+            )
+            text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
+            # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
+            text_style_opts = "text-anchor:middle; dominant-baseline:middle;"
+            content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
+            svg = (
+                f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
+            )
+
+        # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
+        # style = create_css(font_color=self.color)
+        # svg = (
+        #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
+        #    "<math>%s</math></foreignObject>")
+
         return svg
 
     def to_asy(self):
@@ -2916,8 +2949,8 @@ class GraphicsElements(_GraphicsElements):
             ymax *= 2
         return xmin, xmax, ymin, ymax
 
-    def to_svg(self):
-        return "\n".join(element.to_svg() for element in self.elements)
+    def to_svg(self, offset=None):
+        return "\n".join(element.to_svg(offset) for element in self.elements)
 
     def to_asy(self):
         return "\n".join(element.to_asy() for element in self.elements)
@@ -2936,7 +2969,15 @@ class GraphicsBox(BoxConstruct):
 
     attributes = ("HoldAll", "ReadProtected")
 
-    def boxes_to_text(self, leaves, **options):
+    def __new__(cls, *leaves, **kwargs):
+        instance = super().__new__(cls, *leaves, **kwargs)
+        instance.evaluation = kwargs.get("evaluation", None)
+        return instance
+
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         self._prepare_elements(leaves, options)  # to test for Box errors
         return "-Graphics-"
 
@@ -2992,9 +3033,7 @@ class GraphicsBox(BoxConstruct):
     def _prepare_elements(self, leaves, options, neg_y=False, max_width=None):
         if not leaves:
             raise BoxConstructError
-
         graphics_options = self.get_option_values(leaves[1:], **options)
-
         background = graphics_options["System`Background"]
         if (
             isinstance(background, Symbol)
@@ -3015,7 +3054,10 @@ class GraphicsBox(BoxConstruct):
         if not isinstance(plot_range, list) or len(plot_range) != 2:
             raise BoxConstructError
 
-        elements = GraphicsElements(leaves[0], options["evaluation"], neg_y)
+        evaluation = options.get("evaluation", None)
+        if evaluation is None:
+            evaluation = self.evaluation
+        elements = GraphicsElements(leaves[0], evaluation, neg_y)
         axes = []  # to be filled further down
 
         def calc_dimensions(final_pass=True):
@@ -3142,7 +3184,9 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         elements, calc_dimensions = self._prepare_elements(
             leaves, options, max_width=450
         )
@@ -3195,13 +3239,22 @@ clip(%s);
 
         return tex
 
-    def boxes_to_xml(self, leaves, **options):
-        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+    def to_svg(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
 
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        data = options.get("data", None)
+        if data:
+            elements, xmin, xmax, ymin, ymax, w, h, width, height = data
+        else:
+            elements, calc_dimensions = self._prepare_elements(
+                leaves, options, neg_y=True
+            )
+            xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+
         elements.view_width = w
 
-        svg = elements.to_svg()
+        svg = elements.to_svg(offset=options.get("offset", None))
 
         if self.background_color is not None:
             svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
@@ -3218,6 +3271,8 @@ clip(%s);
         w += 2
         h += 2
 
+        if options.get("noheader", False):
+            return svg
         svg_xml = """
             <svg xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
@@ -3229,14 +3284,30 @@ clip(%s);
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
             svg,
         )
+        return svg_xml  # , width, height
 
-        return (
+    def boxes_to_mathml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
+        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
+
+        svg_xml = self.to_svg(leaves, data=data, **options)
+        # mglyph, which is what we have been using, is bad because MathML standard changed.
+        # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
+        # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
+        template = (
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
-            % (
-                int(width),
-                int(height),
-                base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
-            )
+            #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
+        )
+        return template % (
+            #        int(width),
+            #        int(height),
+            int(width),
+            int(height),
+            base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
         )
 
     def axis_ticks(self, xmin, xmax):
@@ -3340,15 +3411,9 @@ clip(%s);
         ticks_x_int = all(floor(x) == x for x in ticks_x)
         ticks_y_int = all(floor(x) == x for x in ticks_y)
 
-        for index, (
-            min,
-            max,
-            p_self0,
-            p_other0,
-            p_origin,
-            ticks,
-            ticks_small,
-            ticks_int,
+        for (
+            index,
+            (min, max, p_self0, p_other0, p_origin, ticks, ticks_small, ticks_int),
         ) in enumerate(
             [
                 (
@@ -3417,6 +3482,7 @@ clip(%s);
                                 elements, pos=p_origin(x), d=p_self0(-tick_label_d)
                             ),
                             opos=p_self0(1),
+                            opacity=0.5,
                         )
                     )
                 for x in ticks_small:
@@ -3503,9 +3569,7 @@ class Blend(Builtin):
         ),
     }
 
-    rules = {
-        "Blend[colors_]": "Blend[colors, ConstantArray[1, Length[colors]]]",
-    }
+    rules = {"Blend[colors_]": "Blend[colors, ConstantArray[1, Length[colors]]]"}
 
     def do_blend(self, colors, values):
         type = None
@@ -3540,7 +3604,7 @@ class Blend(Builtin):
             if not colors:
                 raise ColorError
         except ColorError:
-            evaluation.message("Blend", "arg", Expression("List", colors_orig))
+            evaluation.message("Blend", "arg", Expression(SymbolList, colors_orig))
             return
 
         if u.has_form("List", None):
@@ -3561,7 +3625,7 @@ class Blend(Builtin):
             use_list = False
         if values is None:
             return evaluation.message(
-                "Blend", "argl", u, Expression("List", colors_orig)
+                "Blend", "argl", u, Expression(SymbolList, colors_orig)
             )
 
         if use_list:
@@ -3612,10 +3676,7 @@ class Darker(Builtin):
      = -Graphics-
     """
 
-    rules = {
-        "Darker[c_, f_]": "Blend[{c, Black}, f]",
-        "Darker[c_]": "Darker[c, 1/3]",
-    }
+    rules = {"Darker[c_, f_]": "Blend[{c, Black}, f]", "Darker[c_]": "Darker[c, 1/3]"}
 
 
 class _ColorObject(Builtin):
@@ -3623,7 +3684,6 @@ class _ColorObject(Builtin):
 
     def __init__(self, *args, **kwargs):
         super(_ColorObject, self).__init__(*args, **kwargs)
-
         if self.text_name is None:
             text_name = strip_context(self.get_name()).lower()
         else:
@@ -3655,9 +3715,7 @@ class Black(_ColorObject):
      = GrayLevel[0]
     """
 
-    rules = {
-        "Black": "GrayLevel[0]",
-    }
+    rules = {"Black": "GrayLevel[0]"}
 
 
 class White(_ColorObject):
@@ -3666,9 +3724,7 @@ class White(_ColorObject):
      = GrayLevel[1]
     """
 
-    rules = {
-        "White": "GrayLevel[1]",
-    }
+    rules = {"White": "GrayLevel[1]"}
 
 
 class Gray(_ColorObject):
@@ -3677,9 +3733,7 @@ class Gray(_ColorObject):
      = GrayLevel[0.5]
     """
 
-    rules = {
-        "Gray": "GrayLevel[0.5]",
-    }
+    rules = {"Gray": "GrayLevel[0.5]"}
 
 
 class Red(_ColorObject):
@@ -3688,9 +3742,7 @@ class Red(_ColorObject):
      = RGBColor[1, 0, 0]
     """
 
-    rules = {
-        "Red": "RGBColor[1, 0, 0]",
-    }
+    rules = {"Red": "RGBColor[1, 0, 0]"}
 
 
 class Green(_ColorObject):
@@ -3699,9 +3751,7 @@ class Green(_ColorObject):
      = RGBColor[0, 1, 0]
     """
 
-    rules = {
-        "Green": "RGBColor[0, 1, 0]",
-    }
+    rules = {"Green": "RGBColor[0, 1, 0]"}
 
 
 class Blue(_ColorObject):
@@ -3710,9 +3760,7 @@ class Blue(_ColorObject):
      = RGBColor[0, 0, 1]
     """
 
-    rules = {
-        "Blue": "RGBColor[0, 0, 1]",
-    }
+    rules = {"Blue": "RGBColor[0, 0, 1]"}
 
 
 class Cyan(_ColorObject):
@@ -3721,9 +3769,7 @@ class Cyan(_ColorObject):
      = RGBColor[0, 1, 1]
     """
 
-    rules = {
-        "Cyan": "RGBColor[0, 1, 1]",
-    }
+    rules = {"Cyan": "RGBColor[0, 1, 1]"}
 
 
 class Magenta(_ColorObject):
@@ -3732,9 +3778,7 @@ class Magenta(_ColorObject):
      = RGBColor[1, 0, 1]
     """
 
-    rules = {
-        "Magenta": "RGBColor[1, 0, 1]",
-    }
+    rules = {"Magenta": "RGBColor[1, 0, 1]"}
 
 
 class Yellow(_ColorObject):
@@ -3743,29 +3787,21 @@ class Yellow(_ColorObject):
      = RGBColor[1, 1, 0]
     """
 
-    rules = {
-        "Yellow": "RGBColor[1, 1, 0]",
-    }
+    rules = {"Yellow": "RGBColor[1, 1, 0]"}
 
 
 class Purple(_ColorObject):
-    rules = {
-        "Purple": "RGBColor[0.5, 0, 0.5]",
-    }
+    rules = {"Purple": "RGBColor[0.5, 0, 0.5]"}
 
 
 class LightRed(_ColorObject):
     text_name = "light red"
 
-    rules = {
-        "LightRed": "Lighter[Red, 0.85]",
-    }
+    rules = {"LightRed": "Lighter[Red, 0.85]"}
 
 
 class Orange(_ColorObject):
-    rules = {
-        "Orange": "RGBColor[1, 0.5, 0]",
-    }
+    rules = {"Orange": "RGBColor[1, 0.5, 0]"}
 
 
 class Automatic(Builtin):
@@ -3858,9 +3894,7 @@ styles = system_symbols_dict(
 )
 
 style_options = system_symbols_dict(
-    {
-        "FontColor": _style,
-    }
+    {"FontColor": _style, "ImageSizeMultipliers": (lambda *x: x[1])}
 )
 
 style_heads = frozenset(styles.keys())

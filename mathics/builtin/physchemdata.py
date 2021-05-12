@@ -9,21 +9,43 @@ import os
 
 from csv import reader as csvreader
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
-from mathics.core.expression import (Expression, from_python, Symbol, String,
-                                     strip_context)
+from mathics.core.expression import (
+    Expression,
+    from_python,
+    Symbol,
+    String,
+    strip_context,
+)
 from mathics.settings import ROOT_DIR
 
+
+class NoElementDataFile(Exception):
+    pass
+
+
 def load_element_data():
-    element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
-    reader = csvreader(element_file, delimiter='\t')
+    try:
+        import mathics_scanner
+
+        datadir = mathics_scanner.__file__[:-11]
+        element_file = open(os.path.join(datadir, "data/element.csv"), "r")
+    except:
+        print(os.path.join(datadir, "data/element.csv"), "  not found.")
+        return None
+    reader = csvreader(element_file, delimiter="\t")
     element_data = []
     for row in reader:
         element_data.append([value for value in row])
     element_file.close()
     return element_data
 
+
 _ELEMENT_DATA = load_element_data()
+
+if _ELEMENT_DATA is None:
+    raise NoElementDataFile("data/elements.csv is not available.")
 
 
 class ElementData(Builtin):
@@ -75,21 +97,25 @@ class ElementData(Builtin):
     """
 
     rules = {
-        'ElementData[n_]': 'ElementData[n, "StandardName"]',
-        'ElementData[]': 'ElementData[All]',
+        "ElementData[n_]": 'ElementData[n, "StandardName"]',
+        "ElementData[]": "ElementData[All]",
         'ElementData["Properties"]': 'ElementData[All, "Properties"]',
     }
 
     messages = {
-        'noent': ('`1` is not a known entity, class, or tag for ElementData. '
-                  'Use ElementData[] for a list of entities.'),
-        'noprop': ('`1` is not a known property for ElementData. '
-                   'Use ElementData["Properties"] for a list of properties.'),
+        "noent": (
+            "`1` is not a known entity, class, or tag for ElementData. "
+            "Use ElementData[] for a list of entities."
+        ),
+        "noprop": (
+            "`1` is not a known property for ElementData. "
+            'Use ElementData["Properties"] for a list of properties.'
+        ),
     }
 
     def apply_all(self, evaluation):
-        'ElementData[All]'
-        iprop = _ELEMENT_DATA[0].index('StandardName')
+        "ElementData[All]"
+        iprop = _ELEMENT_DATA[0].index("StandardName")
         return from_python([element[iprop] for element in _ELEMENT_DATA[1:]])
 
     def apply_all_properties(self, evaluation):
@@ -99,14 +125,15 @@ class ElementData(Builtin):
     def apply_name(self, name, prop, evaluation):
         "ElementData[name_?StringQ, prop_]"
         py_name = name.to_python().strip('"')
-        names = ['StandardName', 'Name', 'Abbreviation']
+        names = ["StandardName", "Name", "Abbreviation"]
         iprops = [_ELEMENT_DATA[0].index(s) for s in names]
 
         indx = None
         for iprop in iprops:
             try:
-                indx = [element[iprop] for element in
-                        _ELEMENT_DATA[1:]].index(py_name) + 1
+                indx = [element[iprop] for element in _ELEMENT_DATA[1:]].index(
+                    py_name
+                ) + 1
             except ValueError:
                 pass
 
@@ -144,9 +171,11 @@ class ElementData(Builtin):
                     result.append(_ELEMENT_DATA[0][i])
             return from_python(sorted(result))
 
-        if not (isinstance(py_prop, str) and
-                py_prop[0] == py_prop[-1] == '"' and
-                py_prop.strip('"') in _ELEMENT_DATA[0]):
+        if not (
+            isinstance(py_prop, str)
+            and py_prop[0] == py_prop[-1] == '"'
+            and py_prop.strip('"') in _ELEMENT_DATA[0]
+        ):
             evaluation.message("ElementData", "noprop", prop)
             return
 

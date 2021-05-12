@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,8 +6,14 @@ Graphics (3D)
 
 
 import numbers
-from mathics.core.expression import Expression, from_python, system_symbols_dict
-from mathics.builtin.base import BoxConstructError, Builtin, InstancableBuiltin
+from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.core.expression import (
+    Expression,
+    from_python,
+    system_symbols_dict,
+    SymbolList,
+)
+from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from .graphics import (
     Graphics,
     GraphicsBox,
@@ -134,27 +139,23 @@ class Graphics3D(Graphics):
 
     options = Graphics.options.copy()
     options.update(
-        {
-            "BoxRatios": "Automatic",
-            "Lighting": "Automatic",
-            "ViewPoint": "{1.3,-2.4,2}",
-        }
+        {"BoxRatios": "Automatic", "Lighting": "Automatic", "ViewPoint": "{1.3,-2.4,2}"}
     )
 
     box_suffix = "3DBox"
 
     rules = {
         "MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], "
-        "        OutputForm]": '"-Graphics3D-"',
+        "        OutputForm]": '"-Graphics3D-"'
     }
 
-    messages = {
-        "invlight": "`1` is not a valid list of light sources.",
-    }
+    messages = {"invlight": "`1` is not a valid list of light sources."}
 
 
 class Graphics3DBox(GraphicsBox):
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
         return "-Graphics3D-"
 
     def _prepare_elements(self, leaves, options, max_width=None):
@@ -227,10 +228,7 @@ class Graphics3DBox(GraphicsBox):
                     color = get_class(head)(light[1])
                     if light[0] == '"Ambient"':
                         self.lighting.append(
-                            {
-                                "type": "Ambient",
-                                "color": color.to_rgba(),
-                            }
+                            {"type": "Ambient", "color": color.to_rgba()}
                         )
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -435,7 +433,10 @@ class Graphics3DBox(GraphicsBox):
 
         return elements, axes, ticks, calc_dimensions, boxscale
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options, max_width=450
         )
@@ -624,7 +625,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         )
         return tex
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
         elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options
         )
@@ -642,10 +646,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = json.dumps(
             {
                 "elements": json_repr,
-                "axes": {
-                    "hasaxes": axes,
-                    "ticks": ticks,
-                },
+                "axes": {"hasaxes": axes, "ticks": ticks},
                 "extent": {
                     "xmin": xmin,
                     "xmax": xmax,
@@ -1009,9 +1010,7 @@ class Cuboid(Builtin):
      = -Graphics3D-
     """
 
-    rules = {
-        "Cuboid[]": "Cuboid[{0,0,0}]",
-    }
+    rules = {"Cuboid[]": "Cuboid[{0,0,0}]"}
 
     def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
         "Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]"
@@ -1032,81 +1031,81 @@ class Cuboid(Builtin):
             # X
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmin, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmin, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmin, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmin, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymax, zmin),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymin, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             # Y
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymin, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmax, ymin, zmax),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmax, ymin, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmax, ymax, zmin),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmin, ymax, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmin, ymax, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             # Z
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmin, ymax, zmin),
-                Expression("List", xmax, ymax, zmin),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmin, ymax, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmin),
-                Expression("List", xmax, ymin, zmin),
-                Expression("List", xmax, ymax, zmin),
+                Expression(SymbolList, xmin, ymin, zmin),
+                Expression(SymbolList, xmax, ymin, zmin),
+                Expression(SymbolList, xmax, ymax, zmin),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmin, ymax, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmin, ymax, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
             Expression(
                 "List",
-                Expression("List", xmin, ymin, zmax),
-                Expression("List", xmax, ymin, zmax),
-                Expression("List", xmax, ymax, zmax),
+                Expression(SymbolList, xmin, ymin, zmax),
+                Expression(SymbolList, xmax, ymin, zmax),
+                Expression(SymbolList, xmax, ymax, zmax),
             ),
         ]
 
-        return Expression("Polygon", Expression("List", *polygons))
+        return Expression("Polygon", Expression(SymbolList, *polygons))
 
     def apply_min(self, xmin, ymin, zmin, evaluation):
         "Cuboid[{xmin_, ymin_, zmin_}]"
@@ -1122,7 +1121,7 @@ class Cuboid(Builtin):
         return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
 
-class _Graphics3DElement(InstancableBuiltin):
+class _Graphics3DElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
             raise BoxConstructError
@@ -1160,11 +1159,7 @@ class Sphere3DBox(_Graphics3DElement):
 
         return "".join(
             "draw(surface(sphere({0}, {1})), rgb({2},{3},{4}));".format(
-                tuple(
-                    coord.pos()[0],
-                ),
-                self.radius,
-                *face_color[:3]
+                tuple(coord.pos()[0]), self.radius, *face_color[:3]
             )
             for coord in self.points
         )

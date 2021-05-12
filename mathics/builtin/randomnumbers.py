@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -14,13 +13,14 @@ import hashlib
 from operator import mul as operator_mul
 from functools import reduce
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin
 from mathics.builtin.numpy_utils import instantiate_elements, stack
-from mathics.core.expression import (Integer, String, Symbol, Real, Expression,
-                                     Complex)
+from mathics.core.expression import Integer, String, Symbol, Real, Expression, Complex
 
 try:
     import numpy
+
     _numpy = True
 except ImportError:  # no numpy?
     _numpy = False
@@ -44,7 +44,9 @@ if _numpy:
         if x is None:  # numpy does not know how to seed itself randomly
             x = int(time.time() * 1000) ^ hash(os.urandom(16))
         # for numpy, seed must be convertible to 32 bit unsigned integer
-        numpy.random.seed(abs(x) & 0xffffffff)
+        numpy.random.seed(abs(x) & 0xFFFFFFFF)
+
+
 else:
     random_get_state = random.getstate
     random_set_state = random.setstate
@@ -65,7 +67,7 @@ def get_random_state():
     state = random_get_state()
     state = pickle.dumps(state)
     state = binascii.b2a_hex(state)
-    state.decode('ascii')
+    state.decode("ascii")
     state = int(state, 16)
     return state
 
@@ -75,8 +77,8 @@ def set_random_state(state):
         random_seed()
     else:
         state = hex(state)[2:]  # drop leading "0x"
-        state = state.rstrip('L')
-        state = state.encode('ascii')
+        state = state.rstrip("L")
+        state = state.encode("ascii")
         state = binascii.a2b_hex(state)
         state = pickle.loads(state)
         random_set_state(state)
@@ -87,13 +89,13 @@ class _RandomEnvBase:
         self.evaluation = evaluation
 
     def __enter__(self):
-        state = self.evaluation.definitions.get_config_value('$RandomState')
+        state = self.evaluation.definitions.get_config_value("$RandomState")
         set_random_state(state)
         return self
 
     def __exit__(self, exit_type, value, traceback):
         state = get_random_state()
-        self.evaluation.definitions.set_config_value('$RandomState', state)
+        self.evaluation.definitions.set_config_value("$RandomState", state)
 
     def seed(self, x=None):
         # This has different behavior in Python 3.2 and in numpy
@@ -117,7 +119,7 @@ class NoNumPyRandomEnv(_RandomEnvBase):
 class NumPyRandomEnv(_RandomEnvBase):
     def randint(self, a, b, size=None):
         # return numpy.random.random_integers(a, b, size)
-        return numpy.random.randint(a, b+1, size)
+        return numpy.random.randint(a, b + 1, size)
 
     def randreal(self, a, b, size=None):
         # numpy gives us [a, b). we want [a, b].
@@ -154,15 +156,15 @@ class RandomState(Builtin):
      : It is not possible to change the random state.
     """
 
-    name = '$RandomState'
+    name = "$RandomState"
 
     messages = {
-        'rndst': "It is not possible to change the random state.",
+        "rndst": "It is not possible to change the random state.",
         # "`1` is not a valid random state.",
     }
 
     def apply(self, evaluation):
-        '$RandomState'
+        "$RandomState"
 
         with RandomEnv(evaluation):
             return Integer(get_random_state())
@@ -206,51 +208,58 @@ class SeedRandom(Builtin):
     """
 
     messages = {
-        'seed': "Argument `1` should be an integer or string.",
+        "seed": "Argument `1` should be an integer or string.",
     }
 
     def apply(self, x, evaluation):
-        'SeedRandom[x_]'
+        "SeedRandom[x_]"
 
         if isinstance(x, Integer):
             value = x.value
         elif isinstance(x, String):
             # OS/version-independent hash
-            value = int(hashlib.md5(x.get_string_value().encode('utf8')).hexdigest(), 16)
+            value = int(
+                hashlib.md5(x.get_string_value().encode("utf8")).hexdigest(), 16
+            )
         else:
-            return evaluation.message('SeedRandom', 'seed', x)
+            return evaluation.message("SeedRandom", "seed", x)
         with RandomEnv(evaluation) as rand:
             rand.seed(value)
-        return Symbol('Null')
+        return Symbol("Null")
 
     def apply_empty(self, evaluation):
-        'SeedRandom[]'
+        "SeedRandom[]"
 
         with RandomEnv(evaluation) as rand:
             rand.seed()
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class _RandomBase(Builtin):
     rules = {
-        '%(name)s[spec_]': '%(name)s[spec, {1}]',
-        '%(name)s[spec_, n_Integer]': '%(name)s[spec, {n}]'
+        "%(name)s[spec_]": "%(name)s[spec, {1}]",
+        "%(name)s[spec_, n_Integer]": "%(name)s[spec, {n}]",
     }
 
     messages = {
-        'array': (
+        "array": (
             "The array dimensions `1` given in position 2 of `2` should be a "
             "list of non-negative machine-sized integers giving the "
-            "dimensions for the result."),
+            "dimensions for the result."
+        ),
     }
 
     def _size_to_python(self, domain, size, evaluation):
-        is_proper_spec = size.get_head_name() == 'System`List' and all(n.is_numeric() for n in size.leaves)
+        is_proper_spec = size.get_head_name() == "System`List" and all(
+            n.is_numeric() for n in size.leaves
+        )
 
         py_size = size.to_python() if is_proper_spec else None
-        if (py_size is None) or (not all(isinstance(i, int) and i >= 0 for i in py_size)):
+        if (py_size is None) or (
+            not all(isinstance(i, int) and i >= 0 for i in py_size)
+        ):
             expr = Expression(self.get_name(), domain, size)
-            return evaluation.message(self.get_name(), 'array', size, expr), None
+            return evaluation.message(self.get_name(), "array", size, expr), None
 
         return False, py_size
 
@@ -291,32 +300,36 @@ class RandomInteger(Builtin):
     """
 
     messages = {
-        'unifr': ("The endpoints specified by `1` for the endpoints of the "
-                  "discrete uniform distribution range are not integers."),
+        "unifr": (
+            "The endpoints specified by `1` for the endpoints of the "
+            "discrete uniform distribution range are not integers."
+        ),
     }
 
     rules = {
-        'RandomInteger[]': 'RandomInteger[{0, 1}]',
-        'RandomInteger[max_Integer]': 'RandomInteger[{0, max}]',
-        'RandomInteger[max_Integer, ns_]': 'RandomInteger[{0, max}, ns]',
-        'RandomInteger[spec_, n_Integer]': 'RandomInteger[spec, {n}]',
+        "RandomInteger[]": "RandomInteger[{0, 1}]",
+        "RandomInteger[max_Integer]": "RandomInteger[{0, max}]",
+        "RandomInteger[max_Integer, ns_]": "RandomInteger[{0, max}, ns]",
+        "RandomInteger[spec_, n_Integer]": "RandomInteger[spec, {n}]",
     }
 
     def apply(self, rmin, rmax, evaluation):
-        'RandomInteger[{rmin_, rmax_}]'
+        "RandomInteger[{rmin_, rmax_}]"
 
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
-            return evaluation.message('RandomInteger', 'unifr',
-                                      Expression('List', rmin, rmax))
+            return evaluation.message(
+                "RandomInteger", "unifr", Expression("List", rmin, rmax)
+            )
         rmin, rmax = rmin.value, rmax.value
         with RandomEnv(evaluation) as rand:
             return Integer(rand.randint(rmin, rmax))
 
     def apply_list(self, rmin, rmax, ns, evaluation):
-        'RandomInteger[{rmin_, rmax_}, ns_?ListQ]'
+        "RandomInteger[{rmin_, rmax_}, ns_?ListQ]"
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
-            return evaluation.message('RandomInteger', 'unifr',
-                                      Expression('List', rmin, rmax))
+            return evaluation.message(
+                "RandomInteger", "unifr", Expression("List", rmin, rmax)
+            )
         rmin, rmax = rmin.value, rmax.value
         result = ns.to_python()
 
@@ -359,27 +372,33 @@ class RandomReal(Builtin):
     """
 
     messages = {
-        'unifr': ("The endpoints specified by `1` for the endpoints of the "
-                  "discrete uniform distribution range are not real valued."),
-        'array': ("The array dimensions `2` given in position 2 of `1` should "
-                  "be a list of non-negative machine-sized integers giving "
-                  "the dimensions for the result."),
+        "unifr": (
+            "The endpoints specified by `1` for the endpoints of the "
+            "discrete uniform distribution range are not real valued."
+        ),
+        "array": (
+            "The array dimensions `2` given in position 2 of `1` should "
+            "be a list of non-negative machine-sized integers giving "
+            "the dimensions for the result."
+        ),
     }
 
     rules = {
-        'RandomReal[]': 'RandomReal[{0, 1}]',
-        'RandomReal[max_?NumberQ]': 'RandomReal[{0, max}]',
-        'RandomReal[max_?NumberQ, ns_]': 'RandomReal[{0, max}, ns]',
-        'RandomReal[spec_, n_Integer]': 'RandomReal[spec, {n}]',
+        "RandomReal[]": "RandomReal[{0, 1}]",
+        "RandomReal[max_?NumberQ]": "RandomReal[{0, max}]",
+        "RandomReal[max_?NumberQ, ns_]": "RandomReal[{0, max}, ns]",
+        "RandomReal[spec_, n_Integer]": "RandomReal[spec, {n}]",
     }
 
     def apply(self, xmin, xmax, evaluation):
-        'RandomReal[{xmin_, xmax_}]'
+        "RandomReal[{xmin_, xmax_}]"
 
-        if not (isinstance(xmin, (Real, Integer)) and
-                isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomReal', 'unifr',
-                                      Expression('List', xmin, xmax))
+        if not (
+            isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))
+        ):
+            return evaluation.message(
+                "RandomReal", "unifr", Expression("List", xmin, xmax)
+            )
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
 
@@ -387,24 +406,28 @@ class RandomReal(Builtin):
             return Real(rand.randreal(min_value, max_value))
 
     def apply_list(self, xmin, xmax, ns, evaluation):
-        'RandomReal[{xmin_, xmax_}, ns_?ListQ]'
+        "RandomReal[{xmin_, xmax_}, ns_?ListQ]"
 
-        if not (isinstance(xmin, (Real, Integer)) and
-                isinstance(xmax, (Real, Integer))):
-            return evaluation.message('RandomReal', 'unifr',
-                                      Expression('List', xmin, xmax))
+        if not (
+            isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))
+        ):
+            return evaluation.message(
+                "RandomReal", "unifr", Expression("List", xmin, xmax)
+            )
 
         min_value, max_value = xmin.to_python(), xmax.to_python()
         result = ns.to_python()
 
         if not all([isinstance(i, int) and i >= 0 for i in result]):
-            expr = Expression('RandomReal', Expression('List', xmin, xmax), ns)
-            return evaluation.message('RandomReal', 'array', expr, ns)
+            expr = Expression("RandomReal", Expression("List", xmin, xmax), ns)
+            return evaluation.message("RandomReal", "array", expr, ns)
 
         assert all([isinstance(i, int) for i in result])
 
         with RandomEnv(evaluation) as rand:
-            return instantiate_elements(rand.randreal(min_value, max_value, result), Real)
+            return instantiate_elements(
+                rand.randreal(min_value, max_value, result), Real
+            )
 
 
 class RandomComplex(Builtin):
@@ -446,19 +469,21 @@ class RandomComplex(Builtin):
     """
 
     messages = {
-        'unifr': (
+        "unifr": (
             "The endpoints specified by `1` for the endpoints of the "
-            "discrete uniform distribution range are not complex valued."),
-        'array': (
+            "discrete uniform distribution range are not complex valued."
+        ),
+        "array": (
             "The array dimensions `1` given in position 2 of `2` should be a "
             "list of non-negative machine-sized integers giving the "
-            "dimensions for the result."),
+            "dimensions for the result."
+        ),
     }
 
     rules = {
-        'RandomComplex[]': 'RandomComplex[{0, 1+I}]',
-        'RandomComplex[zmax_?NumberQ]': 'RandomComplex[{0, zmax}]',
-        'RandomComplex[zmax_?NumberQ, ns_]': 'RandomComplex[{0, zmax}, ns]',
+        "RandomComplex[]": "RandomComplex[{0, 1+I}]",
+        "RandomComplex[zmax_?NumberQ]": "RandomComplex[{0, zmax}]",
+        "RandomComplex[zmax_?NumberQ, ns_]": "RandomComplex[{0, zmax}, ns]",
     }
 
     @staticmethod
@@ -471,11 +496,16 @@ class RandomComplex(Builtin):
         return None
 
     def apply(self, zmin, zmax, evaluation):
-        'RandomComplex[{zmin_, zmax_}]'
+        "RandomComplex[{zmin_, zmax_}]"
 
-        min_value, max_value = self.to_complex(zmin, evaluation), self.to_complex(zmax, evaluation)
+        min_value, max_value = (
+            self.to_complex(zmin, evaluation),
+            self.to_complex(zmax, evaluation),
+        )
         if min_value is None or max_value is None:
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+            return evaluation.message(
+                "RandomComplex", "unifr", Expression("List", zmin, zmax)
+            )
 
         with RandomEnv(evaluation) as rand:
             real = Real(rand.randreal(min_value.real, max_value.real))
@@ -483,27 +513,31 @@ class RandomComplex(Builtin):
             return Complex(real, imag)
 
     def apply_list(self, zmin, zmax, ns, evaluation):
-        'RandomComplex[{zmin_, zmax_}, ns_]'
-        expr = Expression('RandomComplex', Expression('List', zmin, zmax), ns)
+        "RandomComplex[{zmin_, zmax_}, ns_]"
+        expr = Expression("RandomComplex", Expression("List", zmin, zmax), ns)
 
-        min_value, max_value = self.to_complex(zmin, evaluation), self.to_complex(zmax, evaluation)
+        min_value, max_value = (
+            self.to_complex(zmin, evaluation),
+            self.to_complex(zmax, evaluation),
+        )
         if min_value is None or max_value is None:
-            return evaluation.message('RandomComplex', 'unifr', Expression('List', zmin, zmax))
+            return evaluation.message(
+                "RandomComplex", "unifr", Expression("List", zmin, zmax)
+            )
 
         py_ns = ns.to_python()
         if not isinstance(py_ns, list):
             py_ns = [py_ns]
 
         if not all([isinstance(i, int) and i >= 0 for i in py_ns]):
-            return evaluation.message('RandomComplex', 'array', ns, expr)
+            return evaluation.message("RandomComplex", "array", ns, expr)
 
         with RandomEnv(evaluation) as rand:
             real = rand.randreal(min_value.real, max_value.real, py_ns)
             imag = rand.randreal(min_value.imag, max_value.imag, py_ns)
             return instantiate_elements(
-                stack(real, imag),
-                lambda c: Complex(Real(c[0]), Real(c[1])),
-                d=2)
+                stack(real, imag), lambda c: Complex(Real(c[0]), Real(c[1])), d=2
+            )
 
 
 class _RandomSelection(_RandomBase):
@@ -513,55 +547,70 @@ class _RandomSelection(_RandomBase):
     # since weights are probabilities into a finite set, this should not make a difference.
 
     messages = {
-        'wghtv':
-            "The weights on the left-hand side of `1` has to be a list of non-negative numbers " +
-            "with the same length as the list of items on the right-hand side.",
-        'lrwl': "`1` has to be a list of items or a rule of the form weights -> choices.",
-        'smplen':
-            "RandomSample cannot choose `1` samples, as this are more samples than there are in `2`. " +
-            "Use RandomChoice to choose items from a set with replacing."
+        "wghtv": "The weights on the left-hand side of `1` has to be a list of non-negative numbers "
+        + "with the same length as the list of items on the right-hand side.",
+        "lrwl": "`1` has to be a list of items or a rule of the form weights -> choices.",
+        "smplen": "RandomSample cannot choose `1` samples, as this are more samples than there are in `2`. "
+        + "Use RandomChoice to choose items from a set with replacing.",
     }
 
     def apply(self, domain, size, evaluation):
-        '''%(name)s[domain_, size_]'''
-        if domain.get_head_name() == 'System`Rule':  # elements and weights
+        """%(name)s[domain_, size_]"""
+        if domain.get_head_name() == "System`Rule":  # elements and weights
             err, py_weights = self._weights_to_python(domain.leaves[0], evaluation)
             if py_weights is None:
                 return err
             elements = domain.leaves[1].leaves
-            if domain.leaves[1].get_head_name() != 'System`List' or len(py_weights) != len(elements):
-                return evaluation.message(self.get_name(), 'wghtv', domain)
-        elif domain.get_head_name() == 'System`List':  # only elements
+            if domain.leaves[1].get_head_name() != "System`List" or len(
+                py_weights
+            ) != len(elements):
+                return evaluation.message(self.get_name(), "wghtv", domain)
+        elif domain.get_head_name() == "System`List":  # only elements
             py_weights = None
             elements = domain.leaves
         else:
-            return evaluation.message(self.get_name(), 'lrwl', domain)
+            return evaluation.message(self.get_name(), "lrwl", domain)
         err, py_size = self._size_to_python(domain, size, evaluation)
         if py_size is None:
             return err
         if not self._replace:  # i.e. RandomSample?
             n_chosen = reduce(operator_mul, py_size, 1)
             if len(elements) < n_chosen:
-                return evaluation.message('smplen', size, domain), None
+                return evaluation.message("smplen", size, domain), None
         with RandomEnv(evaluation) as rand:
             return instantiate_elements(
-                rand.randchoice(len(elements), size=py_size, replace=self._replace, p=py_weights),
-                lambda i: elements[i])
+                rand.randchoice(
+                    len(elements), size=py_size, replace=self._replace, p=py_weights
+                ),
+                lambda i: elements[i],
+            )
 
     def _weights_to_python(self, weights, evaluation):
         # we need to normalize weights as numpy.rand.randchoice expects this and as we can limit
         # accuracy problems with very large or very small weights by normalizing with sympy
-        is_proper_spec = weights.get_head_name() == 'System`List' and all(w.is_numeric() for w in weights.leaves)
+        is_proper_spec = weights.get_head_name() == "System`List" and all(
+            w.is_numeric() for w in weights.leaves
+        )
 
-        if is_proper_spec and len(weights.leaves) > 1:  # normalize before we lose accuracy
-            norm_weights = Expression('Divide', weights, Expression('Total', weights)).evaluate(evaluation)
-            if norm_weights is None or not all(w.is_numeric() for w in norm_weights.leaves):
-                return evaluation.message(self.get_name(), 'wghtv', weights), None
+        if (
+            is_proper_spec and len(weights.leaves) > 1
+        ):  # normalize before we lose accuracy
+            norm_weights = Expression(
+                "Divide", weights, Expression("Total", weights)
+            ).evaluate(evaluation)
+            if norm_weights is None or not all(
+                w.is_numeric() for w in norm_weights.leaves
+            ):
+                return evaluation.message(self.get_name(), "wghtv", weights), None
             weights = norm_weights
 
-        py_weights = weights.to_python(n_evaluation=evaluation) if is_proper_spec else None
-        if (py_weights is None) or (not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights)):
-            return evaluation.message(self.get_name(), 'wghtv', weights), None
+        py_weights = (
+            weights.to_python(n_evaluation=evaluation) if is_proper_spec else None
+        )
+        if (py_weights is None) or (
+            not all(isinstance(w, (int, float)) and w >= 0 for w in py_weights)
+        ):
+            return evaluation.message(self.get_name(), "wghtv", weights), None
 
         return False, py_weights
 
@@ -653,19 +702,20 @@ class RandomSample(_RandomSelection):
 
 
 class Random(Builtin):
-    '''
+    """
     Legacy function. Superseded by RandomReal, RandomInteger and RandomComplex.
-    '''
+    """
+
     rules = {
-        'Random[Integer]': 'RandomInteger[]',
-        'Random[Integer,  zmax_Integer]': 'RandomInteger[zmax]',
-        'Random[Integer, {zmin_Integer, zmax_Integer}]': 'RandomInteger[{zmin, zmax}]',
-        'Random[Real]': 'RandomReal[]',
-        'Random[Real,  zmax_?NumberQ]': 'RandomReal[zmax]',
-        'Random[Real, {zmin_Real, zmax_Real}]': 'RandomReal[{zmin, zmax}]',
-        'Random[Complex]': 'RandomComplex[]',
-        'Random[Complex,  zmax_Complex]': 'RandomComplex[zmax]',
-        'Random[Complex, {zmin_?NumericQ, zmax_?NumericQ}]': 'RandomComplex[{zmin, zmax}]',
+        "Random[Integer]": "RandomInteger[]",
+        "Random[Integer,  zmax_Integer]": "RandomInteger[zmax]",
+        "Random[Integer, {zmin_Integer, zmax_Integer}]": "RandomInteger[{zmin, zmax}]",
+        "Random[Real]": "RandomReal[]",
+        "Random[Real,  zmax_?NumberQ]": "RandomReal[zmax]",
+        "Random[Real, {zmin_Real, zmax_Real}]": "RandomReal[{zmin, zmax}]",
+        "Random[Complex]": "RandomComplex[]",
+        "Random[Complex,  zmax_Complex]": "RandomComplex[zmax]",
+        "Random[Complex, {zmin_?NumericQ, zmax_?NumericQ}]": "RandomComplex[{zmin, zmax}]",
     }
 
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,11 +7,11 @@ Special Functions
 
 import mpmath
 
-from mathics.builtin.base import Builtin, SympyFunction
+from mathics.version import __version__  # noqa used in loading to check consistency.
+from mathics.builtin.base import Builtin
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
-from mathics.core.expression import Integer, Number
-from mathics.core.numbers import machine_precision, prec, get_precision, PrecisionValueError
-from mathics.core.convert import from_sympy
+from mathics.core.expression import Integer, from_mpmath
+from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError
 from mathics.core.numbers import prec as _prec
 
 
@@ -40,15 +39,15 @@ class Erf(_MPMathMultiFunction):
     """
 
     mpmath_names = {
-        1: 'erf',
+        1: "erf",
     }
     sympy_names = {
-        1: 'erf',
-        2: 'erf2',
+        1: "erf",
+        2: "erf2",
     }
 
     rules = {
-        'Derivative[1][Erf]': '2 Exp[-#^2] / Sqrt[Pi] &',
+        "Derivative[1][Erf]": "2 Exp[-#^2] / Sqrt[Pi] &",
     }
 
 
@@ -69,20 +68,20 @@ class InverseErf(_MPMathFunction):
      = {1.16309, Infinity, InverseErf[1.1]}
     """
 
-    sympy_name = 'erfinv'
-    mpmath_name = 'erfinv'
+    sympy_name = "erfinv"
+    mpmath_name = "erfinv"
 
     rules = {
-        'Derivative[1][InverseErf]': 'Sqrt[Pi] Exp[InverseErf[#]^2] / 2 &',
+        "Derivative[1][InverseErf]": "Sqrt[Pi] Exp[InverseErf[#]^2] / 2 &",
     }
 
     def apply(self, z, evaluation):
-        '%(name)s[z__]'
+        "%(name)s[z__]"
 
         try:
             return super(InverseErf, self).apply(z, evaluation)
         except ValueError as exc:
-            if str(exc) == 'erfinv(x) is defined only for -1 <= x <= 1':
+            if str(exc) == "erfinv(x) is defined only for -1 <= x <= 1":
                 return
             else:
                 raise
@@ -105,10 +104,10 @@ class Erfc(_MPMathFunction):
      = -Graphics-
     """
 
-    mpmath_name = 'erfc'
+    mpmath_name = "erfc"
 
     rules = {
-        'Derivative[1][Erfc]': '-2 Exp[-#^2] / Sqrt[Pi] &',
+        "Derivative[1][Erfc]": "-2 Exp[-#^2] / Sqrt[Pi] &",
     }
 
 
@@ -123,10 +122,10 @@ class InverseErfc(_MPMathFunction):
      = {Infinity, 0, -Infinity}
     """
 
-    sympy_name = 'erfcinv'
+    sympy_name = "erfcinv"
 
     rules = {
-        'Derivative[1][InverseErfc]': '-Sqrt[Pi] Exp[InverseErfc[#]^2] / 2 &',
+        "Derivative[1][InverseErfc]": "-Sqrt[Pi] Exp[InverseErfc[#]^2] / 2 &",
     }
 
 
@@ -144,17 +143,17 @@ class LerchPhi(_MPMathFunction):
      = 17.1973
     """
 
-    sympy_name = 'lerchphi'
-    mpmath_name = 'lerchphi'
+    sympy_name = "lerchphi"
+    mpmath_name = "lerchphi"
 
     def apply(self, z, s, a, evaluation):
-        '%(name)s[z_, s_, a_]'
+        "%(name)s[z_, s_, a_]"
 
         py_z = z.to_python()
         py_s = s.to_python()
         py_a = a.to_python()
         try:
-            return Number.from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
+            return from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
         except:
             pass
             # return sympy.expand_func(sympy.lerchphi(py_z, py_s, py_a))
@@ -182,14 +181,14 @@ class ProductLog(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = 'LambertW'  # function called LambertW in SymPy
-    mpmath_name = 'lambertw'
+    sympy_name = "LambertW"  # function called LambertW in SymPy
+    mpmath_name = "lambertw"
 
     rules = {
-        'ProductLog[0]': '0',
-        'ProductLog[E]': '1',
-        'ProductLog[z_] * E ^ ProductLog[z_]': 'z',
-        'Derivative[1][ProductLog]': 'ProductLog[#] / (# (ProductLog[#] + 1))&',
+        "ProductLog[0]": "0",
+        "ProductLog[E]": "1",
+        "ProductLog[z_] * E ^ ProductLog[z_]": "z",
+        "Derivative[1][ProductLog]": "ProductLog[#] / (# (ProductLog[#] + 1))&",
     }
 
 
@@ -207,15 +206,16 @@ class Zeta(_MPMathFunction):
      = 0.0235936 + 0.0014078 I
     """
 
-    sympy_name = 'zeta'
-    mpmath_name = 'zeta'
+    sympy_name = "zeta"
+    mpmath_name = "zeta"
 
 
 class _Bessel(_MPMathFunction):
 
-    attributes = ('Listable', 'NumericFunction', 'Protected', 'ReadProtected')
+    attributes = ("Listable", "NumericFunction", "Protected", "ReadProtected")
 
     nargs = 2
+
 
 # Bessel Functions
 
@@ -249,10 +249,10 @@ class BesselJ(_Bessel):
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
     """
 
-    attributes = ('Listable', 'NumericFunction', 'Protected')
+    attributes = ("Listable", "NumericFunction", "Protected")
 
-    sympy_name = 'besselj'
-    mpmath_name = 'besselj'
+    sympy_name = "besselj"
+    mpmath_name = "besselj"
 
 
 class BesselY(_Bessel):
@@ -279,10 +279,10 @@ class BesselY(_Bessel):
      = -Infinity
     """
 
-    attributes = ('Listable', 'NumericFunction', 'Protected')
+    attributes = ("Listable", "NumericFunction", "Protected")
 
-    sympy_name = 'bessely'
-    mpmath_name = 'bessely'
+    sympy_name = "bessely"
+    mpmath_name = "bessely"
 
 
 class BesselI(_Bessel):
@@ -299,10 +299,10 @@ class BesselI(_Bessel):
      = -Graphics-
     """
 
-    attributes = ('Listable', 'NumericFunction', 'Protected')
+    attributes = ("Listable", "NumericFunction", "Protected")
 
-    sympy_name = 'besseli'
-    mpmath_name = 'besseli'
+    sympy_name = "besseli"
+    mpmath_name = "besseli"
 
 
 class BesselK(_Bessel):
@@ -319,10 +319,11 @@ class BesselK(_Bessel):
      = -Graphics-
     """
 
-    attributes = ('Listable', 'NumericFunction', 'Protected')
+    attributes = ("Listable", "NumericFunction", "Protected")
 
-    sympy_name = 'besselk'
-    mpmath_name = 'besselk'
+    sympy_name = "besselk"
+    mpmath_name = "besselk"
+
 
 # TODO: Spherical Bessel Functions
 
@@ -340,8 +341,8 @@ class HankelH1(_Bessel):
      = 0.185286 + 0.367112 I
     """
 
-    sympy_name = 'hankel1'
-    mpmath_name = 'hankel1'
+    sympy_name = "hankel1"
+    mpmath_name = "hankel1"
 
 
 class HankelH2(_Bessel):
@@ -355,8 +356,9 @@ class HankelH2(_Bessel):
      = 0.185286 - 0.367112 I
     """
 
-    sympy_name = 'hankel2'
-    mpmath_name = 'hankel2'
+    sympy_name = "hankel2"
+    mpmath_name = "hankel2"
+
 
 # Airy Functions
 
@@ -382,11 +384,11 @@ class AiryAi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = 'airyai'
-    mpmath_name = 'airyai'
+    sympy_name = "airyai"
+    mpmath_name = "airyai"
 
     rules = {
-        'Derivative[1][AiryAi]': 'AiryAiPrime',
+        "Derivative[1][AiryAi]": "AiryAiPrime",
     }
 
 
@@ -406,8 +408,8 @@ class AiryAiPrime(_MPMathFunction):
      = -0.224911
     """
 
-    sympy_name = 'airyaiprime'
-    mpmath_name = ''
+    sympy_name = "airyaiprime"
+    mpmath_name = ""
 
     def get_mpmath_function(self, args):
         return lambda x: mpmath.airyai(x, derivative=1)
@@ -434,11 +436,11 @@ class AiryBi(_MPMathFunction):
      = -Graphics-
     """
 
-    sympy_name = 'airybi'
-    mpmath_name = 'airybi'
+    sympy_name = "airybi"
+    mpmath_name = "airybi"
 
     rules = {
-        'Derivative[1][AiryBi]': 'AiryBiPrime',
+        "Derivative[1][AiryBi]": "AiryBiPrime",
     }
 
 
@@ -459,11 +461,12 @@ class AiryBiPrime(_MPMathFunction):
      = 0.544573
     """
 
-    sympy_name = 'airybiprime'
-    mpmath_name = ''
+    sympy_name = "airybiprime"
+    mpmath_name = ""
 
     def get_mpmath_function(self, args):
         return lambda x: mpmath.airybi(x, derivative=1)
+
 
 # Kelvin Functions
 
@@ -491,11 +494,11 @@ class KelvinBer(_Bessel):
     """
 
     rules = {
-        'KelvinBer[z_]': 'KelvinBer[0, z]',
+        "KelvinBer[z_]": "KelvinBer[0, z]",
     }
 
-    sympy_name = ''
-    mpmath_name = 'ber'
+    sympy_name = ""
+    mpmath_name = "ber"
 
 
 class KelvinBei(_Bessel):
@@ -521,11 +524,11 @@ class KelvinBei(_Bessel):
     """
 
     rules = {
-        'KelvinBei[z_]': 'KelvinBei[0, z]',
+        "KelvinBei[z_]": "KelvinBei[0, z]",
     }
 
-    sympy_name = ''
-    mpmath_name = 'bei'
+    sympy_name = ""
+    mpmath_name = "bei"
 
 
 class KelvinKer(_Bessel):
@@ -551,11 +554,11 @@ class KelvinKer(_Bessel):
     """
 
     rules = {
-        'KelvinKer[z_]': 'KelvinKer[0, z]',
+        "KelvinKer[z_]": "KelvinKer[0, z]",
     }
 
-    sympy_name = ''
-    mpmath_name = 'ker'
+    sympy_name = ""
+    mpmath_name = "ker"
 
 
 class KelvinKei(_Bessel):
@@ -581,11 +584,12 @@ class KelvinKei(_Bessel):
     """
 
     rules = {
-        'KelvinKei[z_]': 'KelvinKei[0, z]',
+        "KelvinKei[z_]": "KelvinKei[0, z]",
     }
 
-    sympy_name = ''
-    mpmath_name = 'kei'
+    sympy_name = ""
+    mpmath_name = "kei"
+
 
 # Struve and Related Functions
 
@@ -604,8 +608,8 @@ class StruveH(_Bessel):
      = -Graphics-
     """
 
-    sympy_name = ''
-    mpmath_name = 'struveh'
+    sympy_name = ""
+    mpmath_name = "struveh"
 
 
 class StruveL(_Bessel):
@@ -622,8 +626,8 @@ class StruveL(_Bessel):
      = -Graphics-
     """
 
-    sympy_name = ''
-    mpmath_name = 'struvel'
+    sympy_name = ""
+    mpmath_name = "struvel"
 
 
 class AngerJ(_Bessel):
@@ -642,8 +646,8 @@ class AngerJ(_Bessel):
 
     # TODO: Associated Anger function AngerJ[v, u, z]
 
-    sympy_name = ''
-    mpmath_name = 'angerj'
+    sympy_name = ""
+    mpmath_name = "angerj"
 
 
 class WeberE(_Bessel):
@@ -662,8 +666,9 @@ class WeberE(_Bessel):
 
     # TODO: Associated Weber function WeberE[v, u, z]
 
-    sympy_name = ''
-    mpmath_name = 'webere'
+    sympy_name = ""
+    mpmath_name = "webere"
+
 
 # Function Zeros
 
@@ -682,8 +687,8 @@ class BesselJZero(_Bessel):
      = 2.4048255576957727686
     """
 
-    sympy_name = ''
-    mpmath_name = 'besseljzero'
+    sympy_name = ""
+    mpmath_name = "besseljzero"
 
 
 class BesselYZero(_Bessel):
@@ -700,8 +705,8 @@ class BesselYZero(_Bessel):
      = 0.893577
     """
 
-    sympy_name = ''
-    mpmath_name = 'besselyzero'
+    sympy_name = ""
+    mpmath_name = "besselyzero"
 
 
 class AiryAiZero(Builtin):
@@ -729,15 +734,20 @@ class AiryAiZero(Builtin):
 
     # TODO: 'AiryAiZero[$k$, $x0$]' - $k$th zero less than x0
 
-    attributes = ('Listable', 'NHoldFirst',
-                  'NumericFunction', 'Protected', 'ReadProtected')
+    attributes = (
+        "Listable",
+        "NHoldFirst",
+        "NumericFunction",
+        "Protected",
+        "ReadProtected",
+    )
 
     rules = {
-        'AiryAi[AiryAiZero[k_]]': '0',
+        "AiryAi[AiryAiZero[k_]]": "0",
     }
 
     def apply_N(self, k, precision, evaluation):
-        'N[AiryAiZero[k_Integer], precision_]'
+        "N[AiryAiZero[k_Integer], precision_]"
 
         try:
             d = get_precision(precision, evaluation)
@@ -753,7 +763,7 @@ class AiryAiZero(Builtin):
 
         with mpmath.workprec(p):
             result = mpmath.airyaizero(k_int)
-            return Number.from_mpmath(result, d)
+            return from_mpmath(result, d)
 
 
 class AiryBiZero(Builtin):
@@ -781,15 +791,20 @@ class AiryBiZero(Builtin):
 
     # TODO: 'AiryBiZero[$k$, $x0$]' - $k$th zero less than x0
 
-    attributes = ('Listable', 'NHoldFirst',
-                  'NumericFunction', 'Protected', 'ReadProtected')
+    attributes = (
+        "Listable",
+        "NHoldFirst",
+        "NumericFunction",
+        "Protected",
+        "ReadProtected",
+    )
 
     rules = {
-        'AiryBi[AiryBiZero[z_]]': '0',
+        "AiryBi[AiryBiZero[z_]]": "0",
     }
 
     def apply_N(self, k, precision, evaluation):
-        'N[AiryBiZero[k_Integer], precision_]'
+        "N[AiryBiZero[k_Integer], precision_]"
 
         try:
             d = get_precision(precision, evaluation)
@@ -805,7 +820,8 @@ class AiryBiZero(Builtin):
 
         with mpmath.workprec(p):
             result = mpmath.airybizero(k_int)
-            return Number.from_mpmath(result, d)
+            return from_mpmath(result, d)
+
 
 # Orthogonal Polynomials
 
@@ -842,13 +858,11 @@ class LegendreP(_MPMathFunction):
      = -3 x Sqrt[1 - x^2]
     """
 
-    rules = {
-        'LegendreP[n_, x_]': 'LegendreP[n, 0, x]'
-    }
+    rules = {"LegendreP[n_, x_]": "LegendreP[n, 0, x]"}
 
     nargs = 3
-    sympy_name = 'legendre'
-    mpmath_name = 'legenp'
+    sympy_name = "legendre"
+    mpmath_name = "legenp"
 
     def prepare_sympy(self, leaves):
         if leaves[1] == Integer(0):
@@ -882,13 +896,11 @@ class LegendreQ(_MPMathFunction):
      = -3 x / 2 - 3 x ^ 2 Log[1 - x] / 4 + 3 x ^ 2 Log[1 + x] / 4 - Log[1 + x] / 4 + Log[1 - x] / 4
     """
 
-    rules = {
-        'LegendreQ[n_, x_]': 'LegendreQ[n, 0, x]'
-    }
+    rules = {"LegendreQ[n_, x_]": "LegendreQ[n, 0, x]"}
 
     nargs = 3
-    sympy_name = ''
-    mpmath_name = 'legenq'
+    sympy_name = ""
+    mpmath_name = "legenq"
 
     def prepare_sympy(self, leaves):
         if leaves[1] == Integer(0):
@@ -911,8 +923,8 @@ class JacobiP(_MPMathFunction):
     """
 
     nargs = 4
-    sympy_name = 'jacobi'
-    mpmath_name = 'jacobi'
+    sympy_name = "jacobi"
+    mpmath_name = "jacobi"
 
 
 class SphericalHarmonicY(_MPMathFunction):
@@ -934,8 +946,8 @@ class SphericalHarmonicY(_MPMathFunction):
     """
 
     nargs = 4
-    sympy_name = 'Ynm'
-    mpmath_name = 'spherharm'
+    sympy_name = "Ynm"
+    mpmath_name = "spherharm"
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr.expand(func=True).simplify()
@@ -958,8 +970,8 @@ class GegenbauerC(_MPMathFunction):
     # TODO: Two argument renormalized form GegenbauerC[n, x]
 
     nargs = 3
-    sympy_name = 'gegenbauer'
-    mpmath_name = 'gegenbauer'
+    sympy_name = "gegenbauer"
+    mpmath_name = "gegenbauer"
 
 
 class ChebyshevT(_MPMathFunction):
@@ -977,8 +989,8 @@ class ChebyshevT(_MPMathFunction):
     """
 
     nargs = 2
-    sympy_name = 'chebyshevt'
-    mpmath_name = 'chebyt'
+    sympy_name = "chebyshevt"
+    mpmath_name = "chebyt"
 
 
 class ChebyshevU(_MPMathFunction):
@@ -996,8 +1008,8 @@ class ChebyshevU(_MPMathFunction):
     """
 
     nargs = 2
-    sympy_name = 'chebyshevu'
-    mpmath_name = 'chebyu'
+    sympy_name = "chebyshevu"
+    mpmath_name = "chebyu"
 
 
 class HermiteH(_MPMathFunction):
@@ -1018,8 +1030,8 @@ class HermiteH(_MPMathFunction):
     """
 
     nargs = 2
-    sympy_name = 'hermite'
-    mpmath_name = 'hermite'
+    sympy_name = "hermite"
+    mpmath_name = "hermite"
 
 
 class LaguerreL(_MPMathFunction):
@@ -1042,17 +1054,18 @@ class LaguerreL(_MPMathFunction):
     """
 
     rules = {
-        'LaguerreL[n_, x_]': 'LaguerreL[n, 0, x]',
+        "LaguerreL[n_, x_]": "LaguerreL[n, 0, x]",
     }
 
     nargs = 3
-    sympy_name = 'laguerre_poly'
-    mpmath_name = 'laguerre'
+    sympy_name = "laguerre_poly"
+    mpmath_name = "laguerre"
 
     def prepare_sympy(self, leaves):
         if len(leaves) == 3:
             return [leaves[0], leaves[2], leaves[1]]
         return leaves
+
 
 # TODO: Zernike polynomials not yet implemented in mpmath nor sympy
 #
@@ -1079,7 +1092,7 @@ class LaguerreL(_MPMathFunction):
 
 
 class ExpIntegralEi(_MPMathFunction):
-    '''
+    """
     <dl>
     <dt>'ExpIntegralEi[$z$]'
       <dd>returns the exponential integral function $Ei(z)$.
@@ -1087,14 +1100,14 @@ class ExpIntegralEi(_MPMathFunction):
 
     >> ExpIntegralEi[2.0]
      = 4.95423
-    '''
+    """
 
-    sympy_name = 'Ei'
-    mpmath_name = 'ei'
+    sympy_name = "Ei"
+    mpmath_name = "ei"
 
 
 class ExpIntegralE(_MPMathFunction):
-    '''
+    """
     <dl>
     <dt>'ExpIntegralE[$n$, $z$]'
       <dd>returns the exponential integral function $E_n(z)$.
@@ -1102,11 +1115,11 @@ class ExpIntegralE(_MPMathFunction):
 
     >> ExpIntegralE[2.0, 2.0]
      = 0.0375343
-    '''
+    """
 
     nargs = 2
-    sympy_name = 'expint'
-    mpmath_name = 'expint'
+    sympy_name = "expint"
+    mpmath_name = "expint"
 
 
 class FresnelS(_MPMathFunction):
@@ -1124,7 +1137,7 @@ class FresnelS(_MPMathFunction):
      = 3 FresnelS[z] Gamma[3 / 4] / (4 Gamma[7 / 4])
     """
 
-    mpmath_name = 'fresnels'
+    mpmath_name = "fresnels"
 
 
 class FresnelC(_MPMathFunction):
@@ -1142,4 +1155,4 @@ class FresnelC(_MPMathFunction):
      = FresnelC[z] Gamma[1 / 4] / (4 Gamma[5 / 4])
     """
 
-    mpmath_name = 'fresnelc'
+    mpmath_name = "fresnelc"

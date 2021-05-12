@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -12,24 +11,47 @@ from itertools import chain
 import typing
 from typing import Any
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import (
-    Builtin, BinaryOperator, BoxConstruct, BoxConstructError, Operator,
-    Predefined)
+    Builtin,
+    BinaryOperator,
+    BoxConstruct,
+    BoxConstructError,
+    Operator,
+    Predefined,
+)
 from mathics.builtin.tensors import get_dimensions
 from mathics.builtin.comparison import expr_min
 from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
-    Expression, String, StringFromPython, Symbol, Integer, Real, BoxError,
-    from_python, MachineReal, PrecisionReal, Omitted)
+    Expression,
+    String,
+    StringFromPython,
+    Symbol,
+    Integer,
+    Real,
+    BoxError,
+    from_python,
+    MachineReal,
+    PrecisionReal,
+    SymbolList,
+    SymbolMakeBoxes,
+    SymbolRule,
+    Omitted,
+)
+
 from mathics.core.numbers import (
-    dps, convert_base, machine_precision, reconstruct_digits)
+    dps,
+    convert_base,
+    machine_precision,
+    reconstruct_digits,
+)
 
 from mathics.core.evaluation import Message as EvaluationMessage
 
 MULTI_NEWLINE_RE = re.compile(r"\n{2,}")
-
 
 
 class UseSansSerif(Predefined):
@@ -47,20 +69,19 @@ class UseSansSerif(Predefined):
     X> $UseSansSerif = False
 
     """
+
     context = "System`"
-    name = '$UseSansSerif'
+    name = "$UseSansSerif"
     attributes = ("Unprotected",)
     value = True
 
-    rules = {
-        '$UseSansSerif': str(value),
-    }
+    rules = {"$UseSansSerif": str(value)}
 
-    messages = {
-    }
+    messages = {}
 
     def evaluate(self, evaluation):
         return Integer(self.value)
+
 
 class Format(Builtin):
     """
@@ -90,27 +111,25 @@ class Format(Builtin):
      : Tag f not found or too deep for an assigned rule.
     """
 
-    messages = {
-        'fttp': "Format type `1` is not a symbol.",
-    }
+    messages = {"fttp": "Format type `1` is not a symbol."}
 
 
 def parenthesize(precedence, leaf, leaf_boxes, when_equal):
     from mathics.builtin import builtins_precedence
 
-    while leaf.has_form('HoldForm', 1):
+    while leaf.has_form("HoldForm", 1):
         leaf = leaf.leaves[0]
-    if leaf.has_form(('Infix', 'Prefix', 'Postfix'), 3, None):
+    if leaf.has_form(("Infix", "Prefix", "Postfix"), 3, None):
         leaf_prec = leaf.leaves[2].get_int_value()
-    elif leaf.has_form('PrecedenceForm', 2):
+    elif leaf.has_form("PrecedenceForm", 2):
         leaf_prec = leaf.leaves[1].get_int_value()
     else:
         leaf_prec = builtins_precedence.get(leaf.get_head_name())
     if precedence is not None and leaf_prec is not None:
         if precedence > leaf_prec or (precedence == leaf_prec and when_equal):
             return Expression(
-                'RowBox',
-                Expression('List', String("("), leaf_boxes, String(")")))
+                "RowBox", Expression(SymbolList, String("("), leaf_boxes, String(")"))
+            )
     return leaf_boxes
 
 
@@ -123,11 +142,11 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
         box = Expression('MakeBoxes', leaf, form)
 
         parenthesized = False
-        if grouping == 'System`NonAssociative':
+        if grouping == "System`NonAssociative":
             parenthesized = True
-        elif grouping == 'System`Left' and index > 0:
+        elif grouping == "System`Left" and index > 0:
             parenthesized = True
-        elif grouping == 'System`Right' and index == 0:
+        elif grouping == "System`Right" and index == 0:
             parenthesized = True
 
         return parenthesize(precedence, leaf, box, parenthesized)
@@ -140,8 +159,8 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
 
 def real_to_s_exp(expr, n):
     if expr.is_zero:
-        s = '0'
-        sign_prefix = ''
+        s = "0"
+        sign_prefix = ""
         if expr.is_machine_precision():
             exp = 0
         else:
@@ -163,7 +182,7 @@ def real_to_s_exp(expr, n):
                 s = mpmath.nstr(value, n)
 
         # sign prefix
-        if s[0] == '-':
+        if s[0] == "-":
             assert value < 0
             nonnegative = 0
             s = s[1:]
@@ -172,26 +191,26 @@ def real_to_s_exp(expr, n):
             nonnegative = 1
 
         # exponent (exp is actual, pexp is printed)
-        if 'e' in s:
-            s, exp = s.split('e')
+        if "e" in s:
+            s, exp = s.split("e")
             exp = int(exp)
-            if len(s) > 1 and s[1] == '.':
+            if len(s) > 1 and s[1] == ".":
                 # str(float) doesn't always include '.' if 'e' is present.
-                s = s[0] + s[2:].rstrip('0')
+                s = s[0] + s[2:].rstrip("0")
         else:
-            exp = s.index('.') - 1
-            s = s[:exp + 1] + s[exp + 2:].rstrip('0')
+            exp = s.index(".") - 1
+            s = s[: exp + 1] + s[exp + 2 :].rstrip("0")
 
             # consume leading '0's.
             i = 0
-            while s[i] == '0':
+            while s[i] == "0":
                 i += 1
                 exp -= 1
             s = s[i:]
 
         # add trailing zeros for precision reals
         if n is not None and not expr.is_machine_precision() and len(s) < n:
-            s = s + '0' * (n - len(s))
+            s = s + "0" * (n - len(s))
     return s, exp, nonnegative
 
 
@@ -208,7 +227,7 @@ def int_to_s_exp(expr, n):
 
 
 def number_form(expr, n, f, evaluation, options):
-    '''
+    """
     Converts a Real or Integer instance to Boxes.
 
     n digits of precision with f (can be None) digits after the decimal point.
@@ -217,7 +236,7 @@ def number_form(expr, n, f, evaluation, options):
     The allowed options are python versions of the options permitted to
     NumberForm and must be supplied. See NumberForm or Real.make_boxes
     for correct option examples.
-    '''
+    """
 
     assert isinstance(n, int) and n > 0 or n is None
     assert f is None or (isinstance(f, int) and f >= 0)
@@ -235,46 +254,46 @@ def number_form(expr, n, f, evaluation, options):
         if n is None:
             n = len(s)
     else:
-        raise ValueError('Expected Real or Integer.')
+        raise ValueError("Expected Real or Integer.")
 
     assert isinstance(n, int) and n > 0
 
-    sign_prefix = options['NumberSigns'][nonnegative]
+    sign_prefix = options["NumberSigns"][nonnegative]
 
     # round exponent to ExponentStep
-    rexp = (exp // options['ExponentStep']) * options['ExponentStep']
+    rexp = (exp // options["ExponentStep"]) * options["ExponentStep"]
 
     if is_int:
         # integer never uses scientific notation
-        pexp = ''
+        pexp = ""
     else:
-        method = options['ExponentFunction']
+        method = options["ExponentFunction"]
         pexp = method(Integer(rexp)).get_int_value()
         if pexp is not None:
             exp -= pexp
             pexp = str(pexp)
         else:
-            pexp = ''
+            pexp = ""
 
     # pad right with '0'.
     if len(s) < exp + 1:
         if evaluation is not None:
-            evaluation.message('NumberForm', 'sigz')
+            evaluation.message("NumberForm", "sigz")
         # TODO NumberPadding?
-        s = s + '0' * (1 + exp - len(s))
+        s = s + "0" * (1 + exp - len(s))
     # pad left with '0'.
     if exp < 0:
-        s = '0' * (-exp) + s
+        s = "0" * (-exp) + s
         exp = 0
 
     # left and right of NumberPoint
-    left, right = s[:exp + 1], s[exp + 1:]
+    left, right = s[: exp + 1], s[exp + 1 :]
 
     def _round(number, ndigits):
-        '''
+        """
         python round() for integers but with correct rounding.
         e.g. `_round(14225, -1)` is `14230` not `14220`.
-        '''
+        """
         assert isinstance(ndigits, int)
         assert ndigits < 0
         assert isinstance(number, int)
@@ -287,40 +306,40 @@ def number_form(expr, n, f, evaluation, options):
     if f is not None:
         if len(right) < f:
             # pad right
-            right = right + (f - len(right)) * options['NumberPadding'][1]
+            right = right + (f - len(right)) * options["NumberPadding"][1]
         elif len(right) > f:
             # round right
             tmp = int(left + right)
             tmp = _round(tmp, f - len(right))
             tmp = str(tmp)
-            left, right = tmp[:exp + 1], tmp[exp + 1:]
+            left, right = tmp[: exp + 1], tmp[exp + 1 :]
 
     def split_string(s, start, step):
         if start > 0:
             yield s[:start]
         for i in range(start, len(s), step):
-            yield s[i:i+step]
+            yield s[i : i + step]
 
     # insert NumberSeparator
-    digit_block = options['DigitBlock']
+    digit_block = options["DigitBlock"]
     if digit_block[0] != 0:
         left = split_string(left, len(left) % digit_block[0], digit_block[0])
-        left = options['NumberSeparator'][0].join(left)
+        left = options["NumberSeparator"][0].join(left)
     if digit_block[1] != 0:
         right = split_string(right, 0, digit_block[1])
-        right = options['NumberSeparator'][1].join(right)
+        right = options["NumberSeparator"][1].join(right)
 
     left_padding = 0
-    max_sign_len = max(len(options['NumberSigns'][0]), len(options['NumberSigns'][1]))
+    max_sign_len = max(len(options["NumberSigns"][0]), len(options["NumberSigns"][1]))
     l = len(sign_prefix) + len(left) + len(right) - max_sign_len
     if l < n:
         left_padding = n - l
     elif len(sign_prefix) < max_sign_len:
         left_padding = max_sign_len - len(sign_prefix)
-    left_padding = left_padding * options['NumberPadding'][0]
+    left_padding = left_padding * options["NumberPadding"][0]
 
     # insert NumberPoint
-    if options['SignPadding']:
+    if options["SignPadding"]:
         prefix = sign_prefix + left_padding
     else:
         prefix = left_padding + sign_prefix
@@ -328,13 +347,13 @@ def number_form(expr, n, f, evaluation, options):
     if is_int:
         s = prefix + left
     else:
-        s = prefix + left + options['NumberPoint'] + right
+        s = prefix + left + options["NumberPoint"] + right
 
     # base
-    base = '10'
+    base = "10"
 
     # build number
-    method = options['NumberFormat']
+    method = options["NumberFormat"]
     return method(String(s), String(base), String(pexp), options)
 
 
@@ -469,33 +488,30 @@ class MakeBoxes(Builtin):
      = RowBox[{a, ,, b}]
     """
 
-    attributes = ('HoldAllComplete', "Unprotected")
+    attributes = ("HoldAllComplete", "Unprotected")
 
     rules = {
-        'MakeBoxes[Infix[head_[leaves___]], '
-        '    f:StandardForm|TraditionalForm|OutputForm|InputForm]': (
-            'MakeBoxes[Infix[head[leaves], StringForm["~`1`~", head]], f]'),
-        'MakeBoxes[expr_]': 'MakeBoxes[expr, StandardForm]',
-        'MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|'
-        'MathMLForm)[expr_], StandardForm|TraditionalForm]': (
-            'MakeBoxes[expr, form]'),
-        'MakeBoxes[(form:OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]':
-        'MakeBoxes[expr, form]',
-        'MakeBoxes[StandardForm[expr_], OutputForm]':
-        'MakeBoxes[expr, OutputForm]',
-        'MakeBoxes[FullForm[expr_], StandardForm|TraditionalForm|OutputForm]':
-        'StyleBox[MakeBoxes[expr, FullForm], ShowStringCharacters->True]',
-        'MakeBoxes[InputForm[expr_], StandardForm|TraditionalForm|OutputForm]':
-        'StyleBox[MakeBoxes[expr, InputForm], ShowStringCharacters->True]',
-        'MakeBoxes[PrecedenceForm[expr_, prec_], f_]': 'MakeBoxes[expr, f]',
-        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': (
-            'StyleBox[MakeBoxes[expr, f], '
-            'ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]'),
+        "MakeBoxes[Infix[head_[leaves___]], "
+        "    f:StandardForm|TraditionalForm|OutputForm|InputForm]": (
+            'MakeBoxes[Infix[head[leaves], StringForm["~`1`~", head]], f]'
+        ),
+        "MakeBoxes[expr_]": "MakeBoxes[expr, StandardForm]",
+        "MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|"
+        "MathMLForm)[expr_], StandardForm|TraditionalForm]": ("MakeBoxes[expr, form]"),
+        "MakeBoxes[(form:OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]": "MakeBoxes[expr, form]",
+        "MakeBoxes[StandardForm[expr_], OutputForm]": "MakeBoxes[expr, OutputForm]",
+        "MakeBoxes[FullForm[expr_], StandardForm|TraditionalForm|OutputForm]": "StyleBox[MakeBoxes[expr, FullForm], ShowStringCharacters->True]",
+        "MakeBoxes[InputForm[expr_], StandardForm|TraditionalForm|OutputForm]": "StyleBox[MakeBoxes[expr, InputForm], ShowStringCharacters->True]",
+        "MakeBoxes[PrecedenceForm[expr_, prec_], f_]": "MakeBoxes[expr, f]",
+        "MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]": (
+            "StyleBox[MakeBoxes[expr, f], "
+            "ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]"
+        ),
     }
 
     def apply_general(self, expr, f, evaluation):
-        '''MakeBoxes[expr_,
-            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
+        """MakeBoxes[expr_,
+            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
 
         if expr.is_atom():
             return expr.atom_to_boxes(f, evaluation)
@@ -504,10 +520,10 @@ class MakeBoxes(Builtin):
             leaves = expr.leaves
 
             f_name = f.get_name()
-            if f_name == 'System`TraditionalForm':
-                left, right = '(', ')'
+            if f_name == "System`TraditionalForm":
+                left, right = "(", ")"
             else:
-                left, right = '[', ']'
+                left, right = "[", "]"
 
             # Parenthesize infix operators at the head of expressions,
             # like (a + b)[x], but not f[a] in f[a][b].
@@ -531,22 +547,22 @@ class MakeBoxes(Builtin):
                 prefix, make_leaf, len(leaves), String(left), String(right), String(sep), materialize, f)
 
     def _apply_atom(self, x, f, evaluation):
-        '''MakeBoxes[x_?AtomQ,
-            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]'''
+        """MakeBoxes[x_?AtomQ,
+            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
 
         return x.atom_to_boxes(f, evaluation)
 
     def apply_outerprecedenceform(self, expr, prec, f, evaluation):
-        '''MakeBoxes[OuterPrecedenceForm[expr_, prec_],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+        """MakeBoxes[OuterPrecedenceForm[expr_, prec_],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         precedence = prec.get_int_value()
         boxes = MakeBoxes(expr)
         return parenthesize(precedence, expr, boxes, True)
 
     def apply_postprefix(self, p, expr, h, prec, f, evaluation):
-        '''MakeBoxes[(p:Prefix|Postfix)[expr_, h_, prec_:None],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+        """MakeBoxes[(p:Prefix|Postfix)[expr_, h_, prec_:None],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         if not isinstance(h, String):
             h = MakeBoxes(h, f)
@@ -558,31 +574,32 @@ class MakeBoxes(Builtin):
             leaf = leaves[0]
             leaf_boxes = MakeBoxes(leaf, f)
             leaf = parenthesize(precedence, leaf, leaf_boxes, True)
-            if p.get_name() == 'System`Postfix':
+            if p.get_name() == "System`Postfix":
                 args = (leaf, h)
             else:
                 args = (h, leaf)
 
-            return Expression('RowBox', Expression('List', *args))
+            return Expression("RowBox", Expression(SymbolList, *args))
         else:
             return MakeBoxes(expr, f)
 
     def apply_infix(self, expr, h, prec, grouping, f, evaluation):
-        '''MakeBoxes[Infix[expr_, h_, prec_:None, grouping_:None],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]'''
+        """MakeBoxes[Infix[expr_, h_, prec_:None, grouping_:None],
+            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         def get_op(op):
             if not isinstance(op, String):
                 op = MakeBoxes(op, f)
             else:
                 op_value = op.get_string_value()
-                if (f.get_name() == 'System`InputForm' and op_value in ['*', '^']):
+                if f.get_name() == "System`InputForm" and op_value in ["*", "^"]:
                     pass
-                elif (f.get_name() in ('System`InputForm',
-                                       'System`OutputForm') and
-                      not op_value.startswith(' ') and
-                      not op_value.endswith(' ')):
-                    op = String(' ' + op_value + ' ')
+                elif (
+                    f.get_name() in ("System`InputForm", "System`OutputForm")
+                    and not op_value.startswith(" ")
+                    and not op_value.endswith(" ")
+                ):
+                    op = String(" " + op_value + " ")
             return op
 
         precedence = prec.get_int_value()
@@ -590,7 +607,7 @@ class MakeBoxes(Builtin):
 
         leaves = expr.get_leaves()
         if len(leaves) > 1:
-            if h.has_form('List', len(leaves) - 1):
+            if h.has_form("List", len(leaves) - 1):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
@@ -619,11 +636,11 @@ class ToBoxes(Builtin):
     """
 
     def apply(self, expr, form, evaluation):
-        'ToBoxes[expr_, form_:StandardForm]'
+        "ToBoxes[expr_, form_:StandardForm]"
 
         form_name = form.get_name()
         if form_name is None:
-            evaluation.message('ToBoxes', 'boxfmt', form)
+            evaluation.message("ToBoxes", "boxfmt", form)
         boxes = expr.format(evaluation, form_name)
         return boxes
 
@@ -647,6 +664,7 @@ class BoxData(Builtin):
     </dl>
     """
 
+
 class TextData(Builtin):
     """
     <dl>
@@ -655,7 +673,6 @@ class TextData(Builtin):
     cell.
     </dl>
     """
-
 
 
 class TooltipBox(Builtin):
@@ -671,12 +688,12 @@ class InterpretationBox(Builtin):
     """
     <dl>
     <dt>'InterpretationBox[{...}]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr.
     </dl>
     """
-    attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
 
+    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
 
 
 class StyleBox(Builtin):
@@ -690,7 +707,8 @@ class StyleBox(Builtin):
     the current notebook.
     </dl>
     """
-    attributes =  ('Protected', 'ReadProtected')
+
+    attributes = ("Protected", "ReadProtected")
 
 
 class ButtonBox(Builtin):
@@ -701,17 +719,21 @@ class ButtonBox(Builtin):
     notebook expression.
     </dl>
     """
-    attributes =  ('Protected', 'ReadProtected')
+
+    attributes = ("Protected", "ReadProtected")
+
 
 class TagBox(Builtin):
     """
     <dl>
     <dt>'TagBox[boxes, tag]'
-        <dd> is a low-level box construct that displays as 
+        <dd> is a low-level box construct that displays as
     boxes but is interpreted on input as expr
     </dl>
     """
-    attributes = ('HoldAllComplete', 'Protected', 'ReadProtected')
+
+    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
+
 
 class TemplateBox(Builtin):
     """
@@ -720,8 +742,9 @@ class TemplateBox(Builtin):
         <dd>is a low-level box structure that parameterizes the display and evaluation     of the boxes $box_i$ .
     </dl>
     """
-    attributes =  ('HoldAllComplete', 'Protected', 'ReadProtected')
-    
+
+    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
+
 
 class Row(Builtin):
     """
@@ -730,9 +753,10 @@ class Row(Builtin):
         <dd>formats several expressions inside a 'RowBox'.
     </dl>
     """
+
     def apply_makeboxes(self, items, sep, f, evaluation):
-        '''MakeBoxes[Row[{items___}, sep_:""],
-            f:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[Row[{items___}, sep_:""],
+            f:StandardForm|TraditionalForm|OutputForm]"""
 
         items = items.get_sequence()
         if not isinstance(sep, String):
@@ -742,10 +766,10 @@ class Row(Builtin):
         else:
             result = []
             for index, item in enumerate(items):
-                if index > 0 and not sep.same(String('')):
+                if index > 0 and not sep.same(String("")):
                     result.append(sep)
                 result.append(MakeBoxes(item, f))
-            return RowBox(Expression('List', *result))
+            return RowBox(Expression(SymbolList, *result))
 
 
 def is_constant(list):
@@ -777,34 +801,34 @@ class GridBox(BoxConstruct):
     #  = ...
     """
 
-    options = {
-        'ColumnAlignments': 'Center',
-    }
+    options = {"ColumnAlignments": "Center"}
 
     def get_array(self, leaves, evaluation):
-        options = self.get_option_values(leaves[1:], evaluation)
+        options = self.get_option_values(leaves=leaves[1:], evaluation=evaluation)
         if not leaves:
             raise BoxConstructError
         expr = leaves[0]
-        if not expr.has_form('List', None):
-            if not all(leaf.has_form('List', None) for leaf in expr.leaves):
+        if not expr.has_form("List", None):
+            if not all(leaf.has_form("List", None) for leaf in expr.leaves):
                 raise BoxConstructError
         items = [leaf.leaves for leaf in expr.leaves]
         if not is_constant([len(row) for row in items]):
             raise BoxConstructError
         return items, options
 
-    def boxes_to_tex(self, leaves, **box_options) -> str:
-        evaluation = box_options.get('evaluation')
+    def boxes_to_tex(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
+        evaluation = box_options.get("evaluation")
         items, options = self.get_array(leaves, evaluation)
         new_box_options = box_options.copy()
-        new_box_options['inside_list'] = True
-        column_alignments = options['System`ColumnAlignments'].get_name()
+        new_box_options["inside_list"] = True
+        column_alignments = options["System`ColumnAlignments"].get_name()
         try:
             column_alignments = {
-                'System`Center': 'c',
-                'System`Left': 'l',
-                'System`Right': 'r'
+                "System`Center": "c",
+                "System`Left": "l",
+                "System`Right": "r",
             }[column_alignments]
         except KeyError:
             # invalid column alignment
@@ -812,52 +836,66 @@ class GridBox(BoxConstruct):
         column_count = 0
         for row in items:
             column_count = max(column_count, len(row))
-        result = r'\begin{array}{%s} ' % (column_alignments * column_count)
+        result = r"\begin{array}{%s} " % (column_alignments * column_count)
         for index, row in enumerate(items):
-            result += ' & '.join(item.boxes_to_tex(**new_box_options)
-                                 for item in row)
+            result += " & ".join(
+                item.evaluate(evaluation).boxes_to_tex(**new_box_options)
+                for item in row
+            )
             if index != len(items) - 1:
-                result += '\\\\ '
-        result += r'\end{array}'
+                result += "\\\\ "
+        result += r"\end{array}"
         return result
 
-    def boxes_to_xml(self, leaves, **box_options) -> str:
-        evaluation = box_options.get('evaluation')
+    def boxes_to_mathml(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
+        evaluation = box_options.get("evaluation")
         items, options = self.get_array(leaves, evaluation)
         attrs = {}
-        column_alignments = options['System`ColumnAlignments'].get_name()
+        column_alignments = options["System`ColumnAlignments"].get_name()
         try:
-            attrs['columnalign'] = {
-                'System`Center': 'center',
-                'System`Left': 'left',
-                'System`Right': 'right',
+            attrs["columnalign"] = {
+                "System`Center": "center",
+                "System`Left": "left",
+                "System`Right": "right",
             }[column_alignments]
         except KeyError:
             # invalid column alignment
             raise BoxConstructError
-        joined_attrs = ' '.join('{0}="{1}"'.format(name, value)
-                         for name, value in attrs.items())
-        result = '<mtable {0}>\n'.format(joined_attrs)
+        joined_attrs = " ".join(
+            '{0}="{1}"'.format(name, value) for name, value in attrs.items()
+        )
+        result = "<mtable {0}>\n".format(joined_attrs)
         new_box_options = box_options.copy()
-        new_box_options['inside_list'] = True
+        new_box_options["inside_list"] = True
         for row in items:
-            result += '<mtr>'
+            result += "<mtr>"
             for item in row:
-                result += '<mtd {0}>{1}</mtd>'.format(
-                    joined_attrs, item.boxes_to_xml(**new_box_options))
-            result += '</mtr>\n'
-        result += '</mtable>'
+                result += "<mtd {0}>{1}</mtd>".format(
+                    joined_attrs,
+                    item.evaluate(evaluation).boxes_to_mathml(**new_box_options),
+                )
+            result += "</mtr>\n"
+        result += "</mtable>"
         return result
 
-    def boxes_to_text(self, leaves, **box_options) -> str:
-        evaluation = box_options.get('evaluation')
+    def boxes_to_text(self, leaves=None, **box_options) -> str:
+        if not leaves:
+            leaves = self._leaves
+        evaluation = box_options.get("evaluation")
         items, options = self.get_array(leaves, evaluation)
-        result = ''
+        result = ""
         if not items:
-            return ''
+            return ""
         widths = [0] * len(items[0])
-        cells = [[item.boxes_to_text(**box_options).splitlines()
-                  for item in row] for row in items]
+        cells = [
+            [
+                item.evaluate(evaluation).boxes_to_text(**box_options).splitlines()
+                for item in row
+            ]
+            for row in items
+        ]
         for row in cells:
             for index, cell in enumerate(row):
                 if index >= len(widths):
@@ -866,24 +904,24 @@ class GridBox(BoxConstruct):
                     widths[index] = max(widths[index], len(line))
         for row_index, row in enumerate(cells):
             if row_index > 0:
-                result += '\n'
+                result += "\n"
             k = 0
             while True:
                 line_exists = False
-                line = ''
+                line = ""
                 for cell_index, cell in enumerate(row):
                     if len(cell) > k:
                         line_exists = True
                         text = cell[k]
                     else:
-                        text = ''
+                        text = ""
                     line += text
                     if cell_index < len(row) - 1:
-                        line += ' ' * (widths[cell_index] - len(text))
+                        line += " " * (widths[cell_index] - len(text))
                         # if cell_index < len(row) - 1:
-                        line += '   '
+                        line += "   "
                 if line_exists:
-                    result += line + '\n'
+                    result += line + "\n"
                 else:
                     break
                 k += 1
@@ -938,6 +976,8 @@ class Grid(Builtin):
             None, None, None,
             materialize, f)
 
+#        return Expression('GridBox',Expression('List', *(Expression('List', *(Expression('MakeBoxes', item, f) for item in row.leaves)) for row in array.leaves)),            *options_to_rules(options))
+
 
 class TableForm(Builtin):
     """
@@ -977,31 +1017,38 @@ class TableForm(Builtin):
      = #<--#
     """
 
-    options = {
-        'TableDepth': 'Infinity',
-    }
+    options = {"TableDepth": "Infinity"}
 
     def apply_makeboxes(self, table, f, evaluation, options):
-        '''MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
-            f:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
+            f:StandardForm|TraditionalForm|OutputForm]"""
 
-        dims = len(get_dimensions(table, head=Symbol('List')))
-        depth = self.get_option(options, 'TableDepth', evaluation).unformatted
+        dims = len(get_dimensions(table, head=Symbol("List")))
+        depth = self.get_option(options, "TableDepth", evaluation).unformatted
         depth = expr_min((Integer(dims), depth))
         depth = depth.get_int_value()
         if depth is None:
-            evaluation.message(self.get_name(), 'int')
+            evaluation.message(self.get_name(), "int")
             return
 
         if depth <= 0:
-            return Expression('MakeBoxes', table, f)
+            return Expression(SymbolMakeBoxes, table, f)
         elif depth == 1:
-            return Expression(
-                'GridBox', Expression('List', *(
-                    Expression('List', Expression('MakeBoxes', item, f))
-                    for item in table.leaves)))
+            return GridBox(
+                Expression(
+                    "List",
+                    *(
+                        Expression(SymbolList, Expression(SymbolMakeBoxes, item, f))
+                        for item in table.leaves
+                    )
+                )
+            )
+            # return Expression(
+            #    'GridBox', Expression('List', *(
+            #        Expression('List', Expression('MakeBoxes', item, f))
+            #        for item in table.leaves)))
         else:
-            new_depth = Expression('Rule', Symbol('TableDepth'), depth - 2)
+            new_depth = Expression(SymbolRule, Symbol("TableDepth"), depth - 2)
 
             def transform_item(item):
                 if depth > 2:
@@ -1009,11 +1056,21 @@ class TableForm(Builtin):
                 else:
                     return item
 
-            return Expression(
-                'GridBox', Expression('List', *(
-                    Expression('List', *(
-                        Expression('MakeBoxes', transform_item(item), f)
-                        for item in row.leaves)) for row in table.leaves)))
+            return GridBox(
+                Expression(
+                    "List",
+                    *(
+                        Expression(
+                            "List",
+                            *(
+                                Expression(SymbolMakeBoxes, transform_item(item), f)
+                                for item in row.leaves
+                            )
+                        )
+                        for row in table.leaves
+                    )
+                )
+            )
 
 
 class MatrixForm(TableForm):
@@ -1041,14 +1098,14 @@ class MatrixForm(TableForm):
     """
 
     def apply_makeboxes_matrix(self, table, f, evaluation, options):
-        '''MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
-            f:StandardForm|TraditionalForm]'''
+        """MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
+            f:StandardForm|TraditionalForm]"""
 
-        result = super(MatrixForm, self).apply_makeboxes(
-            table, f, evaluation, options)
-        if result.get_head_name() == 'System`GridBox':
-            return Expression('RowBox', Expression(
-                'List', String("("), result, String(")")))
+        result = super(MatrixForm, self).apply_makeboxes(table, f, evaluation, options)
+        if result.get_head_name() == "System`GridBox":
+            return Expression(
+                "RowBox", Expression(SymbolList, String("("), result, String(")"))
+            )
         return result
 
 
@@ -1064,8 +1121,9 @@ class Superscript(Builtin):
     """
 
     rules = {
-        'MakeBoxes[Superscript[x_, y_], f:StandardForm|TraditionalForm]': (
-            'SuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f]]'),
+        "MakeBoxes[Superscript[x_, y_], f:StandardForm|TraditionalForm]": (
+            "SuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f]]"
+        )
     }
 
 
@@ -1085,7 +1143,7 @@ class Subscript(Builtin):
     """
 
     def apply_makeboxes(self, x, y, f, evaluation) -> Expression:
-        'MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]'
+        "MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]"
 
         def materialize(prefix, inner, suffix):
             return Expression('SubscriptBox', *list(chain(prefix, inner, suffix)))
@@ -1110,10 +1168,10 @@ class Subsuperscript(Builtin):
     """
 
     rules = {
-        'MakeBoxes[Subsuperscript[x_, y_, z_], '
-        'f:StandardForm|TraditionalForm]': (
-            'SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], '
-            'MakeBoxes[z, f]]'),
+        "MakeBoxes[Subsuperscript[x_, y_, z_], "
+        "f:StandardForm|TraditionalForm]": (
+            "SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], " "MakeBoxes[z, f]]"
+        )
     }
 
 
@@ -1138,10 +1196,10 @@ class Postfix(BinaryOperator):
      = Hold[f[e[d[c[b[a[x]]]]]]]
     """
 
-    operator = '//'
+    operator = "//"
     operator_display = None
     precedence = 70
-    grouping = 'Left'
+    grouping = "Left"
 
 
 class Prefix(BinaryOperator):
@@ -1171,10 +1229,10 @@ class Prefix(BinaryOperator):
      = Hold[a[b[c[d[e[f[x]]]]]]]
     """
 
-    operator = '@'
+    operator = "@"
     operator_display = None
     precedence = 640
-    grouping = 'Right'
+    grouping = "Right"
 
 
 class Infix(Builtin):
@@ -1265,8 +1323,8 @@ class StringForm(Builtin):
     """
 
     def apply_makeboxes(self, s, args, f, evaluation):
-        '''MakeBoxes[StringForm[s_String, args___],
-            f:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[StringForm[s_String, args___],
+            f:StandardForm|TraditionalForm|OutputForm]"""
 
         # StringForm does not call evaluation.make_boxes
         # since we use it for messages and we never want
@@ -1279,7 +1337,7 @@ class StringForm(Builtin):
         result = []
         pos = 0
         last_index = 0
-        for match in re.finditer(r'(\`(\d*)\`)', s):
+        for match in re.finditer(r"(\`(\d*)\`)", s):
             start, end = match.span(1)
             if match.group(2):
                 index = int(match.group(2))
@@ -1295,7 +1353,7 @@ class StringForm(Builtin):
                 result.append(MakeBoxes(arg, f))
         if pos < len(s):
             result.append(String(s[pos:]))
-        return RowBox(Expression('List', *result))
+        return RowBox(Expression(SymbolList, *result))
 
 
 class Message(Builtin):
@@ -1315,27 +1373,28 @@ class Message(Builtin):
      : Hello you, Mr 007!
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     messages = {
-        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+        "name": "Message name `1` is not of the form symbol::name or symbol::name::language."
     }
 
     def apply(self, symbol, tag, params, evaluation):
-        'Message[MessageName[symbol_Symbol, tag_String], params___]'
+        "Message[MessageName[symbol_Symbol, tag_String], params___]"
 
         params = params.get_sequence()
         evaluation.message(symbol.name, tag.value, *params)
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 def check_message(expr) -> bool:
-    'checks if an expression is a valid message'
-    if expr.has_form('MessageName', 2):
+    "checks if an expression is a valid message"
+    if expr.has_form("MessageName", 2):
         symbol, tag = expr.get_leaves()
         if symbol.get_name() and tag.get_string_value():
             return True
     return False
+
 
 class Check(Builtin):
     """
@@ -1408,28 +1467,28 @@ class Check(Builtin):
      = err
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     messages = {
-        'argmu': 'Check called with 1 argument; 2 or more arguments are expected.',
-        'name': 'Message name `1` is not of the form symbol::name or symbol::name::language.',
+        "argmu": "Check called with 1 argument; 2 or more arguments are expected.",
+        "name": "Message name `1` is not of the form symbol::name or symbol::name::language.",
     }
 
     def apply_1_argument(self, expr, evaluation):
-        'Check[expr_]'
-        return evaluation.message('Check', 'argmu')
+        "Check[expr_]"
+        return evaluation.message("Check", "argmu")
 
     def apply(self, expr, failexpr, params, evaluation):
-        'Check[expr_, failexpr_, params___]'
+        "Check[expr_, failexpr_, params___]"
 
-        #Todo: To implement the third form of this function , we need to implement the function $MessageGroups first
-            #<dt>'Check[$expr$, $failexpr$, "name"]'
-               #<dd>checks only for messages in the named message group.
+        # Todo: To implement the third form of this function , we need to implement the function $MessageGroups first
+        # <dt>'Check[$expr$, $failexpr$, "name"]'
+        # <dd>checks only for messages in the named message group.
 
         def get_msg_list(exprs):
             messages = []
             for expr in exprs:
-                if expr.has_form('List', None):
+                if expr.has_form("List", None):
                     messages.extend(get_msg_list(expr.leaves))
                 elif check_message(expr):
                     messages.append(expr)
@@ -1443,15 +1502,15 @@ class Check(Builtin):
         params = params.get_sequence()
         if len(params) == 0:
             result = expr.evaluate(evaluation)
-            if(len(evaluation.out)):
+            if len(evaluation.out):
                 display_fail_expr = True
         else:
             try:
                 msgs = get_msg_list(params)
                 for x in msgs:
                     check_messages.add(x)
-            except Exception as inst :
-                evaluation.message('Check', 'name', inst.args[0])
+            except Exception as inst:
+                evaluation.message("Check", "name", inst.args[0])
                 return
             curr_msg = len(evaluation.out)
             result = expr.evaluate(evaluation)
@@ -1459,11 +1518,14 @@ class Check(Builtin):
             for out_msg in own_messages:
                 if type(out_msg) is not EvaluationMessage:
                     continue
-                pattern = Expression('MessageName', Symbol(out_msg.symbol), String(out_msg.tag))
+                pattern = Expression(
+                    "MessageName", Symbol(out_msg.symbol), String(out_msg.tag)
+                )
                 if pattern in check_messages:
                     display_fail_expr = True
                     break
         return failexpr if display_fail_expr is True else result
+
 
 class Quiet(Builtin):
     """
@@ -1497,35 +1559,38 @@ class Quiet(Builtin):
      = Quiet[x + x, {a::b}, {a::b}]
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     messages = {
-        'anmlist': ("Argument `1` of `2` should be All, None, a message name, "
-                    "or a list of message names."),
-        'allall': "Arguments 2 and 3 of `1` should not both be All.",
-        'conflict': (
+        "anmlist": (
+            "Argument `1` of `2` should be All, None, a message name, "
+            "or a list of message names."
+        ),
+        "allall": "Arguments 2 and 3 of `1` should not both be All.",
+        "conflict": (
             "In `1` the message name(s) `2` appear in both the list of "
-            "messages to switch off and the list of messages to switch on."),
+            "messages to switch off and the list of messages to switch on."
+        ),
     }
 
     rules = {
-        'Quiet[expr_]': 'Quiet[expr, All]',
-        'Quiet[expr_, moff_]': 'Quiet[expr, moff, None]',
+        "Quiet[expr_]": "Quiet[expr, All]",
+        "Quiet[expr_, moff_]": "Quiet[expr, moff, None]",
     }
 
     def apply(self, expr, moff, mon, evaluation):
-        'Quiet[expr_, moff_, mon_]'
+        "Quiet[expr_, moff_, mon_]"
 
         def get_msg_list(expr):
             if check_message(expr):
-                expr = Expression('List', expr)
-            if expr.get_name() == 'System`All':
+                expr = Expression(SymbolList, expr)
+            if expr.get_name() == "System`All":
                 all = True
                 messages = []
-            elif expr.get_name() == 'System`None':
+            elif expr.get_name() == "System`None":
                 all = False
                 messages = []
-            elif expr.has_form('List', None):
+            elif expr.has_form("List", None):
                 all = False
                 messages = []
                 for item in expr.leaves:
@@ -1541,19 +1606,19 @@ class Quiet(Builtin):
         old_quiet_messages = set(evaluation.get_quiet_messages())
         quiet_messages = old_quiet_messages.copy()
         try:
-            quiet_expr = Expression('Quiet', expr, moff, mon)
+            quiet_expr = Expression("Quiet", expr, moff, mon)
             try:
                 off_all, off_messages = get_msg_list(moff)
             except ValueError:
-                evaluation.message('Quiet', 'anmlist', 2, quiet_expr)
+                evaluation.message("Quiet", "anmlist", 2, quiet_expr)
                 return
             try:
                 on_all, on_messages = get_msg_list(mon)
             except ValueError:
-                evaluation.message('Quiet', 'anmlist', 2, quiet_expr)
+                evaluation.message("Quiet", "anmlist", 2, quiet_expr)
                 return
             if off_all and on_all:
-                evaluation.message('Quiet', 'allall', quiet_expr)
+                evaluation.message("Quiet", "allall", quiet_expr)
                 return
             evaluation.quiet_all = off_all
             conflict = []
@@ -1562,7 +1627,9 @@ class Quiet(Builtin):
                     conflict.append(off)
                     break
             if conflict:
-                evaluation.message('Quiet', 'conflict', quiet_expr, Expression('List', *conflict))
+                evaluation.message(
+                    "Quiet", "conflict", quiet_expr, Expression(SymbolList, *conflict)
+                )
                 return
             for off in off_messages:
                 quiet_messages.add(off)
@@ -1579,7 +1646,7 @@ class Quiet(Builtin):
 
 
 class Off(Builtin):
-    '''
+    """
     <dl>
     <dt>'Off[$symbol$::$tag$]'
         <dd>turns a message off so it is no longer printed.
@@ -1598,12 +1665,12 @@ class Off(Builtin):
     #> Off[Message::name, 1]
 
     #> On[Power::infy, Power::indet, Syntax::com]
-    '''
+    """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     def apply(self, expr, evaluation):
-        'Off[expr___]'
+        "Off[expr___]"
 
         seq = expr.get_sequence()
         quiet_messages = set(evaluation.get_quiet_messages())
@@ -1614,18 +1681,18 @@ class Off(Builtin):
 
         for e in seq:
             if isinstance(e, Symbol):
-                quiet_messages.add(Expression('MessageName', e, String('trace')))
+                quiet_messages.add(Expression("MessageName", e, String("trace")))
             elif check_message(e):
                 quiet_messages.add(e)
             else:
-                evaluation.message('Message', 'name', e)
+                evaluation.message("Message", "name", e)
             evaluation.set_quiet_messages(quiet_messages)
 
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class On(Builtin):
-    '''
+    """
     <dl>
     <dt>'On[$symbol$::$tag$]'
         <dd>turns a message on for printing.
@@ -1638,18 +1705,18 @@ class On(Builtin):
     >> 1 / 0
      : Infinite expression 1 / 0 encountered.
      = ComplexInfinity
-    '''
+    """
 
     # TODO
-    '''
+    """
     #> On[f::x]
      : Message f::x not found.
-    '''
+    """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     def apply(self, expr, evaluation):
-        'On[expr___]'
+        "On[expr___]"
 
         seq = expr.get_sequence()
         quiet_messages = set(evaluation.get_quiet_messages())
@@ -1660,13 +1727,13 @@ class On(Builtin):
 
         for e in seq:
             if isinstance(e, Symbol):
-                quiet_messages.discard(Expression('MessageName', e, String('trace')))
+                quiet_messages.discard(Expression("MessageName", e, String("trace")))
             elif check_message(e):
                 quiet_messages.discard(e)
             else:
-                evaluation.message('Message', 'name', e)
+                evaluation.message("Message", "name", e)
             evaluation.set_quiet_messages(quiet_messages)
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class MessageName(BinaryOperator):
@@ -1686,33 +1753,33 @@ class MessageName(BinaryOperator):
      = MessageName[a, "b"]
     """
 
-    messages = {
-        'messg': "Message cannot be set to `1`. It must be set to a string.",
-    }
+    messages = {"messg": "Message cannot be set to `1`. It must be set to a string."}
 
-    operator = '::'
+    operator = "::"
     precedence = 750
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     default_formats = False
 
-    formats: typing.Dict[str, Any] = {
-    }
+    formats: typing.Dict[str, Any] = {}
 
     rules = {
-        'MakeBoxes[MessageName[symbol_Symbol, tag_String], '
-        'f:StandardForm|TraditionalForm|OutputForm]': (
-            'RowBox[{MakeBoxes[symbol, f], "::", MakeBoxes[tag, f]}]'),
-        'MakeBoxes[MessageName[symbol_Symbol, tag_String], InputForm]': (
-            'RowBox[{MakeBoxes[symbol, InputForm], "::", tag}]'),
+        "MakeBoxes[MessageName[symbol_Symbol, tag_String], "
+        "f:StandardForm|TraditionalForm|OutputForm]": (
+            'RowBox[{MakeBoxes[symbol, f], "::", MakeBoxes[tag, f]}]'
+        ),
+        "MakeBoxes[MessageName[symbol_Symbol, tag_String], InputForm]": (
+            'RowBox[{MakeBoxes[symbol, InputForm], "::", tag}]'
+        ),
     }
 
     def apply(self, symbol, tag, evaluation):
-        'MessageName[symbol_Symbol, tag_String]'
+        "MessageName[symbol_Symbol, tag_String]"
 
-        pattern = Expression('MessageName', symbol, tag)
+        pattern = Expression("MessageName", symbol, tag)
         return evaluation.definitions.get_value(
-            symbol.get_name(), 'System`Messages', pattern, evaluation)
+            symbol.get_name(), "System`Messages", pattern, evaluation
+        )
 
 
 class Syntax(Builtin):
@@ -1804,18 +1871,17 @@ class Syntax(Builtin):
 
     # Extension: MMA does not provide lineno and filename in its error messages
     messages = {
-        'snthex': r'4 hexadecimal digits are required after \: to construct a 16-bit character (line `4` of `5`).',
-        'sntoct1': r'3 octal digits are required after \ to construct an 8-bit character (line `4` of `5`).',
-        'sntoct2': r'2 hexadecimal digits are required after \. to construct an 8-bit character (line `4` of `5`).',
-        'sntxi': 'Incomplete expression; more input is needed (line `4` of `5`).',
-        'sntxb': 'Expression cannot begin with `1` (line `4` of `5`).',
-        'sntxf': '`1` cannot be followed by `2` (line `4` of `5`).',
-        'bktwrn': '`1` represents multiplication; use `2` to represent a function (line `4` of `5`).',    # TODO
-        'bktmch': '`1` must be followed by `2`, not `3` (line `4` of `5`).',
-        'sntue': 'Unexpected end of file; probably unfinished expression (line `4` of `5`).',
-        'sntufn': 'Unknown unicode longname `1` (line `4` of `5`).',
-        'com': 'Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line `4` of `5`).',
-
+        "snthex": r"4 hexadecimal digits are required after \: to construct a 16-bit character (line `4` of `5`).",
+        "sntoct1": r"3 octal digits are required after \ to construct an 8-bit character (line `4` of `5`).",
+        "sntoct2": r"2 hexadecimal digits are required after \. to construct an 8-bit character (line `4` of `5`).",
+        "sntxi": "Incomplete expression; more input is needed (line `4` of `5`).",
+        "sntxb": "Expression cannot begin with `1` (line `4` of `5`).",
+        "sntxf": "`1` cannot be followed by `2` (line `4` of `5`).",
+        "bktwrn": "`1` represents multiplication; use `2` to represent a function (line `4` of `5`).",  # TODO
+        "bktmch": "`1` must be followed by `2`, not `3` (line `4` of `5`).",
+        "sntue": "Unexpected end of file; probably unfinished expression (line `4` of `5`).",
+        "sntufn": "Unknown unicode longname `1` (line `4` of `5`).",
+        "com": "Warning: comma encountered with no adjacent expression. The expression will be treated as Null (line `4` of `5`).",
     }
 
 
@@ -1833,84 +1899,85 @@ class General(Builtin):
     """
 
     messages = {
-        'argb': ("`1` called with `2` arguments; "
-                 "between `3` and `4` arguments are expected."),
-        'argct': "`1` called with `2` arguments.",
-        'argctu': "`1` called with 1 argument.",
-        'argr': "`1` called with 1 argument; `2` arguments are expected.",
-        'argrx': "`1` called with `2` arguments; `3` arguments are expected.",
-        'argx': "`1` called with `2` arguments; 1 argument is expected.",
-        'argt': ("`1` called with `2` arguments; "
-                 "`3` or `4` arguments are expected."),
-        'argtu': (
-            "`1` called with 1 argument; `2` or `3` arguments are expected."),
-        'base': 'Requested base `1` in `2` should be between 2 and `3`.',
-        'boxfmt': "`1` is not a box formatting type.",
-        'color': "`1` is not a valid color or gray-level specification.",
-        'cxt': "`1` is not a valid context name.",
-        'divz': "The argument `1` should be nonzero.",
-        'digit': 'Digit at position `1` in `2` is too large to be used in base `3`.',
-        'exact': "Argument `1` is not an exact number.",
-        'fnsym': ("First argument in `1` is not a symbol "
-                  "or a string naming a symbol."),
-        'heads': "Heads `1` and `2` are expected to be the same.",
-        'ilsnn': ("Single or list of non-negative integers expected at "
-                  "position `1`."),
-        'indet': "Indeterminate expression `1` encountered.",
-        'innf': "Non-negative integer or Infinity expected at position `1`.",
-        'int': "Integer expected.",
-        'intp': "Positive integer expected.",
-        'intnn': "Non-negative integer expected.",
-        'iterb': "Iterator does not have appropriate bounds.",
-        'ivar': "`1` is not a valid variable.",
-        'level': ("Level specification `1` is not of the form n, "
-                  "{n}, or {m, n}."),
-        'locked': "Symbol `1` is locked.",
-        'matsq': "Argument `1` is not a non-empty square matrix.",
-        'newpkg': "In WL, there is a new package for this.",
-        'noopen': "Cannot open `1`.",
-        'nord': "Invalid comparison with `1` attempted.",
-        'normal': "Nonatomic expression expected.",
-        'noval': (
-            "Symbol `1` in part assignment does not have an immediate value."),
-        'obspkg': "In WL, this package is obsolete.",
-        'openx': "`1` is not open.",
-        'optb': "Optional object `1` in `2` is not a single blank.",
-        'ovfl': "Overflow occurred in computation.",
-        'partd': "Part specification is longer than depth of object.",
-        'partw': "Part `1` of `2` does not exist.",
-        'plld': "Endpoints in `1` must be distinct machine-size real numbers.",
-        'plln': "Limiting value `1` in `2` is not a machine-size real number.",
-        'pspec': ("Part specification `1` is neither an integer nor "
-                  "a list of integer."),
-        'seqs': "Sequence specification expected, but got `1`.",
-        'setp': "Part assignment to `1` could not be made",
-        'setps': "`1` in the part assignment is not a symbol.",
-        'span': "`1` is not a valid Span specification.",
-        'stream': "`1` is not string, InputStream[], or OutputStream[]",
-        'string': "String expected.",
-        'sym': "Argument `1` at position `2` is expected to be a symbol.",
-        'tag': "Rule for `1` can only be attached to `2`.",
-        'take': "Cannot take positions `1` through `2` in `3`.",
-        'vrule': ("Cannot set `1` to `2`, "
-                  "which is not a valid list of replacement rules."),
-        'write': "Tag `1` in `2` is Protected.",
-        'wrsym': "Symbol `1` is Protected.",
-        'ucdec': "An invalid unicode sequence was encountered and ignored.",
-        'charcode': 'The character encoding `1` is not supported. Use $CharacterEncodings to list supported encodings.',
-
+        "argb": (
+            "`1` called with `2` arguments; "
+            "between `3` and `4` arguments are expected."
+        ),
+        "argct": "`1` called with `2` arguments.",
+        "argctu": "`1` called with 1 argument.",
+        "argr": "`1` called with 1 argument; `2` arguments are expected.",
+        "argrx": "`1` called with `2` arguments; `3` arguments are expected.",
+        "argx": "`1` called with `2` arguments; 1 argument is expected.",
+        "argt": (
+            "`1` called with `2` arguments; " "`3` or `4` arguments are expected."
+        ),
+        "argtu": ("`1` called with 1 argument; `2` or `3` arguments are expected."),
+        "base": "Requested base `1` in `2` should be between 2 and `3`.",
+        "boxfmt": "`1` is not a box formatting type.",
+        "color": "`1` is not a valid color or gray-level specification.",
+        "cxt": "`1` is not a valid context name.",
+        "divz": "The argument `1` should be nonzero.",
+        "digit": "Digit at position `1` in `2` is too large to be used in base `3`.",
+        "exact": "Argument `1` is not an exact number.",
+        "fnsym": (
+            "First argument in `1` is not a symbol " "or a string naming a symbol."
+        ),
+        "heads": "Heads `1` and `2` are expected to be the same.",
+        "ilsnn": (
+            "Single or list of non-negative integers expected at " "position `1`."
+        ),
+        "indet": "Indeterminate expression `1` encountered.",
+        "innf": "Non-negative integer or Infinity expected at position `1`.",
+        "int": "Integer expected.",
+        "intp": "Positive integer expected.",
+        "intnn": "Non-negative integer expected.",
+        "iterb": "Iterator does not have appropriate bounds.",
+        "ivar": "`1` is not a valid variable.",
+        "level": ("Level specification `1` is not of the form n, " "{n}, or {m, n}."),
+        "locked": "Symbol `1` is locked.",
+        "matsq": "Argument `1` is not a non-empty square matrix.",
+        "newpkg": "In WL, there is a new package for this.",
+        "noopen": "Cannot open `1`.",
+        "nord": "Invalid comparison with `1` attempted.",
+        "normal": "Nonatomic expression expected.",
+        "noval": ("Symbol `1` in part assignment does not have an immediate value."),
+        "obspkg": "In WL, this package is obsolete.",
+        "openx": "`1` is not open.",
+        "optb": "Optional object `1` in `2` is not a single blank.",
+        "ovfl": "Overflow occurred in computation.",
+        "partd": "Part specification is longer than depth of object.",
+        "partw": "Part `1` of `2` does not exist.",
+        "plld": "Endpoints in `1` must be distinct machine-size real numbers.",
+        "plln": "Limiting value `1` in `2` is not a machine-size real number.",
+        "pspec": (
+            "Part specification `1` is neither an integer nor " "a list of integer."
+        ),
+        "seqs": "Sequence specification expected, but got `1`.",
+        "setp": "Part assignment to `1` could not be made",
+        "setps": "`1` in the part assignment is not a symbol.",
+        "span": "`1` is not a valid Span specification.",
+        "stream": "`1` is not string, InputStream[], or OutputStream[]",
+        "string": "String expected.",
+        "sym": "Argument `1` at position `2` is expected to be a symbol.",
+        "tag": "Rule for `1` can only be attached to `2`.",
+        "take": "Cannot take positions `1` through `2` in `3`.",
+        "vrule": (
+            "Cannot set `1` to `2`, " "which is not a valid list of replacement rules."
+        ),
+        "write": "Tag `1` in `2` is Protected.",
+        "wrsym": "Symbol `1` is Protected.",
+        "ucdec": "An invalid unicode sequence was encountered and ignored.",
+        "charcode": "The character encoding `1` is not supported. Use $CharacterEncodings to list supported encodings.",
         # Self-defined messages
         # 'rep': "`1` is not a valid replacement rule.",
-        'options': "`1` is not a valid list of option rules.",
-        'timeout': "Timeout reached.",
-        'syntax': "`1`",
-        'invalidargs': "Invalid arguments.",
-
-        'notboxes': "`1` is not a valid box structure.",
-        'omit': "Parts of this output were omitted (see `1`). " +
+        "options": "`1` is not a valid list of option rules.",
+        "timeout": "Timeout reached.",
+        "syntax": "`1`",
+        "invalidargs": "Invalid arguments.",
+        "notboxes": "`1` is not a valid box structure.",
+        "omit": "Parts of this output were omitted (see `1`). " +
                   "To generate the whole output, please set $OutputSizeLimit = Infinity.",
-
-        'pyimport': "`1`[] is not available. Your Python installation misses the \"`2`\" module.",
+        "pyimport": '`1`[] is not available. Your Python installation misses the "`2`" module.',
     }
 
 
@@ -1926,22 +1993,18 @@ class Print(Builtin):
     >> Print["The answer is ", 7 * 6, "."]
      | The answer is 42.
 
-    #> Print["\\[Mu]"]
-     | μ
-    #> Print["μ"]
-     | μ
     #> Print["-Hola\\n-Qué tal?"]
      | -Hola
      . -Qué tal?
     """
 
     def apply(self, expr, evaluation):
-        'Print[expr__]'
+        "Print[expr__]"
 
         expr = expr.get_sequence()
-        expr = Expression('Row', Expression('List', *expr))
+        expr = Expression("Row", Expression(SymbolList, *expr))
         evaluation.print_out(expr)
-        return Symbol('Null')
+        return Symbol("Null")
 
 
 class FullForm(Builtin):
@@ -2043,25 +2106,30 @@ class MathMLForm(Builtin):
     """
 
     def apply_mathml(self, expr, evaluation) -> Expression:
-        'MakeBoxes[expr_, MathMLForm]'
+        "MakeBoxes[expr_, MathMLForm]"
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(evaluation=evaluation)
+            xml = boxes.boxes_to_mathml(evaluation=evaluation)
         except BoxError:
             evaluation.message(
-                'General', 'notboxes',
-                Expression('FullForm', boxes).evaluate(evaluation))
-            xml = ''
+                "General",
+                "notboxes",
+                Expression("FullForm", boxes).evaluate(evaluation),
+            )
+            xml = ""
+        is_a_picture = xml[:6] == "<mtext"
+
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
-        query = evaluation.parse('System`$UseSansSerif')
+        query = evaluation.parse("System`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
-        if  usesansserif:
-            xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+        if not is_a_picture:
+            if usesansserif:
+                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
-        return Expression('RowBox', Expression('List', String(mathml)))
+        return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
 
 class PythonForm(Builtin):
@@ -2081,16 +2149,16 @@ class PythonForm(Builtin):
     >> {1, 2, 3} // PythonForm
     = [1, 2, 3]
     """
+
     # >> PythonForm[HoldForm[Sqrt[a^3]]]
     #  = sympy.sqrt{a**3} # or something like this
 
-
     def apply_python(self, expr, evaluation) -> Expression:
-        'MakeBoxes[expr_, PythonForm]'
+        "MakeBoxes[expr_, PythonForm]"
 
         try:
             # from trepan.api import debug; debug()
-            python_equivalent = expr.to_python(python_form = True)
+            python_equivalent = expr.to_python(python_form=True)
         except:
             return
         return StringFromPython(python_equivalent)
@@ -2115,7 +2183,7 @@ class SympyForm(Builtin):
     """
 
     def apply_sympy(self, expr, evaluation) -> Expression:
-        'MakeBoxes[expr_, SympyForm]'
+        "MakeBoxes[expr_, SympyForm]"
 
         try:
             # from trepan.api import debug; debug()
@@ -2149,33 +2217,34 @@ class TeXForm(Builtin):
     """
 
     def apply_tex(self, expr, evaluation) -> Expression:
-        'MakeBoxes[expr_, TeXForm]'
+        "MakeBoxes[expr_, TeXForm]"
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
             tex = boxes.boxes_to_tex(evaluation=evaluation)
 
             # Replace multiple newlines by a single one e.g. between asy-blocks
-            tex = MULTI_NEWLINE_RE.sub('\n', tex)
+            tex = MULTI_NEWLINE_RE.sub("\n", tex)
 
-            tex = tex.replace(' \uF74c', ' \\, d')  # tmp hack for Integrate
+            tex = tex.replace(" \uF74c", " \\, d")  # tmp hack for Integrate
         except BoxError:
             evaluation.message(
-                'General', 'notboxes',
-                Expression('FullForm', boxes).evaluate(evaluation))
-            tex = ''
-        return Expression('RowBox', Expression('List', String(tex)))
+                "General",
+                "notboxes",
+                Expression("FullForm", boxes).evaluate(evaluation),
+            )
+            tex = ""
+        return Expression("RowBox", Expression(SymbolList, String(tex)))
 
 
 class Style(Builtin):
-    options = {
-        'ImageSizeMultipliers': 'Automatic',
-    }
+    options = {"ImageSizeMultipliers": "Automatic"}
 
     rules = {
-        'MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]': (
-            'StyleBox[MakeBoxes[expr, f], '
-            'ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]'),
+        "MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]": (
+            "StyleBox[MakeBoxes[expr, f], "
+            "ImageSizeMultipliers -> OptionValue[ImageSizeMultipliers]]"
+        )
     }
 
 
@@ -2200,14 +2269,14 @@ class Precedence(Builtin):
     """
 
     def apply(self, expr, evaluation) -> Real:
-        'Precedence[expr_]'
-
-        from mathics.builtin import builtins
+        "Precedence[expr_]"
 
         name = expr.get_name()
         precedence = 1000
         if name:
-            builtin = builtins.get(name)
+            builtin = evaluation.definitions.get_definition(name, only_if_exists=True)
+            if builtin:
+                builtin = builtin.builtin
             if builtin is not None and isinstance(builtin, Operator):
                 precedence = builtin.precedence
             else:
@@ -2216,33 +2285,33 @@ class Precedence(Builtin):
 
 
 class _NumberForm(Builtin):
-    '''
+    """
     Base class for NumberForm, AccountingForm, EngineeringForm, and ScientificForm.
-    '''
+    """
 
     default_ExponentFunction = None
     default_NumberFormat = None
 
     messages = {
-        'npad': 'Value for option NumberPadding -> `1` should be a string or a pair of strings.',
-        'dblk': 'Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.',
-        'npt': 'Value for option `1` -> `2` is expected to be a string.',
-        'nsgn': 'Value for option NumberSigns -> `1` should be a pair of strings or two pairs of strings.',
-        'nspr': 'Value for option NumberSeparator -> `1` should be a string or a pair of strings.',
-        'opttf': 'Value of option `1` -> `2` should be True or False.',
-        'estep': 'Value of option `1` -> `2` is not a positive integer.',
-        'iprf': 'Formatting specification `1` should be a positive integer or a pair of positive integers.',    # NumberFormat only
-        'sigz': 'In addition to the number of digits requested, one or more zeros will appear as placeholders.',
+        "npad": "Value for option NumberPadding -> `1` should be a string or a pair of strings.",
+        "dblk": "Value for option DigitBlock should be a positive integer, Infinity, or a pair of positive integers.",
+        "npt": "Value for option `1` -> `2` is expected to be a string.",
+        "nsgn": "Value for option NumberSigns -> `1` should be a pair of strings or two pairs of strings.",
+        "nspr": "Value for option NumberSeparator -> `1` should be a string or a pair of strings.",
+        "opttf": "Value of option `1` -> `2` should be True or False.",
+        "estep": "Value of option `1` -> `2` is not a positive integer.",
+        "iprf": "Formatting specification `1` should be a positive integer or a pair of positive integers.",  # NumberFormat only
+        "sigz": "In addition to the number of digits requested, one or more zeros will appear as placeholders.",
     }
 
     def check_options(self, options, evaluation):
-        '''
+        """
         Checks options are valid and converts them to python.
-        '''
+        """
         result = {}
         for option_name in self.options:
-            method = getattr(self, 'check_' + option_name)
-            arg = options['System`' + option_name]
+            method = getattr(self, "check_" + option_name)
+            arg = options["System`" + option_name]
             value = method(arg, evaluation)
             if value is None:
                 return None
@@ -2251,20 +2320,20 @@ class _NumberForm(Builtin):
 
     def check_DigitBlock(self, value, evaluation):
         py_value = value.get_int_value()
-        if value.same(Symbol('Infinity')):
+        if value.same(Symbol("Infinity")):
             return [0, 0]
         elif py_value is not None and py_value > 0:
             return [py_value, py_value]
-        elif value.has_form('List', 2):
+        elif value.has_form("List", 2):
             nleft, nright = value.leaves
             py_left, py_right = nleft.get_int_value(), nright.get_int_value()
-            if nleft.same(Symbol('Infinity')):
+            if nleft.same(Symbol("Infinity")):
                 nleft = 0
             elif py_left is not None and py_left > 0:
                 nleft = py_left
             else:
                 nleft = None
-            if nright.same(Symbol('Infinity')):
+            if nright.same(Symbol("Infinity")):
                 nright = 0
             elif py_right is not None and py_right > 0:
                 nright = py_right
@@ -2273,10 +2342,10 @@ class _NumberForm(Builtin):
             result = [nleft, nright]
             if None not in result:
                 return result
-        return evaluation.message(self.get_name(), 'dblk', value)
+        return evaluation.message(self.get_name(), "dblk", value)
 
     def check_ExponentFunction(self, value, evaluation):
-        if value.same(Symbol('Automatic')):
+        if value.same(Symbol("Automatic")):
             return self.default_ExponentFunction
 
         def exp_function(x):
@@ -2285,7 +2354,7 @@ class _NumberForm(Builtin):
         return exp_function
 
     def check_NumberFormat(self, value, evaluation):
-        if value.same(Symbol('Automatic')):
+        if value.same(Symbol("Automatic")):
             return self.default_NumberFormat
 
         def num_function(man, base, exp, options):
@@ -2296,50 +2365,50 @@ class _NumberForm(Builtin):
     def check_NumberMultiplier(self, value, evaluation):
         result = value.get_string_value()
         if result is None:
-            evaluation.message(self.get_name(), 'npt', 'NumberMultiplier', value)
+            evaluation.message(self.get_name(), "npt", "NumberMultiplier", value)
         return result
 
     def check_NumberPoint(self, value, evaluation):
         result = value.get_string_value()
         if result is None:
-            evaluation.message(self.get_name(), 'npt', 'NumberPoint', value)
+            evaluation.message(self.get_name(), "npt", "NumberPoint", value)
         return result
 
     def check_ExponentStep(self, value, evaluation):
         result = value.get_int_value()
         if result is None or result <= 0:
-            return evaluation.message(self.get_name(), 'estep', 'ExponentStep', value)
+            return evaluation.message(self.get_name(), "estep", "ExponentStep", value)
         return result
 
     def check_SignPadding(self, value, evaluation):
-        if value.same(Symbol('True')):
+        if value.same(Symbol("True")):
             return True
-        elif value.same(Symbol('False')):
+        elif value.same(Symbol("False")):
             return False
-        return evaluation.message(self.get_name(), 'opttf', value)
+        return evaluation.message(self.get_name(), "opttf", value)
 
     def _check_List2str(self, value, msg, evaluation):
-        if value.has_form('List', 2):
+        if value.has_form("List", 2):
             result = [leaf.get_string_value() for leaf in value.leaves]
             if None not in result:
                 return result
         return evaluation.message(self.get_name(), msg, value)
 
     def check_NumberSigns(self, value, evaluation):
-        return self._check_List2str(value, 'nsgn', evaluation)
+        return self._check_List2str(value, "nsgn", evaluation)
 
     def check_NumberPadding(self, value, evaluation):
-        return self._check_List2str(value, 'npad', evaluation)
+        return self._check_List2str(value, "npad", evaluation)
 
     def check_NumberSeparator(self, value, evaluation):
         py_str = value.get_string_value()
         if py_str is not None:
             return [py_str, py_str]
-        return self._check_List2str(value, 'nspr', evaluation)
+        return self._check_List2str(value, "nspr", evaluation)
 
 
 class NumberForm(_NumberForm):
-    '''
+    """
     <dl>
     <dt>'NumberForm[$expr$, $n$]'
         <dd>prints a real number $expr$ with $n$-digits of precision.
@@ -2560,26 +2629,26 @@ class NumberForm(_NumberForm):
      = 81.0
     #> NumberForm[142.25, {10, 1}]
      = 142.3
-    '''
+    """
 
     options = {
-        'DigitBlock': 'Infinity',
-        'ExponentFunction': 'Automatic',
-        'ExponentStep': '1',
-        'NumberFormat': 'Automatic',
-        'NumberMultiplier': '"×"',
-        'NumberPadding': '{"", "0"}',
-        'NumberPoint': '"."',
-        'NumberSeparator': '{",", " "}',
-        'NumberSigns': '{"-", ""}',
-        'SignPadding': 'False',
+        "DigitBlock": "Infinity",
+        "ExponentFunction": "Automatic",
+        "ExponentStep": "1",
+        "NumberFormat": "Automatic",
+        "NumberMultiplier": '"×"',
+        "NumberPadding": '{"", "0"}',
+        "NumberPoint": '"."',
+        "NumberSeparator": '{",", " "}',
+        "NumberSigns": '{"-", ""}',
+        "SignPadding": "False",
     }
 
     @staticmethod
     def default_ExponentFunction(value):
         n = value.get_int_value()
         if -5 <= n <= 5:
-            return Symbol('Null')
+            return Symbol("Null")
         else:
             return value
 
@@ -2587,26 +2656,46 @@ class NumberForm(_NumberForm):
     def default_NumberFormat(man, base, exp, options):
         py_exp = exp.get_string_value()
         if py_exp:
-            mul = String(options['NumberMultiplier'])
-            return Expression('RowBox', Expression('List', man, mul, Expression('SuperscriptBox', base, exp)))
+            mul = String(options["NumberMultiplier"])
+            return Expression(
+                "RowBox",
+                Expression(
+                    SymbolList, man, mul, Expression("SuperscriptBox", base, exp)
+                ),
+            )
         else:
             return man
 
     def apply_list_n(self, expr, n, evaluation, options) -> Expression:
-        'NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]'
-        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
-        return Expression('List', *[Expression('NumberForm', leaf, n, *options) for leaf in expr.leaves])
+        "NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]"
+        options = [
+            Expression("RuleDelayed", Symbol(key), value)
+            for key, value in options.items()
+        ]
+        return Expression(
+            "List",
+            *[Expression("NumberForm", leaf, n, *options) for leaf in expr.leaves]
+        )
 
     def apply_list_nf(self, expr, n, f, evaluation, options) -> Expression:
-        'NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]'
-        options = [Expression('RuleDelayed', Symbol(key), value) for key, value in options.items()]
-        return Expression('List', *[Expression('NumberForm', leaf, Expression('List', n, f), *options) for leaf in expr.leaves])
+        "NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]"
+        options = [
+            Expression("RuleDelayed", Symbol(key), value)
+            for key, value in options.items()
+        ]
+        return Expression(
+            "List",
+            *[
+                Expression("NumberForm", leaf, Expression(SymbolList, n, f), *options)
+                for leaf in expr.leaves
+            ]
+        )
 
     def apply_makeboxes(self, expr, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression('MakeBoxes', expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
         py_options = self.check_options(options, evaluation)
         if py_options is None:
@@ -2624,17 +2713,17 @@ class NumberForm(_NumberForm):
 
         if py_n is not None:
             return number_form(expr, py_n, None, evaluation, py_options)
-        return Expression('MakeBoxes', expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression('MakeBoxes', expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
         py_n = n.get_int_value()
         if py_n is None or py_n <= 0:
-            evaluation.message('NumberForm', 'iprf', n)
+            evaluation.message("NumberForm", "iprf", n)
             return fallback
 
         py_options = self.check_options(options, evaluation)
@@ -2643,19 +2732,19 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, None, evaluation, py_options)
-        return Expression('MakeBoxes', expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
-        '''MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
+            form:StandardForm|TraditionalForm|OutputForm]"""
 
-        fallback = Expression('MakeBoxes', expr, form)
+        fallback = Expression(SymbolMakeBoxes, expr, form)
 
-        nf = Expression('List', n, f)
+        nf = Expression(SymbolList, n, f)
         py_n = n.get_int_value()
         py_f = f.get_int_value()
         if py_n is None or py_n <= 0 or py_f is None or py_f < 0:
-            evaluation.message('NumberForm', 'iprf', nf)
+            evaluation.message("NumberForm", "iprf", nf)
             return fallback
 
         py_options = self.check_options(options, evaluation)
@@ -2664,7 +2753,7 @@ class NumberForm(_NumberForm):
 
         if isinstance(expr, (Integer, Real)):
             return number_form(expr, py_n, py_f, evaluation, py_options)
-        return Expression('MakeBoxes', expr, form)
+        return Expression(SymbolMakeBoxes, expr, form)
 
 
 class BaseForm(Builtin):
@@ -2710,20 +2799,21 @@ class BaseForm(Builtin):
     """
 
     messages = {
-        'intpm': (
+        "intpm": (
             "Positive machine-sized integer expected at position 2 in "
-            "BaseForm[`1`, `2`]."),
-        'basf': "Requested base `1` must be between 2 and 36.",
+            "BaseForm[`1`, `2`]."
+        ),
+        "basf": "Requested base `1` must be between 2 and 36.",
     }
 
     def apply_makeboxes(self, expr, n, f, evaluation):
-        '''MakeBoxes[BaseForm[expr_, n_],
-            f:StandardForm|TraditionalForm|OutputForm]'''
+        """MakeBoxes[BaseForm[expr_, n_],
+            f:StandardForm|TraditionalForm|OutputForm]"""
 
         base = n.get_int_value()
 
         if base <= 0:
-            evaluation.message('BaseForm', 'intpm', expr, n)
+            evaluation.message("BaseForm", "intpm", expr, n)
             return
 
         if isinstance(expr, PrecisionReal):
@@ -2736,15 +2826,14 @@ class BaseForm(Builtin):
             x = expr.get_int_value()
             p = 0
         else:
-            return Expression("MakeBoxes", expr, f)
+            return Expression(SymbolMakeBoxes, expr, f)
 
         try:
             val = convert_base(x, base, p)
         except ValueError:
-            return evaluation.message('BaseForm', 'basf', n)
+            return evaluation.message("BaseForm", "basf", n)
 
-        if f.get_name() == 'System`OutputForm':
+        if f.get_name() == "System`OutputForm":
             return from_python("%s_%d" % (val, base))
         else:
-            return Expression(
-                'SubscriptBox', String(val), String(base))
+            return Expression("SubscriptBox", String(val), String(base))

@@ -25,7 +25,7 @@ To get a full list of avaiable commands, read the output of:
 import sys
 import os.path as osp
 import platform
-from setuptools import setup, Command, Extension
+from setuptools import setup, Extension
 
 # Ensure user has the correct Python version
 if sys.version_info < (3, 6):
@@ -80,9 +80,9 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.0.0,<1.1.0",
+    "Mathics_Scanner>=1.1.0,<1.2.0",
     "sympy>=1.7, <= 1.8dev",
-    "mpmath>=1.1.0",
+    "mpmath>=1.2.0",
     "numpy",
     "palettable",
     "pint",
@@ -91,7 +91,6 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
-    "PyYAML",  # Used in mathics.core.characters
 ]
 
 
@@ -129,6 +128,7 @@ setup(
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",
+            "autoload/*.m",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",
