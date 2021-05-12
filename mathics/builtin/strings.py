@@ -1210,33 +1210,38 @@ class StringRepeat(Builtin):
 
     >> StringRepeat["abc", 10, 7]
      = abcabca
+
+    #> StringRepeat["x", 0]
+     : A positive integer is expected at position 2 in StringRepeat[x, 0].
+     = StringRepeat[x, 0]
     """
 
     messages = {
         'intp': 'A positive integer is expected at position `1` in `2`.',
     }
 
-    def apply(self, s, n, evaluation):
+    def apply(self, s, n, expression, evaluation):
         'StringRepeat[s_String, n_]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n))
-        return String(s.get_string_value() * py_n)
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        else:
+            return String(s.get_string_value() * py_n)
 
-    def apply_truncated(self, s, n, m, evaluation):
+    def apply_truncated(self, s, n, m, expression, evaluation):
         'StringRepeat[s_String, n_Integer, m_Integer]'
         py_n = n.get_int_value() if isinstance(n, Integer) else 0
         py_m = m.get_int_value() if isinstance(m, Integer) else 0
 
         if py_n < 1:
-            evaluation.message('StringRepeat', 'intp', 2, Expression('StringRepeat', s, n, m))
-        if py_m < 1:
-            evaluation.message('StringRepeat', 'intp', 3, Expression('StringRepeat', s, n, m))
+            evaluation.message('StringRepeat', 'intp', 2, expression)
+        elif py_m < 1:
+            evaluation.message('StringRepeat', 'intp', 3, expression)
+        else:
+            py_s = s.get_string_value()
+            py_n = min(1 + py_m // len(py_s), py_n)
 
-        py_s = s.get_string_value()
-        py_n = min(1 + py_m // len(py_s), py_n)
-
-        return String((py_s * py_n)[:py_m])
+            return String((py_s * py_n)[:py_m])
 
 
 class Characters(Builtin):

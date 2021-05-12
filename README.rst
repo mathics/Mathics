@@ -1,6 +1,8 @@
 Welcome to Mathics!
 ===================
 
+|Travis|_ |SlackStatus|_
+
 Mathics is a general-purpose computer algebra system (CAS). It is meant to be a free, lightweight alternative to Mathematica.
 
 The home page of Mathics is http://mathics.github.io.
@@ -14,8 +16,8 @@ Contributing
 
 Please feel encouraged to contribute to Mathics! Create your own fork, make the desired changes, commit, and make a pull request.
 
-|Travis|_
-
+.. |SlackStatus| image:: https://mathics-slackin.herokuapp.com/badge.svg
+.. _SlackStatus: https://mathics-slackin.herokuapp.com/
 .. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
 .. _Travis: https://travis-ci.org/mathics/Mathics
 

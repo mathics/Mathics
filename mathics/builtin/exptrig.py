@@ -36,7 +36,6 @@ class Pi(SympyConstant):
      = 3.14159
     >> N[Pi, 50]
      = 3.1415926535897932384626433832795028841971693993751
-
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}
     """
@@ -68,7 +67,6 @@ class E(SympyConstant):
      = 2.71828
     >> N[E, 50]
      = 2.7182818284590452353602874713526624977572470937000
-
     >> Attributes[E]
      = {Constant, Protected, ReadProtected}
 
@@ -116,7 +114,6 @@ class Degree(SympyConstant):
     <dt>'Degree'
         <dd>is the number of radians in one degree.
     </dl>
-
     >> Cos[60 Degree]
      = 1 / 2
 
@@ -171,7 +168,6 @@ class Exp(_MPMathFunction):
 
     >> Plot[Exp[x], {x, 0, 3}]
      = -Graphics-
-
     #> Exp[1.*^20]
      : Overflow occurred in computation.
      = Overflow[]
@@ -1120,3 +1116,30 @@ class AnglePath(Builtin):
         'AnglePath[{{x_, y_}, {dx_, dy_}}, {steps___}]'
         phi0 = Expression('ArcTan', dx, dy)
         return AnglePath._compute(x, y, phi0, steps.get_sequence(), evaluation)
+
+
+class LogisticSigmoid(Builtin):
+    """
+    <dl>
+    <dt>'LogisticSigmoid[$z$]'
+        <dd>returns the logistic sigmoid of $z$.
+    </dl>
+    
+    >> LogisticSigmoid[0.5]
+     = 0.622459
+
+    >> LogisticSigmoid[0.5 + 2.3 I]
+     = 1.06475 + 0.808177 I
+
+    >> LogisticSigmoid[{-0.2, 0.1, 0.3}]
+     = {0.450166, 0.524979, 0.574443}
+
+    #> LogisticSigmoid[I Pi]
+     = LogisticSigmoid[I Pi]
+    """
+
+    attributes = ('Listable', 'NumericFunction',)
+    
+    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
+
+    

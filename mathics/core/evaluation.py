@@ -11,7 +11,6 @@ from six.moves.queue import Queue
 
 import sys
 from threading import Thread
-import itertools
 
 from mathics import settings
 from mathics.core.expression import ensure_context, KeyComparable, make_boxes_strategy, Omissions
@@ -368,6 +367,12 @@ class Evaluation(object):
         finally:
             self.boxes_strategy = old_boxes_strategy
 
+        try:
+            boxes = result.boxes_to_text(evaluation=self)
+        except BoxError:
+            self.message('General', 'notboxes',
+                         Expression('FullForm', result).evaluate(self))
+            boxes = None
         return boxes
 
     def set_quiet_messages(self, messages):

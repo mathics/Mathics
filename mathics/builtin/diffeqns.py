@@ -8,6 +8,7 @@ Differential equation solver functions
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import six
 import sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
@@ -30,14 +31,24 @@ class DSolve(Builtin):
     >> DSolve[y''[x] == y[x], y, x]
      = {{y -> (Function[{x}, C[1] E ^ (-x) + C[2] E ^ x])}}
 
+    DSolve can also solve basic PDE
+    >> DSolve[D[f[x, y], x] / f[x, y] + 3 D[f[x, y], y] / f[x, y] == 2, f, {x, y}]
+     = {{f -> (Function[{x, y}, E ^ (x / 5 + 3 y / 5) C[1][3 x - y]])}}
+
+    >> DSolve[D[f[x, y], x] x + D[f[x, y], y] y == 2, f[x, y], {x, y}]
+     = {{f[x, y] -> 2 Log[x] + C[1][y / x]}}
+
+    >> DSolve[D[y[x, t], t] + 2 D[y[x, t], x] == 0, y[x, t], {x, t}]
+     = {{y[x, t] -> C[1][-2 t + x]}}
+
     #> Attributes[f] = {HoldAll};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] - Sin[f'[x]] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[x + x] == Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[x + x] == Sin[f'[x]], f, x]
 
     #> Attributes[f] = {};
     #> DSolve[f[x + x] == Sin[f'[x]], f, x]
-     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] - Sin[f'[x]] should literally match the independent variables.
+     : To avoid possible ambiguity, the arguments of the dependent variable in f[2 x] == Sin[f'[x]] should literally match the independent variables.
      = DSolve[f[2 x] == Sin[f'[x]], f, x]
 
     #> DSolve[f'[x] == f[x], f, x] // FullForm
@@ -51,6 +62,29 @@ class DSolve(Builtin):
 
     #> DSolve[f'[x] == f[x], f, x] /. {C[1] -> C[0]}
      = {{f -> (Function[{x}, C[0] E ^ x])}}
+
+    #> DSolve[f[x] == 0, f, {}]
+     : {} cannot be used as a variable.
+     = DSolve[f[x] == 0, f, {}]
+
+    ## Order of arguments shoudn't matter
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {x, y}]
+     = {{f -> (Function[{x, y}, C[1][-x - y]])}}
+    ## FIXME SymPy can't handle this case:
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f, {y, x}]
+     : SymPy can't solve this form of DE.
+     = DSolve[...]
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {x, y}]
+     = {{f[x, y] -> C[1][-x - y]}}
+    #> DSolve[D[f[x, y], x] == D[f[x, y], y], f[x, y], {y, x}]
+     = {{f[x, y] -> C[1][-x - y]}}
+    """
+
+    # XXX sympy #11669 test
+    """
+    #> DSolve[\[Gamma]'[x] == 0, \[Gamma], x]
+     : Hit sympy bug #11669.
+     = ...
     """
 
     # TODO: GeneratedParameters option
@@ -69,12 +103,13 @@ class DSolve(Builtin):
         'symsys': "SymPy can't solve systems of DEs.",
         'symimp': "SymPy can't solve this form of DE.",
         'symmua': "SymPy can't handle functions of multiple variables.",
+        'sym11669': 'Hit sympy bug #11669.',
     }
 
     def apply(self, eqn, y, x, evaluation):
         'DSolve[eqn_, y_, x_]'
 
-        if eqn.has_form('List', eqn):
+        if eqn.has_form('List', None):
             # TODO: Try and solve BVPs using Solve or something analagous OR
             # add this functonality to sympy.
             evaluation.message('DSolve', 'symsys')
@@ -84,13 +119,12 @@ class DSolve(Builtin):
             evaluation.message('DSolve', 'deqn', eqn)
             return
 
-        # FIXME: This code is duplicated in calculus.py
-        if ((x.is_atom() and not x.is_symbol()) or      # nopep8
-            x.get_head_name() in ('System`Plus', 'System`Times',
-                                  'System`Power') or
-            'System`Constant' in x.get_attributes(evaluation.definitions)):
-            evaluation.message('DSolve', 'dsvar')
-            return
+        if x.is_symbol():
+            syms = [x]
+        elif x.has_form('List', 1, None):
+            syms = x.get_leaves()
+        else:
+            return evaluation.message('DSolve', 'dsvar', x)
 
         # Fixes pathalogical DSolve[y''[x] == y[x], y, x]
         try:
@@ -98,32 +132,39 @@ class DSolve(Builtin):
             function_form = None
             func = y
         except AttributeError:
-            func = Expression(y, x)
-            function_form = Expression('List', x)
+            func = Expression(y, *syms)
+            function_form = Expression('List', *syms)
 
         if func.is_atom():
             evaluation.message('DSolve', 'dsfun', y)
             return
 
-        if len(func.leaves) != 1:
-            evaluation.message('DSolve', 'symmua')
-            return
-
-        if x not in func.leaves:
+        if set(func.leaves) != set(syms):
             evaluation.message('DSolve', 'deqx')
             return
 
-        left, right = eqn.leaves
-        eqn = Expression('Plus', left, Expression(
-            'Times', -1, right)).evaluate(evaluation)
+        # Workaround sympy bug #11669.
+        # https://github.com/sympy/sympy/issues/11669https://github.com/sympy/sympy/issues/11669
+        f_name = func.get_head_name()
+        if six.PY2:
+            try:
+                f_name = str(f_name)
+            except UnicodeEncodeError:
+                return evaluation.message('DSolve', 'sym11669', func.get_head_name())
 
-        sym_eq = eqn.to_sympy(converted_functions=set([func.get_head_name()]))
-        sym_x = sympy.symbols(str(sympy_symbol_prefix + x.name))
-        sym_func = sympy.Function(str(
-            sympy_symbol_prefix + func.get_head_name()))(sym_x)
+        conversion_args = {'converted_functions': set([f_name])}
+        sym_func = func.to_sympy(**conversion_args)
+        sym_eq = eqn.to_sympy(**conversion_args)
+
+        # XXX when sympy adds support for higher-order PDE we will have to
+        # change this to a tuple of solvefuns
+        kwargs = {'solvefun': sympy.Function(str('C1'))}
 
         try:
-            sym_result = sympy.dsolve(sym_eq, sym_func)
+            if len(syms) > 1:
+                sym_result = sympy.pdsolve(sym_eq, sym_func, **kwargs)
+            else:
+                sym_result = sympy.dsolve(sym_eq, sym_func)
         except ValueError:
             evaluation.message('DSolve', 'symimp')
             return

@@ -313,21 +313,30 @@ class Derivative(PostfixOperator, SympyFunction):
                                       for exp in exprs[:3]):
             return
 
-        sym_x = exprs[0].leaves[0].to_sympy()
-        if sym_x is None:
+        if len(exprs[0].leaves) != len(exprs[2].leaves):
             return
+
+        sym_args = [leaf.to_sympy() for leaf in exprs[0].leaves]
+        if None in sym_args:
+            return
+
         func = exprs[1].leaves[0]
-        sym_func = sympy.Function(str(
-            sympy_symbol_prefix + func.__str__()))(sym_x)
+        sym_func = sympy.Function(str(sympy_symbol_prefix + func.__str__()))(*sym_args)
 
-        count = exprs[2].leaves[0].to_python()
-        for i in range(count):
-            try:
-                sym_func = sympy.Derivative(sym_func)
-            except ValueError:
-                return None
+        counts = [leaf.get_int_value() for leaf in exprs[2].leaves]
+        if None in counts:
+            return
 
-        return sym_func
+        # sympy expects e.g. Derivative(f(x, y), x, 2, y, 5)
+        sym_d_args = []
+        for sym_arg, count in zip(sym_args, counts):
+            sym_d_args.append(sym_arg)
+            sym_d_args.append(count)
+
+        try:
+            return sympy.Derivative(sym_func, *sym_d_args)
+        except ValueError:
+            return
 
 
 class Integrate(SympyFunction):

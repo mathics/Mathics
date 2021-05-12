@@ -9,6 +9,7 @@ from six.moves import range
 from six import unichr
 
 import re
+import sys
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
@@ -182,3 +183,31 @@ def unicode_superscript(value):
             value = ord(c)
         return unichr(value)
     return ''.join(repl_char(c) for c in value)
+
+
+try:
+    from inspect import signature
+
+    def _python_function_arguments(f):
+        return signature(f).parameters.keys()
+except ImportError:  # py2, pypy
+    from inspect import getargspec
+
+    def _python_function_arguments(f):
+        return getargspec(f).args
+
+if sys.version_info >= (3, 4, 0):
+    _cython_function_arguments = _python_function_arguments
+elif sys.version_info[0] >= 3:  # py3.3
+    def _cython_function_arguments(f):
+        return f.__code__.co_varnames
+else:  # py2
+    def _cython_function_arguments(f):
+        return f.func_code.co_varnames
+
+
+def function_arguments(f):
+    try:
+        return _python_function_arguments(f)
+    except (TypeError, ValueError):
+        return _cython_function_arguments(f)

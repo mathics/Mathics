@@ -22,7 +22,7 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, Symbol, Integer, Rational, Real, Complex, BoxError,
-    from_python, MachineReal, PrecisionReal, Omitted)
+    from_python, MachineReal, PrecisionReal)
 from mathics.core.numbers import (
     dps, prec, convert_base, machine_precision, reconstruct_digits)
 
@@ -307,6 +307,13 @@ def number_form(expr, n, f, evaluation, options):
 
 class MakeBoxes(Builtin):
     """
+    <dl>
+    <dt>'MakeBoxes[$expr$]'
+        <dd>is a low-level formatting primitive that converts $expr$
+        to box form, without evaluating it.
+    <dt>'\( ... \)'
+        <dd>directly inputs box objects.
+    </dl>
 
     String representation of boxes
     >> \(x \^ 2\)
@@ -554,7 +561,7 @@ class MakeBoxes(Builtin):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
-            return make_boxes_infix(leaves, ops, precedence, grouping, f, evaluation)
+            return make_boxes_infix(leaves, ops, precedence, grouping, f)
         elif len(leaves) == 1:
             return MakeBoxes(leaves[0], f)
         else:
@@ -1787,9 +1794,7 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_xml(
-                evaluation=evaluation,
-                output_size_limit=evaluation.boxes_strategy.capacity())
+            xml = boxes.boxes_to_xml(evaluation=evaluation)
         except BoxError:
             evaluation.message(
                 'General', 'notboxes',
@@ -1825,9 +1830,7 @@ class TeXForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            tex = boxes.boxes_to_tex(
-                evaluation=evaluation,
-                output_size_limit=evaluation.boxes_strategy.capacity())
+            tex = boxes.boxes_to_tex(evaluation=evaluation)
 
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub('\n', tex)

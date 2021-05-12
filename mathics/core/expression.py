@@ -2128,14 +2128,6 @@ def encode_mathml(text):
     text = text.replace('"', '&quot;').replace(' ', '&nbsp;')
     return text.replace('\n', '<mspace linebreak="newline" />')
 
-def _limit_string_size(text, limit):
-    limit = max(limit, 3)
-    if len(text) > limit:
-        ellipsis = "\u2026"
-        return text[:limit // 2] + ellipsis + text[len(text) - limit // 2:]
-    else:
-        return text
-
 TEX_REPLACE = {
     '{': r'\{',
     '}': r'\}',
@@ -2181,7 +2173,7 @@ extra_operators = set((',', '(', ')', '[', ']', '{', '}',
 class String(Atom):
     def __new__(cls, value):
         self = super(String, cls).__new__(cls)
-        self.value = value
+        self.value = six.text_type(value)
         return self
 
     def __str__(self):
@@ -2195,12 +2187,9 @@ class String(Atom):
         if (not show_string_characters and      # nopep8
             value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
-        if output_size_limit is None:
-            return value
-        else:
-            return _limit_string_size(value, output_size_limit)
+        return value
 
-    def boxes_to_xml(self, show_string_characters=False, output_size_limit=None, **options):
+    def boxes_to_xml(self, show_string_characters=False, **options):
         from mathics.core.parser import is_symbol_name
         from mathics.builtin import builtins
 
@@ -2213,8 +2202,6 @@ class String(Atom):
         text = self.value
 
         def render(format, string):
-            if output_size_limit is not None:
-                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
             return format % encode_mathml(string)
 
         if text.startswith('"') and text.endswith('"'):
@@ -2238,7 +2225,7 @@ class String(Atom):
             else:
                 return render('<mtext>%s</mtext>', text)
 
-    def boxes_to_tex(self, show_string_characters=False, output_size_limit=None, **options):
+    def boxes_to_tex(self, show_string_characters=False, **options):
         from mathics.builtin import builtins
 
         operators = set()
@@ -2250,8 +2237,6 @@ class String(Atom):
         text = self.value
 
         def render(format, string, in_text=False):
-            if output_size_limit is not None:
-                string = _limit_string_size(string, output_size_limit - (len(format) - len('%s')))
             return format % encode_tex(string, in_text)
 
         if text.startswith('"') and text.endswith('"'):
@@ -2259,7 +2244,7 @@ class String(Atom):
                 return render(r'\text{"%s"}', text[1:-1], in_text=True)
             else:
                 return render(r'\text{%s}', text[1:-1], in_text=True)
-        elif text and ('0' <= text[0] <= '9' or text[0] == '.'):
+        elif text and text[0] in '0123456789-.':
             return render('%s', text)
         else:
             if text == '\u2032':
@@ -2377,7 +2362,6 @@ def print_parenthesizes(precedence, outer_precedence=None,
     return (outer_precedence is not None and (
         outer_precedence > precedence or (
             outer_precedence == precedence and parenthesize_when_equal)))
-
 
 def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
     active = [gen for gen in gens]
