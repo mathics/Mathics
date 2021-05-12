@@ -22,7 +22,7 @@ from mathics.builtin.lists import list_boxes
 from mathics.builtin.options import options_to_rules
 from mathics.core.expression import (
     Expression, String, StringFromPython, Symbol, Integer, Real, BoxError,
-    from_python, MachineReal, PrecisionReal)
+    from_python, MachineReal, PrecisionReal, Omitted)
 from mathics.core.numbers import (
     dps, convert_base, machine_precision, reconstruct_digits)
 
