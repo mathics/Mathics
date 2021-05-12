@@ -110,10 +110,6 @@ class Definitions(object):
                     pickle.dump(self.builtin, builtin_file, -1)
 
             autoload_files(self, ROOT_DIR, "autoload")
-            # Load symbols from the autoload folder
-            for root, dirs, files in os.walk(os.path.join(ROOT_DIR, "autoload")):
-                for path in [os.path.join(root, f) for f in files if f.endswith(".m")]:
-                    Expression("Get", String(path)).evaluate(Evaluation(self))
 
             # Move any user definitions created by autoloaded files to
             # builtins, and clear out the user definitions list. This
