@@ -5406,11 +5406,11 @@ class Association(Builtin):
 
         rules = rules.get_sequence()
         if self.error_idx == 0 and validate(rules) is True:
-            expr = Expression('RowBox', Expression('List', *list_boxes(rules, f, "<|", "|>")))
+            expr = Expression('RowBox', Expression('List', *list_boxes(rules, f, "<|", "|>", evaluation)))
         else:
             self.error_idx += 1
             symbol = Expression('MakeBoxes', Symbol('Association'), f)
-            expr = Expression('RowBox', Expression('List', symbol, *list_boxes(rules, f, "[", "]")))
+            expr = Expression('RowBox', Expression('List', symbol, *list_boxes(rules, f, "[", "]", evaluation)))
 
         expr = expr.evaluate(evaluation)
         if self.error_idx > 0:
