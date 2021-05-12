@@ -7,18 +7,27 @@ from mathics.builtin.base import (
     BinaryOperator,
     Test,
     MessageException,
+    PartRangeError,
 )
 from mathics.core.expression import (
     Expression,
     String,
     Symbol,
+    SymbolNull,
+    SymbolFalse,
+    SymbolTrue,
     Integer,
     Rational,
     strip_context,
 )
-from mathics.core.rules import Pattern
+from mathics.core.rules import Pattern, Rule
 
-from mathics.builtin.lists import python_levelspec, walk_levels, InvalidLevelspecError
+from mathics.builtin.lists import (
+    python_levelspec,
+    walk_levels,
+    InvalidLevelspecError,
+    List,
+)
 from mathics.builtin.functional import Identity
 
 import platform
@@ -283,9 +292,9 @@ class PatternsOrderedQ(Builtin):
         "PatternsOrderedQ[p1_, p2_]"
 
         if p1.get_sort_key(True) <= p2.get_sort_key(True):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class OrderedQ(Builtin):
@@ -306,9 +315,9 @@ class OrderedQ(Builtin):
         "OrderedQ[e1_, e2_]"
 
         if e1 <= e2:
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Order(Builtin):
@@ -517,6 +526,82 @@ class Map(BinaryOperator):
         return result
 
 
+class MapAt(Builtin):
+    """
+    <dl>
+      <dt>'MapAt[$f$, $expr$, $n$]'
+      <dd>applies $f$ to the element at position $n$ in $expr$. If $n$ is negative, the position is counted from the end.
+      <dt>'MapAt[f, $exp$r, {$i$, $j$ ...}]'
+      <dd>applies $f$ to the part of $expr$ at position {$i$, $j$, ...}.
+      <dt>'MapAt[$f$,$pos$]'
+      <dd>represents an operator form of MapAt that can be applied to an expression.
+    </dl>
+
+    Map $f$ onto the part at position 2:
+    >> MapAt[f, {a, b, c, d}, 2]
+     = {a, f[b], c, d}
+
+    Map $f$ onto multiple parts:
+    >> MapAt[f, {a, b, c, d}, {{1}, {4}}]
+     = {f[a], b, c, f[d]}
+
+    Map $f$ onto the at the end:
+    >> MapAt[f, {a, b, c, d}, -1]
+     = {a, b, c, f[d]}
+
+     Map $f$ onto an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5|>, 3]
+     = {a -> 1, b -> 2, c -> f[3], d -> 4, e -> 5}
+
+    Use negative position in an association:
+    >> MapAt[f, <|"a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4|>, -3]
+     = {a -> 1, b -> f[2], c -> 3, d -> 4}
+
+    Use the operator form of MapAt:
+    >> MapAt[f, 1][{a, b, c, d}]
+     = {f[a], b, c, d}
+    """
+
+    rules = {
+        "MapAt[f_, pos_][expr_]": "MapAt[f, expr, pos]",
+    }
+
+    def apply(self, f, expr, args, evaluation, options={}):
+        "MapAt[f_, expr_, args_]"
+
+        m = len(expr.leaves)
+
+        def map_at_one(i, leaves):
+            if 1 <= i <= m:
+                j = i - 1
+            elif -m <= i <= -1:
+                j = m + i
+            else:
+                raise PartRangeError
+            replace_leaf = new_leaves[j]
+            if hasattr(replace_leaf, "head") and replace_leaf.head == Symbol("System`Rule"):
+                new_leaves[j] = Expression(
+                    "System`Rule",
+                    replace_leaf.leaves[0],
+                    Expression(f, replace_leaf.leaves[1]),
+                )
+            else:
+                new_leaves[j] = Expression(f, replace_leaf)
+            return new_leaves
+
+        a = args.to_python()
+        if isinstance(a, int):
+            new_leaves = list(expr.leaves)
+            new_leaves = map_at_one(a, new_leaves)
+            return List(*new_leaves)
+        elif isinstance(a, list):
+            new_leaves = list(expr.leaves)
+            for l in a:
+                if len(l) == 1 and isinstance(l[0], int):
+                    new_leaves = map_at_one(l[0], new_leaves)
+            return List(*new_leaves)
+
+
 class Scan(Builtin):
     """
     <dl>
@@ -573,7 +658,7 @@ class Scan(Builtin):
         heads = self.get_option(options, "Heads", evaluation).is_true()
         result, depth = walk_levels(expr, start, stop, heads=heads, callback=callback)
 
-        return Symbol("Null")
+        return SymbolNull
 
 
 class MapIndexed(Builtin):
@@ -825,9 +910,9 @@ class FreeQ(Builtin):
 
         form = Pattern.create(form)
         if expr.is_free(form, evaluation):
-            return Symbol("True")
+            return SymbolTrue
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class Flatten(Builtin):
@@ -1031,6 +1116,7 @@ class Flatten(Builtin):
                     new_leaves.append(Expression(h, *insert_leaf(group)))
 
             return new_leaves
+
         return Expression(h, *insert_leaf(leaves))
 
     def apply(self, expr, n, h, evaluation):

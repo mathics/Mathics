@@ -1,0 +1,3 @@
+#!/bin/bash
+DOCKER=${DOCKER:-docker}
+$DOCKER run --rm -it --name mathics-cli -v /tmp:/usr/src/app/data mathicsorg/mathics --mode cli -- $@

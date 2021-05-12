@@ -18,6 +18,16 @@ RM  ?= rm
    rmChangeLog \
    test
 
+SANDBOX	?=
+ifeq ($(OS),Windows_NT)
+	SANDBOX = t
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		SANDBOX = t
+	endif
+endif
+
 #: Default target - same as "develop"
 all: develop
 
@@ -66,7 +76,7 @@ doc-data mathics/doc/tex/data: mathics/builtin/*.py mathics/doc/documentation/*.
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	$(PYTHON) mathics/test.py $o
+	SANDBOX=$(SANDBOX) $(PYTHON) mathics/test.py $o
 
 #: Run Django tests
 djangotest:

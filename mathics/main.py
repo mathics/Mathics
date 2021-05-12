@@ -7,7 +7,7 @@ import argparse
 import re
 import locale
 
-from mathics.core.definitions import Definitions
+from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import LineFeeder, FileLineFeeder
@@ -172,7 +172,13 @@ class TerminalOutput(Output):
         return self.shell.out_callback(out)
 
 
-def main():
+def main() -> int:
+    """
+    Command-line entry.
+
+    Return exit code we want to give status of
+    """
+    exit_rc = 0
     argparser = argparse.ArgumentParser(
         prog="mathics",
         usage="%(prog)s [options] [FILE]",
@@ -303,9 +309,17 @@ def main():
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
             shell.print_result(result)
+            if evaluation.exc_result == Symbol("Null"):
+                exit_rc = 0
+            elif evaluation.exc_result == Symbol("$Aborted"):
+                exit_rc = -1
+            elif evaluation.exc_result == Symbol("Overflow"):
+                exit_rc = -2
+            else:
+                exit_rc = -3
 
         if not args.persist:
-            return
+            return exit_rc
 
     if args.FILE is not None:
         feeder = FileLineFeeder(args.FILE)
@@ -326,7 +340,7 @@ def main():
         if args.persist:
             definitions.set_line_no(0)
         else:
-            return
+            return exit_rc
 
     if not args.quiet:
         print()
@@ -356,7 +370,7 @@ def main():
             raise
         finally:
             shell.reset_lineno()
-
+    return exit_rc
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

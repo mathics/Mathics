@@ -51,10 +51,10 @@ def _get_float_inf(value, evaluation) -> typing.Optional[float]:
 
 
 def get_precision(value, evaluation) -> typing.Optional[int]:
-    from mathics.core.expression import Symbol, MachineReal
     if value.get_name() == 'System`MachinePrecision':
         return None
     else:
+        from mathics.core.expression import Symbol, MachineReal
         dmin = _get_float_inf(Symbol('$MinPrecision'), evaluation)
         dmax = _get_float_inf(Symbol('$MaxPrecision'), evaluation)
         d = value.round_to_float(evaluation)

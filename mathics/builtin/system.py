@@ -11,10 +11,17 @@ import platform
 import sys
 import re
 
-from mathics.core.expression import Expression, Integer, String, Symbol, strip_context
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Real,
+    String,
+    Symbol,
+    strip_context,
+)
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
-from mathics.builtin.strings import StringExpression, to_regex
+from mathics.builtin.strings import to_regex
 
 
 class Aborted(Predefined):
@@ -167,8 +174,8 @@ class MachineName(Predefined):
 class Names(Builtin):
     """
     <dl>
-    <dt>'Names["$pattern$"]'
-        <dd>returns the list of names matching $pattern$.
+      <dt>'Names["$pattern$"]'
+      <dd>returns the list of names matching $pattern$.
     </dl>
 
     >> Names["List"]
@@ -223,18 +230,13 @@ class Packages(Predefined):
     </dl>
 
     X> $Packages
-    = {CombinatoricaOld,ImportExport,Internal,System,XML}
-    #> MemberQ[$Packages, "System"]
+    = {ImportExport`,XML`,Internal`,System`,Global`}
+    #> MemberQ[$Packages, "System`"]
     = True
     """
 
     name = "$Packages"
-
-    def evaluate(self, evaluation):
-        return Expression(
-            "List",
-            *(String(name) for name in evaluation.definitions.get_package_names()),
-        )
+    rules = {'$Packages': '{"ImportExport`",  "XML`","Internal`", "System`", "Global`"}',}
 
 
 class ParentProcessID(Predefined):
@@ -389,3 +391,23 @@ class Version(Predefined):
 
     def evaluate(self, evaluation) -> String:
         return String(version_string.replace("\n", " "))
+
+
+class VersionNumber(Predefined):
+    r"""
+    <dl>
+      <dt>'$VersionNumber'
+      <dd>is a real number which gives the current Wolfram Language version that \Mathics tries to be compatible with.
+    </dl>
+
+    >> $VersionNumber
+    = ...
+    """
+
+    name = "$VersionNumber"
+    value = 6.0
+
+    def evaluate(self, evaluation) -> Real:
+        # Make this be whatever the latest Mathematica release is,
+        # assuming we are trying to be compatible with this.
+        return Real(self.value)
