@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # cython: language_level=3
 
@@ -8,10 +7,10 @@ Mathematical Functions
 Basic arithmetic functions, including complex number arithmetic.
 """
 
-
+from mathics.version import __version__  # noqa used in loading to check consistency.
 import sympy
 import mpmath
-import math
+from functools import lru_cache
 
 from mathics.builtin.base import (
     Builtin,
@@ -32,15 +31,40 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
+    SymbolComplexInfinity,
+    SymbolDirectedInfinity,
     SymbolFalse,
+    SymbolInfinity,
+    SymbolN,
     SymbolNull,
+    SymbolSequence,
     SymbolTrue,
+    SymbolSequence,
+    from_python,
+    from_mpmath,
     from_python,
 )
 from mathics.core.numbers import min_prec, dps, SpecialValueError
 
 from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression
+
+
+@lru_cache(maxsize=1024)
+def call_mpmath(mpmath_function, mpmath_args):
+    try:
+        return mpmath_function(*mpmath_args)
+    except ValueError as exc:
+        text = str(exc)
+        if text == "gamma function pole":
+            return Symbol("ComplexInfinity")
+        else:
+            raise
+    except ZeroDivisionError:
+        return
+    except SpecialValueError as exc:
+        return Symbol(exc.name)
+
 
 class _MPMathFunction(SympyFunction):
 
@@ -50,6 +74,7 @@ class _MPMathFunction(SympyFunction):
 
     nargs = 1
 
+    @lru_cache(maxsize=1024)
     def get_mpmath_function(self, args):
         if self.mpmath_name is None or len(args) != self.nargs:
             return None
@@ -59,7 +84,7 @@ class _MPMathFunction(SympyFunction):
         "%(name)s[z__]"
 
         args = z.numerify(evaluation).get_sequence()
-        mpmath_function = self.get_mpmath_function(args)
+        mpmath_function = self.get_mpmath_function(tuple(args))
         result = None
 
         # if no arguments are inexact attempt to use sympy
@@ -84,7 +109,7 @@ class _MPMathFunction(SympyFunction):
             if None in float_args:
                 return
 
-            result = self.call_mpmath(mpmath_function, float_args)
+            result = call_mpmath(mpmath_function, tuple(float_args))
             if isinstance(result, (mpmath.mpc, mpmath.mpf)):
                 if mpmath.isinf(result) and isinstance(result, mpmath.mpc):
                     result = Symbol("ComplexInfinity")
@@ -95,20 +120,21 @@ class _MPMathFunction(SympyFunction):
                 elif mpmath.isnan(result):
                     result = Symbol("Indeterminate")
                 else:
-                    result = Number.from_mpmath(result)
+                    result = from_mpmath(result)
         else:
             prec = min_prec(*args)
             d = dps(prec)
             args = [
-                Expression("N", arg, Integer(d)).evaluate(evaluation) for arg in args
+                Expression(SymbolN, arg, Integer(d)).evaluate(evaluation)
+                for arg in args
             ]
             with mpmath.workprec(prec):
                 mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
                     return
-                result = self.call_mpmath(mpmath_function, mpmath_args)
+                result = call_mpmath(mpmath_function, tuple(mpmath_args))
                 if isinstance(result, (mpmath.mpc, mpmath.mpf)):
-                    result = Number.from_mpmath(result, d)
+                    result = from_mpmath(result, d)
         return result
 
     def call_mpmath(self, mpmath_function, mpmath_args):
@@ -340,12 +366,12 @@ class Plus(BinaryOperator, SympyFunction):
                 if is_machine_precision:
                     numbers = [item.to_mpmath() for item in numbers]
                     number = mpmath.fsum(numbers)
-                    number = Number.from_mpmath(number)
+                    number = from_mpmath(number)
                 else:
                     with mpmath.workprec(prec):
                         numbers = [item.to_mpmath() for item in numbers]
                         number = mpmath.fsum(numbers)
-                        number = Number.from_mpmath(number, dps(prec))
+                        number = from_mpmath(number, dps(prec))
             else:
                 number = from_sympy(sum(item.to_sympy() for item in numbers))
         else:
@@ -625,10 +651,10 @@ class Times(BinaryOperator, SympyFunction):
 
     def apply(self, items, evaluation):
         "Times[items___]"
-
         items = items.numerify(evaluation).get_sequence()
         leaves = []
         numbers = []
+        infinity_factor = False
 
         prec = min_prec(*items)
         is_machine_precision = any(item.is_machine_precision() for item in items)
@@ -664,6 +690,16 @@ class Times(BinaryOperator, SympyFunction):
                 leaves[-1] = Expression(
                     "Power", item, Expression("Plus", Integer(1), leaves[-1].leaves[1])
                 )
+            elif item.get_head().same(SymbolDirectedInfinity):
+                infinity_factor = True
+                if len(item.leaves) > 1:
+                    direction = item.leaves[0]
+                    if isinstance(direction, Number):
+                        numbers.append(direction)
+                    else:
+                        leaves.append(direction)
+            elif item.same(SymbolInfinity) or item.same(SymbolComplexInfinity):
+                infinity_factor = True
             else:
                 leaves.append(item)
 
@@ -672,12 +708,12 @@ class Times(BinaryOperator, SympyFunction):
                 if is_machine_precision:
                     numbers = [item.to_mpmath() for item in numbers]
                     number = mpmath.fprod(numbers)
-                    number = Number.from_mpmath(number)
+                    number = from_mpmath(number)
                 else:
                     with mpmath.workprec(prec):
                         numbers = [item.to_mpmath() for item in numbers]
                         number = mpmath.fprod(numbers)
-                        number = Number.from_mpmath(number, dps(prec))
+                        number = from_mpmath(number, dps(prec))
             else:
                 number = sympy.Mul(*[item.to_sympy() for item in numbers])
                 number = from_sympy(number)
@@ -687,6 +723,8 @@ class Times(BinaryOperator, SympyFunction):
         if number.same(Integer(1)):
             number = None
         elif number.is_zero:
+            if infinity_factor:
+                return Symbol("Indeterminate")
             return number
         elif number.same(Integer(-1)) and leaves and leaves[0].has_form("Plus", None):
             leaves[0] = Expression(
@@ -702,11 +740,18 @@ class Times(BinaryOperator, SympyFunction):
             leaves.insert(0, number)
 
         if not leaves:
+            if infinity_factor:
+                return SymbolComplexInfinity
             return Integer(1)
-        elif len(leaves) == 1:
-            return leaves[0]
+
+        if len(leaves) == 1:
+            ret = leaves[0]
         else:
-            return Expression("Times", *leaves)
+            ret = Expression("Times", *leaves)
+        if infinity_factor:
+            return Expression(SymbolDirectedInfinity, ret)
+        else:
+            return ret
 
 
 class Divide(BinaryOperator):
@@ -840,7 +885,7 @@ class Power(BinaryOperator, _MPMathFunction):
     #> (3/2+1/2I)^2
      = 2 + 3 I / 2
     #> I ^ I
-     = I ^ I
+     = -1 ^ (I / 2)
 
     #> 2 ^ 2.0
      = 4.
@@ -888,6 +933,9 @@ class Power(BinaryOperator, _MPMathFunction):
         ("", "x_ ^ y_?Negative"): (
             "HoldForm[Divide[1, #]]&[If[y==-1, HoldForm[x], HoldForm[x]^-y]]"
         ),
+        ("", "x_?Negative ^ y_"): (
+            'Infix[{HoldForm[(x)], HoldForm[y]},"^", 590, Right]'
+        ),
     }
 
     rules = {
@@ -903,7 +951,7 @@ class Power(BinaryOperator, _MPMathFunction):
             if isinstance(y, Number):
                 y_err = y
             else:
-                y_err = Expression("N", y).evaluate(evaluation)
+                y_err = Expression(SymbolN, y).evaluate(evaluation)
             if isinstance(y_err, Number):
                 py_y = y_err.round_to_float(permit_complex=True).real
                 if py_y > 0:
@@ -914,8 +962,12 @@ class Power(BinaryOperator, _MPMathFunction):
                 elif py_y < 0:
                     evaluation.message("Power", "infy", Expression("Power", x, y_err))
                     return Symbol("ComplexInfinity")
+        if isinstance(x, Complex) and x.real.is_zero:
+            yhalf = Expression("Times", y, Rational(1, 2))
+            factor = self.apply(Expression("Sequence", x.imag, y), evaluation)
+            return Expression("Times", factor, Expression("Power", Integer(-1), yhalf))
 
-        result = self.apply(Expression("Sequence", x, y), evaluation)
+        result = self.apply(Expression(SymbolSequence, x, y), evaluation)
         if result is None or result != SymbolNull:
             return result
 
@@ -1032,6 +1084,10 @@ class DirectedInfinity(SympyFunction):
      : Indeterminate expression -Infinity + Infinity encountered.
      = Indeterminate
 
+    >> DirectedInfinity[0]
+     : Indeterminate expression 0 Infinity encountered.
+     = Indeterminate
+
     #> DirectedInfinity[1+I]+DirectedInfinity[2+I]
      = (2 / 5 + I / 5) Sqrt[5] Infinity + (1 / 2 + I / 2) Sqrt[2] Infinity
 
@@ -1040,14 +1096,15 @@ class DirectedInfinity(SympyFunction):
     """
 
     rules = {
+        "DirectedInfinity[Indeterminate]": "Indeterminate",
         "DirectedInfinity[args___] ^ -1": "0",
         "0 * DirectedInfinity[args___]": "Message[Infinity::indet, Unevaluated[0 DirectedInfinity[args]]]; Indeterminate",
         "DirectedInfinity[a_?NumericQ] /; N[Abs[a]] != 1": "DirectedInfinity[a / Abs[a]]",
         "DirectedInfinity[a_] * DirectedInfinity[b_]": "DirectedInfinity[a*b]",
         "DirectedInfinity[] * DirectedInfinity[args___]": "DirectedInfinity[]",
-        "DirectedInfinity[0]": "DirectedInfinity[]",
-        "z_?NumberQ * DirectedInfinity[]": "DirectedInfinity[]",
-        "z_?NumberQ * DirectedInfinity[a_]": "DirectedInfinity[z * a]",
+        # Rules already implemented in Times.apply
+        #        "z_?NumberQ * DirectedInfinity[]": "DirectedInfinity[]",
+        #        "z_?NumberQ * DirectedInfinity[a_]": "DirectedInfinity[z * a]",
         "DirectedInfinity[a_] + DirectedInfinity[b_] /; b == -a": (
             "Message[Infinity::indet,"
             "  Unevaluated[DirectedInfinity[a] + DirectedInfinity[b]]];"
@@ -1059,12 +1116,23 @@ class DirectedInfinity(SympyFunction):
             "Indeterminate"
         ),
         "DirectedInfinity[args___] + _?NumberQ": "DirectedInfinity[args]",
+        "DirectedInfinity[0]": (
+            "Message[Infinity::indet,"
+            "  Unevaluated[DirectedInfinity[0]]];"
+            "Indeterminate"
+        ),
+        "DirectedInfinity[0.]": (
+            "Message[Infinity::indet,"
+            "  Unevaluated[DirectedInfinity[0.]]];"
+            "Indeterminate"
+        ),
     }
 
     formats = {
         "DirectedInfinity[1]": "HoldForm[Infinity]",
         "DirectedInfinity[-1]": "HoldForm[-Infinity]",
         "DirectedInfinity[]": "HoldForm[ComplexInfinity]",
+        "DirectedInfinity[DirectedInfinity[z_]]": "DirectedInfinity[z]",
         "DirectedInfinity[z_?NumericQ]": "HoldForm[z Infinity]",
     }
 
@@ -1097,6 +1165,7 @@ class Re(SympyFunction):
     """
 
     attributes = ("Listable", "NumericFunction")
+    sympy_name = "re"
 
     def apply_complex(self, number, evaluation):
         "Re[number_Complex]"
@@ -1211,7 +1280,7 @@ class Abs(_MPMathFunction):
     mpmath_name = "fabs"  # mpmath actually uses python abs(x) / x.__abs__()
 
 
-class Sign(Builtin):
+class Sign(SympyFunction):
     """
     <dl>
     <dt>'Sign[$x$]'
@@ -1239,8 +1308,7 @@ class Sign(Builtin):
      = Sign[20]
     """
 
-    # Sympy and mpmath do not give the desired form of complex number
-    # sympy_name = 'sign'
+    sympy_name = "sign"
     # mpmath_name = 'sign'
 
     attributes = ("Listable", "NumericFunction")
@@ -1250,14 +1318,15 @@ class Sign(Builtin):
     }
 
     def apply(self, x, evaluation):
-        "Sign[x_]"
+        "%(name)s[x_]"
+        # Sympy and mpmath do not give the desired form of complex number
         if isinstance(x, Complex):
             return Expression("Times", x, Expression("Power", Expression("Abs", x), -1))
 
         sympy_x = x.to_sympy()
         if sympy_x is None:
             return None
-        return from_sympy(sympy.sign(sympy_x))
+        return super().apply(x)
 
     def apply_error(self, x, seqs, evaluation):
         "Sign[x_, seqs__]"
@@ -1347,13 +1416,13 @@ class PossibleZeroQ(SympyFunction):
         sympy_expr = expr.to_sympy()
         result = _iszero(sympy_expr)
         if result is None:
-        # try expanding the expression
+            # try expanding the expression
             exprexp = Expression("ExpandAll", expr).evaluate(evaluation)
             exprexp = exprexp.to_sympy()
-            result = _iszero(exprexp)        
+            result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
-            numeric_val = Expression("N", expr).evaluate(evaluation)
+            numeric_val = Expression(SymbolN, expr).evaluate(evaluation)
             if numeric_val and hasattr(numeric_val, "is_approx_zero"):
                 result = numeric_val.is_approx_zero
             elif (
@@ -1593,7 +1662,7 @@ class Rational_(Builtin):
     name = "Rational"
 
     def apply(self, n, m, evaluation):
-        "Rational[n_Integer, m_Integer]"
+        "%(name)s[n_Integer, m_Integer]"
 
         if m.to_sympy() == 1:
             return Integer(n.to_sympy())
@@ -1660,7 +1729,7 @@ class Complex_(Builtin):
     name = "Complex"
 
     def apply(self, r, i, evaluation):
-        "Complex[r_?NumberQ, i_?NumberQ]"
+        "%(name)s[r_?NumberQ, i_?NumberQ]"
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
@@ -2065,7 +2134,7 @@ class Piecewise(SympyFunction):
     attributes = ("HoldAll",)
 
     def apply(self, items, evaluation):
-        "Piecewise[items__]"
+        "%(name)s[items__]"
         result = self.to_sympy(Expression("Piecewise", *items.get_sequence()))
         if result is None:
             return
@@ -2131,7 +2200,7 @@ class Boole(Builtin):
     attributes = ("Listable",)
 
     def apply(self, expr, evaluation):
-        "Boole[expr_]"
+        "%(name)s[expr_]"
         if isinstance(expr, Symbol):
             if expr == SymbolTrue:
                 return Integer(1)

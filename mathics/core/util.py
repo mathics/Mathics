@@ -5,7 +5,8 @@ import re
 import sys
 from itertools import chain
 
-FORMAT_RE = re.compile(r'\`(\d*)\`')
+FORMAT_RE = re.compile(r"\`(\d*)\`")
+
 
 def interpolate_string(text, get_param) -> str:
     index = [1]
@@ -14,7 +15,7 @@ def interpolate_string(text, get_param) -> str:
         if 1 <= index <= len(args):
             return args[index - 1]
         else:
-            return ''
+            return ""
 
     if isinstance(get_param, list):
         args = get_param
@@ -22,14 +23,16 @@ def interpolate_string(text, get_param) -> str:
 
     def repl(match):
         arg = match.group(1)
-        if arg == '' or arg == '0':
+        if arg == "" or arg == "0":
             arg = index[0]
         else:
             arg = int(arg)
         index[0] += 1
         param = get_param(arg)
         return param
+
     return FORMAT_RE.sub(repl, text)
+
 
 """
 NOTE: Maybe see
@@ -49,7 +52,7 @@ def permutations(items, without_duplicates=True):
     for index in range(len(items)):
         item = items[index]
         # if item not in already_taken:
-        for sub in permutations(items[:index] + items[index + 1:]):
+        for sub in permutations(items[:index] + items[index + 1 :]):
             yield [item] + sub
             # already_taken.add(item)
 
@@ -75,8 +78,7 @@ def subsets(items, min, max, included=None, less_first=False):
         elif rest:
             item = rest[0]
             if included is None or item in included:
-                for set in decide(chosen + [item], not_chosen, rest[1:],
-                                  count - 1):
+                for set in decide(chosen + [item], not_chosen, rest[1:], count - 1):
                     yield set
             for set in decide(chosen, not_chosen + [item], rest[1:], count):
                 yield set
@@ -94,7 +96,7 @@ def subsets_2(items, min, max, without_duplicates=True):
     if min <= max == 1:
         for index in range(len(items)):
             if items[index].include:
-                yield [items[index]], ([], items[:index] + items[index + 1:])
+                yield [items[index]], ([], items[:index] + items[index + 1 :])
         if min == 0:
             yield [], ([], items)
     else:
@@ -119,22 +121,23 @@ def subsets_2(items, min, max, without_duplicates=True):
                     yield chosen, ([], not_chosen)
             else:
                 if rest[0].include:
-                    for set in decide(chosen + [rest[0]], not_chosen,
-                                      rest[1:]):
+                    for set in decide(chosen + [rest[0]], not_chosen, rest[1:]):
                         yield set
                 for set in decide(chosen, not_chosen + [rest[0]], rest[1:]):
                     yield set
+
         for subset in decide([], [], list(counts.keys())):
             t = tuple(subset[0])
             if t not in already:
                 yield subset
                 already.add(t)
             else:
-                print('already taken')
+                print("already taken")
 
 
-def subranges(items, min_count, max, flexible_start=False, included=None,
-              less_first=False):
+def subranges(
+    items, min_count, max, flexible_start=False, included=None, less_first=False
+):
     # TODO: take into account included
 
     if max is None:
@@ -152,30 +155,33 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
         if lengths == [0, 1]:
             lengths = [1, 0]
         for length in lengths:
-            yield (items[start:start + length],
-                   (items[:start], items[start + length:]))
+            yield (
+                items[start : start + length],
+                (items[:start], items[start + length :]),
+            )
 
 
 def unicode_superscript(value) -> str:
     def repl_char(c):
-        if c == '1':
+        if c == "1":
             value = 185
-        elif c == '2':
+        elif c == "2":
             value = 178
-        elif c == '3':
+        elif c == "3":
             value = 179
-        elif '0' <= c <= '9':
-            value = 8304 + (ord(c) - ord('0'))
-        elif c == '-':
+        elif "0" <= c <= "9":
+            value = 8304 + (ord(c) - ord("0"))
+        elif c == "-":
             value = 8315
-        elif c == '(':
+        elif c == "(":
             value = 8317
-        elif c == ')':
+        elif c == ")":
             value = 8318
         else:
             value = ord(c)
         return chr(value)
-    return ''.join(repl_char(c) for c in value)
+
+    return "".join(repl_char(c) for c in value)
 
 
 try:
@@ -183,18 +189,25 @@ try:
 
     def _python_function_arguments(f):
         return signature(f).parameters.keys()
+
+
 except ImportError:  # py2, pypy
     from inspect import getargspec
 
     def _python_function_arguments(f):
         return getargspec(f).args
 
+
 if sys.version_info >= (3, 4, 0):
     _cython_function_arguments = _python_function_arguments
 elif sys.version_info[0] >= 3:  # py3.3
+
     def _cython_function_arguments(f):
         return f.__code__.co_varnames
+
+
 else:  # py2
+
     def _cython_function_arguments(f):
         return f.func_code.co_varnames
 
@@ -205,6 +218,7 @@ def function_arguments(f):
     except (TypeError, ValueError):
         return _cython_function_arguments(f)
 
+
 def robust_min(iterable):
     minimum = None
     for i in iterable:
@@ -212,15 +226,16 @@ def robust_min(iterable):
             minimum = i
     return minimum
 
-def re_from_keys(d: dict) -> 're':
+
+def re_from_keys(d: dict) -> "re":
     """Returns a regex that matches any of the keys of the dictionary"""
 
-    # The keys are sorted to prevent shorter keys from obscuring longer keys 
+    # The keys are sorted to prevent shorter keys from obscuring longer keys
     # when pattern matching
     return re.compile("|".join(sorted(d.keys(), key=lambda k: (-len(k), k))))
+
 
 def dict_with_escaped_keys(d: dict) -> dict:
     """Takes a dictionary and returns a copy of it where the keys are escaped 
     with re.escape"""
     return {re.escape(k): v for k, v in d.items()}
-

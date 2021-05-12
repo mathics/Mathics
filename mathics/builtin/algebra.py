@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Algebraic Manipulation
 """
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
@@ -27,8 +27,8 @@ def sympy_factor(expr_sympy):
 
 
 def cancel(expr):
-    if expr.has_form('Plus', None):
-        return Expression('Plus', *[cancel(leaf) for leaf in expr.leaves])
+    if expr.has_form("Plus", None):
+        return Expression("Plus", *[cancel(leaf) for leaf in expr.leaves])
     else:
         try:
             result = expr.to_sympy()
@@ -48,46 +48,53 @@ def cancel(expr):
 
 
 def expand(expr, numer=True, denom=False, deep=False, **kwargs):
-
     def _expand(expr):
         return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
 
-    if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
+    if kwargs["modulus"] is not None and kwargs["modulus"] <= 0:
         return Integer(0)
 
     # A special case for trigonometric functions
-    if 'trig' in kwargs and kwargs['trig']:
-        if expr.has_form('Sin', 1):
+    if "trig" in kwargs and kwargs["trig"]:
+        if expr.has_form("Sin", 1):
             theta = expr.leaves[0]
 
-            if theta.has_form('Plus', 2, None):
-                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+            if theta.has_form("Plus", 2, None):
+                x, y = theta.leaves[0], Expression("Plus", *theta.leaves[1:])
 
-                a = Expression('Times',
-                               _expand(Expression('Sin', x)),
-                               _expand(Expression('Cos', y)))
+                a = Expression(
+                    "Times",
+                    _expand(Expression("Sin", x)),
+                    _expand(Expression("Cos", y)),
+                )
 
-                b = Expression('Times',
-                               _expand(Expression('Cos', x)),
-                               _expand(Expression('Sin', y)))
+                b = Expression(
+                    "Times",
+                    _expand(Expression("Cos", x)),
+                    _expand(Expression("Sin", y)),
+                )
 
-                return Expression('Plus', a, b)
+                return Expression("Plus", a, b)
 
-        elif expr.has_form('Cos', 1):
+        elif expr.has_form("Cos", 1):
             theta = expr.leaves[0]
 
-            if theta.has_form('Plus', 2, None):
-                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+            if theta.has_form("Plus", 2, None):
+                x, y = theta.leaves[0], Expression("Plus", *theta.leaves[1:])
 
-                a = Expression('Times',
-                               _expand(Expression('Cos', x)),
-                               _expand(Expression('Cos', y)))
+                a = Expression(
+                    "Times",
+                    _expand(Expression("Cos", x)),
+                    _expand(Expression("Cos", y)),
+                )
 
-                b = Expression('Times',
-                               _expand(Expression('Sin', x)),
-                               _expand(Expression('Sin', y)))
+                b = Expression(
+                    "Times",
+                    _expand(Expression("Sin", x)),
+                    _expand(Expression("Sin", y)),
+                )
 
-                return Expression('Plus', a, -b)
+                return Expression("Plus", a, -b)
 
     sub_exprs = []
 
@@ -98,8 +105,8 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
     def get_sub_expr(expr):
         name = expr.get_name()
-        assert isinstance(expr, Symbol) and name.startswith('System`')
-        i = int(name[len('System`'):])
+        assert isinstance(expr, Symbol) and name.startswith("System`")
+        i = int(name[len("System`") :])
         return sub_exprs[i]
 
     def convert_sympy(expr):
@@ -107,16 +114,16 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
         leaves = expr.get_leaves()
         if isinstance(expr, Integer):
             return sympy.Integer(expr.get_int_value())
-        if expr.has_form('Power', 2):
+        if expr.has_form("Power", 2):
             # sympy won't expand `(a + b) / x` to `a / x + b / x` if denom is False
             # if denom is False we store negative powers to prevent this.
             n1 = leaves[1].get_int_value()
             if not denom and n1 is not None and n1 < 0:
                 return store_sub_expr(expr)
             return sympy.Pow(*[convert_sympy(leaf) for leaf in leaves])
-        elif expr.has_form('Times', 2, None):
+        elif expr.has_form("Times", 2, None):
             return sympy.Mul(*[convert_sympy(leaf) for leaf in leaves])
-        elif expr.has_form('Plus', 2, None):
+        elif expr.has_form("Plus", 2, None):
             return sympy.Add(*[convert_sympy(leaf) for leaf in leaves])
         else:
             return store_sub_expr(expr)
@@ -128,7 +135,9 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
             else:
                 return expr
         else:
-            return Expression(expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()])
+            return Expression(
+                expr.head, *[unconvert_subexprs(leaf) for leaf in expr.get_leaves()]
+            )
 
     sympy_expr = convert_sympy(expr)
 
@@ -136,13 +145,13 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
         # thread over everything
         for i, sub_expr, in enumerate(sub_exprs):
             if not sub_expr.is_atom():
-                head = _expand(sub_expr.head)    # also expand head
+                head = _expand(sub_expr.head)  # also expand head
                 leaves = sub_expr.get_leaves()
                 leaves = [_expand(leaf) for leaf in leaves]
                 sub_exprs[i] = Expression(head, *leaves)
     else:
         # thread over Lists etc.
-        threaded_heads = ('List', 'Rule')
+        threaded_heads = ("List", "Rule")
         for i, sub_expr in enumerate(sub_exprs):
             for head in threaded_heads:
                 if sub_expr.has_form(head, None):
@@ -152,24 +161,24 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
                     break
 
     hints = {
-        'mul': True,
-        'multinomial': True,
-        'power_exp': False,
-        'power_base': False,
-        'basic': False,
-        'log': False,
+        "mul": True,
+        "multinomial": True,
+        "power_exp": False,
+        "power_base": False,
+        "basic": False,
+        "log": False,
     }
 
     hints.update(kwargs)
 
     if numer and denom:
         # don't expand fractions when modulus is True
-        if hints['modulus'] is not None:
-            hints['frac'] = True
+        if hints["modulus"] is not None:
+            hints["frac"] = True
     else:
         # setting both True doesn't expand denom
-        hints['numer'] = numer
-        hints['denom'] = denom
+        hints["numer"] = numer
+        hints["denom"] = denom
 
     sympy_expr = sympy_expr.expand(**hints)
     result = from_sympy(sympy_expr)
@@ -187,23 +196,22 @@ def find_all_vars(expr):
             return
         elif e.is_symbol():
             variables.add(e)
-        elif (e.has_form('Plus', None) or
-              e.has_form('Times', None)):
+        elif e.has_form("Plus", None) or e.has_form("Times", None):
             for l in e.leaves:
                 l_sympy = l.to_sympy()
                 if l_sympy is not None:
                     find_vars(l, l_sympy)
-        elif e.has_form('Power', 2):
+        elif e.has_form("Power", 2):
             (a, b) = e.leaves  # a^b
             a_sympy, b_sympy = a.to_sympy(), b.to_sympy()
             if a_sympy is None or b_sympy is None:
                 return
-            if not(a_sympy.is_constant()) and b_sympy.is_rational:
+            if not (a_sympy.is_constant()) and b_sympy.is_rational:
                 find_vars(a, a_sympy)
-        elif not(e.is_atom()):
+        elif not (e.is_atom()):
             variables.add(e)
 
-    exprs = expr.leaves if expr.has_form('List', None) else [expr]
+    exprs = expr.leaves if expr.has_form("List", None) else [expr]
     for e in exprs:
         e_sympy = e.to_sympy()
         if e_sympy is not None:
@@ -229,8 +237,12 @@ def find_exponents(expr, var):
         else:
             # find exponent of terms multiplied with functions: sin, cos, log, exp, ...
             # e.g: x^3 * Sin[x^2] should give 3
-            muls = [term.as_coeff_mul(x)[1] if term.as_coeff_mul(x)[1] else (sympy.Integer(0),)
-                    for term in coeff.as_ordered_terms()]
+            muls = [
+                term.as_coeff_mul(x)[1]
+                if term.as_coeff_mul(x)[1]
+                else (sympy.Integer(0),)
+                for term in coeff.as_ordered_terms()
+            ]
             expos = [term.as_coeff_exponent(x)[1] for mul in muls for term in mul]
             result.add(from_sympy(sympy.Max(*[e for e in expos])))
     return sorted(result)
@@ -254,7 +266,7 @@ class Cancel(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Cancel[expr_]'
+        "Cancel[expr_]"
 
         return cancel(expr)
 
@@ -282,13 +294,13 @@ class Simplify(Builtin):
     """
 
     rules = {
-        'Simplify[list_List]': 'Simplify /@ list',
-        'Simplify[rule_Rule]': 'Simplify /@ rule',
-        'Simplify[eq_Equal]': 'Simplify /@ eq',
+        "Simplify[list_List]": "Simplify /@ list",
+        "Simplify[rule_Rule]": "Simplify /@ rule",
+        "Simplify[eq_Equal]": "Simplify /@ eq",
     }
 
     def apply(self, expr, evaluation):
-        'Simplify[expr_]'
+        "Simplify[expr_]"
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
@@ -317,10 +329,10 @@ class Together(Builtin):
      = f[x] (1 + x) / x ^ 2
     """
 
-    attributes = ['Listable']
+    attributes = ["Listable"]
 
     def apply(self, expr, evaluation):
-        'Together[expr_]'
+        "Together[expr_]"
 
         expr_sympy = expr.to_sympy()
         if expr_sympy is None:
@@ -349,10 +361,10 @@ class Factor(Builtin):
      = {x (1 + x)}
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     def apply(self, expr, evaluation):
-        'Factor[expr_]'
+        "Factor[expr_]"
 
         expr_sympy = expr.to_sympy()
         if expr_sympy is None:
@@ -462,32 +474,36 @@ class FactorTermsList(Builtin):
     """
 
     rules = {
-        'FactorTermsList[expr_]': 'FactorTermsList[expr, {}]',
-        'FactorTermsList[expr_, var_]': 'FactorTermsList[expr, {var}]',
+        "FactorTermsList[expr_]": "FactorTermsList[expr, {}]",
+        "FactorTermsList[expr_, var_]": "FactorTermsList[expr, {var}]",
     }
 
     messages = {
         # 'poly': '`1` is not a polynomial.',
-        'ivar': '`1` is not a valid variable.',
+        "ivar": "`1` is not a valid variable.",
     }
 
     def apply_list(self, expr, vars, evaluation):
-        'FactorTermsList[expr_, vars_List]'
+        "FactorTermsList[expr_, vars_List]"
         if expr == Integer(0):
-            return Expression('List', Integer(1), Integer(0))
+            return Expression("List", Integer(1), Integer(0))
         elif isinstance(expr, Number):
-            return Expression('List', expr, Integer(1))
+            return Expression("List", expr, Integer(1))
 
         for x in vars.leaves:
-            if not(isinstance(x, Atom)):
-                return evaluation.message('CoefficientList', 'ivar', x)
+            if not (isinstance(x, Atom)):
+                return evaluation.message("CoefficientList", "ivar", x)
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
-            return Expression('List', Integer(1), expr)
+            return Expression("List", Integer(1), expr)
         sympy_expr = sympy.together(sympy_expr)
 
-        sympy_vars = [x.to_sympy() for x in vars.leaves if isinstance(x, Symbol) and sympy_expr.is_polynomial(x.to_sympy())]
+        sympy_vars = [
+            x.to_sympy()
+            for x in vars.leaves
+            if isinstance(x, Symbol) and sympy_expr.is_polynomial(x.to_sympy())
+        ]
 
         result = []
         numer, denom = sympy_expr.as_numer_denom()
@@ -498,11 +514,19 @@ class FactorTermsList(Builtin):
                 result.append(num_coeff)
 
                 # Get factors are independent of sub list of variables
-                if (sympy_vars and isinstance(expr, Expression)
-                    and any(x.free_symbols.issubset(sympy_expr.free_symbols) for x in sympy_vars)):
+                if (
+                    sympy_vars
+                    and isinstance(expr, Expression)
+                    and any(
+                        x.free_symbols.issubset(sympy_expr.free_symbols)
+                        for x in sympy_vars
+                    )
+                ):
                     for i in reversed(range(len(sympy_vars))):
                         numer = sympy.factor(numer) / sympy.factor(num_coeff)
-                        num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer), *[x for x in sympy_vars[:(i+1)]])
+                        num_coeff, num_polys = sympy.factor_list(
+                            sympy.Poly(numer), *[x for x in sympy_vars[: (i + 1)]]
+                        )
                         result.append(sympy.expand(num_coeff))
 
                 # Last factor
@@ -511,12 +535,19 @@ class FactorTermsList(Builtin):
             else:
                 num_coeff, num_polys = sympy.factor_list(sympy.Poly(numer))
                 den_coeff, den_polys = sympy.factor_list(sympy.Poly(denom))
-                result = [num_coeff / den_coeff, sympy.expand(sympy.factor(numer)/num_coeff / (sympy.factor(denom)/den_coeff))]
-        except sympy.PolynomialError: # MMA does not raise error for non poly
+                result = [
+                    num_coeff / den_coeff,
+                    sympy.expand(
+                        sympy.factor(numer)
+                        / num_coeff
+                        / (sympy.factor(denom) / den_coeff)
+                    ),
+                ]
+        except sympy.PolynomialError:  # MMA does not raise error for non poly
             result.append(sympy.expand(numer))
             # evaluation.message(self.get_name(), 'poly', expr)
 
-        return Expression('List', *[from_sympy(i) for i in result])
+        return Expression("List", *[from_sympy(i) for i in result])
 
 
 class Apart(Builtin):
@@ -553,15 +584,16 @@ class Apart(Builtin):
      = f[2 x]
     """
 
-    attributes = ['Listable']
+    attributes = ["Listable"]
     rules = {
-        'Apart[expr_]': (
-            'Block[{vars = Cases[Level[expr, {-1}], _Symbol]},'
-            '  If[Length[vars] > 0, Apart[expr, vars[[1]]], expr]]'),
+        "Apart[expr_]": (
+            "Block[{vars = Cases[Level[expr, {-1}], _Symbol]},"
+            "  If[Length[vars] > 0, Apart[expr, vars[[1]]], expr]]"
+        ),
     }
 
     def apply(self, expr, var, evaluation):
-        'Apart[expr_, var_Symbol]'
+        "Apart[expr_, var_Symbol]"
 
         expr_sympy = expr.to_sympy()
         var_sympy = var.to_sympy()
@@ -580,32 +612,34 @@ class Apart(Builtin):
 class _Expand(Builtin):
 
     options = {
-        'Trig': 'False',
-        'Modulus': '0',
+        "Trig": "False",
+        "Modulus": "0",
     }
 
     messages = {
-        'modn': 'Value of option `1` -> `2` should be an integer.',
-        'opttf': 'Value of option `1` -> `2` should be True or False.',
+        "modn": "Value of option `1` -> `2` should be an integer.",
+        "opttf": "Value of option `1` -> `2` should be True or False.",
     }
 
     def convert_options(self, options, evaluation):
-        modulus = options['System`Modulus']
+        modulus = options["System`Modulus"]
         py_modulus = modulus.get_int_value()
         if py_modulus is None:
-            return evaluation.message(self.get_name(), 'modn', Symbol('Modulus'), modulus)
+            return evaluation.message(
+                self.get_name(), "modn", Symbol("Modulus"), modulus
+            )
         if py_modulus == 0:
             py_modulus = None
 
-        trig = options['System`Trig']
-        if trig == Symbol('True'):
+        trig = options["System`Trig"]
+        if trig == Symbol("True"):
             py_trig = True
-        elif trig == Symbol('False'):
+        elif trig == Symbol("False"):
             py_trig = False
         else:
-            return evaluation.message(self.get_name(), 'opttf', Symbol('Trig'), trig)
+            return evaluation.message(self.get_name(), "opttf", Symbol("Trig"), trig)
 
-        return {'modulus': py_modulus, 'trig': py_trig}
+        return {"modulus": py_modulus, "trig": py_trig}
 
 
 class Expand(_Expand):
@@ -666,7 +700,7 @@ class Expand(_Expand):
     """
 
     def apply(self, expr, evaluation, options):
-        'Expand[expr_, OptionsPattern[Expand]]'
+        "Expand[expr_, OptionsPattern[Expand]]"
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
@@ -696,7 +730,7 @@ class ExpandDenominator(_Expand):
     """
 
     def apply(self, expr, evaluation, options):
-        'ExpandDenominator[expr_, OptionsPattern[ExpandDenominator]]'
+        "ExpandDenominator[expr_, OptionsPattern[ExpandDenominator]]"
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
@@ -728,7 +762,7 @@ class ExpandAll(_Expand):
     """
 
     def apply(self, expr, evaluation, options):
-        'ExpandAll[expr_, OptionsPattern[ExpandAll]]'
+        "ExpandAll[expr_, OptionsPattern[ExpandAll]]"
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
@@ -754,15 +788,15 @@ class PowerExpand(Builtin):
     """
 
     rules = {
-        'PowerExpand[(x_ ^ y_) ^ z_]': 'x ^ (y * z)',
-        'PowerExpand[(x_ * y_) ^ z_]': 'x ^ z * y ^ z',
-        'PowerExpand[Log[x_ ^ y_]]': 'y * Log[x]',
-        'PowerExpand[x_Plus]': 'PowerExpand /@ x',
-        'PowerExpand[x_Times]': 'PowerExpand /@ x',
-        'PowerExpand[x_Power]': 'PowerExpand /@ x',
-        'PowerExpand[x_List]': 'PowerExpand /@ x',
-        'PowerExpand[x_Rule]': 'PowerExpand /@ x',
-        'PowerExpand[other_]': 'other',
+        "PowerExpand[(x_ ^ y_) ^ z_]": "x ^ (y * z)",
+        "PowerExpand[(x_ * y_) ^ z_]": "x ^ z * y ^ z",
+        "PowerExpand[Log[x_ ^ y_]]": "y * Log[x]",
+        "PowerExpand[x_Plus]": "PowerExpand /@ x",
+        "PowerExpand[x_Times]": "PowerExpand /@ x",
+        "PowerExpand[x_Power]": "PowerExpand /@ x",
+        "PowerExpand[x_List]": "PowerExpand /@ x",
+        "PowerExpand[x_Rule]": "PowerExpand /@ x",
+        "PowerExpand[other_]": "other",
     }
 
 
@@ -782,7 +816,7 @@ class Numerator(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Numerator[expr_]'
+        "Numerator[expr_]"
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
@@ -807,7 +841,7 @@ class Denominator(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Denominator[expr_]'
+        "Denominator[expr_]"
 
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
@@ -840,19 +874,19 @@ class Variables(Builtin):
     """
 
     def apply(self, expr, evaluation):
-        'Variables[expr_]'
+        "Variables[expr_]"
 
         variables = find_all_vars(expr)
 
-        variables = Expression('List', *variables)
-        variables.sort()        # MMA doesn't do this
+        variables = Expression("List", *variables)
+        variables.sort()  # MMA doesn't do this
         return variables
 
 
 class UpTo(Builtin):
     messages = {
-        'innf': 'Expected non-negative integer or infinity at position 1 in ``.',
-        'argx': 'UpTo expects 1 argument, `1` arguments were given.'
+        "innf": "Expected non-negative integer or infinity at position 1 in ``.",
+        "argx": "UpTo expects 1 argument, `1` arguments were given.",
     }
 
 
@@ -888,25 +922,25 @@ class MinimalPolynomial(Builtin):
      = 1 - 4 #1 ^ 2 + #1 ^ 4
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     messages = {
-        'nalg': '`1` is not an explicit algebraic number.',
+        "nalg": "`1` is not an explicit algebraic number.",
     }
 
     def apply_novar(self, s, evaluation):
-        'MinimalPolynomial[s_]'
-        x = Symbol('#1')
+        "MinimalPolynomial[s_]"
+        x = Symbol("#1")
         return self.apply(s, x, evaluation)
 
     def apply(self, s, x, evaluation):
-        'MinimalPolynomial[s_, x_]'
+        "MinimalPolynomial[s_, x_]"
         variables = find_all_vars(s)
         if len(variables) > 0:
-            return evaluation.message('MinimalPolynomial', 'nalg', s)
+            return evaluation.message("MinimalPolynomial", "nalg", s)
 
-        if s == Symbol('Null'):
-            return evaluation.message('MinimalPolynomial', 'nalg', s)
+        if s == Symbol("Null"):
+            return evaluation.message("MinimalPolynomial", "nalg", s)
 
         sympy_s, sympy_x = s.to_sympy(), x.to_sympy()
         if sympy_s is None or sympy_x is None:
@@ -971,38 +1005,43 @@ class PolynomialQ(Builtin):
     """
 
     messages = {
-        'argt': 'PolynomialQ called with `1` arguments; 1 or 2 arguments are expected.',
-        'novar': 'No variable is not supported in PolynomialQ.',
+        "argt": "PolynomialQ called with `1` arguments; 1 or 2 arguments are expected.",
+        "novar": "No variable is not supported in PolynomialQ.",
     }
 
     def apply(self, expr, v, evaluation):
-        'PolynomialQ[expr_, v___]'
-        if expr == Symbol('Null'): return Symbol('True')
+        "PolynomialQ[expr_, v___]"
+        if expr == Symbol("Null"):
+            return Symbol("True")
 
         v = v.get_sequence()
-        if len(v) > 1: return evaluation.message('PolynomialQ', 'argt', Integer(len(v)+1))
-        elif len(v) == 0: return evaluation.message('PolynomialQ', 'novar')
+        if len(v) > 1:
+            return evaluation.message("PolynomialQ", "argt", Integer(len(v) + 1))
+        elif len(v) == 0:
+            return evaluation.message("PolynomialQ", "novar")
 
         var = v[0]
-        if var == Symbol('Null'): return Symbol('True')
-        elif var.has_form('List', None):
-            if len(var.leaves) == 0: return evaluation.message('PolynomialQ', 'novar')
+        if var == Symbol("Null"):
+            return Symbol("True")
+        elif var.has_form("List", None):
+            if len(var.leaves) == 0:
+                return evaluation.message("PolynomialQ", "novar")
             sympy_var = [x.to_sympy() for x in var.leaves]
         else:
             sympy_var = [var.to_sympy()]
 
         sympy_expr = expr.to_sympy()
         sympy_result = sympy_expr.is_polynomial(*[x for x in sympy_var])
-        return Symbol('True') if sympy_result else Symbol('False')
+        return Symbol("True") if sympy_result else Symbol("False")
 
 
 # Get a coefficient of form in an expression
 def _coefficient(name, expr, form, n, evaluation):
-    if expr == Symbol('Null') or form == Symbol('Null') or n == Symbol('Null'):
+    if expr == Symbol("Null") or form == Symbol("Null") or n == Symbol("Null"):
         return Integer(0)
 
-    if not(isinstance(form, Symbol)) and not(isinstance(form, Expression)):
-        return evaluation.message(name, 'ivar', form)
+    if not (isinstance(form, Symbol)) and not (isinstance(form, Expression)):
+        return evaluation.message(name, "ivar", form)
 
     sympy_exprs = expr.to_sympy().as_ordered_terms()
     sympy_var = form.to_sympy()
@@ -1015,7 +1054,10 @@ def _coefficient(name, expr, form, n, evaluation):
         return result
 
     # expand sub expressions if they contain variables
-    sympy_exprs = [sympy.expand(e) if sympy_var.free_symbols.issubset(e.free_symbols) else e for e in sympy_exprs]
+    sympy_exprs = [
+        sympy.expand(e) if sympy_var.free_symbols.issubset(e.free_symbols) else e
+        for e in sympy_exprs
+    ]
     sympy_expr = combine_exprs(sympy_exprs)
     sympy_result = sympy_expr.coeff(sympy_var, sympy_n)
     return from_sympy(sympy_result)
@@ -1095,22 +1137,22 @@ class Coefficient(Builtin):
     """
 
     messages = {
-        'argtu':  'Coefficient called with 1 argument; 2 or 3 arguments are expected.',
-        'ivar':   '`1` is not a valid variable.',
+        "argtu": "Coefficient called with 1 argument; 2 or 3 arguments are expected.",
+        "ivar": "`1` is not a valid variable.",
     }
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     def apply_noform(self, expr, evaluation):
-        'Coefficient[expr_]'
-        return evaluation.message('Coefficient', 'argtu')
+        "Coefficient[expr_]"
+        return evaluation.message("Coefficient", "argtu")
 
     def apply(self, expr, form, evaluation):
-        'Coefficient[expr_, form_]'
+        "Coefficient[expr_, form_]"
         return _coefficient(self.__class__.__name__, expr, form, Integer(1), evaluation)
 
     def apply_n(self, expr, form, n, evaluation):
-        'Coefficient[expr_, form_, n_]'
+        "Coefficient[expr_, form_, n_]"
         return _coefficient(self.__class__.__name__, expr, form, n, evaluation)
 
 
@@ -1182,76 +1224,91 @@ class CoefficientList(Builtin):
     """
 
     messages = {
-        'argtu':  'CoefficientList called with 1 argument; 2 or 3 arguments are expected.',
-        'ivar':   '`1` is not a valid variable.',
-        'poly':   '`1` is not a polynomial.',
+        "argtu": "CoefficientList called with 1 argument; 2 or 3 arguments are expected.",
+        "ivar": "`1` is not a valid variable.",
+        "poly": "`1` is not a polynomial.",
     }
 
     def apply_noform(self, expr, evaluation):
-        'CoefficientList[expr_]'
-        return evaluation.message('CoefficientList', 'argtu')
+        "CoefficientList[expr_]"
+        return evaluation.message("CoefficientList", "argtu")
 
     def apply(self, expr, form, evaluation):
-        'CoefficientList[expr_, form_]'
-        vars = [form] if not form.has_form('List', None) else [v for v in form.leaves]
+        "CoefficientList[expr_, form_]"
+        vars = [form] if not form.has_form("List", None) else [v for v in form.leaves]
 
         # check form is not a variable
         for v in vars:
-            if not(isinstance(v, Symbol)) and not(isinstance(v, Expression)):
-                return evaluation.message('CoefficientList', 'ivar', v)
+            if not (isinstance(v, Symbol)) and not (isinstance(v, Expression)):
+                return evaluation.message("CoefficientList", "ivar", v)
 
         # special cases for expr and form
-        e_null = expr == Symbol('Null')
-        f_null = form == Symbol('Null')
+        e_null = expr == Symbol("Null")
+        f_null = form == Symbol("Null")
         if expr == Integer(0):
-            return Expression('List')
+            return Expression("List")
         elif e_null and f_null:
-            return Expression('List', Integer(0), Integer(0))
+            return Expression("List", Integer(0), Integer(0))
         elif e_null and not f_null:
-            return Expression('List', Symbol('Null'))
+            return Expression("List", Symbol("Null"))
         elif f_null:
-            return Expression('List', expr)
-        elif form.has_form('List', 0):
+            return Expression("List", expr)
+        elif form.has_form("List", 0):
             return expr
 
         sympy_expr = expr.to_sympy()
         sympy_vars = [v.to_sympy() for v in vars]
 
         if not sympy_expr.is_polynomial(*[x for x in sympy_vars]):
-            return evaluation.message('CoefficientList', 'poly', expr)
+            return evaluation.message("CoefficientList", "poly", expr)
 
         try:
             sympy_poly, sympy_opt = sympy.poly_from_expr(sympy_expr, sympy_vars)
-            dimensions = [sympy_poly.degree(x) if x in sympy_poly.gens else 0 for x in sympy_vars]
+            dimensions = [
+                sympy_poly.degree(x) if x in sympy_poly.gens else 0 for x in sympy_vars
+            ]
 
             # single & multiple variables cases
-            if not form.has_form('List', None):
-                return Expression('List',
-                    *[_coefficient(self.__class__.__name__,expr, form, Integer(n), evaluation)
-                    for n in range(dimensions[0]+1)])
-            elif form.has_form('List', 1):
+            if not form.has_form("List", None):
+                return Expression(
+                    "List",
+                    *[
+                        _coefficient(
+                            self.__class__.__name__, expr, form, Integer(n), evaluation
+                        )
+                        for n in range(dimensions[0] + 1)
+                    ]
+                )
+            elif form.has_form("List", 1):
                 form = form.leaves[0]
-                return Expression('List',
-                    *[_coefficient(self.__class__.__name__, expr, form, Integer(n), evaluation)
-                    for n in range(dimensions[0]+1)])
+                return Expression(
+                    "List",
+                    *[
+                        _coefficient(
+                            self.__class__.__name__, expr, form, Integer(n), evaluation
+                        )
+                        for n in range(dimensions[0] + 1)
+                    ]
+                )
             else:
+
                 def _nth(poly, dims, exponents):
                     if not dims:
                         return from_sympy(poly.coeff_monomial(exponents))
 
                     leaves = []
                     first_dim = dims[0]
-                    for i in range(first_dim+1):
+                    for i in range(first_dim + 1):
                         exponents.append(i)
                         subs = _nth(poly, dims[1:], exponents)
                         leaves.append(subs)
                         exponents.pop()
-                    result = Expression('List', *leaves)
+                    result = Expression("List", *leaves)
                     return result
 
                 return _nth(sympy_poly, dimensions, [])
         except sympy.PolificationFailed:
-            return evaluation.message('CoefficientList', 'poly', expr)
+            return evaluation.message("CoefficientList", "poly", expr)
 
 
 class Exponent(Builtin):
@@ -1324,24 +1381,26 @@ class Exponent(Builtin):
     """
 
     messages = {
-        'argtu': 'Exponent called with `1` argument; 2 or 3 arguments are expected.',
+        "argtu": "Exponent called with `1` argument; 2 or 3 arguments are expected.",
     }
 
     rules = {
-        'Exponent[expr_, form_]': 'Exponent[expr, form, Max]',
+        "Exponent[expr_, form_]": "Exponent[expr, form, Max]",
     }
 
     def apply_novar(self, expr, evaluation):
-        'Exponent[expr_]'
-        return evaluation.message('Exponent', 'argtu', Integer(1))
+        "Exponent[expr_]"
+        return evaluation.message("Exponent", "argtu", Integer(1))
 
     def apply(self, expr, form, h, evaluation):
-        'Exponent[expr_, form_, h_]'
+        "Exponent[expr_, form_, h_]"
         if expr == Integer(0):
-            return Expression('DirectedInfinity', Integer(-1))
+            return Expression("DirectedInfinity", Integer(-1))
 
-        if not form.has_form('List', None):
+        if not form.has_form("List", None):
             return Expression(h, *[i for i in find_exponents(expr, form)])
         else:
             exponents = [find_exponents(expr, var) for var in form.leaves]
-            return Expression('List', *[Expression(h, *[i for i in s]) for s in exponents])
+            return Expression(
+                "List", *[Expression(h, *[i for i in s]) for s in exponents]
+            )

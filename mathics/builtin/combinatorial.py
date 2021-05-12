@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Combinatorial Functions
 """
 
 
-import sympy
 from sympy.functions.combinatorial.numbers import stirling
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, SymbolTrue, SymbolFalse
@@ -79,11 +78,11 @@ class Multinomial(Builtin):
         return Expression("Times", *leaves)
 
 
-class Fibonacci(Builtin):
+class Fibonacci(_MPMathFunction):
     """
     <dl>
-    <dt>'Fibonacci[$n$]'
-        <dd>computes the $n$th Fibonacci number.
+      <dt>'Fibonacci[$n$]'
+      <dd>computes the $n$th Fibonacci number.
     </dl>
 
     >> Fibonacci[0]
@@ -96,12 +95,10 @@ class Fibonacci(Builtin):
      = 280571172992510140037611932413038677189525
     """
 
+    nargs = 1
     attributes = ("Listable", "NumericFunction", "ReadProtected")
-
-    def apply(self, n, evaluation):
-        "Fibonacci[n_Integer]"
-
-        return Integer(sympy.fibonacci(n.get_int_value()))
+    sympy_name = "fibonacci"
+    mpmath_name = "fibonacci"
 
 
 class _NoBoolVector(Exception):
@@ -271,12 +268,13 @@ class RogersTanimotoDissimilarity(_BooleanDissimilarity):
         r = 2 * (c_tf + c_ft)
         return Expression("Divide", r, c_tt + c_ff + r)
 
+
 # Note: WL allows StirlingS1[{2, 4, 6}, 2], but we don't (yet).
 class StirlingS1(Builtin):
     """
     <dl>
       <dt>'StirlingS1[$n$, $m$]'
-      <dd>gives the Stirling number of the first kind $𝒮_n^m$.
+      <dd>gives the Stirling number of the first kind $ _n^m$.
     </dl>
 
     Integer mathematical function, suitable for both symbolic and numerical manipulation.
@@ -301,10 +299,10 @@ class StirlingS2(Builtin):
     """
     <dl>
       <dt>'StirlingS2[$n$, $m$]'
-      <dd>gives the Stirling number of the second kind 𝒮_n^m.
+      <dd>gives the Stirling number of the second kind  _n^m.
     </dl>
 
-    returns the number of ways of partitioning a set of $n$ elements into $m$ non‐empty subsets.
+    returns the number of ways of partitioning a set of $n$ elements into $m$ non empty subsets.
 
     >> Table[StirlingS2[10, m], {m, 10}]
     = {1, 511, 9330, 34105, 42525, 22827, 5880, 750, 45, 1}

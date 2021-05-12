@@ -1,0 +1,36 @@
+name: Mathics (Windows)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows]
+        python-version: [3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install wheel
+        choco install llvm
+        set LLVM_DIR="C:\Program Files\LLVM"
+        pip install -e .
+    - name: Install Mathics
+      run: |
+        python setup.py install
+    - name: Test Mathics
+      run: |
+        pip install pytest
+        py.test test
+        python mathics/test.py

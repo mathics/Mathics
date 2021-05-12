@@ -16,17 +16,19 @@ class Node(object):
         if isinstance(self.head, Symbol):
             return self.head.value
         else:
-            return ''
+            return ""
 
     def __repr__(self):
-        return '%s[%s]' % (self.head, ', '.join(str(child) for child in self.children))
+        return "%s[%s]" % (self.head, ", ".join(str(child) for child in self.children))
 
     def __eq__(self, other):
         if not isinstance(other, Node):
             raise TypeError()
-        return ((self.get_head_name() == other.get_head_name()) and
-                (len(self.children) == len(other.children)) and
-                all(cs == co for cs, co in zip(self.children, other.children)))
+        return (
+            (self.get_head_name() == other.get_head_name())
+            and (len(self.children) == len(other.children))
+            and all(cs == co for cs, co in zip(self.children, other.children))
+        )
 
     def flatten(self):
         head_name = self.get_head_name()
@@ -48,7 +50,7 @@ class Atom(Node):
         self.parenthesised = False
 
     def __repr__(self):
-        return '%s[%s]' % (self.head, self.value)
+        return "%s[%s]" % (self.head, self.value)
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self.value == other.value
@@ -72,13 +74,13 @@ class Number(Atom):
     def __repr__(self):
         result = self.value
         if self.base != 10:
-            result = '%i^^%s' % (self.base, result)
+            result = "%i^^%s" % (self.base, result)
         if self.sign == -1:
-            result = '-%s' % result
+            result = "-%s" % result
         if self.suffix is not None:
-            result = '%s`%s' % (result, self.suffix)
+            result = "%s`%s" % (result, self.suffix)
         if self.exp != 0:
-            result = '%s*^%i' % (result, self.exp)
+            result = "%s*^%i" % (result, self.exp)
         return result
 
     def __eq__(self, other):
@@ -86,7 +88,7 @@ class Number(Atom):
 
 
 class Symbol(Atom):
-    def __init__(self, value, context='System'):
+    def __init__(self, value, context="System"):
         self.context = context
         self.value = value
         self.children = []

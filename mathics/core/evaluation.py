@@ -12,8 +12,9 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
+
 from mathics.layout.client import NoWebEngine
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted
+from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
 
 FORMATS = [
     "StandardForm",
@@ -266,7 +267,7 @@ class Evaluation(object):
         self.catch_interrupt = catch_interrupt
         self.once_messages = set()
 
-        self.SymbolNull = Symbol("Null")
+        self.SymbolNull = SymbolNull
 
         # status of last evaluate
         self.exc_result = self.SymbolNull
@@ -277,7 +278,6 @@ class Evaluation(object):
         from mathics.core.parser import MathicsSingleLineFeeder
 
         return self.parse_feeder(MathicsSingleLineFeeder(query))
-
 
     def parse_evaluate(self, query, timeout=None):
         expr = self.parse(query)
@@ -290,6 +290,7 @@ class Evaluation(object):
     def parse_feeder_returning_code(self, feeder):
         "Parse a single expression from feeder and print the messages."
         from mathics.core.parser.util import parse_returning_code
+
         try:
             result, source_code = parse_returning_code(self.definitions, feeder)
         except TranslateError:
@@ -474,7 +475,7 @@ class Evaluation(object):
     def set_quiet_messages(self, messages) -> None:
         from mathics.core.expression import Expression
 
-        value = Expression("List", *messages)
+        value = Expression(SymbolList, *messages)
         self.definitions.set_ownvalue("Internal`$QuietMessages", value)
 
     def get_quiet_messages(self):

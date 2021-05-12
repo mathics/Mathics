@@ -13,7 +13,9 @@ import mathics
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import MathicsSingleLineFeeder
-from mathics.builtin import builtins
+from mathics.builtin import builtins_dict
+
+builtins = builtins_dict()
 
 from mathics import version_string
 from mathics import settings
@@ -21,6 +23,7 @@ from mathics import settings
 
 MAX_TESTS = 100000  # Number than the total number of tests
 
+logfile = None
 
 class TestOutput(Output):
     def max_stored_size(self, settings):
@@ -33,6 +36,13 @@ sep = "-" * 70 + "\n"
 definitions = None
 documentation = None
 
+
+def print_and_log(*args):
+    global logfile
+    string = "".join(args)
+    print(string)
+    if logfile:
+        logfile.write(string)
 
 def compare(result, wanted):
     if result == wanted:
@@ -62,7 +72,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
 
     def fail(why):
         part, chapter, section = tests.part, tests.chapter, tests.section
-        print(
+        print_and_log(
             "%sTest failed: %s in %s / %s\n%s\n%s\n"
             % (sep, section, part, chapter, test, why)
         )
@@ -90,8 +100,19 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-
+    if False:
+        print("out=-----------------")
+        for rr in out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("wanted_out=-------------------")
+        for rr in wanted_out:
+            for line in rr.text.splitlines():
+                print("  <",line,">")
+        print("---------------------------------")
+    
     if not compare(result, wanted):
+        print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
             fail_msg += "\nAdditional output:\n"
@@ -102,6 +123,8 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
+            if False:
+                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break
@@ -183,9 +206,9 @@ def test_section(sections: set, quiet=False, stop_on_failure=False):
 
     print()
     if failed > 0:
-        print("%d test%s failed." % (failed, "s" if failed != 1 else ""))
+        print_and_log("%d test%s failed." % (failed, "s" if failed != 1 else ""))
     else:
-        print("OK")
+        print_and_log("OK")
 
 
 def open_ensure_dir(f, *args, **kwargs):
@@ -250,21 +273,21 @@ def test_all(
     if failed > 0:
         print(sep)
     if count == MAX_TESTS:
-        print(
+        print_and_log(
             "%d Tests for %d built-in symbols, %d passed, %d failed, %d skipped."
             % (total, builtin_total, total - failed - skipped, failed, skipped)
         )
     else:
-        print(
+        print_and_log(
             "%d Tests, %d passed, %d failed, %d skipped."
             % (total, total - failed, failed, skipped)
         )
     if failed_symbols:
         if stop_on_failure:
-            print("(not all tests are accounted for due to --stop-on-failure)")
-        print("Failed:")
+            print_and_log("(not all tests are accounted for due to --stop-on-failure)")
+        print_and_log("Failed:")
         for part, chapter, section in sorted(failed_symbols):
-            print("  - %s in %s / %s" % (section, part, chapter))
+            print_and_log("  - %s in %s / %s" % (section, part, chapter))
 
     if generate_output and (failed == 0 or doc_even_if_error):
         print("Save XML")
@@ -326,6 +349,7 @@ def main():
 
     global definitions
     global documentation
+    global logfile
     definitions = Definitions(add_builtin=True)
     documentation = main_mathics_documentation
 
@@ -339,6 +363,9 @@ def main():
     parser.add_argument(
         "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
         "You can list multiple sections by adding a comma (and no space) in between section names."
+    )
+    parser.add_argument(
+        "--logfile", "-f", dest="logfilename", metavar="LOGFILENAME", help="stores the output in [logfilename]. "
     )
     parser.add_argument(
         "--pymathics",
@@ -400,6 +427,9 @@ def main():
     args = parser.parse_args()
     # If a test for a specific section is called
     # just test it
+    if args.logfilename:
+        logfile = open(args.logfilename,"wt")
+
     if args.section:
         sections = set(args.section.split(","))
         if args.pymathics:  # in case the section is in a pymathics module...
@@ -431,6 +461,8 @@ def main():
     # If TeX output requested, try to build it:
     if args.tex:
         write_latex()
+    if logfile:
+        logfile.close()
 
 
 if __name__ == "__main__":

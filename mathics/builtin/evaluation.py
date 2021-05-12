@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer
@@ -451,6 +451,7 @@ class Out(Builtin):
         "    f:StandardForm|TraditionalForm|InputForm|OutputForm]": r'"%%" <> ToString[k]',
     }
 
+
 class Quit(Builtin):
     """
     <dl>
@@ -469,11 +470,13 @@ class Quit(Builtin):
 
     """
 
-    rules = {"Exit[n___]":"Quit[n]", }
+    rules = {
+        "Exit[n___]": "Quit[n]",
+    }
 
     def apply(self, evaluation, n):
-        '%(name)s[n___]'
+        "%(name)s[n___]"
         exitcode = 0
         if isinstance(n, Integer):
-            exitcode =(n.get_int_value())
+            exitcode = n.get_int_value()
         raise SystemExit(exitcode)

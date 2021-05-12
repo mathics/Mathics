@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 Image[] and image related functions.
 
 Note that you (currently) need scikit-image installed in order for this module to work.
 """
-
+from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import Builtin, AtomBuiltin, Test, BoxConstruct, String
 from mathics.core.expression import (
     Atom,
@@ -14,6 +15,8 @@ from mathics.core.expression import (
     MachineReal,
     Symbol,
     SymbolNull,
+    SymbolList,
+    SymbolRule,
     from_python,
 )
 from mathics.builtin.colors import (
@@ -28,17 +31,9 @@ import itertools
 import math
 from collections import defaultdict
 
-_image_requires = (
-    "numpy",
-    "PIL",
-)
+_image_requires = ("numpy", "PIL")
 
-_skimage_requires = _image_requires + (
-    "skimage",
-    "scipy",
-    "matplotlib",
-    "networkx",
-)
+_skimage_requires = _image_requires + ("skimage", "scipy", "matplotlib", "networkx")
 
 try:
     import warnings
@@ -202,7 +197,7 @@ class _Exif:
                 else:
                     continue
 
-                yield Expression("Rule", String(_Exif._names.get(k, name)), value)
+                yield Expression(SymbolRule, String(_Exif._names.get(k, name)), value)
 
 
 class ImageImport(_ImageBuiltin):
@@ -225,15 +220,17 @@ class ImageImport(_ImageBuiltin):
         pillow = PIL.Image.open(path.get_string_value())
         pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3
-        exif = Expression("List", *list(_Exif.extract(pillow, evaluation)))
+        exif = Expression(SymbolList, *list(_Exif.extract(pillow, evaluation)))
 
         image = Image(pixels, "RGB" if is_rgb else "Grayscale")
         return Expression(
             "List",
-            Expression("Rule", String("Image"), image),
-            Expression("Rule", String("ColorSpace"), String(image.color_space)),
-            Expression("Rule", String("ImageSize"), from_python(image.dimensions())),
-            Expression("Rule", String("RawExif"), exif),
+            Expression(SymbolRule, String("Image"), image),
+            Expression(SymbolRule, String("ColorSpace"), String(image.color_space)),
+            Expression(
+                SymbolRule, String("ImageSize"), from_python(image.dimensions())
+            ),
+            Expression(SymbolRule, String("RawExif"), exif),
         )
 
 
@@ -253,9 +250,7 @@ class ImageExport(_ImageBuiltin):
 
 
 class _ImageArithmetic(_ImageBuiltin):
-    messages = {
-        "bddarg": "Expecting a number, image, or graphics instead of `1`.",
-    }
+    messages = {"bddarg": "Expecting a number, image, or graphics instead of `1`."}
 
     @staticmethod
     def convert_Image(image):
@@ -410,9 +405,7 @@ class RandomImage(_ImageBuiltin):
      = -Image-
     """
 
-    options = {
-        "ColorSpace": "Automatic",
-    }
+    options = {"ColorSpace": "Automatic"}
 
     rules = {
         "RandomImage[]": "RandomImage[{0, 1}, {150, 150}]",
@@ -511,9 +504,7 @@ class ImageResize(_ImageBuiltin):
      = ImageResize[-Image-, x]
     """
 
-    options = {
-        "Resampling": "Automatic",
-    }
+    options = {"Resampling": "Automatic"}
 
     messages = {
         "imgrssz": "The size `1` is not a valid image size specification.",
@@ -583,7 +574,7 @@ class ImageResize(_ImageBuiltin):
         h = self._get_image_size_spec(old_h, height)
         if h is None or w is None:
             return evaluation.message(
-                "ImageResize", "imgrssz", Expression("List", width, height)
+                "ImageResize", "imgrssz", Expression(SymbolList, width, height)
             )
 
         # handle Automatic
@@ -684,9 +675,7 @@ class ImageReflect(_ImageBuiltin):
         "ImageReflect[image_Image, Left|Right]": "ImageReflect[image, Left -> Right]",
     }
 
-    messages = {
-        "bdrfl2": "`1` is not a valid 2D reflection specification.",
-    }
+    messages = {"bdrfl2": "`1` is not a valid 2D reflection specification."}
 
     def apply(self, image, orig, dest, evaluation):
         "ImageReflect[image_Image, Rule[orig_, dest_]]"
@@ -712,7 +701,7 @@ class ImageReflect(_ImageBuiltin):
 
         if method is None:
             return evaluation.message(
-                "ImageReflect", "bdrfl2", Expression("Rule", orig, dest)
+                "ImageReflect", "bdrfl2", Expression(SymbolRule, orig, dest)
             )
 
         return Image(method(image.pixels), image.color_space)
@@ -746,7 +735,7 @@ class ImageRotate(_ImageBuiltin):
     rules = {"ImageRotate[i_Image]": "ImageRotate[i, 90 Degree]"}
 
     messages = {
-        "imgang": "Angle `1` should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another.",
+        "imgang": "Angle `1` should be a real number, one of Top, Bottom, Left, Right, or a rule from one to another."
     }
 
     def apply(self, image, angle, evaluation):
@@ -797,9 +786,7 @@ class ImagePartition(_ImageBuiltin):
 
     rules = {"ImagePartition[i_Image, s_Integer]": "ImagePartition[i, {s, s}]"}
 
-    messages = {
-        "arg2": "`1` is not a valid size specification for image partitions.",
-    }
+    messages = {"arg2": "`1` is not a valid size specification for image partitions."}
 
     def apply(self, image, w, h, evaluation):
         "ImagePartition[image_Image, {w_Integer, h_Integer}]"
@@ -1059,7 +1046,7 @@ class EdgeDetect(_SkimageBuiltin):
 
 
 def _matrix(rows):
-    return Expression("List", *[Expression("List", *r) for r in rows])
+    return Expression(SymbolList, *[Expression(SymbolList, *r) for r in rows])
 
 
 class BoxMatrix(_ImageBuiltin):
@@ -1347,9 +1334,7 @@ class ColorQuantize(_ImageBuiltin):
      = ColorQuantize[-Image-, -1]
     """
 
-    messages = {
-        "intp": "Positive integer expected at position `2` in `1`.",
-    }
+    messages = {"intp": "Positive integer expected at position `2` in `1`."}
 
     def apply(self, image, n, evaluation):
         "ColorQuantize[image_Image, n_Integer]"
@@ -1487,7 +1472,7 @@ class ColorSeparate(_ImageBuiltin):
         else:
             for i in range(pixels.shape[2]):
                 images.append(Image(pixels[:, :, i], "Grayscale"))
-        return Expression("List", *images)
+        return Expression(SymbolList, *images)
 
 
 class ColorCombine(_ImageBuiltin):
@@ -1570,12 +1555,10 @@ class Colorize(_ImageBuiltin):
      = -Image-
     """
 
-    options = {
-        "ColorFunction": "Automatic",
-    }
+    options = {"ColorFunction": "Automatic"}
 
     messages = {
-        "cfun": "`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction.",
+        "cfun": "`1` is neither a gradient ColorData nor a pure function suitable as ColorFunction."
     }
 
     def apply(self, values, evaluation, options):
@@ -1667,10 +1650,7 @@ class DominantColors(_ImageBuiltin):
         "DominantColors[image_Image, options___]": 'DominantColors[image, 256, "Color", options]',
     }
 
-    options = {
-        "ColorCoverage": "Automatic",
-        "MinColorDistance": "Automatic",
-    }
+    options = {"ColorCoverage": "Automatic", "MinColorDistance": "Automatic"}
 
     def apply(self, image, n, prop, evaluation, options):
         "DominantColors[image_Image, n_Integer, prop_String, OptionsPattern[%(name)s]]"
@@ -1780,7 +1760,7 @@ class DominantColors(_ImageBuiltin):
                     else:
                         yield Expression(out_palette_head, *prototype)
 
-        return Expression("List", *itertools.islice(result(), 0, at_most))
+        return Expression(SymbolList, *itertools.islice(result(), 0, at_most))
 
 
 # pixel access
@@ -1906,9 +1886,7 @@ class PixelValue(_ImageBuiltin):
      : Padding not implemented for PixelValue.
     """
 
-    messages = {
-        "nopad": "Padding not implemented for PixelValue.",
-    }
+    messages = {"nopad": "Padding not implemented for PixelValue."}
 
     def apply(self, image, x, y, evaluation):
         "PixelValue[image_Image, {x_?RealNumberQ, y_?RealNumberQ}]"
@@ -1920,7 +1898,7 @@ class PixelValue(_ImageBuiltin):
             return evaluation.message("PixelValue", "nopad")
         pixel = pixels_as_float(image.pixels)[height - y, x - 1]
         if isinstance(pixel, (numpy.ndarray, numpy.generic, list)):
-            return Expression("List", *[MachineReal(float(x)) for x in list(pixel)])
+            return Expression(SymbolList, *[MachineReal(float(x)) for x in list(pixel)])
         else:
             return MachineReal(float(pixel))
 
@@ -1946,7 +1924,7 @@ class PixelValuePositions(_ImageBuiltin):
     """
 
     rules = {
-        "PixelValuePositions[image_Image, val_?RealNumberQ]": "PixelValuePositions[image, val, 0]",
+        "PixelValuePositions[image_Image, val_?RealNumberQ]": "PixelValuePositions[image, val, 0]"
     }
 
     def apply(self, image, val, d, evaluation):
@@ -1967,7 +1945,7 @@ class PixelValuePositions(_ImageBuiltin):
             result = sorted(
                 (j + 1, height - i, k + 1) for i, j, k in positions.tolist()
             )
-        return Expression("List", *(Expression("List", *arg) for arg in result))
+        return Expression(SymbolList, *(Expression(SymbolList, *arg) for arg in result))
 
 
 # image attribute queries
@@ -1995,7 +1973,7 @@ class ImageDimensions(_ImageBuiltin):
 
     def apply(self, image, evaluation):
         "ImageDimensions[image_Image]"
-        return Expression("List", *image.dimensions())
+        return Expression(SymbolList, *image.dimensions())
 
 
 class ImageAspectRatio(_ImageBuiltin):
@@ -2125,10 +2103,12 @@ class ImageQ(_ImageTest):
 
 
 class ImageBox(BoxConstruct):
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_mathml(self, leaves=None, **options):
+        if leaves is None:
+            leaves = self._leaves
         # see https://tools.ietf.org/html/rfc2397
         return '<mglyph src="%s" width="%dpx" height="%dpx" />' % (
             leaves[0].get_string_value(),
@@ -2136,7 +2116,7 @@ class ImageBox(BoxConstruct):
             leaves[2].get_int_value(),
         )
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves=None, **options):
         return "-Image-"
 
 
@@ -2260,9 +2240,7 @@ class Image(Atom):
         encoded = base64.b64encode(contents)
         encoded = b"data:image/png;base64," + encoded
 
-        return Expression(
-            "ImageBox", String(encoded), Integer(scaled_width), Integer(scaled_height)
-        )
+        return ImageBox(String(encoded), Integer(scaled_width), Integer(scaled_height))
 
     def __str__(self):
         return "-Image-"
@@ -2324,8 +2302,8 @@ class Image(Atom):
     def options(self):
         return Expression(
             "List",
-            Expression("Rule", String("ColorSpace"), String(self.color_space)),
-            Expression("Rule", String("MetaInformation"), self.metadata),
+            Expression(SymbolRule, String("ColorSpace"), String(self.color_space)),
+            Expression(SymbolRule, String("MetaInformation"), self.metadata),
         )
 
 
@@ -2370,9 +2348,7 @@ class TextRecognize(Builtin):
         "lang": "Language `1` is not supported in your installation of `2`. Please install it.",
     }
 
-    options = {
-        "Language": '"English"',
-    }
+    options = {"Language": '"English"'}
 
     def apply(self, image, evaluation, options):
         "TextRecognize[image_Image, OptionsPattern[%(name)s]]"
@@ -2441,11 +2417,7 @@ class WordCloud(Builtin):
 
     requires = _image_requires + ("wordcloud",)
 
-    options = {
-        "IgnoreCase": "True",
-        "ImageSize": "Automatic",
-        "MaxItems": "Automatic",
-    }
+    options = {"IgnoreCase": "True", "ImageSize": "Automatic", "MaxItems": "Automatic"}
 
     # this is the palettable.colorbrewer.qualitative.Dark2_8 palette
     default_colors = (
