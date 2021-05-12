@@ -593,7 +593,7 @@ class MakeBoxes(Builtin):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
-            return make_boxes_infix(leaves, ops, precedence, grouping, f)
+            return make_boxes_infix(leaves, ops, precedence, grouping, f, evaluation)
         elif len(leaves) == 1:
             return MakeBoxes(leaves[0], f)
         else:
