@@ -3,10 +3,18 @@
 
 
 import itertools
+from typing import Optional, Union
 
 import sympy
 
-from mathics.builtin.base import BinaryOperator, Builtin, SympyFunction
+from mathics.builtin.base import (
+    BinaryOperator,
+    Builtin,
+    SympyFunction,
+    )
+
+from mathics.builtin.constants import mp_convert_constant
+
 from mathics.core.expression import (
     Complex,
     Expression,
@@ -20,6 +28,9 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import dps
 
+def cmp(a, b) -> int:
+    "Returns 0 if a == b, -1 if a < b and 1 if a > b"
+    return (a > b) - (a < b)
 
 class SameQ(BinaryOperator):
     """
@@ -195,11 +206,14 @@ class _InequalityOperator(BinaryOperator):
             items = items.numerify(evaluation).get_sequence()
         return items
 
+# Imperical number that seems to work.
+# We have to be able to match mpmath values with sympy values
+COMPARE_PREC = 50
 
 class _EqualityOperator(_InequalityOperator):
     "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
 
-    def do_compare(self, l1, l2):
+    def do_compare(self, l1, l2) -> Union[bool, None]:
         if l1.same(l2):
             return True
         elif l1 == SymbolTrue and l2 == SymbolFalse:
@@ -217,14 +231,20 @@ class _EqualityOperator(_InequalityOperator):
                     return result
             return True
 
-        l1_sympy = l1.to_sympy()
-        l2_sympy = l2.to_sympy()
+        l1_sympy = l1.to_sympy(evaluate=True, prec=COMPARE_PREC)
+        l2_sympy = l2.to_sympy(evaluate=True, prec=COMPARE_PREC)
 
         if l1_sympy is None or l2_sympy is None:
             return None
+
+        if not hasattr(l1_sympy, "is_number"):
+            l1_sympy = mp_convert_constant(l1_sympy, prec=COMPARE_PREC)
+        if not hasattr(l2_sympy, "is_number"):
+            l2_sympy = mp_convert_constant(l2_sympy, prec=COMPARE_PREC)
+
         if l1_sympy.is_number and l2_sympy.is_number:
             # assert min_prec(l1, l2) is None
-            prec = 64  # TODO: Use $MaxExtraPrecision
+            prec = COMPARE_PREC  # TODO: Use $MaxExtraPrecision
             if l1_sympy.n(dps(prec)) == l2_sympy.n(dps(prec)):
                 return True
             return False
@@ -239,7 +259,13 @@ class _EqualityOperator(_InequalityOperator):
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for x, y in itertools.combinations(args, 2):
-            c = do_cmp(x, y)
+            if isinstance(x, String) or isinstance(y, String):
+                if not (isinstance(x, String) and isinstance(y, String)):
+                    c = 1
+                else:
+                    c = cmp(x.get_string_value(), y.get_string_value())
+            else:
+                c = do_cmp(x, y)
             if c is None:
                 return
             elif c not in wanted:
@@ -330,7 +356,7 @@ class Inequality(Builtin):
             return Expression("And", *groups)
 
 
-def do_cmp(x1, x2):
+def do_cmp(x1, x2) -> Optional[int]:
 
     # don't attempt to compare complex numbers
     for x in (x1, x2):
@@ -384,8 +410,8 @@ class Equal(_EqualityOperator, SympyComparison):
     """
     <dl>
     <dt>'Equal[$x$, $y$]'
-    <dt>'$x$ == $y$'
-        <dd>yields 'True' if $x$ and $y$ are known to be equal, or
+      <dt>'$x$ == $y$'
+      <dd>yields 'True' if $x$ and $y$ are known to be equal, or
         'False' if $x$ and $y$ are known to be unequal.
     <dt>'$lhs$ == $rhs$'
         <dd>represents the equation $lhs$ = $rhs$.
@@ -397,6 +423,17 @@ class Equal(_EqualityOperator, SympyComparison):
      = a == b
     >> 1==1.
      = True
+
+    Strings are allowed:
+    Equal["11", "11"]
+     = True
+
+    Equal["121", "11"]
+     = False
+
+    Comparision to mismatched types is False:
+    Equal[11, "11"]
+     = False
 
     Lists are compared based on their elements:
     >> {{1}, {2}} == {{1}, {2}}
@@ -484,6 +521,17 @@ class Unequal(_EqualityOperator, SympyComparison):
 
     >> 1 != 1.
      = False
+
+    Strings are allowed:
+    Unequal["11", "11"]
+     = False
+
+    Equal["121", "11"]
+     = True
+
+    Comparision to mismatched types is True:
+    Equal[11, "11"]
+     = True
 
     Lists are compared based on their elements:
     >> {1} != {2}

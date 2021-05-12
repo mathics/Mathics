@@ -116,7 +116,8 @@ class NoNumPyRandomEnv(_RandomEnvBase):
 
 class NumPyRandomEnv(_RandomEnvBase):
     def randint(self, a, b, size=None):
-        return numpy.random.random_integers(a, b, size)
+        # return numpy.random.random_integers(a, b, size)
+        return numpy.random.randint(a, b+1, size)
 
     def randreal(self, a, b, size=None):
         # numpy gives us [a, b). we want [a, b].

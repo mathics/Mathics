@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import mpmath
 import re
 import sympy
+
 from functools import total_ordering
 import importlib
 from itertools import chain
@@ -16,13 +18,15 @@ from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (
     BaseExpression,
     Expression,
-    Symbol,
-    String,
     Integer,
+    MachineReal,
+    PrecisionReal,
+    String,
+    Symbol,
     ensure_context,
     strip_context,
 )
-
+from mathics.core.numbers import get_precision, PrecisionValueError
 
 def get_option(options, name, evaluation, pop=False, evaluate=True):
     # we do not care whether an option X is given as System`X,
@@ -30,20 +34,17 @@ def get_option(options, name, evaluation, pop=False, evaluate=True):
     # matter. Also, the quoted string form "X" is ok. all these
     # variants name the same option. this matches Wolfram Language
     # behaviour.
-
+    name = strip_context(name)
     contexts = (s + "%s" for s in evaluation.definitions.get_context_path())
 
     for variant in chain(contexts, ('"%s"',)):
         resolved_name = variant % name
-
         if pop:
             value = options.pop(resolved_name, None)
         else:
             value = options.get(resolved_name)
-
         if value is not None:
             return value.evaluate(evaluation) if evaluate else value
-
     return None
 
 
@@ -53,9 +54,10 @@ def has_option(options, name, evaluation):
 
 mathics_to_python = {}
 
+
 class Builtin(object):
     name: typing.Optional[str] = None
-    context = "System`"
+    context = ""
     abstract = False
     attributes: typing.Tuple[Any, ...] = ()
     rules: typing.Dict[str, Any] = {}
@@ -68,7 +70,7 @@ class Builtin(object):
         if kwargs.get("expression", None) is not False:
             return Expression(cls.get_name(), *args)
         else:
-            instance = super(Builtin, cls).__new__(cls)
+            instance = super().__new__(cls)
             if not instance.formats:
                 # Reset formats so that not every instance shares the same
                 # empty dict {}
@@ -76,20 +78,20 @@ class Builtin(object):
             return instance
 
     def __init__(self, *args, **kwargs):
-        super(Builtin, self).__init__()
+        super().__init__()
         if hasattr(self, "python_equivalent"):
             mathics_to_python[self.get_name()] = self.python_equivalent
 
     def contribute(self, definitions, is_pymodule=False):
         from mathics.core.parser import parse_builtin_rule
+        # Set the default context
+        if not self.context:
+            self.context = "Pymathics`" if is_pymodule else "System`"
 
-        if is_pymodule:
-            name = "PyMathics`" + self.get_name(short=True)
-        else:
-            name = self.get_name()
-
+        name = self.get_name()
         options = {}
         option_syntax = "Warn"
+
         for option, value in self.options.items():
             if option == "$OptionSyntax":
                 option_syntax = value
@@ -146,7 +148,7 @@ class Builtin(object):
         for pattern, function in self.get_functions(is_pymodule=is_pymodule):
             rules.append(
                 BuiltinRule(
-                    name, pattern, function, check_options, system=not is_pymodule
+                    name, pattern, function, check_options, system=True
                 )
             )
         for pattern, replace in self.rules.items():
@@ -259,6 +261,7 @@ class Builtin(object):
                 pattern = Expression("Default", Symbol(name), Integer(spec))
             if pattern is not None:
                 defaults.append(Rule(pattern, value, system=True))
+
         definition = Definition(
             name=name,
             rules=rules,
@@ -267,6 +270,7 @@ class Builtin(object):
             attributes=attributes,
             options=options,
             defaultvalues=defaults,
+            builtin=self
         )
         if is_pymodule:
             definitions.pymathics[name] = definition
@@ -311,15 +315,14 @@ class Builtin(object):
                     pattern = m.group(2)
                 else:
                     attrs = []
-                if is_pymodule:
-                    name = "PyMathics`" + self.get_name(short=True)
-                else:
-                    name = self.get_name()
-
+                # if is_pymodule:
+                #    name = ensure_context(self.get_name(short=True), "Pymathics")
+                # else:
+                name = self.get_name()
                 pattern = pattern % {"name": name}
                 definition_class = (
                     PyMathicsDefinitions() if is_pymodule else SystemDefinitions()
-                    )
+                )
                 pattern = parse_builtin_rule(pattern, definition_class)
                 if unavailable_function:
                     function = unavailable_function
@@ -367,7 +370,7 @@ class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
         new_kwargs = kwargs.copy()
         new_kwargs["expression"] = False
-        instance = super(InstancableBuiltin, cls).__new__(cls, *args, **new_kwargs)
+        instance = super().__new__(cls, *args, **new_kwargs)
         if not instance.formats:
             # Reset formats so that not every instance shares the same empty
             # dict {}
@@ -393,7 +396,7 @@ class AtomBuiltin(Builtin):
     # see Image[] for an example of this.
 
     def get_name(self, short=False) -> str:
-        name = super(AtomBuiltin, self).get_name(short=short)
+        name = super().get_name(short=short)
         return re.sub(r"Atom$", "", name)
 
 
@@ -417,15 +420,35 @@ class Operator(Builtin):
 
 class Predefined(Builtin):
     def get_functions(self, prefix="apply", is_pymodule=False):
-        functions = list(super(Predefined, self).get_functions(prefix))
+        functions = list(super().get_functions(prefix))
         if prefix == "apply" and hasattr(self, "evaluate"):
             functions.append((Symbol(self.get_name()), self.evaluate))
         return functions
 
 
+class SympyObject(Builtin):
+    sympy_name: typing.Optional[str] = None
+
+    mathics_to_sympy = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.sympy_name is None:
+            self.sympy_name = strip_context(self.get_name()).lower()
+        self.mathics_to_sympy[self.__class__.__name__] = self.sympy_name
+
+    def is_constant(self) -> bool:
+        return False
+
+    def get_sympy_names(self) -> typing.List[str]:
+        if self.sympy_name:
+            return [self.sympy_name]
+        return []
+
+
 class UnaryOperator(Operator):
     def __init__(self, format_function, *args, **kwargs):
-        super(UnaryOperator, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         name = self.get_name()
         if self.needs_verbatim:
             name = "Verbatim[%s]" % name
@@ -444,12 +467,12 @@ class UnaryOperator(Operator):
 
 class PrefixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
-        super(PrefixOperator, self).__init__("Prefix", *args, **kwargs)
+        super().__init__("Prefix", *args, **kwargs)
 
 
 class PostfixOperator(UnaryOperator):
     def __init__(self, *args, **kwargs):
-        super(PostfixOperator, self).__init__("Postfix", *args, **kwargs)
+        super().__init__("Postfix", *args, **kwargs)
 
 
 class BinaryOperator(Operator):
@@ -509,31 +532,27 @@ class Test(Builtin):
             return Symbol("False")
 
 
-class SympyObject(Builtin):
-    sympy_name: typing.Optional[str] = None
-
-    def __init__(self, *args, **kwargs):
-        super(SympyObject, self).__init__(*args, **kwargs)
-        if self.sympy_name is None:
-            self.sympy_name = strip_context(self.get_name()).lower()
-
-    def is_constant(self) -> bool:
-        return False
-
-    def get_sympy_names(self) -> typing.List[str]:
-        if self.sympy_name:
-            return [self.sympy_name]
-        return []
-
-
 class SympyFunction(SympyObject):
-    def prepare_sympy(self, leaves):
-        return leaves
+    def get_constant(self, precision, have_mpmath=False):
+        try:
+            d = get_precision(precision, evaluation)
+        except PrecisionValueError:
+            return
 
-    def get_sympy_function(self, leaves):
+        sympy_fn = self.to_sympy()
+        if d is None:
+            result = self.get_mpmath_function()if have_mpmath else sympy_fn()
+            return MachineReal(result)
+        else:
+            return PrecisionReal(sympy_fn.n(d))
+
+    def get_sympy_function(self, leaves=None):
         if self.sympy_name:
             return getattr(sympy, self.sympy_name)
         return None
+
+    def prepare_sympy(self, leaves):
+        return leaves
 
     def to_sympy(self, expr, **kwargs):
         try:
@@ -552,21 +571,6 @@ class SympyFunction(SympyObject):
 
     def prepare_mathics(self, sympy_expr):
         return sympy_expr
-
-
-class SympyConstant(SympyObject, Predefined):
-    attributes = ("Constant", "ReadProtected")
-
-    def is_constant(self) -> bool:
-        # free Symbol will be converted to corresponding SymPy symbol
-        return True
-
-    def to_sympy(self, expr, **kwargs):
-        if expr.is_atom():
-            return getattr(sympy, self.sympy_name)
-        else:
-            # there is no "native" SymPy expression for e.g. E[x]
-            return None
 
 
 class InvalidLevelspecError(Exception):
@@ -609,12 +613,12 @@ class BoxConstruct(Builtin):
 
 class PatternError(Exception):
     def __init__(self, name, tag, *args):
-        super(PatternError).__init__()
+        super().__init__()
 
 
 class PatternArgumentError(PatternError):
     def __init__(self, name, count, expected):
-        super(PatternArgumentError, self).__init__(None, None)
+        super().__init__(None, None)
 
 
 class PatternObject(InstancableBuiltin, Pattern):
@@ -623,7 +627,7 @@ class PatternObject(InstancableBuiltin, Pattern):
     arg_counts: typing.List[int] = []
 
     def init(self, expr):
-        super(PatternObject, self).init(expr)
+        super().init(expr)
         if self.arg_counts is not None:
             if len(expr.leaves) not in self.arg_counts:
                 self.error_args(len(expr.leaves), *self.arg_counts)

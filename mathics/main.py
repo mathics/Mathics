@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-import os
 import argparse
-import re
 import locale
+import os
+import re
+import subprocess
+import sys
+
+from mathics.core.parser import MathicsFileLineFeeder, MathicsLineFeeder
 
 from mathics.core.definitions import Definitions, Symbol
 from mathics.core.expression import strip_context
 from mathics.core.evaluation import Evaluation, Output
-from mathics.core.parser import LineFeeder, FileLineFeeder
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
 
-class TerminalShell(LineFeeder):
+class TerminalShell(MathicsLineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
         super(TerminalShell, self).__init__("<stdin>")
         self.input_encoding = locale.getpreferredencoding()
@@ -107,10 +109,11 @@ class TerminalShell(LineFeeder):
             return self.rl_read_line(prompt)
         return input(prompt)
 
-    def print_result(self, result):
+    def print_result(self, result, no_out_prompt=False):
         if result is not None and result.result is not None:
             output = self.to_output(str(result.result))
-            print(self.get_out_prompt() + output + "\n")
+            mess = self.get_out_prompt() if not no_out_prompt else ""
+            print(mess + output + "\n")
 
     def rl_read_line(self, prompt):
         # Wrap ANSI colour sequences in \001 and \002, so readline
@@ -304,10 +307,9 @@ def main() -> int:
 
     if args.execute:
         for expr in args.execute:
-            print(shell.get_in_prompt() + expr)
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(result)
+            shell.print_result(result, no_out_prompt=True)
             if evaluation.exc_result == Symbol("Null"):
                 exit_rc = 0
             elif evaluation.exc_result == Symbol("$Aborted"):
@@ -350,7 +352,11 @@ def main() -> int:
     while True:
         try:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
-            query = evaluation.parse_feeder(shell)
+            query, source_code = evaluation.parse_feeder_returning_code(shell)
+            if len(source_code) and source_code[0] == "!":
+                subprocess.run(source_code[1:], shell=True)
+                shell.definitions.increment_line_no(1)
+                continue
             if query is None:
                 continue
             if args.full_form:

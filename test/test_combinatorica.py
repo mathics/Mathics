@@ -12,8 +12,11 @@ session.evaluate(
 #  * Computation Discrete Mathematics by Sriram Pemmaraju and Steven Skiena.
 
 # Page numbers below come from the first book
+# Some tests have been altered to speed them up, or to make the intent
+# more clear in a test.
 
-def test_combinatorica_permutations_1_1():
+
+def test_permutations_1_1():
 
     for str_expr, str_expected, message in (
         (
@@ -46,6 +49,7 @@ def test_combinatorica_permutations_1_1():
             " {3, 1, 2, 4}, {3, 1, 4, 2}, {3, 2, 1, 4}, {3, 2, 4, 1}, "
             " {3, 4, 1, 2}, {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 1, 3, 2}, "
             " {4, 2, 1, 3}, {4, 2, 3, 1}, {4, 3, 1, 2}, {4, 3, 2, 1}} ",
+
             "slower method for computing permutations in lex order, 1.1.2, Page 6",
         ),
         (
@@ -107,7 +111,7 @@ def test_combinatorica_permutations_1_1():
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_combinatorica_permutations_1_2():
+def test_permutations_groups_1_2():
 
     for str_expr, str_expected, message in (
         (
@@ -121,9 +125,9 @@ def test_combinatorica_permutations_1_2():
             "Symmetric group S_n. S_n is not commutative. 1.2 Page 17",
         ),
         (
-            "InversePermutation[{4,8,5,2,1,3,7,6}]",
-            "{5, 4, 6, 1, 3, 8, 7, 2}",
-            "InversePermutation: 7 is fixed point. 1.2 Page 18",
+            "p = {3, 1, 2, 4}; InversePermutation[p][[4]]",
+            "p[[4]]",
+            "InversePermutation: fixed points. 1.2 Page 18",
         ),
         (
             "star = Automorphisms[Star[5]]",
@@ -201,8 +205,8 @@ def test_combinatorica_permutations_1_2():
             "Permutations is not what we started with, 1.2.4, Page 23",
         ),
         (
-            "RevealCycles[ HideCycles[ToCycles[{6,2,1,5,4,3}]] ]",
-            "{{4, 5}, {2}, {1, 6, 3}}",
+            "RevealCycles[ HideCycles[ToCycles[{2,1,5,4,3}]] ]",
+            "{{4}, {3, 5}, {1, 2}}",
             "RevealCycles 1.2.4, Page 23",
         ),
         (
@@ -211,8 +215,8 @@ def test_combinatorica_permutations_1_2():
             "None of the permutations on five elements is identical to its hidden cycle representation 1.2.4, Page 23",
         ),
         (
-            "{StirlingFirst[6,3], StirlingS1[6,3]}",
-            "{225, -225}",
+            "StirlingFirst[6,3]",
+            "-StirlingS1[6,3]",
             "StirlingFirst 1.2.4, Page 24",
         ),
         (
@@ -229,8 +233,8 @@ def test_combinatorica_permutations_1_2():
             "NumberOfPermutationsByCycles 1.2.4, Page 24",
         ),
         (
-            "{StirlingSecond[6,3], StirlingS2[6,3]}",
-            "{90, 90}",
+            "StirlingSecond[6,3]",
+            "StirlingS2[6,3]",
             "StirlingSecond 1.2.4, Page 24",
         ),
         (
@@ -239,8 +243,13 @@ def test_combinatorica_permutations_1_2():
             "SignaturePermutation 1.2.5, Page 25",
         ),
         (
-            "SignaturePermutation[p] == SignaturePermutation[InversePermutation[p]]",
-            "True",
+            "SignaturePermutation[Range[5]]",
+            "1",
+            "SignaturePermutation (added) 1.2.5, Page 25",
+        ),
+        (
+            "SignaturePermutation[p]",
+            "SignaturePermutation[InversePermutation[p]]",
             "A particular permutation has the same sign as its inverse 1.2.5, Page 25",
         ),
         (
@@ -270,20 +279,176 @@ def test_combinatorica_permutations_1_2():
             "m (1 + m) (4 - 2 m + 2 m ^ 2 + 3 m ^ 3 + m ^ 4 - m ^ 5 + m ^ 6) / 16",
             "Factor example in Polya polynomial 1.2.6, Page 26",
         ),
-
     ):
         check_evaluation(str_expr, str_expected, message)
 
 
-def test_combinatorica_permutations_1_5():
+def test_inversions_and_inversion_vectors_1_3():
+
+    for str_expr, str_expected, message in (
+        (
+            "p = {5,9,1,8,2,6,4,7,3}; ToInversionVector[p]",
+            "{2, 3, 6, 4, 0, 2, 2, 1}",
+            "ToInversionVector 1.3.1, Page 27",
+        ),
+        (
+            "FromInversionVector[ToInversionVector[p]]",
+            "p",
+            "FromInversionVector 1.3.1, Page 28",
+        ),
+        (
+            "h = InversePermutation[p]; "
+            "g = MakeGraph[Range[Length[p]], ((#1<#2 && h[[#1]]>h[[#2]]) || (#1>#2 && h[[#1]]<h[[#2]]))&]; "
+            "Inversions[p]",
+            "M[g]",
+            "Edges equals # of inversions 1.3.1, Page 28"
+        ),
+        (
+            "Inversions[p]",
+            "Inversions[InversePermutation[p]]",
+            "[Knu73b] 1.3.2, Page 29",
+        ),
+        (
+            "Inversions[Reverse[Range[8]]]",
+            "Binomial[8, 2]",
+            "# permutions is [0 .. Binomial(n 2)]; largest is reverse 1.3.2, Page 29",
+        ),
+        (
+            "Union [ Map[Inversions, Permutations[Range[4]]] ]",
+            "Range[0, 6]",
+            "Every one is realizable as ... 1.3.2, Page 29",
+        ),
+        (
+            "p = RandomPermutation[6]; Inversions[p] + Inversions[Reverse[p]]",
+            "Binomial[Length[p], 2]",
+            "A neat proof that ... 1.3.2, Page 29",
+        ),
+        (
+            "Select[Permutations[Range[4]], (Inversions[#]==3)&]",
+            "{{1, 4, 3, 2}, {2, 3, 4, 1}, {2, 4, 1, 3},"
+            " {3, 1, 4, 2}, {3, 2, 1, 4}, {4, 1, 2, 3}}",
+            "MacMahon theorem, 1.3.3 Page 30",
+        ),
+        (
+            "Select[Permutations[Range[4]], (Length[Runs[#]]==2)&]",
+            "{{1, 2, 4, 3}, {1, 3, 2, 4}, {1, 3, 4, 2}, {1, 4, 2, 3},"
+            " {2, 1, 3, 4}, {2, 3, 1, 4}, {2, 3, 4, 1}, {2, 4, 1, 3},"
+            " {3, 1, 2, 4}, {3, 4, 1, 2}, {4, 1, 2, 3}}",
+            "11 permutations of length 4 with 2 runs, 1.3.4, Page 31",
+        ),
+        (
+            "Eulerian[4,2]",
+            "11",
+            "Eulerian from [Knu73b], 1.3.4 Page 31",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
+
+def test_special_classes_of_permutations_1_4():
 
     # We include this earlier since the above in fact rely on KSubsets
     for str_expr, str_expected, message in (
         (
-            "KSubsets[Range[5], 3]",
-            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, {1, 3, 5}, "
-            "{1, 4, 5},  {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, {3, 4, 5}}",
-            "KSubsets 1.5.5, Page 45",
+            "Map[ ToCycles, Select[ Permutations[Range[4]], InvolutionQ ] ]",
+            "{{{1}, {2}, {3}, {4}}, {{1}, {2}, {4, 3}}, "
+            "{{1}, {3, 2}, {4}}, {{1}, {4, 2}, {3}}, "
+            "{{2, 1}, {3}, {4}}, {{2, 1}, {4, 3}}, "
+            "{{3, 1}, {2}, {4}}, {{3, 1}, {4, 2}}, "
+            "{{4, 1}, {2}, {3}}, {{4, 1}, {3, 2}}}",
+            "Involutions; 1.4.1, Page 33",
+        ),
+        (
+            "NumberOfInvolutions[4]",
+            "10",
+            "NumberOfInvolutions; 1.4.1, Page 33",
+        ),
+        (
+            "Table[NumberOfDerangements[i], {i, 1, 10}]",
+            "{0, 1, 2, 9, 44, 265, 1854, 14833, 133496, 1334961}",
+            "NumberOfDerangements; 1.4.2, Page 33",
+        ),
+        # This works, interactively, but not in test. Why?
+        # (
+        #     "Table[ N[ NumberOfDerangements[i]/(i!) ], {i, 1, 10} ]",
+        #     "{0., 0.5, 0.333333, 0.375, 0.366667, 0.368056, 0.367857, 0.367882, 0.367879, 0.367879}",
+        #     "Confused Secretary 1.4.2, Page 34",
+        # ),
+        (
+            "Table[Round[n!/N[E]], {n, 1, 10}]",
+            "{0, 1, 2, 9, 44, 265, 1854, 14833, 133496, 1334961}",
+            "Rounding as a nicer way to get derangmeants; 1.4.2, Page 34",
+        ),
+        (
+            "Josephus[17, 7]",
+            "{16, 17, 5, 3, 14, 7, 1, 11, 10, 12, 9, 4, 6, 2, 15, 13, 8}",
+            "Josephus; 1.4.3, Page 35",
+        ),
+        # FIXME: Note RandomPermutation1 for large numbers isn't random
+        # Therefore in combinatorica we use RandomPermutation2.
+        (
+            "HeapSort[Reverse[Range[10]]]",
+            "Range[10]",
+            "Heapsort test 1; 1.4.4, Page 38",
+        ),
+        (
+            "HeapSort[RandomPermutation[10]]",
+            "Range[10]",
+            "Heapsort test 2; 1.4.4, Page 38",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected, message)
+
+def test_combinations_1_5():
+
+    # We include this earlier since the above in fact rely on KSubsets
+    for str_expr, str_expected, message in (
+        (
+            "Strings[Range[3], 3]",
+            "{{1, 1, 1}, {1, 1, 2}, {1, 1, 3}, {1, 2, 1}, "
+            " {1, 2, 2}, {1, 2, 3}, {1, 3, 1}, {1, 3, 2}, {1, 3, 3}, "
+            " {2, 1, 1}, {2, 1, 2}, {2, 1, 3}, {2, 2, 1}, {2, 2, 2}, "
+            " {2, 2, 3}, {2, 3, 1}, {2, 3, 2}, {2, 3, 3}, {3, 1, 1}, "
+            " {3, 1, 2}, {3, 1, 3}, {3, 2, 1}, {3, 2, 2}, {3, 2, 3}, "
+            " {3, 3, 1}, {3, 3, 2}, {3, 3, 3}}",
+            "String 1.5.1, Page 40",
+        ),
+        (
+            "BinarySubsets[{a,b,c,d}]",
+            "{{}, {a}, {b}, {a, b}, {c}, {a, c}, {b, c}, "
+            "{a, b, c}, {d}, {a, d}, {b, d}, {a, b, d}, {c, d}, "
+            "{a, c, d}, {b, c, d}, {a, b, c, d}}",
+            "BinarySubsets 1.5.2, Page 41",
+        ),
+        (
+            "Table[NthSubset[n, {a,b,c,d}], {n, 0, 15}]",
+            "{{}, {a}, {b}, {a, b}, {c}, {a, c}, {b, c}, "
+            "{a, b, c}, {d}, {a, d}, {b, d}, {a, b, d}, {c, d}, "
+            "{a, c, d}, {b, c, d}, {a, b, c, d}}",
+            "NthSubset 1.5.2, Page 451",
+        ),
+        (
+            "NthSubset[-10, {a, b, c, d}]",
+            "{b, c}",
+            "NthSubset 1.5.2, Page 41",
+        ),
+        (
+            "Map[ (RankSubset[Range[4], #])&, BinarySubsets[Range[4]] ]",
+            "Range[0, 15]",
+            "RankSubset 1.5.2, Page 42",
+        ),
+        (
+            "GrayCode[Range[4]]",
+            "{{}, {1}, {1, 2}, {2}, {2, 3}, {1, 2, 3}, "
+            "{1, 3}, {3}, {3, 4}, {1, 3, 4}, {1, 2, 3, 4}, "
+            "{2, 3, 4}, {2, 4}, {1, 2, 4}, {1, 4}, {4}}",
+            "GrayCode 1.5.3, Page 43",
+        ),
+        (
+            "LexicographicSubsets[Range[4]]",
+            "{{}, {1}, {1, 2}, {1, 2, 3}, {1, 2, 3, 4}, "
+            "{1, 2, 4}, {1, 3}, {1, 3, 4}, {1, 4}, {2}, {2, 3}, "
+            "{2, 3, 4}, {2, 4}, {3}, {3, 4}, {4}}",
+            "LexicographicSubsets 1.5.4, Page 44",
         ),
         (
             "KSubsets[Range[3], 0]",
@@ -296,23 +461,27 @@ def test_combinatorica_permutations_1_5():
             "KSubsets[Range[n, 1] == Partition[n]",
         ),
         (
+            "KSubsets[Range[5], 3]",
+            "{{1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 3, 4}, "
+            "{1, 3, 5}, {1, 4, 5}, {2, 3, 4}, {2, 3, 5}, {2, 4, 5}, "
+            "{3, 4, 5}}",
+            "KSubsets 1.5.5, Page 44",
+        ),
+        (
             "KSubsets[Range[5], 5]",
             "{Range[5]} ",
             "KSubsets[l, k] == Length(l)",
         ),
+        # Start here in section 2.1 ...
     ):
         check_evaluation(str_expr, str_expected, message)
 
 
 def test_combinatorica_rest():
 
-    # Permutation[3] doesn't work
-    permutations3 = (
-        r"{{1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1}}"
-    )
     for str_expr, str_expected, message in (
         (
-            "Permute[{A, B, C, D}, %s]" % permutations3,
+            "Permute[{A, B, C, D}, Permutations[Range[3]]]",
             "{{A, B, C}, {A, C, B}, {B, A, C}, {B, C, A}, {C, A, B}, {C, B, A}}",
             "Permute",
         ),

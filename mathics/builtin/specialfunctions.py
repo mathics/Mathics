@@ -130,6 +130,36 @@ class InverseErfc(_MPMathFunction):
     }
 
 
+class LerchPhi(_MPMathFunction):
+    """
+    <dl>
+    <dt>'LerchPhi[z,s,a]'
+        <dd>gives the Lerch transcendent Φ(z,s,a).
+    </dl>
+
+    >> LerchPhi[2, 3, -1.5]
+     = 19.3893 - 2.1346 I
+
+    >> LerchPhi[1, 2, 1/4]
+     = 17.1973
+    """
+
+    sympy_name = 'lerchphi'
+    mpmath_name = 'lerchphi'
+
+    def apply(self, z, s, a, evaluation):
+        '%(name)s[z_, s_, a_]'
+
+        py_z = z.to_python()
+        py_s = s.to_python()
+        py_a = a.to_python()
+        try:
+            return Number.from_mpmath(mpmath.lerchphi(py_z, py_s, py_a))
+        except:
+            pass
+            # return sympy.expand_func(sympy.lerchphi(py_z, py_s, py_a))
+
+
 class ProductLog(_MPMathFunction):
     """
     <dl>

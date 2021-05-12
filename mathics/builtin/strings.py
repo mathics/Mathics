@@ -13,7 +13,7 @@ from binascii import hexlify, unhexlify
 from heapq import heappush, heappop
 
 from mathics.builtin.base import BinaryOperator, Builtin, Test, Predefined
-from mathics.core.expression import (Expression, Symbol, String, Integer,
+from mathics.core.expression import (Expression, Symbol, SymbolFailed, SymbolFalse, SymbolTrue, String, Integer,
                                      from_python, string_list)
 from mathics.builtin.lists import python_seq, convert_seq
 
@@ -770,13 +770,13 @@ class StringMatchQ(Builtin):
         re_patt = anchor_pattern(re_patt)
 
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
+        if options['System`IgnoreCase'] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         if re.match(re_patt, py_string, flags=flags) is None:
-            return Symbol('False')
+            return SymbolFalse
         else:
-            return Symbol('True')
+            return SymbolTrue
 
 
 class StringJoin(BinaryOperator):
@@ -900,7 +900,7 @@ class StringSplit(Builtin):
             re_patts.append(py_p)
 
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
+        if options['System`IgnoreCase'] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         result = [py_string]
@@ -999,9 +999,9 @@ class StringPosition(Builtin):
                 return evaluation.message('StringPosition', 'innf', expr, Integer(3))
 
         # check options
-        if options['System`Overlaps'] == Symbol('True'):
+        if options['System`Overlaps'] == SymbolTrue:
             overlap = True
-        elif options['System`Overlaps'] == Symbol('False'):
+        elif options['System`Overlaps'] == SymbolFalse:
             overlap = False
         elif options['System`Overlaps'] == Symbol('All'):
             # TODO
@@ -1159,7 +1159,7 @@ class _StringFind(Builtin):
 
         # flags
         flags = re.MULTILINE
-        if options['System`IgnoreCase'] == Symbol('True'):
+        if options['System`IgnoreCase'] == SymbolTrue:
             flags = flags | re.IGNORECASE
 
         if isinstance(py_strings, list):
@@ -1576,6 +1576,14 @@ class ToString(Builtin):
      = U2
     """
 
+    options = {'CharacterEncoding' : '"Unicode"',
+                'FormatType' : 'OutputForm',
+                'NumberMarks': '$NumberMarks',
+                'PageHeight' : 'Infinity',
+                'PageWidth' : 'Infinity',
+                'TotalHeight' : 'Infinity',
+                'TotalWidth' : 'Infinity'}
+
     def apply(self, value, evaluation):
         'ToString[value_]'
 
@@ -1654,7 +1662,7 @@ class ToExpression(Builtin):
             if isinstance(inp, String):
                 result = evaluation.parse(inp.get_string_value())
                 if result is None:
-                    return Symbol('$Failed')
+                    return SymbolFailed
             else:
                 result = inp
         else:
@@ -2167,7 +2175,7 @@ class _StringDistance(Builtin):
         if isinstance(a, String) and isinstance(b, String):
             py_a = a.get_string_value()
             py_b = b.get_string_value()
-            if options['System`IgnoreCase'] == Symbol('True'):
+            if options['System`IgnoreCase'] == SymbolTrue:
                 if hasattr(str, 'casefold'):
                     def normalize(c):
                         return unicodedata.normalize("NFKD", c.casefold())
@@ -2646,13 +2654,13 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
         re_patts.append(py_p)
 
     flags = re.MULTILINE
-    if options['System`IgnoreCase'] == Symbol('True'):
+    if options['System`IgnoreCase'] == SymbolTrue:
         flags = flags | re.IGNORECASE
 
     def _search(patts, str, flags, matched):
         if any(re.search(p, str, flags=flags) for p in patts):
-            return Symbol('True') if matched else Symbol('False')
-        return Symbol('False') if matched else Symbol('True')
+            return SymbolTrue if matched else SymbolFalse
+        return SymbolFalse if matched else SymbolTrue
 
     # Check string validity and perform regex searchhing
     if string.has_form('List', None):

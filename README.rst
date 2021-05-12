@@ -28,7 +28,7 @@ mathicsserver: a Django-based Web interface
 Installing and Running
 ----------------------
 
-See the `wiki page <https://github.com/mathics/Mathics/wiki/Installing-and-Running>`_ for how to install and run.
+See the `readthe docs guide <https://mathics-development-guide.readthedocs.io/en/latest/>`_ for instructions on `installing <https://mathics-development-guide.readthedocs.io/en/latest/installing.html>`_ and `running <https://mathics-development-guide.readthedocs.io/en/latest/running.html>`_.
 
 Contributing
 ------------
@@ -46,8 +46,8 @@ Mathics is released under the GNU General Public License Version 3 (GPL3).
 .. |Travis| image:: https://secure.travis-ci.org/mathics/Mathics.svg?branch=master
 .. _Travis: https://travis-ci.org/mathics/Mathics
 .. _PyPI: https://pypi.org/project/Mathics/
-.. |mathicsscript| image:: https://mathics.org/screenshots/mathicsscript.png
-.. |mathicssserver| image:: https://mathics.org/screenshots/mathicsserver.png
+.. |mathicsscript| image:: https://github.com/Mathics3/mathicsscript/blob/master/screenshots/mathicsscript1.gif
+.. |mathicssserver| image:: https://mathics.org/images/mathicsserver.png
 .. |Latest Version| image:: https://badge.fury.io/py/Mathics3.svg
 		 :target: https://badge.fury.io/py/Mathics3
 .. |Pypi Installs| image:: https://pepy.tech/badge/Mathics3
