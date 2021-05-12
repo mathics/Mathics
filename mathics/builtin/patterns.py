@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Patterns and rules
+Patterns and Rules
 
 Some examples:
 >> a + b + c /. a + b -> t
@@ -33,13 +33,10 @@ Options using 'OptionsPattern' and 'OptionValue':
 The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
-from mathics.builtin.base import PatternObject
+from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
@@ -210,6 +207,9 @@ class Replace(Builtin):
         except InvalidLevelspecError:
             evaluation.message('General', 'level', ls)
 
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+
 
 class ReplaceAll(BinaryOperator):
     """
@@ -270,13 +270,16 @@ class ReplaceAll(BinaryOperator):
 
     def apply(self, expr, rules, evaluation):
         'ReplaceAll[expr_, rules_]'
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
 
-        rules, ret = create_rules(rules, expr, 'ReplaceAll', evaluation)
-        if ret:
-            return rules
+            if ret:
+                return rules
 
-        result, applied = expr.apply_rules(rules, evaluation)
-        return result
+            result, applied = expr.apply_rules(rules, evaluation)
+            return result
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
 
 
 class ReplaceRepeated(BinaryOperator):
@@ -312,8 +315,12 @@ class ReplaceRepeated(BinaryOperator):
 
     def apply_list(self, expr, rules, evaluation):
         'ReplaceRepeated[expr_, rules_]'
+        try:
+            rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+            return None
 
-        rules, ret = create_rules(rules, expr, 'ReplaceRepeated', evaluation)
         if ret:
             return rules
 
@@ -377,9 +384,13 @@ class ReplaceList(Builtin):
             if max_count is None or max_count < 0:
                 evaluation.message('ReplaceList', 'innf', 3)
                 return
+        try:
+            rules, ret = create_rules(
+                rules, expr, 'ReplaceList', evaluation, extra_args=[max])
+        except PatternError:
+            evaluation.message('Replace','reps', rules)
+            return None
 
-        rules, ret = create_rules(
-            rules, expr, 'ReplaceList', evaluation, extra_args=[max])
         if ret:
             return rules
 
@@ -524,6 +535,10 @@ class Alternatives(BinaryOperator, PatternObject):
         return range
 
 
+class _StopGeneratorExcept(StopGenerator):
+    pass
+
+
 class Except(PatternObject):
     """
     <dl>
@@ -558,18 +573,19 @@ class Except(PatternObject):
             self.p = Pattern.create(Expression('Blank'))
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
-        class StopGenerator_Except(StopGenerator):
-            pass
-
         def except_yield_func(vars, rest):
-            raise StopGenerator_Except(Symbol("True"))
+            raise _StopGeneratorExcept(True)
 
         try:
             self.c.match(except_yield_func, expression, vars, evaluation)
-        except StopGenerator_Except:
+        except _StopGeneratorExcept:
             pass
         else:
             self.p.match(yield_func, expression, vars, evaluation)
+
+
+class _StopGeneratorMatchQ(StopGenerator):
+    pass
 
 
 class Matcher(object):
@@ -577,15 +593,12 @@ class Matcher(object):
         self.form = Pattern.create(form)
 
     def match(self, expr, evaluation):
-        class StopGenerator_MatchQ(StopGenerator):
-            pass
-
         def yield_func(vars, rest):
-            raise StopGenerator_MatchQ(Symbol("True"))
+            raise _StopGeneratorMatchQ(True)
 
         try:
             self.form.match(yield_func, expr, {}, evaluation)
-        except StopGenerator_MatchQ:
+        except _StopGeneratorMatchQ:
             return True
         return False
 
@@ -753,6 +766,9 @@ class Pattern_(PatternObject):
         if self.varname is None:
             self.error('patvar', expr)
         self.pattern = Pattern.create(expr.leaves[1])
+
+    def __repr__(self):
+        return '<Pattern: %s>' % repr(self.pattern)
 
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
@@ -1112,7 +1128,8 @@ class Repeated(PostfixOperator, PatternObject):
         self.min = min
         if len(expr.leaves) == 2:
             leaf_1 = expr.leaves[1]
-            if (leaf_1.has_form('List', 1, 2) and all(leaf.get_int_value() for leaf in leaf_1.leaves)):
+            allnumbers = not any(leaf.get_int_value() is None for leaf in leaf_1.get_leaves())
+            if leaf_1.has_form('List', 1, 2) and allnumbers:
                 self.max = leaf_1.leaves[-1].get_int_value()
                 self.min = leaf_1.leaves[0].get_int_value()
             elif leaf_1.get_int_value():
@@ -1309,7 +1326,13 @@ class OptionsPattern(PatternObject):
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         if self.defaults is None:
-            self.defaults = kwargs['head']
+            self.defaults = kwargs.get('head')
+            if self.defaults is None:
+                # we end up here with OptionsPattern that do not have any
+                # default options defined, e.g. with this code:
+                # f[x:OptionsPattern[]] := x; f["Test" -> 1]
+                # set self.defaults to an empty List, so we don't crash.
+                self.defaults = Expression('List')
         values = self.defaults.get_option_values(
             evaluation, allow_symbols=True, stop_on_error=False)
         sequence = expression.get_sequence()
@@ -1332,3 +1355,25 @@ class OptionsPattern(PatternObject):
             return (leaf.has_form(('Rule', 'RuleDelayed'), 2) or
                     leaf.has_form('List', None))
         return [leaf for leaf in leaves if _match(leaf)]
+
+
+class _StopGeneratorBaseExpressionIsFree(StopGenerator):
+    pass
+
+
+def item_is_free(item, form, evaluation):
+    # for vars, rest in form.match(self, {}, evaluation, fully=False):
+    def yield_match(vars, rest):
+        raise _StopGeneratorBaseExpressionIsFree(False)
+        # return False
+
+    try:
+        form.match(yield_match, item, {}, evaluation, fully=False)
+    except _StopGeneratorBaseExpressionIsFree as exc:
+        return exc.value
+
+    if item.is_atom():
+        return True
+    else:
+        return item_is_free(item.head, form, evaluation) and all(
+            item_is_free(leaf, form, evaluation) for leaf in item.leaves)

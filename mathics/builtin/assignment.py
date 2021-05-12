@@ -1,20 +1,42 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import zip
-
+import mathics.builtin
 from mathics.builtin.base import (
     Builtin, BinaryOperator, PostfixOperator, PrefixOperator)
 from mathics.core.expression import (Expression, Symbol, valid_context_name,
-                                     system_symbols)
-from mathics.core.rules import Rule
+                                     system_symbols, String)
+from mathics.core.rules import Rule, BuiltinRule
+from mathics.builtin.patterns import RuleDelayed
+from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
-from mathics.builtin.evaluation import set_recursionlimit
+from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 from mathics import settings
+from mathics.core.definitions import PyMathicsLoadException
+
+
+def repl_pattern_by_symbol(expr):
+    leaves = expr.get_leaves()
+    if len(leaves) == 0:
+        return expr
+
+    headname = expr.get_head_name()
+    if headname == "System`Pattern":
+        return leaves[0]
+
+    changed = False
+    newleaves = []
+    for leave in leaves:
+        l = repl_pattern_by_symbol(leave)
+        if not(l is leave):
+            changed = True
+        newleaves.append(l)
+    if changed:
+        return Expression(headname,*newleaves)
+    else:
+        return expr
 
 
 def get_symbol_list(list, error_callback):
@@ -36,6 +58,14 @@ def get_symbol_list(list, error_callback):
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         name = lhs.get_head_name()
+        lhs._format_cache = None
+
+        if name == "System`Pattern":
+            lhsleaves= lhs.get_leaves()
+            lhs = lhsleaves[1]
+            rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
+            rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
 
         if name in system_symbols('OwnValues', 'DownValues', 'SubValues',
                                   'UpValues', 'NValues', 'Options',
@@ -162,14 +192,19 @@ class _SetOperator(object):
             # if (not rhs_int_value or rhs_int_value < 20) and not
             # rhs.get_name() == 'System`Infinity':
             if (not rhs_int_value or rhs_int_value < 20 or
-                rhs_int_value > settings.MAX_RECURSION_DEPTH):  # nopep8
+                rhs_int_value > MAX_RECURSION_DEPTH):  # nopep8
 
                 evaluation.message('$RecursionLimit', 'limset', rhs)
                 return False
             try:
-                set_recursionlimit(rhs_int_value)
+                set_python_recursion_limit(rhs_int_value)
             except OverflowError:
                 # TODO: Message
+                return False
+            ignore_protection = True
+        if lhs_name == 'System`$IterationLimit':
+            if (not rhs_int_value or rhs_int_value < 20) and not rhs.get_name() == 'System`Infinity':
+                evaluation.message('$IterationLimit', 'limset', rhs)
                 return False
             ignore_protection = True
         elif lhs_name == 'System`$ModuleNumber':
@@ -212,7 +247,9 @@ class _SetOperator(object):
             ignore_protection = True
             return True
         elif lhs_name == 'System`$ContextPath':
-            context_path = [s.get_string_value() for s in rhs.get_leaves()]
+            currContext = evaluation.definitions.get_current_context()
+            context_path = [s.get_string_value()  for s in rhs.get_leaves()]
+            context_path = [s if (s is None or s[0]!="`") else currContext[:-1] +s for s in context_path]
             if rhs.has_form('List', None) and all(valid_context_name(s) for s in context_path):
                 evaluation.definitions.set_context_path(context_path)
                 ignore_protection = True
@@ -285,6 +322,7 @@ class _SetOperator(object):
         return True
 
     def assign(self, lhs, rhs, evaluation):
+        lhs._format_cache = None
         if lhs.get_head_name() == 'System`List':
             if (not (rhs.get_head_name() == 'System`List') or
                 len(lhs.leaves) != len(rhs.leaves)):    # nopep8
@@ -705,6 +743,7 @@ class Definition(Builtin):
     """
 
     attributes = ('HoldAll',)
+    precedence = 670
 
     def format_definition(self, symbol, evaluation, grid=True):
         'StandardForm,TraditionalForm,OutputForm: Definition[symbol_]'
@@ -715,7 +754,7 @@ class Definition(Builtin):
             evaluation.check_stopped()
             if isinstance(rule, Rule):
                 r = rhs(rule.replace.replace_vars(
-                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}, evaluation))
                 lines.append(Expression('HoldForm', Expression(
                     up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
 
@@ -785,8 +824,189 @@ class Definition(Builtin):
 
     def format_definition_input(self, symbol, evaluation):
         'InputForm: Definition[symbol_]'
-
         return self.format_definition(symbol, evaluation, grid=False)
+
+def _get_usage_string(symbol, evaluation, htmlout=False):
+    '''
+    Returns a python string with the documentation associated to a given symbol.
+    '''
+    definition = evaluation.definitions.get_definition(symbol.name)
+    ruleusage = definition.get_values_list('messages')
+    usagetext = None
+    from mathics.builtin import builtins
+    import re
+    bio = builtins.get(definition.name)
+
+    if bio is not None:
+        from mathics.doc.doc import Doc
+        if htmlout:
+            usagetext = Doc(bio.__class__.__doc__).text(0)
+        else:
+            usagetext = Doc(bio.__class__.__doc__).text(0)
+        usagetext = re.sub(r'\$([0-9a-zA-Z]*)\$', r'\1', usagetext)
+    # For built-in symbols, looks for a docstring.
+    # Looks for the "usage" message. For built-in symbols, if there is an "usage" chain, overwrite the __doc__ information.
+    for rulemsg in ruleusage:
+        if rulemsg.pattern.expr.leaves[1].__str__() == "\"usage\"":
+            usagetext = rulemsg.replace.value
+    return usagetext
+
+
+class Information(PrefixOperator):
+    """
+    <dl>
+    <dt>'Information[$symbol$]'
+        <dd>Prints information about a $symbol$
+    </dl>
+    'Information' does not print information for 'ReadProtected' symbols.
+    'Information' uses 'InputForm' to format values.
+
+
+    >> a = 2;
+    >> Information[a]
+     = a = 2
+
+
+    >> f[x_] := x ^ 2
+    >> g[f] ^:= 2
+    >> f::usage = "f[x] returns the square of x";
+    X> Information[f]
+     = f[x] returns the square of x
+
+    >> ? Table
+     = 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
+     .
+
+    >> Information[Table]
+     = 
+     .   'Table[expr, {i, n}]'
+     .     evaluates expr with i ranging from 1 to n, returning
+     . a list of the results.
+     .   'Table[expr, {i, start, stop, step}]'
+     .     evaluates expr with i ranging from start to stop,
+     . incrementing by step.
+     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
+     .     evaluates expr with i taking on the values e1, e2,
+     . ..., ei.
+     .
+     . Attributes[Table] = {HoldAll, Protected}
+     .
+    """
+
+    operator = "??"
+    precedence = 0
+    attributes = ('HoldAll', 'SequenceHold', 'Protect', 'ReadProtect')
+    messages = {'notfound': 'Expression `1` is not a symbol'}
+    options = {'LongForm': 'True', }
+
+    def format_definition(self, symbol, evaluation, options, grid=True):
+        'StandardForm,TraditionalForm,OutputForm: Information[symbol_, OptionsPattern[Information]]'
+        from mathics.core.expression import from_python
+        lines = []
+        if isinstance(symbol, String):
+            evaluation.print_out(symbol)
+            evaluation.evaluate(Expression('Information', Symbol('System`String')))
+            return
+        if not isinstance(symbol, Symbol):
+            evaluation.message('Information', 'notfound', symbol)
+            return Symbol('Null')
+        # Print the "usage" message if available.
+        usagetext = _get_usage_string(symbol, evaluation)
+        if usagetext is not None:
+            lines.append(usagetext)
+
+        if self.get_option(options, 'LongForm', evaluation).to_python():
+            self.show_definitions(symbol, evaluation, lines)
+
+        if grid:
+            if lines:
+                return Expression(
+                    'Grid', Expression(
+                        'List', *(Expression('List', line) for line in lines)),
+                    Expression(
+                        'Rule', Symbol('ColumnAlignments'), Symbol('Left')))
+            else:
+                return Symbol('Null')
+        else:
+            for line in lines:
+                evaluation.print_out(Expression('InputForm', line))
+            return Symbol('Null')
+
+        # It would be deserable to call here the routine inside Definition, but for some reason it fails...
+        # Instead, I just copy the code from Definition
+
+    def show_definitions(self, symbol, evaluation, lines):
+        def print_rule(rule, up=False, lhs=lambda l: l, rhs=lambda r: r):
+            evaluation.check_stopped()
+            if isinstance(rule, Rule):
+                r = rhs(rule.replace.replace_vars(
+                        {'System`Definition': Expression('HoldForm', Symbol('Definition'))}))
+                lines.append(Expression('HoldForm', Expression(
+                    up and 'UpSet' or 'Set', lhs(rule.pattern.expr), r)))
+        name = symbol.get_name()
+        if not name:
+            evaluation.message('Definition', 'sym', symbol, 1)
+            return
+        attributes = evaluation.definitions.get_attributes(name)
+        definition = evaluation.definitions.get_user_definition(
+            name, create=False)
+        all = evaluation.definitions.get_definition(name)
+        if attributes:
+            attributes = list(attributes)
+            attributes.sort()
+            lines.append(Expression(
+                'HoldForm', Expression(
+                    'Set', Expression('Attributes', symbol), Expression(
+                        'List',
+                        *(Symbol(attribute) for attribute in attributes)))))
+
+        if definition is not None and 'System`ReadProtected' not in attributes:
+            for rule in definition.ownvalues:
+                print_rule(rule)
+            for rule in definition.downvalues:
+                print_rule(rule)
+            for rule in definition.subvalues:
+                print_rule(rule)
+            for rule in definition.upvalues:
+                print_rule(rule, up=True)
+            for rule in definition.nvalues:
+                print_rule(rule)
+            formats = sorted(definition.formatvalues.items())
+            for format, rules in formats:
+                for rule in rules:
+                    def lhs(expr):
+                        return Expression('Format', expr, Symbol(format))
+
+                    def rhs(expr):
+                        if expr.has_form('Infix', None):
+                            expr = Expression(Expression(
+                                'HoldForm', expr.head), *expr.leaves)
+                        return Expression('InputForm', expr)
+                    print_rule(rule, lhs=lhs, rhs=rhs)
+        for rule in all.defaultvalues:
+            print_rule(rule)
+        if all.options:
+            options = sorted(all.options.items())
+            lines.append(
+                Expression('HoldForm', Expression(
+                    'Set', Expression('Options', symbol),
+                    Expression('List', *(
+                        Expression('Rule', Symbol(name), value)
+                        for name, value in options)))))
+        return
+
+    def format_definition_input(self, symbol, evaluation, options):
+        'InputForm: Information[symbol_, OptionsPattern[Information]]'
+        return self.format_definition(symbol, evaluation, options, grid=False)
 
 
 class Clear(Builtin):
@@ -846,8 +1066,16 @@ class Clear(Builtin):
 
     def apply(self, symbols, evaluation):
         '%(name)s[symbols___]'
-
-        for symbol in symbols.get_sequence():
+        if isinstance(symbols ,Symbol):
+            symbols = [symbols]
+        elif isinstance(symbols, Expression):
+            symbols = symbols.get_leaves()
+        elif isinstance(symbols ,String):
+            symbols = [symbols]
+        else:
+            symbols = symbols.get_sequence()
+ 
+        for symbol in symbols:
             if isinstance(symbol, Symbol):
                 names = [symbol.get_name()]
             else:
@@ -855,6 +1083,10 @@ class Clear(Builtin):
                 if not pattern:
                     evaluation.message('Clear', 'ssym', symbol)
                     continue
+                if pattern[0] == "`":
+                    pattern = (evaluation.definitions.get_current_context()
+                               + pattern[1:])
+
                 names = evaluation.definitions.get_matching_names(pattern)
             for name in names:
                 attributes = evaluation.definitions.get_attributes(name)
@@ -868,6 +1100,12 @@ class Clear(Builtin):
                 self.do_clear(definition)
 
         return Symbol('Null')
+
+    def apply_all(self, evaluation):
+        'Clear[System`All]'
+        evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_modules()
+        return
 
 
 class ClearAll(Clear):
@@ -901,6 +1139,12 @@ class ClearAll(Clear):
         definition.messages = []
         definition.options = []
         definition.defaultvalues = []
+
+    def apply_all(self, evaluation):
+        'ClearAll[System`All]'
+        evaluation.definitions.set_user_definitions({})
+        evaluation.definitions.clear_pymathics_modules()
+        return
 
 
 class Unset(PostfixOperator):
@@ -1014,33 +1258,6 @@ class Unset(PostfixOperator):
         return Symbol('Null')
 
 
-class Quit(Builtin):
-    """
-    <dl>
-    <dt>'Quit'[]
-        <dd>removes all user-defined definitions.
-    </dl>
-
-    >> a = 3
-     = 3
-    >> Quit[]
-    >> a
-     = a
-
-    'Quit' even removes the definitions of protected and locked symbols:
-    >> x = 5;
-    >> Attributes[x] = {Locked, Protected};
-    >> Quit[]
-    >> x
-     = x
-    """
-
-    def apply(self, evaluation):
-        'Quit[]'
-
-        evaluation.definitions.set_user_definitions({})
-        return Symbol('Null')
-
 
 def get_symbol_values(symbol, func_name, position, evaluation):
     name = symbol.get_name()
@@ -1051,7 +1268,7 @@ def get_symbol_values(symbol, func_name, position, evaluation):
         definition = evaluation.definitions.get_definition(name)
     else:
         definition = evaluation.definitions.get_user_definition(name)
-    result = Expression('List')
+    leaves = []
     for rule in definition.get_values_list(position):
         if isinstance(rule, Rule):
             pattern = rule.pattern
@@ -1059,9 +1276,9 @@ def get_symbol_values(symbol, func_name, position, evaluation):
                 pattern = pattern.expr
             else:
                 pattern = Expression('HoldPattern', pattern.expr)
-            result.leaves.append(Expression(
+            leaves.append(Expression(
                 'RuleDelayed', pattern, rule.replace))
-    return result
+    return Expression('List', *leaves)
 
 
 class DownValues(Builtin):
@@ -1464,9 +1681,9 @@ class Decrement(PostfixOperator):
     </dl>
 
     >> a = 5;
-    >> a--
+    X> a--
      = 5
-    >> a
+    X> a
      = 4
     """
 
@@ -1502,3 +1719,49 @@ class PreDecrement(PrefixOperator):
     rules = {
         '--x_': 'x = x - 1',
     }
+
+
+class LoadModule(Builtin):
+    """
+    <dl>
+    <dt>'LoadModule[$module$]'</dt>
+    <dd>'Load Mathics definitions from the python module $module$</dd>
+    </dl>
+    >> LoadModule["nomodule"]
+     : Python module nomodule does not exist.
+     = $Failed
+    >> LoadModule["sys"]
+     : Python module sys is not a pymathics module.
+     = $Failed
+    """
+    name = "LoadModule"
+    messages = {'notfound': 'Python module `1` does not exist.',
+                'notmathicslib': 'Python module `1` is not a pymathics module.', }
+
+    def apply(self, module, evaluation):
+        "LoadModule[module_String]"
+        try:
+            module_loaded = evaluation.definitions.load_pymathics_module(module.value)
+        except PyMathicsLoadException as e:
+            evaluation.message(self.name, 'notmathicslib', module)
+            return Symbol("$Failed")
+        except ImportError as e:
+            evaluation.message(self.get_name(), 'notfound', module)
+            return Symbol('$Failed')
+        except PyMathicsLoadException as e:
+            evaluation.message(self.get_name(), 'notmathicslib', module)
+            return Symbol('$Failed')
+        else:
+            # Add PyMathics` to $ContextPath so that when user don't
+            # have to qualify PyMathics variables and functions,
+            # as the those in teh module just loaded.
+
+            # Following the example of $ContextPath in the WL
+            # reference manual where PackletManager appears first in
+            # the list, it seems to be preferable to add this PyMathics
+            # at the beginning.
+            context_path = evaluation.definitions.get_context_path()
+            if "PyMathics`" not in context_path:
+                context_path.insert(0, "PyMathics`")
+            evaluation.definitions.set_context_path(context_path)
+        return module

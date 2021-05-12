@@ -1,16 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Exponential, trigonometric and hyperbolic functions
+Exponential, Trigonometric and Hyperbolic Functions
 
-Mathics basically supports all important trigonometric and hyperbolic functions.
-Numerical values and derivatives can be computed; however, most special exact values and simplification
-rules are not implemented yet.
+\Mathics basically supports all important trigonometric and hyperbolic functions.
+
+Numerical values and derivatives can be computed; however, most special exact values and simplification rules are not implemented yet.
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 import sympy
 import mpmath
@@ -125,7 +123,7 @@ class Degree(SympyConstant):
      = Cos[Degree[x]]
 
     ## Issue 274
-    #> \[Degree] == ° == Degree
+    #> \\[Degree] == ° == Degree
      = True
 
     #> N[Degree]
@@ -1025,6 +1023,10 @@ class AnglePathFold(Fold):
             yield x, y, phi
 
 
+class _IllegalStepSpecification(Exception):
+    pass
+
+
 class AnglePath(Builtin):
     """
     <dl>
@@ -1072,28 +1074,25 @@ class AnglePath(Builtin):
         if not steps:
             return Expression('List')
 
-        class IllegalStepSpecification(Exception):
-            pass
-
         if steps[0].get_head_name() == 'System`List':
             def parse(step):
                 if step.get_head_name() != 'System`List':
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 arguments = step.leaves
                 if len(arguments) != 2:
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 return arguments
         else:
             def parse(step):
                 if step.get_head_name() == 'System`List':
-                    raise IllegalStepSpecification
+                    raise _IllegalStepSpecification
                 return None, step
 
         try:
             fold = AnglePathFold(parse)
             leaves = [Expression('List', x, y) for x, y, _ in fold.fold((x0, y0, phi0), steps)]
             return Expression('List', *leaves)
-        except IllegalStepSpecification:
+        except _IllegalStepSpecification:
             evaluation.message('AnglePath', 'steps', Expression('List', *steps))
 
     def apply(self, steps, evaluation):
@@ -1124,7 +1123,7 @@ class LogisticSigmoid(Builtin):
     <dt>'LogisticSigmoid[$z$]'
         <dd>returns the logistic sigmoid of $z$.
     </dl>
-    
+
     >> LogisticSigmoid[0.5]
      = 0.622459
 
@@ -1139,7 +1138,5 @@ class LogisticSigmoid(Builtin):
     """
 
     attributes = ('Listable', 'NumericFunction',)
-    
-    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}
 
-    
+    rules = {'LogisticSigmoid[z_?NumberQ]': '1 / (1 + Exp[-z])'}

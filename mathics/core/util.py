@@ -1,20 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
-from six.moves import range
-from six import unichr
 
 import re
 import sys
+from itertools import chain
 
 FORMAT_RE = re.compile(r'\`(\d*)\`')
 
 
-def interpolate_string(text, get_param):
+def interpolate_string(text, get_param) -> str:
     index = [1]
 
     def get_item(index):
@@ -75,10 +71,10 @@ def subsets(items, min, max, included=None, less_first=False):
         if count < 0 or len(rest) < count:
             return
         if count == 0:
-            yield chosen, not_chosen + rest
+            yield chosen, list(chain(not_chosen, rest))
         elif len(rest) == count:
             if included is None or all(item in included for item in rest):
-                yield chosen + rest, not_chosen
+                yield list(chain(chosen, rest)), not_chosen
         elif rest:
             item = rest[0]
             if included is None or item in included:
@@ -163,7 +159,7 @@ def subranges(items, min_count, max, flexible_start=False, included=None,
                    (items[:start], items[start + length:]))
 
 
-def unicode_superscript(value):
+def unicode_superscript(value) -> str:
     def repl_char(c):
         if c == '1':
             value = 185
@@ -181,7 +177,7 @@ def unicode_superscript(value):
             value = 8318
         else:
             value = ord(c)
-        return unichr(value)
+        return chr(value)
     return ''.join(repl_char(c) for c in value)
 
 
@@ -211,3 +207,10 @@ def function_arguments(f):
         return _python_function_arguments(f)
     except (TypeError, ValueError):
         return _cython_function_arguments(f)
+
+def robust_min(iterable):
+    minimum = None
+    for i in iterable:
+        if minimum is None or i < minimum:
+            minimum = i
+    return minimum

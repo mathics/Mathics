@@ -47,7 +47,8 @@ ImportExport`RegisterImport[
 	AvailableElements -> {"Data", "Lines", "Plaintext", "String", "Words"},
 	BinaryFormat -> True,
 	DefaultElement -> "Plaintext",
-    FunctionChannels -> {"Streams"}
+    FunctionChannels -> {"Streams"},
+	Options -> {"CharacterEncoding"}
 ]
 
 

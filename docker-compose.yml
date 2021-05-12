@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+    mathics:
+        build: ./app
+        image: mathicsorg/mathics:latest
+
+        volumes:
+            - ./app/data:/usr/src/app/data
+
+        ports:
+            - "8000:8000"

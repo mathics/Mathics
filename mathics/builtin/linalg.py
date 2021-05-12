@@ -1,18 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Linear algebra
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import six
-from six.moves import range
-from six.moves import zip
-
 import sympy
+from sympy import re, im
 from mpmath import mp
 
 from mathics.builtin.base import Builtin
@@ -56,6 +50,37 @@ def to_mpmath_matrix(data, **kwargs):
         return mp.matrix(data)
     except (TypeError, AssertionError, ValueError):
         return None
+
+
+class Tr(Builtin):
+    """
+    <dl>
+    <dt>'Tr[$m$]'
+        <dd>computes the trace of the matrix $m$.
+    </dl>
+    
+    >> Tr[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}]
+     = 15
+    
+    Symbolic trace:
+    >> Tr[{{a, b, c}, {d, e, f}, {g, h, i}}]
+     = a + e + i
+    """
+    
+    messages = {
+        'matsq': "The matrix `1` is not square."
+    }
+    
+    #TODO: generalize to vectors and higher-rank tensors, and allow function arguments for application
+    
+    def apply(self, m, evaluation):
+        'Tr[m_]'
+        
+        matrix = to_sympy_matrix(m)
+        if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
+            return evaluation.message('Tr', 'matsq', m)
+        tr = matrix.trace()
+        return from_sympy(tr)
 
 
 class Det(Builtin):
@@ -111,12 +136,14 @@ class Cross(Builtin):
                   'their length.'),
     }
 
-    # TODO Vectors of length other than 3
-
     def apply(self, a, b, evaluation):
         'Cross[a_, b_]'
         a = to_sympy_matrix(a)
         b = to_sympy_matrix(b)
+
+        if a is None or b is None:
+            return evaluation.message('Cross', 'nonn1')
+
         try:
             res = a.cross(b)
         except sympy.ShapeError:
@@ -247,10 +274,6 @@ class QRDecomposition(Builtin):
 
     >> QRDecomposition[{{1, 2}, {3, 4}, {5, 6}}]
      = {{{Sqrt[35] / 35, 3 Sqrt[35] / 35, Sqrt[35] / 7}, {13 Sqrt[210] / 210, 2 Sqrt[210] / 105, -Sqrt[210] / 42}}, {{Sqrt[35], 44 Sqrt[35] / 35}, {0, 2 Sqrt[210] / 35}}}
-
-    #> QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
-     : Sympy is unable to perform the QR decomposition.
-     = QRDecomposition[{{1, 2, 3, 4}, {1, 4, 9, 16}, {1, 8, 27, 64}}]
 
     #> QRDecomposition[{1, {2}}]
      : Argument {1, {2}} at position 1 is not a non-empty rectangular matrix.
@@ -413,7 +436,12 @@ class LinearSolve(Builtin):
             return
         if len(b.leaves) != len(matrix):
             return evaluation.message('LinearSolve', 'lslc')
-        system = [mm + [v] for mm, v in zip(matrix, b.leaves)]
+
+        for leaf in b.leaves:
+            if leaf.has_form('List', None):
+                return evaluation.message('LinearSolve', 'matrix', b, 2)
+
+        system = [mm + [v.to_sympy()] for mm, v in zip(matrix, b.leaves)]
         system = to_sympy_matrix(system)
         if system is None:
             return evaluation.message('LinearSolve', 'matrix', b, 2)
@@ -696,15 +724,23 @@ class Eigenvalues(Builtin):
 
         if matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Eigenvalues', 'matsq', m)
-        eigenvalues = matrix.eigenvals()
-        try:
-            eigenvalues = sorted(six.iteritems(eigenvalues),
-                                 key=lambda v_c: (abs(v_c[0]), -v_c[0]), reverse=True)
-        except TypeError as e:
-            if not str(e).startswith('cannot determine truth value of'):
-                raise e
-            eigenvalues = list(eigenvalues.items())
-        return from_sympy([v for (v, c) in eigenvalues for _ in range(c)])
+        eigenvalues = list(matrix.eigenvals().items())
+
+        # Sort the eigenvalues in the Mathematica convention
+        if all(v.is_complex for (v, _) in eigenvalues):
+            eigenvalues.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
+                             reverse=True)
+
+            eigenvalues = [from_sympy(v) for (v, c) in eigenvalues 
+                           for _ in range(c)]
+        # Sort the eigenvalues in an arbitrary yet deterministic order
+        else:
+            eigenvalues = [(from_sympy(v), c) for (v, c) in eigenvalues]
+            eigenvalues.sort(key=lambda v: v[0].get_sort_key())
+
+            eigenvalues = [v for (v, c) in eigenvalues for _ in range(c)]
+
+        return Expression('List', *eigenvalues)
 
 
 class Eigensystem(Builtin):
@@ -737,7 +773,7 @@ class MatrixPower(Builtin):
      = {{169, -70}, {-70, 29}}
 
     #> MatrixPower[{{0, x}, {0, 0}}, n]
-     = {{0 ^ n, n x 0 ^ (-1 + n)}, {0, 0 ^ n}}
+     = MatrixPower[{{0, x}, {0, 0}}, n]
 
     #> MatrixPower[{{1, 0}, {0}}, 2]
      : Argument {{1, 0}, {0}} at position 1 is not a non-empty rectangular matrix.
@@ -745,8 +781,9 @@ class MatrixPower(Builtin):
     """
 
     messages = {
-        'matrixpowernotimplemented': ('Matrix power not implemented for matrix `1`.'),
-        'matrix': "Argument `1` at position `2` is not a non-empty rectangular matrix.",
+        'matrixpowernotimplemented': 'Matrix power not implemented for matrix `1`.',
+        'matrix': 'Argument `1` at position `2` is not a non-empty rectangular matrix.',
+        'matrixpowernotinvertible': 'Matrix det == 0; not invertible'
     }
 
     def apply(self, m, power, evaluation):
@@ -763,6 +800,8 @@ class MatrixPower(Builtin):
             res = sympy_m ** sympy_power
         except NotImplementedError:
             return evaluation.message('MatrixPower', 'matrixpowernotimplemented', m)
+        except ValueError as e:
+            return evaluation.message('MatrixPower', 'matrixpowernotinvertible', m)
         return from_sympy(res)
 
 
@@ -946,10 +985,10 @@ class Eigenvectors(Builtin):
     >> Eigenvectors[{{2, 0, 0}, {0, -1, 0}, {0, 0, 0}}]
      = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
     >> Eigenvectors[{{0.1, 0.2}, {0.8, 0.5}}]
-     = {{0.309017, 1.}, {-0.809017, 1.}}
+     = {{-0.355518, -1.15048}, {-0.62896, 0.777438}}
 
     #> Eigenvectors[{{-2, 1, -1}, {-3, 2, 1}, {-1, 1, 0}}]
-     = {{1 / 3, 7 / 3, 1}, {1, 1, 0}, {0, 0, 0}}
+     = {{1, 7, 3}, {1, 1, 0}, {0, 0, 0}}
     """
 
     messages = {
@@ -967,13 +1006,18 @@ class Eigenvectors(Builtin):
             return evaluation.message('Eigenvectors', 'matsq', m)
         # sympy raises an error for some matrices that Mathematica can compute.
         try:
-            eigenvects = matrix.eigenvects()
+            eigenvects = matrix.eigenvects(simplify=True)
         except NotImplementedError:
             return evaluation.message(
                 'Eigenvectors', 'eigenvecnotimplemented', m)
 
-        # The eigenvectors are given in the same order as the eigenvalues.
-        eigenvects = sorted(eigenvects, key=lambda val_c_vect: (abs(val_c_vect[0]), -val_c_vect[0]), reverse=True)
+        # Sort the eigenvectors by their corresponding eigenvalues
+        if all(v.is_complex for (v, _, _) in eigenvects):
+            eigenvects.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
+                            reverse=True)
+        else:
+            eigenvects.sort(key=lambda v: from_sympy(v[0]).get_sort_key())
+
         result = []
         for val, count, basis in eigenvects:
             # Select the i'th basis vector, convert matrix to vector,

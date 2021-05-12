@@ -1,16 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Graphics (3D)
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
 
-from six.moves import map
-from six.moves import range
 
 import numbers
 from mathics.core.expression import (Expression, from_python,

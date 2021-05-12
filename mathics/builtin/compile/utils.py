@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from mathics.builtin.compile.types import int_type, real_type, bool_type, void_type

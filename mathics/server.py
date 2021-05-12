@@ -1,9 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
 
 import sys
 import os
@@ -20,21 +17,23 @@ from mathics import settings as mathics_settings  # Prevents UnboundLocalError
 def check_database():
     # Check for the database
     database_file = mathics_settings.DATABASES['default']['NAME']
+
     if not os.path.exists(database_file):
         print("warning: database file %s not found\n" % database_file)
         if not os.path.exists(mathics_settings.DATA_DIR):
             print("Creating data directory %s" % mathics_settings.DATA_DIR)
             os.makedirs(mathics_settings.DATA_DIR)
-        print("Creating database %s" % database_file)
-        manage_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "manage.py")
-        try:
-            subprocess.check_call(
-                [sys.executable, manage_file, 'migrate', '--noinput'])
-            print("\ndatabase initialized sucessfully")
-        except subprocess.CalledProcessError:
-            print("error: failed to create database")
-            sys.exit(1)
+
+    print("Migrating database %s" % database_file)
+    manage_file = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "manage.py")
+    try:
+        subprocess.check_call(
+            [sys.executable, manage_file, 'migrate', '--noinput'])
+        print("\ndatabase initialized sucessfully")
+    except subprocess.CalledProcessError:
+        print("error: failed to create database")
+        sys.exit(1)
 
 
 def parse_args():

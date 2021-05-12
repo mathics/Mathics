@@ -1,13 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Tensor functions
+Tensors
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from six.moves import range
 
 from mathics.builtin.base import Builtin, BinaryOperator
 from mathics.core.expression import Expression, Symbol, Integer, String
@@ -246,6 +243,15 @@ class Inner(Builtin):
     Inner works with tensors of any depth:
     >> Inner[f, {{{a, b}}, {{c, d}}}, {{1}, {2}}, g]
      = {{{g[f[a, 1], f[b, 2]]}}, {{g[f[c, 1], f[d, 2]]}}}
+
+
+    ## Issue #670
+    #> A = {{ b ^ ( -1 / 2), 0}, {a * b ^ ( -1 / 2 ), b ^ ( 1 / 2 )}}
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
+    #> A . Inverse[A]
+     = {{1, 0}, {0, 1}}
+    #> A
+     = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
     """
 
     rules = {
@@ -266,35 +272,36 @@ class Inner(Builtin):
         if not m or not n:
             evaluation.message('Inner', 'normal')
             return
-        if list1.head != list2.head:
-            evaluation.message('Inner', 'heads', list1.head, list2.head)
+        if list1.get_head() != list2.get_head():
+            evaluation.message('Inner', 'heads', list1.get_head(), list2.get_head())
             return
         if m[-1] != n[0]:
             evaluation.message(
                 'Inner', 'incom', m[-1], len(m), list1, n[0], list2)
             return
 
-        head = list1.head
+        head = list1.get_head()
         inner_dim = n[0]
 
         def rec(i_cur, j_cur, i_rest, j_rest):
             evaluation.check_stopped()
             if i_rest:
-                new = Expression(head)
+                leaves = []
                 for i in range(1, i_rest[0] + 1):
-                    new.leaves.append(
+                    leaves.append(
                         rec(i_cur + [i], j_cur, i_rest[1:], j_rest))
-                return new
+                return Expression(head, *leaves)
             elif j_rest:
-                new = Expression(head)
+                leaves = []
                 for j in range(1, j_rest[0] + 1):
-                    new.leaves.append(
+                    leaves.append(
                         rec(i_cur, j_cur + [j], i_rest, j_rest[1:]))
-                return new
+                return Expression(head, *leaves)
             else:
                 def summand(i):
-                    return Expression(f, get_part(list1, i_cur + [i]),
-                                      get_part(list2, [i] + j_cur))
+                    part1 = get_part(list1, i_cur + [i])
+                    part2 = get_part(list2, [i] + j_cur)
+                    return Expression(f, part1, part2)
                 part = Expression(
                     g, *[summand(i) for i in range(1, inner_dim + 1)])
                 # cur_expr.leaves.append(part)

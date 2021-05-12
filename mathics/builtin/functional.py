@@ -1,14 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Functional programming
+Functional Programming
 """
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-from six.moves import zip
+from itertools import chain
 
 from mathics.builtin.base import Builtin, PostfixOperator
 from mathics.core.expression import Expression
@@ -25,11 +22,11 @@ class Function(PostfixOperator):
     </dl>
 
     >> f := # ^ 2 &
-    >> f[3]
+    X> f[3]
      = 9
-    >> #^3& /@ {1, 2, 3}
+    X> #^3& /@ {1, 2, 3}
      = {1, 8, 27}
-    >> #1+#2&[4, 5]
+    X> #1+#2&[4, 5]
      = 9
 
     You can use 'Function' with named parameters:
@@ -65,13 +62,13 @@ class Function(PostfixOperator):
         'slot': "`1` should contain a positive integer.",
         'slotn': "Slot number `1` cannot be filled.",
         'fpct': "Too many parameters to be filled.",
+        'iassoc': "Invalid association item `1`"
     }
 
     def apply_slots(self, body, args, evaluation):
         'Function[body_][args___]'
 
-        args = args.get_sequence()
-        args.insert(0, Expression('Function', body))
+        args = list(chain([Expression('Function', body)], args.get_sequence()))
         return body.replace_slots(args, evaluation)
 
     def apply_named(self, vars, body, args, evaluation):
@@ -96,13 +93,13 @@ class Slot(Builtin):
     <dl>
     <dt>'#$n$'
         <dd>represents the $n$th argument to a pure function.
-    <dt>'#'
+        <dt>'#'
         <dd>is short-hand for '#1'.
-    <dt>'#0'
+        <dt>'#0'
         <dd>represents the pure function itself.
     </dl>
 
-    >> #
+    X> #
      = #1
 
     Unused arguments are simply ignored:
@@ -202,12 +199,12 @@ class Composition(Builtin):
 class Identity(Builtin):
     """
     <dl>
-    <dt>'Identity[$x$]'
-        <dd>is the identity function, which returns $x$ unchanged.
+      <dt>'Identity[$x$]'
+      <dd>is the identity function, which returns $x$ unchanged.
     </dl>
-    >> Identity[x]
+    X> Identity[x]
      = x
-    >> Identity[x, y]
+    X> Identity[x, y]
      = Identity[x, y]
     """
 

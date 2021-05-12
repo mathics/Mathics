@@ -5,6 +5,7 @@ Begin["System`Convert`Image`"]
 RegisterImageExport[type_] := ImportExport`RegisterExport[
     type,
 	System`ImageExport,
+        FunctionChannels -> {"FileNames"},
 	Options -> {},
 	BinaryFormat -> True
 ];

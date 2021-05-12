@@ -1,57 +1,30 @@
 {% extends "base_html.html" %}
+{% load static %}
 
 {% block title %}Mathics{% endblock %}
 
 {% block html_head %}
 <!-- including scriptaculous main does not work in Safari -->
-<script type="text/javascript" src="/media/js/scriptaculous/builder.js"></script>
-<script type="text/javascript" src="/media/js/scriptaculous/effects.js"></script>
-<script type="text/javascript" src="/media/js/scriptaculous/dragdrop.js"></script>
-<script type="text/javascript" src="/media/js/scriptaculous/controls.js"></script>
-<script type="text/javascript" src="/media/js/scriptaculous/slider.js"></script>
-<script type="text/javascript" src="/media/js/scriptaculous/sound.js"></script>
-<!--<script type="text/javascript" src="/media/js/scriptaculous/scriptaculous.js"></script>-->
+<script type="text/javascript" src="{% static 'js/scriptaculous/builder.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scriptaculous/effects.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scriptaculous/dragdrop.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scriptaculous/controls.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scriptaculous/slider.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scriptaculous/sound.js' %}"></script>
+<!--<script type="text/javascript" src="{% static 'js/scriptaculous/scriptaculous.js' %}"></script>-->
 {% endblock %}
 
 {% block html_body %}
 
-<!-- <div id="head">
-  <div class="headright">
-    <a href="javascript:createLink()">#</a>
-  </div>
-  <div class="headright">
-    <div id="notAuthenticated">
-        {% if require_login %}
-      <a href="javascript:showLogin()">Login</a><br />
-            {% endif %}
-    </div>
-    <div id="authenticated" style="display: none">
-      <span id="username"></span><br />
-      <a id="logout" href="javascript:logout()">Logout</a>
-    </div>
-  </div>
-
-  <span id="logo"><a href="http://www.mathics.org" target="_blank"><img src="/media/img/logo.svg" height="24" alt="Mathics" /></a></span>
-</div>
-
-<div id="menu">
-<div id="menuleft">
-    <span><a href="javascript:showSave()">Save</a></span><span><a href="javascript:showOpen()">Load</a></span>
-</div>
-<div id="menuright">
-  <a id="doclink" href="javascript:toggleDoc()">Documentation</a>
-  <input id="search" type="text" />
-</div>
-</div> -->
-
 <header>
 <div id="headerleft">
-  <img id="logo" class="load" src="/media/img/logo-heptatom.svg" height="32" alt="Logo" />
-  <img id="logotext" class="load" src="/media/img/logo-text.svg" height="26" alt="Mathics" />
+  <img id="logo" class="load" src="{% static 'img/logo-heptatom.svg' %}" height="32" alt="Logo" />
+  <img id="logotext" class="load" src="{% static 'img/logo-text.svg' %}" height="26" alt="Mathics" />
 
   <div class="menu">
-    <a href="javascript:showOpen()" title="Open"><i class="fa fa-file-text"></i></a><a href="javascript:showSave()" title="Save"><i class="fa fa-download"></i></a><a href="javascript:createLink()" title="Generate hash"><i class="fa fa-share-alt"></i></a>
-    <!-- <a class="separate-left inactive" href="javascript:undo()" title="Undo"><i class="fa fa-undo"></i></a><a class="inactive" href="javascript:redo()" title="Redo"><i class="fa fa-repeat"></i></a> -->
+    <a href="javascript:showOpen()" title="Open Worksheet"><i class="fa fa-file-text"></i></a>
+    <a href="javascript:showSave()" title="Save Worksheet"><i class="fa fa-download"></i></a>
+    <a href="javascript:createLink()" title="Generate Worksheet Input Hash"><i class="fa fa-share-alt"></i></a>
   </div>
 </div>
 

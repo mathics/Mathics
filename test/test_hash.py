@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import Expression, Integer, Rational, Real, MachineReal, PrecisionReal, Complex, String, Symbol

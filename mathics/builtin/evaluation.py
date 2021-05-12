@@ -1,24 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
-import sys
 
 from mathics.builtin.base import Predefined, Builtin
 from mathics.core.expression import Integer
-
-from mathics import settings
-
-
-def set_recursionlimit(n):
-    "Sets the required python recursion limit given $RecursionLimit value"
-    def conversion(m):
-        return 200 + 5 * m
-    sys.setrecursionlimit(conversion(n))
-    if sys.getrecursionlimit() != conversion(n):
-        raise OverflowError
+from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
 
 
 class RecursionLimit(Predefined):
@@ -37,7 +23,7 @@ class RecursionLimit(Predefined):
      = 200
 
     >> $RecursionLimit = x;
-     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512.
+     : Cannot set $RecursionLimit to x; value must be an integer between 20 and 512; use the MATHICS_MAX_RECURSION_DEPTH environment variable to allow higher limits.
 
     >> $RecursionLimit = 512
      = 512
@@ -54,27 +40,100 @@ class RecursionLimit(Predefined):
     #> $RecursionLimit = 200
      = 200
 
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := f[x + 1, n - 1];
+    #> Block[{$RecursionLimit = 20}, f[0, 100]]
+     = 100
+    #> ClearAll[f];
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
+    #> Block[{$RecursionLimit = 20}, f[0, 100]]
+     : Recursion depth of 20 exceeded.
+     = $Aborted
+    #> ClearAll[f];
     """
 
-    name = '$RecursionLimit'
+    name = "$RecursionLimit"
     value = 200
 
-    set_recursionlimit(value)
+    set_python_recursion_limit(value)
 
     rules = {
-        '$RecursionLimit': str(value),
+        "$RecursionLimit": str(value),
     }
 
     messages = {
-        'reclim': "Recursion depth of `1` exceeded.",
-        'limset': (
+        "reclim": "Recursion depth of `1` exceeded.",
+        "limset": (
             "Cannot set $RecursionLimit to `1`; "
-            "value must be an integer between 20 and %d.") % (
-                settings.MAX_RECURSION_DEPTH),
+            "value must be an integer between 20 and %d; "
+            "use the MATHICS_MAX_RECURSION_DEPTH environment variable to allow higher limits."
+        )
+        % (MAX_RECURSION_DEPTH),
     }
 
     rules = {
-        '$RecursionLimit': str(value),
+        "$RecursionLimit": str(value),
+    }
+
+    def evaluate(self, evaluation) -> Integer:
+        return Integer(self.value)
+
+
+class IterationLimit(Predefined):
+    """
+    <dl>
+        <dt>'$IterationLimit'
+
+        <dd>specifies the maximum number of times a reevaluation of an expression may happen.
+
+    </dl>
+
+    Calculations terminated by '$IterationLimit' return '$Aborted':
+
+    > $IterationLimit
+     = 1000
+    #> ClearAll[f]; f[x_] := f[x + 1];
+    #> f[x]
+     : Iteration limit of 1000 exceeded.
+     = $Aborted
+    #> ClearAll[f];
+
+    #> $IterationLimit = x;
+     : Cannot set $IterationLimit to x; value must be an integer between 20 and Infinity.
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := f[x + 1, n - 1];
+    #> Block[{$IterationLimit = 20}, f[0, 100]]
+     : Iteration limit of 20 exceeded.
+     = $Aborted
+    #> ClearAll[f];
+
+    #> ClearAll[f];
+    #> f[x_, 0] := x; f[x_, n_] := Module[{y = x + 1}, f[y, n - 1]];
+    #> Block[{$IterationLimit = 20}, f[0, 100]]
+     = 100
+    #> ClearAll[f];
+    """
+
+    name = "$IterationLimit"
+    value = 1000
+
+    rules = {
+        "$IterationLimit": str(value),
+    }
+
+    messages = {
+        "itlim": "Iteration limit of `1` exceeded.",
+        "limset": (
+            "Cannot set $IterationLimit to `1`; "
+            "value must be an integer between 20 and Infinity."
+        ),
+    }
+
+    rules = {
+        "$IterationLimit": str(value),
     }
 
     def evaluate(self, evaluation):
@@ -91,7 +150,7 @@ class Hold(Builtin):
      = {HoldAll, Protected}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
 
 class HoldComplete(Builtin):
@@ -105,7 +164,7 @@ class HoldComplete(Builtin):
      = {HoldAllComplete, Protected}
     """
 
-    attributes = ('HoldAllComplete',)
+    attributes = ("HoldAllComplete",)
 
 
 class HoldForm(Builtin):
@@ -123,10 +182,10 @@ class HoldForm(Builtin):
      = {HoldAll, Protected}
     """
 
-    attributes = ('HoldAll',)
+    attributes = ("HoldAll",)
 
     rules = {
-        'MakeBoxes[HoldForm[expr_], f_]': 'MakeBoxes[expr, f]',
+        "MakeBoxes[HoldForm[expr_], f_]": "MakeBoxes[expr, f]",
     }
 
 
@@ -157,8 +216,8 @@ class Evaluate(Builtin):
     """
 
     rules = {
-        'Evaluate[Unevaluated[x_]]': 'Unevaluated[x]',
-        'Evaluate[x___]': 'x',
+        "Evaluate[Unevaluated[x_]]": "Unevaluated[x]",
+        "Evaluate[x___]": "x",
     }
 
 
@@ -200,7 +259,7 @@ class Unevaluated(Builtin):
      = 15
     """
 
-    attributes = ('HoldAllComplete',)
+    attributes = ("HoldAllComplete",)
 
 
 class ReleaseHold(Builtin):
@@ -220,8 +279,8 @@ class ReleaseHold(Builtin):
     """
 
     rules = {
-        'ReleaseHold[(Hold|HoldForm|HoldPattern|HoldComplete)[expr_]]': 'expr',
-        'ReleaseHold[other_]': 'other',
+        "ReleaseHold[(Hold|HoldForm|HoldPattern|HoldComplete)[expr_]]": "expr",
+        "ReleaseHold[other_]": "other",
     }
 
 
@@ -276,7 +335,7 @@ class Line(Builtin):
      : Non-negative integer expected.
     """
 
-    name = '$Line'
+    name = "$Line"
 
 
 class HistoryLength(Builtin):
@@ -301,10 +360,10 @@ class HistoryLength(Builtin):
      = %7
     """
 
-    name = '$HistoryLength'
+    name = "$HistoryLength"
 
     rules = {
-        '$HistoryLength': '100',
+        "$HistoryLength": "100",
     }
 
 
@@ -340,7 +399,7 @@ class In(Builtin):
     """
 
     rules = {
-        'In[k_Integer?Negative]': 'In[$Line + k]',
+        "In[k_Integer?Negative]": "In[$Line + k]",
     }
 
 
@@ -383,14 +442,12 @@ class Out(Builtin):
     """
 
     rules = {
-        'Out[k_Integer?Negative]': 'Out[$Line + k]',
-        'Out[]': 'Out[$Line - 1]',
-        'MakeBoxes[Out[k_Integer?((-10 <= # < 0)&)],'
-        '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-        r'StringJoin[ConstantArray["%%", -k]]',
-        'MakeBoxes[Out[k_Integer?Positive],'
-        '    f:StandardForm|TraditionalForm|InputForm|OutputForm]':
-        r'"%%" <> ToString[k]',
+        "Out[k_Integer?Negative]": "Out[$Line + k]",
+        "Out[]": "Out[$Line - 1]",
+        "MakeBoxes[Out[k_Integer?((-10 <= # < 0)&)],"
+        "    f:StandardForm|TraditionalForm|InputForm|OutputForm]": r'StringJoin[ConstantArray["%%", -k]]',
+        "MakeBoxes[Out[k_Integer?Positive],"
+        "    f:StandardForm|TraditionalForm|InputForm|OutputForm]": r'"%%" <> ToString[k]',
     }
 
 
@@ -442,3 +499,32 @@ class OutputSizeLimit(Predefined):
 
     def evaluate(self, evaluation):
         return Integer(self.value)
+
+
+class Quit(Builtin):
+    """
+    <dl>
+    <dt>'Quit'[]
+      <dd> Terminates the Mathics session.
+    <dt>'Quit[$n$]'
+      <dd> Terminates the mathics session with exit code $n$.
+    </dl>
+
+    <dl>
+    <dt>'Exit'[]
+      <dd> Terminates the Mathics session.
+    <dt>'Exit[$n$]'
+      <dd> Terminates the mathics session with exit code $n$.
+    </dl>
+
+    """
+
+    rules = {"Exit[n___]":"Quit[n]", }
+
+    def apply(self, evaluation, n):
+        '%(name)s[n___]'
+        exitcode = 0
+        if isinstance(n, Integer):
+            exitcode =(n.get_int_value())
+        raise SystemExit(exitcode)
+

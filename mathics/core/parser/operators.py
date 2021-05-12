@@ -1,7 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
 
 from collections import defaultdict
 
@@ -17,6 +16,8 @@ prefix_ops = {
     'Exists': 240,
     'NotExists': 240,
     'Not': 230,
+    'Information': 5001,
+    'Definition': 5000,
 }
 
 postfix_ops = {
@@ -131,6 +132,7 @@ flat_binary_ops = {
 }
 
 nonassoc_binary_ops = {
+    'UndirectedEdge': 120,
     'PatternTest': 680,
 }
 

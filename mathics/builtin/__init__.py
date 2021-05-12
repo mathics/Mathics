@@ -1,15 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
 
 from mathics.builtin import (
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
+    graphics, graphics3d,
+    image, inout, integer, iohooks, linalg, lists, logic,
+    manipulate, quantities, numbertheory, numeric, options, patterns,
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
+    strings, structure, system, tensors, xmlformat, optimization)
 
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
@@ -19,9 +19,11 @@ from mathics.settings import ENABLE_FILES_MODULE
 modules = [
     algebra, arithmetic, assignment, attributes, calculus, combinatorial, compilation,
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
-    graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
-    numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
+    graphics, graphics3d,
+    image, inout, integer, iohooks, linalg, lists, logic,
+    manipulate, quantities, numbertheory, numeric, options, patterns,
+    plot, physchemdata, randomnumbers, recurrence, specialfunctions, scoping,
+    strings, structure, system, tensors, xmlformat, optimization]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
@@ -37,6 +39,7 @@ def is_builtin(var):
     if hasattr(var, '__bases__'):
         return any(is_builtin(base) for base in var.__bases__)
     return False
+
 
 for module in modules:
     builtins_by_module[module.__name__] = []
@@ -80,6 +83,7 @@ def add_builtins(new_builtins):
         if isinstance(builtin, PatternObject):
             pattern_objects[name] = builtin.__class__
     builtins.update(dict(new_builtins))
+
 
 new_builtins = builtins
 builtins = {}

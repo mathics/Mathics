@@ -1,13 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import unittest
 from random import random
 
-from six.moves import range
 
 import mathics.builtin.colors as colors
 from mathics.builtin.numpy_utils import array, stacked, vectorize

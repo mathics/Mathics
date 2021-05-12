@@ -1,8 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import sys
 import random
@@ -13,8 +11,6 @@ from mathics.core.parser.ast import Node, Symbol, Number, String, Filename
 from mathics.core.parser.feed import SingleLineFeeder
 from mathics.core.parser.parser import Parser
 
-import six
-
 
 class ParserTests(unittest.TestCase):
     def setUp(self):
@@ -24,9 +20,9 @@ class ParserTests(unittest.TestCase):
         return self.parser.parse(SingleLineFeeder(s))
 
     def check(self, expr1, expr2):
-        if isinstance(expr1, six.string_types):
+        if isinstance(expr1, str):
             expr1 = self.parse(expr1)
-        if isinstance(expr2, six.string_types):
+        if isinstance(expr2, str):
             expr2 = self.parse(expr2)
 
         if expr1 is None:
@@ -90,12 +86,12 @@ class AtomTests(ParserTests):
         self.check('`context`name', Symbol('`context`name'))
 
     def testSpecialSymbol(self):
-        self.check('\[Pi]', 'Pi')
-        self.check('\[Degree]', 'Degree')
-        self.check('\[ExponentialE]', 'E')
-        self.check('\[ImaginaryI]', 'I')
-        self.check('\[ImaginaryJ]', 'I')
-        self.check('\[Infinity]', 'Infinity')
+        self.check('\\[Pi]', 'Pi')
+        self.check('\\[Degree]', 'Degree')
+        self.check('\\[ExponentialE]', 'E')
+        self.check('\\[ImaginaryI]', 'I')
+        self.check('\\[ImaginaryJ]', 'I')
+        self.check('\\[Infinity]', 'Infinity')
 
     def testNumber(self):
         self.check_number('0')
@@ -109,6 +105,12 @@ class AtomTests(ParserTests):
         self.check_number('10*^3')
         self.check_number('10*^-3')
         self.check_number('8^^23*^2')
+        self.invalid_error('2^^102')
+        self.invalid_error('2^^10.2')
+        self.invalid_error('1^^0')
+        self.invalid_error('37^^0')
+        self.check_number('36^^abcxyz01239')
+        self.check_number('6^^5023`307*^-720')
 
     def testNumberBig(self):
         for _ in range(10):
@@ -341,6 +343,9 @@ class GeneralTests(ParserTests):
         self.check('{, a, b}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b')))
         self.check('{,a,b,}', Node('List', Symbol('Null'), Symbol('a'), Symbol('b'), Symbol('Null')))
 
+    def testAssociation(self):
+        self.check('<|x -> m|>', Node('Association', Node('Rule', Symbol('x'), Symbol('m'))))
+
     def testSequence(self):
         self.check('Sin[x, y]', Node('Sin', Symbol('x'), Symbol('y')))
 
@@ -357,8 +362,8 @@ class GeneralTests(ParserTests):
 
     @unittest.expectedFailure
     def testNonLetterSymbol(self):
-        self.incomplete_error('#\[Equal]')
-        self.check('#\uf431', 'Slot["\[Equal]"]')
+        self.incomplete_error('#\\[Equal]')
+        self.check('#\uf431', 'Slot["\\[Equal]"]')
         self.check('a\uf431c', Node('Symbol', 'a\uf431c'))
         self.check('a\uf522c', Node('Symbol', 'a\uf522c'))
 
@@ -407,10 +412,10 @@ class GeneralTests(ParserTests):
         self.scan_error('3\\2')
         self.check('1 \\[Times] 2', Node('Times', Number('1'), Number('2')))
         self.check('1 \u00d7 2', Node('Times', Number('1'), Number('2')))
-        self.check('1 \[PlusMinus] 2', Node('PlusMinus', Number('1'), Number('2')))
-        self.check('1 \[MinusPlus] 2', Node('MinusPlus', Number('1'), Number('2')))
-        self.check('\[PlusMinus] 1', Node('PlusMinus', Number('1')))
-        self.check('\[MinusPlus] 1', Node('MinusPlus', Number('1')))
+        self.check('1 \\[PlusMinus] 2', Node('PlusMinus', Number('1'), Number('2')))
+        self.check('1 \\[MinusPlus] 2', Node('MinusPlus', Number('1'), Number('2')))
+        self.check('\\[PlusMinus] 1', Node('PlusMinus', Number('1')))
+        self.check('\\[MinusPlus] 1', Node('MinusPlus', Number('1')))
         self.check('\u00b1 1', Node('PlusMinus', Number('1')))
         self.check('\u2213 1', Node('MinusPlus', Number('1')))
         self.check('1 \\[And] 2', Node('And', Number('1'), Number('2')))
@@ -463,12 +468,20 @@ class GeneralTests(ParserTests):
         self.check('a < b <= c > d >= e != f == g',
                    'Inequality[a, Less, b, LessEqual, c, Greater, d, GreaterEqual, e,  Unequal, f, Equal, g]')
 
+    def testInformation(self):
+        self.check('??a', 'Information[a, LongForm -> True]')
+        self.check('a ?? b', 'a Information[b, LongForm -> True]')
+        self.invalid_error('a ?? + b')
+        self.check('a + ?? b', 'a + Information[b, LongForm -> True]')
+        self.check('??a + b', 'Information[a, LongForm -> True] + b')
+        self.check('??a * b', 'Information[a, Rule[LongForm, True]]*b')
+
 
 class BoxTests(ParserTests):
     def testSqrt(self):
         self.check('\\( \\@ b \\)', 'SqrtBox["b"]')
         self.check('\\( \\@ b \\% c \\)', 'RadicalBox["b", "c"]')
-        self.check('\\(a \@ b \\)', 'RowBox[{"a", SqrtBox["b"]}]')
+        self.check('\\(a \\@ b \\)', 'RowBox[{"a", SqrtBox["b"]}]')
         self.check('\\( \\@ \\)', 'SqrtBox[""]')
 
     def testSuperscript(self):
@@ -542,7 +555,7 @@ class BoxTests(ParserTests):
         self.check('\\( 1 \\` b \\)', 'FormBox["b", Removed["$$Failure"]]')
         self.check('\\( \\` b \\)', 'FormBox["b", StandardForm]')
         self.check('\\( a \\` b \\)', 'FormBox["b", a]')
-        self.check('\\( a \` \\)', 'FormBox["", a]')
+        self.check('\\( a \\` \\)', 'FormBox["", a]')
 
     def testRow(self):
         self.check('\\( \\)', String(""))
@@ -553,13 +566,13 @@ class BoxTests(ParserTests):
         self.check('\\(a \\+ b \\^ c\\)', 'SuperscriptBox[UnderscriptBox["a", "b"], "c"]')
 
     def testInvalid(self):
-        self.invalid_error('\( a \% b \)')
-        self.invalid_error('\( a \+ \% b \% c \)')
+        self.invalid_error('\\( a \\% b \\)')
+        self.invalid_error('\\( a \\+ \\% b \\% c \\)')
 
     def testNoRow(self):
-        self.invalid_error('a \% b')
-        self.invalid_error('a \+ b')
-        self.invalid_error('\@ a')
+        self.invalid_error('a \\% b')
+        self.invalid_error('a \\+ b')
+        self.invalid_error('\\@ a')
 
 
 class PatternTests(ParserTests):

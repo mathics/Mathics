@@ -1,10 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
 import time
 from argparse import ArgumentParser
@@ -23,8 +19,6 @@ from mathics.core.parser import parse, MultiLineFeeder, SingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
-from six.moves import map
-from six.moves import range
 
 # Default number of times to repeat each benchmark. None -> Automatic
 TESTS_PER_BENCHMARK = None
@@ -99,20 +93,20 @@ def timeit(func, repeats=None):
     if repeats is not None:
         # Fixed number of repeats
         for i in range(repeats):
-            times.append(time.clock())
+            times.append(time.process_time())
             func()
     else:
         # Automatic number of repeats
         repeats = 10000
         for i in range(repeats):
-            times.append(time.clock())
+            times.append(time.process_time())
             func()
             if (i + 1) in (5, 10, 100, 1000, 5000):
                 if times[-1] > times[0] + 1:
                     repeats = i + 1
                     break
 
-    times.append(time.clock())
+    times.append(time.process_time())
 
     times = [times[i+1] - times[i] for i in range(repeats)]
 
