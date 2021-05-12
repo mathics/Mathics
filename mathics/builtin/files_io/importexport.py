@@ -1191,8 +1191,8 @@ class URLFetch(Builtin):
     #> Quiet[URLFetch["https:////", {}]]
      = $Failed
 
-    #> Quiet[URLFetch["https://www.example.com", {}]]
-     = $Failed
+    ##> Quiet[URLFetch["https://www.example.com", {}]]
+    # = ...
     """
 
     messages = {
