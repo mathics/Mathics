@@ -1,18 +1,19 @@
  (* Script generated - do not edit *)
  (* Data from http://www.indiana.edu/~knotinfo/ *)
- 
- BeginPackage["KnotTheory`IndianaData`", {"KnotTheory`"}]
- Message[KnotTheory::loading, "IndianaData`"]
- 
+
+BeginPackage["KnotTheory`IndianaData`"]
+(* Needs["KnotTheory`"] *)
+Message[KnotTheory::loading, "IndianaData`"]
+
  {BraidIndex, BridgeIndex, NakanishiIndex, SuperBridgeIndex, SymmetryType, ThreeGenus, UnknottingNumber}
 
- Begin["`Private`"]
- 
+Begin["`Private`"]
+
  SD[K_, data_] := MapThread[
    (#1[K] = #2)&,
    {fields, data /. NA -> NotAvailable}
  ]
- 
+
  fields = {BraidIndex, BridgeIndex, NakanishiIndex, SuperBridgeIndex, SymmetryType, ThreeGenus, UnknottingNumber}
 
 SD[Knot[0, 1], {1, 1, NA, NA, "", 0, 0}]
