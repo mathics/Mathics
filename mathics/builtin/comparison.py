@@ -7,8 +7,17 @@ import itertools
 import sympy
 
 from mathics.builtin.base import BinaryOperator, Builtin, SympyFunction
-from mathics.core.expression import (Complex, Expression, Integer, Number,
-                                     Real, String, Symbol)
+from mathics.core.expression import (
+    Complex,
+    Expression,
+    Integer,
+    Number,
+    Real,
+    String,
+    Symbol,
+    SymbolFalse,
+    SymbolTrue,
+)
 from mathics.core.numbers import dps
 
 
@@ -30,16 +39,16 @@ class SameQ(BinaryOperator):
      = {True, False}
     """
 
-    operator = '==='
+    operator = "==="
     precedence = 290
 
     def apply(self, lhs, rhs, evaluation):
-        'lhs_ === rhs_'
+        "lhs_ === rhs_"
 
         if lhs.same(rhs):
-            return Symbol('True')
+            return SymbolTrue
         else:
-            return Symbol('False')
+            return SymbolFalse
 
 
 class UnsameQ(BinaryOperator):
@@ -56,16 +65,16 @@ class UnsameQ(BinaryOperator):
      = True
     """
 
-    operator = '=!='
+    operator = "=!="
     precedence = 290
 
     def apply(self, lhs, rhs, evaluation):
-        'lhs_ =!= rhs_'
+        "lhs_ =!= rhs_"
 
         if lhs.same(rhs):
-            return Symbol('False')
+            return SymbolFalse
         else:
-            return Symbol('True')
+            return SymbolTrue
 
 
 class TrueQ(Builtin):
@@ -86,7 +95,7 @@ class TrueQ(Builtin):
     """
 
     rules = {
-        'TrueQ[expr_]': 'If[expr, True, False, False]',
+        "TrueQ[expr_]": "If[expr, True, False, False]",
     }
 
 
@@ -117,7 +126,7 @@ class BooleanQ(Builtin):
     """
 
     rules = {
-        'BooleanQ[expr_]': 'If[expr, True, True, False]',
+        "BooleanQ[expr_]": "If[expr, True, True, False]",
     }
 
 
@@ -138,46 +147,47 @@ class ValueQ(Builtin):
      = False
     """
 
-    attributes = ('HoldFirst',)
+    attributes = ("HoldFirst",)
 
     def apply(self, expr, evaluation):
-        'ValueQ[expr_]'
+        "ValueQ[expr_]"
         evaluated_expr = expr.evaluate(evaluation)
         if expr.same(evaluated_expr):
-            return Symbol('False')
-        return Symbol('True')
+            return SymbolFalse
+        return SymbolTrue
 
 
 operators = {
-    'System`Less': (-1,),
-    'System`LessEqual': (-1, 0),
-    'System`Equal': (0,),
-    'System`GreaterEqual': (0, 1),
-    'System`Greater': (1,),
-    'System`Unequal': (-1, 1),
+    "System`Less": (-1,),
+    "System`LessEqual": (-1, 0),
+    "System`Equal": (0,),
+    "System`GreaterEqual": (0, 1),
+    "System`Greater": (1,),
+    "System`Unequal": (-1, 1),
 }
 
 
 class _InequalityOperator(BinaryOperator):
     precedence = 290
-    grouping = 'NonAssociative'
+    grouping = "NonAssociative"
 
     @staticmethod
     def numerify_args(items, evaluation):
         items_sequence = items.get_sequence()
-        all_numeric = all(item.is_numeric() and item.get_precision() is None
-                          for item in items_sequence)
+        all_numeric = all(
+            item.is_numeric() and item.get_precision() is None
+            for item in items_sequence
+        )
 
         # All expressions are numeric but exact and they are not all numbers,
-        if all_numeric and any(not isinstance(item, Number)
-                               for item in items_sequence):
+        if all_numeric and any(not isinstance(item, Number) for item in items_sequence):
             # so apply N and compare them.
             items = items_sequence
             n_items = []
             for item in items:
                 if not isinstance(item, Number):
                     # TODO: use $MaxExtraPrecision insterad of hard-coded 50
-                    n_expr = Expression('N', item, Integer(50))
+                    n_expr = Expression("N", item, Integer(50))
                     item = n_expr.evaluate(evaluation)
                 n_items.append(item)
             items = n_items
@@ -187,17 +197,18 @@ class _InequalityOperator(BinaryOperator):
 
 
 class _EqualityOperator(_InequalityOperator):
-    'Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c.'
+    "Compares all pairs e.g. a == b == c compares a == b, b == c, and a == c."
+
     def do_compare(self, l1, l2):
         if l1.same(l2):
             return True
-        elif l1 == Symbol('System`True') and l2 == Symbol('System`False'):
+        elif l1 == SymbolTrue and l2 == SymbolFalse:
             return False
-        elif l1 == Symbol('System`False') and l2 == Symbol('System`True'):
+        elif l1 == SymbolFalse and l2 == SymbolTrue:
             return False
         elif isinstance(l1, String) and isinstance(l2, String):
             return False
-        elif l1.has_form('List', None) and l2.has_form('List', None):
+        elif l1.has_form("List", None) and l2.has_form("List", None):
             if len(l1.leaves) != len(l2.leaves):
                 return False
             for item1, item2 in zip(l1.leaves, l2.leaves):
@@ -221,10 +232,10 @@ class _EqualityOperator(_InequalityOperator):
             return None
 
     def apply(self, items, evaluation):
-        '%(name)s[items___]'
+        "%(name)s[items___]"
         items_sequence = items.get_sequence()
         if len(items_sequence) <= 1:
-            return Symbol('True')
+            return SymbolTrue
         args = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for x, y in itertools.combinations(args, 2):
@@ -232,29 +243,30 @@ class _EqualityOperator(_InequalityOperator):
             if c is None:
                 return
             elif c not in wanted:
-                return Symbol('False')
+                return SymbolFalse
             assert c in wanted
-        return Symbol('True')
+        return SymbolTrue
 
     def apply_other(self, args, evaluation):
-        '%(name)s[args___?(!RealNumberQ[#]&)]'
+        "%(name)s[args___?(!RealNumberQ[#]&)]"
         args = args.get_sequence()
         for x, y in itertools.combinations(args, 2):
             c = self.do_compare(x, y)
             if c is None:
                 return
             if self._op(c) is False:
-                return Symbol('False')
-        return Symbol('True')
+                return SymbolFalse
+        return SymbolTrue
 
 
 class _ComparisonOperator(_InequalityOperator):
-    'Compares arguments in a chain e.g. a < b < c compares a < b and b < c.'
+    "Compares arguments in a chain e.g. a < b < c compares a < b and b < c."
+
     def apply(self, items, evaluation):
-        '%(name)s[items___]'
+        "%(name)s[items___]"
         items_sequence = items.get_sequence()
         if len(items_sequence) <= 1:
-            return Symbol('True')
+            return SymbolTrue
         items = self.numerify_args(items, evaluation)
         wanted = operators[self.get_name()]
         for i in range(len(items) - 1):
@@ -264,9 +276,9 @@ class _ComparisonOperator(_InequalityOperator):
             if c is None:
                 return
             elif c not in wanted:
-                return Symbol('False')
+                return SymbolFalse
             assert c in wanted
-        return Symbol('True')
+        return SymbolTrue
 
 
 class Inequality(Builtin):
@@ -291,27 +303,31 @@ class Inequality(Builtin):
     """
 
     messages = {
-        'ineq': ("Inequality called with `` arguments; the number of "
-                 "arguments is expected to be an odd number >= 3."),
+        "ineq": (
+            "Inequality called with `` arguments; the number of "
+            "arguments is expected to be an odd number >= 3."
+        ),
     }
 
     def apply(self, items, evaluation):
-        'Inequality[items___]'
+        "Inequality[items___]"
 
         items = items.numerify(evaluation).get_sequence()
         count = len(items)
         if count == 1:
-            return Symbol('True')
+            return SymbolTrue
         elif count % 2 == 0:
-            evaluation.message('Inequality', 'ineq', count)
+            evaluation.message("Inequality", "ineq", count)
         elif count == 3:
             name = items[1].get_name()
             if name in operators:
                 return Expression(name, items[0], items[2])
         else:
-            groups = [Expression('Inequality', *items[index - 1:index + 2])
-                      for index in range(1, count - 1, 2)]
-            return Expression('And', *groups)
+            groups = [
+                Expression("Inequality", *items[index - 1 : index + 2])
+                for index in range(1, count - 1, 2)
+            ]
+            return Expression("And", *groups)
 
 
 def do_cmp(x1, x2):
@@ -320,7 +336,7 @@ def do_cmp(x1, x2):
     for x in (x1, x2):
         # TODO: Send message General::nord
         if isinstance(x, Complex) or (
-                x.has_form("DirectedInfinity", 1) and isinstance(x.leaves[0], Complex)
+            x.has_form("DirectedInfinity", 1) and isinstance(x.leaves[0], Complex)
         ):
             return None
 
@@ -352,12 +368,14 @@ class SympyComparison(SympyFunction):
     def to_sympy(self, expr, **kwargs):
         to_sympy = super(SympyComparison, self).to_sympy
         if len(expr.leaves) > 2:
+
             def pairs(items):
                 yield Expression(expr.get_head_name(), *items[:2])
                 items = items[1:]
                 while len(items) >= 2:
                     yield Expression(expr.get_head_name(), *items[:2])
                     items = items[1:]
+
             return sympy.And(*[to_sympy(p, **kwargs) for p in pairs(expr.leaves)])
         return to_sympy(expr, **kwargs)
 
@@ -443,9 +461,10 @@ class Equal(_EqualityOperator, SympyComparison):
     #> {Equal[], Equal[x], Equal[1]}
      = {True, True, True}
     """
-    operator = '=='
-    grouping = 'None'
-    sympy_name = 'Eq'
+
+    operator = "=="
+    grouping = "None"
+    sympy_name = "Eq"
 
     @staticmethod
     def _op(x):
@@ -460,7 +479,7 @@ class Unequal(_EqualityOperator, SympyComparison):
         <dd>yields 'False' if $x$ and $y$ are known to be equal, or
         'True' if $x$ and $y$ are known to be unequal.
     <dt>'$lhs$ == $rhs$'
-        <dd>represents the inequality $lhs$ ≠ $rhs$.
+        <dd>represents the inequality $lhs$   $rhs$.
     </dl>
 
     >> 1 != 1.
@@ -499,8 +518,8 @@ class Unequal(_EqualityOperator, SympyComparison):
      = {True, True, True}
     """
 
-    operator = '!='
-    sympy_name = 'Ne'
+    operator = "!="
+    sympy_name = "Ne"
 
     @staticmethod
     def _op(x):
@@ -521,8 +540,9 @@ class Less(_ComparisonOperator, SympyComparison):
      = {True, True, True}
 
     """
-    operator = '<'
-    sympy_name = 'StrictLessThan'
+
+    operator = "<"
+    sympy_name = "StrictLessThan"
 
 
 class LessEqual(_ComparisonOperator, SympyComparison):
@@ -532,11 +552,12 @@ class LessEqual(_ComparisonOperator, SympyComparison):
     <dt>'$x$ <= $y$'
         <dd>yields 'True' if $x$ is known to be less than or equal to $y$.
     <dt>'$lhs$ <= $rhs$'
-        <dd>represents the inequality $lhs$ ≤ $rhs$.
+        <dd>represents the inequality $lhs$   $rhs$.
     </dl>
     """
-    operator = '<='
-    sympy_name = 'LessThan'
+
+    operator = "<="
+    sympy_name = "LessThan"
 
 
 class Greater(_ComparisonOperator, SympyComparison):
@@ -554,8 +575,8 @@ class Greater(_ComparisonOperator, SympyComparison):
      = True
     """
 
-    operator = '>'
-    sympy_name = 'StrictGreaterThan'
+    operator = ">"
+    sympy_name = "StrictGreaterThan"
 
 
 class GreaterEqual(_ComparisonOperator, SympyComparison):
@@ -566,11 +587,12 @@ class GreaterEqual(_ComparisonOperator, SympyComparison):
         <dd>yields 'True' if $x$ is known to be greater than or equal
         to $y$.
     <dt>'$lhs$ >= $rhs$'
-        <dd>represents the inequality $lhs$ ≥ $rhs$.
+        <dd>represents the inequality $lhs$   $rhs$.
     </dl>
     """
-    operator = '>='
-    sympy_name = 'GreaterThan'
+
+    operator = ">="
+    sympy_name = "GreaterThan"
 
 
 class Positive(Builtin):
@@ -596,10 +618,11 @@ class Positive(Builtin):
     #> Positive[Sin[{11, 14}]]
      = {False, True}
     """
-    attributes = ('Listable',)
+
+    attributes = ("Listable",)
 
     rules = {
-        'Positive[x_?NumericQ]': 'If[x > 0, True, False, False]',
+        "Positive[x_?NumericQ]": "If[x > 0, True, False, False]",
     }
 
 
@@ -625,10 +648,10 @@ class Negative(Builtin):
      = {True, False}
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     rules = {
-        'Negative[x_?NumericQ]': 'If[x < 0, True, False, False]',
+        "Negative[x_?NumericQ]": "If[x < 0, True, False, False]",
     }
 
 
@@ -643,10 +666,10 @@ class NonNegative(Builtin):
      = {False, True}
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     rules = {
-        'NonNegative[x_?NumericQ]': 'If[x >= 0, True, False, False]',
+        "NonNegative[x_?NumericQ]": "If[x >= 0, True, False, False]",
     }
 
 
@@ -661,15 +684,15 @@ class NonPositive(Builtin):
      = {False, True}
     """
 
-    attributes = ('Listable',)
+    attributes = ("Listable",)
 
     rules = {
-        'NonPositive[x_?NumericQ]': 'If[x <= 0, True, False, False]',
+        "NonPositive[x_?NumericQ]": "If[x <= 0, True, False, False]",
     }
 
 
 def expr_max(items):
-    result = Expression('DirectedInfinity', -1)
+    result = Expression("DirectedInfinity", -1)
     for item in items:
         c = do_cmp(item, result)
         if c > 0:
@@ -678,7 +701,7 @@ def expr_max(items):
 
 
 def expr_min(items):
-    result = Expression('DirectedInfinity', 1)
+    result = Expression("DirectedInfinity", 1)
     for item in items:
         c = do_cmp(item, result)
         if c < 0:
@@ -688,17 +711,17 @@ def expr_min(items):
 
 class _MinMax(Builtin):
 
-    attributes = ('Flat', 'NumericFunction', 'OneIdentity', 'Orderless')
+    attributes = ("Flat", "NumericFunction", "OneIdentity", "Orderless")
 
     def apply(self, items, evaluation):
-        '%(name)s[items___]'
+        "%(name)s[items___]"
 
-        items = items.flatten(Symbol('List')).get_sequence()
+        items = items.flatten(Symbol("List")).get_sequence()
         results = []
         best = None
 
         for item in items:
-            if item.has_form('List', None):
+            if item.has_form("List", None):
                 leaves = item.leaves
             else:
                 leaves = [item]
@@ -710,14 +733,13 @@ class _MinMax(Builtin):
                 c = do_cmp(leaf, best)
                 if c is None:
                     results.append(leaf)
-                elif (self.sense == 1 and c > 0) or (
-                        self.sense == -1 and c < 0):
+                elif (self.sense == 1 and c > 0) or (self.sense == -1 and c < 0):
                     results.remove(best)
                     best = leaf
                     results.append(leaf)
 
         if not results:
-            return Expression('DirectedInfinity', -self.sense)
+            return Expression("DirectedInfinity", -self.sense)
         if len(results) == 1:
             return results.pop()
         if len(results) < len(items):

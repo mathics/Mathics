@@ -1,0 +1,3 @@
+#!/bin/bash
+DOCKER=${DOCKER:-docker}
+$DOCKER run --rm -it --name mathics-web -p 8000:8000 -v /tmp:/usr/src/app/data mathicsorg/mathics --mode ui

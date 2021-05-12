@@ -58,24 +58,24 @@ class Tr(Builtin):
     <dt>'Tr[$m$]'
         <dd>computes the trace of the matrix $m$.
     </dl>
-    
+
     >> Tr[{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}]
      = 15
-    
+
     Symbolic trace:
     >> Tr[{{a, b, c}, {d, e, f}, {g, h, i}}]
      = a + e + i
     """
-    
+
     messages = {
         'matsq': "The matrix `1` is not square."
     }
-    
+
     #TODO: generalize to vectors and higher-rank tensors, and allow function arguments for application
-    
+
     def apply(self, m, evaluation):
         'Tr[m_]'
-        
+
         matrix = to_sympy_matrix(m)
         if matrix is None or matrix.cols != matrix.rows or matrix.cols == 0:
             return evaluation.message('Tr', 'matsq', m)
@@ -701,7 +701,7 @@ class Eigenvalues(Builtin):
      = {-1, 1, 2}
 
     >> Eigenvalues[{{Cos[theta],Sin[theta],0},{-Sin[theta],Cos[theta],0},{0,0,1}}] // Sort
-     = {1, Cos[theta] + Sqrt[-1 + Cos[theta] ^ 2], Cos[theta] - Sqrt[-1 + Cos[theta] ^ 2]}
+     = {1, Cos[theta] + Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])], Cos[theta] - Sqrt[(-1 + Cos[theta]) (1 + Cos[theta])]}
 
     >> Eigenvalues[{{7, 1}, {-4, 3}}]
      = {5, 5}
@@ -731,7 +731,7 @@ class Eigenvalues(Builtin):
             eigenvalues.sort(key=lambda v: (abs(v[0]), - re(v[0]), - im(v[0])),
                              reverse=True)
 
-            eigenvalues = [from_sympy(v) for (v, c) in eigenvalues 
+            eigenvalues = [from_sympy(v) for (v, c) in eigenvalues
                            for _ in range(c)]
         # Sort the eigenvalues in an arbitrary yet deterministic order
         else:
