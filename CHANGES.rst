@@ -41,6 +41,7 @@ Enhancements
 * ``FileNames`` returns a sorted list (#1250).
 * ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
 * ``FixedPoint`` now supports the ``SameTest`` option.
+* ``mathics`` CLI now uses its own Mathics ``settings.m`` file
 * ``Prepend`` works with ``DownValues`` Issue #1251
 * ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
 * ``Read`` with ``Hold[Expression]`` now supported. (#1242)
@@ -66,10 +67,16 @@ Bug fixes
 * Functions gone over to ensure the ``Listable`` and ``NumericFunction`` properties are correct.
 
 
+Incompatible changes
+--------------------
+
+``System`$UseSansSerif`` moved from core and is sent front-ends using ``Settings`$UseSansSerif``.
+
 Internal changes
 ----------------
 
-* doctest  accepts the option `-d` to show how long it takes to parse, evaluate and compare each individual test.
+* doctest  accepts the option ``-d`` to show how long it takes to parse, evaluate and compare each individual test.
+  ``-x`` option (akin to ``pytests -x`` is a short-hand for stop on first error
 
 
 2.1.0
