@@ -6,6 +6,7 @@ Input and Output
 
 import re
 import mpmath
+from itertools import chain
 
 import typing
 from typing import Any
@@ -37,8 +38,10 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule
+    SymbolRule,
+    Omitted,
 )
+
 from mathics.core.numbers import (
     dps,
     convert_base,
@@ -130,11 +133,14 @@ def parenthesize(precedence, leaf, leaf_boxes, when_equal):
     return leaf_boxes
 
 
-def make_boxes_infix(leaves, ops, precedence, grouping, form):
-    result = []
-    for index, leaf in enumerate(leaves):
-        if index > 0:
-            result.append(ops[index - 1])
+def make_boxes_infix(leaves, ops, precedence, grouping, form, evaluation):
+    def materialize(prefix, inner, suffix):
+        return Expression('RowBox', Expression('List', *list(chain(prefix, inner, suffix))))
+
+    def make_leaf(index):
+        leaf = leaves[index]
+        box = Expression('MakeBoxes', leaf, form)
+
         parenthesized = False
         if grouping == "System`NonAssociative":
             parenthesized = True
@@ -143,11 +149,12 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
         elif grouping == "System`Right" and index == 0:
             parenthesized = True
 
-        leaf_boxes = MakeBoxes(leaf, form)
-        leaf = parenthesize(precedence, leaf, leaf_boxes, parenthesized)
+        return parenthesize(precedence, leaf, box, parenthesized)
 
-        result.append(leaf)
-    return Expression("RowBox", Expression(SymbolList, *result))
+    return evaluation.make_boxes(
+        None, make_leaf, len(leaves),
+        None, None, ops,
+        materialize, form)
 
 
 def real_to_s_exp(expr, n):
@@ -520,29 +527,24 @@ class MakeBoxes(Builtin):
 
             # Parenthesize infix operators at the head of expressions,
             # like (a + b)[x], but not f[a] in f[a][b].
-            #
-            head_boxes = parenthesize(670, head, MakeBoxes(head, f), False)
-            result = [head_boxes, String(left)]
+            prefix = parenthesize(670, head, Expression('MakeBoxes', head, f), False)
 
-            if len(leaves) > 1:
-                row = []
-                if f_name in (
-                    "System`InputForm",
-                    "System`OutputForm",
-                    "System`FullForm",
-                ):
-                    sep = ", "
-                else:
-                    sep = ","
-                for index, leaf in enumerate(leaves):
-                    if index > 0:
-                        row.append(String(sep))
-                    row.append(MakeBoxes(leaf, f))
-                result.append(RowBox(Expression(SymbolList, *row)))
-            elif len(leaves) == 1:
-                result.append(MakeBoxes(leaves[0], f))
-            result.append(String(right))
-            return RowBox(Expression(SymbolList, *result))
+            def make_leaf(i):
+                return Expression('MakeBoxes', leaves[i], f)
+
+            if f_name in ('System`InputForm', 'System`OutputForm',
+                          'System`FullForm'):
+                sep = ', '
+            else:
+                sep = ','
+
+            def materialize(prefix, inner, suffix):
+                if len(inner) > 1:
+                    inner = [Expression('RowBox', Expression('List', *inner))]
+                return Expression('RowBox', Expression('List', *list(chain(prefix, inner, suffix))))
+
+            return evaluation.make_boxes(
+                prefix, make_leaf, len(leaves), String(left), String(right), String(sep), materialize, f)
 
     def _apply_atom(self, x, f, evaluation):
         """MakeBoxes[x_?AtomQ,
@@ -609,7 +611,7 @@ class MakeBoxes(Builtin):
                 ops = [get_op(op) for op in h.leaves]
             else:
                 ops = [get_op(h)] * (len(leaves) - 1)
-            return make_boxes_infix(leaves, ops, precedence, grouping, f)
+            return make_boxes_infix(leaves, ops, precedence, grouping, f, evaluation)
         elif len(leaves) == 1:
             return MakeBoxes(leaves[0], f)
         else:
@@ -942,22 +944,37 @@ class Grid(Builtin):
     options = GridBox.options
 
     def apply_makeboxes(self, array, f, evaluation, options) -> Expression:
-        """MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
-            f:StandardForm|TraditionalForm|OutputForm]"""
-        return GridBox(
-            Expression(
-                "List",
-                *(
-                    Expression(
-                        "List",
-                        *(Expression(SymbolMakeBoxes, item, f) for item in row.leaves)
-                    )
-                    for row in array.leaves
-                )
-            ),
-            *options_to_rules(options)
-        )
+        '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
+            f:StandardForm|TraditionalForm|OutputForm]'''
 
+        lengths = [len(row._leaves) for row in array._leaves]
+        n_leaves = sum(lengths)
+
+        #def materialize(boxes):
+        def materialize(prefix, inner, suffix):
+            boxes = inner
+            if len(boxes) == n_leaves:
+                rows = []
+                i = 0
+                for l in lengths:
+                    rows.append(Expression('List', *boxes[i:i + l]))
+                    i += l
+                return Expression(
+                    'GridBox',
+                    Expression('List', *rows),
+                    *options_to_rules(options))
+            else:  # too long
+                return Omitted('<<%d>>' % n_leaves)
+
+        flat = [item for row in array.leaves for item in row.leaves]
+
+        def make_leaf(i):
+            return Expression('MakeBoxes', flat[i], f)
+
+        return evaluation.make_boxes(
+            None, make_leaf, n_leaves,
+            None, None, None,
+            materialize, f)
 
 #        return Expression('GridBox',Expression('List', *(Expression('List', *(Expression('MakeBoxes', item, f) for item in row.leaves)) for row in array.leaves)),            *options_to_rules(options))
 
@@ -1128,10 +1145,11 @@ class Subscript(Builtin):
     def apply_makeboxes(self, x, y, f, evaluation) -> Expression:
         "MakeBoxes[Subscript[x_, y__], f:StandardForm|TraditionalForm]"
 
-        y = y.get_sequence()
-        return Expression(
-            "SubscriptBox", Expression(SymbolMakeBoxes, x, f), *list_boxes(y, f)
-        )
+        def materialize(prefix, inner, suffix):
+            return Expression('SubscriptBox', *list(chain(prefix, inner, suffix)))
+
+        return list_boxes(
+            Expression('MakeBoxes', x, f), y.get_sequence(), materialize, f, evaluation)
 
 
 class SubscriptBox(Builtin):
@@ -1307,6 +1325,12 @@ class StringForm(Builtin):
     def apply_makeboxes(self, s, args, f, evaluation):
         """MakeBoxes[StringForm[s_String, args___],
             f:StandardForm|TraditionalForm|OutputForm]"""
+
+        # StringForm does not call evaluation.make_boxes
+        # since we use it for messages and we never want
+        # to omit parts of the message. args are subject
+        # to MakeBoxes (see below) and thus can get parts
+        # omitted.
 
         s = s.value
         args = args.get_sequence()
@@ -1960,6 +1984,8 @@ class General(Builtin):
         "syntax": "`1`",
         "invalidargs": "Invalid arguments.",
         "notboxes": "`1` is not a valid box structure.",
+        "omit": "Parts of this output were omitted (see `1`). " +
+                  "To generate the whole output, please set $OutputSizeLimit = Infinity.",
         "pyimport": '`1`[] is not available. Your Python installation misses the "`2`" module.',
     }
 

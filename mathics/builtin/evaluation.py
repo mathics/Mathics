@@ -317,6 +317,58 @@ class Sequence(Builtin):
     """
 
 
+
+
+class OutputSizeLimit(Predefined):
+    """
+    <dl>
+    <dt>'$OutputSizeLimit'
+        <dd>specifies the maximum amount of data output that gets
+        displayed before the output gets truncated. The amount of
+        output is measured as the number of bytes of MathML XML
+        that has been generated to represent the output data.
+
+        To set no limit on output size, use $OutputSizeLimit = Infinity.
+    </dl>
+
+    >> $OutputSizeLimit = 50;
+
+    >> Table[i, {i, 1, 100}]
+     : Parts of this output were omitted (see <<71>>). To generate the whole output, please set $OutputSizeLimit = Infinity.
+     = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, <<71>>, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100}
+
+    #> Take[Range[1000], 1001]
+     : Cannot take positions 1 through 1001 in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, <<976>>, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000}.
+     : Parts of this output were omitted (see <<976>>). To generate the whole output, please set $OutputSizeLimit = Infinity.
+     = Take[{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, <<976>>, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000}, 1001]
+
+    #> {}
+     = {}
+
+    #> $OutputSizeLimit = 100;
+
+    #> Table[Graphics[Table[Circle[],{10}]], {5}]
+     = {-Graphics-, -Graphics-, -Graphics-, -Graphics-, -Graphics-}
+
+    #> Quiet[ImageAvailable = SameQ[Head[Image[{{0, 1}, {1, 0}}] // ToBoxes], ImageBox]];
+    #> If[ImageAvailable, Table[Image[{{1, 0}, {0, 1}}], {5}], {"-Image-", "-Image-", "-Image-", "-Image-", "-Image-"}]
+     = {-Image-, -Image-, -Image-, -Image-, -Image-}
+
+    #> $OutputSizeLimit = Infinity;
+
+    """
+    attributes = ("Unprotected", )
+    name = '$OutputSizeLimit'
+    value = 1000
+
+    rules = {
+        '$OutputSizeLimit': str(value),
+    }
+
+    def evaluate(self, evaluation):
+        return Integer(self.value)
+
+
 class Quit(Builtin):
     """
     <dl>
@@ -345,3 +397,4 @@ class Quit(Builtin):
         if isinstance(n, Integer):
             exitcode = n.get_int_value()
         raise SystemExit(exitcode)
+
