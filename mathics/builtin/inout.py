@@ -2078,7 +2078,7 @@ class MathMLForm(Builtin):
         query = evaluation.parse("Settings`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
         if not is_a_picture:
-            if usesansserif:
+            if isinstance(usesansserif, bool) and usesansserif:
                 xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
 
         mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
