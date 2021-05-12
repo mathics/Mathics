@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# cython: language_level=3
 
 """
 Graphics
@@ -390,6 +391,7 @@ class Graphics(Builtin):
     >> Graphics[Circle[]] // TeXForm
      = 
      . \begin{asy}
+     . usepackage("amsmath");
      . size(5.8556cm, 5.8333cm);
      . add((175,175,175,0,0,175)*(new picture(){picture s=currentpicture,t=new picture;currentpicture=t;draw(ellipse((0,0),1,1), rgb(0, 0, 0)+linewidth(0.0038095));currentpicture=s;return t;})());
      . clip(box((-0.33333,0.33333), (350.33,349.67)));
@@ -410,11 +412,11 @@ class Graphics(Builtin):
         'PlotRangePadding': 'Automatic',
         'ImageSize': 'Automatic',
         'Background': 'Automatic',
-
         'Transformation': 'Automatic',  # Mathics specific; used internally to enable stuff like
         # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics
         # will hit SVGs numerical accuracy abilities in some browsers as strokes with width < 1e-6
         # will get rounded to 0 and thus won't get scale transformed in SVG and vanish.
+        '$OptionSyntax': 'Ignore',
     }
 
     box_suffix = 'Box'
@@ -3102,9 +3104,13 @@ class GraphicsElements(_GraphicsElements):
             ext = total_extent([element.extent() for element in self.elements])
         xmin, xmax, ymin, ymax = ext
         if xmin == xmax:
+            if xmin is None:
+                return 0, 0, 0, 0
             xmin = 0
             xmax *= 2
         if ymin == ymax:
+            if ymin is None:
+                return 0, 0, 0, 0
             ymin = 0
             ymax *= 2
         return xmin, xmax, ymin, ymax
@@ -3357,6 +3363,7 @@ class GraphicsBox(BoxConstruct):
 
         tex = r"""
 \begin{asy}
+usepackage("amsmath");
 size(%scm, %scm);
 %s
 %s
@@ -3987,4 +3994,3 @@ GRAPHICS_SYMBOLS = frozenset(
     list(element_heads) +
     [element + 'Box' for element in element_heads] +
     list(style_heads))
-

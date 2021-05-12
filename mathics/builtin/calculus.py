@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Calculus functions
+Calculus
 """
 
 from mathics.builtin.base import Builtin, PostfixOperator, SympyFunction
@@ -550,7 +550,7 @@ class Root(SympyFunction):
                 raise sympy.PolynomialError
 
             body = f.leaves[0]
-            poly = body.replace_slots([None, Symbol('_1')], evaluation)
+            poly = body.replace_slots([f, Symbol('_1')], evaluation)
             idx = i.to_sympy() - 1
 
             # Check for negative indeces (they are not allowed in Mathematica)
@@ -573,11 +573,25 @@ class Root(SympyFunction):
 
     def to_sympy(self, expr, **kwargs):
         try:
-            f = expr.leaves[0].to_sympy(**kwargs)
-            i = expr.leaves[1].to_sympy(**kwargs)
-            return sympy.CRootOf(f, i)
-        except TypeError:
-            pass
+            if not expr.has_form('Root', 2):
+                return None
+
+            f = expr.leaves[0]
+
+            if not f.has_form('Function', 1):
+                return None
+
+            body = f.leaves[0].replace_slots([f, Symbol('_1')], None)
+            poly = body.to_sympy(**kwargs)
+
+            i = expr.leaves[1].get_int_value(**kwargs)
+
+            if i is None:
+                return None
+
+            return sympy.CRootOf(poly, i)
+        except:
+            return None
 
 
 class Solve(Builtin):
@@ -654,7 +668,7 @@ class Solve(Builtin):
      = {{x -> -I}, {x -> I}}
     >> Solve[4 - 4 * x^2 - x^4 + x^6 == 0, x, Integers]
      = {{x -> -1}, {x -> 1}}
-     
+
     #> Solve[x^2 +1 == 0, x] // FullForm
      = List[List[Rule[x, Complex[0, -1]]], List[Rule[x, Complex[0, 1]]]]
 
@@ -848,7 +862,7 @@ class Integers(Builtin):
     >> Solve[x^4 == 4, x, Integers]
      = {}
     """
-    
+
 class Reals(Builtin):
     """
     <dl>
@@ -946,6 +960,62 @@ class Limit(Builtin):
             pass
         else:
             return from_sympy(result)
+
+
+class DiscreteLimit(Builtin):
+    """
+    <dl>
+    <dt>'DiscreteLimit[$f$, $k$->Infinity]'
+        <dd>gives the limit of the sequence $f$ as $k$ tends to infinity.
+    </dl>
+
+    >> DiscreteLimit[n/(n + 1), n -> Infinity]
+     = 1
+
+    >> DiscreteLimit[f[n], n -> Infinity]
+     = f[Infinity]
+    """
+
+    # TODO: Make this work
+    """
+    >> DiscreteLimit[(n/(n + 2)) E^(-m/(m + 1)), {m -> Infinity, n -> Infinity}]
+     = 1 / E
+    """
+
+    attributes = ('Listable',)
+
+    options = {
+        'Trials': '5',
+    }
+
+    messages = {
+        'dltrials': "The value of Trials should be a positive integer",
+    }
+
+    def apply(self, f, n, n0, evaluation, options={}):
+        'DiscreteLimit[f_, n_->n0_, OptionsPattern[DiscreteLimit]]'
+
+        f = f.to_sympy(convert_all_global_functions=True)
+        n = n.to_sympy()
+        n0 = n0.to_sympy()
+
+        if n0 != sympy.oo:
+            return
+
+        if f is None or n is None:
+            return
+
+        trials = options['System`Trials'].get_int_value()
+
+        if trials is None or trials <= 0:
+            evaluation.message('DiscreteLimit', 'dltrials')
+            trials = 5
+
+        try:
+            return from_sympy(sympy.limit_seq(f, n, trials))
+        except:
+            pass
+
 
 
 class FindRoot(Builtin):
@@ -1055,4 +1125,3 @@ class FindRoot(Builtin):
             evaluation.message('FindRoot', 'maxiter')
 
         return Expression('List', Expression('Rule', x, x0))
-

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -16,6 +16,8 @@ prefix_ops = {
     'Exists': 240,
     'NotExists': 240,
     'Not': 230,
+    'Information': 5001,
+    'Definition': 5000,
 }
 
 postfix_ops = {

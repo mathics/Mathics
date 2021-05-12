@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -6,7 +6,7 @@ Importing and Exporting
 """
 
 from mathics.core.expression import Expression, from_python, strip_context
-from mathics.builtin.base import Builtin, Predefined, Symbol, String, Integer
+from mathics.builtin.base import Builtin, Predefined, Symbol, String, Integer, get_option
 from mathics.builtin.options import options_to_rules
 
 from .pymimesniffer import magic
@@ -153,9 +153,10 @@ IMPORTERS = {}
 EXPORTERS = {}
 
 
-def _importer_exporter_options(available_options, options, evaluation):
+def _importer_exporter_options(available_options, options, builtin_name: str, evaluation):
     stream_options = []
     custom_options = []
+    remaining_options = options.copy()
 
     if available_options and available_options.has_form('List', None):
         for name in available_options.leaves:
@@ -167,7 +168,7 @@ def _importer_exporter_options(available_options, options, evaluation):
                 py_name = None
 
             if py_name:
-                value = Builtin.get_option(options, py_name, evaluation)
+                value = get_option(remaining_options, py_name, evaluation, pop=True)
                 if value is not None:
                     expr = Expression('Rule', String(py_name), value)
                     if py_name == 'CharacterEncoding':
@@ -175,7 +176,19 @@ def _importer_exporter_options(available_options, options, evaluation):
                     else:
                         custom_options.append(expr)
 
+    syntax_option = remaining_options.get("System`$OptionSyntax", None)
+    if syntax_option and syntax_option !=  Symbol("System`Ignore"):
+        # warn about unsupported options.
+        for name, value in remaining_options.items():
+            print(" es de acá....")
+            evaluation.message(
+                builtin_name,
+                "optx",
+                Expression('Rule', strip_context(name), value),
+                strip_context(builtin_name))
+
     return stream_options, custom_options
+
 
 class ImportFormats(Predefined):
     """
@@ -389,12 +402,18 @@ class RegisterExport(Builtin):
         return Symbol('Null')
 
 
-class FetchURL(Builtin):
+class URLFetch(Builtin):
     '''
-    #> Quiet[FetchURL["https:////", {}]]
+    <dl>
+    <dt>'URLFetch[$URL$]'
+      <dd> Returns the content of $URL$ as a string.
+    </dl>
+
+
+    #> Quiet[URLFetch["https:////", {}]]
      = $Failed
 
-    #> Quiet[FetchURL["http://mathics.org/url_test_case", {}]]
+    #> Quiet[URLFetch["https://www.example.com", {}]]
      = $Failed
     '''
 
@@ -403,7 +422,7 @@ class FetchURL(Builtin):
     }
 
     def apply(self, url, elements, evaluation, options={}):
-        'FetchURL[url_String, elements_, OptionsPattern[]]'
+        'URLFetch[url_String, elements_, OptionsPattern[]]'
 
         import tempfile
         import os
@@ -436,17 +455,17 @@ class FetchURL(Builtin):
             result = Import._import(temp_path, determine_filetype, elements, evaluation, options)
         except HTTPError as e:
             evaluation.message(
-                'FetchURL', 'httperr', url,
+                'URLFetch', 'httperr', url,
                 'the server returned an HTTP status code of %s (%s)' % (e.code, str(e.reason)))
             return Symbol('$Failed')
         except URLError as e:  # see https://docs.python.org/3/howto/urllib2.html
             if hasattr(e, 'reason'):
-                evaluation.message('FetchURL', 'httperr', url, str(e.reason))
+                evaluation.message('URLFetch', 'httperr', url, str(e.reason))
             elif hasattr(e, 'code'):
-                evaluation.message('FetchURL', 'httperr', url, 'server returned %s' % e.code)
+                evaluation.message('URLFetch', 'httperr', url, 'server returned %s' % e.code)
             return Symbol('$Failed')
         except ValueError as e:
-            evaluation.message('FetchURL', 'httperr', url, str(e))
+            evaluation.message('URLFetch', 'httperr', url, str(e))
             return Symbol('$Failed')
         finally:
             os.unlink(temp_path)
@@ -515,6 +534,10 @@ class Import(Builtin):
         'Import[filename_]': 'Import[filename, {}]',
     }
 
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
+
     def apply(self, filename, evaluation, options={}):
         'Import[filename_, OptionsPattern[]]'
         return self.apply_elements(filename, Expression('List'), evaluation, options)
@@ -530,11 +553,6 @@ class Import(Builtin):
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
             evaluation.message('Import', 'chtype', filename)
             return Symbol('$Failed')
-
-        # Download via URL
-        if isinstance(filename, String):
-            if any(filename.get_string_value().startswith(prefix) for prefix in ('http://', 'https://', 'ftp://')):
-                return Expression('FetchURL', filename, elements, *options_to_rules(options))
 
         # Load local file
         findfile = Expression('FindFile', filename).evaluate(evaluation)
@@ -585,7 +603,7 @@ class Import(Builtin):
         (conditionals, default_function, posts, importer_options) = IMPORTERS[filetype]
 
         stream_options, custom_options = _importer_exporter_options(
-            importer_options.get("System`Options"), options, evaluation)
+            importer_options.get("System`Options"), options, "System`Import", evaluation)
 
         function_channels = importer_options.get("System`FunctionChannels")
 
@@ -720,11 +738,11 @@ class ImportString(Import):
       <dd>imports data in the specified format from a string.
     <dt>'ImportString["$file$", $elements$]'
       <dd>imports the specified elements from a string.
-    <dt>'ImportString["$data$"]' 
+    <dt>'ImportString["$data$"]'
       <dd>attempts to determine the format of the string from its content.
     </dl>
 
-     
+
     #> ImportString[x]
      : First argument x is not a string.
      = $Failed
@@ -751,7 +769,7 @@ class ImportString(Import):
     >> ImportString[str, "Lines"]
      = ...
     """
-       
+
     messages = {
         'string': 'First argument `1` is not a string.',
         'noelem': (
@@ -762,23 +780,23 @@ class ImportString(Import):
     rules = {
             }
 
-        
+
     def apply(self, data, evaluation, options={}):
         'ImportString[data_, OptionsPattern[]]'
         return self.apply_elements(data, Expression('List'), evaluation, options)
 
     def apply_element(self, data, element, evaluation, options={}):
         'ImportString[data_, element_String, OptionsPattern[]]'
-        
+
         return self.apply_elements(data, Expression('List', element), evaluation, options)
 
-    
+
     def apply_elements(self, data, elements, evaluation, options={}):
         'ImportString[data_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]'
         if not (isinstance(data, String)):
             evaluation.message('ImportString', 'string', data)
             return Symbol('$Failed')
-        
+
         def determine_filetype():
             if not FileFormat.detector:
                 loader = magic.MagicLoader()
@@ -795,7 +813,7 @@ class ImportString(Import):
             # installations of Windows, where we end up classifying .csv files als XLS.
             if len(result) == 1 and result[0] == 'XLS' and path.lower().endswith('.csv'):
                 return String('CSV')
-            
+
             if len(result) == 0:
                 result = 'Binary'
             elif len(result) == 1:
@@ -804,13 +822,13 @@ class ImportString(Import):
                 return None
 
             return result
-        
+
         return self._import(None, determine_filetype, elements, evaluation, options, data = data)
 
 
 
-    
-                    
+
+
 class Export(Builtin):
     """
     <dl>
@@ -930,6 +948,10 @@ class Export(Builtin):
             'Export[filename, expr, {elems}]'),
     }
 
+    options = {
+        '$OptionSyntax': 'System`Ignore',
+    }
+
     def apply(self, filename, expr, evaluation, options={}):
         "Export[filename_, expr_, OptionsPattern[]]"
 
@@ -999,11 +1021,11 @@ class Export(Builtin):
         # Load the exporter
         exporter_symbol, exporter_options = EXPORTERS[format_spec[0]]
         function_channels = exporter_options.get("System`FunctionChannels")
-        
-        stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
 
-        
+        stream_options, custom_options = _importer_exporter_options(
+            exporter_options.get("System`Options"), options, 'System`Export', evaluation)
+
+
         if function_channels is None:
             evaluation.message('Export', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
@@ -1021,10 +1043,10 @@ class Export(Builtin):
             exporter_function = Expression(
                 exporter_symbol, stream, expr, *list(chain(stream_options, custom_options)))
             res = exporter_function.evaluate(evaluation)
-            Expression('Close', stream).evaluate(evaluation)            
+            Expression('Close', stream).evaluate(evaluation)
         if res == Symbol('Null'):
             evaluation.predetermined_out = current_predetermined_out
-            return filename      
+            return filename
         evaluation.predetermined_out = current_predetermined_out
         return Symbol('$Failed')
 
@@ -1062,7 +1084,7 @@ class ExportString(Builtin):
      . 3,
      . 4,
     >> ExportString[Integrate[f[x],{x,0,2}], "SVG"]
-     = <svg><mrow><msubsup><mo>∫</mo> <mn>0</mn> <mn>2</mn></msubsup> <mrow><mi>f</mi> <mo>[</mo> <mi>x</mi> <mo>]</mo></mrow> <mo form="prefix" lspace="0" rspace="0.2em">⁢</mo> <mrow><mtext></mtext> <mi>x</mi></mrow></mrow></svg>
+     = ...
     """
 
     messages = {
@@ -1092,7 +1114,7 @@ class ExportString(Builtin):
 
             if not found_form and leaf_str in EXPORTERS:
                 found_form = True
-                
+
             if found_form:
                 format_spec.append(leaf_str)
             else:
@@ -1125,8 +1147,8 @@ class ExportString(Builtin):
         function_channels = exporter_options.get("System`FunctionChannels")
 
         stream_options, custom_options = _importer_exporter_options(
-            exporter_options.get("System`Options"), options, evaluation)
-        
+            exporter_options.get("System`Options"), options, "System Options", evaluation)
+
         if function_channels is None:
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
@@ -1172,7 +1194,7 @@ class ExportString(Builtin):
             evaluation.message('ExportString', 'emptyfch')
             evaluation.predetermined_out = current_predetermined_out
             return Symbol('$Failed')
-        
+
         evaluation.predetermined_out = current_predetermined_out
         return res
 
@@ -1211,7 +1233,7 @@ class FileFormat(Builtin):
     #> FileFormat["ExampleData/BloodToilTearsSweat.txt"]
      = Text
 
-    #> FileFormat["ExampleData/benzene.xyz"]
+    S> FileFormat["ExampleData/benzene.xyz"]
      = XYZ
 
     #> FileFormat["ExampleData/colors.json"]
@@ -1247,7 +1269,6 @@ class FileFormat(Builtin):
             return findfile
 
         path = findfile.get_string_value()
-
         if not FileFormat.detector:
             loader = magic.MagicLoader()
             loader.load()
@@ -1262,7 +1283,6 @@ class FileFormat(Builtin):
                 mime = set([])
             else:
                 mime = set([mime])
-
         result = []
         for key in mimetype_dict.keys():
             if key in mime:
@@ -1304,7 +1324,7 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Decode[%]
      = ∫ f  x
     """
-    
+
     context = "System`Convert`B64Dump`"
     name = "B64Encode"
 
@@ -1323,12 +1343,12 @@ class B64Decode(Builtin):
     <dt> 'System`Convert`B64Dump`B64Decode[$string$]'
     <dd>Decode  $string$ in Base64 coding to an expression.
     </dl>
-    
+
     >> System`Convert`B64Dump`B64Decode["R!="]
      : String "R!=" is not a valid b64 encoded string.
      = $Failed
     """
-    
+
     context = "System`Convert`B64Dump`"
     name = "B64Decode"
 

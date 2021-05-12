@@ -1,13 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Options and default arguments
+Options and Default Arguments
 """
 
 from mathics.builtin.base import Builtin, Test
 from mathics.core.expression import Symbol, Expression, get_default_value, ensure_context
 from mathics.builtin.image import Image
+from mathics.core.expression import strip_context
 
 
 class Options(Builtin):
@@ -285,6 +286,8 @@ class FilterRules(Builtin):
         return Expression('List', *list(matched()))
 
 
-def options_to_rules(options):
+def options_to_rules(options, filter=None):
     items = sorted(options.items())
+    if filter:
+        items = [(name, value) for name, value in items if strip_context(name) in filter.keys()]
     return [Expression('Rule', Symbol(name), value) for name, value in items]

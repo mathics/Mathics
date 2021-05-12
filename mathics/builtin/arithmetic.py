@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# cython: language_level=3
 
 """
-Arithmetic functions
+Mathematical Functions
 
 Basic arithmetic functions, including complex number arithmetic.
 """
@@ -21,7 +22,7 @@ from mathics.core.numbers import (
     min_prec, dps, SpecialValueError)
 
 from mathics.builtin.lists import _IterationFunction
-from mathics.core.convert import from_sympy
+from mathics.core.convert import from_sympy, SympyPrime
 
 
 class _MPMathFunction(SympyFunction):
@@ -264,8 +265,8 @@ class Plus(BinaryOperator, SympyFunction):
                     leaves.append(last_item)
                 else:
                     if last_item.has_form('Times', None):
-                        last_item.leaves.insert(0, from_sympy(last_count))
-                        leaves.append(last_item)
+                        leaves.append(Expression(
+                            'Times', from_sympy(last_count), *last_item.leaves))
                     else:
                         leaves.append(Expression(
                             'Times', from_sympy(last_count), last_item))
@@ -279,7 +280,7 @@ class Plus(BinaryOperator, SympyFunction):
                     for leaf in item.leaves:
                         if isinstance(leaf, Number):
                             count = leaf.to_sympy()
-                            rest = item.leaves[:]
+                            rest = item.get_mutable_leaves()
                             rest.remove(leaf)
                             if len(rest) == 1:
                                 rest = rest[0]
@@ -588,8 +589,8 @@ class Times(BinaryOperator, SympyFunction):
             elif (leaves and item.has_form('Power', 2) and
                   leaves[-1].has_form('Power', 2) and
                   item.leaves[0].same(leaves[-1].leaves[0])):
-                leaves[-1].leaves[1] = Expression(
-                    'Plus', item.leaves[1], leaves[-1].leaves[1])
+                leaves[-1] = Expression('Power', leaves[-1].leaves[0], Expression(
+                    'Plus', item.leaves[1], leaves[-1].leaves[1]))
             elif (leaves and item.has_form('Power', 2) and
                   item.leaves[0].same(leaves[-1])):
                 leaves[-1] = Expression(
@@ -624,12 +625,13 @@ class Times(BinaryOperator, SympyFunction):
         elif number.is_zero:
             return number
         elif number.same(Integer(-1)) and leaves and leaves[0].has_form('Plus', None):
-            leaves[0].leaves = [Expression('Times', Integer(-1), leaf)
-                                for leaf in leaves[0].leaves]
+            leaves[0] = Expression(
+                leaves[0].get_head(),
+                *[Expression('Times', Integer(-1), leaf) for leaf in leaves[0].leaves])
             number = None
 
         for leaf in leaves:
-            leaf.last_evaluated = None
+            leaf.clear_cache()
 
         if number is not None:
             leaves.insert(0, number)
@@ -897,38 +899,38 @@ class CubeRoot(Builtin):
 
     #> CubeRoot[-5]
      = -5 ^ (1 / 3)
-    
+
     #> CubeRoot[-510000]
      = -10 510 ^ (1 / 3)
-     
+
     #> CubeRoot[-5.1]
-     = -1.7213 
-    
+     = -1.7213
+
     #> CubeRoot[b]
      = b ^ (1 / 3)
-     
+
     #> CubeRoot[-0.5]
      = -0.793701
-     
+
     #> CubeRoot[3 + 4 I]
      : The parameter 3 + 4 I should be real valued.
      = (3 + 4 I) ^ (1 / 3)
     """
-    
+
     attributes = {'Listable', 'NumericFunction', 'ReadProtected'}
-    
+
     messages = {
         'preal': 'The parameter `1` should be real valued.',
     }
-    
+
     rules = {
         'CubeRoot[n_?NumericQ]': 'If[n > 0, Power[n, Divide[1, 3]], Times[-1, Power[Times[-1, n], Divide[1, 3]]]]',
         'CubeRoot[n_]': 'Power[n, Divide[1, 3]]',
     }
-    
+
     def apply(self, n, evaluation):
         'CubeRoot[n_Complex]'
-         
+
         evaluation.message('CubeRoot', 'preal', n)
         return Expression('Power', n, Expression('Divide', 1, 3))
 
@@ -1095,6 +1097,11 @@ class Re(SympyFunction):
 
         return number
 
+    def apply(self, number, evaluation):
+        'Re[number_]'
+
+        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+
 
 class Im(SympyFunction):
     """
@@ -1126,6 +1133,11 @@ class Im(SympyFunction):
         'Im[number_?NumberQ]'
 
         return Integer(0)
+
+    def apply(self, number, evaluation):
+        'Im[number_]'
+
+        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
@@ -1194,7 +1206,7 @@ class Sign(Builtin):
     <dt>'Sign[$x$]'
         <dd>return -1, 0, or 1 depending on whether $x$ is negative, zero, or positive.
     </dl>
-    
+
     >> Sign[19]
      = 1
     >> Sign[-6]
@@ -1215,27 +1227,27 @@ class Sign(Builtin):
     #> Sign["20"]
      = Sign[20]
     """
-    
+
     # Sympy and mpmath do not give the desired form of complex number
     # sympy_name = 'sign'
     # mpmath_name = 'sign'
-    
+
     attributes = ('Listable', 'NumericFunction')
-    
+
     messages = {
         'argx':  'Sign called with `1` arguments; 1 argument is expected.',
     }
-    
+
     def apply(self, x, evaluation):
         'Sign[x_]'
         if isinstance(x, Complex):
             return Expression('Times', x, Expression('Power', Expression('Abs', x), -1))
-        
+
         sympy_x = x.to_sympy()
         if sympy_x is None:
             return None
         return from_sympy(sympy.sign(sympy_x))
-    
+
     def apply_error(self, x, seqs, evaluation):
         'Sign[x_, seqs__]'
         return evaluation.message('Sign', 'argx', Integer(len(seqs.get_sequence())+1))
@@ -1778,6 +1790,8 @@ class Sum(_IterationFunction, SympyFunction):
      = 1 + 2 I
     >> Sum[1 / k ^ 2, {k, 1, n}]
      = HarmonicNumber[n, 2]
+    >> Sum[f[i], {i, 1, 7}]
+     = f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7]
 
     Verify algebraic identities:
     >> Sum[x ^ 2, {x, 1, y}] - y * (y + 1) * (2 * y + 1) / 6
@@ -1796,7 +1810,7 @@ class Sum(_IterationFunction, SympyFunction):
      : "a=Sum[x^k*Sum[y^l,{l,0,4}],{k,0,4}]" cannot be followed by "]" (line 1 of "<test>").
 
     ## Issue431
-    #> Sum[2^(-i), {i, 1, \[Infinity]}]
+    #> Sum[2^(-i), {i, 1, \\[Infinity]}]
      = 1
 
     ## Issue302
@@ -1815,7 +1829,7 @@ class Sum(_IterationFunction, SympyFunction):
     rules.update({
         'MakeBoxes[Sum[f_, {i_, a_, b_, 1}],'
         '  form:StandardForm|TraditionalForm]': (
-            r'RowBox[{SubsuperscriptBox["\[Sum]",'
+            r'RowBox[{SubsuperscriptBox["\\[Sum]",'
             r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
             r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
@@ -1826,8 +1840,13 @@ class Sum(_IterationFunction, SympyFunction):
     def to_sympy(self, expr, **kwargs):
         if expr.has_form('Sum', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
-            arg = expr.leaves[0].to_sympy()
-            bounds = (index.leaves[0].to_sympy(), index.leaves[1].to_sympy(), index.leaves[2].to_sympy())
+            arg_kwargs = kwargs.copy()
+            arg_kwargs['convert_all_global_functions'] = True
+            arg = expr.leaves[0].to_sympy(**arg_kwargs)
+            bounds = (index.leaves[0].to_sympy(**kwargs),
+                      index.leaves[1].to_sympy(**kwargs),
+                      index.leaves[2].to_sympy(**kwargs))
+
             if arg is not None and None not in bounds:
                 return sympy.summation(arg, bounds)
 
@@ -1853,6 +1872,8 @@ class Product(_IterationFunction, SympyFunction):
      = x ^ 110
     >> Product[2 ^ i, {i, 1, n}]
      = 2 ^ (n / 2 + n ^ 2 / 2)
+    >> Product[f[i], {i, 1, 7}]
+     = f[1] f[2] f[3] f[4] f[5] f[6] f[7]
 
     Symbolic products involving the factorial are evaluated:
     >> Product[k, {k, 3, n}]
@@ -1878,7 +1899,7 @@ class Product(_IterationFunction, SympyFunction):
     rules.update({
         'MakeBoxes[Product[f_, {i_, a_, b_, 1}],'
         '  form:StandardForm|TraditionalForm]': (
-            r'RowBox[{SubsuperscriptBox["\[Product]",'
+            r'RowBox[{SubsuperscriptBox["\\[Product]",'
             r'  RowBox[{MakeBoxes[i, form], "=", MakeBoxes[a, form]}],'
             r'  MakeBoxes[b, form]], MakeBoxes[f, form]}]'),
     })
@@ -1890,9 +1911,14 @@ class Product(_IterationFunction, SympyFunction):
         if expr.has_form('Product', 2) and expr.leaves[1].has_form('List', 3):
             index = expr.leaves[1]
             try:
-                return sympy.product(expr.leaves[0].to_sympy(), (
-                    index.leaves[0].to_sympy(), index.leaves[1].to_sympy(),
-                    index.leaves[2].to_sympy()))
+                e_kwargs = kwargs.copy()
+                e_kwargs['convert_all_global_functions'] = True
+                e = expr.leaves[0].to_sympy(**e_kwargs)
+                i = index.leaves[0].to_sympy(**kwargs)
+                start = index.leaves[1].to_sympy(**kwargs)
+                stop = index.leaves[2].to_sympy(**kwargs)
+
+                return sympy.product(e, (i, start, stop))
             except ZeroDivisionError:
                 pass
 

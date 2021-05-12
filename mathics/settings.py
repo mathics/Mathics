@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -9,7 +9,6 @@ from os import path
 
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 # set only to True in DEBUG mode
 DEBUG_MAIL = True
@@ -36,7 +35,7 @@ ADMINS = (
 )
 MANAGERS = ADMINS
 
-ROOT_DIR = pkg_resources.resource_filename('mathics', '') + '/'
+ROOT_DIR = pkg_resources.resource_filename('mathics', '')
 if sys.platform.startswith('win'):
     DATA_DIR = os.environ['APPDATA'].replace(os.sep, '/') + '/Python/Mathics/'
 else:
@@ -44,10 +43,10 @@ else:
 # if not path.exists(DATA_DIR):
 #    os.makedirs(DATA_DIR)
 
-DOC_DIR = ROOT_DIR + 'doc/documentation/'
-DOC_TEX_DATA = ROOT_DIR + 'doc/tex/data'
-DOC_XML_DATA = ROOT_DIR + 'doc/xml/data'
-DOC_LATEX_FILE = ROOT_DIR + 'doc/tex/documentation.tex'
+DOC_DIR = os.path.join(ROOT_DIR, 'doc/documentation/')
+DOC_TEX_DATA = os.path.join(ROOT_DIR, 'doc/tex/data')
+DOC_XML_DATA = os.path.join(ROOT_DIR, 'doc/xml/data')
+DOC_LATEX_FILE = os.path.join(ROOT_DIR, 'doc/tex/documentation.tex')
 
 DATABASES = {
     'default': {
@@ -57,6 +56,7 @@ DATABASES = {
 }
 
 REQUIRE_LOGIN = False
+
 
 # if REQUIRE_LOGIN is True be sure to set up an email sender:
 EMAIL_HOST = 'smtp.sendgrid.net'
@@ -91,7 +91,7 @@ ENABLE_FILES_MODULE = True
 USE_I18N = True
 
 # Absolute path to the directory that holds static files.
-STATIC_ROOT = ROOT_DIR + 'web/media/'
+STATIC_ROOT = os.path.join(ROOT_DIR, 'web/media/')
 
 # URL that handles the media served from STATIC_ROOT.
 STATIC_URL = '/media/'
@@ -105,18 +105,25 @@ SECRET_KEY = 'uvbhuiasaeaph6Duh)r@3ex1i@et=0j4h(!p4@!r6s-=a_ev*e'
 #    'django.template.loaders.app_directories.load_template_source',
 # )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-)
+]
 
 ROOT_URLCONF = 'mathics.urls'
+
+# Rocky: this is probably a hack. LoadModule[] needs to handle
+# whatever it is that setting this thing did.
+default_pymathics_modules = []
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [ROOT_DIR + 'web/templates/'],
+        'DIRS': [ os.path.join(ROOT_DIR, 'web/templates/') ],
+        'OPTIONS': {
+            'debug': DEBUG,
+        }
     }
 ]
 

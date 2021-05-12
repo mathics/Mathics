@@ -1,0 +1,32 @@
+name: Mathics (basic)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
+        python -m pip install --upgrade pip
+    - name: Install Mathics
+      run: |
+        sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
+        make
+    - name: Test Mathics
+      run: |
+        pip install pytest pexpect
+        make check

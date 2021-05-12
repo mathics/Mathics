@@ -1,9 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Physical and Chemical data
 """
+
+import os
 
 from csv import reader as csvreader
 
@@ -12,9 +14,8 @@ from mathics.core.expression import (Expression, from_python, Symbol, String,
                                      strip_context)
 from mathics.settings import ROOT_DIR
 
-
 def load_element_data():
-    element_file = open(ROOT_DIR + 'data/element.csv', 'r')
+    element_file = open(os.path.join(ROOT_DIR, 'data/element.csv'), 'r')
     reader = csvreader(element_file, delimiter='\t')
     element_data = []
     for row in reader:

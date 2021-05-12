@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
-from .doc import Documentation
+from .doc import MathicsMainDocumentation
 
-documentation = Documentation()
+documentation = MathicsMainDocumentation()

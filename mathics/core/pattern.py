@@ -1,11 +1,16 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# cython: language_level=3
 # cython: profile=False
+# -*- coding: utf-8 -*-
+
+
 
 
 from mathics.core.expression import (Expression, system_symbols,
                                      ensure_context)
 from mathics.core.util import subsets, subranges, permutations
+from itertools import chain
+
 
 # from mathics.core.pattern_nocython import (
 #    StopGenerator #, Pattern #, ExpressionPattern)
@@ -162,13 +167,44 @@ class ExpressionPattern(Pattern):
             def yield_choice(pre_vars):
                 next_leaf = self.leaves[0]
                 next_leaves = self.leaves[1:]
+
+                # "leading_blanks" below handles expressions with leading Blanks H[x_, y_, ...]
+                # much more efficiently by not calling get_match_candidates_count() on leaves
+                # that have already been matched with one of the leading Blanks. this approach
+                # is only valid for Expressions that are not Orderless (as with Orderless, the
+                # concept of leading items does not exist).
+                #
+                # simple performance test case:
+                #
+                # f[x_, {a__, b_}] = 0;
+                # f[x_, y_] := y + Total[x];
+                # First[Timing[f[Range[5000], 1]]]"
+                #
+                # without "leading_blanks", Range[5000] will be tested against {a__, b_} in a
+                # call to get_match_candidates_count(), which is slow.
+
+                unmatched_leaves = expression.leaves
+                leading_blanks = 'System`Orderless' not in attributes
+
                 for leaf in self.leaves:
                     match_count = leaf.get_match_count()
-                    candidates = leaf.get_match_candidates_count(
-                        expression.leaves, expression, attributes, evaluation,
-                        pre_vars)
-                    if candidates < match_count[0]:
-                        raise StopGenerator_ExpressionPattern_match()
+
+                    if leading_blanks:
+                        if tuple(match_count) == (1, 1):  # Blank? (i.e. length exactly 1?)
+                            if not unmatched_leaves:
+                                raise StopGenerator_ExpressionPattern_match()
+                            if not leaf.does_match(unmatched_leaves[0], evaluation, pre_vars):
+                                raise StopGenerator_ExpressionPattern_match()
+                            unmatched_leaves = unmatched_leaves[1:]
+                        else:
+                            leading_blanks = False
+
+                    if not leading_blanks:
+                        candidates = leaf.get_match_candidates_count(
+                            unmatched_leaves, expression, attributes, evaluation, pre_vars)
+                        if candidates < match_count[0]:
+                            raise StopGenerator_ExpressionPattern_match()
+
                 # for new_vars, rest in self.match_leaf(    # nopep8
                 #    self.leaves[0], self.leaves[1:], ([], expression.leaves),
                 #    pre_vars, expression, attributes, evaluation, first=True,
@@ -286,7 +322,7 @@ class ExpressionPattern(Pattern):
 
                         if expr_groups:
                             expr, count = expr_groups.popitem()
-                            max_per_pattern = count / len(patterns)
+                            max_per_pattern = count // len(patterns)
                             for per_pattern in range(max_per_pattern, -1, -1):
                                 for next in per_expr(   # nopep8
                                     expr_groups, sum + per_pattern):
@@ -294,9 +330,13 @@ class ExpressionPattern(Pattern):
                         else:
                             if sum >= match_count[0]:
                                 yield_expr([])
+                            # Until we learn that the below is incorrect, we'll return basically no match.
+                            yield None
 
                     # for sequence in per_expr(expr_groups.items()):
                     def yield_expr(sequence):
+                        # FIXME: this call is wrong and needs a
+                        # wrapper_function as the 1st parameter.
                         wrappings = self.get_wrappings(
                             sequence, match_count[1], expression, attributes)
                         for wrapping in wrappings:
@@ -452,11 +492,11 @@ class ExpressionPattern(Pattern):
                 if next_rest is None:
                     yield_func(
                         next_vars,
-                        (rest_expression[0] + items_rest[0], []))
+                        (list(chain(rest_expression[0], items_rest[0])), []))
                 else:
                     yield_func(
                         next_vars,
-                        (rest_expression[0] + items_rest[0], next_rest[1]))
+                        (list(chain(rest_expression[0], items_rest[0])), next_rest[1]))
 
             def match_yield(new_vars, _):
                 if rest_leaves:
