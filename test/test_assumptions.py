@@ -2,8 +2,6 @@
 from .helper import check_evaluation
 import pytest
 
-from mathics_scanner.errors import IncompleteSyntaxError
-
 list_test_assumptions_integrate = [
     (
         "Integrate[x^n, {x, 0, 1}]",

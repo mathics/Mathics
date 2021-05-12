@@ -1,11 +1,13 @@
 """
-Fileformats
+File Formats
 
-Importers / Exporters use some internal routines/ Symbols to accomplish their task. Submodules
-in this folder contain these routines. The context of the corresponding symbols are subcontexts of
-System`, like System`HTML` or System`XML to avoid spoil the System` namespace.
-
+Built-in Importers.
 
 """
+
+# The Built-in Functions are defined in a separate context under the
+# System`. For example System`HTML` and System`XML.  This is done to not
+# pollute the System` namespace.
+
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
