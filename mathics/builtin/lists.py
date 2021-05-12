@@ -247,7 +247,7 @@ def list_boxes(prefix, items, materialize, f, evaluation, open=None, close=None)
     if close is not None:
         close = String(close)
 
-    if f.get_name() in ("System`OutputForm", "System`InputForm"):
+    if f in ("System`OutputForm", "System`InputForm"):
         sep = ", "
     else:
         sep = ","
