@@ -823,10 +823,12 @@ class Grid(Builtin):
         '''MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
             f:StandardForm|TraditionalForm|OutputForm]'''
 
-        lengths = [len(row.leaves) for row in array.leaves]
+        lengths = [len(row._leaves) for row in array._leaves]
         n_leaves = sum(lengths)
 
-        def materialize(boxes):
+        #def materialize(boxes):
+        def materialize(prefix, inner, suffix):
+            boxes = inner
             if len(boxes) == n_leaves:
                 rows = []
                 i = 0
