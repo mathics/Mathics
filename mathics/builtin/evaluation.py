@@ -489,7 +489,7 @@ class OutputSizeLimit(Predefined):
     #> $OutputSizeLimit = Infinity;
 
     """
-
+    attributes = ("Unprotected", )
     name = '$OutputSizeLimit'
     value = 1000
 
