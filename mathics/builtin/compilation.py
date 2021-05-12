@@ -210,7 +210,9 @@ class CompiledCodeBox(BoxConstruct):
     """
     Used internally by <i>CompileCode[]</i>.
     """
-
+    def output_cost(self):
+        return 12
+        
     def boxes_to_text(self, leaves=None, **options):
         if leaves is None:
             leaves = self._leaves
