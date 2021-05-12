@@ -327,7 +327,7 @@ def list_boxes(prefix, items, materialize, f, evaluation, open=None, close=None)
     if f in ("System`OutputForm", "System`InputForm"):
         sep = ", "
     else:
-        sep = ","
+        sep = ", "
 
     def make_leaf(i):
         return Expression("MakeBoxes", items[i], f)
