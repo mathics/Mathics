@@ -1064,6 +1064,9 @@ class BarChart(_Chart):
                 )
 
                 last_x1 = x1
+                yield Expression(
+                    "Line", Expression(SymbolList, vector2(0, 0), vector2(last_x1, 0))
+                )
 
         # we need the PrecomputeTransformations option here. to understand why, try Plot[1+x*0.000001, {x, 0, 1}]
         # without it. in Graphics[], we set up a transformation that scales a very tiny area to a very large area.
@@ -1074,9 +1077,6 @@ class BarChart(_Chart):
         # into the SVG. this also has the advantage that we can precompute with arbitrary precision using mpmath.
         options['System`Transformation'] = String('Precomputed')
 
-            yield Expression(
-                "Line", Expression(SymbolList, vector2(0, 0), vector2(last_x1, 0))
-            )
 
         def axes():
             yield Expression("FaceForm", Symbol("Black"))
