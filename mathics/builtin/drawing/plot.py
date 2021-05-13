@@ -18,17 +18,19 @@ from mathics.core.expression import (
     Symbol,
     String,
     Integer,
+    Integer0,
     from_python,
     SymbolList,
     SymbolN,
     SymbolRule,
 )
+
 from mathics.builtin.base import Builtin
-from mathics.builtin.scoping import dynamic_scoping
-from mathics.builtin.options import options_to_rules
-from mathics.builtin.numeric import chop
 from mathics.builtin.graphics import Graphics
-from mathics.builtin.graphics3d import Graphics3D
+from mathics.builtin.drawing.graphics3d import Graphics3D
+from mathics.builtin.numeric import chop
+from mathics.builtin.options import options_to_rules
+from mathics.builtin.scoping import dynamic_scoping
 
 
 try:
@@ -37,7 +39,6 @@ try:
     has_compile = True
 except ImportError:
     has_compile = False
-
 
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
@@ -219,144 +220,6 @@ class ColorData(Builtin):
         return palette.colors()
 
 
-# Note In defining these class, documentation is given for them
-
-
-class Axis(Builtin):
-    """
-    <dl>
-      <dt>'Axis'
-      <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
-     = -Graphics-
-    """
-
-
-class Bottom(Builtin):
-    """
-    <dl>
-      <dt>'Bottom'
-      <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
-     = -Graphics-
-    """
-
-
-class Filling(Builtin):
-    """
-    <dl>
-      <dt>'Filling Top |Bottom|Axis'
-      <dd>is a an option to Plot to specify what filling to add under point, curves, and surfaces
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
-     = -Graphics-
-    """
-
-
-class Full(Builtin):
-    """
-    <dl>
-      <dt>'Full'
-      <dd>is a possible value for the 'Mesh' and 'PlotRange' options.
-    </dl>
-    """
-
-
-class ImageSize(Builtin):
-    """
-    <dl>
-      <dt>'ImageSize'
-      <dd>is an option that specifies the overall size of an image to display.
-    </dl>
-
-    Specifications for both width and height can be any of the following:
-    <dl>
-      <dt>Automatic
-      <dd>determined by location or other dimension (default)
-      <dt>Tiny, Small, Medium, Large
-      <dd>pre defined absolute sizes
-    </dl>
-    """
-
-
-class Joined(Builtin):
-    """
-    <dl>
-      <dt>'Joined $boolean$'
-      <dd>is an option for 'Plot' that gives whether to join points to make lines.
-    </dl>
-
-    >> ListPlot[Table[n ^ 2, {n, 10}], Joined->True]
-     = -Graphics-
-    """
-
-
-class Mesh(Builtin):
-    """
-    <dl>
-       <dt>'Mesh'
-      <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
-     </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4},Mesh->All]
-     = -Graphics-
-
-    >> Plot[Sin[x], {x,0,4 Pi}, Mesh->Full]
-     = -Graphics-
-
-    >> DensityPlot[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
-     = -Graphics-
-
-    >> Plot3D[Sin[x y], {x, -2, 2}, {y, -2, 2}, Mesh->Full]
-     = -Graphics3D-
-    """
-
-    messages = {
-        "ilevels": "`1` is not a valid mesh specification.",
-    }
-
-
-class PlotPoints(Builtin):
-    """
-    <dl>
-      <dt>'PlotPoints $n$'
-      <dd>A number specifies how many initial sample points to use.
-     </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotPoints->22]
-     = -Graphics-
-    """
-
-
-class PlotRange(Builtin):
-    """
-    <dl>
-      <dt>'PlotRange $n$ | All | Automatic'
-      <dd>is an option for 'Plot' that gives the range of coordinates to include in a plot.
-    </dl>
-
-    >> Plot[Sin[Cos[x^2]],{x,-4,4}, PlotRange -> All]
-     = -Graphics-
-    """
-
-
-class Top(Builtin):
-    """
-    <dl>
-    <dt>'Top'
-        <dd>is a possible value for the 'Filling' option.
-    </dl>
-
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis|Top|Bottom]
-     = -Graphics-
-    """
-
-
 def extract_pyreal(value):
     if isinstance(value, Real):
         return chop(value).round_to_float()
@@ -477,7 +340,6 @@ def get_plot_range(values, all_values, option):
 
 
 class _Plot(Builtin):
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -842,8 +704,6 @@ class _Plot(Builtin):
 class _Chart(Builtin):
     attributes = ("HoldAll",)
 
-    from .graphics import Graphics
-
     options = Graphics.options.copy()
     options.update(
         {
@@ -1048,9 +908,9 @@ class PieChart(_Chart):
         sector_spacing = self.get_option(options, "SectorSpacing", evaluation)
         if isinstance(sector_spacing, Symbol):
             if sector_spacing.get_name() == "System`Automatic":
-                sector_spacing = Expression(SymbolList, Integer(0), Real(0.2))
+                sector_spacing = Expression(SymbolList, Integer0, Real(0.2))
             elif sector_spacing.get_name() == "System`None":
-                sector_spacing = Expression(SymbolList, Integer(0), Integer(0))
+                sector_spacing = Expression(SymbolList, Integer0, Integer0)
             else:
                 return
         if not sector_spacing.has_form("List", 2):
@@ -1280,8 +1140,6 @@ class Histogram(Builtin):
     >> Histogram[{{1, 2, 10, 5, 50, 20}, {90, 100, 101, 120, 80}}]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2370,8 +2228,6 @@ class ListPlot(_ListPlot):
      = -Graphics-
     """
 
-    from .graphics import Graphics
-
     attributes = ("HoldAll",)
 
     options = Graphics.options.copy()
@@ -2410,8 +2266,6 @@ class ListLinePlot(_ListPlot):
      = -Graphics-
     """
 
-    from .graphics import Graphics
-
     attributes = ("HoldAll",)
 
     options = Graphics.options.copy()
@@ -2431,14 +2285,23 @@ class ListLinePlot(_ListPlot):
 class Plot3D(_Plot3D):
     """
     <dl>
-    <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
-        <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+      <dt>'Plot3D[$f$, {$x$, $xmin$, $xmax$}, {$y$, $ymin$, $ymax$}]'
+      <dd>creates a three-dimensional plot of $f$ with $x$ ranging from $xmin$ to $xmax$ and $y$ ranging from $ymin$ to $ymax$.
+
     </dl>
+
+    Plot3D has the same options as Graphics3D, in particular:
+    <ul>
+    <li>Mesh
+    <li>PlotPoints
+    <li>MaxRecursion
+    </ul>
+
 
     >> Plot3D[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
      = -Graphics3D-
 
-    >> Plot3D[x y / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}]
+    >> Plot3D[Sin[y + Sin[3 x]], {x, -2, 2}, {y, -2, 2}, PlotPoints->20]
      = -Graphics3D-
 
     >> Plot3D[x / (x ^ 2 + y ^ 2 + 1), {x, -2, 2}, {y, -2, 2}, Mesh->None]
@@ -2480,8 +2343,6 @@ class Plot3D(_Plot3D):
     """
     #> Plot3D[x + 2y, {x, -2, 2}, {y, -2, 2}] // TeXForm
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 
@@ -2564,8 +2425,6 @@ class DensityPlot(_Plot3D):
     >> DensityPlot[x^2 y, {x, -1, 1}, {y, -1, 1}, Mesh->All]
      = -Graphics-
     """
-
-    from .graphics import Graphics
 
     attributes = ("HoldAll",)
 

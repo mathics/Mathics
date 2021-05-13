@@ -15,15 +15,11 @@ from mathics.core.evaluation import Evaluation, Output
 from mathics.core.parser import MathicsSingleLineFeeder
 from mathics.builtin import builtins_dict
 
-builtins = builtins_dict()
-
 from mathics import version_string
 from mathics import settings
 
+builtins = builtins_dict()
 
-MAX_TESTS = 100000  # Number than the total number of tests
-
-logfile = None
 
 class TestOutput(Output):
     def max_stored_size(self, settings):
@@ -35,6 +31,11 @@ sep = "-" * 70 + "\n"
 # Global variables
 definitions = None
 documentation = None
+check_partial_enlapsed_time = False
+logfile = None
+
+
+MAX_TESTS = 100000  # Number than the total number of tests
 
 
 def print_and_log(*args):
@@ -43,6 +44,7 @@ def print_and_log(*args):
     print(string)
     if logfile:
         logfile.write(string)
+
 
 def compare(result, wanted):
     if result == wanted:
@@ -68,6 +70,7 @@ stars = "*" * 10
 
 
 def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
+    global check_partial_enlapsed_time
     test, wanted_out, wanted = test.test, test.outs, test.result
 
     def fail(why):
@@ -86,13 +89,18 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
     feeder = MathicsSingleLineFeeder(test, "<test>")
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
     try:
+        time_parsing = datetime.now()
         query = evaluation.parse_feeder(feeder)
+        if check_partial_enlapsed_time:
+            print("   parsing took", datetime.now() - time_parsing)
         if query is None:
             # parsed expression is None
             result = None
             out = evaluation.out
         else:
             result = evaluation.evaluate(query)
+            if check_partial_enlapsed_time:
+                print("   evaluation took", datetime.now() - time_parsing)
             out = result.out
             result = result.result
     except Exception as exc:
@@ -100,18 +108,12 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         info = sys.exc_info()
         sys.excepthook(*info)
         return False
-    if False:
-        print("out=-----------------")
-        for rr in out:
-            for line in rr.text.splitlines():
-                print("  <",line,">")
-        print("wanted_out=-------------------")
-        for rr in wanted_out:
-            for line in rr.text.splitlines():
-                print("  <",line,">")
-        print("---------------------------------")
-    
-    if not compare(result, wanted):
+
+    time_comparing = datetime.now()
+    comparison_result = compare(result, wanted)
+    if check_partial_enlapsed_time:
+        print("   comparison took ", datetime.now() - time_comparing)
+    if not comparison_result:
         print("result =!=wanted")
         fail_msg = "Result: %s\nWanted: %s" % (result, wanted)
         if out:
@@ -119,15 +121,16 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
             fail_msg += "\n".join(str(o) for o in out)
         return fail(fail_msg)
     output_ok = True
+    time_comparing = datetime.now()
     if len(out) != len(wanted_out):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
-            if False:
-                print("got=<",got,"> wanted=<",wanted,">")
             if not got == wanted:
                 output_ok = False
                 break
+    if check_partial_enlapsed_time:
+        print("   comparing messages took ", datetime.now() - time_comparing)
     if not output_ok:
         return fail(
             "Output:\n%s\nWanted:\n%s"
@@ -194,7 +197,6 @@ def test_section(sections: set, quiet=False, stop_on_failure=False):
     sections |= {"$" + s for s in sections}
     for tests in documentation.get_tests():
         if tests.section in sections:
-            found = True
             for test in tests.tests:
                 if test.ignore:
                     continue
@@ -318,7 +320,6 @@ def make_doc(quiet=False):
         output_tex = {}
         for tests in documentation.get_tests():
             create_output(tests, output_xml, output_tex)
-        builtin_count = len(builtins)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
@@ -350,6 +351,7 @@ def main():
     global definitions
     global documentation
     global logfile
+    global check_partial_enlapsed_time
     definitions = Definitions(add_builtin=True)
     documentation = main_mathics_documentation
 
@@ -361,11 +363,19 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--sections", "-s", dest="section", metavar="SECTION", help="only test SECTION(s). "
-        "You can list multiple sections by adding a comma (and no space) in between section names."
+        "--sections",
+        "-s",
+        dest="section",
+        metavar="SECTION",
+        help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names.",
     )
     parser.add_argument(
-        "--logfile", "-f", dest="logfilename", metavar="LOGFILENAME", help="stores the output in [logfilename]. "
+        "--logfile",
+        "-f",
+        dest="logfilename",
+        metavar="LOGFILENAME",
+        help="stores the output in [logfilename]. ",
     )
     parser.add_argument(
         "--pymathics",
@@ -373,6 +383,13 @@ def main():
         dest="pymathics",
         action="store_true",
         help="also checks pymathics modules.",
+    )
+    parser.add_argument(
+        "--time-each",
+        "-d",
+        dest="enlapsed_times",
+        action="store_true",
+        help="check the time that take each test to parse, evaluate and compare.",
     )
 
     parser.add_argument(
@@ -406,7 +423,7 @@ def main():
         help="create documentation even if there is a test failure",
     )
     parser.add_argument(
-        "--stop-on-failure", action="store_true", help="stop on failure"
+        "--stop-on-failure", "-x", action="store_true", help="stop on failure"
     )
     parser.add_argument(
         "--skip",
@@ -425,10 +442,13 @@ def main():
         help="run only  N tests",
     )
     args = parser.parse_args()
+
+    if args.enlapsed_times:
+        check_partial_enlapsed_time = True
     # If a test for a specific section is called
     # just test it
     if args.logfilename:
-        logfile = open(args.logfilename,"wt")
+        logfile = open(args.logfilename, "wt")
 
     if args.section:
         sections = set(args.section.split(","))

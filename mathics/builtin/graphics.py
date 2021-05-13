@@ -32,25 +32,24 @@ from mathics.core.expression import (
     SymbolList,
     SymbolN,
     SymbolMakeBoxes,
-    strip_context,
     system_symbols,
     system_symbols_dict,
     from_python,
 )
-from mathics.builtin.colors import convert as convert_color
+from mathics.builtin.drawing.colors import convert as convert_color
 from mathics.core.numbers import machine_epsilon
 
 
 GRAPHICS_OPTIONS = {
-    "Axes": "False",
-    "TicksStyle": "{}",
-    "AxesStyle": "{}",
-    "LabelStyle": "{}",
     "AspectRatio": "Automatic",
+    "Axes": "False",
+    "AxesStyle": "{}",
+    "Background": "Automatic",
+    "ImageSize": "Automatic",
+    "LabelStyle": "{}",
     "PlotRange": "Automatic",
     "PlotRangePadding": "Automatic",
-    "ImageSize": "Automatic",
-    "Background": "Automatic",
+    "TicksStyle": "{}",
     "$OptionSyntax": "Ignore",
     "Transformation": "Automatic",  # Mathics specific; used internally to enable stuff like
     # Plot[x + 1e-20 * x, {x, 0, 1}] that without precomputing transformations inside Mathics
@@ -68,7 +67,7 @@ class ColorError(BoxConstructError):
 
 
 def get_class(name):
-    from mathics.builtin.graphics3d import GLOBALS3D
+    from mathics.builtin.drawing.graphics3d import GLOBALS3D
 
     c = GLOBALS.get(name)
     if c is None:
@@ -473,16 +472,15 @@ class Graphics(Builtin):
     Options include:
 
     <ul>
-      <li>Axes</li>
-      <li>TicksStyle</li>
-      <li>AxesStyle</li>
-      <li>LabelStyle</li>
-      <li>AspectRatio</li>
-      <li>PlotRange</li>
-      <li>PlotRangePadding</li>
-      <li>ImageSize</li>
-      <li>Background</li>
-    <li>
+      <li>Axes
+      <li>TicksStyle
+      <li>AxesStyle
+      <li>LabelStyle
+      <li>AspectRatio
+      <li>PlotRange
+      <li>PlotRangePadding
+      <li>ImageSize
+      <li>Background
     </ul>
 
     >> Graphics[{Blue, Line[{{0,0}, {1,1}}]}]
@@ -576,7 +574,7 @@ class Graphics(Builtin):
                 options[option] = Expression(SymbolN, options[option]).evaluate(
                     evaluation
                 )
-        from mathics.builtin.graphics3d import Graphics3DBox, Graphics3D
+        from mathics.builtin.drawing.graphics3d import Graphics3DBox, Graphics3D
 
         if type(self) is Graphics:
             return GraphicsBox(
@@ -1056,7 +1054,7 @@ class ColorDistance(Builtin):
                     else:
                         return Expression(
                             "List",
-                            *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)]
+                            *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)],
                         )
                 else:
                     return Expression(SymbolList, *[distance(c, c2) for c in c1.leaves])
@@ -1821,6 +1819,7 @@ def _asy_bezier(*segments):
 
 
 class BernsteinBasis(Builtin):
+    attributes = ("Listable", "NumericFunction", "Protected")
     rules = {
         "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
     }
@@ -1925,7 +1924,7 @@ class FilledCurveBox(_GraphicsElement):
                         k = spline_degree.get_int_value()
                     elif head == "System`BSplineCurve":
                         raise NotImplementedError  # FIXME convert bspline to bezier here
-                        parts = segment.leaves
+                        # parts = segment.leaves
                     else:
                         raise BoxConstructError
 
@@ -4201,146 +4200,6 @@ class Darker(Builtin):
     """
 
     rules = {"Darker[c_, f_]": "Blend[{c, Black}, f]", "Darker[c_]": "Darker[c, 1/3]"}
-
-
-class _ColorObject(Builtin):
-    text_name = None
-
-    def __init__(self, *args, **kwargs):
-        super(_ColorObject, self).__init__(*args, **kwargs)
-        if self.text_name is None:
-            text_name = strip_context(self.get_name()).lower()
-        else:
-            text_name = self.text_name
-        doc = """
-            <dl>
-            <dt>'%(name)s'
-            <dd>represents the color %(text_name)s in graphics.
-            </dl>
-
-            >> Graphics[{EdgeForm[Black], %(name)s, Disk[]}, ImageSize->Small]
-             = -Graphics-
-
-            >> %(name)s // ToBoxes
-             = StyleBox[GraphicsBox[...], ...]
-        """ % {
-            "name": strip_context(self.get_name()),
-            "text_name": text_name,
-        }
-        if self.__doc__ is None:
-            self.__doc__ = doc
-        else:
-            self.__doc__ = doc + self.__doc__
-
-
-class Black(_ColorObject):
-    """
-    >> Black
-     = GrayLevel[0]
-    """
-
-    rules = {"Black": "GrayLevel[0]"}
-
-
-class White(_ColorObject):
-    """
-    >> White
-     = GrayLevel[1]
-    """
-
-    rules = {"White": "GrayLevel[1]"}
-
-
-class Gray(_ColorObject):
-    """
-    >> Gray
-     = GrayLevel[0.5]
-    """
-
-    rules = {"Gray": "GrayLevel[0.5]"}
-
-
-class Red(_ColorObject):
-    """
-    >> Red
-     = RGBColor[1, 0, 0]
-    """
-
-    rules = {"Red": "RGBColor[1, 0, 0]"}
-
-
-class Green(_ColorObject):
-    """
-    >> Green
-     = RGBColor[0, 1, 0]
-    """
-
-    rules = {"Green": "RGBColor[0, 1, 0]"}
-
-
-class Blue(_ColorObject):
-    """
-    >> Blue
-     = RGBColor[0, 0, 1]
-    """
-
-    rules = {"Blue": "RGBColor[0, 0, 1]"}
-
-
-class Cyan(_ColorObject):
-    """
-    >> Cyan
-     = RGBColor[0, 1, 1]
-    """
-
-    rules = {"Cyan": "RGBColor[0, 1, 1]"}
-
-
-class Magenta(_ColorObject):
-    """
-    >> Magenta
-     = RGBColor[1, 0, 1]
-    """
-
-    rules = {"Magenta": "RGBColor[1, 0, 1]"}
-
-
-class Yellow(_ColorObject):
-    """
-    >> Yellow
-     = RGBColor[1, 1, 0]
-    """
-
-    rules = {"Yellow": "RGBColor[1, 1, 0]"}
-
-
-class Purple(_ColorObject):
-    rules = {"Purple": "RGBColor[0.5, 0, 0.5]"}
-
-
-class LightRed(_ColorObject):
-    text_name = "light red"
-
-    rules = {"LightRed": "Lighter[Red, 0.85]"}
-
-
-class Orange(_ColorObject):
-    rules = {"Orange": "RGBColor[1, 0.5, 0]"}
-
-
-class Automatic(Builtin):
-    """
-    <dl>
-    <dt>'Automatic'
-        <dd>is used to specify an automatically computed option value.
-    </dl>
-
-    'Automatic' is the default for 'PlotRange', 'ImageSize', and other
-    graphical options:
-
-    >> Cases[Options[Plot], HoldPattern[_ :> Automatic]]
-     = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic, Transformation :> Automatic}
-    """
 
 
 class Tiny(Builtin):

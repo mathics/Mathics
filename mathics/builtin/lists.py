@@ -6,6 +6,7 @@ List Functions
 
 
 from itertools import chain, permutations
+from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
@@ -24,6 +25,7 @@ from mathics.builtin.base import (
     MessageException,
     NegativeIntegerException,
     CountableInteger,
+
 )
 from mathics.core.expression import (
     Expression,
@@ -38,6 +40,7 @@ from mathics.core.expression import (
     SymbolAssociation,
     SymbolSequence,
     Integer,
+    Integer0,
     Number,
     Real,
     strip_context,
@@ -48,9 +51,9 @@ from mathics.core.expression import (
 from mathics.core.expression import min_prec, machine_precision
 from mathics.core.expression import structure
 from mathics.core.evaluation import BreakInterrupt, ContinueInterrupt, ReturnInterrupt
-from mathics.core.rules import Pattern
+from mathics.core.rules import Pattern, Rule
 from mathics.core.convert import from_sympy
-from mathics.builtin.algebra import cancel
+from mathics.builtin.numbers.algebra import cancel
 from mathics.algorithm.introselect import introselect
 from mathics.algorithm.clusters import (
     optimize,
@@ -368,7 +371,7 @@ class Length(Builtin):
         "Length[expr_]"
 
         if expr.is_atom():
-            return Integer(0)
+            return Integer0
         else:
             return Integer(len(expr.leaves))
 
@@ -376,8 +379,8 @@ class Length(Builtin):
 class All(Predefined):
     """
     <dl>
-    <dt>'All'
-        <dd>is a possible value for 'Span' and 'Quiet'.
+      <dt>'All'
+      <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
     </dl>
     """
 
@@ -988,8 +991,8 @@ def convert_seq(seq):
 class Part(Builtin):
     """
     <dl>
-    <dt>'Part[$expr$, $i$]'
-        <dd>returns part $i$ of $expr$.
+      <dt>'Part[$expr$, $i$]'
+      <dd>returns part $i$ of $expr$.
     </dl>
 
     Extract an element from a list:
@@ -1027,10 +1030,16 @@ class Part(Builtin):
     >> B = {{a, b, c}, {d, e, f}, {g, h, i}};
     >> B[[;;, 2]]
      = {b, e, h}
+
     Extract a submatrix of 1st and 3rd row and the two last columns:
     >> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
     >> B[[{1, 3}, -2;;-1]]
      = {{2, 3}, {8, 9}}
+
+    The 3d column of a matrix:
+    >> {{a, b, c}, {d, e, f}, {g, h, i}}[[All, 3]]
+     = {c, f, i}
 
     Further examples:
     >> (a+b+c+d)[[-1;;-2]]
@@ -1966,18 +1975,30 @@ class Pick(Builtin):
 
 
 class Cases(Builtin):
-    """
+    r"""
     <dl>
-    <dt>'Cases[$list$, $pattern$]'
-        <dd>returns the elements of $list$ that match $pattern$.
-    <dt>'Cases[$list$, $pattern$, $ls$]'
-        <dd>returns the elements matching at levelspec $ls$.
+      <dt>'Cases[$list$, $pattern$]'
+      <dd>returns the elements of $list$ that match $pattern$.
+
+      <dt>'Cases[$list$, $pattern$, $ls$]'
+      <dd>returns the elements matching at levelspec $ls$.
+
+      <dt>'Cases[$list$, $pattern$, Heads->$bool$]'
+      <dd>Match including the head of the expression in the search.
     </dl>
 
     >> Cases[{a, 1, 2.5, "string"}, _Integer|_Real]
      = {1, 2.5}
     >> Cases[_Complex][{1, 2I, 3, 4-I, 5}]
      = {2 I, 4 - I}
+
+    Find symbols among the elements of an expression:
+    >> Cases[{b, 6, \[Pi]}, _Symbol]
+     = {b, Pi}
+
+    Also include the head of the expression in the previous search:
+    >> Cases[{b, 6, \[Pi]}, _Symbol, Heads -> True]
+     = {List, b, Pi}
 
     #> Cases[1, 2]
      = {}
@@ -2006,12 +2027,24 @@ class Cases(Builtin):
         "Cases[pattern_][list_]": "Cases[list, pattern]",
     }
 
-    options = {}
+    options = {
+        "Heads": "False",
+    }
 
-    def apply(self, items, pattern, ls, evaluation):
-        "Cases[items_, pattern_, ls_:{1}]"
+    def apply(self, items, pattern, ls, evaluation, options):
+        "Cases[items_, pattern_, ls_:{1}, OptionsPattern[]]"
         if items.is_atom():
             return Expression(SymbolList)
+
+        from mathics.builtin.patterns import Matcher
+        if ls.has_form("Rule", 2):
+            if ls.leaves[0].get_name() == "System`Heads":
+                heads = ls.leaves[1].is_true()
+                ls = Expression("List", 1)
+            else:
+                return evaluation.message("Position", "level", ls)
+        else:
+            heads = self.get_option(options, "Heads", evaluation).is_true()
 
         try:
             start, stop = python_levelspec(ls)
@@ -2020,10 +2053,7 @@ class Cases(Builtin):
 
         results = []
 
-        from mathics.builtin.patterns import Matcher
-
         if pattern.has_form("Rule", 2) or pattern.has_form("RuleDelayed", 2):
-            from mathics.core.rules import Rule
 
             match = Matcher(pattern.leaves[0]).match
             rule = Rule(pattern.leaves[0], pattern.leaves[1])
@@ -2042,10 +2072,6 @@ class Cases(Builtin):
                 if match(level, evaluation):
                     results.append(level)
                 return level
-
-        # TODO
-        # heads = self.get_option(options, 'Heads', evaluation).is_true()
-        heads = False
 
         walk_levels(items, start, stop, heads=heads, callback=callback)
 
@@ -2332,6 +2358,8 @@ class Range(Builtin):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ]": "Range[imin, imax, 1]",
     }
 
+    attributes = ("Listable", "Protected")
+
     def apply(self, imin, imax, di, evaluation):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]"
 
@@ -2452,7 +2480,7 @@ class _IterationFunction(Builtin):
             result = from_sympy(result)
             result = cancel(result)
 
-            if not result.same(whole_expr):
+            if not result.sameQ(whole_expr):
                 return result
             return
 
@@ -2463,7 +2491,7 @@ class _IterationFunction(Builtin):
         result = []
         compare_type = (
             "GreaterEqual"
-            if Expression("Less", di, Integer(0)).evaluate(evaluation).to_python()
+            if Expression("Less", di, Integer0).evaluate(evaluation).to_python()
             else "LessEqual"
         )
         while True:
@@ -2637,20 +2665,23 @@ class Array(Builtin):
 class Table(_IterationFunction):
     """
     <dl>
-    <dt>'Table[$expr$, {$i$, $n$}]'
-        <dd>evaluates $expr$ with $i$ ranging from 1 to $n$, returning
-        a list of the results.
-    <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
-        <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
+      <dt>'Table[$expr$, $n$]'
+      <dd>generates a list of $n$ copies of $expr$.
+
+      <dt>'Table[$expr$, {$i$, $n$}]'
+      <dd>generates a list of the values of expr when $i$ runs from 1 to $n$.
+
+      <dt>'Table[$expr$, {$i$, $start$, $stop$, $step$}]'
+      <dd>evaluates $expr$ with $i$ ranging from $start$ to $stop$,
         incrementing by $step$.
-    <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
-        <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
+
+      <dt>'Table[$expr$, {$i$, {$e1$, $e2$, ..., $ei$}}]'
+      <dd>evaluates $expr$ with $i$ taking on the values $e1$, $e2$,
         ..., $ei$.
     </dl>
-    >> Table[x, {4}]
-     = {x, x, x, x}
-    >> n = 0;
-    >> Table[n = n + 1, {5}]
+    >> Table[x, 3]
+     = {x, x, x}
+    >> n = 0; Table[n = n + 1, {5}]
      = {1, 2, 3, 4, 5}
     >> Table[i, {i, 4}]
      = {1, 2, 3, 4}
@@ -2672,6 +2703,10 @@ class Table(_IterationFunction):
     #> Table[x, {x, -0.2, 3.9}]
      = {-0.2, 0.8, 1.8, 2.8, 3.8}
     """
+
+    rules = {
+        "Table[expr_, n_Integer]": "Table[expr, {n}]",
+    }
 
     def get_result(self, items):
         return Expression(SymbolList, *items)
@@ -2869,19 +2904,25 @@ class AppendTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "AppendTo[s_, item_]"
-        if isinstance(s, Symbol):
-            resolved_s = s.evaluate(evaluation)
-            if not resolved_s.is_atom():
-                result = Expression("Set", s, Expression("Append", resolved_s, item))
-                return result.evaluate(evaluation)
-        return evaluation.message("AppendTo", "rvalue", s)
+        resolved_s = s.evaluate(evaluation)
+        if s == resolved_s:
+            return evaluation.message("AppendTo", "rvalue", s)
+
+        if not resolved_s.is_atom():
+            result = Expression("Set", s, Expression("Append", resolved_s, item))
+            return result.evaluate(evaluation)
+
+        return evaluation.message("AppendTo", "normal", Expression("AppendTo", s, item))
 
 
 class Prepend(Builtin):
     """
     <dl>
-    <dt>'Prepend[$expr$, $item$]'
-        <dd>returns $expr$ with $item$ prepended to its leaves.
+     <dt>'Prepend[$expr$, $item$]'
+     <dd>returns $expr$ with $item$ prepended to its leaves.
+
+     <dt>'Prepend[$expr$]'
+     <dd>'Prepend[$elem$][$expr$]' is equivalent to 'Prepend[$expr$,$elem$]'.
     </dl>
 
     'Prepend' is similar to 'Append', but adds $item$ to the beginning
@@ -2965,17 +3006,17 @@ class PrependTo(Builtin):
 
     def apply(self, s, item, evaluation):
         "PrependTo[s_, item_]"
-        if isinstance(s, Symbol):
-            resolved_s = s.evaluate(evaluation)
+        resolved_s = s.evaluate(evaluation)
+        if s == resolved_s:
+            return evaluation.message("PrependTo", "rvalue", s)
 
-            if not resolved_s.is_atom():
-                result = Expression("Set", s, Expression("Prepend", resolved_s, item))
-                return result.evaluate(evaluation)
-            if s != resolved_s:
-                return evaluation.message(
-                    "PrependTo", "normal", Expression("PrependTo", s, item)
-                )
-        return evaluation.message("PrependTo", "rvalue", s)
+        if not resolved_s.is_atom():
+            result = Expression("Set", s, Expression("Prepend", resolved_s, item))
+            return result.evaluate(evaluation)
+
+        return evaluation.message(
+            "PrependTo", "normal", Expression("PrependTo", s, item)
+        )
 
 
 def get_tuples(items):
@@ -3114,7 +3155,7 @@ class Reap(Builtin):
             for pattern, items in sown:
                 if pattern.does_match(tag, evaluation):
                     for item in items:
-                        if item[0].same(tag):
+                        if item[0].sameQ(tag):
                             item[1].append(e)
                             break
                     else:
@@ -3199,7 +3240,7 @@ class UnitVector(Builtin):
             if i == k:
                 return Integer(1)
             else:
-                return Integer(0)
+                return Integer0
 
         return Expression(SymbolList, *(item(i) for i in range(1, n + 1)))
 
@@ -3298,7 +3339,8 @@ class _SlowEquivalence:
     def select(self, elem):
         return self._groups
 
-    def same(self, a, b):
+    def sameQ(self, a, b) -> bool:
+        """Mathics SameQ"""
         return _test_pair(self._test, a, b, self._evaluation, self._name)
 
 
@@ -3326,8 +3368,9 @@ class _FastEquivalence:
     def select(self, elem):
         return self._hashes[hash(elem)]
 
-    def same(self, a, b):
-        return a.same(b)
+    def sameQ(self, a, b) -> bool:
+        """Mathics SameQ"""
+        return a.sameQ(b)
 
 
 class _GatherBin:
@@ -3405,7 +3448,7 @@ class _GatherOperation(Builtin):
         for key, value in zip(keys.leaves, values.leaves):
             selection = equivalence.select(key)
             for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.same(prototype, key):
+                if equivalence.sameQ(prototype, key):
                     add_to_bin(value)  # add to existing bin
                     break
             else:
@@ -3582,10 +3625,12 @@ class _SetOperation(Builtin):
         same_test = self.get_option(options, "SameTest", evaluation)
         operands = [l.leaves for l in seq]
         if not _is_sameq(same_test):
-            same = lambda a, b: _test_pair(same_test, a, b, evaluation, self.get_name())
-            operands = [self._remove_duplicates(op, same) for op in operands]
+            sameQ = lambda a, b: _test_pair(
+                same_test, a, b, evaluation, self.get_name()
+            )
+            operands = [self._remove_duplicates(op, sameQ) for op in operands]
             items = functools.reduce(
-                lambda a, b: [e for e in self._elementwise(a, b, same)], operands
+                lambda a, b: [e for e in self._elementwise(a, b, sameQ)], operands
             )
         else:
             items = list(
@@ -3624,11 +3669,11 @@ class Union(_SetOperation):
 
     _operation = "union"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for eb in b:
             yield eb
         for ea in a:
-            if not any(same(eb, ea) for eb in b):
+            if not any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -3658,9 +3703,9 @@ class Intersection(_SetOperation):
 
     _operation = "intersection"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
-            if any(same(eb, ea) for eb in b):
+            if any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -3703,9 +3748,9 @@ class Complement(_SetOperation):
 
     _operation = "difference"
 
-    def _elementwise(self, a, b, same):
+    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
         for ea in a:
-            if not any(same(eb, ea) for eb in b):
+            if not any(sameQ(eb, ea) for eb in b):
                 yield ea
 
 
@@ -4828,8 +4873,8 @@ class _Pad(Builtin):
         return self._pad(
             l,
             n,
-            Integer(0),
-            Integer(0),
+            Integer0,
+            Integer0,
             evaluation,
             lambda: Expression(self.get_name(), l, n),
         )
@@ -4840,7 +4885,7 @@ class _Pad(Builtin):
             l,
             n,
             x,
-            Integer(0),
+            Integer0,
             evaluation,
             lambda: Expression(self.get_name(), l, n, x),
         )
@@ -6187,13 +6232,14 @@ class ContainsOnly(Builtin):
 
         same_test = self.get_option(options, "SameTest", evaluation)
 
-        def same(a, b):
+        def sameQ(a, b) -> bool:
+            """Mathics SameQ"""
             result = Expression(same_test, a, b).evaluate(evaluation)
             return result.is_true()
 
         self.check_options(None, evaluation, options)
         for a in list1.leaves:
-            if not any(same(a, b) for b in list2.leaves):
+            if not any(sameQ(a, b) for b in list2.leaves):
                 return Symbol("False")
         return Symbol("True")
 

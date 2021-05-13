@@ -1,6 +1,77 @@
 CHANGES
 =======
 
+
+2.1.1
+-----
+
+Package update
+++++++++++++++
+
+- SymPy 1.8
+
+New variables and builtins
+++++++++++++++++++++++++++
+
+* ``Arg``
+* ``CoefficientArrays`` and ``Collect`` (#1174, #1194)
+* ``Dispatch``
+* ``FullSimplify``
+* ``LetterNumber`` #1298. The ``alphabet`` parameter supports only a minimal number of languages.
+* ``MemoryAvailable``
+* ``MemoryInUse``
+* ``Nand`` and ``Nor`` logical functions.
+* ``Series``,  ``O`` and ``SeriesData``
+* ``StringReverse``
+* ``$SystemMemory``
+* Add all of the named colors, e.g. ``Brown`` or ``LighterMagenta``.
+
+
+
+Enhancements
+++++++++++++
+
+* a function `evaluate_predicate` allows for a basic predicate evaluation using `$Assumptions`.
+* ``Attributes`` accepts a string parameter.
+* ``Cases`` accepts Heads option. Issue #1302.
+* ``ColorNegate`` for colors is supported.
+* ``D`` and ``Derivative`` improvements.
+* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
+* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`)
+* ``FileNames`` returns a sorted list (#1250).
+* ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
+* ``FixedPoint`` now supports the ``SameTest`` option.
+* ``Prepend`` works with ``DownValues`` Issue #1251
+* ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
+* ``Read`` with ``Hold[Expression]`` now supported. (#1242)
+* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
+* ``Simplify`` performs a more sophisticated set of simplifications.
+* ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
+* ``StringTake`` now accepts form containing a list of strings and specification (#1297).
+* ``Table`` [*expr*, *n*] is supported.
+* ``ToExpression`` handles multi-line string input.
+* ``ToString`` accepts an optional *form* parameter.
+*  The implementation of Streams was redone.
+* ``ToExpression`` handles multi-line string input
+* ``$VersionNumber`` now set to 10.0 (was 6.0)
+* The implementation of Streams was redone.
+
+
+Bug fixes
++++++++++
+
+* ``SetTagDelayed`` now does not evaluate the RHS before assignment.
+* ``$InstallationDirectory`` starts out ``Unprotected``.
+* ``FindRoot`` now handles equations.
+* Functions gone over to ensure the ``Listable`` and ``NumericFunction`` properties are correct.
+
+
+Internal changes
+----------------
+
+* doctest  accepts the option `-d` to show how long it takes to parse, evaluate and compare each individual test.
+
+
 2.1.0
 -----
 
@@ -15,6 +86,7 @@ New builtins
 * ``NIntegrate``
 * ``PartitionsP``
 * ``$Notebooks``
+* ``SparseArray``
 
 Enhancements
 ++++++++++++
@@ -32,6 +104,8 @@ Enhancements
 * ``Read[]`` handles expressions better.
 * ``StringSplit[]`` now accepts a list in the first argument.
 * ``SetDelayed[]`` now accepts several conditions imposed both at LHS as well as RHS.
+* Axes for 2D Plots are now rendered for SVGs
+* ``InsertBox`` accepts an opaque parameter
 
 
 Bug fixes
@@ -60,8 +134,7 @@ Miscellanea
 * In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
 * In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
 * In order to control the final form of boxes from the user space in specific symbols and contexts.
-* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded svgs.
-* Improving the support for ``Inset`` and  ``InsetBox``.
+* ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded SVGs.
 
 
 What's to expect in a Future Release

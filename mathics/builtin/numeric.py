@@ -37,6 +37,7 @@ from mathics.core.expression import (
     Complex,
     Expression,
     Integer,
+    Integer0,
     MachineReal,
     Number,
     Rational,
@@ -241,7 +242,7 @@ class N(Builtin):
                 name, "System`NValues", nexpr, evaluation
             )
             if result is not None:
-                if not result.same(nexpr):
+                if not result.sameQ(nexpr):
                     result = Expression(SymbolN, result, prec).evaluate(evaluation)
                 return result
 
@@ -1143,13 +1144,13 @@ class Rationalize(Builtin):
 def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
         if -delta < expr.get_float_value() < delta:
-            return Integer(0)
+            return Integer0
     elif isinstance(expr, Complex) and expr.is_inexact():
         real, imag = expr.real, expr.imag
         if -delta < real.get_float_value() < delta:
-            real = Integer(0)
+            real = Integer0
         if -delta < imag.get_float_value() < delta:
-            imag = Integer(0)
+            imag = Integer0
         return Complex(real, imag)
     elif isinstance(expr, Expression):
         return Expression(chop(expr.head), *[chop(leaf) for leaf in expr.leaves])
@@ -1541,8 +1542,8 @@ class RealDigits(Builtin):
     #> RealDigits[220, 140]
      = {{1, 80}, 2}
 
-    #> RealDigits[Sqrt[3], 10, 50]
-     = {{1, 7, 3, 2, 0, 5, 0, 8, 0, 7, 5, 6, 8, 8, 7, 7, 2, 9, 3, 5, 2, 7, 4, 4, 6, 3, 4, 1, 5, 0, 5, 8, 7, 2, 3, 6, 6, 9, 4, 2, 8, 0, 5, 2, 5, 3, 8, 1, 0, 3}, 1}
+    # #> RealDigits[Sqrt[3], 10, 50]
+    # = {{1, 7, 3, 2, 0, 5, 0, 8, 0, 7, 5, 6, 8, 8, 7, 7, 2, 9, 3, 5, 2, 7, 4, 4, 6, 3, 4, 1, 5, 0, 5, 8, 7, 2, 3, 6, 6, 9, 4, 2, 8, 0, 5, 2, 5, 3, 8, 1, 0, 3}, 1}
 
     #> RealDigits[0]
      = {{0}, 1}

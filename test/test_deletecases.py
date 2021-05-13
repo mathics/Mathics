@@ -1,9 +1,7 @@
-from mathics.session import MathicsSession
+# -*- coding: utf-8 -*-
+from .helper import evaluate
 
 import pytest
-
-session = MathicsSession(add_builtin=True, catch_interrupt=False)
-
 
 @pytest.mark.parametrize(
     "str_expr,str_expected",
@@ -20,10 +18,9 @@ session = MathicsSession(add_builtin=True, catch_interrupt=False)
     ],
 )
 def test_evaluation(str_expr: str, str_expected: str, message=""):
-    global session
-    session.evaluate("A={{{1, 2, 3}, {a, b}, {1, 2, 3}}, {a, b}, {10, 11}};")
-    result = session.evaluate(str_expr)
-    expected = session.evaluate(str_expected)
+    evaluate("A={{{1, 2, 3}, {a, b}, {1, 2, 3}}, {a, b}, {10, 11}};")
+    result = evaluate(str_expr)
+    expected = evaluate(str_expected)
 
     if message:
         assert result == expected, message

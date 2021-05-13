@@ -17,6 +17,7 @@ from mathics.core.expression import (
     Expression,
     Real,
     Integer,
+    Integer0,
     Symbol,
 )
 
@@ -98,13 +99,13 @@ class AnglePath(Builtin):
     def apply(self, steps, evaluation):
         "AnglePath[{steps___}]"
         return AnglePath._compute(
-            Integer(0), Integer(0), None, steps.get_sequence(), evaluation
+            Integer0, Integer0, None, steps.get_sequence(), evaluation
         )
 
     def apply_phi0(self, phi0, steps, evaluation):
         "AnglePath[phi0_, {steps___}]"
         return AnglePath._compute(
-            Integer(0), Integer(0), phi0, steps.get_sequence(), evaluation
+            Integer0, Integer0, phi0, steps.get_sequence(), evaluation
         )
 
     def apply_xy(self, x, y, steps, evaluation):
@@ -828,6 +829,8 @@ class Log2(Builtin):
      = 2 / Log[2]
     """
 
+    attributes = ("Listable", "NumericFunction", "Protected")
+
     rules = {
         "Log2[x_]": "Log[2, x]",
     }
@@ -847,6 +850,8 @@ class Log10(Builtin):
     >> Log10[E ^ 3]
      = 3 / Log[10]
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     rules = {
         "Log10[x_]": "Log[10, x]",
@@ -876,6 +881,7 @@ class LogisticSigmoid(Builtin):
     attributes = (
         "Listable",
         "NumericFunction",
+        "Protected",
     )
 
     rules = {"LogisticSigmoid[z_?NumberQ]": "1 / (1 + Exp[-z])"}

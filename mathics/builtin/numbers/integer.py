@@ -12,7 +12,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.builtin.base import Builtin, SympyFunction
 from mathics.core.convert import from_sympy
-from mathics.core.expression import Integer, String, Expression
+from mathics.core.expression import Integer, Integer0, String, Expression
 
 
 class Floor(SympyFunction):
@@ -50,6 +50,9 @@ class Floor(SympyFunction):
      = -10
     """
 
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    sympy_name = "floor"
     rules = {"Floor[x_, a_]": "Floor[x / a] * a"}
 
     def apply_real(self, x, evaluation):
@@ -75,6 +78,8 @@ class Ceiling(SympyFunction):
     >> Ceiling[1.3 + 0.7 I]
      = 2 + I
     """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
 
     rules = {"Ceiling[x_, a_]": "Ceiling[x / a] * a"}
 
@@ -120,6 +125,8 @@ class IntegerLength(Builtin):
      = True
     """
 
+    attributes = ("Listable", "Protected")
+
     rules = {
         "IntegerLength[n_]": "IntegerLength[n, 10]",
     }
@@ -141,7 +148,7 @@ class IntegerLength(Builtin):
 
         if n == 0:
             # special case
-            return Integer(0)
+            return Integer0
 
         n = abs(n)
 
@@ -180,6 +187,8 @@ class BitLength(Builtin):
     >> BitLength[0]
      = 0
     """
+
+    attributes = ("Listable", "Protected")
 
     def apply(self, n, evaluation):
         "BitLength[n_Integer]"
@@ -243,6 +252,8 @@ class IntegerString(Builtin):
     >> IntegerString[98765, 20]
      = c6i5
     """
+
+    attributes = ("Listable", "Protected")
 
     rules = {
         "IntegerString[n_Integer]": "IntegerString[n, 10]",
@@ -333,7 +344,7 @@ class IntegerDigits(_IntBaseBuiltin):
         "IntegerDigits[n_Integer]": "IntegerDigits[n, 10]",
     }
 
-    _padding = [Integer(0)]
+    _padding = [Integer0]
 
     def apply_n_b(self, n, b, evaluation):
         "IntegerDigits[n_Integer, b_Integer]"
@@ -504,7 +515,7 @@ class FromDigits(Builtin):
         code_a = ord("a")
         assert code_a > code_0
 
-        value = Integer(0)
+        value = Integer0
         for char in s.lower():
             code = ord(char)
             if code >= code_a:
@@ -523,7 +534,7 @@ class FromDigits(Builtin):
     def apply(self, l, b, evaluation):
         "FromDigits[l_, b_]"
         if l.get_head_name() == "System`List":
-            value = Integer(0)
+            value = Integer0
             for leaf in l.leaves:
                 value = Expression("Plus", Expression("Times", value, b), leaf)
             return value

@@ -284,6 +284,8 @@ class StirlingS1(Builtin):
     = -608281864034267560872252163321295376887552831379210240000000000
     """
 
+    attributes = ("Listable", "Protected")
+
     nargs = 2
     sympy_name = "functions.combinatorial.stirling"
     mpmath_name = "stirling1"
@@ -307,6 +309,8 @@ class StirlingS2(Builtin):
     >> Table[StirlingS2[10, m], {m, 10}]
     = {1, 511, 9330, 34105, 42525, 22827, 5880, 750, 45, 1}
     """
+
+    attributes = ("Listable", "Protected")
 
     sympy_name = "functions.combinatorial.numbers.stirling"
     mpmath_name = "stirling2"

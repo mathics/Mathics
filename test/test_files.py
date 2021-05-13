@@ -1,58 +1,46 @@
 # -*- coding: utf-8 -*-
-from .helper import check_evaluation
-from mathics.core.parser import parse, MathicsSingleLineFeeder
-from mathics.core.definitions import Definitions
-from mathics.core.evaluation import Evaluation
-import pathlib
-import os
+import os.path as osp
 import sys
+from .helper import check_evaluation, evaluate
 
 
-definitions = Definitions(add_builtin=True)
-evaluation = Evaluation(definitions=definitions, catch_interrupt=False)
+def test_compress():
+    for text in ("", "abc", " "):
+        str_expr = f'Uncompress[Compress["{text}"]]'
+        str_expected = f'"{text}"'
+        check_evaluation(
+            str_expr, str_expected, to_string_expr=False, to_string_expected=False
+        )
 
 
-def _evaluate(str_expression):
-    expr = parse(definitions, MathicsSingleLineFeeder(str_expression))
-    return expr.evaluate(evaluation)
+def test_unprotected():
+    for str_expr, str_expected, message in (
+        ("Attributes[$Path]", "{}", ""),
+        ("Attributes[$InstallationDirectory]", "{}", ""),
+    ):
+        check_evaluation(str_expr, str_expected, message)
 
-# FIXME: see if we can refine this better such as
-# by running some Python code and looking for a failure.
-limited_characterset = sys.platform not in {"win32",} and not os.environ.get("CI")
-if limited_characterset:
-    def test_non_win32_compress():
-        for str_expr, str_expected, message in (
-            (
-             r'Compress["―"]',
-                '"eJxTetQwVQkABwMCPA=="',
-                ""
-             ),
-            (r'Uncompress["eJxTetQwVQkABwMCPA=="]',
-             r'"―"',
-             ""
-             ),
-        ):
-            check_evaluation(str_expr, str_expected, message)
 
-def test_get_and_put():
-    temp_directory = _evaluate("$TemporaryDirectory").to_python()
-    if len(temp_directory)<3:
-        return
-    temp_directory = temp_directory[1:-1]
-    temp_filename = str(pathlib.Path(temp_directory, "testfile"))
-    print(temp_filename)
-    result = _evaluate(f"40! >> {temp_filename}").to_python()
+if sys.platform not in ("win32",):
 
-    # This needs going over in Windows
-    if sys.platform not in {"win32",}:
-        assert result is None
+    def test_get_and_put():
+        temp_filename = evaluate('$TemporaryDirectory<>"/testfile"').to_python()
+        temp_filename_strip = temp_filename[1:-1]
+        check_evaluation(f"40! >> {temp_filename_strip}", "Null")
+        check_evaluation(f"<< {temp_filename_strip}", "40!")
+        check_evaluation(f"DeleteFile[{temp_filename}]", "Null")
 
-        result = _evaluate(f"<< {temp_filename}")
-        assert result == _evaluate("40!")
+    def test_get_path_search():
+        # Check that AppendTo[$Path] works in conjunction with Get[]
+        dirname = osp.join(osp.dirname(osp.abspath(__file__)), "data")
+        evaled = evaluate(f"""AppendTo[$Path, "{dirname}"]""")
+        assert evaled.has_form("List", 1, None)
+        check_evaluation('Get["fortytwo.m"]', "42")
 
-        result = _evaluate(f"DeleteFile[\"{temp_filename}\"]").to_python()
-        assert result is None
 
+# I do not know what this is it supposed to test with this...
+# def test_Inputget_and_put():
+#    stream = Expression('Plus', Symbol('x'), Integer(2))
 
 # TODO: add these Unix-specific test. Be sure not to test
 # sys.platform for not Windows and to test for applicability

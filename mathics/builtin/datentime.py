@@ -147,7 +147,7 @@ if sys.platform != "win32":
          = TimeConstrained[Integrate[Sin[x] ^ 3, x], a]
 
         >> a=1; s
-        = -Cos[x] + Cos[x] ^ 3 / 3
+        =  Cos[x] (-5 + Cos[2 x]) / 6
 
         Possible issues: for certain time-consuming functions (like simplify)
         which are based on sympy or other libraries, it is possible that
@@ -630,6 +630,108 @@ class DateString(_DateFormat):
         return from_python("".join(datestrs))
 
 
+class DateObject(_DateFormat):
+    """
+    <dl>
+      <dt>'DateObject[...]'
+      <dd> Returns an object codifiyng DateList....
+    </dl>
+    >> DateObject[{2020, 4, 15}]
+     = [...]
+    """
+
+    messages = {
+        "notz": "Argument `1` in DateObject is not a recognized TimeZone specification.",
+    }
+    options = {
+        "TimeZone": "Automatic",
+        "CalendarType": "Automatic",
+        "DateFormat": "Automatic",
+    }
+
+    granularities = [
+        Symbol(s)
+        for s in ["Eternity", "Year", "Month", "Day", "Hour", "Minute", "Instant"]
+    ]
+    rules = {
+        "DateObject[]": "DateObject[AbsoluteTime[]]",
+    }
+    fmt_keywords = {
+        "Year": 0,
+        "Month": 1,
+        "Day": 2,
+        "Hour": 3,
+        "Minute": 4,
+        "Second": 5,
+    }
+
+    def apply_any(self, args, evaluation, options):
+        "DateObject[args_, OptionsPattern[]]"
+        datelist = None
+        tz = None
+        if isinstance(args, Expression):
+            if args.get_head_name() in ("System`Rule", "System`DelayedRule"):
+                options[args.leaves[0].get_name()] = args.leaves[1]
+                args = Expression("AbsoluteTime").evaluate(evaluation)
+            elif args.get_head_name() == "System`DateObject":
+                datelist = args._leaves[0]
+                tz = args._leaves[3]
+
+        if datelist is None:
+            datelist = self.to_datelist(args, evaluation)
+            tz = Real(-time.timezone / 3600.0)
+        if datelist is None:
+            return
+
+        fmt = None
+
+        if options["System`TimeZone"].sameQ(Symbol("Automatic")):
+            timezone = Real(-time.timezone / 3600.0)
+        else:
+            timezone = options["System`TimeZone"].evaluate(evaluation)
+            if not timezone.is_numeric():
+                evaluation.message("DateObject", "notz", timezone)
+
+        # TODO: if tz != timezone, shift the datetime list.
+        if not tz == timezone:
+            dt = timezone.to_python() - tz.to_python()
+            if len(datelist) > 3:
+                newhour = datelist[3] + dt
+                datelist = datelist[:3] + [newhour] + datelist[4:]
+
+        epoch = Symbol("Eternity")
+        if datelist[-1] == 0:
+            for i in range(len(datelist)):
+                if datelist[-1 - i] != 0:
+                    datelist = datelist[:-i]
+                    epoch = self.granularities[-i-1]
+                    break
+        else:
+            epoch = Symbol("Instant")
+
+        fmt = options["System`DateFormat"]
+        if len(datelist) < 6:
+            datelist = [Integer(d) for d in datelist]
+        else:
+            datelist = [Integer(d) for d in datelist[:5]] + [Real(datelist[5])]
+        return Expression(
+            "DateObject", datelist, epoch, Symbol("Gregorian"), timezone, fmt,
+        )
+
+    def apply_makeboxes(self, datetime, gran, cal, tz, fmt, evaluation):
+        "MakeBoxes[DateObject[datetime_List, gran_, cal_, tz_, fmt_], StandardForm|TraditionalForm|OutputForm]"
+        # TODO:
+        if fmt.sameQ(Symbol("Automatic")):
+            fmt = Expression("List", "DateTimeShort")
+        fmtds = Expression("DateString", datetime, fmt).evaluate(evaluation)
+        if fmtds is None:
+            return
+        # tz = Expression("ToString", tz).evaluate(evaluation)
+        tz = int(tz.to_python())
+        tz = String(str(tz))
+        return Expression("RowBox", Expression("List", "[", fmtds, "  GTM", tz, "]"))
+
+
 class AbsoluteTime(_DateFormat):
     """
     <dl>
@@ -702,6 +804,21 @@ class SystemTimeZone(Predefined):
 
     def evaluate(self, evaluation):
         return self.value
+
+
+class Now(Predefined):
+    """
+    <dl>
+      <dt>'Now'
+      <dd> gives the current time on the system.
+    </dl>
+
+    >> Now
+     = ...
+    """
+
+    def evaluate(self, evaluation):
+        return Expression("DateObject").evaluate(evaluation)
 
 
 class TimeZone(Predefined):

@@ -10,6 +10,7 @@ from mathics.core.expression import (
     fully_qualified_symbol_name,
 )
 from mathics.core.rules import Rule
+from mathics.core.evaluation import Evaluation
 
 
 def get_scoping_vars(var_list, msg_symbol="", evaluation=None):
@@ -42,7 +43,11 @@ def get_scoping_vars(var_list, msg_symbol="", evaluation=None):
             yield var_name, new_def
 
 
-def dynamic_scoping(func, vars, evaluation):
+def dynamic_scoping(func, vars, evaluation: Evaluation):
+    """
+    Changes temporarily the value of a set of symbols listed in vars,
+    and evaluates func(evaluation)
+    """
     original_definitions = {}
     for var_name, new_def in vars.items():
         assert fully_qualified_symbol_name(var_name)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from .helper import session, check_evaluation
+from .helper import evaluate, check_evaluation
 
-session.evaluate(
+evaluate(
     """
     Needs["DiscreteMath`CombinatoricaV0.9`"]
     """
@@ -60,12 +60,12 @@ def test_permutations_1_1():
         (
             "RandomPermutation1[20] === RandomPermutation2[20]",
             "False",
-            "Not likey two of the 20! permutations will be the same, 1.1.3, Page 7",
+            "Not likely two of the 20! permutations will be the same, 1.1.3, Page 7",
         ),
         (
             "RandomPermutation1[20] === RandomPermutation1[20]",
             "False",
-            "Not likley two of 20! permutations will be the same (same routine)",
+            "Not likely two of 20! permutations will be the same (same routine)",
         ),
         (
             "MinimumChangePermutations[{a,b,c}]",
@@ -280,7 +280,7 @@ def test_permutations_groups_1_2():
             "Factor example in Polya polynomial 1.2.6, Page 26",
         ),
     ):
-        check_evaluation(str_expr, str_expected, message)
+        check_evaluation(str_expr, str_expected, message, to_string_expr=True)
 
 
 def test_inversions_and_inversion_vectors_1_3():

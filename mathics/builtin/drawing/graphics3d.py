@@ -14,7 +14,7 @@ from mathics.core.expression import (
     SymbolList,
 )
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
-from .graphics import (
+from mathics.builtin.graphics import (
     Graphics,
     GraphicsBox,
     PolygonBox,

@@ -625,8 +625,9 @@ class BoxConstruct(InstanceableBuiltin):
     def get_string_value(self):
         return "-@" + self.get_head_name() + "@-"
 
-    def same(self, expr):
-        return expr.same(self)
+    def sameQ(self, expr) -> bool:
+        """Mathics SameQ"""
+        return expr.sameQ(self)
 
     def is_atom(self):
         return False
@@ -720,11 +721,14 @@ class BoxConstruct(InstanceableBuiltin):
 class PatternError(Exception):
     def __init__(self, name, tag, *args):
         super().__init__()
+        self.name = name
+        self.tag = tag
+        self.args = args
 
 
 class PatternArgumentError(PatternError):
     def __init__(self, name, count, expected):
-        super().__init__(None, None)
+        super().__init__(name, "argr", count, expected)
 
 
 class PatternObject(InstanceableBuiltin, Pattern):

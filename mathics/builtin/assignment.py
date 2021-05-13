@@ -2,13 +2,13 @@
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-import mathics.builtin
 from mathics.builtin.base import (
     Builtin,
     BinaryOperator,
     PostfixOperator,
     PrefixOperator,
 )
+from mathics.core.rules import Rule
 from mathics.core.expression import (
     Expression,
     Symbol,
@@ -18,14 +18,9 @@ from mathics.core.expression import (
     system_symbols,
     String,
 )
-from mathics.core.rules import Rule, BuiltinRule
-from mathics.builtin.patterns import RuleDelayed
 from mathics.core.definitions import PyMathicsLoadException
 from mathics.builtin.lists import walk_parts
 from mathics.core.evaluation import MAX_RECURSION_DEPTH, set_python_recursion_limit
-
-from mathics import settings
-from mathics.core.definitions import PyMathicsLoadException
 
 
 def repl_pattern_by_symbol(expr):
@@ -68,10 +63,13 @@ def get_symbol_list(list, error_callback):
 
 class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
+        # TODO: This function should be splitted and simplified
+
         name = lhs.get_head_name()
         lhs._format_cache = None
         condition = None
 
+        # Maybe these first conversions should be a loop...
         if name == "System`Condition" and len(lhs.leaves) == 2:
             # This handle the case of many sucesive conditions:
             # f[x_]/; cond1 /; cond2 ...
@@ -96,6 +94,10 @@ class _SetOperator(object):
             lhs = lhsleaves[1]
             rulerepl = (lhsleaves[0], repl_pattern_by_symbol(lhs))
             rhs, status = rhs.apply_rules([Rule(*rulerepl)], evaluation)
+            name = lhs.get_head_name()
+
+        if name == "System`HoldPattern":
+            lhs = lhs.leaves[0]
             name = lhs.get_head_name()
 
         if name in system_symbols(
@@ -157,7 +159,6 @@ class _SetOperator(object):
         message = False
 
         allow_custom_tag = False
-
         focus = lhs
 
         if name == "System`N":
@@ -203,8 +204,12 @@ class _SetOperator(object):
         else:
             allow_custom_tag = True
 
+        # TODO: the following provides a hacky fix for 1259. I know @rocky loves
+        # this kind of things, but otherwise we need to work on rebuild the pattern
+        # matching mechanism...
+        evaluation.ignore_oneidentity = True
         focus = focus.evaluate_leaves(evaluation)
-
+        evaluation.ignore_oneidentity = False
         if tags is None and not upset:
             name = focus.get_lookup_name()
             if not name:
@@ -226,6 +231,22 @@ class _SetOperator(object):
             allowed_names = [focus.get_lookup_name()]
             if allow_custom_tag:
                 for leaf in focus.get_leaves():
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`HoldPattern",
+                    ):
+                        leaf = leaf.leaves[0]
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`Pattern",
+                    ):
+                        leaf = leaf.leaves[1]
+                    if not leaf.is_symbol() and leaf.get_head_name() in (
+                        "System`Blank",
+                        "System`BlankSequence",
+                        "System`BlankNullSequence",
+                    ):
+                        if len(leaf.leaves) == 1:
+                            leaf = leaf.leaves[0]
+
                     allowed_names.append(leaf.get_lookup_name())
             for name in tags:
                 if name not in allowed_names:
@@ -348,20 +369,33 @@ class _SetOperator(object):
                 evaluation.message(lhs_name, "precset", lhs, rhs)
                 return False
 
+        # To Handle `OptionValue` in `Condition`
+        rulopc = Rule(
+            Expression(
+                "OptionValue",
+                Expression("Pattern", Symbol("$cond$"), Expression("Blank")),
+            ),
+            Expression("OptionValue", lhs.get_head(), Symbol("$cond$")),
+        )
         rhs_name = rhs.get_head_name()
         while rhs_name == "System`Condition":
             if len(rhs.leaves) != 2:
                 evaluation.message_args("Condition", len(rhs.leaves), 2)
                 return False
             else:
-                lhs = Expression("Condition", lhs, rhs.leaves[1])
+                lhs = Expression(
+                    "Condition", lhs, rhs.leaves[1].apply_rules([rulopc], evaluation)[0]
+                )
                 rhs = rhs.leaves[0]
             rhs_name = rhs.get_head_name()
 
         # Now, let's add the conditions on the LHS
         if condition:
-            lhs = Expression("Condition", lhs, condition.leaves[1])
-
+            lhs = Expression(
+                "Condition",
+                lhs,
+                condition.leaves[1].apply_rules([rulopc], evaluation)[0],
+            )
         rule = Rule(lhs, rhs)
         count = 0
         defs = evaluation.definitions
@@ -392,7 +426,6 @@ class _SetOperator(object):
                     defs.add_rule(tag, rule)
         if count == 0:
             return False
-
         return True
 
     def assign(self, lhs, rhs, evaluation):
@@ -719,7 +752,6 @@ class TagSetDelayed(TagSet):
             evaluation.message(self.get_name(), "sym", f, 1)
             return
 
-        rhs = rhs.evaluate(evaluation)
         if self.assign_elementary(lhs, rhs, evaluation, tags=[name]):
             return Symbol("Null")
         else:
@@ -984,8 +1016,8 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
 class Information(PrefixOperator):
     """
     <dl>
-    <dt>'Information[$symbol$]'
-        <dd>Prints information about a $symbol$
+      <dt>'Information[$symbol$]'
+      <dd>Prints information about a $symbol$
     </dl>
     'Information' does not print information for 'ReadProtected' symbols.
     'Information' uses 'InputForm' to format values.
@@ -1008,36 +1040,6 @@ class Information(PrefixOperator):
      .
      = Null
 
-
-    #> ? Table
-     | 
-     .   'Table[expr, {i, n}]'
-     .     evaluates expr with i ranging from 1 to n, returning
-     . a list of the results.
-     .   'Table[expr, {i, start, stop, step}]'
-     .     evaluates expr with i ranging from start to stop,
-     . incrementing by step.
-     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     .     evaluates expr with i taking on the values e1, e2,
-     . ..., ei.
-     .
-     = Null
-
-    #> Information[Table]
-     | 
-     .   'Table[expr, {i, n}]'
-     .     evaluates expr with i ranging from 1 to n, returning
-     . a list of the results.
-     .   'Table[expr, {i, start, stop, step}]'
-     .     evaluates expr with i ranging from start to stop,
-     . incrementing by step.
-     .   'Table[expr, {i, {e1, e2, ..., ei}}]'
-     .     evaluates expr with i taking on the values e1, e2,
-     . ..., ei.
-     .
-     . Attributes[Table] = {HoldAll, Protected}
-     .
-     = Null
     """
 
     operator = "??"
@@ -1920,11 +1922,11 @@ class LoadModule(Builtin):
     def apply(self, module, evaluation):
         "LoadModule[module_String]"
         try:
-            module_loaded = evaluation.definitions.load_pymathics_module(module.value)
-        except PyMathicsLoadException as e:
+            evaluation.definitions.load_pymathics_module(module.value)
+        except PyMathicsLoadException:
             evaluation.message(self.name, "notmathicslib", module)
             return SymbolFailed
-        except ImportError as e:
+        except ImportError:
             evaluation.message(self.get_name(), "notfound", module)
             return SymbolFailed
         else:

@@ -15,7 +15,10 @@ from mathics.core.expression import (
     strip_context,
     Symbol,
     SymbolFailed,
+    SymbolNull,
 )
+from mathics.core.streams import stream_manager
+
 from mathics.builtin.base import (
     Builtin,
     Predefined,
@@ -24,7 +27,7 @@ from mathics.builtin.base import (
     get_option,
 )
 
-from .pymimesniffer import magic
+from mathics.builtin.pymimesniffer import magic
 import mimetypes
 import sys
 from itertools import chain
@@ -2033,31 +2036,30 @@ class ExportString(Builtin):
                     res = String(str(res))
         elif function_channels == Expression(SymbolList, String("Streams")):
             from io import StringIO, BytesIO
-            from mathics.builtin.files import STREAMS, NSTREAMS
 
             if is_binary:
                 pystream = BytesIO()
             else:
                 pystream = StringIO()
 
-            n = next(NSTREAMS)
-            STREAMS.append(pystream)
-            stream = Expression("OutputStream", String("String"), Integer(n))
+            name = "ExportString"
+            stream = stream_manager.add(name, mode="w", io=pystream)
+            outstream = Expression("OutputStream", String("String"), Integer(stream.n))
             exporter_function = Expression(
                 exporter_symbol,
-                stream,
+                outstream,
                 expr,
                 *list(chain(stream_options, custom_options))
             )
             res = exporter_function.evaluate(evaluation)
-            if res == Symbol("Null"):
+            if res == SymbolNull:
                 if is_binary:
                     res = Expression("ByteArray", ByteArrayAtom(pystream.getvalue()))
                 else:
                     res = String(str(pystream.getvalue()))
             else:
                 res = Symbol("$Failed")
-            Expression("Close", stream).evaluate(evaluation)
+            Expression("Close", outstream).evaluate(evaluation)
         else:
             evaluation.message("ExportString", "emptyfch")
             evaluation.predetermined_out = current_predetermined_out

@@ -10,6 +10,8 @@ from mathics.core.expression import (
     Atom,
     Expression,
     Integer,
+    Integer0,
+    Integer1,
     Rational,
     Real,
     MachineReal,
@@ -19,7 +21,7 @@ from mathics.core.expression import (
     SymbolRule,
     from_python,
 )
-from mathics.builtin.colors import (
+from mathics.builtin.drawing.colors import (
     convert as convert_color,
     colorspaces as known_colorspaces,
 )
@@ -1064,7 +1066,7 @@ class BoxMatrix(_ImageBuiltin):
         "BoxMatrix[r_?RealNumberQ]"
         py_r = abs(r.round_to_float())
         s = int(math.floor(1 + 2 * py_r))
-        return _matrix([[Integer(1)] * s] * s)
+        return _matrix([[Integer1] * s] * s)
 
 
 class DiskMatrix(_ImageBuiltin):
@@ -1083,7 +1085,7 @@ class DiskMatrix(_ImageBuiltin):
         py_r = abs(r.round_to_float())
         s = int(math.floor(0.5 + py_r))
 
-        m = (Integer(0), Integer(1))
+        m = (Integer0, Integer1)
         r_sqr = (py_r + 0.5) * (py_r + 0.5)
 
         def rows():
@@ -1109,8 +1111,8 @@ class DiamondMatrix(_ImageBuiltin):
         py_r = abs(r.round_to_float())
         t = int(math.floor(0.5 + py_r))
 
-        zero = Integer(0)
-        one = Integer(1)
+        zero = Integer0
+        one = Integer1
 
         def rows():
             for d in range(0, t):
@@ -1445,14 +1447,30 @@ class Binarize(_SkimageBuiltin):
 class ColorNegate(_ImageBuiltin):
     """
     <dl>
-    <dt>'ColorNegate[$image$]'
-      <dd>Gives a version of $image$ with all colors negated.
+      <dt>'ColorNegate[$image$]'
+      <dd>returns the negative of $image$ in which colors have been negated.
+
+      <dt>'ColorNegate[$color$]'
+      <dd>returns the negative of a color.
+
+      Yellow is RGBColor[1.0, 1.0, 0.0]
+      >> ColorNegate[Yellow]
+       = RGBColor[0., 0., 1.]
     </dl>
     """
 
-    def apply(self, image, evaluation):
+    def apply_for_image(self, image, evaluation):
         "ColorNegate[image_Image]"
         return image.filter(lambda im: PIL.ImageOps.invert(im))
+
+    def apply_for_color(self, color, evaluation):
+        "ColorNegate[color_RGBColor]"
+        # Get components
+        r, g, b = [leaf.to_python() for leaf in color.leaves]
+        # Invert
+        r, g, b = (1.0 - r, 1.0 - g, 1.0 - b)
+        # Reconstitute
+        return Expression("RGBColor", Real(r), Real(g), Real(b))
 
 
 class ColorSeparate(_ImageBuiltin):
@@ -1582,7 +1600,7 @@ class Colorize(_ImageBuiltin):
         ):
             color_function = String("LakeColors")
 
-        from mathics.builtin.plot import gradient_palette
+        from mathics.builtin.drawing.plot import gradient_palette
 
         cmap = gradient_palette(color_function, n, evaluation)
         if not cmap:
@@ -2257,7 +2275,8 @@ class Image(Atom):
         else:
             return hash(self)
 
-    def same(self, other):
+    def sameQ(self, other) -> bool:
+        """Mathics SameQ"""
         if not isinstance(other, Image):
             return False
         if self.color_space != other.color_space or self.metadata != other.metadata:

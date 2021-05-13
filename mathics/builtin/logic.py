@@ -3,7 +3,12 @@
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import BinaryOperator, Predefined, PrefixOperator, Builtin
 from mathics.builtin.lists import InvalidLevelspecError, python_levelspec, walk_levels
-from mathics.core.expression import Expression, Symbol
+from mathics.core.expression import (
+    Expression,
+    Symbol,
+    SymbolTrue,
+    SymbolFalse,
+)
 
 
 class Or(BinaryOperator):
@@ -29,6 +34,11 @@ class Or(BinaryOperator):
     precedence = 215
     attributes = ("Flat", "HoldAll", "OneIdentity")
 
+    #    rules = {
+    #        "Or[a_]": "a",
+    #        "Or[a_, a_]": "a",
+    #        "Or[pred1___, a_, pred2___, a_, pred3___]": "Or[pred1, a, pred2, pred3]",
+    #    }
     def apply(self, args, evaluation):
         "Or[args___]"
 
@@ -37,8 +47,8 @@ class Or(BinaryOperator):
         for arg in args:
             result = arg.evaluate(evaluation)
             if result.is_true():
-                return Symbol("True")
-            elif result != Symbol("False"):
+                return SymbolTrue
+            elif result != SymbolFalse:
                 leaves.append(result)
         if leaves:
             if len(leaves) == 1:
@@ -46,7 +56,7 @@ class Or(BinaryOperator):
             else:
                 return Expression("Or", *leaves)
         else:
-            return Symbol("False")
+            return SymbolFalse
 
 
 class And(BinaryOperator):
@@ -72,6 +82,12 @@ class And(BinaryOperator):
     precedence = 215
     attributes = ("Flat", "HoldAll", "OneIdentity")
 
+    #    rules = {
+    #        "And[a_]": "a",
+    #        "And[a_, a_]": "a",
+    #        "And[pred1___, a_, pred2___, a_, pred3___]": "And[pred1, a, pred2, pred3]",
+    #    }
+
     def apply(self, args, evaluation):
         "And[args___]"
 
@@ -79,8 +95,8 @@ class And(BinaryOperator):
         leaves = []
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol("False"):
-                return Symbol("False")
+            if result == SymbolFalse:
+                return SymbolFalse
             elif not result.is_true():
                 leaves.append(result)
         if leaves:
@@ -89,7 +105,7 @@ class And(BinaryOperator):
             else:
                 return Expression("And", *leaves)
         else:
-            return Symbol("True")
+            return SymbolTrue
 
 
 class Not(PrefixOperator):
@@ -115,6 +131,38 @@ class Not(PrefixOperator):
         "Not[True]": "False",
         "Not[False]": "True",
         "Not[Not[expr_]]": "expr",
+    }
+
+
+class Nand(Builtin):
+    """
+    <dl>
+    <dt>'Nand[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ \u22BC $expr2$ \u22BC ...'
+        <dd> Implements the logical NAND function.  The same as 'Not[And['$expr1$, $expr2$, ...']]'
+    </dl>
+    >> Nand[True, False]
+     = True
+    """
+
+    rules = {
+        "Nand[expr___]": "Not[And[expr]]",
+    }
+
+
+class Nor(Builtin):
+    """
+    <dl>
+    <dt>'Nor[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ \u22BD $expr2$ \u22BD ...'
+        <dd>Implements the logical NOR function.  The same as 'Not[Or['$expr1$, $expr2$, ...']]'
+    </dl>
+    >> Nor[True, False]
+     = False
+    """
+
+    rules = {
+        "Nor[expr___]": "Not[Or[expr]]",
     }
 
 
@@ -148,8 +196,8 @@ class Implies(BinaryOperator):
         "Implies[x_, y_]"
 
         result0 = x.evaluate(evaluation)
-        if result0 == Symbol("False"):
-            return Symbol("True")
+        if result0 == SymbolFalse:
+            return SymbolTrue
         elif result0.is_true():
             return y.evaluate(evaluation)
         else:
@@ -158,28 +206,28 @@ class Implies(BinaryOperator):
 
 class Equivalent(BinaryOperator):
     """
-     <dl>
-     <dt>'Equivalent[$expr1$, $expr2$, ...]'
-     <dt>'$expr1$ \u29E6 $expr2$ \u29E6 ...'
-         <dd>is equivalent to
-         ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
-     </dl>
+    <dl>
+    <dt>'Equivalent[$expr1$, $expr2$, ...]'
+    <dt>'$expr1$ \u29E6 $expr2$ \u29E6 ...'
+        <dd>is equivalent to
+        ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
+    </dl>
 
-     >> Equivalent[True, True, False]
-      = False
+    >> Equivalent[True, True, False]
+     = False
 
-     If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
-     returns a result in symbolic form:
-     >> Equivalent[a, b, c]
-      = a \u29E6 b \u29E6 c
-      Otherwise, 'Equivalent' returns a result in DNF
-     >> Equivalent[a, b, True, c]
-      = a && b && c
-     #> Equivalent[]
-      = True
-     #> Equivalent[a]
-      = True
-     """
+    If all expressions do not evaluate to 'True' or 'False', 'Equivalent'
+    returns a result in symbolic form:
+    >> Equivalent[a, b, c]
+     = a \u29E6 b \u29E6 c
+     Otherwise, 'Equivalent' returns a result in DNF
+    >> Equivalent[a, b, True, c]
+     = a && b && c
+    #> Equivalent[]
+     = True
+    #> Equivalent[a]
+     = True
+    """
 
     operator = "\u29E6"
     precedence = 205
@@ -191,11 +239,11 @@ class Equivalent(BinaryOperator):
         args = args.get_sequence()
         argc = len(args)
         if argc == 0 or argc == 1:
-            return Symbol("True")
+            return SymbolTrue
         flag = False
         for arg in args:
             result = arg.evaluate(evaluation)
-            if result == Symbol("False") or result.is_true():
+            if result == SymbolFalse or result.is_true():
                 flag = not flag
                 break
         if flag:
@@ -253,7 +301,7 @@ class Xor(BinaryOperator):
             result = arg.evaluate(evaluation)
             if result.is_true():
                 flag = not flag
-            elif result != Symbol("False"):
+            elif result != SymbolFalse:
                 leaves.append(result)
         if leaves and flag:
             if len(leaves) == 1:
@@ -272,8 +320,8 @@ class Xor(BinaryOperator):
 class True_(Predefined):
     """
     <dl>
-    <dt>'True'
-        <dd>represents the Boolean true value.
+      <dt>'True'
+      <dd>represents the Boolean true value.
     </dl>
     """
 
@@ -352,10 +400,10 @@ class NoneTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if what:
-            raise _ShortCircuit(Symbol("False"))
+            raise _ShortCircuit(SymbolFalse)
 
     def _no_short_circuit(self):
-        return Symbol("True")
+        return SymbolTrue
 
 
 class AnyTrue(_ManyTrue):
@@ -381,10 +429,10 @@ class AnyTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if what:
-            raise _ShortCircuit(Symbol("True"))
+            raise _ShortCircuit(SymbolTrue)
 
     def _no_short_circuit(self):
-        return Symbol("False")
+        return SymbolFalse
 
 
 class AllTrue(_ManyTrue):
@@ -410,7 +458,7 @@ class AllTrue(_ManyTrue):
 
     def _short_circuit(self, what):
         if not what:
-            raise _ShortCircuit(Symbol("False"))
+            raise _ShortCircuit(SymbolFalse)
 
     def _no_short_circuit(self):
-        return Symbol("True")
+        return SymbolTrue

@@ -8,7 +8,7 @@ XML
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
-from mathics.builtin.files import mathics_open
+from mathics.builtin.files_io.files import mathics_open
 from mathics.core.expression import (
     Expression,
     String,

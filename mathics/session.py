@@ -1,7 +1,6 @@
 from mathics.core.parser import parse, MathicsSingleLineFeeder
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
-from mathics import settings
 
 
 class MathicsSession:
@@ -27,4 +26,4 @@ class MathicsSession:
         res = self.last_result
         if form is None:
             form = self.form
-        return self.last_result.do_format(self.evaluation, form)
+        return res.do_format(self.evaluation, form)

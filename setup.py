@@ -64,29 +64,40 @@ except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
 else:
-    EXTENSIONS = {
-        "core": ["expression", "numbers", "rules", "pattern"],
+    EXTENSIONS_DICT = {
+        "core": ("expression", "numbers", "rules", "pattern"),
         "builtin": ["arithmetic", "numeric", "patterns", "graphics"],
     }
     EXTENSIONS = [
         Extension(
             "mathics.%s.%s" % (parent, module), ["mathics/%s/%s.py" % (parent, module)]
         )
-        for parent, modules in EXTENSIONS.items()
+        for parent, modules in EXTENSIONS_DICT.items()
         for module in modules
     ]
+    # EXTENSIONS_SUBDIR_DICT = {
+    #     "builtin": [("numbers", "arithmetic"), ("numbers", "numeric"), ("drawing", "graphics")],
+    # }
+    # EXTENSIONS.append(
+    #     Extension(
+    #         "mathics.%s.%s.%s" % (parent, module[0], module[1]), ["mathics/%s/%s/%s.py" % (parent, module[0], module[1])]
+    #     )
+    #     for parent, modules in EXTENSIONS_SUBDIR_DICT.items()
+    #     for module in modules
+    # )
     CMDCLASS = {"build_ext": build_ext}
     INSTALL_REQUIRES += ["cython>=0.15.1"]
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.1.0,<1.2.0",
-    "sympy>=1.7, <= 1.8dev",
+    "Mathics_Scanner>=1.1.2,<1.2.0",
+    "sympy>=1.8, <= 1.9dev",
     "mpmath>=1.2.0",
     "numpy",
     "palettable",
     "pint",
     "python-dateutil",
+    "psutil",  # for $SystemMemory
     "llvmlite",
     "requests",
     "scikit-image",
@@ -112,10 +123,14 @@ setup(
         "mathics.core",
         "mathics.core.parser",
         "mathics.builtin",
-        "mathics.builtin.pymimesniffer",
-        "mathics.builtin.numpy_utils",
-        "mathics.builtin.pympler",
         "mathics.builtin.compile",
+        "mathics.builtin.drawing",
+        "mathics.builtin.files_io",
+        "mathics.builtin.numbers",
+        "mathics.builtin.numpy_utils",
+        "mathics.builtin.pymimesniffer",
+        "mathics.builtin.pympler",
+        "mathics.builtin.specialfns",
         "mathics.doc",
         "mathics.layout",
     ],
