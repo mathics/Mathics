@@ -258,12 +258,12 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
     >> Degree == Pi / 180
      = True
 
+    >> N[\\[Degree]] == N[Degree]
+     = True
+
     #> Cos[Degree[x]]
      = Cos[Degree[x]]
 
-    ## Issue 274
-    #> \\[Degree] == ° == Degree
-     = True
 
     #> N[Degree]
      = 0.0174533
