@@ -3473,8 +3473,12 @@ class GraphicsBox(BoxConstruct):
     def boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-
-        self._prepare_elements(leaves, options)  # to test for Box errors
+        try:
+            self._prepare_elements(leaves, options)  # to test for Box errors
+        except Exception as e:
+            if self.evaluation:
+                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+            return
         return "-Graphics-"
 
     def _get_image_size(self, options, graphics_options, max_width):
@@ -3699,10 +3703,14 @@ class GraphicsBox(BoxConstruct):
     def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-        elements, calc_dimensions = self._prepare_elements(
-            leaves, options, max_width=450
-        )
-
+        try:
+            elements, calc_dimensions = self._prepare_elements(
+                leaves, options, max_width=450
+            )
+        except:
+            if self.evaluation:
+                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+            return
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         asy_completely_visible = "\n".join(
@@ -3758,9 +3766,13 @@ clip(%s);
         if data:
             elements, xmin, xmax, ymin, ymax, w, h, width, height = data
         else:
-            elements, calc_dimensions = self._prepare_elements(
-                leaves, options, neg_y=True
-            )
+            try:
+                elements, calc_dimensions = self._prepare_elements(
+                    leaves, options, neg_y=True
+                )
+            except Exception as e:
+                print(e)
+                return
             xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         elements.view_width = w
@@ -3800,8 +3812,12 @@ clip(%s);
     def boxes_to_mathml(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
+        try:
+            elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        except:
+            if self.evaluation:
+                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
 
-        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
 
