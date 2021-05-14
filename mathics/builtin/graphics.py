@@ -284,7 +284,6 @@ def _CMC_distance(lab1, lab2, l, c):
 
 def _extract_graphics(graphics, format, evaluation):
     graphics_box = Expression(SymbolMakeBoxes, graphics).evaluate(evaluation)
-    # builtin = GraphicsBox(expression=False)
     elements, calc_dimensions = graphics_box._prepare_elements(
         graphics_box._leaves, {"evaluation": evaluation}, neg_y=True
     )
@@ -297,7 +296,7 @@ def _extract_graphics(graphics, format, evaluation):
     # generate code for svg or asy.
 
     if format == "asy":
-        code = "\n".join(element.to_asy() for element in elements.elements)
+        code = "\n".join(element.to_asy(None) for element in elements.elements)
     elif format == "svg":
         code = elements.to_svg()
     else:
@@ -1425,7 +1424,10 @@ class _RoundBox(_GraphicsElement):
         )
 
     def to_asy(self, transform):
-        c, r = transform(self.c, self.r)
+        if transform: 
+            c, r = transform(self.c, self.r)
+        else:
+            c, r = self.c, self.r
         x, y = c
         rx, ry = r
         rx -= x
@@ -3815,6 +3817,7 @@ clip(%s);
             leaves = self._leaves
         try:
             elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+            print("calc_dimensions:", calc_dimensions)
         except:
             if self.evaluation:
                 self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
