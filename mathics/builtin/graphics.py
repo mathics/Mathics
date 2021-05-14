@@ -509,7 +509,7 @@ class Graphics(Builtin):
 
     Invalid graphics directives yield invalid box structures:
     >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[CircleBox[List[a, b]], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]], Rule[Transformation, Automatic]] is not a valid box structure.
+     : GraphicsBox[{CircleBox[{a, b}], $OptionSyntax -> Ignore, AspectRatio -> Automatic, Axes -> False, AxesStyle -> {}, Background -> Automatic, ImageSize -> Automatic, LabelStyle -> {}, PlotRange -> Automatic, PlotRangePadding -> Automatic, TicksStyle -> {}, Transformation -> Automatic}] is not a valid box structure.
     """
 
     options = GRAPHICS_OPTIONS
