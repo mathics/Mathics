@@ -635,8 +635,8 @@ class _Color(_GraphicsElement):
                 # become RGBColor[0, 0, 0, 1]. does not seem the right thing
                 # to do in this general context. poke1024
 
-                #                if len(components) < 3:
-                #                    components.extend(self.default_components[len(components) :])
+                if len(components) < 3:
+                    components.extend(self.default_components[len(components) :])
 
                 self.components = components
             else:
@@ -683,6 +683,7 @@ class _Color(_GraphicsElement):
         return self.to_color_space("RGB")
 
     def to_color_space(self, color_space):
+        print("colorspace=", self.color_space, "components:", self.components)
         components = convert_color(self.components, self.color_space, color_space)
         if components is None:
             raise ValueError(
@@ -1721,7 +1722,7 @@ class LineBox(_Polyline):
 
         asy = ""
         for line in self.lines:
-            path = "--".join(["(%.5g,%5g)" % (str(cc) for cc in c) for c in transform(*line)])
+            path = "--".join(["(%.5g,%5g)" % tuple(float(cc) for cc in c) for c in transform(*line)])
             asy += "draw(%s, %s);" % (path, pen)
 
         return asy
@@ -2062,7 +2063,7 @@ class PolygonBox(_Polyline):
             mesh = []
             for index, line in enumerate(self.lines):
                 data = [
-                    [coords, color.to_js()]
+                    [[float(c) for c in coords], color.to_js()]
                     for coords, color in zip(
                         transform(*line), self.vertex_colors[index]
                     )

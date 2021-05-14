@@ -412,6 +412,7 @@ colorspaces = frozenset(
 
 def convert(components, src, dst, preserve_alpha=True):
     if not preserve_alpha:
+        print("not preserve alpha")
         if src == "Grayscale":
             non_alpha = 1
         elif src == "CMYK":
@@ -430,7 +431,7 @@ def convert(components, src, dst, preserve_alpha=True):
     path = _paths.get((src, dst), None)
     if path is None:
         return None
-
+    print("   components=", components)
     for s, d in zip(path[:-1], path[1:]):
         func = conversions.get("%s>%s" % (s, d))
         if not func:

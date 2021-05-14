@@ -772,6 +772,7 @@ class Graphics3DElements(_GraphicsElements):
         ) = (
             self.pixel_width
         ) = self.pixel_height = self.extent_width = self.extent_height = None
+        self.local_to_screen = None
 
     def make_coords(self, points):
         return [Coords3D(self, p) for p in points]
