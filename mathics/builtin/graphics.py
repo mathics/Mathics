@@ -389,7 +389,7 @@ class _Transform:
         # b d f
         # 0 0 1
 
-        t = "matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f)
+        t = "matrix(%s, %s, %s, %s, %s, %s)" % (str(a), str(b), str(c), str(d), str(e), str(f))
         return '<g transform="%s">%s</g>' % (t, svg)
 
     def to_asy(self, asy):
@@ -1347,11 +1347,11 @@ class RectangleBox(_GraphicsElement):
         w = max(x1, x2) - xmin
         h = max(y1, y2) - ymin
         style = create_css(self.edge_color, self.face_color, l)
-        return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
-            xmin,
-            ymin,
-            w,
-            h,
+        return '<rect x="%s" y="%s" width="%s" height="%s" style="%s" />' % (
+            str(xmin),
+            str(ymin),
+            str(w),
+            str(h),
             style,
         )
 
@@ -1363,14 +1363,14 @@ class RectangleBox(_GraphicsElement):
         pens = create_pens(self.edge_color, self.face_color, l, is_face_element=True)
         x1, x2, y1, y2 = asy_number(x1), asy_number(x2), asy_number(y1), asy_number(y2)
         return "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
-            x1,
-            y1,
-            x2,
-            y1,
-            x2,
-            y2,
-            x1,
-            y2,
+            str(x1),
+            str(y1),
+            str(x2),
+            str(y1),
+            str(x2),
+            str(y2),
+            str(x1),
+            str(y2),
             pens,
         )
 
@@ -1415,11 +1415,11 @@ class _RoundBox(_GraphicsElement):
         ry = abs(y - ry)
         l = self.style.get_line_width(face_element=self.face_element)
         style = create_css(self.edge_color, self.face_color, stroke_width=l)
-        return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
-            x,
-            y,
-            rx,
-            ry,
+        return '<ellipse cx="%s" cy="%s" rx="%s" ry="%s" style="%s" />' % (
+            str(x),
+            str(y),
+            str(rx),
+            str(ry),
             style,
         )
 
@@ -1505,12 +1505,12 @@ class _ArcBox(_RoundBox):
 
         def path(closed):
             if closed:
-                yield "M %f,%f" % (x, y)
-                yield "L %f,%f" % (sx, sy)
+                yield "M %s,%s" % (str(x), str(y))
+                yield "L %s,%s" % (str(sx), str(sy))
             else:
-                yield "M %f,%f" % (sx, sy)
+                yield "M %s,%s" % (str(sx), str(sy))
 
-            yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
+            yield "A %s,%s,0,%d,0,%s,%s" % (str(rx), str(ry), large_arc, str(ex), str(ey))
 
             if closed:
                 yield "Z"
@@ -1650,10 +1650,10 @@ class PointBox(_Polyline):
         for line in self.lines:
             for x, y in transform(*line):
                 svg += '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
-                    x,
-                    y,
-                    size_x,
-                    size_y,
+                    float(x),
+                    float(y),
+                    float(size_x),
+                    float(size_y),
                     style,
                 )
         return svg
@@ -1709,7 +1709,7 @@ class LineBox(_Polyline):
 
         svg = ""
         for line in self.lines:
-            path = " ".join(["%f,%f" % c for c in transform(*line)])
+            path = " ".join(["%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)])
             svg += '<polyline points="%s" style="%s" />' % (path, style)
 
         return svg
@@ -1721,7 +1721,7 @@ class LineBox(_Polyline):
 
         asy = ""
         for line in self.lines:
-            path = "--".join(["(%.5g,%5g)" % c for c in transform(*line)])
+            path = "--".join(["(%.5g,%5g)" % (str(cc) for cc in c) for c in transform(*line)])
             asy += "draw(%s, %s);" % (path, pen)
 
         return asy
@@ -1745,11 +1745,11 @@ def _svg_bezier(*segments):
             n = min(max_degree, len(p))  # 1, 2, or 3
             if n < 1:
                 raise BoxConstructError
-            yield forms[n - 1] + " ".join("%f,%f" % xy for xy in p[:n])
+            yield forms[n - 1] + " ".join("%f,%f" % tuple(float(cc) for cc in xy) for xy in p[:n])
             p = p[n:]
 
     k, p = segments[0]
-    yield "M%f,%f" % p[0]
+    yield "M%f,%f" % tuple(float(cc) for cc in p[0])
 
     for s in path(k, p[1:]):
         yield s
@@ -2071,7 +2071,7 @@ class PolygonBox(_Polyline):
             svg += '<meshgradient data="%s" />' % json.dumps(mesh)
         for line in self.lines:
             svg += '<polygon points="%s" style="%s" />' % (
-                " ".join("%f,%f" % c for c in transform(*line)),
+                " ".join("%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)),
                 style,
             )
         return svg
@@ -2963,7 +2963,7 @@ class InsetBox(_GraphicsElement):
     def _prepare_text_svg(self):
         self.graphics.evaluation.output.assume_web_engine()
 
-        content = self.content.boxes_to_xml(evaluation=self.graphics.evaluation)
+        content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
 
         svg = self.graphics.evaluation.output.mathml_to_svg("<math>%s</math>" % content)
 
@@ -3007,12 +3007,12 @@ class InsetBox(_GraphicsElement):
         return (
             '<g transform="translate(%f,%f) scale(%f,%f) translate(%f, %f)">%s</g>'
             % (
-                x,
-                y,
-                scale * tx,
-                scale * ty,
-                -width / 2 - ox * width / 2,
-                -height / 2 + oy * height / 2,
+                float(x),
+                float(y),
+                float(scale * tx),
+                float(scale * ty),
+                float(-width / 2 - ox * width / 2),
+                float(-height / 2 + oy * height / 2),
                 svg,
             )
         )
@@ -3036,7 +3036,7 @@ class InsetBox(_GraphicsElement):
             svg = (
                 '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
                 "<math>%s</math></foreignObject>"
-            ) % (x, y, self.opos[0], self.opos[1], style, content)
+            ) % (float(x), float(y), float(self.opos[0]), float(self.opos[1]), style, content)
 
             if not is_absolute:
                 svg = self.graphics.inverse_local_to_screen.to_svg(svg)
@@ -3074,8 +3074,8 @@ class InsetBox(_GraphicsElement):
         pen = create_pens(edge_color=self.color)
         asy = 'label("$%s$", (%s,%s), (%s,%s), %s);' % (
             content,
-            x,
-            y,
+            float(x),
+            float(y),
             -self.opos[0],
             -self.opos[1],
             pen,
@@ -3777,14 +3777,14 @@ clip(%s);
 
         elements.view_width = w
 
-        svg = elements.to_svg(offset=options.get("offset", None))
+        svg = elements.to_svg()
 
         if self.background_color is not None:
             svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
-                xmin,
-                ymin,
-                w,
-                h,
+                float(xmin),
+                float(ymin),
+                float(w),
+                float(h),
                 self.background_color.to_css()[0],
                 svg,
             )
@@ -3804,7 +3804,7 @@ clip(%s);
                %s
           </svg>
         """ % (
-            " ".join("%f" % t for t in (xmin, ymin, w, h)),
+            " ".join("%f" % float(t) for t in (xmin, ymin, w, h)),
             svg,
         )
         return svg_xml  # , width, height
