@@ -516,7 +516,7 @@ class Graphics(Builtin):
 
     Invalid graphics directives yield invalid box structures:
     >> Graphics[Circle[{a, b}]]
-     : GraphicsBox[{CircleBox[{a, b}], $OptionSyntax -> Ignore, AspectRatio -> Automatic, Axes -> False, AxesStyle -> {}, Background -> Automatic, ImageSize -> Automatic, LabelStyle -> {}, PlotRange -> Automatic, PlotRangePadding -> Automatic, TicksStyle -> {}, Transformation -> Automatic}] is not a valid box structure.
+     : GraphicsBox[CircleBox[List[a, b]], Rule[$OptionSyntax, Ignore], Rule[AspectRatio, Automatic], Rule[Axes, False], Rule[AxesStyle, List[]], Rule[Background, Automatic], Rule[ImageSize, Automatic], Rule[LabelStyle, List[]], Rule[PlotRange, Automatic], Rule[PlotRangePadding, Automatic], Rule[TicksStyle, List[]], Rule[Transformation, Automatic]] is not a valid box structure.
     """
 
     options = GRAPHICS_OPTIONS
@@ -1680,7 +1680,7 @@ class PointBox(_Polyline):
         asy = ""
         for line in self.lines:
             for x, y in transform(*line):
-                asy += "dot(%f, %f);" % ((float(x), float(y)), pen)
+                asy += "dot(%s, %s);" % ((float(x), float(y)), pen)
 
         return asy
 

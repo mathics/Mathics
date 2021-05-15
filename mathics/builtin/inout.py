@@ -2101,7 +2101,7 @@ class MathMLForm(Builtin):
                 "notboxes",
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
-            xml = None
+            xml = ""
 #        if xml is None:
 #            return Expression("RowBox", Expression(SymbolList, String("")))
 
