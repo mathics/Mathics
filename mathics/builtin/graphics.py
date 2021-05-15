@@ -23,6 +23,7 @@ from mathics.builtin.base import (
 from mathics.builtin.options import options_to_rules
 from mathics.layout.client import WebEngineUnavailable
 from mathics.core.expression import (
+    BoxError,
     Expression,
     Integer,
     Rational,
@@ -3506,11 +3507,7 @@ class GraphicsBox(BoxConstruct):
         try:
             self._prepare_elements(leaves, options)  # to test for Box errors
         except Exception:
-            if self.evaluation:
-                self.evaluation.message(
-                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
-                )
-            return
+            raise BoxError(Expression("GraphicsBox", self._leaves), "text")
         return "-Graphics-"
 
     def _get_image_size(self, options, graphics_options, max_width):
@@ -3740,11 +3737,7 @@ class GraphicsBox(BoxConstruct):
                 leaves, options, max_width=450
             )
         except:
-            if self.evaluation:
-                self.evaluation.message(
-                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
-                )
-            return
+            raise BoxError(Expression("GraphicsBox", self._leaves), "tex")
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         asy_completely_visible = "\n".join(
@@ -3805,7 +3798,7 @@ clip(%s);
                     leaves, options, neg_y=True
                 )
             except Exception:
-                return
+                raise BoxError(Expression("GraphicsBox", self._leaves), "svg")
             xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
         elements.view_width = w
@@ -3850,11 +3843,7 @@ clip(%s);
                 leaves, options, neg_y=True
             )
         except:
-            if self.evaluation:
-                self.evaluation.message(
-                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
-                )
-            return
+            raise BoxError(Expression("GraphicsBox", self._leaves), "MathML")
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
