@@ -682,7 +682,6 @@ class _Color(_GraphicsElement):
         return self.to_color_space("RGB")
 
     def to_color_space(self, color_space):
-        print("colorspace=", self.color_space, "components:", self.components)
         components = convert_color(self.components, self.color_space, color_space)
         if components is None:
             raise ValueError(
@@ -3817,10 +3816,10 @@ clip(%s);
             leaves = self._leaves
         try:
             elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
-            print("calc_dimensions:", calc_dimensions)
         except:
             if self.evaluation:
                 self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+            return
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
