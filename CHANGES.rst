@@ -2,7 +2,7 @@ CHANGES
 =======
 
 
-2.1.1
+2.2.0
 -----
 
 Package update
@@ -36,26 +36,30 @@ Enhancements
 * ``Cases`` accepts Heads option. Issue #1302.
 * ``ColorNegate`` for colors is supported.
 * ``D`` and ``Derivative`` improvements.
-* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` (#1301)
-* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`)
+* ``Expand`` and ``ExpandAll`` now support a second parameter ``patt`` Issue #1301.
+* ``Expand`` and ``ExpandAll`` works with hyperbolic functions (`Sinh`, `Cosh`, `Tanh`, `Coth`).
 * ``FileNames`` returns a sorted list (#1250).
-* ``FindRoot`` now receives several optional parameters like ``Method`` and ``MaxIterations``.
+* ``FindRoot`` now accepts several optional parameters like ``Method`` and ``MaxIterations``. See Issue #1235.
 * ``FixedPoint`` now supports the ``SameTest`` option.
 * ``mathics`` CLI now uses its own Mathics ``settings.m`` file
 * ``Prepend`` works with ``DownValues`` Issue #1251
 * ``Prime`` and ``PrimePi`` now accept a list parameter and have the ``NumericFunction`` attribute.
 * ``Read`` with ``Hold[Expression]`` now supported. (#1242)
-* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option (#1260).
+* ``ReplaceRepeated`` and ``FixedPoint`` now supports the ``MaxIteration`` option. See Issue #1260.
 * ``Simplify`` performs a more sophisticated set of simplifications.
 * ``Simplify`` accepts a second parameter that temporarily overwrites ``$Assumptions``.
-* ``StringTake`` now accepts form containing a list of strings and specification (#1297).
+* ``StringTake`` now accepts form containing a list of strings and specification. See Issue #1297.
 * ``Table`` [*expr*, *n*] is supported.
 * ``ToExpression`` handles multi-line string input.
 * ``ToString`` accepts an optional *form* parameter.
-*  The implementation of Streams was redone.
-* ``ToExpression`` handles multi-line string input
-* ``$VersionNumber`` now set to 10.0 (was 6.0)
+* ``ToExpression`` handles multi-line string input.
+* ``$VersionNumber`` now set to 10.0 (was 6.0).
 * The implementation of Streams was redone.
+* Function ``mathics.core.definitions.autoload_files`` was added and
+  exposed to allow front-ends to provide their own custom Mathics.
+  settings.
+* String output in the ``mathics`` terminal has surrounding quotes to make it more visually distinct from unexpanded and symbol output.
+  To disable this behavior use ``--strict-wl-output``.
 
 
 Bug fixes
@@ -64,19 +68,26 @@ Bug fixes
 * ``SetTagDelayed`` now does not evaluate the RHS before assignment.
 * ``$InstallationDirectory`` starts out ``Unprotected``.
 * ``FindRoot`` now handles equations.
+* Malformed Patterns are detected and an error message is given for them.
 * Functions gone over to ensure the ``Listable`` and ``NumericFunction`` properties are correct.
 
 
 Incompatible changes
 --------------------
 
-``System`$UseSansSerif`` moved from core and is sent front-ends using ``Settings`$UseSansSerif``.
+* ``System`$UseSansSerif`` moved from core and is sent front-ends using ``Settings`$UseSansSerif``.
+
 
 Internal changes
 ----------------
 
 * doctest  accepts the option ``-d`` to show how long it takes to parse, evaluate and compare each individual test.
   ``-x`` option (akin to ``pytests -x`` is a short-hand for stop on first error
+* Some builtin functions have been grouped together in a module
+  underneath the top-level builtin directory.  As a result, in the
+  documents you will list some builtins listed under an overarching
+  categery like ``Specific Functions`` or ``Graphics, Drawing, and
+  Images``. More work is expected in the future to improve document sectioning.
 
 
 2.1.0
@@ -125,7 +136,7 @@ Pymathics Modules
 +++++++++++++++++
 
 * Pymathics modules now can run initialization code when are loaded.
-* The ``builtins`` list is not hardliked to the library anymore. This simplifies
+* The ``builtins`` list is not hard-linked to the library anymore. This simplifies
   the loading and reloading of pymathics modules.
 * Decoupling of BoxConstructors from the library. Now are defined at the
   level of the definition objects. This is useful for customizing the
@@ -135,10 +146,10 @@ Pymathics Modules
 Miscellanea
 +++++++++++
 
-* A pass was made to improve Microsoft Windows compatability and testing Windows under MSYS.
+* A pass was made to improve Microsoft Windows compatibility and testing Windows under MSYS.
 * Include numpy version in version string. Show in CLI
 * Small CLI tweaks ``--colors=None`` added to match mathicsscript.
-* In the ``BaseExpression`` and derivated classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
+* In the ``BaseExpression`` and derived classes, the method ``boxes_to_xml`` now are called ``boxes_to_mathml``.
 * In the ``format`` method of the class ``Evaluation``,  the builtin ``ToString`` is called instead of  ``boxes_to_text``
 * In order to control the final form of boxes from the user space in specific symbols and contexts.
 * ``GraphicsBox`` now have two methods:  ``to_svg`` and  ``to_mathml``. The first produces SVG plain text while the second produces ``<mglyph ...>`` tags with base64 encoded SVGs.
@@ -161,7 +172,7 @@ What's to expect in a Future Release
 To accommodate growth and increased use of pieces of Mathics inside other packages, parts of Mathics have been split off and moved to separate packages. In particular:
 
 * The Django front-end is now a PyPI installable package called `Mathics-Django <https://pypi.org/project/Mathics-Django/>`_.
-* Scanner routines, character translation tables to/from unicode, and character properties are now `mathics-scanner https://github.com/Mathics3/mathics-scanner`_.
+* Scanner routines, character translation tables to/from Unicode, and character properties are now `mathics-scanner https://github.com/Mathics3/mathics-scanner`_.
 * Specific builtins involving heavy, non-standard routines were moved to pymathics modules `pymathics-graph https://github.com/Mathics3/pymathics-graph`_, `pymathics-natlang https://github.com/Mathics3/pymathics-natlang`_.
 
 Incompatible changes:
@@ -254,7 +265,7 @@ Future
 * Work is also being done on asymptote. See `PR #1145 <https://github.com/mathics/Mathics/pull/1145>`_.
 * Makeboxes is being decoupled from a renderer. See `PR #1140 <https://github.com/mathics/Mathics/pull/1140>`_.
 * Inline SVG will be supported (right now SVG is binary).
-* Better support integrating unicode in output (such as for Rule arrows) is in the works. These properties will be in the scanner package.
+* Better support integrating Unicode in output (such as for Rule arrows) is in the works. These properties will be in the scanner package.
 * A method option ("mpmath", "sympy", or "numpy") will be added to the ``N[]``. See `PR #1144 <https://github.com/mathics/Mathics/pull/1144>`_.
 
 
@@ -304,7 +315,7 @@ Enhancements and bug fixes
 - Extend ``DeleteCases`` to accept a levelspec parameter
 - Set ``Evaluation#exc_result`` to capture ``Aborted``, ``Timeout``, ``Overflow1``, etc.
 - ``ImageData`` changed to get bits {0,1}, not booleans as previously
-- Add tokenizer symbols for ``<->`` and ``->`` and the unicode versions of those
+- Add tokenizer symbols for ``<->`` and ``->`` and the Unicode versions of those
 - Small corrections to ``Needs``, e.g check if already loaded, correct a typo, etc.
 - ``System`$InputFileName`` is now set inside ``Needs`` and ``Get``
 - Install shell scripts ``dmathicserver``, ``dmathicsscript``, and ``dmathics`` to simplify running docker
@@ -408,7 +419,7 @@ Enhancements and bug fixes
 - proper sympolic expantion for ``Re`` and ``Im``
 - fixes a bug in the evaluation of ``SympyPrime`` #827
 - clean up ``ColorData``
-- fixes unicode characters in TeX document
+- fixes Unicode characters in TeX document
 - update Django gallery examples
 - fixes ``Sum`` and ``Product`` #869, #873
 - warn when using options not supported by a Builtin #898, #645
