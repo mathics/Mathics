@@ -696,6 +696,15 @@ class _Plot(Builtin):
                     Expression("Point", Expression(SymbolList, *meshpoints))
                 )
 
+        # We need the PrecomputeTransformations option here. To understand why, try Plot[1+x*0.000001, {x, 0, 1}]
+        # without it. in Graphics[], we set up a transformation that scales a very tiny area to a very large area.
+        # unfortunately, most browsers seem to have problems with scaling stroke width properly. since we scale a
+        # very tiny area, we specify a very small stroke width (e.g. 1e-6) which is then scaled. but most browsers
+        # simply round this stroke width to 0 before scaling, so we end up with an empty plot. in order to fix this,
+        # Transformation -> Precomputed simply gets rid of the SVG transformations and passes the scaled coordinates
+        # into the SVG. this also has the advantage that we can precompute with arbitrary precision using mpmath.
+        options['System`Transformation'] = String('Precomputed')
+
         return Expression(
             "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
         )
@@ -1064,19 +1073,10 @@ class BarChart(_Chart):
                 )
 
                 last_x1 = x1
-                yield Expression(
-                    "Line", Expression(SymbolList, vector2(0, 0), vector2(last_x1, 0))
-                )
 
-        # we need the PrecomputeTransformations option here. to understand why, try Plot[1+x*0.000001, {x, 0, 1}]
-        # without it. in Graphics[], we set up a transformation that scales a very tiny area to a very large area.
-        # unfortunately, most browsers seem to have problems with scaling stroke width properly. since we scale a
-        # very tiny area, we specify a very small stroke width (e.g. 1e-6) which is then scaled. but most browsers
-        # simply round this stroke width to 0 before scaling, so we end up with an empty plot. in order to fix this,
-        # Transformation -> Precomputed simply gets rid of the SVG transformations and passes the scaled coordinates
-        # into the SVG. this also has the advantage that we can precompute with arbitrary precision using mpmath.
-        options['System`Transformation'] = String('Precomputed')
-
+            yield Expression(
+                "Line", Expression(SymbolList, vector2(0, 0), vector2(last_x1, 0))
+            )
 
         def axes():
             yield Expression("FaceForm", Symbol("Black"))

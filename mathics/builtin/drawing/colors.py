@@ -430,6 +430,7 @@ def convert(components, src, dst, preserve_alpha=True):
     path = _paths.get((src, dst), None)
     if path is None:
         return None
+
     for s, d in zip(path[:-1], path[1:]):
         func = conversions.get("%s>%s" % (s, d))
         if not func:
