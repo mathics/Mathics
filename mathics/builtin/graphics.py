@@ -1666,7 +1666,7 @@ class PointBox(_Polyline):
         asy = ""
         for line in self.lines:
             for x, y in transform(*line):
-                asy += "dot(%s, %s);" % ((x, y), pen)
+                asy += "dot(%f, %f);" % ((float(x), float(y)), pen)
 
         return asy
 
