@@ -90,7 +90,7 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.1.2,<1.2.0",
+    "Mathics_Scanner>=1.2.0,<1.3.0",
     "sympy>=1.8, <= 1.9dev",
     "mpmath>=1.2.0",
     "numpy",
@@ -102,6 +102,7 @@ INSTALL_REQUIRES += [
     "requests",
     "scikit-image",
     "wordcloud",  # Used in builtin/image.py by WordCloud()
+    "lxml", # Used in builtin/fileformats/html
 ]
 
 
@@ -125,6 +126,7 @@ setup(
         "mathics.builtin",
         "mathics.builtin.compile",
         "mathics.builtin.drawing",
+        "mathics.builtin.fileformats",
         "mathics.builtin.files_io",
         "mathics.builtin.numbers",
         "mathics.builtin.numpy_utils",
@@ -145,6 +147,7 @@ setup(
             "doc/xml/data",
             "doc/tex/data",
             "autoload/*.m",
+            "autoload-cli/*.m",
             "autoload/formats/*/Import.m",
             "autoload/formats/*/Export.m",
             "packages/*/*.m",

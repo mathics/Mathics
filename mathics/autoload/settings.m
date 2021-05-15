@@ -11,6 +11,7 @@ Settings`$PreferredBackendMethod::usage = "Set this do whether to use mpmath, nu
 Settings`$PreferredBackendMethod = "sympy"
 Unprotect[Settings`$PreferredBackendMethod]
 
+(* FIXME: remove this when all front-ends are adjusted to set this. *)
 (* Some packages like Feyncalc, test for whether a they are being used
 inside a notbook. *)
 System`$Notebooks::usage = "Set True if the Mathics is being used with a notebook-based front end.";
