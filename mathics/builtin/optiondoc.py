@@ -33,6 +33,7 @@ class Automatic(Builtin):
      = {Background :> Automatic, Exclusions :> Automatic, ImageSize :> Automatic, MaxRecursion :> Automatic, PlotRange :> Automatic, PlotRangePadding :> Automatic, Transformation :> Automatic}
     """
 
+
 class Axes(Builtin):
     """
     <dl>

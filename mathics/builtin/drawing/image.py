@@ -2568,22 +2568,24 @@ class Rasterize(Builtin):
     requires = _image_requires
 
     options = {
-        'RasterSize': '300',
+        "RasterSize": "300",
     }
 
     def apply(self, expr, evaluation, options):
-        'Rasterize[expr_, OptionsPattern[%(name)s]]'
+        "Rasterize[expr_, OptionsPattern[%(name)s]]"
 
-        raster_size = self.get_option(options, 'RasterSize', evaluation)
+        raster_size = self.get_option(options, "RasterSize", evaluation)
         if isinstance(raster_size, Integer):
             s = raster_size.get_int_value()
             py_raster_size = (s, s)
-        elif raster_size.has_form('List', 2) and all(isinstance(s, Integer) for s in raster_size.leaves):
+        elif raster_size.has_form("List", 2) and all(
+            isinstance(s, Integer) for s in raster_size.leaves
+        ):
             py_raster_size = tuple(s.get_int_value for s in raster_size.leaves)
         else:
             return
 
-        mathml = evaluation.format_output(expr, 'xml')
+        mathml = evaluation.format_output(expr, "xml")
         try:
             svg = evaluation.output.mathml_to_svg(mathml)
             png = evaluation.output.rasterize(svg, py_raster_size)
@@ -2597,7 +2599,11 @@ class Rasterize(Builtin):
             pixels = numpy.array(im)
             stream.close()
 
-            return Image(pixels, 'RGB')
+            return Image(pixels, "RGB")
         except WebEngineError as e:
             evaluation.message(
-                'General', 'nowebeng', 'Rasterize[] did not succeed: ' + str(e), once=True)
+                "General",
+                "nowebeng",
+                "Rasterize[] did not succeed: " + str(e),
+                once=True,
+            )

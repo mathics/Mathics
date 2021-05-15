@@ -7,7 +7,14 @@ Tensors
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Integer, Integer0, String, SymbolTrue, SymbolFalse
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Integer0,
+    String,
+    SymbolTrue,
+    SymbolFalse,
+)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import get_part
@@ -488,7 +495,6 @@ def get_default_distance(p):
         return None
 
 
-
 class TransformationFunction(Builtin):
     """
     <dl>
@@ -504,8 +510,8 @@ class TransformationFunction(Builtin):
     """
 
     rules = {
-        'Dot[TransformationFunction[a_], TransformationFunction[b_]]': 'TransformationFunction[a . b]',
-        'TransformationFunction[m_][v_]': 'Take[m . Join[v, {1}], Length[v]]',
+        "Dot[TransformationFunction[a_], TransformationFunction[b_]]": "TransformationFunction[a . b]",
+        "TransformationFunction[m_][v_]": "Take[m . Join[v, {1}], Length[v]]",
     }
 
 
@@ -521,9 +527,8 @@ class TranslationTransform(Builtin):
     """
 
     rules = {
-        'TranslationTransform[v_]':
-            'TransformationFunction[IdentityMatrix[Length[v] + 1] + '
-            '(Join[ConstantArray[0, Length[v]], {#}]& /@ Join[v, {0}])]',
+        "TranslationTransform[v_]": "TransformationFunction[IdentityMatrix[Length[v] + 1] + "
+        "(Join[ConstantArray[0, Length[v]], {#}]& /@ Join[v, {0}])]",
     }
 
 
@@ -538,10 +543,8 @@ class RotationTransform(Builtin):
     """
 
     rules = {
-        'RotationTransform[phi_]':
-            'TransformationFunction[{{Cos[phi], -Sin[phi], 0}, {Sin[phi], Cos[phi], 0}, {0, 0, 1}}]',
-        'RotationTransform[phi_, p_]':
-            'TranslationTransform[p] . RotationTransform[phi] . TranslationTransform[-p]',
+        "RotationTransform[phi_]": "TransformationFunction[{{Cos[phi], -Sin[phi], 0}, {Sin[phi], Cos[phi], 0}, {0, 0, 1}}]",
+        "RotationTransform[phi_, p_]": "TranslationTransform[p] . RotationTransform[phi] . TranslationTransform[-p]",
     }
 
 
@@ -556,10 +559,8 @@ class ScalingTransform(Builtin):
     """
 
     rules = {
-        'ScalingTransform[v_]':
-            'TransformationFunction[DiagonalMatrix[Join[v, {1}]]]',
-        'ScalingTransform[v_, p_]':
-            'TranslationTransform[p] . ScalingTransform[v] . TranslationTransform[-p]',
+        "ScalingTransform[v_]": "TransformationFunction[DiagonalMatrix[Join[v, {1}]]]",
+        "ScalingTransform[v_, p_]": "TranslationTransform[p] . ScalingTransform[v] . TranslationTransform[-p]",
     }
 
 
@@ -576,10 +577,7 @@ class ShearingTransform(Builtin):
     """
 
     rules = {
-        'ShearingTransform[phi_, {1, 0}, {0, 1}]':
-            'TransformationFunction[{{1, Tan[phi], 0}, {0, 1, 0}, {0, 0, 1}}]',
-        'ShearingTransform[phi_, {0, 1}, {1, 0}]':
-            'TransformationFunction[{{1, 0, 0}, {Tan[phi], 1, 0}, {0, 0, 1}}]',
-        'ShearingTransform[phi_, u_, v_, p_]':
-            'TranslationTransform[p] . ShearingTransform[phi, u, v] . TranslationTransform[-p]',
+        "ShearingTransform[phi_, {1, 0}, {0, 1}]": "TransformationFunction[{{1, Tan[phi], 0}, {0, 1, 0}, {0, 0, 1}}]",
+        "ShearingTransform[phi_, {0, 1}, {1, 0}]": "TransformationFunction[{{1, 0, 0}, {Tan[phi], 1, 0}, {0, 0, 1}}]",
+        "ShearingTransform[phi_, u_, v_, p_]": "TranslationTransform[p] . ShearingTransform[phi, u, v] . TranslationTransform[-p]",
     }

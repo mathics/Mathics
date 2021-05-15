@@ -14,7 +14,13 @@ from mathics_scanner import TranslateError
 from mathics import settings
 
 from mathics.layout.client import NoWebEngine
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
+from mathics.core.expression import (
+    ensure_context,
+    KeyComparable,
+    SymbolAborted,
+    SymbolList,
+    SymbolNull,
+)
 
 FORMATS = [
     "StandardForm",
@@ -504,7 +510,7 @@ class Evaluation(object):
 
         pattern = Expression("MessageName", Symbol(symbol), String(tag))
 
-        if kwargs.get('once', False):
+        if kwargs.get("once", False):
             if pattern in self.once_messages:
                 return
             self.once_messages.add(pattern)

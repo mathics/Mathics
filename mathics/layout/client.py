@@ -34,7 +34,7 @@ class Pipe:
 
     def _recvall(self, n):
         # Helper function to recv n bytes or return None if EOF is hit
-        data = b''
+        data = b""
         sock = self.sock
         while len(data) < n:
             packet = sock.recv(n - len(data))
@@ -44,9 +44,9 @@ class Pipe:
         return data
 
     def put(self, msg):
-        msg = json.dumps(msg).encode('utf8')
+        msg = json.dumps(msg).encode("utf8")
         # Prefix each message with a 4-byte length (network byte order)
-        msg = struct.pack('>I', len(msg)) + msg
+        msg = struct.pack(">I", len(msg)) + msg
         self.sock.sendall(msg)
 
     def get(self):
@@ -54,9 +54,9 @@ class Pipe:
         raw_msglen = self._recvall(4)
         if not raw_msglen:
             return None
-        msglen = struct.unpack('>I', raw_msglen)[0]
+        msglen = struct.unpack(">I", raw_msglen)[0]
         # Read the message data
-        return json.loads(self._recvall(msglen).decode('utf8'))
+        return json.loads(self._recvall(msglen).decode("utf8"))
 
 
 class RemoteMethod:
@@ -65,14 +65,14 @@ class RemoteMethod:
         self.name = name
 
     def __call__(self, *args):
-        self.pipe.put({'call': self.name, 'args': args})
+        self.pipe.put({"call": self.name, "args": args})
         reply = self.pipe.get()
 
-        error = reply.get('error')
+        error = reply.get("error")
         if error:
             raise WebEngineError(str(error))
         else:
-            return reply.get('data')
+            return reply.get("data")
 
 
 class Client:
@@ -91,6 +91,7 @@ class Client:
 # that "provides functionality for rendering regions of dynamic web content". This
 # is not about web servers but layout (http://doc.qt.io/qt-5/qtwebengine-index.html).
 
+
 class NoWebEngine:
     def assume_is_available(self):
         raise WebEngineUnavailable
@@ -107,34 +108,42 @@ def _normalize_svg(svg):
     import base64
     import re
 
-    ET.register_namespace('', 'http://www.w3.org/2000/svg')
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
     root = ET.fromstring(svg)
-    prefix = 'data:image/svg+xml;base64,'
+    prefix = "data:image/svg+xml;base64,"
 
     def rewrite(up):
         changes = []
 
         for i, node in enumerate(up):
-            if node.tag == '{http://www.w3.org/2000/svg}image':
-                src = node.attrib.get('src', '')
+            if node.tag == "{http://www.w3.org/2000/svg}image":
+                src = node.attrib.get("src", "")
                 if src.startswith(prefix):
                     attrib = node.attrib
 
-                    if 'width' in attrib and 'height' in attrib:
-                        target_width = float(attrib['width'])
-                        target_height = float(attrib['height'])
-                        target_transform = attrib.get('transform', '')
+                    if "width" in attrib and "height" in attrib:
+                        target_width = float(attrib["width"])
+                        target_height = float(attrib["height"])
+                        target_transform = attrib.get("transform", "")
 
-                        image_svg = _normalize_svg(base64.b64decode(src[len(prefix):]))
+                        image_svg = _normalize_svg(base64.b64decode(src[len(prefix) :]))
                         root = ET.fromstring(image_svg)
 
-                        view_box = re.split('\s+', root.attrib.get('viewBox', ''))
+                        view_box = re.split("\s+", root.attrib.get("viewBox", ""))
 
                         if len(view_box) == 4:
                             x, y, w, h = (float(t) for t in view_box)
-                            root.tag = '{http://www.w3.org/2000/svg}g'
-                            root.attrib = {'transform': '%s scale(%f, %f) translate(%f, %f)' % (
-                                target_transform, target_width / w, target_height / h, -x, -y)}
+                            root.tag = "{http://www.w3.org/2000/svg}g"
+                            root.attrib = {
+                                "transform": "%s scale(%f, %f) translate(%f, %f)"
+                                % (
+                                    target_transform,
+                                    target_width / w,
+                                    target_height / h,
+                                    -x,
+                                    -y,
+                                )
+                            }
 
                             changes.append((i, node, root))
             else:
@@ -146,7 +155,7 @@ def _normalize_svg(svg):
 
     rewrite(root)
 
-    return ET.tostring(root, 'utf8').decode('utf8')
+    return ET.tostring(root, "utf8").decode("utf8")
 
 
 class WebEngine:
@@ -160,51 +169,55 @@ class WebEngine:
             popen_env = os.environ.copy()
 
             server_path = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), 'server.js')
+                os.path.dirname(os.path.realpath(__file__)), "server.js"
+            )
 
             if False:
                 # fixes problems on Windows network drives
                 import tempfile
-                fd, copied_path = tempfile.mkstemp(suffix='js')
-                with open(server_path, 'rb') as f:
+
+                fd, copied_path = tempfile.mkstemp(suffix="js")
+                with open(server_path, "rb") as f:
                     os.write(fd, f.read())
                 os.fsync(fd)
                 server_path = copied_path
 
             def abort(message):
-                error_text = '\n'.join([
-                    '',
-                    'Node.js failed to start Mathics server.',
-                    'You might need to run: npm install -g mathjax-node svg2png',
-                    '',
-                    ''])
+                error_text = "\n".join(
+                    [
+                        "",
+                        "Node.js failed to start Mathics server.",
+                        "You might need to run: npm install -g mathjax-node svg2png",
+                        "",
+                        "",
+                    ]
+                )
                 raise WebEngineUnavailable(error_text + message)
 
             process = Popen(
-                ['node', server_path],
-                stdout=subprocess.PIPE,
-                env=popen_env)
+                ["node", server_path], stdout=subprocess.PIPE, env=popen_env
+            )
 
-            hello = 'HELLO:'  # agreed upon "all ok" hello message.
+            hello = "HELLO:"  # agreed upon "all ok" hello message.
 
-            status = process.stdout.readline().decode('utf8').strip()
+            status = process.stdout.readline().decode("utf8").strip()
             if not status.startswith(hello):
-                error = ''
+                error = ""
                 while True:
-                    line = process.stdout.readline().decode('utf8')
+                    line = process.stdout.readline().decode("utf8")
                     if not line:
                         break
-                    error += '  ' + line
+                    error += "  " + line
 
                 process.terminate()
                 abort(error)
 
-            port = int(status[len(hello):])
+            port = int(status[len(hello) :])
         except OSError as e:
             abort(str(e))
 
         try:
-            self.client = Client('127.0.0.1', port)
+            self.client = Client("127.0.0.1", port)
             self.process = process
         except Exception as e:
             self.client = None
@@ -233,11 +246,10 @@ class WebEngine:
 
     def rasterize(self, svg, size):
         buffer = self._ensure_client().rasterize(_normalize_svg(svg), size)
-        return bytearray(buffer['data'])
+        return bytearray(buffer["data"])
 
     def terminate(self):
         if self.process:
             self.process.terminate()
             self.process = None
             self.client = None
-

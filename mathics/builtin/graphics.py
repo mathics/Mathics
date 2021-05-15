@@ -6,7 +6,7 @@ Drawing Graphics
 """
 
 
-from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
+from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, radians, exp
 import re
 import json
 import base64
@@ -291,7 +291,7 @@ def _extract_graphics(graphics, format, evaluation):
     if not isinstance(elements.elements[0], GeometricTransformationBox):
         raise ValueError("expected GeometricTransformationBox")
 
-    contents = elements.elements[0].contents
+    # contents = elements.elements[0].contents
 
     # generate code for svg or asy.
 
@@ -388,7 +388,14 @@ class _Transform:
         # b d f
         # 0 0 1
 
-        t = "matrix(%s, %s, %s, %s, %s, %s)" % (str(a), str(b), str(c), str(d), str(e), str(f))
+        t = "matrix(%s, %s, %s, %s, %s, %s)" % (
+            str(a),
+            str(b),
+            str(c),
+            str(d),
+            str(e),
+            str(f),
+        )
         return '<g transform="%s">%s</g>' % (t, svg)
 
     def to_asy(self, asy):
@@ -449,7 +456,7 @@ class Show(Builtin):
         new_leaves = []
         options_set = set(options.keys())
         for leaf in graphics.leaves:
-            new_leaf = leaf
+            # new_leaf = leaf
             leaf_name = leaf.get_head_name()
             if leaf_name == "System`Rule" and str(leaf.leaves[0]) in options_set:
                 continue
@@ -957,7 +964,7 @@ class ColorDistance(Builtin):
         # If numpy is not installed, 100 * c1.to_color_space returns
         # a list of 100 x 3 elements, instead of doing elementwise multiplication
         try:
-            import numpy as np
+            import numpy as np  # noqa just for check that the library is installed...
         except:
             raise RuntimeError("NumPy needs to be installed for ColorDistance")
 
@@ -1423,7 +1430,7 @@ class _RoundBox(_GraphicsElement):
         )
 
     def to_asy(self, transform):
-        if transform: 
+        if transform:
             c, r = transform(self.c, self.r)
         else:
             c, r = self.c, self.r
@@ -1512,7 +1519,13 @@ class _ArcBox(_RoundBox):
             else:
                 yield "M %s,%s" % (str(sx), str(sy))
 
-            yield "A %s,%s,0,%d,0,%s,%s" % (str(rx), str(ry), large_arc, str(ex), str(ey))
+            yield "A %s,%s,0,%d,0,%s,%s" % (
+                str(rx),
+                str(ry),
+                large_arc,
+                str(ex),
+                str(ey),
+            )
 
             if closed:
                 yield "Z"
@@ -1711,7 +1724,9 @@ class LineBox(_Polyline):
 
         svg = ""
         for line in self.lines:
-            path = " ".join(["%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)])
+            path = " ".join(
+                ["%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)]
+            )
             svg += '<polyline points="%s" style="%s" />' % (path, style)
 
         return svg
@@ -1723,7 +1738,9 @@ class LineBox(_Polyline):
 
         asy = ""
         for line in self.lines:
-            path = "--".join(["(%.5g,%5g)" % tuple(float(cc) for cc in c) for c in transform(*line)])
+            path = "--".join(
+                ["(%.5g,%5g)" % tuple(float(cc) for cc in c) for c in transform(*line)]
+            )
             asy += "draw(%s, %s);" % (path, pen)
 
         return asy
@@ -1747,7 +1764,9 @@ def _svg_bezier(*segments):
             n = min(max_degree, len(p))  # 1, 2, or 3
             if n < 1:
                 raise BoxConstructError
-            yield forms[n - 1] + " ".join("%f,%f" % tuple(float(cc) for cc in xy) for xy in p[:n])
+            yield forms[n - 1] + " ".join(
+                "%f,%f" % tuple(float(cc) for cc in xy) for xy in p[:n]
+            )
             p = p[n:]
 
     k, p = segments[0]
@@ -2073,7 +2092,9 @@ class PolygonBox(_Polyline):
             svg += '<meshgradient data="%s" />' % json.dumps(mesh)
         for line in self.lines:
             svg += '<polygon points="%s" style="%s" />' % (
-                " ".join("%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)),
+                " ".join(
+                    "%f,%f" % tuple(float(cc) for cc in c) for c in transform(*line)
+                ),
                 style,
             )
         return svg
@@ -3038,7 +3059,14 @@ class InsetBox(_GraphicsElement):
             svg = (
                 '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
                 "<math>%s</math></foreignObject>"
-            ) % (float(x), float(y), float(self.opos[0]), float(self.opos[1]), style, content)
+            ) % (
+                float(x),
+                float(y),
+                float(self.opos[0]),
+                float(self.opos[1]),
+                style,
+                content,
+            )
 
             if not is_absolute:
                 svg = self.graphics.inverse_local_to_screen.to_svg(svg)
@@ -3477,9 +3505,11 @@ class GraphicsBox(BoxConstruct):
             leaves = self._leaves
         try:
             self._prepare_elements(leaves, options)  # to test for Box errors
-        except Exception as e:
+        except Exception:
             if self.evaluation:
-                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+                self.evaluation.message(
+                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
+                )
             return
         return "-Graphics-"
 
@@ -3711,7 +3741,9 @@ class GraphicsBox(BoxConstruct):
             )
         except:
             if self.evaluation:
-                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+                self.evaluation.message(
+                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
+                )
             return
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
@@ -3772,8 +3804,7 @@ clip(%s);
                 elements, calc_dimensions = self._prepare_elements(
                     leaves, options, neg_y=True
                 )
-            except Exception as e:
-                print(e)
+            except Exception:
                 return
             xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
 
@@ -3815,10 +3846,14 @@ clip(%s);
         if not leaves:
             leaves = self._leaves
         try:
-            elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+            elements, calc_dimensions = self._prepare_elements(
+                leaves, options, neg_y=True
+            )
         except:
             if self.evaluation:
-                self.evaluation.message("General", "notboxes", Expression("GraphicsBox", self._leaves))
+                self.evaluation.message(
+                    "General", "notboxes", Expression("GraphicsBox", self._leaves)
+                )
             return
 
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()

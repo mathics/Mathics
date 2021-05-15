@@ -40,6 +40,7 @@ try:
 except ImportError:
     has_compile = False
 
+
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression("ColorData", color_function).evaluate(evaluation)
@@ -703,7 +704,7 @@ class _Plot(Builtin):
         # simply round this stroke width to 0 before scaling, so we end up with an empty plot. in order to fix this,
         # Transformation -> Precomputed simply gets rid of the SVG transformations and passes the scaled coordinates
         # into the SVG. this also has the advantage that we can precompute with arbitrary precision using mpmath.
-        options['System`Transformation'] = String('Precomputed')
+        options["System`Transformation"] = String("Precomputed")
 
         return Expression(
             "Graphics", Expression(SymbolList, *graphics), *options_to_rules(options)
