@@ -837,7 +837,7 @@ class Point3DBox(PointBox):
 
         return "".join(
             "path3 g={0}--cycle;dot(g, {1});".format(
-                "--".join("(%.5g,%.5g,%.5g)" % tuple(float(x) for in coords.pos()[0]) for coords in line), pen
+                "--".join("(%.5g,%.5g,%.5g)" % tuple(float(x) for x in coords.pos()[0]) for coords in line), pen
             )
             for line in self.lines
         )
