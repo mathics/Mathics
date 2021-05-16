@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pickle
 from queue import Queue
 
 import os
@@ -13,7 +12,15 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
+
+from mathics.layout.client import NoWebEngine
+from mathics.core.expression import (
+    ensure_context,
+    KeyComparable,
+    SymbolAborted,
+    SymbolList,
+    SymbolNull,
+)
 
 FORMATS = [
     "StandardForm",
@@ -213,6 +220,9 @@ class Result(object):
 
 
 class Output(object):
+    def __init__(self, web_engine=NoWebEngine()):
+        self.web_engine = web_engine
+
     def max_stored_size(self, settings) -> int:
         return settings.MAX_STORED_SIZE
 
@@ -224,6 +234,18 @@ class Output(object):
 
     def display(self, data, metadata):
         raise NotImplementedError
+
+    def warn_about_web_engine(self):
+        return False
+
+    def assume_web_engine(self):
+        return self.web_engine.assume_is_available()
+
+    def mathml_to_svg(self, mathml):
+        return self.web_engine.mathml_to_svg(mathml)
+
+    def rasterize(self, svg, *args, **kwargs):
+        return self.web_engine.rasterize(svg, *args, **kwargs)
 
 
 class Evaluation(object):
@@ -249,6 +271,7 @@ class Evaluation(object):
         self.quiet_all = False
         self.format = format
         self.catch_interrupt = catch_interrupt
+        self.once_messages = set()
 
         self.SymbolNull = SymbolNull
 
@@ -477,7 +500,7 @@ class Evaluation(object):
             return []
         return value.leaves
 
-    def message(self, symbol, tag, *args) -> None:
+    def message(self, symbol, tag, *args, **kwargs) -> None:
         from mathics.core.expression import String, Symbol, Expression, from_python
 
         # Allow evaluation.message('MyBuiltin', ...) (assume
@@ -486,6 +509,11 @@ class Evaluation(object):
         quiet_messages = set(self.get_quiet_messages())
 
         pattern = Expression("MessageName", Symbol(symbol), String(tag))
+
+        if kwargs.get("once", False):
+            if pattern in self.once_messages:
+                return
+            self.once_messages.add(pattern)
 
         if pattern in quiet_messages or self.quiet_all:
             return

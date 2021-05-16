@@ -764,8 +764,6 @@ def total_extent_3d(extents):
 
 
 class Graphics3DElements(_GraphicsElements):
-    coords = Coords3D
-
     def __init__(self, content, evaluation, neg_y=False):
         super(Graphics3DElements, self).__init__(content, evaluation)
         self.neg_y = neg_y
@@ -774,6 +772,10 @@ class Graphics3DElements(_GraphicsElements):
         ) = (
             self.pixel_width
         ) = self.pixel_height = self.extent_width = self.extent_height = None
+        self.local_to_screen = None
+
+    def make_coords(self, points):
+        return [Coords3D(self, p) for p in points]
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
@@ -835,7 +837,11 @@ class Point3DBox(PointBox):
 
         return "".join(
             "path3 g={0}--cycle;dot(g, {1});".format(
-                "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line), pen
+                "--".join(
+                    "(%.5g,%.5g,%.5g)" % tuple(float(x) for x in coords.pos()[0])
+                    for coords in line
+                ),
+                pen,
             )
             for line in self.lines
         )

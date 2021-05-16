@@ -134,6 +134,7 @@ setup(
         "mathics.builtin.pympler",
         "mathics.builtin.specialfns",
         "mathics.doc",
+        "mathics.layout",
     ],
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
@@ -154,6 +155,7 @@ setup(
         ],
         "mathics.doc": ["documentation/*.mdoc", "xml/data"],
         "mathics.builtin.pymimesniffer": ["mimetypes.xml"],
+        "mathics.layout": ["server.js"],
         "pymathics": ["doc/documentation/*.mdoc", "doc/xml/data"],
     },
     entry_points={

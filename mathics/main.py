@@ -192,6 +192,7 @@ class TerminalOutput(Output):
         return None
 
     def __init__(self, shell):
+        super(TerminalOutput, self).__init__()
         self.shell = shell
 
     def out(self, out):

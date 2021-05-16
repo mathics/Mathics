@@ -36,7 +36,7 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule
+    SymbolRule,
 )
 from mathics.core.numbers import (
     dps,
@@ -123,7 +123,7 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 def real_to_s_exp(expr, n):
     if expr.is_zero:
         s = "0"
-        sign_prefix = ""
+        # sign_prefix = ""
         if expr.is_machine_precision():
             exp = 0
         else:
@@ -1931,6 +1931,7 @@ class General(Builtin):
         "invalidargs": "Invalid arguments.",
         "notboxes": "`1` is not a valid box structure.",
         "pyimport": '`1`[] is not available. Your Python installation misses the "`2`" module.',
+        "nowebeng": "Web Engine is not available: `1`",
     }
 
 
@@ -2071,7 +2072,10 @@ class MathMLForm(Builtin):
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
             xml = ""
-        is_a_picture = xml[:6] == "<mtext"
+#        if xml is None:
+#            return Expression("RowBox", Expression(SymbolList, String("")))
+
+        is_a_picture = (len(xml)> 6 and xml[:6] == "<mtext")
 
         # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
         # #convert_box(boxes)
@@ -2175,6 +2179,8 @@ class TeXForm(Builtin):
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
             tex = boxes.boxes_to_tex(evaluation=evaluation)
+#            if tex is None:
+#                return Expression("RowBox", Expression(SymbolList, String("")))
 
             # Replace multiple newlines by a single one e.g. between asy-blocks
             tex = MULTI_NEWLINE_RE.sub("\n", tex)
