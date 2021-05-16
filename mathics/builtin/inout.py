@@ -2784,7 +2784,8 @@ class BaseForm(Builtin):
         try:
             val = convert_base(x, base, p)
         except ValueError:
-            return evaluation.message("BaseForm", "basf", n)
+            evaluation.message("BaseForm", "basf", n)
+            return None
 
         if f.get_name() == "System`OutputForm":
             return from_python("%s_%d" % (val, base))

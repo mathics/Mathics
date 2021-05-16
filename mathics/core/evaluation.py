@@ -13,7 +13,7 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
+from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull, String, Symbol
 
 FORMATS = [
     "StandardForm",
@@ -231,10 +231,23 @@ class Evaluation(object):
         self, definitions=None, output=None, format="text", catch_interrupt=True
     ) -> None:
         from mathics.core.definitions import Definitions
-        from mathics.core.expression import Symbol
-
+        from mathics.core.expression import Symbol, String
         if definitions is None:
             definitions = Definitions()
+        # This code is for debugging, to avoid to pass
+        # through evaluation in format.
+        from mathics.builtin.strings import ToString
+        self.tostring = ToString(expression=False)
+        tostropts = {'System`CharacterEncoding': String("Unicode"),
+                     'System`FormatType': Symbol('OutputForm'),
+                     'System`NumberMarks': Symbol('$NumberMarks'),
+                     'System`PageHeight': Symbol('Infinity'),
+                     'System`PageWidth': Symbol('Infinity'),
+                     'System`TotalHeight': Symbol('Infinity'),
+                     'System`TotalWidth': Symbol('Infinity')
+        }
+        self.tostring.options = tostropts
+        #######
         self.definitions = definitions
         self.recursion_depth = 0
         self.timeout = False
@@ -437,23 +450,31 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
+        fmtsymbol = None
         if format == "text":
-            result = expr.format(self, "System`OutputForm")
+            fmtsymbol = Symbol("System`OutputForm")
         elif format == "xml":
-            result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
+            fmtsymbol = Symbol("System`MathMLForm")
         elif format == "tex":
-            result = Expression("StandardForm", expr).format(self, "System`TeXForm")
+            fmtsymbol = Symbol("System`TeXForm")
         elif format == "unformatted":
             self.exc_result = None
             return expr
         else:
             raise ValueError
-
         try:
-            boxes = result.boxes_to_text(evaluation=self)
+            hfexpr = Expression("HoldForm", expr)
+            # The next uncommented lines are just for debug. Eventually,
+            # we can go bach to the commented line...
+            # Expression("ToString", hfexpr, fmtsymbol).evaluate(self)
+            opts =  self.tostring.options
+            result = self.tostring.apply_form(hfexpr, fmtsymbol, self, opts)
+            boxes = result.value if result is not None else None
         except BoxError:
+            result = self.tostring.apply_form(hfexpr, Symbol("FullForm"), self, opts)
             self.message(
-                "General", "notboxes", Expression("FullForm", result).evaluate(self)
+                "General", "notboxes",
+                Expression("MakeBoxes", result, fmtsymbol)
             )
             boxes = None
         return boxes

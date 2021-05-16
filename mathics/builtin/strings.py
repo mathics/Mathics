@@ -22,6 +22,7 @@ from mathics.builtin.base import (
     PrefixOperator,
 )
 from mathics.core.expression import (
+    BoxError,
     Expression,
     Symbol,
     SymbolFailed,
@@ -1887,7 +1888,15 @@ class ToString(Builtin):
     def apply_form(self, value, form, evaluation, options):
         "ToString[value_, form_, OptionsPattern[ToString]]"
         encoding = options["System`CharacterEncoding"]
+        if value.has_form("HoldForm", None):
+            if len(value._leaves) == 1:
+                value = value._leaves[0]
+            else:
+                value = Expression("Sequence", *(value._leaves))
         text = value.format(evaluation, form.get_name(), encoding=encoding)
+        if text is None or text.has_form("MakeBoxes", None):
+            raise BoxError(value, form)
+
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
