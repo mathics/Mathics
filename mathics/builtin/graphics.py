@@ -7,7 +7,6 @@ Drawing Graphics
 
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
-import json
 import base64
 from itertools import chain
 
@@ -33,6 +32,8 @@ from mathics.core.expression import (
     system_symbols_dict,
     from_python,
 )
+from mathics.core.formatter import lookup_method
+
 from mathics.builtin.drawing.colors import convert as convert_color
 from mathics.core.numbers import machine_epsilon
 
@@ -323,7 +324,11 @@ def _extract_graphics(graphics, format, evaluation):
     if format == "asy":
         code = "\n".join(element.to_asy() for element in elements.elements)
     elif format == "svg":
-        code = elements.to_svg()
+        format_fn = lookup_method(elements, "svg")
+        if format_fn is not None:
+            code = format_fn(elements)
+        else:
+            code = elements.to_svg()
     else:
         raise NotImplementedError
 
@@ -1231,26 +1236,6 @@ class RectangleBox(_GraphicsElement):
             )
         return result
 
-    def to_svg(self, offset=None):
-        l = self.style.get_line_width(face_element=True)
-        x1, y1 = self.p1.pos()
-        x2, y2 = self.p2.pos()
-        xmin = min(x1, x2)
-        ymin = min(y1, y2)
-        w = max(x1, x2) - xmin
-        h = max(y1, y2) - ymin
-        if offset:
-            x1, x2 = x1 + offset[0], x2 + offset[0]
-            y1, y2 = y1 + offset[1], y2 + offset[1]
-        style = create_css(self.edge_color, self.face_color, l)
-        return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
-            xmin,
-            ymin,
-            w,
-            h,
-            style,
-        )
-
     def to_asy(self):
         l = self.style.get_line_width(face_element=True)
         x1, y1 = self.p1.pos()
@@ -1301,21 +1286,6 @@ class _RoundBox(_GraphicsElement):
         rx += l
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
-
-    def to_svg(self, offset=None):
-        x, y = self.c.pos()
-        rx, ry = self.r.pos()
-        rx -= x
-        ry = y - ry
-        l = self.style.get_line_width(face_element=self.face_element)
-        style = create_css(self.edge_color, self.face_color, stroke_width=l)
-        return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
-            x,
-            y,
-            rx,
-            ry,
-            style,
-        )
 
     def to_asy(self):
         x, y = self.c.pos()
@@ -1390,11 +1360,15 @@ class _ArcBox(_RoundBox):
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
 
     def to_svg(self, offset=None):
+        # FIXME: figure out how to put in svg.py
         if self.arc is None:
             return super(_ArcBox, self).to_svg(offset)
 
         x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
+        format_fn = lookup_method(self, "svg")
+        if format_fn is not None:
+            return format_fn(self, offset)
         def path(closed):
             if closed:
                 yield "M %f,%f" % (x, y)
@@ -1522,26 +1496,6 @@ class PointBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_svg(self, offset=None):
-        point_size, _ = self.style.get_style(PointSize, face_element=False)
-        if point_size is None:
-            point_size = PointSize(self.graphics, value=0.005)
-        size = point_size.get_size()
-
-        style = create_css(
-            edge_color=self.edge_color, stroke_width=0, face_color=self.face_color
-        )
-        svg = ""
-        for line in self.lines:
-            for coords in line:
-                svg += '<circle cx="%f" cy="%f" r="%f" style="%s" />' % (
-                    coords.pos()[0],
-                    coords.pos()[1],
-                    size,
-                    style,
-                )
-        return svg
-
     def to_asy(self):
         pen = create_pens(face_color=self.face_color, is_face_element=False)
 
@@ -1585,17 +1539,6 @@ class LineBox(_Polyline):
             self.lines = lines
         else:
             raise BoxConstructError
-
-    def to_svg(self, offset=None):
-        l = self.style.get_line_width(face_element=False)
-        style = create_css(edge_color=self.edge_color, stroke_width=l)
-        svg = ""
-        for line in self.lines:
-            svg += '<polyline points="%s" style="%s" />' % (
-                " ".join(["%f,%f" % coords.pos() for coords in line]),
-                style,
-            )
-        return svg
 
     def to_asy(self):
         l = self.style.get_line_width(face_element=False)
@@ -1741,16 +1684,6 @@ class BezierCurveBox(_Polyline):
             raise BoxConstructError
         self.spline_degree = spline_degree.get_int_value()
 
-    def to_svg(self, offset=None):
-        l = self.style.get_line_width(face_element=False)
-        style = create_css(edge_color=self.edge_color, stroke_width=l)
-
-        svg = ""
-        for line in self.lines:
-            s = " ".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
-            svg += '<path d="%s" style="%s"/>' % (s, style)
-        return svg
-
     def to_asy(self):
         l = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=l)
@@ -1827,22 +1760,6 @@ class FilledCurveBox(_GraphicsElement):
                 self.components = [list(parse_component(leaves))]
         else:
             raise BoxConstructError
-
-    def to_svg(self, offset=None):
-        l = self.style.get_line_width(face_element=False)
-        style = create_css(
-            edge_color=self.edge_color, face_color=self.face_color, stroke_width=l
-        )
-
-        def components():
-            for component in self.components:
-                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
-                yield " ".join(_svg_bezier(*transformed)) + " Z"
-
-        return '<path d="%s" style="%s" fill-rule="evenodd"/>' % (
-            " ".join(components()),
-            style,
-        )
 
     def to_asy(self):
         l = self.style.get_line_width(face_element=False)
@@ -1932,32 +1849,6 @@ class PolygonBox(_Polyline):
                         continue
         else:
             raise BoxConstructError
-
-    def to_svg(self, offset=None):
-        l = self.style.get_line_width(face_element=True)
-        if self.vertex_colors is None:
-            face_color = self.face_color
-        else:
-            face_color = None
-        style = create_css(
-            edge_color=self.edge_color, face_color=face_color, stroke_width=l
-        )
-        svg = ""
-        if self.vertex_colors is not None:
-            mesh = []
-            for index, line in enumerate(self.lines):
-                data = [
-                    [coords.pos(), color.to_js()]
-                    for coords, color in zip(line, self.vertex_colors[index])
-                ]
-                mesh.append(data)
-            svg += '<meshgradient data="%s" />' % json.dumps(mesh)
-        for line in self.lines:
-            svg += '<polygon points="%s" style="%s" />' % (
-                " ".join("%f,%f" % coords.pos() for coords in line),
-                style,
-            )
-        return svg
 
     def to_asy(self):
         l = self.style.get_line_width(face_element=True)
@@ -2514,23 +2405,6 @@ class ArrowBox(_Polyline):
 
         return make
 
-    def to_svg(self, offset=None):
-        width = self.style.get_line_width(face_element=False)
-        style = create_css(edge_color=self.edge_color, stroke_width=width)
-        polyline = self.curve.make_draw_svg(style)
-
-        arrow_style = create_css(face_color=self.edge_color, stroke_width=width)
-
-        def polygon(points):
-            yield '<polygon points="'
-            yield " ".join("%f,%f" % xy for xy in points)
-            yield '" style="%s" />' % arrow_style
-
-        extent = self.graphics.view_width or 0
-        default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow("svg", _SVGTransform)
-        return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
-
     def to_asy(self):
         width = self.style.get_line_width(face_element=False)
         pen = create_pens(edge_color=self.edge_color, stroke_width=width)
@@ -2617,35 +2491,6 @@ class InsetBox(_GraphicsElement):
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
 
-    def to_svg(self, offset=None):
-        x, y = self.pos.pos()
-        if offset:
-            x = x + offset[0]
-            y = y + offset[1]
-
-        if hasattr(self.content, "to_svg"):
-            content = self.content.to_svg(noheader=True, offset=(x, y))
-            svg = "\n" + content + "\n"
-        else:
-            css_style = create_css(
-                font_color=self.color,
-                edge_color=self.color,
-                face_color=self.color,
-                opacity=self.opacity,
-            )
-            text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
-            # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
-            text_style_opts = "text-anchor:middle; dominant-baseline:middle;"
-            content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
-            svg = f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
-
-        # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
-        # style = create_css(font_color=self.color)
-        # svg = (
-        #    '<foreignObject x="%f" y="%f" ox="%f" oy="%f" style="%s">'
-        #    "<math>%s</math></foreignObject>")
-
-        return svg
 
     def to_asy(self):
         x, y = self.pos.pos()
@@ -2960,9 +2805,6 @@ class GraphicsElements(_GraphicsElements):
             ymax *= 2
         return xmin, xmax, ymin, ymax
 
-    def to_svg(self, offset=None):
-        return "\n".join(element.to_svg(offset) for element in self.elements)
-
     def to_asy(self):
         return "\n".join(element.to_asy() for element in self.elements)
 
@@ -3265,7 +3107,11 @@ clip(%s);
 
         elements.view_width = w
 
-        svg = elements.to_svg(offset=options.get("offset", None))
+        format_fn = lookup_method(elements, "svg")
+        if format_fn is not None:
+            svg = format_fn(elements, offset=options.get("offset", None))
+        else:
+            svg = elements.to_svg(offset=options.get("offset", None))
 
         if self.background_color is not None:
             svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
