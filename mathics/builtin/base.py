@@ -23,8 +23,8 @@ from mathics.core.expression import (
     PrecisionReal,
     String,
     Symbol,
-    SymbolTrue,
     SymbolFalse,
+    SymbolTrue,
     ensure_context,
     strip_context,
 )

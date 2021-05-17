@@ -18,12 +18,14 @@ from mathics.builtin.base import MessageException
 
 from io import BytesIO
 import re
+import platform
 import sys
+
 
 try:
     import lxml.html as lhtml
 except ImportError:
-    print("lxml.html is not available...")
+    lhtml = None
     pass
 
 
@@ -86,17 +88,22 @@ class ParseError(Exception):
     pass
 
 
-if "__pypy__" in sys.builtin_module_names:
+if platform.python_implementation() == "PyPy":
 
     def parse_html_stream(f):
         parser = lhtml.HTMLParser(encoding="utf8")
         return lhtml.parse(f, parser)
 
 
-else:
+elif lhtml:
 
     def parse_html_stream(f):
         return lhtml.parse(f)
+
+else:
+
+    def parse_html_stream(f):
+        raise MessageException("Python module lxml is required for HTML stream parsing")
 
 
 def parse_html_file(filename):

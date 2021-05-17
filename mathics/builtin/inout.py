@@ -1930,7 +1930,7 @@ class General(Builtin):
         "syntax": "`1`",
         "invalidargs": "Invalid arguments.",
         "notboxes": "`1` is not a valid box structure.",
-        "pyimport": '`1`[] is not available. Your Python installation misses the "`2`" module.',
+        "pyimport": '`1`[] is not available. Python module "`2`" is not installed.',
     }
 
 
