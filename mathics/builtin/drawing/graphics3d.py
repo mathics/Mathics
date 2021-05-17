@@ -693,16 +693,21 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         ticks_style = graphics_options.get("System`TicksStyle")
         axes_style = graphics_options.get("System`AxesStyle")
         label_style = graphics_options.get("System`LabelStyle")
-        if ticks_style.has_form("List", 3):
+
+        # FIXME: Doesn't handle GrayScale
+        if ticks_style.has_form("List", 1, 2, 3):
             ticks_style = ticks_style.leaves
-        else:
+        elif ticks_style.has_form("RGBColor", None):
             ticks_style = [ticks_style] * 3
-        if axes_style.has_form("List", 3):
+        else:
+            ticks_style = []
+
+        if axes_style.has_form("List", 1, 2, 3):
             axes_style = axes_style.leaves
         else:
             axes_style = [axes_style] * 3
 
-        # FIXME: Not quite right
+        # FIXME: Not quite right. We only handle color
         ticks_style = [elements.create_style(s).get_style(_Color, face_element=False)[0] for s in ticks_style]
 
         axes_style = [elements.create_style(s) for s in axes_style]
