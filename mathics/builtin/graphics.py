@@ -3100,6 +3100,7 @@ clip(%s);
 
         return tex
 
+    # FIXME: figure out how to move this to the SVG formatter
     def to_svg(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
@@ -3117,18 +3118,19 @@ clip(%s);
 
         format_fn = lookup_method(elements, "svg")
         if format_fn is not None:
-            svg = format_fn(elements, offset=options.get("offset", None))
+            svg_body = format_fn(elements, offset=options.get("offset", None))
         else:
-            svg = elements.to_svg(offset=options.get("offset", None))
+            svg_body = elements.to_svg(offset=options.get("offset", None))
 
         if self.background_color is not None:
-            svg = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
+            # Wrap svg_elements in a rectangle
+            svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
                 xmin,
                 ymin,
                 w,
                 h,
                 self.background_color.to_css()[0],
-                svg,
+                svg_body,
             )
 
         xmin -= 1
@@ -3137,8 +3139,8 @@ clip(%s);
         h += 2
 
         if options.get("noheader", False):
-            return svg
-        svg_xml = """
+            return svg_body
+        svg_main = """
             <svg xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
                 version="1.1"
@@ -3147,11 +3149,12 @@ clip(%s);
             </svg>
         """ % (
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
-            svg,
+            svg_body,
         )
-        return svg_xml  # , width, height
+        return svg_main  # , width, height
 
-    def boxes_to_mathml(self, leaves=None, **options):
+    # fixme: figure out how to move the svg-specific portions to the SVG formatter.
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
 
@@ -3159,7 +3162,8 @@ clip(%s);
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
 
-        svg_xml = self.to_svg(leaves, data=data, **options)
+        svg_main = self.to_svg(leaves, data=data, **options)
+
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
         # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
@@ -3172,9 +3176,10 @@ clip(%s);
             #        int(height),
             int(width),
             int(height),
-            base64.b64encode(svg_xml.encode("utf8")).decode("utf8"),
+            base64.b64encode(svg_main.encode("utf8")).decode("utf8"),
         )
 
+    # FIXME: this isn't always properly align with overlaid SVG plots
     def axis_ticks(self, xmin, xmax):
         def round_to_zero(value):
             if value == 0:
