@@ -1176,19 +1176,26 @@ class Disk(Builtin):
 class Circle(Builtin):
     """
     <dl>
-    <dt>'Circle[{$cx$, $cy$}, $r$]'
-        <dd>draws a circle with center '($cx$, $cy$)' and radius $r$.
-    <dt>'Circle[{$cx$, $cy$}, {$rx$, $ry$}]'
-        <dd>draws an ellipse.
-    <dt>'Circle[{$cx$, $cy$}]'
-        <dd>chooses radius 1.
-    <dt>'Circle[]'
-        <dd>chooses center '(0, 0)' and radius 1.
+      <dt>'Circle[{$cx$, $cy$}, $r$]'
+      <dd>draws a circle with center '($cx$, $cy$)' and radius $r$.
+
+      <dt>'Circle[{$cx$, $cy$}, {$rx$, $ry$}]'
+      <dd>draws an ellipse.
+
+      <dt>'Circle[{$cx$, $cy$}]'
+      <dd>chooses radius 1.
+
+      <dt>'Circle[]'
+      <dd>chooses center '(0, 0)' and radius 1.
     </dl>
 
     >> Graphics[{Red, Circle[{0, 0}, {2, 1}]}]
      = -Graphics-
     >> Graphics[{Circle[], Disk[{0, 0}, {1, 1}, {0, 2.1}]}]
+     = -Graphics-
+
+    Target practice:
+    >> Graphics[Circle[], Axes-> True]
      = -Graphics-
     """
 
@@ -1359,31 +1366,33 @@ class _ArcBox(_RoundBox):
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
 
-    def to_svg(self, offset=None):
-        # FIXME: figure out how to put in svg.py
-        if self.arc is None:
-            return super(_ArcBox, self).to_svg(offset)
+    # FIXME: Why do we need this? If so,
+    # figure out how to put in svg.py
+    # --------------------------------
+    # def to_svg(self, offset=None):
+    #     if self.arc is None:
+    #         return super(_ArcBox, self).to_svg(offset)
 
-        x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
+    #     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
-        format_fn = lookup_method(self, "svg")
-        if format_fn is not None:
-            return format_fn(self, offset)
-        def path(closed):
-            if closed:
-                yield "M %f,%f" % (x, y)
-                yield "L %f,%f" % (sx, sy)
-            else:
-                yield "M %f,%f" % (sx, sy)
+    #     format_fn = lookup_method(self, "svg")
+    #     if format_fn is not None:
+    #         return format_fn(self, offset)
+    #     def path(closed):
+    #         if closed:
+    #             yield "M %f,%f" % (x, y)
+    #             yield "L %f,%f" % (sx, sy)
+    #         else:
+    #             yield "M %f,%f" % (sx, sy)
 
-            yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
+    #         yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
 
-            if closed:
-                yield "Z"
+    #         if closed:
+    #             yield "Z"
 
-        l = self.style.get_line_width(face_element=self.face_element)
-        style = create_css(self.edge_color, self.face_color, stroke_width=l)
-        return '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
+    #     l = self.style.get_line_width(face_element=self.face_element)
+    #     style = create_css(self.edge_color, self.face_color, stroke_width=l)
+    #     return '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
 
     def to_asy(self):
         if self.arc is None:
@@ -2490,7 +2499,6 @@ class InsetBox(_GraphicsElement):
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
-
 
     def to_asy(self):
         x, y = self.pos.pos()

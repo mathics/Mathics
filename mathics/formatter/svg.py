@@ -7,7 +7,6 @@ Format a Mathics object as an SVG string
 
 from mathics.builtin.drawing.graphics3d import Graphics3DElements
 from mathics.builtin.graphics import (
-    # _ArcBox,
     ArrowBox,
     BezierCurveBox,
     FilledCurveBox,
@@ -29,7 +28,10 @@ from mathics.core.formatter import lookup_method, add_conversion_fn
 
 def create_css(
     edge_color=None, face_color=None, stroke_width=None, font_color=None, opacity=1.0
-):
+) -> str:
+    """
+    Return a string suitable for CSS inclusion setting the various parameters passed.
+    """
     css = []
     if edge_color is not None:
         color, stroke_opacity = edge_color.to_css()
@@ -52,29 +54,6 @@ def create_css(
     return "; ".join(css)
 
 
-# def arcbox(self, offset=None):
-#     if self.arc is None:
-#         raise RuntimeError(f"{self}.arc should not be none")
-
-#     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
-
-#     def path(closed):
-#         if closed:
-#             yield "M %f,%f" % (x, y)
-#             yield "L %f,%f" % (sx, sy)
-#         else:
-#             yield "M %f,%f" % (sx, sy)
-
-#         yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
-
-#         if closed:
-#             yield "Z"
-
-#     l = self.style.get_line_width(face_element=self.face_element)
-#     style = create_css(self.edge_color, self.face_color, stroke_width=l)
-#     return '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
-
-
 def arrowbox(self, offset=None):
     width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=width)
@@ -91,7 +70,10 @@ def arrowbox(self, offset=None):
     default_arrow = self._default_arrow(polygon)
     custom_arrow = self._custom_arrow("svg", _SVGTransform)
     return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+
+
 add_conversion_fn(ArrowBox)
+
 
 def beziercurvebox(self, offset=None):
     l = self.style.get_line_width(face_element=False)
@@ -103,7 +85,10 @@ def beziercurvebox(self, offset=None):
         svg += '<path d="%s" style="%s"/>' % (s, style)
     # print("XXX bezier", svg)
     return svg
+
+
 add_conversion_fn(BezierCurveBox)
+
 
 def filledcurvebox(self, offset=None):
     l = self.style.get_line_width(face_element=False)
@@ -121,6 +106,8 @@ def filledcurvebox(self, offset=None):
         " ".join(components()),
         style,
     )
+
+
 add_conversion_fn(FilledCurveBox)
 
 # def graphicsbox(self, leaves=None, **options) -> str:
@@ -174,20 +161,24 @@ add_conversion_fn(FilledCurveBox)
 #     )
 #     return svg  # , width, height
 
+
 def graphicselements(self, offset=None):
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "svg")
-        if format_fn is not None:
-            result.append(format_fn(element, offset))
-        else:
+        if format_fn is None:
             result.append(element.to_svg(offset))
+        else:
+            result.append(format_fn(element, offset))
 
     return "\n".join(result)
+
+
 add_conversion_fn(GraphicsElements)
 graphics3delements = graphicselements
 
 add_conversion_fn(Graphics3DElements)
+
 
 def insetbox(self, offset=None):
     x, y = self.pos.pos()
@@ -218,7 +209,10 @@ def insetbox(self, offset=None):
     #    "<math>%s</math></foreignObject>")
 
     return svg
+
+
 add_conversion_fn(InsetBox)
+
 
 def linebox(self, offset=None):
     l = self.style.get_line_width(face_element=False)
@@ -231,6 +225,8 @@ def linebox(self, offset=None):
         )
     # print("XXX linebox", svg)
     return svg
+
+
 add_conversion_fn(LineBox)
 
 
@@ -254,7 +250,10 @@ def pointbox(self, offset=None):
             )
     # print("XXX PointBox", svg)
     return svg
+
+
 add_conversion_fn(PointBox)
+
 
 def polygonbox(self, offset=None):
     l = self.style.get_line_width(face_element=True)
@@ -282,6 +281,8 @@ def polygonbox(self, offset=None):
         )
     # print("XXX PolygonBox", svg)
     return svg
+
+
 add_conversion_fn(PolygonBox)
 
 
@@ -305,6 +306,8 @@ def rectanglebox(self, offset=None):
         style,
     )
     "\n".join(element.to_svg() for element in self.elements)
+
+
 add_conversion_fn(RectangleBox)
 
 
@@ -322,4 +325,6 @@ def _roundbox(self, offset=None):
         ry,
         style,
     )
+
+
 add_conversion_fn(_RoundBox)
