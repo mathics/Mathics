@@ -429,17 +429,17 @@ class Graphics3DBox(GraphicsBox):
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
 
-        axes, ticks = self.create_axes(
+        axes, ticks, ticks_style = self.create_axes(
             elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
         )
 
-        return elements, axes, ticks, calc_dimensions, boxscale
+        return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
 
     def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
+        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options, max_width=450
         )
 
@@ -635,9 +635,11 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, calc_dimensions, boxscale = self._prepare_elements(
+        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
             leaves, options
         )
+
+        js_ticks_style = [s.to_js() for s in ticks_style]
 
         elements._apply_boxscaling(boxscale)
 
@@ -655,7 +657,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = json.dumps(
             {
                 "elements": json_repr,
-                "axes": {"hasaxes": axes, "ticks": ticks},
+                "axes": {"hasaxes": axes, "ticks": ticks, "ticks_style": js_ticks_style},
                 "extent": {
                     "xmin": xmin,
                     "xmax": xmax,
@@ -700,11 +702,16 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         else:
             axes_style = [axes_style] * 3
 
-        ticks_style = [elements.create_style(s) for s in ticks_style]
+        # FIXME: Not quite right
+        ticks_style = [elements.create_style(s).get_style(_Color, face_element=False)[0] for s in ticks_style]
+
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
-        ticks_style[0].extend(axes_style[0])
-        ticks_style[1].extend(axes_style[1])
+
+        # For later
+        # ticks_style[0].extend(axes_style[0])
+        # ticks_style[1].extend(axes_style[1])
+        # ticks_style[2].extend(axes_style[2])
 
         ticks = [
             self.axis_ticks(xmin, xmax),
@@ -734,7 +741,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
             for i, t in enumerate(ticks)
         ]
 
-        return axes, ticks
+        return axes, ticks, ticks_style
 
     def get_boundbox_lines(self, xmin, xmax, ymin, ymax, zmin, zmax):
         return [
