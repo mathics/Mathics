@@ -20,11 +20,15 @@ from io import BytesIO
 import re
 import sys
 
+
 try:
     import lxml.html as lhtml
+
+    lhtml_available = True
 except ImportError:
-    print("lxml.html is not available...")
-    pass
+    from mathics.builtin.fileformats.xmlformat import  parse_xml_stream
+
+    lhtml_available = False
 
 
 def node_to_xml_element(node, strip_whitespace=True):
@@ -89,14 +93,19 @@ class ParseError(Exception):
 if "__pypy__" in sys.builtin_module_names:
 
     def parse_html_stream(f):
-        parser = lhtml.HTMLParser(encoding="utf8")
-        return lhtml.parse(f, parser)
-
+        if lhtml_available:
+            parser = lhtml.HTMLParser(encoding="utf8")
+            return lhtml.parse(f, parser)
+        else:
+            return parse_xml_stream(f)
 
 else:
 
     def parse_html_stream(f):
-        return lhtml.parse(f)
+        if lhtml_available:
+            return lhtml.parse(f)
+        else:
+            return parse_xml_stream(f)
 
 
 def parse_html_file(filename):
