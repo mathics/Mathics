@@ -17,8 +17,8 @@ from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import MessageException
 
 from io import BytesIO
+import platform
 import re
-import sys
 
 
 try:
@@ -26,8 +26,6 @@ try:
 
     lhtml_available = True
 except ImportError:
-    from mathics.builtin.fileformats.xmlformat import  parse_xml_stream
-
     lhtml_available = False
 
 
@@ -90,22 +88,16 @@ class ParseError(Exception):
     pass
 
 
-if "__pypy__" in sys.builtin_module_names:
+if platform.python_implementation() == "PyPy":
 
     def parse_html_stream(f):
-        if lhtml_available:
-            parser = lhtml.HTMLParser(encoding="utf8")
-            return lhtml.parse(f, parser)
-        else:
-            return parse_xml_stream(f)
+        parser = lhtml.HTMLParser(encoding="utf8")
+        return lhtml.parse(f, parser)
 
 else:
 
     def parse_html_stream(f):
-        if lhtml_available:
-            return lhtml.parse(f)
-        else:
-            return parse_xml_stream(f)
+        return lhtml.parse(f)
 
 
 def parse_html_file(filename):

@@ -1117,6 +1117,8 @@ class Part(Builtin):
     def apply(self, list, i, evaluation):
         "Part[list_, i___]"
 
+        if list == SymbolFailed:
+            return
         indices = i.get_sequence()
         # How to deal with ByteArrays
         if list.get_head_name() == "System`ByteArray":
