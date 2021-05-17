@@ -38,6 +38,25 @@ logfile = None
 MAX_TESTS = 100000  # Number than the total number of tests
 
 
+def str_to_wlstr(string, evaluation):
+    if not isinstance(string, str):
+        string = str(string)
+    string = string.replace(r"\:", r"\[Backslash]\[Colon]")
+    string = string.replace(r'"', r'\"')   
+    string = "\""+ string + "\""
+    # print(" string:<<", string, ">>")
+    try:
+        result = evaluation.parse(string)
+    except:
+        result = None
+    if result is None:
+        # Maybe a more sofisticate processing is
+        # needed here.
+        return string
+    # print("   result: ", result)
+    return result.value
+    
+
 def print_and_log(*args):
     global logfile
     string = "".join(args)
@@ -46,8 +65,17 @@ def print_and_log(*args):
         logfile.write(string)
 
 
-def compare(result, wanted):
-    if result == wanted:
+def compare(result, wanted, evaluation):
+    if result is None:
+        if wanted is None:
+            return True
+        else:
+            return False
+    else:
+        if wanted is None:
+            return False
+
+    if str_to_wlstr(result, evaluation) == str_to_wlstr(wanted, evaluation):
         return True
     if result is None or wanted is None:
         return False
@@ -110,7 +138,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         return False
 
     time_comparing = datetime.now()
-    comparison_result = compare(result, wanted)
+    comparison_result = compare(result, wanted, evaluation)
     if check_partial_enlapsed_time:
         print("   comparison took ", datetime.now() - time_comparing)
     if not comparison_result:
@@ -126,7 +154,10 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         output_ok = False
     else:
         for got, wanted in zip(out, wanted_out):
-            if not got == wanted:
+            if not (
+                    got.is_message == wanted.is_message and
+                    str_to_wlstr(got.text, evaluation) == str_to_wlstr(got.text, evaluation)
+            ):
                 output_ok = False
                 break
     if check_partial_enlapsed_time:
