@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Graphics (3D)
+Three-Dimensional Graphics
 """
 
 
@@ -777,9 +777,6 @@ class Graphics3DElements(_GraphicsElements):
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
-
-    def to_svg(self):
-        return "\n".join(element.to_svg() for element in self.elements)
 
     def to_asy(self):
         return "\n".join([element.to_asy() for element in self.elements])

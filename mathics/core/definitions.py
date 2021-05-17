@@ -84,7 +84,6 @@ class Definitions(object):
 
         if add_builtin:
             from mathics.builtin import modules, contribute
-            from mathics.core.evaluation import Evaluation
             from mathics.settings import ROOT_DIR
 
             loaded = False
@@ -126,6 +125,7 @@ class Definitions(object):
             self.builtin.update(self.user)
             self.user = {}
             self.clear_cache()
+        import mathics.formatter.svg
 
     def load_pymathics_module(self, module, remove_on_quit=True):
         """
