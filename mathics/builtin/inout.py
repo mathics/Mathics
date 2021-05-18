@@ -2063,25 +2063,25 @@ class MathMLForm(Builtin):
 
         boxes = MakeBoxes(expr).evaluate(evaluation)
         try:
-            xml = boxes.boxes_to_mathml(evaluation=evaluation)
+            mathml = boxes.boxes_to_mathml(evaluation=evaluation)
         except BoxError:
             evaluation.message(
                 "General",
                 "notboxes",
                 Expression("FullForm", boxes).evaluate(evaluation),
             )
-            xml = ""
-        is_a_picture = xml[:6] == "<mtext"
+            mathml = ""
+        is_a_picture = mathml[:6] == "<mtext"
 
-        # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % xml
+        # mathml = '<math><mstyle displaystyle="true">%s</mstyle></math>' % mathml
         # #convert_box(boxes)
         query = evaluation.parse("Settings`$UseSansSerif")
         usesansserif = query.evaluate(evaluation).to_python()
         if not is_a_picture:
             if isinstance(usesansserif, bool) and usesansserif:
-                xml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % xml
+                mathml = '<mstyle mathvariant="sans-serif">%s</mstyle>' % mathml
 
-        mathml = '<math display="block">%s</math>' % xml  # convert_box(boxes)
+        mathml = '<math display="block">%s</math>' % mathml  # convert_box(boxes)
         return Expression("RowBox", Expression(SymbolList, String(mathml)))
 
 
