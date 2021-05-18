@@ -10,7 +10,7 @@ from mathics.builtin.graphics import (
     ArrowBox,
     BezierCurveBox,
     FilledCurveBox,
-    # GraphicsBox,
+    GraphicsBox,
     GraphicsElements,
     InsetBox,
     LineBox,
@@ -111,60 +111,60 @@ def filledcurvebox(self, offset=None):
 add_conversion_fn(FilledCurveBox)
 
 # FIXME figure out how we can add this.
-# def graphicsbox(self, leaves=None, **options) -> str:
-#         if not leaves:
-#             leaves = self._leaves
-#
-#         data = options.get("data", None)
-#         if data:
-#             elements, xmin, xmax, ymin, ymax, w, h, width, height = data
-#         else:
-#             elements, calc_dimensions = self._prepare_elements(
-#                 leaves, options, neg_y=True
-#             )
-#             xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-#
-#         elements.view_width = w
-#
-#         format_fn = lookup_method(elements, "svg")
-#         if format_fn is not None:
-#             svg_body = format_fn(elements, offset=options.get("offset", None))
-#         else:
-#             svg_body = elements.to_svg(offset=options.get("offset", None))
-#
-#         if self.background_color is not None:
-#             # Wrap svg_elements in a rectangle
-#             svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
-#                 xmin,
-#                 ymin,
-#                 w,
-#                 h,
-#                 self.background_color.to_css()[0],
-#                 svg_body,
-#             )
-#
-#         xmin -= 1
-#         ymin -= 1
-#         w += 2
-#         h += 2
-#
-#         if options.get("noheader", False):
-#             return svg_body
-#         svg_main = """
-#             <svg xmlns:svg="http://www.w3.org/2000/svg"
-#                 xmlns="http://www.w3.org/2000/svg"
-#                 version="1.1"
-#                 viewBox="%s">
-#                 %s
-#             </svg>
-#         """ % (
-#             " ".join("%f" % t for t in (xmin, ymin, w, h)),
-#             svg_body,
-#         )
-#         return svg_main  # , width, height
-#
-#
-# add_conversion_fn(GraphicsBox)
+def graphicsbox(self, leaves=None, **options) -> str:
+        if not leaves:
+            leaves = self._leaves
+
+        data = options.get("data", None)
+        if data:
+            elements, xmin, xmax, ymin, ymax, w, h, width, height = data
+        else:
+            elements, calc_dimensions = self._prepare_elements(
+                leaves, options, neg_y=True
+            )
+            xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+
+        elements.view_width = w
+
+        format_fn = lookup_method(elements, "svg")
+        if format_fn is not None:
+            svg_body = format_fn(elements, offset=options.get("offset", None))
+        else:
+            svg_body = elements.to_svg(offset=options.get("offset", None))
+
+        if self.background_color is not None:
+            # Wrap svg_elements in a rectangle
+            svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
+                xmin,
+                ymin,
+                w,
+                h,
+                self.background_color.to_css()[0],
+                svg_body,
+            )
+
+        xmin -= 1
+        ymin -= 1
+        w += 2
+        h += 2
+
+        if options.get("noheader", False):
+            return svg_body
+        svg_main = """
+            <svg xmlns:svg="http://www.w3.org/2000/svg"
+                xmlns="http://www.w3.org/2000/svg"
+                version="1.1"
+                viewBox="%s">
+                %s
+            </svg>
+        """ % (
+            " ".join("%f" % t for t in (xmin, ymin, w, h)),
+            svg_body,
+        )
+        return svg_main  # , width, height
+
+
+add_conversion_fn(GraphicsBox)
 
 
 def graphicselements(self, offset=None):
