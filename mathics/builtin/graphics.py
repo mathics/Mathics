@@ -3100,60 +3100,6 @@ clip(%s);
 
         return tex
 
-    # FIXME: figure out how to move this to the SVG formatter
-    def to_svg(self, leaves=None, **options):
-        if not leaves:
-            leaves = self._leaves
-
-        data = options.get("data", None)
-        if data:
-            elements, xmin, xmax, ymin, ymax, w, h, width, height = data
-        else:
-            elements, calc_dimensions = self._prepare_elements(
-                leaves, options, neg_y=True
-            )
-            xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-
-        elements.view_width = w
-
-        format_fn = lookup_method(elements, "svg")
-        if format_fn is not None:
-            svg_body = format_fn(elements, offset=options.get("offset", None))
-        else:
-            svg_body = elements.to_svg(offset=options.get("offset", None))
-
-        if self.background_color is not None:
-            # Wrap svg_elements in a rectangle
-            svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
-                xmin,
-                ymin,
-                w,
-                h,
-                self.background_color.to_css()[0],
-                svg_body,
-            )
-
-        xmin -= 1
-        ymin -= 1
-        w += 2
-        h += 2
-
-        if options.get("noheader", False):
-            return svg_body
-        svg_main = """
-            <svg xmlns:svg="http://www.w3.org/2000/svg"
-                xmlns="http://www.w3.org/2000/svg"
-                version="1.1"
-                viewBox="%s">
-                %s
-            </svg>
-        """ % (
-            " ".join("%f" % t for t in (xmin, ymin, w, h)),
-            svg_body,
-        )
-        return svg_main  # , width, height
-
-    # fixme: figure out how to move the svg-specific portions to the SVG formatter.
     def boxes_to_mathml(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
@@ -3162,7 +3108,10 @@ clip(%s);
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
 
-        svg_main = self.to_svg(leaves, data=data, **options)
+        # FIXME: SVG is the only thing we can convert MathML into.
+        # Handle other graphics formats.
+        format_fn = lookup_method(self, "svg")
+        svg_main = format_fn(self, leaves, data=data, **options)
 
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
