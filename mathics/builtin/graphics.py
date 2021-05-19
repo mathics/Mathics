@@ -114,6 +114,39 @@ def _asy_bezier(*segments):
 def asy_number(value):
     return "%.5g" % value
 
+# This is asy specific. Move elsewhere
+def _color(self):
+    rgba = self.to_rgba()
+    alpha = rgba[3] if len(rgba) > 3 else 1.0
+    return (
+        r"rgb(%s, %s, %s)"
+        % (asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
+        alpha,
+    )
+
+
+def create_pens(
+    edge_color=None, face_color=None, stroke_width=None, is_face_element=False
+):
+    result = []
+    if face_color is not None:
+        brush, opacity = _color(face_color)
+        if opacity != 1:
+            brush += "+opacity(%s)" % asy_number(opacity)
+        result.append(brush)
+    elif is_face_element:
+        result.append("nullpen")
+    if edge_color is not None:
+        pen, opacity = _color(edge_color)
+        if opacity != 1:
+            pen += "+opacity(%s)" % asy_number(opacity)
+        if stroke_width is not None:
+            pen += "+linewidth(%s)" % asy_number(stroke_width)
+        result.append(pen)
+    elif is_face_element:
+        result.append("nullpen")
+    return ", ".join(result)
+
 
 class CoordinatesError(BoxConstructError):
     pass
@@ -358,14 +391,9 @@ def _extract_graphics(graphics, format, evaluation):
 
     # generate code for svg or asy.
 
-    if format == "asy":
-        code = "\n".join(element.to_asy() for element in elements.elements)
-    elif format == "svg":
-        format_fn = lookup_method(elements, "svg")
-        if format_fn is not None:
-            code = format_fn(elements)
-        else:
-            code = elements.to_svg()
+    if format in ("asy", "svg"):
+        format_fn = lookup_method(elements, format)
+        code = format_fn(elements)
     else:
         raise NotImplementedError
 
@@ -2743,13 +2771,13 @@ class GraphicsBox(BoxConstruct):
         elements.view_width = w
 
         asy_completely_visible = "\n".join(
-            element.to_asy()
+            lookup_method(element, "asy")(element)
             for element in elements.elements
             if element.is_completely_visible
         )
 
         asy_regular = "\n".join(
-            element.to_asy()
+            lookup_method(element, "asy")(element)
             for element in elements.elements
             if not element.is_completely_visible
         )
@@ -2762,7 +2790,7 @@ class GraphicsBox(BoxConstruct):
         )
 
         if self.background_color is not None:
-            color, opacity = self.background_color.to_asy()
+            color, opacity = _color(self.background_color)
             asy_background = "filldraw(%s, %s);" % (asy_box, color)
         else:
             asy_background = ""

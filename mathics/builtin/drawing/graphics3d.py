@@ -7,12 +7,14 @@ Three-Dimensional Graphics
 
 import numbers
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.core.expression import (
     Expression,
     from_python,
     system_symbols_dict,
     SymbolList,
 )
+from mathics.core.formatter import lookup_method
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from mathics.builtin.graphics import (
     Graphics,
@@ -443,7 +445,12 @@ class Graphics3DBox(GraphicsBox):
 
         elements._apply_boxscaling(boxscale)
 
-        asy = elements.to_asy()
+
+        format_fn = lookup_method(elements, "asy")
+        if format_fn is not None:
+            asy = format_fn(elements)
+        else:
+            asy = elements.to_asy()
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
@@ -778,9 +785,6 @@ class Graphics3DElements(_GraphicsElements):
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
 
-    def to_asy(self):
-        return "\n".join([element.to_asy() for element in self.elements])
-
     def _apply_boxscaling(self, boxscale):
         for element in self.elements:
             element._apply_boxscaling(boxscale)
@@ -871,18 +875,6 @@ class Line3DBox(LineBox):
             )
         return data
 
-    def to_asy(self):
-        # l = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=1)
-
-        return "".join(
-            "draw({0}, {1});".format(
-                "--".join("({0},{1},{2})".format(*coords.pos()[0]) for coords in line),
-                pen,
-            )
-            for line in self.lines
-        )
-
     def extent(self):
         result = []
         for line in self.lines:
@@ -929,29 +921,6 @@ class Polygon3DBox(PolygonBox):
                 }
             )
         return data
-
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
-        if self.vertex_colors is None:
-            face_color = self.face_color
-        else:
-            face_color = None
-        pen = create_pens(
-            edge_color=self.edge_color,
-            face_color=face_color,
-            stroke_width=l,
-            is_face_element=True,
-        )
-
-        asy = ""
-        for line in self.lines:
-            asy += (
-                "path3 g="
-                + "--".join(["(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line])
-                + "--cycle;"
-            )
-            asy += "draw(surface(g), %s);" % (pen)
-        return asy
 
     def extent(self):
         result = []
