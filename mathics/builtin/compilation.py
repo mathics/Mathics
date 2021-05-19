@@ -170,9 +170,6 @@ class CompiledCode(Atom):
         return "-CompiledCode-"
 
     def boxes_to_text(self, leaves=None, **options):
-        from trepan.api import debug
-
-        debug()
         if not leaves:
             leaves = self._leaves
         return "-CompiledCode-"

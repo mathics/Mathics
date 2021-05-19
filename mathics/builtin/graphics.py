@@ -851,6 +851,10 @@ class ColorDistance(Builtin):
         + "two lists of colors of the same length.",
     }
 
+    # If numpy is not installed, 100 * c1.to_color_space returns
+    # a list of 100 x 3 elements, instead of doing elementwise multiplication
+    requires = ("numpy",)
+
     # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
     # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
 
@@ -886,13 +890,6 @@ class ColorDistance(Builtin):
 
     def apply(self, c1, c2, evaluation, options):
         "ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]"
-
-        # If numpy is not installed, 100 * c1.to_color_space returns
-        # a list of 100 x 3 elements, instead of doing elementwise multiplication
-        try:
-            import numpy as np
-        except:
-            raise RuntimeError("NumPy needs to be installed for ColorDistance")
 
         distance_function = options.get("System`DistanceFunction")
         compute = None

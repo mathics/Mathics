@@ -27,7 +27,6 @@ from mathics.core.formatter import lookup_method, add_conversion_fn
 
 class _SVGTransform:
     def __init__(self):
-        from trepan.api import debug; debug()
         self.transforms = []
 
     def matrix(self, a, b, c, d, e, f):
