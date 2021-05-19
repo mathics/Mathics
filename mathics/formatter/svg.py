@@ -20,10 +20,33 @@ from mathics.builtin.graphics import (
     RectangleBox,
     _RoundBox,
     _svg_bezier,
-    _SVGTransform,
 )
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
+
+
+class _SVGTransform:
+    def __init__(self):
+        from trepan.api import debug; debug()
+        self.transforms = []
+
+    def matrix(self, a, b, c, d, e, f):
+        # a c e
+        # b d f
+        # 0 0 1
+        self.transforms.append("matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f))
+
+    def translate(self, x, y):
+        self.transforms.append("translate(%f, %f)" % (x, y))
+
+    def scale(self, x, y):
+        self.transforms.append("scale(%f, %f)" % (x, y))
+
+    def rotate(self, x):
+        self.transforms.append("rotate(%f)" % x)
+
+    def apply(self, svg):
+        return '<g transform="%s">%s</g>' % (" ".join(self.transforms), svg)
 
 
 def create_css(
@@ -76,8 +99,8 @@ add_conversion_fn(ArrowBox)
 
 
 def beziercurvebox(self, offset=None):
-    l = self.style.get_line_width(face_element=False)
-    style = create_css(edge_color=self.edge_color, stroke_width=l)
+    line_width = self.style.get_line_width(face_element=False)
+    style = create_css(edge_color=self.edge_color, stroke_width=line_width)
 
     svg = ""
     for line in self.lines:
@@ -91,9 +114,9 @@ add_conversion_fn(BezierCurveBox)
 
 
 def filledcurvebox(self, offset=None):
-    l = self.style.get_line_width(face_element=False)
+    line_width = self.style.get_line_width(face_element=False)
     style = create_css(
-        edge_color=self.edge_color, face_color=self.face_color, stroke_width=l
+        edge_color=self.edge_color, face_color=self.face_color, stroke_width=line_width
     )
 
     def components():
@@ -110,7 +133,6 @@ def filledcurvebox(self, offset=None):
 
 add_conversion_fn(FilledCurveBox)
 
-# FIXME figure out how we can add this.
 def graphicsbox(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
@@ -220,8 +242,8 @@ add_conversion_fn(InsetBox)
 
 
 def linebox(self, offset=None):
-    l = self.style.get_line_width(face_element=False)
-    style = create_css(edge_color=self.edge_color, stroke_width=l)
+    line_width = self.style.get_line_width(face_element=False)
+    style = create_css(edge_color=self.edge_color, stroke_width=line_width)
     svg = ""
     for line in self.lines:
         svg += '<polyline points="%s" style="%s" />' % (
@@ -261,13 +283,13 @@ add_conversion_fn(PointBox)
 
 
 def polygonbox(self, offset=None):
-    l = self.style.get_line_width(face_element=True)
+    line_width = self.style.get_line_width(face_element=True)
     if self.vertex_colors is None:
         face_color = self.face_color
     else:
         face_color = None
     style = create_css(
-        edge_color=self.edge_color, face_color=face_color, stroke_width=l
+        edge_color=self.edge_color, face_color=face_color, stroke_width=line_width
     )
     svg = ""
     if self.vertex_colors is not None:
@@ -292,7 +314,7 @@ add_conversion_fn(PolygonBox)
 
 
 def rectanglebox(self, offset=None):
-    l = self.style.get_line_width(face_element=True)
+    line_width = self.style.get_line_width(face_element=True)
     x1, y1 = self.p1.pos()
     x2, y2 = self.p2.pos()
     xmin = min(x1, x2)
@@ -302,7 +324,7 @@ def rectanglebox(self, offset=None):
     if offset:
         x1, x2 = x1 + offset[0], x2 + offset[0]
         y1, y2 = y1 + offset[1], y2 + offset[1]
-    style = create_css(self.edge_color, self.face_color, l)
+    style = create_css(self.edge_color, self.face_color, line_width)
     return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
         xmin,
         ymin,
@@ -321,8 +343,8 @@ def _roundbox(self, offset=None):
     rx, ry = self.r.pos()
     rx -= x
     ry = y - ry
-    l = self.style.get_line_width(face_element=self.face_element)
-    style = create_css(self.edge_color, self.face_color, stroke_width=l)
+    line_width = self.style.get_line_width(face_element=self.face_element)
+    style = create_css(self.edge_color, self.face_color, stroke_width=line_width)
     return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
         x,
         y,

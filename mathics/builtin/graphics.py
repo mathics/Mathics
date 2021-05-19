@@ -335,29 +335,6 @@ def _extract_graphics(graphics, format, evaluation):
     return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
 
 
-class _SVGTransform:
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        self.transforms.append("matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f))
-
-    def translate(self, x, y):
-        self.transforms.append("translate(%f, %f)" % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append("scale(%f, %f)" % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append("rotate(%f)" % x)
-
-    def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (" ".join(self.transforms), svg)
-
-
 class _ASYTransform:
     _template = """
     add(%s * (new picture() {
@@ -416,7 +393,6 @@ class Show(Builtin):
         new_leaves = []
         options_set = set(options.keys())
         for leaf in graphics.leaves:
-            new_leaf = leaf
             leaf_name = leaf.get_head_name()
             if leaf_name == "System`Rule" and str(leaf.leaves[0]) in options_set:
                 continue
@@ -1365,64 +1341,6 @@ class _ArcBox(_RoundBox):
         ey = y + ry * sin(end_angle)
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
-
-    # FIXME: Why do we need this? If so,
-    # figure out how to put in svg.py
-    # --------------------------------
-    # def to_svg(self, offset=None):
-    #     if self.arc is None:
-    #         return super(_ArcBox, self).to_svg(offset)
-
-    #     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
-
-    #     format_fn = lookup_method(self, "svg")
-    #     if format_fn is not None:
-    #         return format_fn(self, offset)
-    #     def path(closed):
-    #         if closed:
-    #             yield "M %f,%f" % (x, y)
-    #             yield "L %f,%f" % (sx, sy)
-    #         else:
-    #             yield "M %f,%f" % (sx, sy)
-
-    #         yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
-
-    #         if closed:
-    #             yield "Z"
-
-    #     l = self.style.get_line_width(face_element=self.face_element)
-    #     style = create_css(self.edge_color, self.face_color, stroke_width=l)
-    #     return '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
-
-    def to_asy(self):
-        if self.arc is None:
-            return super(_ArcBox, self).to_asy()
-
-        x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
-
-        def path(closed):
-            if closed:
-                yield "(%s,%s)--(%s,%s)--" % tuple(
-                    asy_number(t) for t in (x, y, sx, sy)
-                )
-
-            yield "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
-                asy_number(t) for t in (x, y, sx, sy, ex, ey)
-            )
-
-            if closed:
-                yield "--cycle"
-
-        l = self.style.get_line_width(face_element=self.face_element)
-        pen = create_pens(
-            edge_color=self.edge_color,
-            face_color=self.face_color,
-            stroke_width=l,
-            is_face_element=self.face_element,
-        )
-        command = "filldraw" if self.face_element else "draw"
-        return "%s(%s, %s);" % (command, "".join(path(self.face_element)), pen)
-
 
 class DiskBox(_ArcBox):
     face_element = True
