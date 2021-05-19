@@ -8,6 +8,7 @@ Drawing Graphics
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import base64
+from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
@@ -48,6 +49,70 @@ GRAPHICS_OPTIONS = {
     "TicksStyle": "{}",
     "$OptionSyntax": "Ignore",
 }
+
+# FIXME: move out into formatter after make_draw_asy is moved
+def _asy_bezier(*segments):
+    # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
+
+    while segments and not segments[0][1]:
+        segments = segments[1:]
+
+    if not segments:
+        return
+
+    def cubic(p0, p1, p2, p3):
+        return "..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)" % tuple(
+            list(chain(p1, p2, p3))
+        )
+
+    def quadratric(qp0, qp1, qp2):
+        # asymptote only supports cubic beziers, so we convert this quadratic
+        # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
+
+        # CP0 = QP0
+        # CP3 = QP2
+        # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
+        # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
+
+        qp0x, qp0y = qp0
+        qp1x, qp1y = qp1
+        qp2x, qp2y = qp2
+
+        t = 2.0 / 3.0
+        cp0 = qp0
+        cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
+        cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
+        cp3 = qp2
+
+        return cubic(cp0, cp1, cp2, cp3)
+
+    def linear(p0, p1):
+        return "--(%.5g,%.5g)" % p1
+
+    forms = (linear, quadratric, cubic)
+
+    def path(max_degree, p):
+        max_degree = min(max_degree, len(forms))
+        while p:
+            n = min(max_degree, len(p) - 1)  # 1, 2, or 3
+            if n < 1:
+                break
+            yield forms[n - 1](*p[: n + 1])
+            p = p[n:]
+
+    k, p = segments[0]
+    yield "(%.5g,%.5g)" % p[0]
+
+    connect = []
+    for k, p in segments:
+        for s in path(k, list(chain(connect, p))):
+            yield s
+        connect = p[-1:]
+
+
+# FIXME: move out into formatter after make_draw_asy is moved
+def asy_number(value):
+    return "%.5g" % value
 
 
 class CoordinatesError(BoxConstructError):
@@ -773,6 +838,8 @@ class ColorDistance(Builtin):
 
     options = {"DistanceFunction": "Automatic"}
 
+    requires = ("numpy",)
+
     messages = {
         "invdist": "`1` is not Automatic or a valid distance specification.",
         "invarg": "`1` and `2` should be two colors or a color and a lists of colors or "
@@ -1144,6 +1211,7 @@ class RectangleBox(_GraphicsElement):
             )
         return result
 
+
 class _RoundBox(_GraphicsElement):
     face_element = None
 
@@ -1175,7 +1243,6 @@ class _RoundBox(_GraphicsElement):
         rx += l
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
-
 
 
 class _ArcBox(_RoundBox):
@@ -1226,6 +1293,7 @@ class _ArcBox(_RoundBox):
         ey = y + ry * sin(end_angle)
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
+
 
 class DiskBox(_ArcBox):
     face_element = True
@@ -1308,6 +1376,7 @@ class PointBox(_Polyline):
         else:
             raise BoxConstructError
 
+
 class Line(Builtin):
     """
     <dl>
@@ -1340,6 +1409,7 @@ class LineBox(_Polyline):
             self.lines = lines
         else:
             raise BoxConstructError
+
 
 def _svg_bezier(*segments):
     # see https://www.w3.org/TR/SVG/paths.html#PathDataCubicBezierCommands
@@ -1555,7 +1625,6 @@ class PolygonBox(_Polyline):
                         continue
         else:
             raise BoxConstructError
-
 
 
 class RegularPolygon(Builtin):
@@ -2134,6 +2203,7 @@ class InsetBox(_GraphicsElement):
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
+
 
 def total_extent(extents):
     xmin = xmax = ymin = ymax = None
