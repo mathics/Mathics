@@ -7,7 +7,6 @@ Format a Mathics object as an Aymptote string
 from itertools import chain
 
 from mathics.builtin.graphics import (
-    _ArcBox,
     ArrowBox,
     _Color,
     BezierCurveBox,
@@ -157,37 +156,6 @@ def _color(self):
 
 
 add_conversion_fn(_Color)
-
-
-def _arcbox(self):
-    if self.arc is None:
-        return super(_ArcBox, self).to_asy()
-
-    x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
-
-    def path(closed):
-        if closed:
-            yield "(%s,%s)--(%s,%s)--" % tuple(asy_number(t) for t in (x, y, sx, sy))
-
-        yield "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
-            asy_number(t) for t in (x, y, sx, sy, ex, ey)
-        )
-
-        if closed:
-            yield "--cycle"
-
-    line_width = self.style.get_line_width(face_element=self.face_element)
-    pen = create_pens(
-        edge_color=self.edge_color,
-        face_color=self.face_color,
-        stroke_width=line_width,
-        is_face_element=self.face_element,
-    )
-    command = "filldraw" if self.face_element else "draw"
-    return "%s(%s, %s);" % (command, "".join(path(self.face_element)), pen)
-
-
-add_conversion_fn(_ArcBox)
 
 
 def arrowbox(self):
