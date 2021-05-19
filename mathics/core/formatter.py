@@ -5,7 +5,7 @@ from typing import Callable
 format2fn = {}
 
 
-def lookup_method(self, format: str) -> Callable:
+def lookup_method(self, format: str, module_fn_name=None) -> Callable:
     """
     Find a conversion method for `format` in self's class method resolution order.
     """
@@ -19,7 +19,7 @@ def lookup_method(self, format: str) -> Callable:
     )
 
 
-def add_conversion_fn(cls) -> None:
+def add_conversion_fn(cls, module_fn_name=None) -> None:
     """Add to `format2fn` a mapping from a conversion type and builtin-class
     to a conversion method.
 
@@ -41,8 +41,10 @@ def add_conversion_fn(cls) -> None:
     # The last part of the module name is expected to be the conversion routine.
     conversion_type = module_dict["__name__"].split(".")[-1]
 
-    # Derive the conversion function from the passed-in class argument.
-    module_fn_name = cls.__name__.lower()
+    # Derive the conversion function from the passed-in class argument,
+    # unless it is already set.
+    if module_fn_name is None:
+        module_fn_name = cls.__name__.lower()
 
     # Finally register the mapping: (Builtin-class, conversion name) -> conversion_function.
     format2fn[(conversion_type, cls)] = module_dict[module_fn_name]
