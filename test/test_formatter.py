@@ -1,5 +1,5 @@
 import re
-from mathics.core.expression import Symbol, Integer0, Expression
+from mathics.core.expression import Symbol, Integer0, Integer1, Expression
 from mathics.core.evaluation import Evaluation
 from mathics.session import MathicsSession
 from mathics.builtin.inout import MakeBoxes
@@ -63,6 +63,7 @@ def test_svg_circle():
     assert matches
     assert matches.group(1) == matches.group(2) == matches.group(3)
 
+
 def test_svg_point():
     expression = Expression(
         GraphicsSymbol,
@@ -75,12 +76,53 @@ def test_svg_point():
     # Circles are implemented as ellipses with equal major and minor axes.
     # Check for that.
     print(inner_svg)
-    matches = re.match(
-        r'^<circle cx="(\S+)" cy="(\S+)" r="(\S+)" .*/>', inner_svg
-    )
+    matches = re.match(r'^<circle cx="(\S+)" cy="(\S+)" r="(\S+)" .*/>', inner_svg)
     assert matches
     assert matches.group(1) == matches.group(2)
 
 
+def test_svg_arrowbox():
+    expression = Expression(
+        GraphicsSymbol,
+        Expression(
+            "Arrow",
+            Expression(
+                ListSymbol,
+                Expression(ListSymbol, Integer0, Integer0),
+                Expression(ListSymbol, Integer1, Integer1),
+            ),
+        ),
+    )
+    svg = get_svg(expression)
+    inner_svg = extract_svg_body(svg)
+
+    matches = re.match(r'^<polyline points=".+"\s+style=".*"\s*/><', inner_svg)
+    # TODO: Could pick endpoint of this line and match with beginnign of arrow polygon below
+    assert matches
+    arrow_polygon = inner_svg[len(matches.group(0)) - 1 :]
+    matches = re.match(r'^<polygon points=".+"\s+style=".*"\s*/>', arrow_polygon)
+    assert matches
+
+
+def test_svg_bezier_curve():
+
+    expression = Expression(
+        GraphicsSymbol,
+        Expression(
+            "BezierCurve",
+            Expression(
+                ListSymbol,
+                Expression(ListSymbol, Integer0, Integer0),
+                Expression(ListSymbol, Integer1, Integer1),
+            ),
+        ),
+    )
+    svg = get_svg(expression)
+    inner_svg = extract_svg_body(svg)
+
+    matches = re.match(r'^<path d=".+"\s*/>', inner_svg)
+    assert matches
+
+
 if __name__ == "__main__":
-    test_svg_point()
+    test_svg_bezier_curve()
