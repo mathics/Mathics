@@ -70,6 +70,16 @@ def system_symbols_dict(d):
     return {ensure_context(k): v for k, v in d.items()}
 
 
+_layout_boxes = system_symbols(
+    "RowBox",
+    "SuperscriptBox",
+    "SubscriptBox",
+    "SubsuperscriptBox",
+    "FractionBox",
+    "SqrtBox",
+)
+
+
 class BoxError(Exception):
     def __init__(self, box, form) -> None:
         super().__init__("Box %s cannot be formatted as %s" % (box, form))
@@ -517,6 +527,12 @@ class BaseExpression(KeyComparable):
         expr = self.do_format(evaluation, form)
         result = Expression("MakeBoxes", expr, Symbol(form)).evaluate(evaluation)
         return result
+
+    def output_cost(self):
+        # the cost of outputting this item, usually the number of
+        # characters without any formatting elements or whitespace;
+        # e.g. "a, b", would be counted as 3.
+        return 1  # fallback implementation: count as one character
 
     def is_free(self, form, evaluation) -> bool:
         from mathics.builtin.patterns import item_is_free
@@ -1508,6 +1524,7 @@ class Expression(BaseExpression):
         is_style, options = self.process_style_box(options)
         if is_style:
             return self._leaves[0].boxes_to_text(**options)
+        head = self._head.get_name()
         if self.has_form("RowBox", 1) and self._leaves[0].has_form(  # nopep8
             "List", None
         ):
@@ -1654,6 +1671,29 @@ class Expression(BaseExpression):
             return "\\sqrt{%s}" % self._leaves[0].boxes_to_tex(**options)
         else:
             raise BoxError(self, "tex")
+
+    def output_cost(self):
+        name = self.get_head_name()
+
+        if name in ("System`ImageBox", "System`GraphicsBox", "System`Graphics3DBox"):
+            return 1  # count as expensive as one character
+
+        leaves = self.leaves
+        cost_of_leaves = sum(leaf.output_cost() for leaf in leaves)
+
+        if name in _layout_boxes:
+            return cost_of_leaves
+        else:
+            separator_cost = 1  # i.e. ","
+            n_separators = max(len(leaves) - 1, 0)
+            total_cost = (
+                2 + cost_of_leaves + separator_cost * n_separators
+            )  # {a, b, c}, [a, b, c]
+
+            if name != "System`List":
+                total_cost += self.head.output_cost()
+
+            return total_cost
 
     def default_format(self, evaluation, form) -> str:
         return "%s[%s]" % (
@@ -1975,6 +2015,9 @@ class Symbol(Atom):
     def do_copy(self) -> "Symbol":
         return Symbol(self.name)
 
+    def output_cost(self):
+        return len(self.name)
+
     def boxes_to_text(self, **options) -> str:
         return str(self.name)
 
@@ -2130,6 +2173,7 @@ def from_mpmath(value, prec=None):
         raise TypeError(type(value))
 
 
+
 class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
@@ -2196,6 +2240,9 @@ class Integer(Number):
 
     def boxes_to_text(self, **options) -> str:
         return str(self.value)
+
+    def output_cost(self):
+        return len(str(self.value))
 
     def boxes_to_mathml(self, **options) -> str:
         return self.make_boxes("MathMLForm").boxes_to_mathml(**options)
@@ -2272,6 +2319,10 @@ class Rational(Number):
         self = super().__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
+
+    def output_cost(self):
+        numer, denom = self.value.as_numer_denom()
+        return len(str(numer)) + len(str(denom))
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -2385,6 +2436,9 @@ class Real(Number):
             return MachineReal.__new__(MachineReal, value)
         else:
             return PrecisionReal.__new__(PrecisionReal, value)
+
+    def output_cost(self):
+        return len(self.boxes_to_text())
 
     def boxes_to_text(self, **options) -> str:
         return self.make_boxes("System`OutputForm").boxes_to_text(**options)
@@ -2612,6 +2666,9 @@ class Complex(Number):
     def __str__(self) -> str:
         return str(self.to_sympy())
 
+    def output_cost(self):
+        return self.real.output_cost() + self.imag.output_cost() + 2  # "+", "I"
+
     def to_sympy(self, **kwargs):
         return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
 
@@ -2813,6 +2870,9 @@ class String(Atom):
 
     def __str__(self) -> str:
         return '"%s"' % self.value
+
+    def output_cost(self):
+        return len(self.value)
 
     def boxes_to_text(self, show_string_characters=False, **options) -> str:
         value = self.value
@@ -3055,6 +3115,32 @@ class ByteArrayAtom(Atom):
         return (self.value,)
 
 
+class Omitted(
+    String
+):  # represents an omitted portion like <<42>> (itself not collapsible)
+    def __new__(cls, value, **kwargs):
+        return super(Omitted, cls).__new__(cls, value, **kwargs)
+
+    def boxes_to_text(self, **options):
+        new_options = dict(
+            (k, v) for k, v in options.items() if k != "output_size_limit"
+        )
+        return super(Omitted, self).boxes_to_text(**new_options)
+
+    def boxes_to_xml(self, **options):
+        new_options = dict(
+            (k, v) for k, v in options.items() if k != "output_size_limit"
+        )
+        s = super(Omitted, self).boxes_to_xml(**new_options)
+        return "<mtext mathcolor='#4040a0'>%s</mtext>" % s
+
+    def boxes_to_tex(self, **options):
+        new_options = dict(
+            (k, v) for k, v in options.items() if k != "output_size_limit"
+        )
+        return super(Omitted, self).boxes_to_tex(**new_options)
+
+
 class StringFromPython(String):
     def __new__(cls, value):
         self = super().__new__(cls, value)
@@ -3096,6 +3182,240 @@ def print_parenthesizes(
         outer_precedence > precedence
         or (outer_precedence == precedence and parenthesize_when_equal)
     )
+
+
+def _interleave(*gens):  # interleaves over n generators of even or uneven lengths
+    active = [gen for gen in gens]
+    while len(active) > 0:
+        i = 0
+        while i < len(active):
+            try:
+                yield next(active[i])
+                i += 1
+            except StopIteration:
+                del active[i]
+
+
+class _MakeBoxesStrategy(object):
+    def capacity(self):
+        raise NotImplementedError()
+
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
+        raise NotImplementedError()
+
+
+class Omissions:
+    def __init__(self):
+        self._omissions = []
+
+    def add(self, count):
+        n = len(self._omissions)
+        if n < 3:
+            self._omissions.append("<<%d>>" % count)
+        if n == 3:
+            self._omissions.append("...")
+
+    def warn(self, evaluation):
+        if self._omissions:
+            evaluation.message("General", "omit", ", ".join(self._omissions))
+
+
+def _riffle_separators(elements, separators):
+    yield elements[0]
+    for e, s in zip(elements[1:], separators):
+        yield s
+        yield e
+
+
+class _UnlimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self):
+        self.omissions_occured = False
+
+    def capacity(self):
+        return None
+
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
+        prefix = []
+        if head is not None:
+            prefix.append(head)
+        if left is not None:
+            prefix.append(left)
+
+        inner = [make_leaf(i) for i in range(n_leaves)]
+
+        if sep is not None and n_leaves > 1:
+            if isinstance(sep, (list, tuple)):
+                inner = list(_riffle_separators(inner, sep))
+            else:
+                from mathics.builtin.lists import riffle
+
+                inner = riffle(inner, sep)
+
+        if right is not None:
+            suffix = [right]
+        else:
+            suffix = []
+
+        return materialize(prefix, inner, suffix)
+
+
+class _LimitedMakeBoxesState:
+    def __init__(self, capacity, side, both_sides, depth):
+        self.capacity = capacity  # output size remaining
+        self.side = side  # start from left side (<0) or right side (>0)?
+        self.both_sides = both_sides  # always evaluate both sides?
+        self.depth = depth  # stack depth of MakeBoxes evaluation
+        self.consumed = 0  # sum of costs consumed so far
+
+
+class _LimitedMakeBoxesStrategy(_MakeBoxesStrategy):
+    def __init__(self, capacity, omissions, evaluation):
+        self._capacity = capacity
+        self._evaluation = evaluation
+        self._state = _LimitedMakeBoxesState(self._capacity, 1, True, 1)
+        self._unlimited = _UnlimitedMakeBoxesStrategy()
+        self._omissions = omissions
+
+    def capacity(self):
+        return self._capacity
+
+    def make(self, head, make_leaf, n_leaves, left, right, sep, materialize, form):
+        state = self._state
+        capacity = state.capacity
+
+        if capacity is None or n_leaves <= 2:
+            return self._unlimited.make(
+                head, make_leaf, n_leaves, left, right, sep, materialize, form
+            )
+
+        left_leaves = []
+        right_leaves = []
+
+        middle = n_leaves // 2
+
+        # note that we use generator expressions, not list comprehensions, here, since we
+        # might quit early in the loop below, and copying all leaves might prove inefficient.
+        from_left = ((leaf, left_leaves.append) for leaf in range(0, middle))
+        from_right = (
+            (leaf, right_leaves.append) for leaf in reversed(range(middle, n_leaves))
+        )
+
+        # specify at which side to start making boxes (either from the left or from the right).
+        side = state.side
+        if side > 0:
+            from_sides = (from_left, from_right)
+        else:
+            from_sides = (from_right, from_left)
+
+        # usually we start on one side and make boxes until the capacity is exhausted.
+        # however, at the first real list (i.e. > 1 elements) we force evaluation of
+        # both sides in order to make sure the start and the end portion is visible.
+        both_sides = state.both_sides
+        if both_sides and n_leaves > 1:
+            delay_break = 1
+            both_sides = False  # disable both_sides from this depth on
+        else:
+            delay_break = 0
+
+        depth = state.depth
+        sum_of_costs = 0
+
+        for i, (index, push) in enumerate(_interleave(*from_sides)):
+            # calling evaluate() here is a serious difference to the implementation
+            # without $OutputSizeLimit. here, we evaluate MakeBoxes bottom up, i.e.
+            # the leaves get evaluated first, since we need to estimate their size
+            # here.
+            #
+            # without $OutputSizeLimit, on the other hand, the expression
+            # gets evaluates from the top down, i.e. first MakeBoxes is wrapped around
+            # each expression, then we call evaluate on the root node. assuming that
+            # there are no rules like MakeBoxes[x_, MakeBoxes[y_]], both approaches
+            # should be identical.
+            #
+            # we could work around this difference by pushing the unevaluated
+            # expression here (see "push(box)" below), instead of the evaluated.
+            # this would be very inefficient though, since we would get quadratic
+            # runtime (quadratic in the depth of the tree).
+
+            box, cost = self._evaluate(
+                make_leaf,
+                index,
+                capacity=capacity // 2,  # reserve rest half of capacity for other side
+                side=side * -((i % 2) * 2 - 1),  # flip between side and -side
+                both_sides=both_sides,  # force both-sides evaluation for deeper levels?
+                depth=depth + 1,
+            )
+
+            push(box)
+            state.consumed += cost
+
+            sum_of_costs += cost
+            if i >= delay_break:
+                capacity -= sum_of_costs
+                sum_of_costs = 0
+                if capacity <= 0:
+                    break
+
+        ellipsis_size = n_leaves - (len(left_leaves) + len(right_leaves))
+        if ellipsis_size > 0 and self._omissions:
+            self._omissions.add(ellipsis_size)
+        ellipsis = [Omitted("<<%d>>" % ellipsis_size)] if ellipsis_size > 0 else []
+
+        # if segment is not None:
+        #    if ellipsis_size > 0:
+        #        segment.extend((True, len(left_leaves), len(items) - len(right_leaves)))
+        #    else:
+        #        segment.extend((False, 0, 0))
+
+        inner = list(chain(left_leaves, ellipsis, reversed(right_leaves)))
+
+        if sep is not None and n_leaves > 1:
+            if isinstance(sep, (list, tuple)):
+                # ellipsis item gets rightmost separator from ellipsed chunk
+                sep = sep[: len(left_leaves)] + sep[len(right_leaves) - 1 :]
+                inner = list(_riffle_separators(inner, sep))
+            else:
+                from mathics.builtin.lists import riffle
+
+                inner = riffle(inner, sep)
+
+        prefix = []
+        if head is not None:
+            prefix.append(head)
+        if left is not None:
+            prefix.append(left)
+
+        if right is not None:
+            suffix = [right]
+        else:
+            suffix = []
+
+        return materialize(prefix, inner, suffix)
+
+    def _evaluate(self, make_leaf, index, **kwargs):
+        old_state = self._state
+        try:
+            state = _LimitedMakeBoxesState(**kwargs)
+            self._state = state
+
+            box = make_leaf(index).evaluate(self._evaluation)
+
+            # estimate the cost of the output related to box. always calling boxes_to_xml here is
+            # the simple solution; the problem is that it's redundant, as for {{{a}, b}, c}, we'd
+            # call boxes_to_xml first on {a}, then on {{a}, b}, then on {{{a}, b}, c}. a good fix
+            # is not simple though, so let's keep it this way for now.
+            cost = box.output_cost()
+
+            return box, cost
+        finally:
+            self._state = old_state
+
+
+def make_boxes_strategy(capacity, omissions, evaluation):
+    if capacity is None:
+        return _UnlimitedMakeBoxesStrategy()
+    else:
+        return _LimitedMakeBoxesStrategy(capacity, omissions, evaluation)
 
 
 def _is_neutral_symbol(symbol_name, cache, evaluation):

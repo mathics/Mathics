@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pickle
 from queue import Queue
 
 import os
@@ -13,7 +12,15 @@ from typing import Tuple
 from mathics_scanner import TranslateError
 
 from mathics import settings
-from mathics.core.expression import ensure_context, KeyComparable, SymbolAborted, SymbolList, SymbolNull
+from mathics.core.expression import (
+    ensure_context,
+    KeyComparable,
+    SymbolAborted,
+    SymbolList,
+    SymbolNull,
+    make_boxes_strategy,
+    Omissions,
+)
 
 FORMATS = [
     "StandardForm",
@@ -248,6 +255,7 @@ class Evaluation(object):
 
         self.quiet_all = False
         self.format = format
+        self.boxes_strategy = make_boxes_strategy(None, None, self)
         self.catch_interrupt = catch_interrupt
 
         self.SymbolNull = SymbolNull
@@ -428,7 +436,7 @@ class Evaluation(object):
     def stop(self) -> None:
         self.stopped = True
 
-    def format_output(self, expr, format=None):
+    def format_output(self, expr, format=None, warn_about_omitted=True):
         if format is None:
             format = self.format
 
@@ -437,17 +445,48 @@ class Evaluation(object):
 
         from mathics.core.expression import Expression, BoxError
 
-        if format == "text":
-            result = expr.format(self, "System`OutputForm")
-        elif format == "xml":
-            result = Expression("StandardForm", expr).format(self, "System`MathMLForm")
-        elif format == "tex":
-            result = Expression("StandardForm", expr).format(self, "System`TeXForm")
-        elif format == "unformatted":
-            self.exc_result = None
-            return expr
-        else:
-            raise ValueError
+        old_boxes_strategy = self.boxes_strategy
+        try:
+            capacity = self.definitions.get_config_value("System`$OutputSizeLimit")
+            omissions = Omissions()
+            self.boxes_strategy = make_boxes_strategy(capacity, omissions, self)
+
+            options = {}
+
+            # for xml/MathMLForm and tex/TexForm, output size limits are applied in the output
+            # form's apply methods (e.g. see MathMLForm.apply) and then passed through
+            # result.boxes_to_text which, in these two cases, must not apply any additional
+            # clipping (it would clip already clipped string material).
+
+            # for text/OutputForm, on the other hand, the call to result.boxes_to_text is the
+            # only place there is to apply output size limits, which has us resort to setting
+            # options['output_size_limit']. NOTE: disabled right now, causes problems with
+            # long message outputs (see test case Table[i, {i, 1, 100}] under OutputSizeLimit).
+
+            if format == "text":
+                result = expr.format(self, "System`OutputForm")
+                # options['output_size_limit'] = capacity
+            elif format == "xml":
+                result = Expression("StandardForm", expr).format(
+                    self, "System`MathMLForm"
+                )
+            elif format == "tex":
+                result = Expression("StandardForm", expr).format(self, "System`TeXForm")
+            else:
+                raise ValueError
+
+            try:
+                boxes = result.boxes_to_text(evaluation=self, **options)
+            except BoxError:
+                self.message(
+                    "General", "notboxes", Expression("FullForm", result).evaluate(self)
+                )
+                boxes = None
+
+            if warn_about_omitted:
+                omissions.warn(self)
+        finally:
+            self.boxes_strategy = old_boxes_strategy
 
         try:
             boxes = result.boxes_to_text(evaluation=self)
@@ -476,6 +515,13 @@ class Evaluation(object):
         if not isinstance(value, Expression):
             return []
         return value.leaves
+
+    def make_boxes(
+        self, prefix, make_leaf, n_leaves, left, right, sep, materialize, form
+    ):
+        return self.boxes_strategy.make(
+            prefix, make_leaf, n_leaves, left, right, sep, materialize, form
+        )
 
     def message(self, symbol, tag, *args) -> None:
         from mathics.core.expression import String, Symbol, Expression, from_python
@@ -510,7 +556,9 @@ class Evaluation(object):
             text = String("Message %s::%s not found." % (symbol_shortname, tag))
 
         text = self.format_output(
-            Expression("StringForm", text, *(from_python(arg) for arg in args)), "text"
+            Expression("StringForm", text, *(from_python(arg) for arg in args)),
+            "text",
+            warn_about_omitted=False,
         )
 
         self.out.append(Message(symbol_shortname, tag, text))

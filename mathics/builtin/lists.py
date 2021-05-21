@@ -281,9 +281,13 @@ class List(Builtin):
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         items = items.get_sequence()
-        return Expression(
-            "RowBox", Expression(SymbolList, *list_boxes(items, f, "{", "}"))
-        )
+
+        def materialize(prefix, inner, suffix):
+            return Expression(
+                "RowBox", Expression("List", *list(chain(prefix, inner, suffix)))
+            )
+
+        return list_boxes(None, items, materialize, f, evaluation, "{", "}")
 
 
 class ListQ(Test):
@@ -317,25 +321,25 @@ class NotListQ(Test):
         return expr.get_head_name() != "System`List"
 
 
-def list_boxes(items, f, open=None, close=None):
-    result = [Expression(SymbolMakeBoxes, item, f) for item in items]
-    if f.get_name() in ("System`OutputForm", "System`InputForm"):
+def list_boxes(prefix, items, materialize, f, evaluation, open=None, close=None):
+    if open is not None:
+        open = String(open)
+    if close is not None:
+        close = String(close)
+
+    if f in ("System`OutputForm", "System`InputForm"):
         sep = ", "
     else:
-        sep = ","
-    result = riffle(result, String(sep))
-    if len(items) > 1:
-        result = Expression("RowBox", Expression(SymbolList, *result))
-    elif items:
-        result = result[0]
-    if result:
-        result = [result]
-    else:
-        result = []
-    if open is not None and close is not None:
-        return [String(open)] + result + [String(close)]
-    else:
-        return result
+        sep = ", " # in the original, this was ",", but
+                   # this broke several doctests...
+                   # Let's restore it when we finish
+
+    def make_leaf(i):
+        return Expression("MakeBoxes", items[i], f)
+
+    return evaluation.make_boxes(
+        prefix, make_leaf, len(items), open, close, sep, materialize, f
+    )
 
 
 class Length(Builtin):
@@ -1105,14 +1109,20 @@ class Part(Builtin):
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         i = i.get_sequence()
+
         list = Expression(SymbolMakeBoxes, list, f)
+
         if f.get_name() in ("System`OutputForm", "System`InputForm"):
             open, close = "[[", "]]"
         else:
             open, close = "\u301a", "\u301b"
-        indices = list_boxes(i, f, open, close)
-        result = Expression("RowBox", Expression(SymbolList, list, *indices))
-        return result
+
+        def materialize(prefix, inner, suffix):
+            return Expression(
+                "RowBox", Expression("List", *list(chain(prefix, inner, suffix)))
+            )
+
+        return list_boxes(list, i, materialize, f, evaluation, open, close)
 
     def apply(self, list, i, evaluation):
         "Part[list_, i___]"
@@ -5898,14 +5908,15 @@ class Association(Builtin):
         rules = rules.get_sequence()
         if self.error_idx == 0 and validate(rules) is True:
             expr = Expression(
-                "RowBox", Expression(SymbolList, *list_boxes(rules, f, "<|", "|>"))
+                "RowBox",
+                Expression(SymbolList, *list_boxes(rules, f, "<|", "|>", evaluation)),
             )
         else:
             self.error_idx += 1
             symbol = Expression(SymbolMakeBoxes, SymbolAssociation, f)
             expr = Expression(
                 "RowBox",
-                Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]")),
+                Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]", evaluation)),
             )
 
         expr = expr.evaluate(evaluation)
