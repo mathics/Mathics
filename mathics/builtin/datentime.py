@@ -126,7 +126,7 @@ class TimeRemaining(Builtin):
             return SymbolInfinity
 
 
-if sys.platform != "win32":
+if sys.platform != "win32" and ("Pyston" not in sys.version):
 
     class TimeConstrained(Builtin):
         """
