@@ -68,7 +68,7 @@ class _ASYTransform:
         return self._template % (" * ".join(self.transforms), asy)
 
 
-def arrowbox(self) -> str:
+def arrow_box(self) -> str:
     width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=width)
     polyline = self.curve.make_draw_asy(pen)
@@ -86,10 +86,10 @@ def arrowbox(self) -> str:
     return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
 
-add_conversion_fn(ArrowBox)
+add_conversion_fn(ArrowBox, arrow_box)
 
 
-def beziercurvebox(self) -> str:
+def bezier_curve_box(self) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -105,11 +105,10 @@ def beziercurvebox(self) -> str:
 
     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
+add_conversion_fn(BezierCurveBox, bezier_curve_box)
 
-add_conversion_fn(BezierCurveBox)
 
-
-def filledcurvebox(self) -> str:
+def filled_curve_box(self) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -124,10 +123,10 @@ def filledcurvebox(self) -> str:
     return "".join(components())
 
 
-add_conversion_fn(FilledCurveBox)
+add_conversion_fn(FilledCurveBox, filled_curve_box)
 
 
-def graphicselements(self) -> str:
+def graphics_elements(self) -> str:
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "asy")
@@ -139,8 +138,8 @@ def graphicselements(self) -> str:
     return "\n".join(result)
 
 
-add_conversion_fn(GraphicsElements)
-graphics3delements = graphicselements
+add_conversion_fn(GraphicsElements, graphics_elements)
+graphics3delements = graphics_elements
 
 
 add_conversion_fn(Graphics3DElements)
