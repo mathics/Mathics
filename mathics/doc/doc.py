@@ -1,4 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+A module which extracts LaTeX, XML documentation from documentation/*.mdoc and from Mathics modules.
+It also extracts doctests as well.
+
+Running LaTeX, or the tests is done elsewhere, as is viewing extracted XML docs.
+
+See also `../test.py` for a command-line interface that calls this.
+
+This code should be replaced by sphinx and autodoc.
+"""
 
 from html import escape as html_escape
 import re
