@@ -2413,151 +2413,160 @@ class TextRecognize(Builtin):
         return String(text)
 
 
-class WordCloud(Builtin):
-    """
-    <dl>
-    <dt>'WordCloud[{$word1$, $word2$, ...}]'
-      <dd>Gives a word cloud with the given list of words.
-    <dt>'WordCloud[{$weight1$ -> $word1$, $weight2$ -> $word2$, ...}]'
-      <dd>Gives a word cloud with the words weighted using the given weights.
-    <dt>'WordCloud[{$weight1$, $weight2$, ...} -> {$word1$, $word2$, ...}]'
-      <dd>Also gives a word cloud with the words weighted using the given weights.
-    <dt>'WordCloud[{{$word1$, $weight1$}, {$word2$, $weight2$}, ...}]'
-      <dd>Gives a word cloud with the words weighted using the given weights.
-    </dl>
+import sys
 
-    >> WordCloud[StringSplit[Import["ExampleData/EinsteinSzilLetter.txt"]]]
-     = -Image-
+if "Pyston" not in sys.version:
 
-    >> WordCloud[Range[50] -> ToString /@ Range[50]]
-     = -Image-
-    """
+    class WordCloud(Builtin):
+        """
+        <dl>
+        <dt>'WordCloud[{$word1$, $word2$, ...}]'
+          <dd>Gives a word cloud with the given list of words.
+        <dt>'WordCloud[{$weight1$ -> $word1$, $weight2$ -> $word2$, ...}]'
+          <dd>Gives a word cloud with the words weighted using the given weights.
+        <dt>'WordCloud[{$weight1$, $weight2$, ...} -> {$word1$, $word2$, ...}]'
+          <dd>Also gives a word cloud with the words weighted using the given weights.
+        <dt>'WordCloud[{{$word1$, $weight1$}, {$word2$, $weight2$}, ...}]'
+          <dd>Gives a word cloud with the words weighted using the given weights.
+        </dl>
 
-    requires = _image_requires + ("wordcloud",)
+        >> WordCloud[StringSplit[Import["ExampleData/EinsteinSzilLetter.txt"]]]
+         = -Image-
 
-    options = {"IgnoreCase": "True", "ImageSize": "Automatic", "MaxItems": "Automatic"}
+        >> WordCloud[Range[50] -> ToString /@ Range[50]]
+         = -Image-
+        """
 
-    # this is the palettable.colorbrewer.qualitative.Dark2_8 palette
-    default_colors = (
-        (27, 158, 119),
-        (217, 95, 2),
-        (117, 112, 179),
-        (231, 41, 138),
-        (102, 166, 30),
-        (230, 171, 2),
-        (166, 118, 29),
-        (102, 102, 102),
-    )
+        requires = _image_requires + ("wordcloud",)
 
-    def apply_words_weights(self, weights, words, evaluation, options):
-        "WordCloud[weights_List -> words_List, OptionsPattern[%(name)s]]"
-        if len(weights.leaves) != len(words.leaves):
-            return
+        options = {
+            "IgnoreCase": "True",
+            "ImageSize": "Automatic",
+            "MaxItems": "Automatic",
+        }
 
-        def weights_and_words():
-            for weight, word in zip(weights.leaves, words.leaves):
-                yield weight.round_to_float(), word.get_string_value()
-
-        return self._word_cloud(weights_and_words(), evaluation, options)
-
-    def apply_words(self, words, evaluation, options):
-        "WordCloud[words_List, OptionsPattern[%(name)s]]"
-
-        if not words:
-            return
-        elif isinstance(words.leaves[0], String):
-
-            def weights_and_words():
-                for word in words.leaves:
-                    yield 1, word.get_string_value()
-
-        else:
-
-            def weights_and_words():
-                for word in words.leaves:
-                    if len(word.leaves) != 2:
-                        raise ValueError
-
-                    head_name = word.get_head_name()
-                    if head_name == "System`Rule":
-                        weight, s = word.leaves
-                    elif head_name == "System`List":
-                        s, weight = word.leaves
-                    else:
-                        raise ValueError
-
-                    yield weight.round_to_float(), s.get_string_value()
-
-        try:
-            return self._word_cloud(weights_and_words(), evaluation, options)
-        except ValueError:
-            return
-
-    def _word_cloud(self, words, evaluation, options):
-        ignore_case = self.get_option(options, "IgnoreCase", evaluation) == Symbol(
-            "True"
+        # this is the palettable.colorbrewer.qualitative.Dark2_8 palette
+        default_colors = (
+            (27, 158, 119),
+            (217, 95, 2),
+            (117, 112, 179),
+            (231, 41, 138),
+            (102, 166, 30),
+            (230, 171, 2),
+            (166, 118, 29),
+            (102, 102, 102),
         )
 
-        freq = defaultdict(int)
-        for py_weight, py_word in words:
-            if py_word is None or py_weight is None:
+        def apply_words_weights(self, weights, words, evaluation, options):
+            "WordCloud[weights_List -> words_List, OptionsPattern[%(name)s]]"
+            if len(weights.leaves) != len(words.leaves):
                 return
-            key = py_word.lower() if ignore_case else py_word
-            freq[key] += py_weight
 
-        max_items = self.get_option(options, "MaxItems", evaluation)
-        if isinstance(max_items, Integer):
-            py_max_items = max_items.get_int_value()
-        else:
-            py_max_items = 200
+            def weights_and_words():
+                for weight, word in zip(weights.leaves, words.leaves):
+                    yield weight.round_to_float(), word.get_string_value()
 
-        image_size = self.get_option(options, "ImageSize", evaluation)
-        if image_size == Symbol("Automatic"):
-            py_image_size = (800, 600)
-        elif (
-            image_size.get_head_name() == "System`List" and len(image_size.leaves) == 2
-        ):
-            py_image_size = []
-            for leaf in image_size.leaves:
-                if not isinstance(leaf, Integer):
+            return self._word_cloud(weights_and_words(), evaluation, options)
+
+        def apply_words(self, words, evaluation, options):
+            "WordCloud[words_List, OptionsPattern[%(name)s]]"
+
+            if not words:
+                return
+            elif isinstance(words.leaves[0], String):
+
+                def weights_and_words():
+                    for word in words.leaves:
+                        yield 1, word.get_string_value()
+
+            else:
+
+                def weights_and_words():
+                    for word in words.leaves:
+                        if len(word.leaves) != 2:
+                            raise ValueError
+
+                        head_name = word.get_head_name()
+                        if head_name == "System`Rule":
+                            weight, s = word.leaves
+                        elif head_name == "System`List":
+                            s, weight = word.leaves
+                        else:
+                            raise ValueError
+
+                        yield weight.round_to_float(), s.get_string_value()
+
+            try:
+                return self._word_cloud(weights_and_words(), evaluation, options)
+            except ValueError:
+                return
+
+        def _word_cloud(self, words, evaluation, options):
+            ignore_case = self.get_option(options, "IgnoreCase", evaluation) == Symbol(
+                "True"
+            )
+
+            freq = defaultdict(int)
+            for py_weight, py_word in words:
+                if py_word is None or py_weight is None:
                     return
-                py_image_size.append(leaf.get_int_value())
-        elif isinstance(image_size, Integer):
-            size = image_size.get_int_value()
-            py_image_size = (size, size)
-        else:
-            return
+                key = py_word.lower() if ignore_case else py_word
+                freq[key] += py_weight
 
-        # inspired by http://minimaxir.com/2016/05/wordclouds/
-        import random
-        import os
+            max_items = self.get_option(options, "MaxItems", evaluation)
+            if isinstance(max_items, Integer):
+                py_max_items = max_items.get_int_value()
+            else:
+                py_max_items = 200
 
-        def color_func(
-            word, font_size, position, orientation, random_state=None, **kwargs
-        ):
-            return self.default_colors[random.randint(0, 7)]
+            image_size = self.get_option(options, "ImageSize", evaluation)
+            if image_size == Symbol("Automatic"):
+                py_image_size = (800, 600)
+            elif (
+                image_size.get_head_name() == "System`List"
+                and len(image_size.leaves) == 2
+            ):
+                py_image_size = []
+                for leaf in image_size.leaves:
+                    if not isinstance(leaf, Integer):
+                        return
+                    py_image_size.append(leaf.get_int_value())
+            elif isinstance(image_size, Integer):
+                size = image_size.get_int_value()
+                py_image_size = (size, size)
+            else:
+                return
 
-        font_base_path = os.path.dirname(os.path.abspath(__file__)) + "/../fonts/"
+            # inspired by http://minimaxir.com/2016/05/wordclouds/
+            import random
+            import os
 
-        font_path = os.path.realpath(font_base_path + "AmaticSC-Bold.ttf")
-        if not os.path.exists(font_path):
-            font_path = None
+            def color_func(
+                word, font_size, position, orientation, random_state=None, **kwargs
+            ):
+                return self.default_colors[random.randint(0, 7)]
 
-        from wordcloud import WordCloud
+            font_base_path = os.path.dirname(os.path.abspath(__file__)) + "/../fonts/"
 
-        wc = WordCloud(
-            width=py_image_size[0],
-            height=py_image_size[1],
-            font_path=font_path,
-            max_font_size=300,
-            mode="RGB",
-            background_color="white",
-            max_words=py_max_items,
-            color_func=color_func,
-            random_state=42,
-            stopwords=set(),
-        )
-        wc.generate_from_frequencies(freq)
+            font_path = os.path.realpath(font_base_path + "AmaticSC-Bold.ttf")
+            if not os.path.exists(font_path):
+                font_path = None
 
-        image = wc.to_image()
-        return Image(numpy.array(image), "RGB")
+            from wordcloud import WordCloud
+
+            wc = WordCloud(
+                width=py_image_size[0],
+                height=py_image_size[1],
+                font_path=font_path,
+                max_font_size=300,
+                mode="RGB",
+                background_color="white",
+                max_words=py_max_items,
+                color_func=color_func,
+                random_state=42,
+                stopwords=set(),
+            )
+            wc.generate_from_frequencies(freq)
+
+            image = wc.to_image()
+            return Image(numpy.array(image), "RGB")
