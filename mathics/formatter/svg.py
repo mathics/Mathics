@@ -76,7 +76,7 @@ def create_css(
     return "; ".join(css)
 
 
-def arrowbox(self, offset=None):
+def arrow_box(self, offset=None):
     width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=width)
     polyline = self.curve.make_draw_svg(style)
@@ -94,7 +94,7 @@ def arrowbox(self, offset=None):
     return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
 
 
-add_conversion_fn(ArrowBox)
+add_conversion_fn(ArrowBox, arrow_box)
 
 
 def beziercurvebox(self, offset=None):
@@ -112,7 +112,7 @@ def beziercurvebox(self, offset=None):
 add_conversion_fn(BezierCurveBox)
 
 
-def filledcurvebox(self, offset=None):
+def filled_curve_box(self, offset=None):
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(
         edge_color=self.edge_color, face_color=self.face_color, stroke_width=line_width
@@ -130,9 +130,9 @@ def filledcurvebox(self, offset=None):
     )
 
 
-add_conversion_fn(FilledCurveBox)
+add_conversion_fn(FilledCurveBox, filled_curve_box)
 
-def graphicsbox(self, leaves=None, **options) -> str:
+def graphics_box(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
 
@@ -185,10 +185,10 @@ def graphicsbox(self, leaves=None, **options) -> str:
         return svg_main  # , width, height
 
 
-add_conversion_fn(GraphicsBox)
+add_conversion_fn(GraphicsBox, graphics_box)
 
 
-def graphicselements(self, offset=None):
+def graphics_elements(self, offset=None):
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "svg")
@@ -200,13 +200,13 @@ def graphicselements(self, offset=None):
     return "\n".join(result)
 
 
-add_conversion_fn(GraphicsElements)
-graphics3delements = graphicselements
+add_conversion_fn(GraphicsElements, graphics_elements)
+graphics3delements = graphics_elements
 
 add_conversion_fn(Graphics3DElements)
 
 
-def insetbox(self, offset=None):
+def inset_box(self, offset=None):
     x, y = self.pos.pos()
     if offset:
         x = x + offset[0]
@@ -237,10 +237,10 @@ def insetbox(self, offset=None):
     return svg
 
 
-add_conversion_fn(InsetBox)
+add_conversion_fn(InsetBox, inset_box)
 
 
-def linebox(self, offset=None):
+def line_box(self, offset=None):
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
     svg = ""
@@ -253,7 +253,7 @@ def linebox(self, offset=None):
     return svg
 
 
-add_conversion_fn(LineBox)
+add_conversion_fn(LineBox, line_box)
 
 
 def pointbox(self, offset=None):

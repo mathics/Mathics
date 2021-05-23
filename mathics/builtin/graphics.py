@@ -8,7 +8,6 @@ Drawing Graphics
 
 from math import floor, ceil, log10, sin, cos, pi, sqrt, atan2, degrees, radians, exp
 import base64
-from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 from mathics.builtin.base import (
@@ -32,10 +31,12 @@ from mathics.core.expression import (
     system_symbols_dict,
     from_python,
 )
-from mathics.core.formatter import lookup_method
 
 from mathics.builtin.drawing.colors import convert as convert_color
+from mathics.core.formatter import lookup_method
 from mathics.core.numbers import machine_epsilon
+from mathics.formatter.asy_fns import asy_bezier, asy_color, asy_number
+
 
 GRAPHICS_OPTIONS = {
     "AspectRatio": "Automatic",
@@ -49,7 +50,6 @@ GRAPHICS_OPTIONS = {
     "TicksStyle": "{}",
     "$OptionSyntax": "Ignore",
 }
-
 
 class CoordinatesError(BoxConstructError):
     pass
@@ -144,38 +144,11 @@ def create_css(
     return "; ".join(css)
 
 
-def asy_number(value):
-    return "%.5g" % value
-
-
 def _to_float(x):
     x = x.round_to_float()
     if x is None:
         raise BoxConstructError
     return x
-
-
-def create_pens(
-    edge_color=None, face_color=None, stroke_width=None, is_face_element=False
-):
-    result = []
-    if face_color is not None:
-        brush, opacity = face_color.to_asy()
-        if opacity != 1:
-            brush += "+opacity(%s)" % asy_number(opacity)
-        result.append(brush)
-    elif is_face_element:
-        result.append("nullpen")
-    if edge_color is not None:
-        pen, opacity = edge_color.to_asy()
-        if opacity != 1:
-            pen += "+opacity(%s)" % asy_number(opacity)
-        if stroke_width is not None:
-            pen += "+linewidth(%s)" % asy_number(stroke_width)
-        result.append(pen)
-    elif is_face_element:
-        result.append("nullpen")
-    return ", ".join(result)
 
 
 def _data_and_options(leaves, defined_options):
@@ -321,53 +294,13 @@ def _extract_graphics(graphics, format, evaluation):
 
     # generate code for svg or asy.
 
-    if format == "asy":
-        code = "\n".join(element.to_asy() for element in elements.elements)
-    elif format == "svg":
-        format_fn = lookup_method(elements, "svg")
-        if format_fn is not None:
-            code = format_fn(elements)
-        else:
-            code = elements.to_svg()
+    if format in ("asy", "svg"):
+        format_fn = lookup_method(elements, format)
+        code = format_fn(elements)
     else:
         raise NotImplementedError
 
     return xmin, xmax, ymin, ymax, ox, oy, ex, ey, code
-
-
-class _ASYTransform:
-    _template = """
-    add(%s * (new picture() {
-        picture saved = currentpicture;
-        picture transformed = new picture;
-        currentpicture = transformed;
-        %s
-        currentpicture = saved;
-        return transformed;
-    })());
-    """
-
-    def __init__(self):
-        self.transforms = []
-
-    def matrix(self, a, b, c, d, e, f):
-        # a c e
-        # b d f
-        # 0 0 1
-        # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
-        self.transforms.append("(%f, %f, %f, %f, %f, %f)" % (e, f, a, c, b, d))
-
-    def translate(self, x, y):
-        self.transforms.append("shift(%f, %f)" % (x, y))
-
-    def scale(self, x, y):
-        self.transforms.append("scale(%f, %f)" % (x, y))
-
-    def rotate(self, x):
-        self.transforms.append("rotate(%f)" % x)
-
-    def apply(self, asy):
-        return self._template % (" * ".join(self.transforms), asy)
 
 
 class Show(Builtin):
@@ -593,15 +526,6 @@ class _Color(_GraphicsElement):
         alpha = rgba[3] if len(rgba) > 3 else 1.0
         return (
             r"rgb(%f%%, %f%%, %f%%)" % (rgba[0] * 100, rgba[1] * 100, rgba[2] * 100),
-            alpha,
-        )
-
-    def to_asy(self):
-        rgba = self.to_rgba()
-        alpha = rgba[3] if len(rgba) > 3 else 1.0
-        return (
-            r"rgb(%s, %s, %s)"
-            % (asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
             alpha,
         )
 
@@ -844,6 +768,8 @@ class ColorDistance(Builtin):
     """
 
     options = {"DistanceFunction": "Automatic"}
+
+    requires = ("numpy",)
 
     messages = {
         "invdist": "`1` is not Automatic or a valid distance specification.",
@@ -1216,24 +1142,6 @@ class RectangleBox(_GraphicsElement):
             )
         return result
 
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
-        x1, y1 = self.p1.pos()
-        x2, y2 = self.p2.pos()
-        pens = create_pens(self.edge_color, self.face_color, l, is_face_element=True)
-        x1, x2, y1, y2 = asy_number(x1), asy_number(x2), asy_number(y1), asy_number(y2)
-        return "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
-            x1,
-            y1,
-            x2,
-            y1,
-            x2,
-            y2,
-            x1,
-            y2,
-            pens,
-        )
-
 
 class _RoundBox(_GraphicsElement):
     face_element = None
@@ -1266,28 +1174,6 @@ class _RoundBox(_GraphicsElement):
         rx += l
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
-
-    def to_asy(self):
-        x, y = self.c.pos()
-        rx, ry = self.r.pos()
-        rx -= x
-        ry -= y
-        l = self.style.get_line_width(face_element=self.face_element)
-        pen = create_pens(
-            edge_color=self.edge_color,
-            face_color=self.face_color,
-            stroke_width=l,
-            is_face_element=self.face_element,
-        )
-        cmd = "filldraw" if self.face_element else "draw"
-        return "%s(ellipse((%s,%s),%s,%s), %s);" % (
-            cmd,
-            asy_number(x),
-            asy_number(y),
-            asy_number(rx),
-            asy_number(ry),
-            pen,
-        )
 
 
 class _ArcBox(_RoundBox):
@@ -1338,6 +1224,7 @@ class _ArcBox(_RoundBox):
         ey = y + ry * sin(end_angle)
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
+
 
 class DiskBox(_ArcBox):
     face_element = True
@@ -1420,16 +1307,6 @@ class PointBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_asy(self):
-        pen = create_pens(face_color=self.face_color, is_face_element=False)
-
-        asy = ""
-        for line in self.lines:
-            for coords in line:
-                asy += "dot(%s, %s);" % (coords.pos(), pen)
-
-        return asy
-
 
 class Line(Builtin):
     """
@@ -1464,15 +1341,6 @@ class LineBox(_Polyline):
         else:
             raise BoxConstructError
 
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
-        asy = ""
-        for line in self.lines:
-            path = "--".join(["(%.5g,%5g)" % coords.pos() for coords in line])
-            asy += "draw(%s, %s);" % (path, pen)
-        return asy
-
 
 def _svg_bezier(*segments):
     # see https://www.w3.org/TR/SVG/paths.html#PathDataCubicBezierCommands
@@ -1504,65 +1372,6 @@ def _svg_bezier(*segments):
     for k, p in segments[1:]:
         for s in path(k, p):
             yield s
-
-
-def _asy_bezier(*segments):
-    # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
-
-    while segments and not segments[0][1]:
-        segments = segments[1:]
-
-    if not segments:
-        return
-
-    def cubic(p0, p1, p2, p3):
-        return "..controls(%.5g,%.5g) and (%.5g,%.5g)..(%.5g,%.5g)" % tuple(
-            list(chain(p1, p2, p3))
-        )
-
-    def quadratric(qp0, qp1, qp2):
-        # asymptote only supports cubic beziers, so we convert this quadratic
-        # bezier to a cubic bezier, see http://fontforge.github.io/bezier.html
-
-        # CP0 = QP0
-        # CP3 = QP2
-        # CP1 = QP0 + 2 / 3 * (QP1 - QP0)
-        # CP2 = QP2 + 2 / 3 * (QP1 - QP2)
-
-        qp0x, qp0y = qp0
-        qp1x, qp1y = qp1
-        qp2x, qp2y = qp2
-
-        t = 2.0 / 3.0
-        cp0 = qp0
-        cp1 = (qp0x + t * (qp1x - qp0x), qp0y + t * (qp1y - qp0y))
-        cp2 = (qp2x + t * (qp1x - qp2x), qp2y + t * (qp1y - qp2y))
-        cp3 = qp2
-
-        return cubic(cp0, cp1, cp2, cp3)
-
-    def linear(p0, p1):
-        return "--(%.5g,%.5g)" % p1
-
-    forms = (linear, quadratric, cubic)
-
-    def path(max_degree, p):
-        max_degree = min(max_degree, len(forms))
-        while p:
-            n = min(max_degree, len(p) - 1)  # 1, 2, or 3
-            if n < 1:
-                break
-            yield forms[n - 1](*p[: n + 1])
-            p = p[n:]
-
-    k, p = segments[0]
-    yield "(%.5g,%.5g)" % p[0]
-
-    connect = []
-    for k, p in segments:
-        for s in path(k, list(chain(connect, p))):
-            yield s
-        connect = p[-1:]
 
 
 class BernsteinBasis(Builtin):
@@ -1607,18 +1416,6 @@ class BezierCurveBox(_Polyline):
         if not isinstance(spline_degree, Integer):
             raise BoxConstructError
         self.spline_degree = spline_degree.get_int_value()
-
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
-
-        asy = ""
-        for line in self.lines:
-            for path in _asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
-                if path[:2] == "..":
-                    path = "(0.,0.)" + path
-                asy += "draw(%s, %s);" % (path, pen)
-        return asy
 
 
 class FilledCurve(Builtin):
@@ -1684,20 +1481,6 @@ class FilledCurveBox(_GraphicsElement):
                 self.components = [list(parse_component(leaves))]
         else:
             raise BoxConstructError
-
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=l)
-
-        if not pen:
-            pen = "currentpen"
-
-        def components():
-            for component in self.components:
-                transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
-                yield "fill(%s--cycle, %s);" % ("".join(_asy_bezier(*transformed)), pen)
-
-        return "".join(components())
 
     def extent(self):
         l = self.style.get_line_width(face_element=False)
@@ -1773,52 +1556,6 @@ class PolygonBox(_Polyline):
                         continue
         else:
             raise BoxConstructError
-
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
-        if self.vertex_colors is None:
-            face_color = self.face_color
-        else:
-            face_color = None
-        pens = create_pens(
-            edge_color=self.edge_color,
-            face_color=face_color,
-            stroke_width=l,
-            is_face_element=True,
-        )
-        asy = ""
-        if self.vertex_colors is not None:
-            paths = []
-            colors = []
-            edges = []
-            for index, line in enumerate(self.lines):
-                paths.append(
-                    "--".join(["(%.5g,%.5g)" % coords.pos() for coords in line])
-                    + "--cycle"
-                )
-
-                # ignore opacity
-                colors.append(
-                    ",".join([color.to_asy()[0] for color in self.vertex_colors[index]])
-                )
-
-                edges.append(
-                    ",".join(["0"] + ["1"] * (len(self.vertex_colors[index]) - 1))
-                )
-
-            asy += "gouraudshade(%s, new pen[] {%s}, new int[] {%s});" % (
-                "^^".join(paths),
-                ",".join(colors),
-                ",".join(edges),
-            )
-        if pens and pens != "nullpen":
-            for line in self.lines:
-                path = (
-                    "--".join(["(%.5g,%.5g)" % coords.pos() for coords in line])
-                    + "--cycle"
-                )
-                asy += "filldraw(%s, %s);" % (path, pens)
-        return asy
 
 
 class RegularPolygon(Builtin):
@@ -2126,7 +1863,7 @@ class _BezierCurve:
 
     def make_draw_asy(self, pen):
         def draw(points):
-            for path in _asy_bezier((self.spline_degree, points)):
+            for path in asy_bezier((self.spline_degree, points)):
                 yield "draw(%s, %s);" % (path, pen)
 
         return draw
@@ -2329,23 +2066,6 @@ class ArrowBox(_Polyline):
 
         return make
 
-    def to_asy(self):
-        width = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=width)
-        polyline = self.curve.make_draw_asy(pen)
-
-        arrow_pen = create_pens(face_color=self.edge_color, stroke_width=width)
-
-        def polygon(points):
-            yield "filldraw("
-            yield "--".join(["(%.5g,%5g)" % xy for xy in points])
-            yield "--cycle, % s);" % arrow_pen
-
-        extent = self.graphics.view_width or 0
-        default_arrow = self._default_arrow(polygon)
-        custom_arrow = self._custom_arrow("asy", _ASYTransform)
-        return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
-
     def extent(self):
         width = self.style.get_line_width(face_element=False)
 
@@ -2414,20 +2134,6 @@ class InsetBox(_GraphicsElement):
         x = p[0] - w / 2.0 - opos[0] * w / 2.0
         y = p[1] - h / 2.0 + opos[1] * h / 2.0
         return [(x, y), (x + w, y + h)]
-
-    def to_asy(self):
-        x, y = self.pos.pos()
-        content = self.content.boxes_to_tex(evaluation=self.graphics.evaluation)
-        pen = create_pens(edge_color=self.color)
-        asy = 'label("$%s$", (%s,%s), (%s,%s), %s);' % (
-            content,
-            x,
-            y,
-            -self.opos[0],
-            -self.opos[1],
-            pen,
-        )
-        return asy
 
 
 def total_extent(extents):
@@ -2728,9 +2434,6 @@ class GraphicsElements(_GraphicsElements):
             ymax *= 2
         return xmin, xmax, ymin, ymax
 
-    def to_asy(self):
-        return "\n".join(element.to_asy() for element in self.elements)
-
     def set_size(
         self, xmin, ymin, extent_width, extent_height, pixel_width, pixel_height
     ):
@@ -2971,13 +2674,13 @@ class GraphicsBox(BoxConstruct):
         elements.view_width = w
 
         asy_completely_visible = "\n".join(
-            element.to_asy()
+            lookup_method(element, "asy")(element)
             for element in elements.elements
             if element.is_completely_visible
         )
 
         asy_regular = "\n".join(
-            element.to_asy()
+            lookup_method(element, "asy")(element)
             for element in elements.elements
             if not element.is_completely_visible
         )
@@ -2990,7 +2693,7 @@ class GraphicsBox(BoxConstruct):
         )
 
         if self.background_color is not None:
-            color, opacity = self.background_color.to_asy()
+            color, opacity = asy_color(self.background_color)
             asy_background = "filldraw(%s, %s);" % (asy_box, color)
         else:
             asy_background = ""

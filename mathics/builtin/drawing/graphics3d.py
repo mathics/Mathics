@@ -4,34 +4,36 @@
 Three-Dimensional Graphics
 """
 
-
-import numbers
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
+import html
+import json
+import numbers
+
 from mathics.core.expression import (
     Expression,
     from_python,
     system_symbols_dict,
     SymbolList,
 )
+from mathics.core.formatter import lookup_method
+
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from mathics.builtin.graphics import (
     Graphics,
     GraphicsBox,
     PolygonBox,
-    create_pens,
     _Color,
     LineBox,
     PointBox,
     Style,
     RGBColor,
     get_class,
-    asy_number,
     CoordinatesError,
     _GraphicsElements,
 )
 
-import json
-import html
+from mathics.formatter.asy_fns import asy_create_pens, asy_number
 
 
 def coords3D(value):
@@ -443,7 +445,11 @@ class Graphics3DBox(GraphicsBox):
 
         elements._apply_boxscaling(boxscale)
 
-        asy = elements.to_asy()
+        format_fn = lookup_method(elements, "asy")
+        if format_fn is not None:
+            asy = format_fn(elements)
+        else:
+            asy = elements.to_asy()
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
@@ -466,11 +472,11 @@ class Graphics3DBox(GraphicsBox):
 
         for i, line in enumerate(boundbox_lines):
             if i in axes_indices:
-                pen = create_pens(
+                pen = asy_create_pens(
                     edge_color=RGBColor(components=(0, 0, 0, 1)), stroke_width=1.5
                 )
             else:
-                pen = create_pens(
+                pen = asy_create_pens(
                     edge_color=RGBColor(components=(0.4, 0.4, 0.4, 1)), stroke_width=1
                 )
 
@@ -483,7 +489,7 @@ class Graphics3DBox(GraphicsBox):
 
         # Draw axes ticks
         ticklength = 0.05 * max([xmax - xmin, ymax - ymin, zmax - zmin])
-        pen = create_pens(
+        pen = asy_create_pens(
             edge_color=RGBColor(components=(0, 0, 0, 1)), stroke_width=1.2
         )
         for xi in axes_indices:
@@ -778,9 +784,6 @@ class Graphics3DElements(_GraphicsElements):
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
 
-    def to_asy(self):
-        return "\n".join([element.to_asy() for element in self.elements])
-
     def _apply_boxscaling(self, boxscale):
         for element in self.elements:
             element._apply_boxscaling(boxscale)
@@ -821,22 +824,6 @@ class Point3DBox(PointBox):
             )
         return data
 
-    def to_asy(self):
-        face_color = self.face_color
-
-        # Tempoary bug fix: default Point color should be black not white
-        if list(face_color.to_rgba()[:3]) == [1, 1, 1]:
-            face_color = RGBColor(components=(0, 0, 0, face_color.to_rgba()[3]))
-
-        pen = create_pens(face_color=face_color, is_face_element=False)
-
-        return "".join(
-            "path3 g={0}--cycle;dot(g, {1});".format(
-                "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line), pen
-            )
-            for line in self.lines
-        )
-
     def extent(self):
         result = []
         for line in self.lines:
@@ -870,18 +857,6 @@ class Line3DBox(LineBox):
                 }
             )
         return data
-
-    def to_asy(self):
-        # l = self.style.get_line_width(face_element=False)
-        pen = create_pens(edge_color=self.edge_color, stroke_width=1)
-
-        return "".join(
-            "draw({0}, {1});".format(
-                "--".join("({0},{1},{2})".format(*coords.pos()[0]) for coords in line),
-                pen,
-            )
-            for line in self.lines
-        )
 
     def extent(self):
         result = []
@@ -929,29 +904,6 @@ class Polygon3DBox(PolygonBox):
                 }
             )
         return data
-
-    def to_asy(self):
-        l = self.style.get_line_width(face_element=True)
-        if self.vertex_colors is None:
-            face_color = self.face_color
-        else:
-            face_color = None
-        pen = create_pens(
-            edge_color=self.edge_color,
-            face_color=face_color,
-            stroke_width=l,
-            is_face_element=True,
-        )
-
-        asy = ""
-        for line in self.lines:
-            asy += (
-                "path3 g="
-                + "--".join(["(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line])
-                + "--cycle;"
-            )
-            asy += "draw(surface(g), %s);" % (pen)
-        return asy
 
     def extent(self):
         result = []
@@ -1145,21 +1097,6 @@ class Sphere3DBox(_Graphics3DElement):
 
         self.points = [Coords3D(graphics, pos=point) for point in points]
         self.radius = item.leaves[1].to_python()
-
-    def to_asy(self):
-        # l = self.style.get_line_width(face_element=True)
-
-        if self.face_color is None:
-            face_color = (1, 1, 1)
-        else:
-            face_color = self.face_color.to_js()
-
-        return "".join(
-            "draw(surface(sphere({0}, {1})), rgb({2},{3},{4}));".format(
-                tuple(coord.pos()[0]), self.radius, *face_color[:3]
-            )
-            for coord in self.points
-        )
 
     def to_json(self):
         face_color = self.face_color
