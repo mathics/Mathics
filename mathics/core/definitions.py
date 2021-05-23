@@ -125,8 +125,11 @@ class Definitions(object):
             self.builtin.update(self.user)
             self.user = {}
             self.clear_cache()
-        import mathics.formatter.svg  # noqa
+
+        # FIXME load dynamically as we do other things
         import mathics.formatter.asy  # noqa
+        import mathics.formatter.json  # noqa
+        import mathics.formatter.svg  # noqa
 
     def load_pymathics_module(self, module, remove_on_quit=True):
         """

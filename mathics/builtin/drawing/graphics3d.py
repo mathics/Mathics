@@ -641,7 +641,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         elements._apply_boxscaling(boxscale)
 
-        json_repr = elements.to_json()
+        # FIXME: json is the only thing we can convert MathML into.
+        # Handle other graphics formats.
+        format_fn = lookup_method(elements, "json")
+        json_repr = format_fn(elements, **options)
 
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
 
@@ -788,12 +791,6 @@ class Graphics3DElements(_GraphicsElements):
         for element in self.elements:
             element._apply_boxscaling(boxscale)
 
-    def to_json(self):
-        result = []
-        for element in self.elements:
-            result.extend(element.to_json())
-        return result
-
     def get_style_class(self):
         return Style3D
 
@@ -804,25 +801,6 @@ class Point3DBox(PointBox):
 
     def process_option(self, name, value):
         super(Point3DBox, self).process_option(name, value)
-
-    def to_json(self):
-        # TODO: account for point size
-        data = []
-
-        # Tempoary bug fix: default Point color should be black not white
-        face_color = self.face_color
-        if list(face_color.to_rgba()[:3]) == [1, 1, 1]:
-            face_color = RGBColor(components=(0, 0, 0, face_color.to_rgba()[3]))
-
-        for line in self.lines:
-            data.append(
-                {
-                    "type": "point",
-                    "coords": [coords.pos() for coords in line],
-                    "color": face_color.to_rgba(),
-                }
-            )
-        return data
 
     def extent(self):
         result = []
@@ -844,19 +822,6 @@ class Line3DBox(LineBox):
 
     def process_option(self, name, value):
         super(Line3DBox, self).process_option(name, value)
-
-    def to_json(self):
-        # TODO: account for line widths and style
-        data = []
-        for line in self.lines:
-            data.append(
-                {
-                    "type": "line",
-                    "coords": [coords.pos() for coords in line],
-                    "color": self.edge_color.to_rgba(),
-                }
-            )
-        return data
 
     def extent(self):
         result = []
@@ -883,27 +848,6 @@ class Polygon3DBox(PolygonBox):
             pass
         else:
             super(Polygon3DBox, self).process_option(name, value)
-
-    def to_json(self):
-        # TODO: account for line widths and style
-        if self.vertex_colors is None:
-            face_color = self.face_color
-        else:
-            face_color = None
-
-        if face_color is not None:
-            face_color = face_color.to_js()
-
-        data = []
-        for line in self.lines:
-            data.append(
-                {
-                    "type": "polygon",
-                    "coords": [coords.pos() for coords in line],
-                    "faceColor": face_color,
-                }
-            )
-        return data
 
     def extent(self):
         result = []
@@ -1097,19 +1041,6 @@ class Sphere3DBox(_Graphics3DElement):
 
         self.points = [Coords3D(graphics, pos=point) for point in points]
         self.radius = item.leaves[1].to_python()
-
-    def to_json(self):
-        face_color = self.face_color
-        if face_color is not None:
-            face_color = face_color.to_js()
-        return [
-            {
-                "type": "sphere",
-                "coords": [coords.pos() for coords in self.points],
-                "radius": self.radius,
-                "faceColor": face_color,
-            }
-        ]
 
     def extent(self):
         result = []
