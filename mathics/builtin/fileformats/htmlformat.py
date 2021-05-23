@@ -17,13 +17,13 @@ from mathics.core.expression import Expression, String, Symbol, from_python
 from mathics.builtin.base import MessageException
 
 from io import BytesIO
+import platform
 import re
-import sys
+
 
 try:
     import lxml.html as lhtml
 except ImportError:
-    print("lxml.html is not available...")
     pass
 
 
@@ -86,12 +86,11 @@ class ParseError(Exception):
     pass
 
 
-if "__pypy__" in sys.builtin_module_names:
+if platform.python_implementation() == "PyPy":
 
     def parse_html_stream(f):
         parser = lhtml.HTMLParser(encoding="utf8")
         return lhtml.parse(f, parser)
-
 
 else:
 
@@ -249,7 +248,7 @@ class _DataImport(_TagImport):
 class DataImport(_DataImport):
     """
     >> Import["ExampleData/PrimeMeridian.html", "Data"][[1, 1, 2, 3]]
-     = {Washington, D.C., 77°03′56.07″ W (1897) or 77°04′02.24″ W (NAD 27) or 77°04′01.16″ W (NAD 83), New Naval Observatory meridian}
+     = {Washington, D.C., 77...03′56.07″ W (1897) or 77...04′02.24″ W (NAD 27) or 77...04′01.16″ W (NAD 83), New Naval Observatory meridian}
 
     #> Length[Import["ExampleData/PrimeMeridian.html", "Data"]]
      = 3
