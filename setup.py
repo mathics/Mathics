@@ -100,11 +100,9 @@ INSTALL_REQUIRES += [
     "psutil",  # for $SystemMemory
     "llvmlite",
     "requests",
-    "scikit-image",
-    "wordcloud",  # Used in builtin/image.py by WordCloud()
-
-    # lxml is an optional dependency for HTML parsing
-    # "lxml", # Used in builtin/fileformats/html
+    # lxml is an optional dependency for HTML parsing used in builtin/fileformats/html
+    # "scikit-image", optional
+    # "wordcloud",  # Used in builtin/image.py by WordCloud()
 ]
 
 
