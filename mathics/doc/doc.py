@@ -7,6 +7,7 @@ Running LaTeX, or the tests is done elsewhere, as is viewing extracted XML docs.
 
 See also `../test.py` for a command-line interface that calls this.
 
+FIXME: Note this code is duplicated in Django
 This code should be replaced by sphinx and autodoc.
 """
 
@@ -819,7 +820,7 @@ class MathicsMainDocumentation(Documentation):
                 if module.__file__.endswith("__init__.py"):
                     section_names = get_submodule_names(module)
                 else:
-                    section_names = builtins
+                    section_names = [builtin for builtin in builtins if not builtin.__class__.__name__.endswith("Box")]
 
                 for instance in section_names:
                     installed = True
