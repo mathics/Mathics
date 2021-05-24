@@ -652,10 +652,9 @@ class Equal(_EqualityOperator, SympyComparison):
 
 
 class Unequal(_EqualityOperator, SympyComparison):
-    """
+    u"""
     <dl>
-      <dt>'Unequal[$x$, $y$]'
-      <dt>'$x$ != $y$'
+      <dt>'Unequal[$x$, $y$]' or $x$ != $y$ or $x$ \u2260 $y$
       <dd>is 'False' if $x$ and $y$ are known to be equal, or
         'True' if $x$ and $y$ are known to be unequal.
         Commutative properties apply so if $x$ != $y$ then
@@ -667,15 +666,19 @@ class Unequal(_EqualityOperator, SympyComparison):
     >> 1 != 1.
      = False
 
+    Comparsion can be chained:
+    >> 1 != 2 != 3
+     = True
+
+    >> 1 != 2 != x
+     = 1 != 2 != x
+
     Strings are allowed:
     Unequal["11", "11"]
      = False
 
-    Equal["121", "11"]
-     = True
-
     Comparision to mismatched types is True:
-    Equal[11, "11"]
+    Unequal[11, "11"]
      = True
 
     Lists are compared based on their elements:
@@ -723,16 +726,19 @@ class Unequal(_EqualityOperator, SympyComparison):
 class Less(_ComparisonOperator, SympyComparison):
     """
     <dl>
-    <dt>'Less[$x$, $y$]'
-    <dt>'$x$ < $y$'
-        <dd>yields 'True' if $x$ is known to be less than $y$.
-    <dt>'$lhs$ < $rhs$'
-        <dd>represents the inequality $lhs$ < $rhs$.
+      <dt>'Less[$x$, $y$]' or $x$ < $y$
+      <dd>yields 'True' if $x$ is known to be less than $y$.
     </dl>
 
-    #> {Less[], Less[x], Less[1]}
-     = {True, True, True}
+    LessEqual operator can be chained:
+    >> LessEqual[1, 3, 3, 2]
+     = False
 
+    >> 1 < 3 < 3
+     = False
+
+    >> 1 < 3 < x < 2
+     = 1 < 3 < x < 2
     """
 
     operator = "<"
@@ -740,32 +746,37 @@ class Less(_ComparisonOperator, SympyComparison):
 
 
 class LessEqual(_ComparisonOperator, SympyComparison):
-    """
-    <dl>
-    <dt>'LessEqual[$x$, $y$]'
-    <dt>'$x$ <= $y$'
-        <dd>yields 'True' if $x$ is known to be less than or equal to $y$.
-    <dt>'$lhs$ <= $rhs$'
-        <dd>represents the inequality $lhs$   $rhs$.
-    </dl>
+    u"""
+     <dl>
+       <dt>'LessEqual[$x$, $y$, ...]' or $x$ <= $y$ or $x$ \u2264 $y$
+       <dd>yields 'True' if $x$ is known to be less than or equal to $y$.
+     </dl>
+
+    LessEqual operator can be chained:
+    >> LessEqual[1, 3, 3, 2]
+     = False
+
+    >> 1 <= 3 <= 3
+     = True
+
     """
 
     operator = "<="
-    sympy_name = "LessThan"
+    sympy_name = "LessThan"  # in contrast to StrictLessThan
 
 
 class Greater(_ComparisonOperator, SympyComparison):
     """
     <dl>
-    <dt>'Greater[$x$, $y$]'
-    <dt>'$x$ > $y$'
-        <dd>yields 'True' if $x$ is known to be greater than $y$.
-    <dt>'$lhs$ > $rhs$'
-        <dd>represents the inequality $lhs$ > $rhs$.
+      <dt>'Greater[$x$, $y$]' or '$x$ > $y$'
+      <dd>yields 'True' if $x$ is known to be greater than $y$.
     </dl>
+
+    Greater operator can be chained:
     >> a > b > c //FullForm
      = Greater[a, b, c]
-    >> Greater[3, 2, 1]
+
+    >> 3 > 2 > 1
      = True
     """
 
@@ -776,12 +787,10 @@ class Greater(_ComparisonOperator, SympyComparison):
 class GreaterEqual(_ComparisonOperator, SympyComparison):
     """
     <dl>
-    <dt>'GreaterEqual[$x$, $y$]'
-    <dt>'$x$ >= $y$'
-        <dd>yields 'True' if $x$ is known to be greater than or equal
+      <dt>'GreaterEqual[$x$, $y$]'
+      <dt>$x$ \u2256 $y$ or '$x$ >= $y$'
+      <dd>yields 'True' if $x$ is known to be greater than or equal
         to $y$.
-    <dt>'$lhs$ >= $rhs$'
-        <dd>represents the inequality $lhs$   $rhs$.
     </dl>
     """
 
