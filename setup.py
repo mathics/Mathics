@@ -22,6 +22,7 @@ To get a full list of avaiable commands, read the output of:
 
 """
 
+import re
 import sys
 import os.path as osp
 import platform
@@ -52,6 +53,19 @@ long_description = read("README.rst") + "\n"
 is_PyPy = platform.python_implementation() == "PyPy"
 
 INSTALL_REQUIRES = []
+# stores __version__ in the current namespace
+exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
+
+extra_requires = []
+for line in open("requirements-extra.txt").read().split("\n"):
+    if line and not line.startswith("#"):
+        requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
+        extra_requires.append(requires)
+
+EXTRA_REQUIRES = {
+    "full": extra_requires
+}
+
 DEPENDENCY_LINKS = [
     "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"
 ]
@@ -137,6 +151,7 @@ setup(
         "mathics.formatter",
     ],
     install_requires=INSTALL_REQUIRES,
+    extra_requires=EXTRA_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
     package_data={
         "mathics": [
