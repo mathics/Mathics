@@ -1,0 +1,4 @@
+# Optional packages which add functionality or speed things up
+scikit-image # FindMinimum can use this
+lxml  # for HTML parsing used in builtin/fileformats/html
+wordcloud # Used in builtin/image.py by WordCloud()

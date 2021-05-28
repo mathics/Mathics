@@ -37,11 +37,17 @@ build:
 develop:
 	$(PIP) install -e .
 
+#: Set up to run from the source tree with full dependencies
+develop-full:
+	$(PIP) install -e .
+	$(PIP) install -r requirements-extra.txt
+
+
 #: Make distirbution: wheels, eggs, tarball
 dist:
 	./admin-tools/make-dist.sh
 
-#: Install mathics
+#: Install Mathics
 install:
 	$(PYTHON) setup.py install
 
