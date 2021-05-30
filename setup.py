@@ -111,7 +111,7 @@ INSTALL_REQUIRES += [
     "palettable",
     "pint",
     "python-dateutil",
-    "psutil",  # for $SystemMemory
+    # "psutil",  # for $SystemMemory
     "llvmlite",
     "requests",
     # lxml is an optional dependency for HTML parsing used in builtin/fileformats/html

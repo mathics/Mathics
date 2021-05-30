@@ -8,7 +8,6 @@ Global System Information
 
 import os
 import platform
-import psutil
 import sys
 import re
 import subprocess
@@ -28,6 +27,13 @@ from mathics.core.expression import (
 from mathics.builtin.base import Builtin, Predefined
 from mathics import version_string
 from mathics.builtin.strings import to_regex
+
+try:
+    import psutil
+except:
+    have_psutil = False
+else:
+    have_psutil = True
 
 
 class Aborted(Predefined):
@@ -459,42 +465,43 @@ class VersionNumber(Predefined):
         return Real(self.value)
 
 
-class SystemMemory(Predefined):
-    """
-    <dl>
-      <dt>'$SystemMemory'
-      <dd>Returns the total amount of physical memory.
-    </dl>
+if have_psutil:
+    class SystemMemory(Predefined):
+        """
+        <dl>
+          <dt>'$SystemMemory'
+          <dd>Returns the total amount of physical memory.
+        </dl>
 
-    >> $SystemMemory
-     = ...
-    """
+        >> $SystemMemory
+         = ...
+        """
 
-    name = "$SystemMemory"
+        name = "$SystemMemory"
 
-    def evaluate(self, evaluation) -> Integer:
-        totalmem = psutil.virtual_memory().total
-        return Integer(totalmem)
+        def evaluate(self, evaluation) -> Integer:
+            totalmem = psutil.virtual_memory().total
+            return Integer(totalmem)
 
-class MemoryAvailable(Builtin):
-    """
-    <dl>
-      <dt>'MemoryAvailable'
-      <dd>Returns the amount of the available physical memory.
-    </dl>
+    class MemoryAvailable(Builtin):
+        """
+        <dl>
+          <dt>'MemoryAvailable'
+          <dd>Returns the amount of the available physical memory.
+        </dl>
 
-    >> MemoryAvailable[]
-     = ...
+        >> MemoryAvailable[]
+         = ...
 
-    The relationship between $SystemMemory, MemoryAvailable, and MemoryInUse:
-    >> $SystemMemory > MemoryAvailable[] > MemoryInUse[]
-     = True
-    """
+        The relationship between $SystemMemory, MemoryAvailable, and MemoryInUse:
+        >> $SystemMemory > MemoryAvailable[] > MemoryInUse[]
+         = True
+        """
 
-    def apply(self, evaluation) -> Integer:
-        """MemoryAvailable[]"""
-        totalmem = psutil.virtual_memory().available
-        return Integer(totalmem)
+        def apply(self, evaluation) -> Integer:
+            """MemoryAvailable[]"""
+            totalmem = psutil.virtual_memory().available
+            return Integer(totalmem)
 
 
 class MemoryInUse(Builtin):
