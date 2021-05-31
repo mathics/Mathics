@@ -23,7 +23,7 @@ from mathics.core.expression import (
     Rational,
     strip_context,
 )
-from mathics.core.rules import Pattern, Rule
+from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import (
     python_levelspec,
@@ -31,7 +31,6 @@ from mathics.builtin.lists import (
     InvalidLevelspecError,
     List,
 )
-from mathics.builtin.functional import Identity
 
 import platform
 
