@@ -466,19 +466,18 @@ class Pi(_MPMathConstant, _SympyConstant):
     >> N[Pi]
      = 3.14159
 
-    Force using the value given from numpy to compute Pi.
-    >> N[Pi, Method->"numpy"]
-     = 3.14159
+    Pi to a numeric precision of 20 digits:
+    >> N[Pi, 20]
+     = 3.1415926535897932385
 
-    Force using the value given from sympy to compute Pi to 3 places,
-    two places after the decimal point.
+    Note that the above is not the same thing as the number of digits <i>after</i> the decimal point. This may differ from similar concepts from other mathematical libraries, including those which Mathics uses!
 
-    Note that sympy is the default method.
-    >> N[Pi, 3, Method->"sympy"]
-     = 3.14
+    Use numpy to compute Pi to 20 digits:
+    >> N[Pi, 20, Method->"numpy"]
+     = 3.1415...
 
-     >> N[Pi, 50]
-     = 3.1415926535897932384626433832795028841971693993751
+   "sympy" is the default method.
+
     >> Attributes[Pi]
      = {Constant, Protected, ReadProtected}
     """
