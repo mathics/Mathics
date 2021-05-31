@@ -184,7 +184,7 @@ def escape_latex_code(text):
 
     text = escape_latex_output(text)
     escape_char = get_latex_escape_char(text)
-    return "\\lstinline%s%s%s" % (escape_char, text, escape_char)
+    return "%s%s%s" % (escape_char, text, escape_char)
 
 
 def escape_latex(text):
@@ -227,7 +227,7 @@ def escape_latex(text):
                 text = r"\ " + text[1:]
             if text.endswith(" "):
                 text = text[:-1] + r"\ "
-            return "\\code{\\lstinline%s%s%s}" % (escape_char, text, escape_char)
+            return "\\code{%s%s%s}" % (escape_char, text, escape_char)
         else:
             # treat double '' literaly
             return "''"
@@ -262,8 +262,8 @@ def escape_latex(text):
         text,
         [
             ("$", r"\$"),
-            ("\u22bc", "nand"),  # \barwedge isn't working
-            ("\u22bd", "nor"),   # \vebarr isn't working
+            ("\u22bc", r"$\not\land$"),
+            ("\u22bd", r"$\not\lor$"),
             ("\u03c0", r"$\pi$"),
             ("\u2265", r"$\ge$"),
             ("\u2264", r"$\le$"),
