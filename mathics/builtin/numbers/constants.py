@@ -139,7 +139,7 @@ class _Constant_Common(Predefined):
         return
 
 
-class MPMathConstant(_Constant_Common):
+class _MPMathConstant(_Constant_Common):
     """Representation of a constant in mpmath, e.g. Pi, E, I, etc."""
 
     # Subclasses should define this.
@@ -159,7 +159,7 @@ class MPMathConstant(_Constant_Common):
         return getattr(mpmath, self.mpmath_name)
 
 
-class NumpyConstant(_Constant_Common):
+class _NumpyConstant(_Constant_Common):
     """Representation of a constant in numpy, e.g. Pi, E, etc."""
 
     # Subclasses should define this.
@@ -179,7 +179,7 @@ class NumpyConstant(_Constant_Common):
         return self.get_constant()
 
 
-class SympyConstant(_Constant_Common, SympyObject):
+class _SympyConstant(_Constant_Common, SympyObject):
     """Representation of a constant in Sympy, e.g. Pi, E, I, Catalan, etc."""
 
     # Subclasses should define this.
@@ -196,7 +196,7 @@ class SympyConstant(_Constant_Common, SympyObject):
             return None
 
 
-class Catalan(MPMathConstant, SympyConstant):
+class Catalan(_MPMathConstant, _SympyConstant):
     """
     <dl>
     <dt>'Catalan'
@@ -215,7 +215,7 @@ class Catalan(MPMathConstant, SympyConstant):
     sympy_name = "Catalan"
 
 
-class ComplexInfinity(SympyConstant):
+class ComplexInfinity(_SympyConstant):
     """
     <dl>
     <dt>'ComplexInfinity'
@@ -245,7 +245,7 @@ class ComplexInfinity(SympyConstant):
     }
 
 
-class Degree(MPMathConstant, NumpyConstant, SympyConstant):
+class Degree(_MPMathConstant, _NumpyConstant, _SympyConstant):
     """
     <dl>
       <dt>'Degree'
@@ -305,7 +305,7 @@ class Degree(MPMathConstant, NumpyConstant, SympyConstant):
             return PrecisionReal((sympy.pi / 180).n(d))
 
 
-class E(MPMathConstant, NumpyConstant, SympyConstant):
+class E(_MPMathConstant, _NumpyConstant, _SympyConstant):
     """
         <dl>
         <dt>'E'</dt>
@@ -330,7 +330,7 @@ class E(MPMathConstant, NumpyConstant, SympyConstant):
         return self.get_constant(precision, evaluation)
 
 
-class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
+class EulerGamma(_MPMathConstant, _NumpyConstant, _SympyConstant):
     """
     <dl>
       <dt>'EulerGamma'</dt>
@@ -349,7 +349,7 @@ class EulerGamma(MPMathConstant, NumpyConstant, SympyConstant):
     sympy_name = "EulerGamma"
 
 
-class Glaisher(MPMathConstant):
+class Glaisher(_MPMathConstant):
     """
     <dl>
       <dt>'Glaisher'</dt>
@@ -366,7 +366,7 @@ class Glaisher(MPMathConstant):
     mpmath_name = "glaisher"
 
 
-class GoldenRatio(MPMathConstant, SympyConstant):
+class GoldenRatio(_MPMathConstant, _SympyConstant):
     """
     <dl>
       <dt>'GoldenRatio'
@@ -383,7 +383,7 @@ class GoldenRatio(MPMathConstant, SympyConstant):
     mpmath_name = "phi"
 
 
-class Indeterminate(SympyConstant):
+class Indeterminate(_SympyConstant):
     """
     <dl>
     <dt>'Indeterminate'</dt>
@@ -401,7 +401,7 @@ class Indeterminate(SympyConstant):
     sympy_name = "nan"
 
 
-class Infinity(SympyConstant):
+class Infinity(_SympyConstant):
     """
     <dl>
     <dt>'Infinity'
@@ -439,7 +439,7 @@ class Infinity(SympyConstant):
     }
 
 
-class Khinchin(MPMathConstant):
+class Khinchin(_MPMathConstant):
     """
     <dl>
       <dt>'Khinchin'</dt>
@@ -456,7 +456,7 @@ class Khinchin(MPMathConstant):
     mpmath_name = "khinchin"
 
 
-class Pi(MPMathConstant, SympyConstant):
+class Pi(_MPMathConstant, _SympyConstant):
     u"""
     <dl>
       <dt>'Pi'</dt>
