@@ -76,7 +76,7 @@ def create_css(
     return "; ".join(css)
 
 
-def arrow_box(self, offset=None):
+def arrow_box(self, **options):
     width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=width)
     polyline = self.curve.make_draw_svg(style)
@@ -97,7 +97,7 @@ def arrow_box(self, offset=None):
 add_conversion_fn(ArrowBox, arrow_box)
 
 
-def beziercurvebox(self, offset=None):
+def beziercurvebox(self, **options):
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -112,7 +112,7 @@ def beziercurvebox(self, offset=None):
 add_conversion_fn(BezierCurveBox)
 
 
-def filled_curve_box(self, offset=None):
+def filled_curve_box(self, **options):
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(
         edge_color=self.edge_color, face_color=self.face_color, stroke_width=line_width
@@ -149,9 +149,9 @@ def graphics_box(self, leaves=None, **options) -> str:
 
         format_fn = lookup_method(elements, "svg")
         if format_fn is not None:
-            svg_body = format_fn(elements, offset=options.get("offset", None))
+            svg_body = format_fn(elements, **options)
         else:
-            svg_body = elements.to_svg(offset=options.get("offset", None))
+            svg_body = elements.to_svg(**options)
 
         if self.background_color is not None:
             # Wrap svg_elements in a rectangle
@@ -188,14 +188,17 @@ def graphics_box(self, leaves=None, **options) -> str:
 add_conversion_fn(GraphicsBox, graphics_box)
 
 
-def graphics_elements(self, offset=None):
+def graphics_elements(self, **options)->str:
+    """
+    SVG Formatting for a list of graphics elements.
+    """
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "svg")
         if format_fn is None:
-            result.append(element.to_svg(offset))
+            result.append(element.to_svg(**options))
         else:
-            result.append(format_fn(element, offset))
+            result.append(format_fn(element, **options))
 
     return "\n".join(result)
 
@@ -206,9 +209,12 @@ graphics3delements = graphics_elements
 add_conversion_fn(Graphics3DElements)
 
 
-def inset_box(self, offset=None):
+def inset_box(self, **options)->str:
+    """
+    SVG Formatting for boxing an Inset in a graphic.
+    """
     x, y = self.pos.pos()
-    if offset:
+    if options.get("offset", None):
         x = x + offset[0]
         y = y + offset[1]
 
@@ -226,7 +232,8 @@ def inset_box(self, offset=None):
         # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
         text_style_opts = "text-anchor:middle; dominant-baseline:middle;"
         content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
-        svg = f'<text {text_pos_opts} style="{text_style_opts} {css_style}">{content}</text>'
+        font_size = f'''font-size="{options.get("point_size", "10px")}"'''
+        svg = f'<text {text_pos_opts} {font_size} style="{text_style_opts} {css_style}">{content}</text>'
 
     # content = self.content.boxes_to_mathml(evaluation=self.graphics.evaluation)
     # style = create_css(font_color=self.color)
@@ -240,7 +247,7 @@ def inset_box(self, offset=None):
 add_conversion_fn(InsetBox, inset_box)
 
 
-def line_box(self, offset=None):
+def line_box(self, **options)->str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
     svg = ""
@@ -256,7 +263,7 @@ def line_box(self, offset=None):
 add_conversion_fn(LineBox, line_box)
 
 
-def pointbox(self, offset=None):
+def pointbox(self, **options)->str:
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
         point_size = PointSize(self.graphics, value=0.005)
@@ -281,7 +288,7 @@ def pointbox(self, offset=None):
 add_conversion_fn(PointBox)
 
 
-def polygonbox(self, offset=None):
+def polygonbox(self, **options):
     line_width = self.style.get_line_width(face_element=True)
     if self.vertex_colors is None:
         face_color = self.face_color
@@ -312,7 +319,7 @@ def polygonbox(self, offset=None):
 add_conversion_fn(PolygonBox)
 
 
-def rectanglebox(self, offset=None):
+def rectanglebox(self, **options):
     line_width = self.style.get_line_width(face_element=True)
     x1, y1 = self.p1.pos()
     x2, y2 = self.p2.pos()
@@ -320,7 +327,7 @@ def rectanglebox(self, offset=None):
     ymin = min(y1, y2)
     w = max(x1, x2) - xmin
     h = max(y1, y2) - ymin
-    if offset:
+    if options.get("offset", None):
         x1, x2 = x1 + offset[0], x2 + offset[0]
         y1, y2 = y1 + offset[1], y2 + offset[1]
     style = create_css(self.edge_color, self.face_color, line_width)
@@ -337,7 +344,7 @@ def rectanglebox(self, offset=None):
 add_conversion_fn(RectangleBox)
 
 
-def _roundbox(self, offset=None):
+def _roundbox(self, **options):
     x, y = self.c.pos()
     rx, ry = self.r.pos()
     rx -= x
