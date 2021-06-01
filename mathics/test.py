@@ -328,7 +328,6 @@ def make_doc(quiet=False, reload=False):
         print("Extracting doc %s" % version_string)
 
     try:
-        output_xml = {}
         output_tex = load_doc_data() if reload else {}
         for tests in documentation.get_tests():
             create_output(tests, output_tex)
@@ -340,11 +339,11 @@ def make_doc(quiet=False, reload=False):
 
 
 def write_latex():
-    print("Load data")
+    print(f"Load data {settings.DOC_TEX_DATA_PATH}")
     with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as output_file:
         output_tex = pickle.load(output_file)
 
-    print("Print documentation")
+    print(f"Write LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
         content = documentation.latex(output_tex)
         content = content.encode("utf-8")
@@ -409,7 +408,7 @@ def main():
         "--doc-only",
         dest="doc_only",
         action="store_true",
-        help="generate TeX and XML output data without running tests",
+        help="generate TeX output data without running tests",
     )
     parser.add_argument(
         "--reload",

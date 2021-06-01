@@ -309,7 +309,7 @@ class E(_MPMathConstant, _NumpyConstant, _SympyConstant):
     """
         <dl>
         <dt>'E'</dt>
-            <dd>is the constant \u2147 with numerical value \u2243 2.71828.
+            <dd>is the constant \u2107 with numerical value \u2243 2.71828.
         </dl>
 
         >> N[E]

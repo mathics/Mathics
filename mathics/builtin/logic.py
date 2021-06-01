@@ -138,13 +138,14 @@ class Nand(Builtin):
     """
     <dl>
     <dt>'Nand[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$ \u22BC $expr2$ \u22BC ...'
+    <dt>'$expr1$' \u22BC $expr2$ \u22BC ...
         <dd> Implements the logical NAND function.  The same as 'Not[And['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nand[True, False]
      = True
     """
 
+    operator = "\u22BC"
     rules = {
         "Nand[expr___]": "Not[And[expr]]",
     }
@@ -154,13 +155,14 @@ class Nor(Builtin):
     """
     <dl>
     <dt>'Nor[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$ \u22BD $expr2$ \u22BD ...'
+    <dt>'$expr1$' \u22BD $expr2$ \u22BD ...
         <dd>Implements the logical NOR function.  The same as 'Not[Or['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nor[True, False]
      = False
     """
 
+    operator = "\u22BD"
     rules = {
         "Nor[expr___]": "Not[Or[expr]]",
     }
@@ -207,9 +209,10 @@ class Implies(BinaryOperator):
 class Equivalent(BinaryOperator):
     """
     <dl>
-    <dt>'Equivalent[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$ \u29E6 $expr2$ \u29E6 ...'
-        <dd>is equivalent to
+      <dt>'Equivalent[$expr1$, $expr2$, ...]'
+      <dt>$expr1$ \u29E6 $expr2$ \u29E6 ...
+
+      <dd>is equivalent to
         ($expr1$ && $expr2$ && ...) || (!$expr1$ && !$expr2$ && ...)
     </dl>
 
@@ -259,9 +262,10 @@ class Equivalent(BinaryOperator):
 class Xor(BinaryOperator):
     """
     <dl>
-    <dt>'Xor[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$ \u22BB $expr2$ \u22BB ...'
-        <dd>evaluates each expression in turn, returning 'True'
+      <dt>'Xor[$expr1$, $expr2$, ...]'
+      <dt>$expr1$ \u22BB $expr2$ \u22BB ...
+
+      <dd>evaluates each expression in turn, returning 'True'
         as soon as not all expressions evaluate to the same value. If all
         expressions evaluate to the same value, 'Xor' returns 'False'.
     </dl>
