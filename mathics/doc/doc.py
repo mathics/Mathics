@@ -258,6 +258,8 @@ def escape_latex(text):
             ("$", r"\$"),
             ("\u22bc", "nand"),  # \barwedge isn't working
             ("\u22bd", "nor"),  # \vebarr isn't working
+            ("\u03b3", r"$\gamma$"),
+            ("\u2107", r"\mathrm{e}"),
             ("\u03c0", r"$\pi$"),
             ("\u2265", r"$\ge$"),
             ("\u2264", r"$\le$"),
@@ -651,16 +653,11 @@ class MathicsMainDocumentation(Documentation):
                 title, text = get_module_doc(module)
                 chapter = DocChapter(builtin_part, title, Doc(text))
                 builtins = builtins_by_module[module.__name__]
-
-                if module.__file__.endswith("__init__.py"):
-                    section_names = get_submodule_names(module)
-                else:
-                    section_names = [
-                        builtin
-                        for builtin in builtins
-                        if not builtin.__class__.__name__.endswith("Box")
-                    ]
-
+                section_names = [
+                    builtin
+                    for builtin in builtins
+                    if not builtin.__class__.__name__.endswith("Box")
+                ]
                 for instance in section_names:
                     installed = True
                     for package in getattr(instance, "requires", []):

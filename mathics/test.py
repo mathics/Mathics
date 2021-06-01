@@ -340,11 +340,11 @@ def make_doc(quiet=False, reload=False):
 
 
 def write_latex():
-    print("Load data")
+    print(f"Load data {settings.DOC_TEX_DATA_PATH}")
     with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as output_file:
         output_tex = pickle.load(output_file)
 
-    print("Print documentation")
+    print(f"Write LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
         content = documentation.latex(output_tex)
         content = content.encode("utf-8")

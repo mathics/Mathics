@@ -33,4 +33,4 @@ clean:
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
 	rm -f mathics_*.* || true
 	rm -f mathics-*.* documentation.tex || true
-	rm -f mathics.pdf mathics.dvi data || true
+	rm -f mathics.pdf mathics.dvi data_tex_data.pcl || true
