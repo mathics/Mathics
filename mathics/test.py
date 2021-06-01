@@ -328,7 +328,6 @@ def make_doc(quiet=False, reload=False):
         print("Extracting doc %s" % version_string)
 
     try:
-        output_xml = {}
         output_tex = load_doc_data() if reload else {}
         for tests in documentation.get_tests():
             create_output(tests, output_tex)
@@ -409,7 +408,7 @@ def main():
         "--doc-only",
         dest="doc_only",
         action="store_true",
-        help="generate TeX and XML output data without running tests",
+        help="generate TeX output data without running tests",
     )
     parser.add_argument(
         "--reload",

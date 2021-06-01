@@ -268,6 +268,7 @@ def escape_latex(text):
             ("\u2260", r"$\ne$"),
             ("\u2264", r"$\le$"),
             ("\u2265", r"$\ge$"),
+            ("\u22bb", r"$\oplus$"),  # The WL veebar-looking symbol isn't in AMSLaTeX
             ("\u22bc", r"$\barwedge$"),
             ("\u22bd", r"$\veebar$"),
             ("\uf74c", r"d"),
