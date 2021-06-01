@@ -7,7 +7,7 @@ BASH ?= /bin/bash
 #-quiet
 
 #: Default target: Make everything
-all: mathics.pdf
+all doc: mathics.pdf
 
 doc_tex_data.pcl:
 	make -C ../../.. doc-data
