@@ -169,32 +169,38 @@ def test_tests(
     return total, failed, skipped, failed_symbols, index
 
 
-def create_output(tests, output_xml, output_tex):
-    for format, output in [("xml", output_xml), ("tex", output_tex)]:
-        definitions.reset_user_definitions()
-        for test in tests.tests:
-            if test.private:
-                continue
-            key = test.key
-            evaluation = Evaluation(
-                definitions, format=format, catch_interrupt=False, output=TestOutput()
-            )
-            result = evaluation.parse_evaluate(test.test)
-            if result is None:
-                result = []
-            else:
-                result = [result.get_data()]
-            output[key] = {
-                "query": test.test,
-                "results": result,
-            }
+def create_output(tests, output_tex):
+    definitions.reset_user_definitions()
+    for test in tests.tests:
+        if test.private:
+            continue
+        key = test.key
+        evaluation = Evaluation(
+            definitions, format="tex", catch_interrupt=False, output=TestOutput()
+        )
+        result = evaluation.parse_evaluate(test.test)
+        if result is None:
+            result = []
+        else:
+            result = [result.get_data()]
+        output_tex[key] = {
+            "query": test.test,
+            "results": result,
+        }
 
 
-def test_section(sections: set, quiet=False, stop_on_failure=False):
+def test_section(
+    sections: set,
+    quiet=False,
+    stop_on_failure=False,
+    generate_output=False,
+    reload=False,
+):
     failed = 0
     index = 0
     print("Testing section(s): %s" % ", ".join(sections))
     sections |= {"$" + s for s in sections}
+    output_tex = load_doc_data() if reload else {}
     for tests in documentation.get_tests():
         if tests.section in sections:
             for test in tests.tests:
@@ -205,6 +211,8 @@ def test_section(sections: set, quiet=False, stop_on_failure=False):
                     failed += 1
                     if stop_on_failure:
                         break
+            if generate_output and failed == 0:
+                create_output(tests, output_tex)
 
     print()
     if failed > 0:
@@ -238,10 +246,8 @@ def test_all(
         print("Testing %s" % version_string)
 
     if generate_output:
-        if xmldatafolder is None:
-            xmldatafolder = settings.DOC_XML_DATA
         if texdatafolder is None:
-            texdatafolder = settings.DOC_TEX_DATA
+            texdatafolder = settings.DOC_TEX_DATA_PATH
     try:
         index = 0
         total = failed = skipped = 0
@@ -258,7 +264,7 @@ def test_all(
                 max_tests=count,
             )
             if generate_output:
-                create_output(tests, output_xml, output_tex)
+                create_output(tests, output_tex)
             total += sub_total
             failed += sub_failed
             skipped += sub_skipped
@@ -292,13 +298,7 @@ def test_all(
             print_and_log("  - %s in %s / %s" % (section, part, chapter))
 
     if generate_output and (failed == 0 or doc_even_if_error):
-        print("Save XML")
-        with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
-            pickle.dump(output_xml, output_file, 0)
-
-        print("Save TeX")
-        with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
-            pickle.dump(output_tex, output_file, 0)
+        save_doc_data(output_tex)
         return True
 
     if failed == 0:
@@ -308,34 +308,40 @@ def test_all(
         return sys.exit(1)  # Travis-CI knows the tests have failed
 
 
-def make_doc(quiet=False):
+def load_doc_data():
+    print(f"Loading TeX from {settings.DOC_TEX_DATA_PATH}")
+    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as tex_data_file:
+        return pickle.load(tex_data_file)
+
+
+def save_doc_data(output_tex):
+    print(f"Writing TeX to {settings.DOC_TEX_DATA_PATH}")
+    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "wb") as output_file:
+        pickle.dump(output_tex, output_file, 4)
+
+
+def make_doc(quiet=False, reload=False):
     """
-    Write XML and TeX doc examples.
+    Write TeX doc examples.
     """
     if not quiet:
         print("Extracting doc %s" % version_string)
 
     try:
         output_xml = {}
-        output_tex = {}
+        output_tex = load_doc_data() if reload else {}
         for tests in documentation.get_tests():
-            create_output(tests, output_xml, output_tex)
+            create_output(tests, output_tex)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
 
-    print("Save XML")
-    with open_ensure_dir(settings.DOC_XML_DATA, "wb") as output_file:
-        pickle.dump(output_xml, output_file, 0)
-
-    print("Save TeX")
-    with open_ensure_dir(settings.DOC_TEX_DATA, "wb") as output_file:
-        pickle.dump(output_tex, output_file, 0)
+    save_doc_data(output_tex)
 
 
 def write_latex():
     print("Load data")
-    with open_ensure_dir(settings.DOC_TEX_DATA, "rb") as output_file:
+    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as output_file:
         output_tex = pickle.load(output_file)
 
     print("Print documentation")
@@ -406,6 +412,13 @@ def main():
         help="generate TeX and XML output data without running tests",
     )
     parser.add_argument(
+        "--reload",
+        "-r",
+        dest="reload",
+        action="store_true",
+        help="reload TeX data",
+    )
+    parser.add_argument(
         "--tex",
         "-t",
         dest="tex",
@@ -455,7 +468,7 @@ def main():
         if args.pymathics:  # in case the section is in a pymathics module...
             documentation.load_pymathics_doc()
 
-        test_section(sections, stop_on_failure=args.stop_on_failure)
+        test_section(sections, stop_on_failure=args.stop_on_failure, reload=args.reload)
     else:
         # if we want to check also the pymathics modules
         if args.pymathics:
@@ -464,6 +477,7 @@ def main():
         elif args.doc_only:
             make_doc(
                 quiet=args.quiet,
+                reload=args.reload,
             )
         else:
             start_at = args.skip + 1

@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-"""
-A module which extracts LaTeX from documentation/*.mdoc and from Mathics modules,
+"""A module which extracts LaTeX from documentation/*.mdoc and from Mathics modules,
 and has common routines used by Django.
 
 It also extracts doctests as well.
 
-Running LaTeX, or the tests is done elsewhere, as is viewing extracted XML docs.
+Running LaTeX, or the tests is done elsewhere.
 
 See also `../test.py` for a command-line interface that calls this.
 
-FIXME: Note too much of this code is duplicated in Django
-This code should be replaced by sphinx and autodoc.
+FIXME: Note too much of this code is duplicated in Django. Code should
+be moved for both to a separate package.  Also, this code should be
+replaced by sphinx and autodoc.
 """
 
 import re
@@ -116,13 +116,6 @@ SPECIAL_COMMANDS = {
     "Wolfram": (r"<em>Wolfram</em>", r"\emph{Wolfram}"),
     "skip": (r"<br /><br />", r"\bigskip"),
 }
-
-try:
-    with open(settings.DOC_XML_DATA, "rb") as xml_data_file:
-        xml_data = pickle.load(xml_data_file)
-except IOError:
-    xml_data = {}
-
 
 def get_submodule_names(object):
     modpkgs = []
@@ -610,8 +603,7 @@ class MathicsMainDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.doc_dir = settings.DOC_DIR
-        self.xml_data_file = settings.DOC_XML_DATA
-        self.tex_data_file = settings.DOC_TEX_DATA
+        self.tex_data_file = settings.DOC_TEX_DATA_PATH
         self.latex_file = settings.DOC_LATEX_FILE
         self.pymathics_doc_loaded = False
         files = listdir(self.doc_dir)
@@ -738,7 +730,6 @@ class PyMathicsDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.doc_dir = None
-        self.xml_data_file = None
         self.tex_data_file = None
         self.latex_file = None
         self.symbols = {}
@@ -776,7 +767,6 @@ class PyMathicsDocumentation(Documentation):
 
         # Paths
         self.doc_dir = self.pymathicsmodule.__path__[0] + "/doc/"
-        self.xml_data_file = self.doc_dir + "xml/data"
         self.tex_data_file = self.doc_dir + "tex/data"
         self.latex_file = self.doc_dir + "tex/documentation.tex"
 
@@ -807,7 +797,6 @@ class PyMathicsDocumentation(Documentation):
             files.sort()
         except FileNotFoundError:
             self.doc_dir = ""
-            self.xml_data_file = ""
             self.tex_data_file = ""
             self.latex_file = ""
             files = []

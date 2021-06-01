@@ -26,7 +26,7 @@ _Database_/
 build/
 dist/
 mathics/Makefile
-mathics/doc/tex/data
+mathics/doc/tex/doc_tex_data.pcl
 mathics/doc/tex/documentation.tex
 mathics/doc/tex/images/
 mathics/doc/tex/logo-heptatom.pdf

@@ -41,8 +41,7 @@ else:
 #    os.makedirs(DATA_DIR)
 
 DOC_DIR = os.path.join(ROOT_DIR, "doc/documentation/")
-DOC_TEX_DATA = os.path.join(ROOT_DIR, "doc/tex/data")
-DOC_XML_DATA = os.path.join(ROOT_DIR, "doc/xml/data")
+DOC_TEX_DATA_PATH = os.path.join(ROOT_DIR, "doc/tex/doc_tex_data.pcl")
 DOC_LATEX_FILE = os.path.join(ROOT_DIR, "doc/tex/documentation.tex")
 
 # Local time zone for this installation. Choices can be found here:
