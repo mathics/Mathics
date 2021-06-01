@@ -36,10 +36,4 @@ def mathics_system_info(defs):
         "$HomeDirectory": eval(filesystem.HomeDirectory),
         "$InstallationDirectory": eval(filesystem.InstallationDirectory),
         "$TemporaryDirectory": eval(filesystem.TemporaryDirectory),
-
-        # ----
-        # Django specific:
-        # - - -
-        # MATHIC_DJANGO_DB_PATH
-        # DOC_XML_DATA
 }

@@ -9,11 +9,11 @@ BASH ?= /bin/bash
 #: Default target: Make everything
 all: mathics.pdf
 
-data:
+doc_tex_data.pcl:
 	make -C ../../.. doc-data
 
 #: Build mathics PDF
-mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf data
+mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf doc_tex_data.pcl
 	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
 
 #: Generate logos used in the titlepage
