@@ -269,7 +269,7 @@ def escape_latex(text):
             ("\u2264", r"$\le$"),
             ("\u2265", r"$\ge$"),
             ("\u22bc", r"$\barwedge$"),
-            ("\u22bd", "$\vebarr$"),
+            ("\u22bd", r"$\veebar$"),
             ("\uf74c", r"d"),
         ],
     )
