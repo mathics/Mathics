@@ -73,11 +73,11 @@ gstest:
 
 #: Create data that is used to in Django docs and to build TeX PDF
 doc-data mathics/doc/tex/doc_tex_data.pcl: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
-	$(PYTHON) mathics/docbuild.py -ot -k
+	$(PYTHON) mathics/docpipeline.py -ot -k
 
 #: Run tests that appear in docstring in the code.
 doctest:
-	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docbuild.py $o
+	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py $o
 
 #: Make Mathics PDF manual
 doc mathics.pdf: mathics/doc/tex/doc_tex_data.pcl

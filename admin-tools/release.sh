@@ -5,8 +5,8 @@
 # Clear directory build/
 # python setup.py develop
 # mathics/
-#   python test.py -o
-#   python test.py -t
+#   python docpipeline.py -o
+#   python docpipeline.py -t
 # mathics/doc/tex/
 #   make latex
 # Then run this file.
