@@ -12,4 +12,4 @@ omit =
     mathics/doc/*
     mathics/builtin/pymimesniffer/*
     mathics/manage.py
-    mathics/test.py
+    mathics/docpipeline.py

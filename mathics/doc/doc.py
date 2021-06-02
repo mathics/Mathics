@@ -6,7 +6,7 @@ It also extracts doctests as well.
 
 Running LaTeX, or the tests is done elsewhere.
 
-See also `../test.py` for a command-line interface that calls this.
+See also `../docpipeline.py` for a command-line interface that calls this.
 
 FIXME: Note too much of this code is duplicated in Django. Code should
 be moved for both to a separate package.  Also, this code should be

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Does 3 things which can either be done independently or
+as a pipeline:
+
+1. Extracts tests from static mdoc files and docstrings from Mathics built-in functions
+2. Creates/updates internal documentation data
+3. It writes the LaTeX file containing the entire User Manual
+"""
 
 import sys
 import re
@@ -309,23 +317,24 @@ def test_all(
 
 
 def load_doc_data():
-    print(f"Loading TeX from {settings.DOC_TEX_DATA_PATH}")
+    print(f"Loading LaTeX internal data from {settings.DOC_TEX_DATA_PATH}")
     with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as tex_data_file:
         return pickle.load(tex_data_file)
 
 
 def save_doc_data(output_tex):
-    print(f"Writing TeX to {settings.DOC_TEX_DATA_PATH}")
+    print(f"Writing LaTeX internal data to {settings.DOC_TEX_DATA_PATH}")
     with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "wb") as output_file:
         pickle.dump(output_tex, output_file, 4)
 
 
-def make_doc(quiet=False, reload=False):
+def extract_doc_from_source(quiet=False, reload=False):
     """
-    Write TeX doc examples.
+    Write internal (pickled) TeX doc mdoc files and example data in docstrings.
     """
     if not quiet:
-        print("Extracting doc %s" % version_string)
+        print(f"Extracting internal doc data for {version_string}")
+        print(f"This may take a while...")
 
     try:
         output_tex = load_doc_data() if reload else {}
@@ -335,6 +344,7 @@ def make_doc(quiet=False, reload=False):
         print("\nAborted.\n")
         return
 
+    print("done.\n")
     save_doc_data(output_tex)
 
 
@@ -402,27 +412,33 @@ def main():
         "-o",
         dest="output",
         action="store_true",
-        help="generate TeX and XML output data",
+        help="generate LaTeX pickled internal data",
     )
     parser.add_argument(
         "--doc-only",
         dest="doc_only",
         action="store_true",
-        help="generate TeX output data without running tests",
+        help="generate LaTeX pickled internal data without running tests; Can't be used with --section or --reload.",
+    )
+    parser.add_argument(
+        "--latex-only",
+        dest="latex_only",
+        action="store_true",
+        help="generate LaTeX output from internal data without running tests; assumes --reload",
     )
     parser.add_argument(
         "--reload",
         "-r",
         dest="reload",
         action="store_true",
-        help="reload TeX data",
+        help="reload LaTeX pickled internal data, before possibly adding to it",
     )
     parser.add_argument(
         "--tex",
         "-t",
         dest="tex",
         action="store_true",
-        help="generate TeX documentation file",
+        help="include LaTeX document generation file at the end of other steps",
     )
     parser.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
@@ -473,10 +489,12 @@ def main():
         if args.pymathics:
             print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
+        elif args.latex_only:
+            write_latex()
         elif args.doc_only:
-            make_doc(
+            extract_doc_from_source(
                 quiet=args.quiet,
-                reload=args.reload,
+                reload=False,
             )
         else:
             start_at = args.skip + 1
