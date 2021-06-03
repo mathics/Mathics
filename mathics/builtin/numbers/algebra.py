@@ -548,67 +548,6 @@ class FactorTermsList(Builtin):
      = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
     >> FactorTermsList[f, x]
      = {-3, 1 - a - y + a y, -1 + 2 x}
-    #> FactorTermsList[f, y]
-     = {-3, 1 - a - 2 x + 2 a x, -1 + y}
-    >> FactorTermsList[f, {x, y}]
-     = {-3, -1 + a, -1 + y, -1 + 2 x}
-    #> FactorTermsList[f, {y, x}]
-     = {-3, -1 + a, -1 + 2 x, -1 + y}
-    #> FactorTermsList[f, {x, y, z}]
-     = {-3, -1 + a, 1, -1 + y, -1 + 2 x}
-    #> FactorTermsList[f, {x, y, z, t}]
-     = {-3, -1 + a, 1, 1, -1 + y, -1 + 2 x}
-    #> FactorTermsList[f, 3/5]
-     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
-    #> FactorTermsList[f, {x, 3, y}]
-     = {-3, -1 + a, -1 + y, -1 + 2 x}
-
-    #> FactorTermsList[f/c]
-     = {-3, -1 / c + a / c - 2 a x / c - a y / c + 2 x / c + y / c - 2 x y / c + 2 a x y / c}
-    #> FactorTermsList[f/c, x] == FactorTermsList[f/c, {x, y}]
-     = True
-
-    #> g = Sin[x]*Cos[y]*(1 - 2 a)
-     = Cos[y] (1 - 2 a) Sin[x]
-    #> FactorTermsList[g]
-     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
-    #> FactorTermsList[g, x]
-     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
-    #> FactorTermsList[g, x] == FactorTermsList[g, y] == FactorTermsList[g, {x, y}]
-     = True
-
-    #> v = 3 * y * (1 - b) a^x
-     = 3 y (1 - b) a ^ x
-    #> FactorTermsList[v]
-     = {-3, -y a ^ x + b y a ^ x}
-    #> FactorTermsList[v, x]
-     = {-3, -y a ^ x + b y a ^ x}
-    #> FactorTermsList[v, y]
-     = {-3, b a ^ x - a ^ x, y}
-
-    #> FactorTermsList[7]
-     = {7, 1}
-    #> FactorTermsList[0]
-     = {1, 0}
-    #> FactorTermsList[-3]
-     = {-3, 1}
-    #> FactorTermsList[7, {y, x}]
-     = {7, 1}
-    #> FactorTermsList[7, x]
-     = {7, 1}
-    #> FactorTermsList[7 - I, x]
-     = {7 - I, 1}
-    #> FactorTermsList[(x - 1) (1 + a), {c, d}]
-     = {1, -1 - a + x + a x}
-    #> FactorTermsList[(x - 1) (1 + a), {c, x}]
-     = {1, 1 + a, -1 + x, 1}
-    #> FactorTermsList[(x - 1) (1 + a), {}] == FactorTermsList[(x - 1) (1 + a)]
-     = True
-
-    #> FactorTermsList[x]
-     = {1, x}
-    #> FactorTermsList["x"]
-     = {1, x}
     """
 
     rules = {
