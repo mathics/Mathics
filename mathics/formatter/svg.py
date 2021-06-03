@@ -33,19 +33,19 @@ class _SVGTransform:
         # a c e
         # b d f
         # 0 0 1
-        self.transforms.append("matrix(%f, %f, %f, %f, %f, %f)" % (a, b, c, d, e, f))
+        self.transforms.append(f"matrix({a:f}, {b:f}, {c:f}, {d:f}, {e:f}, {e:f})")
 
     def translate(self, x, y):
-        self.transforms.append("translate(%f, %f)" % (x, y))
+        self.transforms.append(f"translate({x:f}, {y:f})")
 
     def scale(self, x, y):
-        self.transforms.append("scale(%f, %f)" % (x, y))
+        self.transforms.append(f"scale({x:f}, {y:f})")
 
     def rotate(self, x):
-        self.transforms.append("rotate(%f)" % x)
+        self.transforms.append(f"rotate({x:f})")
 
     def apply(self, svg):
-        return '<g transform="%s">%s</g>' % (" ".join(self.transforms), svg)
+        return f"""<g transform="{' '.join(self.transforms)}">{svg}</g>"""
 
 
 def create_css(
@@ -57,22 +57,22 @@ def create_css(
     css = []
     if edge_color is not None:
         color, stroke_opacity = edge_color.to_css()
-        css.append("stroke: %s" % color)
-        css.append("stroke-opacity: %s" % stroke_opacity)
+        css.append(f"stroke: {color}")
+        css.append(f"stroke-opacity: {stroke_opacity}")
     else:
         css.append("stroke: none")
     if stroke_width is not None:
-        css.append("stroke-width: %fpx" % stroke_width)
+        css.append(f"stroke-width: {stroke_width:f}px")
     if face_color is not None:
         color, fill_opacity = face_color.to_css()
-        css.append("fill: %s" % color)
-        css.append("fill-opacity: %s" % fill_opacity)
+        css.append(f"fill: {color}")
+        css.append(f"fill-opacity: {fill_opacity}")
     else:
         css.append("fill: none")
     if font_color is not None:
         color, _ = font_color.to_css()
-        css.append("color: %s" % color)
-    css.append("opacity: %s" % opacity)
+        css.append(f"color: {color}")
+    css.append(f"opacity: {opacity}")
     return "; ".join(css)
 
 
@@ -86,7 +86,7 @@ def arrow_box(self, **options):
     def polygon(points):
         yield '<polygon points="'
         yield " ".join("%f,%f" % xy for xy in points)
-        yield '" style="%s" />' % arrow_style
+        yield f'" style="{arrow_style}" />'
 
     extent = self.graphics.view_width or 0
     default_arrow = self._default_arrow(polygon)
@@ -104,7 +104,7 @@ def beziercurvebox(self, **options):
     svg = ""
     for line in self.lines:
         s = " ".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
-        svg += '<path d="%s" style="%s"/>' % (s, style)
+        svg += f'<path d="{s}" style="{style}"/>'
     # print("XXX bezier", svg)
     return svg
 
@@ -164,24 +164,31 @@ def graphics_box(self, leaves=None, **options) -> str:
                 svg_body,
             )
 
-        xmin -= 1
-        ymin -= 1
-        w += 2
-        h += 2
+
+        # FIXME:
+        # Length calculation with PointBox is off by PointSize
+        # point_size, _ = self.style.get_style(PointSize, face_element=False)
+        # For others, I guess we just have this extra margin around the edge.
+        point_size = 14.06 # Really 14.05333..5
+        xmin -= point_size
+        ymin -= point_size
+        w += 2 * point_size
+        h += 2 * point_size
 
         if options.get("noheader", False):
             return svg_body
         svg_main = """
-            <svg xmlns:svg="http://www.w3.org/2000/svg"
+<svg xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
                 version="1.1"
                 viewBox="%s">
                 %s
-            </svg>
-        """ % (
+</svg>
+""" % (
             " ".join("%f" % t for t in (xmin, ymin, w, h)),
             svg_body,
         )
+        # print("svg_main", svg_main)
         return svg_main  # , width, height
 
 
@@ -200,7 +207,9 @@ def graphics_elements(self, **options)->str:
         else:
             result.append(format_fn(element, **options))
 
-    return "\n".join(result)
+    svg = "\n".join(result)
+    # print("graphics_elements", svg)
+    return svg
 
 
 add_conversion_fn(GraphicsElements, graphics_elements)
@@ -256,7 +265,7 @@ def line_box(self, **options)->str:
             " ".join(["%f,%f" % coords.pos() for coords in line]),
             style,
         )
-    # print("XXX linebox", svg)
+    # print("LineBox", svg)
     return svg
 
 
@@ -275,13 +284,10 @@ def pointbox(self, **options)->str:
     svg = ""
     for line in self.lines:
         for coords in line:
-            svg += '<circle cx="%f" cy="%f" r="%f" style="%s" />' % (
-                coords.pos()[0],
-                coords.pos()[1],
-                size,
-                style,
-            )
-    # print("XXX PointBox", svg)
+            svg += f"""
+  <circle cx="{coords.pos()[0]:f}" cy="{coords.pos()[1]:f}"
+          r="{size:f}" style="{style}"/>"""
+    # print("PointBox", svg)
     return svg
 
 
@@ -312,7 +318,7 @@ def polygonbox(self, **options):
             " ".join("%f,%f" % coords.pos() for coords in line),
             style,
         )
-    # print("XXX PolygonBox", svg)
+    print("XXX PolygonBox", svg)
     return svg
 
 
@@ -331,14 +337,15 @@ def rectanglebox(self, **options):
         x1, x2 = x1 + offset[0], x2 + offset[0]
         y1, y2 = y1 + offset[1], y2 + offset[1]
     style = create_css(self.edge_color, self.face_color, line_width)
-    return '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
+    svg =  '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
         xmin,
         ymin,
         w,
         h,
         style,
     )
-    "\n".join(element.to_svg() for element in self.elements)
+    # print("RectangleBox", svg)
+    return svg
 
 
 add_conversion_fn(RectangleBox)
@@ -351,13 +358,15 @@ def _roundbox(self, **options):
     ry = y - ry
     line_width = self.style.get_line_width(face_element=self.face_element)
     style = create_css(self.edge_color, self.face_color, stroke_width=line_width)
-    return '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
+    svg = '<ellipse cx="%f" cy="%f" rx="%f" ry="%f" style="%s" />' % (
         x,
         y,
         rx,
         ry,
         style,
     )
+    # print("_RoundBox", svg)
+    return svg
 
 
 add_conversion_fn(_RoundBox)
