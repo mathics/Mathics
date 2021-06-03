@@ -138,7 +138,7 @@ class Nand(Builtin):
     """
     <dl>
     <dt>'Nand[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$' \u22BC $expr2$ \u22BC ...
+    <dt>$expr1$ \u22BC $expr2$ \u22BC ...
         <dd> Implements the logical NAND function.  The same as 'Not[And['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nand[True, False]
@@ -155,7 +155,7 @@ class Nor(Builtin):
     """
     <dl>
     <dt>'Nor[$expr1$, $expr2$, ...]'
-    <dt>'$expr1$' \u22BD $expr2$ \u22BD ...
+    <dt>$expr1$ \u22BD $expr2$ \u22BD ...
         <dd>Implements the logical NOR function.  The same as 'Not[Or['$expr1$, $expr2$, ...']]'
     </dl>
     >> Nor[True, False]
@@ -172,7 +172,7 @@ class Implies(BinaryOperator):
     """
     <dl>
     <dt>'Implies[$expr1$, $expr2$]'
-    <dt>'$expr1$ \uF523 $expr2$'
+    <dt>$expr1$ \u21D2 $expr2$
         <dd>evaluates each expression in turn, returning 'True'
         as soon as the first expression evaluates to 'False'. If the
         first expression evaluates to 'True', 'Implies' returns the
@@ -187,10 +187,10 @@ class Implies(BinaryOperator):
     If an expression does not evaluate to 'True' or 'False', 'Implies'
     returns a result in symbolic form:
     >> Implies[a, Implies[b, Implies[True, c]]]
-     = a \uF523 b \uF523 c
+     = a \u21D2 b \u21D2 c
     """
 
-    operator = "\uF523"
+    operator = "\u21D2"
     precedence = 200
     grouping = "Right"
 
