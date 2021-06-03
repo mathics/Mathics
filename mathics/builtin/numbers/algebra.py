@@ -384,13 +384,6 @@ class Simplify(Builtin):
     # = Undefined
     # >> Simplify[ConditionalExpression[1, a > 0], { a > 0 }]
     # = 1
-
-    #> Simplify[a*x^2+b*x^2]
-     = x ^ 2 (a + b)
-
-    ## triggers TypeError in sympy.simplify
-    #> x f[{y}] // Simplify
-     = x f[{y}]
     """
 
     rules = {
@@ -1271,7 +1264,7 @@ class Coefficient(Builtin):
         <dd>return the coefficient of $form$^$n$ in $expr$.
     </dl>
 
-    ## Form 1
+    ## Form 1: Coefficent[expr, form]
     >> Coefficient[(x + y)^4, (x^2) * (y^2)]
      = 6
     >> Coefficient[a x^2 + b y^3 + c x + d y + 5, x]
@@ -1282,31 +1275,16 @@ class Coefficient(Builtin):
      = 405
     >> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), x]
      = 1 / (-3 + y) + 1 / (-2 + y)
-    #> Coefficient[(x + 2)/(y - 3) + (x + 3)/(y - 2), z, 0]
-     = (2 + x) / (-3 + y) + (3 + x) / (-2 + y)
-    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), x]
-     = y / (-9 + y ^ 2) + 1 / (2 + y)
-    #> Coefficient[y (x - 2)/((y^2 - 9)) + (x + 5)/(y + 2), y]
-     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
-     ## MMA returns better one: (-2 + x) / (-9 + y ^ 2)
-    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), x]
-     = y / (-9 + y ^ 2) + 1 / (2 + y)
-    #> Coefficient[y (x - 2)/((y - 3)(y + 3)) + (x + 5)/(y + 2), y]
-     = x / (-9 + y ^ 2) - 2 / (-9 + y ^ 2)
-     ## MMA returns better one: (-2 + x) / ((-3 + y) (3 + y))
-    #> Coefficient[x^3 - 2 x/y + 3 x z, y]
-     = 0
-    #> Coefficient[x^2 + axy^2 - bSin[c], c]
-     = 0
     >> Coefficient[x*Cos[x + 3] + 6*y, x]
      = Cos[3 + x]
 
-    ## Form 2
+    ## Form 2: Coefficent[expr, form, n]
     >> Coefficient[(x + 1)^3, x, 2]
      = 3
     >> Coefficient[a x^2 + b y^3 + c x + d y + 5, y, 3]
      = b
-    ## Find the free term in a polynomial
+
+    Find the free term in a polynomial:
     >> Coefficient[(x + 2)^3 + (x + 3)^2, x, 0]
      = 17
     >> Coefficient[(x + 2)^3 + (x + 3)^2, y, 0]
@@ -1364,7 +1342,7 @@ class CoefficientList(Builtin):
         <dd>returns an array of coefficients of the $vari$.
     </dl>
 
-    ## Form 1
+    ## Form 1 CoefficientList[poly, var]
     >> CoefficientList[(x + 3)^5, x]
      = {243, 405, 270, 90, 15, 1}
     >> CoefficientList[(x + y)^4, x]
@@ -1375,37 +1353,13 @@ class CoefficientList(Builtin):
      = {2 / (-3 + y), 1 / (-3 + y) + 1 / (-2 + y)}
     >> CoefficientList[(x + y)^3, z]
      = {(x + y) ^ 3}
-    #> CoefficientList[x + y]
-     : CoefficientList called with 1 argument; 2 or 3 arguments are expected.
-     = CoefficientList[x + y]
-    #> CoefficientList[x^2 + a x y^2 - b Sin[c], y]
-     = {-b Sin[c] + x ^ 2, 0, a x}
-    #> CoefficientList[1/y, y]
-     : 1 / y is not a polynomial.
-     = CoefficientList[1 / y, y]
-    #> CoefficientList[0, x]
-     = {}
-    #> CoefficientList[1, x]
-     = {1}
     #> CoefficientList[x + y, 5]
      : 5 is not a valid variable.
      = CoefficientList[x + y, 5]
-    #> CoefficientList[x + 1, {}]
-     = 1 + x
 
-    ## Form 2
+    ## Form 2 CoefficientList[poly, {var1, var2, ...}]
     >> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x, y}]
      = {{5, d, 0, b}, {c, 0, 0, 0}, {a, 0, 0, 0}}
-    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x}]
-     = {5 + b y ^ 3 + d y, c, a}
-    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {}]
-     = 5 + a x ^ 2 + b y ^ 3 + c x + d y
-    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x, y + 1}]
-     = {{5 + b y ^ 3 + d y}, {c}, {a}}
-    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x + 1, y}]
-     = {{5 + a x ^ 2 + c x, d, 0, b}}
-    #> CoefficientList[a x^2 + b y^3 + c x + d y + 5, {x + 1, y + 1}]
-     = {{5 + a x ^ 2 + b y ^ 3 + c x + d y}}
     >> CoefficientList[(x - 2 y + 3 z)^3, {x, y, z}]
      = {{{0, 0, 0, 27}, {0, 0, -54, 0}, {0, 36, 0, 0}, {-8, 0, 0, 0}}, {{0, 0, 27, 0}, {0, -36, 0, 0}, {12, 0, 0, 0}, {0, 0, 0, 0}}, {{0, 9, 0, 0}, {-6, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}, {{1, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}}
     #> CoefficientList[(x - 2 y)^4, {x, 2}]
@@ -1414,12 +1368,6 @@ class CoefficientList(Builtin):
     #> CoefficientList[x / y, {x, y}]
      : x / y is not a polynomial.
      = CoefficientList[x / y, {x, y}]
-    #> CoefficientList[y (x - 2)/((z - 3) (z + 3)) + (x + 5)/(z + 2), {x, y}]
-     = {{5 / (2 + z), -2 / (-9 + z ^ 2)}, {1 / (2 + z), 1 / (-9 + z ^ 2)}}
-    #> CoefficientList[0, {x, y}]
-     = {}
-    #> CoefficientList[1, {x, y}]
-     = {{1}}
     """
 
     messages = {
@@ -1521,52 +1469,15 @@ class Exponent(Builtin):
 
     >> Exponent[5 x^2 - 3 x + 7, x]
      = 2
-    #> Exponent[5 x^2 - 3 x + 7, x, List]
-     = {0, 1, 2}
     >> Exponent[(x^3 + 1)^2 + 1, x]
      = 6
-    #> Exponent[(x^3 + 1)^2 + 1, x, List]
-     = {0, 3, 6}
-    #> Exponent[Sqrt[I + Sqrt[6]], x]
-     = 0
     >> Exponent[x^(n + 1) + Sqrt[x] + 1, x]
      = Max[1 / 2, 1 + n]
-    #> Exponent[x^(n + 1) + Sqrt[x] + 1, x, List]
-     = {0, 1 / 2, 1 + n}
-    #> Exponent[(x + y)^n - 1, x, List]
-     = {0}
-    #> Exponent[(x + 3 y)^5, x*y^4]
-     = 0
     >> Exponent[x / y, y]
      = -1
 
     >> Exponent[(x^2 + 1)^3 - 1, x, Min]
      = 2
-    #> Exponent[(x^2 + 1)^3 - 1, x, List]
-     = {2, 4, 6}
-    >> Exponent[1 - 2 x^2 + a x^3, x, List]
-     = {0, 2, 3}
-    #> Exponent[(x + 1) + (x + 1)^2, x, List]
-     = {0, 1, 2}
-
-    #> Exponent[(x + 3 y  - 2 z)^3 * (5 y + z), {x, y}, List]
-     = {{0, 1, 2, 3}, {0, 1, 2, 3, 4}}
-    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {"x", "y"}, List]
-     = {{0}, {0}}
-    #> Exponent[(x + 3 y - 2 z)^3*(5 y + z), {}]
-     = {}
-    #> Exponent[x^a + b y^3 + c x + 2 y^e + 5, {x, y}, List]
-     = {{0, 1, a}, {0, 3, e}}
-    #> Exponent[x^2 / y^3, {x, y}]
-     = {2, -3}
-    #> Exponent[(x + 2)/(y - 3) + (x + 3)/(y - 2), {x, y, z}, List]
-     = {{0, 1}, {0}, {0}}
-    #> Exponent[x + 6 x^3 y^2 - 3/((x^2) (y^2)), {x, y}, List]
-     = {{-2, 1, 3}, {-2, 0, 2}}
-    #> Exponent[x^5 Sin[x^2] + x * x^3 Cos[x], x, List]
-     = {4, 5}
-    #> Exponent[x^5 Sin[x^2] + y Cos[y^2] + Log[x^3] + 6 y^4, {x, y}, List]
-     = {{0, 5}, {0, 1, 4}}
 
     >> Exponent[0, x]
      = -Infinity

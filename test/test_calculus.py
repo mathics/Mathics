@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Unit tests from builtins ... calculus.py
+"""
+
 from .helper import check_evaluation
 
 
