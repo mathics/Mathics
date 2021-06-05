@@ -16,6 +16,11 @@ doc_tex_data.pcl:
 mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf doc_tex_data.pcl
 	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
 
+#: Build test PDF
+mathics-test.pdf: mathics-test.tex
+	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics-test
+
+
 #: Generate logos used in the titlepage
 logo-heptatom.pdf logo-text-nodrop.pdf:
 	(cd .. && $(BASH) ./images.sh)
@@ -34,3 +39,4 @@ clean:
 	rm -f mathics_*.* || true
 	rm -f mathics-*.* documentation.tex || true
 	rm -f mathics.pdf mathics.dvi data_tex_data.pcl || true
+	rm -f mathics-test.pdf mathics-test.dvi || true

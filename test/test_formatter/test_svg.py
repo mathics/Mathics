@@ -76,7 +76,7 @@ def test_svg_point():
     # Circles are implemented as ellipses with equal major and minor axes.
     # Check for that.
     print(inner_svg)
-    matches = re.match(r'^<circle cx="(\S+)" cy="(\S+)" r="(\S+)" .*/>', inner_svg)
+    matches = re.match(r'^<circle cx="(\S+)" cy="(\S+)"', inner_svg)
     assert matches
     assert matches.group(1) == matches.group(2)
 

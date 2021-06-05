@@ -133,6 +133,7 @@ def filled_curve_box(self, **options):
 add_conversion_fn(FilledCurveBox, filled_curve_box)
 
 def graphics_box(self, leaves=None, **options) -> str:
+
         if not leaves:
             leaves = self._leaves
 
@@ -163,17 +164,6 @@ def graphics_box(self, leaves=None, **options) -> str:
                 self.background_color.to_css()[0],
                 svg_body,
             )
-
-
-        # FIXME:
-        # Length calculation with PointBox is off by PointSize
-        # point_size, _ = self.style.get_style(PointSize, face_element=False)
-        # For others, I guess we just have this extra margin around the edge.
-        point_size = 14.06 # Really 14.05333..5
-        xmin -= point_size
-        ymin -= point_size
-        w += 2 * point_size
-        h += 2 * point_size
 
         if options.get("noheader", False):
             return svg_body
