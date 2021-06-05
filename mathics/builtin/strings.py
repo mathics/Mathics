@@ -477,23 +477,6 @@ class NumberString(Builtin):
 
     >> StringMatchQ["1.2`20", NumberString]
      = False
-
-    #> StringMatchQ[".12", NumberString]
-     = True
-    #> StringMatchQ["12.", NumberString]
-     = True
-    #> StringMatchQ["12.31.31", NumberString]
-     = False
-    #> StringMatchQ[".", NumberString]
-     = False
-    #> StringMatchQ["-1.23", NumberString]
-     = True
-    #> StringMatchQ["+12.3", NumberString]
-     = True
-    #> StringMatchQ["+.2", NumberString]
-     = True
-    #> StringMatchQ["1.2e4", NumberString]
-     = False
     """
 
 
@@ -867,17 +850,6 @@ class DigitQ(Builtin):
     >> DigitQ["-123456789"]
      = False
 
-    #> DigitQ[""]
-     = True
-
-    #> DigitQ["."]
-     = False
-
-    #> DigitQ[1==2]
-     = False
-
-    #> DigitQ[a=1]
-     = False
     """
 
     rules = {
