@@ -1279,7 +1279,6 @@ class Point(Builtin):
         <dd>represents a number of point primitives.
     </dl>
 
-    >> Graphics[Point[{0,0}]]
     = -Graphics-
 
     >> Graphics[Point[Table[{Sin[t], Cos[t]}, {t, 0, 2. Pi, Pi / 15.}]]]
@@ -1292,10 +1291,29 @@ class Point(Builtin):
     pass
 
 
+# FIXME: We model points as line segments which
+# is kind of  wrong.
 class PointBox(_Polyline):
+    """
+    A Bounding box for a list of points.
+    object attributes:
+    edge_color: _Color
+    point_radius: radius of each point
+    """
     def init(self, graphics, style, item=None):
         super(PointBox, self).init(graphics, item, style)
         self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+
+        # Handle PointSize in a hacky way for now.
+        point_size, _ = style.get_style(PointSize, face_element=False)
+        if point_size is None:
+            point_size = PointSize(self.graphics, value=0.005)
+
+        # FIXME: we don't have graphics options. Until we do, we'll
+        # just assume an image width of 400
+        image_width = 400
+        self.point_radius = (image_width * point_size.value)
+
         if item is not None:
             if len(item.leaves) != 1:
                 raise BoxConstructError
@@ -1306,6 +1324,19 @@ class PointBox(_Polyline):
             self.do_init(graphics, points)
         else:
             raise BoxConstructError
+
+    def extent(self):
+        """Returns a list of bounding-box coordinates each point in the PointBox"""
+        l = self.point_radius
+        result = []
+        for line in self.lines:
+            for c in line:
+                x, y = c.pos()
+                result.extend(
+                    [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
+                )
+        return result
+
 
 
 class Line(Builtin):
@@ -2382,6 +2413,7 @@ class GraphicsElements(_GraphicsElements):
         self.xmin = self.ymin = self.pixel_width = None
         self.pixel_height = self.extent_width = self.extent_height = None
         self.view_width = None
+        self.content = content
 
     def translate(self, coords):
         if self.pixel_width is not None:
@@ -2512,8 +2544,8 @@ class GraphicsBox(BoxConstruct):
     def _prepare_elements(self, leaves, options, neg_y=False, max_width=None):
         if not leaves:
             raise BoxConstructError
-        graphics_options = self.get_option_values(leaves[1:], **options)
-        background = graphics_options["System`Background"]
+        self.graphics_options = self.get_option_values(leaves[1:], **options)
+        background = self.graphics_options["System`Background"]
         if (
             isinstance(background, Symbol)
             and background.get_name() == "System`Automatic"
@@ -2523,10 +2555,10 @@ class GraphicsBox(BoxConstruct):
             self.background_color = _Color.create(background)
 
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options, graphics_options, max_width
+            options, self.graphics_options, max_width
         )
 
-        plot_range = graphics_options["System`PlotRange"].to_python()
+        plot_range = self.graphics_options["System`PlotRange"].to_python()
         if plot_range == "System`Automatic":
             plot_range = ["System`Automatic", "System`Automatic"]
 
@@ -2658,7 +2690,7 @@ class GraphicsBox(BoxConstruct):
         ymax += h * 0.02
 
         axes.extend(
-            self.create_axes(elements, graphics_options, xmin, xmax, ymin, ymax)
+            self.create_axes(elements, self.graphics_options, xmin, xmax, ymin, ymax)
         )
 
         return elements, calc_dimensions
@@ -2725,6 +2757,7 @@ clip(%s);
         elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
         xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
         data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
+        elements.view_width = w
 
         # FIXME: SVG is the only thing we can convert MathML into.
         # Handle other graphics formats.
