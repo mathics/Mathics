@@ -308,7 +308,7 @@ def polygonbox(self, **options):
             " ".join("%f,%f" % coords.pos() for coords in line),
             style,
         )
-    print("XXX PolygonBox", svg)
+    # print("XXX PolygonBox", svg)
     return svg
 
 
