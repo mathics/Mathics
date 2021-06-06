@@ -20,8 +20,7 @@ before_install:
   - python travis.py
   - pip install cython
 install:
-  - sed -i "s/'sympy==[0-9]\.[0-9]\.[0-9]', //" setup.py
-  - make develop
+  - make develop-full
 script:
   - make -j3 doc
 notifications:

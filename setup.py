@@ -56,14 +56,14 @@ INSTALL_REQUIRES = []
 # stores __version__ in the current namespace
 exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
 
-extra_requires = []
+extras_require = []
 for line in open("requirements-extra.txt").read().split("\n"):
     if line and not line.startswith("#"):
         requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
-        extra_requires.append(requires)
+        extras_require.append(requires)
 
-EXTRA_REQUIRES = {
-    "full": extra_requires
+EXTRAS_REQUIRE = {
+    "full": extras_require
 }
 
 DEPENDENCY_LINKS = [
@@ -151,7 +151,7 @@ setup(
         "mathics.formatter",
     ],
     install_requires=INSTALL_REQUIRES,
-    extra_requires=EXTRA_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
     dependency_links=DEPENDENCY_LINKS,
     package_data={
         "mathics": [
