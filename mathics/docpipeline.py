@@ -4,7 +4,7 @@
 Does 3 things which can either be done independently or
 as a pipeline:
 
-1. Extracts tests from static mdoc files and docstrings from Mathics built-in functions
+1. Extracts tests and runs them from static mdoc files and docstrings from Mathics built-in functions
 2. Creates/updates internal documentation data
 3. It writes the LaTeX file containing the entire User Manual
 """
@@ -148,12 +148,20 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
 
 
 def test_tests(
-    tests, index, quiet=False, stop_on_failure=False, start_at=0, max_tests=MAX_TESTS
+    tests,
+    index,
+    quiet=False,
+    stop_on_failure=False,
+    start_at=0,
+    max_tests=MAX_TESTS,
+    excludes=[],
 ):
     definitions.reset_user_definitions()
     total = failed = skipped = 0
     failed_symbols = set()
     section = tests.section
+    if section in excludes:
+        return total, failed, len(tests.tests), failed_symbols, index
     count = 0
     for subindex, test in enumerate(tests.tests):
         index += 1
@@ -177,21 +185,22 @@ def test_tests(
     return total, failed, skipped, failed_symbols, index
 
 
-def create_output(tests, output_tex):
+# FIXME: move this to common routine
+def create_output(tests, output, format="tex"):
     definitions.reset_user_definitions()
     for test in tests.tests:
         if test.private:
             continue
         key = test.key
         evaluation = Evaluation(
-            definitions, format="tex", catch_interrupt=False, output=TestOutput()
+            definitions, format=format, catch_interrupt=False, output=TestOutput()
         )
         result = evaluation.parse_evaluate(test.test)
         if result is None:
             result = []
         else:
             result = [result.get_data()]
-        output_tex[key] = {
+        output[key] = {
             "query": test.test,
             "results": result,
         }
@@ -245,13 +254,13 @@ def test_all(
     stop_on_failure=False,
     start_at=0,
     count=MAX_TESTS,
-    xmldatafolder=None,
     texdatafolder=None,
     doc_even_if_error=False,
+    excludes=[],
 ):
     global documentation
     if not quiet:
-        print("Testing %s" % version_string)
+        print(f"Testing {version_string}")
 
     if generate_output:
         if texdatafolder is None:
@@ -260,7 +269,6 @@ def test_all(
         index = 0
         total = failed = skipped = 0
         failed_symbols = set()
-        output_xml = {}
         output_tex = {}
         for tests in documentation.get_tests():
             sub_total, sub_failed, sub_skipped, symbols, index = test_tests(
@@ -270,6 +278,7 @@ def test_all(
                 stop_on_failure=stop_on_failure,
                 start_at=start_at,
                 max_tests=count,
+                excludes=excludes,
             )
             if generate_output:
                 create_output(tests, output_tex)
@@ -334,7 +343,7 @@ def extract_doc_from_source(quiet=False, reload=False):
     """
     if not quiet:
         print(f"Extracting internal doc data for {version_string}")
-        print(f"This may take a while...")
+        print("This may take a while...")
 
     try:
         output_tex = load_doc_data() if reload else {}
@@ -383,6 +392,15 @@ def main():
         dest="section",
         metavar="SECTION",
         help="only test SECTION(s). "
+        "You can list multiple sections by adding a comma (and no space) in between section names.",
+    )
+    parser.add_argument(
+        "--exclude",
+        "-X",
+        default="",
+        dest="exclude",
+        metavar="SECTION",
+        help="excude SECTION(s). "
         "You can list multiple sections by adding a comma (and no space) in between section names.",
     )
     parser.add_argument(
@@ -497,6 +515,7 @@ def main():
                 reload=False,
             )
         else:
+            excludes = set(args.exclude.split(","))
             start_at = args.skip + 1
             start_time = datetime.now()
             test_all(
@@ -506,6 +525,7 @@ def main():
                 start_at=start_at,
                 count=args.count,
                 doc_even_if_error=args.keep_going,
+                excludes=excludes,
             )
             end_time = datetime.now()
             print("Tests took ", end_time - start_time)

@@ -76,6 +76,11 @@ doc-data mathics/doc/tex/doc_tex_data.pcl: mathics/builtin/*.py mathics/doc/docu
 	$(PYTHON) mathics/docpipeline.py -ot -k
 
 #: Run tests that appear in docstring in the code.
+doctest-workaround:
+	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py --exclude=NIntegrate,MaxRecursion
+	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py --sections=NIntegrate,MaxRecursion
+
+#: Run tests that appear in docstring in the code.
 doctest:
 	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py $o
 
