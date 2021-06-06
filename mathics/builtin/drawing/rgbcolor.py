@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""Color Names
+
+Mathics has definitions for the most common color names which can be
+used in a graphics or style specification.
+"""
+
 from mathics.builtin.base import Builtin
 
 from mathics.core.expression import strip_context
@@ -38,10 +44,10 @@ class _ColorObject(Builtin):
 class Black(_ColorObject):
     """
     >> Black
-     = GrayLevel[0]
+     = RGBColor[0, 0, 0]
     """
 
-    rules = {"Black": "GrayLevel[0]"}
+    rules = {"Black": "RGBColor[0, 0, 0]"}
 
 
 class Blue(_ColorObject):
