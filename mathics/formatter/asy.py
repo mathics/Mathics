@@ -15,6 +15,7 @@ from mathics.builtin.graphics import (
     InsetBox,
     LineBox,
     PointBox,
+    PointSize,
     PolygonBox,
     RGBColor,
     RectangleBox,
@@ -68,7 +69,7 @@ class _ASYTransform:
         return self._template % (" * ".join(self.transforms), asy)
 
 
-def arrow_box(self) -> str:
+def arrow_box(self, **options) -> str:
     width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=width)
     polyline = self.curve.make_draw_asy(pen)
@@ -89,7 +90,7 @@ def arrow_box(self) -> str:
 add_conversion_fn(ArrowBox, arrow_box)
 
 
-def bezier_curve_box(self) -> str:
+def bezier_curve_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -108,7 +109,7 @@ def bezier_curve_box(self) -> str:
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
 
 
-def filled_curve_box(self) -> str:
+def filled_curve_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -126,7 +127,7 @@ def filled_curve_box(self) -> str:
 add_conversion_fn(FilledCurveBox, filled_curve_box)
 
 
-def graphics_elements(self) -> str:
+def graphics_elements(self, **options) -> str:
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "asy")
@@ -145,7 +146,7 @@ graphics3delements = graphics_elements
 add_conversion_fn(Graphics3DElements)
 
 
-def insetbox(self) -> str:
+def insetbox(self, **options) -> str:
     x, y = self.pos.pos()
     content = self.content.boxes_to_tex(evaluation=self.graphics.evaluation)
     pen = asy_create_pens(edge_color=self.color)
@@ -163,7 +164,7 @@ def insetbox(self) -> str:
 add_conversion_fn(InsetBox)
 
 
-def line3dbox(self):
+def line3dbox(self, **options):
     # l = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
 
@@ -179,7 +180,7 @@ def line3dbox(self):
 add_conversion_fn(Line3DBox)
 
 
-def linebox(self) -> str:
+def linebox(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
     asy = ""
@@ -193,7 +194,7 @@ def linebox(self) -> str:
 add_conversion_fn(LineBox)
 
 
-def point3dbox(self) -> str:
+def point3dbox(self, **options) -> str:
     face_color = self.face_color
 
     # Tempoary bug fix: default Point color should be black not white
@@ -213,13 +214,18 @@ def point3dbox(self) -> str:
 add_conversion_fn(Point3DBox)
 
 
-def pointbox(self) -> str:
+def pointbox(self, **options) -> str:
+    point_size, _ = self.style.get_style(PointSize, face_element=False)
+    if point_size is None:
+        point_size = PointSize(self.graphics, value=0.005)
+    size = point_size.get_size()
+
     pen = asy_create_pens(face_color=self.face_color, is_face_element=False)
 
     asy = ""
     for line in self.lines:
         for coords in line:
-            asy += "dot(%s, %s);" % (coords.pos(), pen)
+            asy += f"Circle(%s, %s,{size}),black;" % (coords.pos())
 
     # print("### pointbox", asy)
     return asy
@@ -228,7 +234,7 @@ def pointbox(self) -> str:
 add_conversion_fn(PointBox)
 
 
-def polygon3dbox(self) -> str:
+def polygon3dbox(self, **options) -> str:
     l = self.style.get_line_width(face_element=True)
     if self.vertex_colors is None:
         face_color = self.face_color
@@ -257,7 +263,7 @@ def polygon3dbox(self) -> str:
 add_conversion_fn(Polygon3DBox)
 
 
-def polygonbox(self):
+def polygonbox(self, **options):
     line_width = self.style.get_line_width(face_element=True)
     if self.vertex_colors is None:
         face_color = self.face_color
@@ -305,7 +311,7 @@ def polygonbox(self):
 add_conversion_fn(PolygonBox)
 
 
-def rectanglebox(self) -> str:
+def rectanglebox(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=True)
     x1, y1 = self.p1.pos()
     x2, y2 = self.p2.pos()
@@ -329,7 +335,7 @@ def rectanglebox(self) -> str:
 add_conversion_fn(RectangleBox)
 
 
-def _roundbox(self):
+def _roundbox(self, **options):
     x, y = self.c.pos()
     rx, ry = self.r.pos()
     rx -= x
@@ -355,7 +361,7 @@ def _roundbox(self):
 add_conversion_fn(_RoundBox)
 
 
-def sphere3dbox(self) -> str:
+def sphere3dbox(self, **options) -> str:
     # l = self.style.get_line_width(face_element=True)
 
     if self.face_color is None:
