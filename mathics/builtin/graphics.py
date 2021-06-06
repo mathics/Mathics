@@ -3142,6 +3142,12 @@ class Darker(Builtin):
         <dd>is equivalent to 'Darker[$c$, 1/3]'.
     </dl>
 
+    >> Graphics[{Darker[Red], Disk[]}]
+     = -Graphics-
+
+    >> Graphics3D[{Darker[Green], Sphere[]}]
+     = -Graphics3D-
+
     >> Graphics[Table[{Darker[Yellow, x], Disk[{12x, 0}]}, {x, 0, 1, 1/6}]]
      = -Graphics-
     """

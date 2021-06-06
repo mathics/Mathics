@@ -105,6 +105,13 @@ class Magenta(_ColorObject):
 
 
 class LightBlue(_ColorObject):
+    """
+    >> Graphics[{LightBlue, EdgeForm[Black], Disk[]}]
+     = -Graphics-
+
+    >> Plot[Sin[x], {x, 0, 2 Pi}, Background -> LightBlue]
+     = -Graphics-
+    """
     text_name = "light blue"
     rules = {"LightBlue": "RGBColor[0.87, 0.94, 1]"}
 
