@@ -225,7 +225,7 @@ def pointbox(self, **options) -> str:
     asy = ""
     for line in self.lines:
         for coords in line:
-            asy += f"Circle(%s, %s,{size}),black;" % (coords.pos())
+            asy += f"Circle(%s, %s, {size}), black;" % (coords.pos())
 
     # print("### pointbox", asy)
     return asy
