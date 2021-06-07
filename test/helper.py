@@ -16,6 +16,7 @@ def check_evaluation(
     message="",
     to_string_expr=True,
     to_string_expected=True,
+    to_python_expected=False,
 ):
     """Helper function to test Mathics expression against
     its results"""
@@ -30,6 +31,8 @@ def check_evaluation(
         expected = evaluate_value(str_expected)
     else:
         expected = evaluate(str_expr)
+        if to_python_expected:
+            expected = expected.to_python(string_quotes=False)
 
     print(time.asctime())
     if message:
