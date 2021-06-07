@@ -61,7 +61,7 @@ def point_3d_box(self):
 
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
-        point_size = PointSize(self.graphics, value=0.005)
+        point_size = PointSize(self.graphics, value=0.01)
     absolute_point_size = point_size.get_size()
 
     for line in self.lines:
