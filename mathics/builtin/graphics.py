@@ -1532,13 +1532,21 @@ class FilledCurveBox(_GraphicsElement):
 class Polygon(Builtin):
     """
     <dl>
-    <dt>'Polygon[{$point_1$, $point_2$ ...}]'
-        <dd>represents the filled polygon primitive.
-    <dt>'Polygon[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
-        <dd>represents a number of filled polygon primitives.
+      <dt>'Polygon[{$point_1$, $point_2$ ...}]'
+      <dd>represents the filled polygon primitive.
+
+      <dt>'Polygon[{{$p_11$, $p_12$, ...}, {$p_21$, $p_22$, ...}, ...}]'
+      <dd>represents a number of filled polygon primitives.
     </dl>
 
+    A Right Triangle:
     >> Graphics[Polygon[{{1,0},{0,0},{0,1}}]]
+    = -Graphics-
+
+    Notice that there is a line connecting from the last point to the first one.
+
+    A point is an element of the polygon if a ray from the point in any direction in the plane crosses the boundary line segments an odd number of times.
+    >> Graphics[Polygon[{{150,0},{121,90},{198,35},{102,35},{179,90}}]]
     = -Graphics-
 
     >> Graphics3D[Polygon[{{0,0,0},{0,1,1},{1,0,0}}]]
