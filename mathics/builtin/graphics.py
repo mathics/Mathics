@@ -1286,13 +1286,21 @@ class Point(Builtin):
         <dd>represents a number of point primitives.
     </dl>
 
+    Points are rendered if possible as circular regions. Their diameters can be specified using 'PointSize'.
+
+    Points can be specified as {$x$, $y$}:
+
+    >> Graphics[Point[{0, 0}]]
     = -Graphics-
 
     >> Graphics[Point[Table[{Sin[t], Cos[t]}, {t, 0, 2. Pi, Pi / 15.}]]]
     = -Graphics-
 
-    >> Graphics3D[Point[Table[{Sin[t], Cos[t], 0}, {t, 0, 2. Pi, Pi / 15.}]]]
-    = -Graphics3D-
+    or as {$x$, $y$, $z$}:
+
+    >> Graphics3D[{Orange, PointSize[0.05], Point[Table[{Sin[t], Cos[t], 0}, {t, 0, 2 Pi, Pi / 15.}]]}]
+     = -Graphics3D-
+
     """
 
     pass
