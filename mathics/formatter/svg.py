@@ -303,11 +303,15 @@ def polygonbox(self, **options):
             ]
             mesh.append(data)
         svg += '<meshgradient data="%s" />' % json.dumps(mesh)
+
+    # Perhaps one day this c
+    fill_rule="evenodd"
+
     for line in self.lines:
-        svg += '<polygon points="%s" style="%s" />' % (
-            " ".join("%f,%f" % coords.pos() for coords in line),
-            style,
-        )
+        svg += f"""
+  <polygon points="{" ".join("%f,%f" % coords.pos() for coords in line)}"
+           fill-rule="{fill_rule}"
+           style="{style}" />"""
     # print("XXX PolygonBox", svg)
     return svg
 
