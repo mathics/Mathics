@@ -14,6 +14,7 @@ from mathics.core.expression import (
     Expression,
     from_python,
     system_symbols_dict,
+    Symbol,
     SymbolList,
 )
 from mathics.core.formatter import lookup_method
@@ -164,16 +165,24 @@ class Graphics3DBox(GraphicsBox):
         if not leaves:
             raise BoxConstructError
 
-        graphics_options = self.get_option_values(leaves[1:], **options)
+        self.graphics_options = self.get_option_values(leaves[1:], **options)
+        background = self.graphics_options["System`Background"]
+        if (
+            isinstance(background, Symbol)
+            and background.get_name() == "System`Automatic"
+        ):
+            self.background_color = None
+        else:
+            self.background_color = _Color.create(background)
+
+        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
+            options, self.graphics_options, max_width
+        )
 
         evaluation = options["evaluation"]
 
-        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options, graphics_options, max_width
-        )
-
         # TODO: Handle ImageScaled[], and Scaled[]
-        lighting_option = graphics_options["System`Lighting"]
+        lighting_option = self.graphics_options["System`Lighting"]
         lighting = lighting_option.to_python()  # can take symbols or strings
         self.lighting = []
 
@@ -293,7 +302,7 @@ class Graphics3DBox(GraphicsBox):
             evaluation.message("Graphics3D", "invlight", lighting_option)
 
         # ViewPoint Option
-        viewpoint_option = graphics_options["System`ViewPoint"]
+        viewpoint_option = self.graphics_options["System`ViewPoint"]
         viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
 
         if isinstance(viewpoint, list) and len(viewpoint) == 3:
@@ -323,9 +332,9 @@ class Graphics3DBox(GraphicsBox):
         self.viewpoint = viewpoint
 
         # TODO Aspect Ratio
-        # aspect_ratio = graphics_options['AspectRatio'].to_python()
+        # aspect_ratio = self.graphics_options['AspectRatio'].to_python()
 
-        boxratios = graphics_options["System`BoxRatios"].to_python()
+        boxratios = self.graphics_options["System`BoxRatios"].to_python()
         if boxratios == "System`Automatic":
             boxratios = ["System`Automatic"] * 3
         else:
@@ -333,7 +342,7 @@ class Graphics3DBox(GraphicsBox):
         if not isinstance(boxratios, list) or len(boxratios) != 3:
             raise BoxConstructError
 
-        plot_range = graphics_options["System`PlotRange"].to_python()
+        plot_range = self.graphics_options["System`PlotRange"].to_python()
         if plot_range == "System`Automatic":
             plot_range = ["System`Automatic"] * 3
         if not isinstance(plot_range, list) or len(plot_range) != 3:
@@ -425,12 +434,15 @@ class Graphics3DBox(GraphicsBox):
                     for vp in self.viewpoint
                 ]
 
-            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            w = 0 if (xmin is None or xmax is None) else xmax - xmin
+            h = 0 if (ymin is None or ymax is None) else ymax - ymin
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
+            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions(final_pass=False)
 
         axes, ticks, ticks_style = self.create_axes(
-            elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            elements, self.graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
         )
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
@@ -451,7 +463,7 @@ class Graphics3DBox(GraphicsBox):
         else:
             asy = elements.to_asy()
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
 
         # TODO: Intelligently place the axes on the longest non-middle edge.
         # See algorithm used by web graphics in mathics/web/media/graphics.js
@@ -643,12 +655,14 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         elements._apply_boxscaling(boxscale)
 
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
+        elements.view_width = w
+
         # FIXME: json is the only thing we can convert MathML into.
         # Handle other graphics formats.
         format_fn = lookup_method(elements, "json")
-        json_repr = format_fn(elements, **options)
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+        json_repr = format_fn(elements, **options)
 
         # TODO: Cubeoid (like this)
         # json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None],
@@ -673,12 +687,12 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
 
         # return "<mn>3</mn>"
 
-        # xml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
+        # mathml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
         #        'zmin="%f" zmax="%f" data="%s" />') % (
         #           xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
-        xml = '<graphics3d data="{0}" />'.format(html.escape(json_repr))
-        xml = "<mtable><mtr><mtd>{0}</mtd></mtr></mtable>".format(xml)
-        return xml
+        mathml = '<graphics3d data="{0}" />'.format(html.escape(json_repr))
+        mathml = "<mtable><mtr><mtd>{0}</mtd></mtr></mtable>".format(mathml)
+        return mathml
 
     def create_axes(
         self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
@@ -795,6 +809,8 @@ class Graphics3DElements(_GraphicsElements):
         ) = (
             self.pixel_width
         ) = self.pixel_height = self.extent_width = self.extent_height = None
+        self.view_width = None
+        self.content = content
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])

@@ -3,7 +3,7 @@
 Format a Mathics object as json
 """
 
-from mathics.builtin.graphics import RGBColor
+from mathics.builtin.graphics import PointSize, RGBColor
 
 from mathics.builtin.drawing.graphics3d import (
     Graphics3DElements,
@@ -59,12 +59,18 @@ def point_3d_box(self):
     if list(face_color.to_rgba()[:3]) == [1, 1, 1]:
         face_color = RGBColor(components=(0, 0, 0, face_color.to_rgba()[3]))
 
+    point_size, _ = self.style.get_style(PointSize, face_element=False)
+    if point_size is None:
+        point_size = PointSize(self.graphics, value=0.005)
+    absolute_point_size = point_size.get_size()
+
     for line in self.lines:
         data.append(
             {
                 "type": "point",
                 "coords": [coords.pos() for coords in line],
                 "color": face_color.to_rgba(),
+                "pointSize": absolute_point_size,
             }
         )
     # print("### json Point3DBox", data)
