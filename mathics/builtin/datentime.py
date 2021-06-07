@@ -468,9 +468,6 @@ class DateList(_DateFormat):
      : The interpretation of 1/10/1991 is ambiguous.
      = {1991, 1, 10, 0, 0, 0.}
 
-    #> DateList["2016-09-09"]
-     = {2016, 9, 9, 0, 0, 0.}
-
     #> DateList["7/8/9"]
      : The interpretation of 7/8/9 is ambiguous.
      = {2009, 7, 8, 0, 0, 0.}
@@ -481,23 +478,10 @@ class DateList(_DateFormat):
     >> DateList[{"31 10/91", {"Day", " ", "Month", "/", "YearShort"}}]
      = {1991, 10, 31, 0, 0, 0.}
 
-    ## strptime should ignore leading 0s
-    #> DateList[{"6/6/91", {"Day", "Month", "YearShort"}}]
-     = {1991, 6, 6, 0, 0, 0.}
-    #> DateList[{"6/06/91", {"Day", "Month", "YearShort"}}]
-     = {1991, 6, 6, 0, 0, 0.}
-    #> DateList[{"06/06/91", {"Day", "Month", "YearShort"}}]
-     = {1991, 6, 6, 0, 0, 0.}
-    #> DateList[{"06/6/91", {"Day", "Month", "YearShort"}}]
-     = {1991, 6, 6, 0, 0, 0.}
 
     If not specified, the current year assumed
     >> DateList[{"5/18", {"Month", "Day"}}]
      = {..., 5, 18, 0, 0, 0.}
-    #> DateList[{"5/18", {"Month", "Day"}}][[1]] == DateList[][[1]]
-     = True
-    #> Quiet[DateList[abc]]
-     = DateList[abc]
     """
 
     # TODO: Somehow check that the current year is correct
@@ -556,14 +540,8 @@ class DateString(_DateFormat):
     #> DateString[{1979, 3, 14}, {"DayName", "  ", "MonthShort", "-", "YearShort"}]
      =  Wednesday  3-79
 
-    #> DateString[{1979, 3, 4}]
-     = Sun 4 Mar 1979 00:00:00
-
     #> DateString[{"DayName", "  ", "Month", "/", "YearShort"}]
      = ...
-
-    #> DateString["2000-12-1", "Year"]
-     = 2000
 
     ## Assumed separators
     #> DateString[{"06/06/1991", {"Month", "Day", "Year"}}]
@@ -572,9 +550,6 @@ class DateString(_DateFormat):
     ## Specified separators
     #> DateString[{"06/06/1991", {"Month", "/", "Day", "/", "Year"}}]
      = Thu 6 Jun 1991 00:00:00
-
-    #> DateString[{"5/19"}]
-     = 5/19
 
     """
 
