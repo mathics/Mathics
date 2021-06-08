@@ -1347,7 +1347,7 @@ class Check(Builtin):
     <dl>
     <dt>'Check[$expr$, $failexpr$]'
         <dd>evaluates $expr$, and returns the result, unless messages were generated, in which case it evaluates and $failexpr$ will be returned.
-    <dt>'Check[$expr$, $failexpr$, {s1::t1,s2::t2,…}]'
+    <dt>'Check[$expr$, $failexpr$, {s1::t1,s2::t2,...}]'
         <dd>checks only for the specified messages.
     </dl>
 

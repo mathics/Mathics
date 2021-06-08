@@ -64,6 +64,8 @@ def test_asy_point():
     asy = get_asy(expression)
     inner_asy = extract_asy_body(asy)
 
+    print(inner_asy)
+    # matches = re.match(r'^Circle\((.+), (.+), (.+)\),.+;', inner_asy)
     matches = re.match(r'^dot\(\((.+), (.+)\), .+\);.*', inner_asy)
     assert matches
     # Since the x,y pont is the same, we'll check that whatever this
