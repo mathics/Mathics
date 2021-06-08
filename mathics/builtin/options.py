@@ -101,7 +101,7 @@ class Options(Builtin):
 
 
 class OptionValue(Builtin):
-    """
+    u"""
     <dl>
     <dt>'OptionValue[$name$]'
         <dd>gives the value of the option $name$ as specified in a
@@ -111,7 +111,7 @@ class OptionValue(Builtin):
     <dt>'OptionValue[$f$, $optvals$, $name$]'
         <dd>recover the value of the option $name$ associated to the symbol $f$,
             extracting the values from $optvals$ if available.
-    <dt>'OptionValue[$\\ldots$, $list$]'
+    <dt>'OptionValue[..., $list$]'
         <dd>recover the value of the options in $list$ .
     </dl>
 

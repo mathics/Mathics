@@ -215,17 +215,18 @@ add_conversion_fn(Point3DBox)
 
 
 def pointbox(self, **options) -> str:
-    point_size, _ = self.style.get_style(PointSize, face_element=False)
-    if point_size is None:
-        point_size = PointSize(self.graphics, value=0.005)
-    size = point_size.get_size()
+    # point_size, _ = self.style.get_style(PointSize, face_element=False)
+    # if point_size is None:
+    #     point_size = PointSize(self.graphics, value=0.005)
+    # size = point_size.get_size()
 
     pen = asy_create_pens(face_color=self.face_color, is_face_element=False)
 
     asy = ""
     for line in self.lines:
         for coords in line:
-            asy += f"Circle(%s, %s, {size}), black;" % (coords.pos())
+            asy += "dot(%s, %s);" % (coords.pos(), pen)
+            # asy += f"Circle(%s, %s, {size}), black;" % (coords.pos())
 
     # print("### pointbox", asy)
     return asy
