@@ -266,7 +266,7 @@ def pointbox(self, **options)->str:
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
         point_size = PointSize(self.graphics, value=0.005)
-    size = point_size.get_size()
+    size = point_size.get_absolute_size()
 
     style = create_css(
         edge_color=self.edge_color, stroke_width=0, face_color=self.face_color

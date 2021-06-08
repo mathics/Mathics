@@ -3,7 +3,6 @@ from mathics.core.expression import Symbol, Integer0, Integer1, Expression
 from mathics.core.evaluation import Evaluation
 from mathics.session import MathicsSession
 from mathics.builtin.inout import MakeBoxes
-from mathics.core.formatter import lookup_method
 
 session = MathicsSession(add_builtin=True, catch_interrupt=False)
 evaluation = Evaluation(session.definitions)
@@ -28,7 +27,6 @@ def extract_asy_body(asy):
 
 
 def get_asy(expression):
-    options = {}
     boxes = MakeBoxes(expression).evaluate(evaluation)
     return boxes.boxes_to_tex()
 
