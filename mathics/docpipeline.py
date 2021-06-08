@@ -206,7 +206,7 @@ def create_output(tests, output, format="tex"):
         }
 
 
-def test_section(
+def test_sections(
     sections: set,
     quiet=False,
     stop_on_failure=False,
@@ -220,6 +220,37 @@ def test_section(
     output_tex = load_doc_data() if reload else {}
     for tests in documentation.get_tests():
         if tests.section in sections:
+            for test in tests.tests:
+                if test.ignore:
+                    continue
+                index += 1
+                if not test_case(test, tests, index, quiet=quiet):
+                    failed += 1
+                    if stop_on_failure:
+                        break
+            if generate_output and failed == 0:
+                create_output(tests, output_tex)
+
+    print()
+    if failed > 0:
+        print_and_log("%d test%s failed." % (failed, "s" if failed != 1 else ""))
+    else:
+        print_and_log("OK")
+
+
+def test_chapters(
+    chapters: set,
+    quiet=False,
+    stop_on_failure=False,
+    generate_output=False,
+    reload=False,
+):
+    failed = 0
+    index = 0
+    print("Testing chapter(s): %s" % ", ".join(chapters))
+    output_tex = load_doc_data() if reload else {}
+    for tests in documentation.get_tests():
+        if tests.chapter in chapters:
             for test in tests.tests:
                 if test.ignore:
                     continue
@@ -387,9 +418,17 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
+        "--chapters",
+        "-c",
+        dest="chapters",
+        metavar="CHAPTER",
+        help="only test CHAPTER(s). "
+        "You can list multiple chapters by adding a comma (and no space) in between chapter names.",
+    )
+    parser.add_argument(
         "--sections",
         "-s",
-        dest="section",
+        dest="sections",
         metavar="SECTION",
         help="only test SECTION(s). "
         "You can list multiple sections by adding a comma (and no space) in between section names.",
@@ -496,12 +535,18 @@ def main():
     if args.logfilename:
         logfile = open(args.logfilename, "wt")
 
-    if args.section:
-        sections = set(args.section.split(","))
+    if args.sections:
+        sections = set(args.sections.split(","))
         if args.pymathics:  # in case the section is in a pymathics module...
             documentation.load_pymathics_doc()
 
-        test_section(sections, stop_on_failure=args.stop_on_failure, reload=args.reload)
+        test_sections(sections, stop_on_failure=args.stop_on_failure, reload=args.reload)
+    elif args.chapters:
+        chapters = set(args.chapters.split(","))
+        if args.pymathics:  # in case the section is in a pymathics module...
+            documentation.load_pymathics_doc()
+
+        test_chapters(chapters, stop_on_failure=args.stop_on_failure, reload=args.reload)
     else:
         # if we want to check also the pymathics modules
         if args.pymathics:
