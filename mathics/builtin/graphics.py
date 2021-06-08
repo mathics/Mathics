@@ -1010,7 +1010,7 @@ class PointSize(_Size):
     = {-Graphics3D-, -Graphics3D-, -Graphics3D-}
     """
 
-    def get_size(self):
+    def get_absolute_size(self):
         return self.graphics.view_width * self.value
 
 

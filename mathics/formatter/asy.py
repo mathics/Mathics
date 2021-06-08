@@ -164,7 +164,7 @@ def insetbox(self, **options) -> str:
 add_conversion_fn(InsetBox)
 
 
-def line3dbox(self, **options):
+def line3dbox(self, **options) -> str:
     # l = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
 
@@ -180,7 +180,7 @@ def line3dbox(self, **options):
 add_conversion_fn(Line3DBox)
 
 
-def linebox(self, **options) -> str:
+def linebox(self) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
     asy = ""
@@ -215,10 +215,10 @@ add_conversion_fn(Point3DBox)
 
 
 def pointbox(self, **options) -> str:
-    # point_size, _ = self.style.get_style(PointSize, face_element=False)
-    # if point_size is None:
-    #     point_size = PointSize(self.graphics, value=0.005)
-    # size = point_size.get_size()
+    point_size, _ = self.style.get_style(PointSize, face_element=False)
+    if point_size is None:
+        point_size = PointSize(self.graphics, value=0.005)
+    size = point_size.get_absolute_size()
 
     pen = asy_create_pens(face_color=self.face_color, is_face_element=False)
 
