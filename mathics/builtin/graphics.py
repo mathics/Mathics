@@ -1011,6 +1011,10 @@ class PointSize(_Size):
     """
 
     def get_absolute_size(self):
+        if self.graphics.view_width is None:
+            self.graphics.view_width = 400
+        if self.value is None:
+            self.value = 0.005
         return self.graphics.view_width * self.value
 
 
@@ -2508,13 +2512,6 @@ class GraphicsBox(BoxConstruct):
         instance.evaluation = kwargs.get("evaluation", None)
         return instance
 
-    def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
-            leaves = self._leaves
-
-        self._prepare_elements(leaves, options)  # to test for Box errors
-        return "-Graphics-"
-
     def _get_image_size(self, options, graphics_options, max_width):
         inside_row = options.pop("inside_row", False)
         inside_list = options.pop("inside_list", False)
@@ -2718,15 +2715,50 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
+        if not leaves:
+            leaves = self._leaves
+
+        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+        data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
+        elements.view_width = w
+
+        # FIXME: SVG is the only thing we can convert MathML into.
+        # Handle other graphics formats.
+        format_fn = lookup_method(self, "svg")
+        svg_main = format_fn(self, leaves, data=data, **options)
+
+        # mglyph, which is what we have been using, is bad because MathML standard changed.
+        # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
+        # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
+        template = (
+            '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
+            #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
+        )
+        return template % (
+            #        int(width),
+            #        int(height),
+            int(width),
+            int(height),
+            base64.b64encode(svg_main.encode("utf8")).decode("utf8"),
+        )
+
     def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-        elements, calc_dimensions = self._prepare_elements(
-            leaves, options, max_width=450
-        )
+            fields = self._prepare_elements(leaves, options, max_width=450)
+            if len(fields) == 2:
+                elements, calc_dimensions = fields
+            else:
+                elements, calc_dimensions = fields[0], fields[-2]
 
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        elements.view_width = w
+        fields = calc_dimensions()
+        if len(fields) == 8:
+            xmin, xmax, ymin, ymax, w, h, width, height = fields
+        else:
+            assert len(fields) == 9
+            xmin, xmax, ymin, ymax, _, _, _, width, height = fields
 
         asy_completely_visible = "\n".join(
             lookup_method(element, "asy")(element)
@@ -2773,34 +2805,12 @@ clip(%s);
 
         return tex
 
-    def boxes_to_mathml(self, leaves=None, **options) -> str:
+    def boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
 
-        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
-        elements.view_width = w
-
-        # FIXME: SVG is the only thing we can convert MathML into.
-        # Handle other graphics formats.
-        format_fn = lookup_method(self, "svg")
-        svg_main = format_fn(self, leaves, data=data, **options)
-
-        # mglyph, which is what we have been using, is bad because MathML standard changed.
-        # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
-        # template = '<mtext width="%dpx" height="%dpx"><img width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/></mtext>'
-        template = (
-            '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
-            #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
-        )
-        return template % (
-            #        int(width),
-            #        int(height),
-            int(width),
-            int(height),
-            base64.b64encode(svg_main.encode("utf8")).decode("utf8"),
-        )
+        self._prepare_elements(leaves, options)  # to test for Box errors
+        return "-Graphics-"
 
     # FIXME: this isn't always properly align with overlaid SVG plots
     def axis_ticks(self, xmin, xmax):

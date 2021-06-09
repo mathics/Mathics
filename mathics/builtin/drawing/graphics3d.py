@@ -156,28 +156,25 @@ class Graphics3D(Graphics):
 
 
 class Graphics3DBox(GraphicsBox):
+    def boxes_to_text(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+        return "-Graphics3D-"
+
     def _prepare_elements(self, leaves, options, max_width=None):
         if not leaves:
             raise BoxConstructError
 
-        self.graphics_options = self.get_option_values(leaves[1:], **options)
-        background = self.graphics_options["System`Background"]
-        if (
-            isinstance(background, Symbol)
-            and background.get_name() == "System`Automatic"
-        ):
-            self.background_color = None
-        else:
-            self.background_color = _Color.create(background)
-
-        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options, self.graphics_options, max_width
-        )
+        graphics_options = self.get_option_values(leaves[1:], **options)
 
         evaluation = options["evaluation"]
 
+        base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
+            options, graphics_options, max_width
+        )
+
         # TODO: Handle ImageScaled[], and Scaled[]
-        lighting_option = self.graphics_options["System`Lighting"]
+        lighting_option = graphics_options["System`Lighting"]
         lighting = lighting_option.to_python()  # can take symbols or strings
         self.lighting = []
 
@@ -297,7 +294,7 @@ class Graphics3DBox(GraphicsBox):
             evaluation.message("Graphics3D", "invlight", lighting_option)
 
         # ViewPoint Option
-        viewpoint_option = self.graphics_options["System`ViewPoint"]
+        viewpoint_option = graphics_options["System`ViewPoint"]
         viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
 
         if isinstance(viewpoint, list) and len(viewpoint) == 3:
@@ -327,9 +324,9 @@ class Graphics3DBox(GraphicsBox):
         self.viewpoint = viewpoint
 
         # TODO Aspect Ratio
-        # aspect_ratio = self.graphics_options['AspectRatio'].to_python()
+        # aspect_ratio = graphics_options['AspectRatio'].to_python()
 
-        boxratios = self.graphics_options["System`BoxRatios"].to_python()
+        boxratios = graphics_options["System`BoxRatios"].to_python()
         if boxratios == "System`Automatic":
             boxratios = ["System`Automatic"] * 3
         else:
@@ -337,7 +334,7 @@ class Graphics3DBox(GraphicsBox):
         if not isinstance(boxratios, list) or len(boxratios) != 3:
             raise BoxConstructError
 
-        plot_range = self.graphics_options["System`PlotRange"].to_python()
+        plot_range = graphics_options["System`PlotRange"].to_python()
         if plot_range == "System`Automatic":
             plot_range = ["System`Automatic"] * 3
         if not isinstance(plot_range, list) or len(plot_range) != 3:
@@ -429,20 +426,226 @@ class Graphics3DBox(GraphicsBox):
                     for vp in self.viewpoint
                 ]
 
-            w = 0 if (xmin is None or xmax is None) else xmax - xmin
-            h = 0 if (ymin is None or ymax is None) else ymax - ymin
+            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
 
-            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h
-
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions(final_pass=False)
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
 
         axes, ticks, ticks_style = self.create_axes(
-            elements, self.graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
         )
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
 
+    def boxes_to_tex(self, leaves=None, **options):
+        if not leaves:
+            leaves = self._leaves
+
+        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
+            leaves, options, max_width=450
+        )
+
+        elements._apply_boxscaling(boxscale)
+
+        format_fn = lookup_method(elements, "asy")
+        if format_fn is not None:
+            asy = format_fn(elements)
+        else:
+            asy = elements.to_asy()
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+
+        # TODO: Intelligently place the axes on the longest non-middle edge.
+        # See algorithm used by web graphics in mathics/web/media/graphics.js
+        # for details of this. (Projection to sceen etc).
+
+        # Choose axes placement (boundbox edge vertices)
+        axes_indices = []
+        if axes[0]:
+            axes_indices.append(0)
+        if axes[1]:
+            axes_indices.append(6)
+        if axes[2]:
+            axes_indices.append(8)
+
+        # Draw boundbox and axes
+        boundbox_asy = ""
+        boundbox_lines = self.get_boundbox_lines(xmin, xmax, ymin, ymax, zmin, zmax)
+
+        for i, line in enumerate(boundbox_lines):
+            if i in axes_indices:
+                pen = asy_create_pens(
+                    edge_color=RGBColor(components=(0, 0, 0, 1)), stroke_width=1.5
+                )
+            else:
+                pen = asy_create_pens(
+                    edge_color=RGBColor(components=(0.4, 0.4, 0.4, 1)), stroke_width=1
+                )
+
+            path = "--".join(["(%.5g,%.5g,%.5g)" % coords for coords in line])
+            boundbox_asy += "draw((%s), %s);\n" % (path, pen)
+
+        # TODO: Intelligently draw the axis ticks such that they are always
+        # directed inward and choose the coordinate direction which makes the
+        # ticks the longest. Again, details in mathics/web/media/graphics.js
+
+        # Draw axes ticks
+        ticklength = 0.05 * max([xmax - xmin, ymax - ymin, zmax - zmin])
+        pen = asy_create_pens(
+            edge_color=RGBColor(components=(0, 0, 0, 1)), stroke_width=1.2
+        )
+        for xi in axes_indices:
+            if xi < 4:  # x axis
+                for i, tick in enumerate(ticks[0][0]):
+                    line = [
+                        (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]),
+                        (
+                            tick,
+                            boundbox_lines[xi][0][1],
+                            boundbox_lines[xi][0][2] + ticklength,
+                        ),
+                    ]
+
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[0][2][i],
+                        (tick, boundbox_lines[xi][0][1], boundbox_lines[xi][0][2]),
+                        "S",
+                    )
+
+                for small_tick in ticks[0][1]:
+                    line = [
+                        (
+                            small_tick,
+                            boundbox_lines[xi][0][1],
+                            boundbox_lines[xi][0][2],
+                        ),
+                        (
+                            small_tick,
+                            boundbox_lines[xi][0][1],
+                            boundbox_lines[xi][0][2] + 0.5 * ticklength,
+                        ),
+                    ]
+
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+
+            if 4 <= xi < 8:  # y axis
+                for i, tick in enumerate(ticks[1][0]):
+                    line = [
+                        (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2]),
+                        (
+                            boundbox_lines[xi][0][0],
+                            tick,
+                            boundbox_lines[xi][0][2] - ticklength,
+                        ),
+                    ]
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[1][2][i],
+                        (boundbox_lines[xi][0][0], tick, boundbox_lines[xi][0][2]),
+                        "NW",
+                    )
+
+                for small_tick in ticks[1][1]:
+                    line = [
+                        (
+                            boundbox_lines[xi][0][0],
+                            small_tick,
+                            boundbox_lines[xi][0][2],
+                        ),
+                        (
+                            boundbox_lines[xi][0][0],
+                            small_tick,
+                            boundbox_lines[xi][0][2] - 0.5 * ticklength,
+                        ),
+                    ]
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+            if 8 <= xi:  # z axis
+                for i, tick in enumerate(ticks[2][0]):
+                    line = [
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick),
+                        (
+                            boundbox_lines[xi][0][0],
+                            boundbox_lines[xi][0][1] + ticklength,
+                            tick,
+                        ),
+                    ]
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+                    boundbox_asy += 'label("{0}",{1},{2});\n'.format(
+                        ticks[2][2][i],
+                        (boundbox_lines[xi][0][0], boundbox_lines[xi][0][1], tick),
+                        "W",
+                    )
+                for small_tick in ticks[2][1]:
+                    line = [
+                        (
+                            boundbox_lines[xi][0][0],
+                            boundbox_lines[xi][0][1],
+                            small_tick,
+                        ),
+                        (
+                            boundbox_lines[xi][0][0],
+                            boundbox_lines[xi][0][1] + 0.5 * ticklength,
+                            small_tick,
+                        ),
+                    ]
+                    path = "--".join(
+                        ["({0},{1},{2})".format(*coords) for coords in line]
+                    )
+                    boundbox_asy += "draw(({0}), {1});\n".format(path, pen)
+
+        (height, width) = (400, 400)  # TODO: Proper size
+        tex = r"""
+\begin{{asy}}
+import three;
+import solids;
+size({0}cm, {1}cm);
+currentprojection=perspective({2[0]},{2[1]},{2[2]});
+currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
+{3}
+{4}
+\end{{asy}}
+""".format(
+            asy_number(width / 60),
+            asy_number(height / 60),
+            self.viewpoint,
+            asy,
+            boundbox_asy,
+        )
+        return tex
+
+    def boxes_to_js(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something javascript-ish
+        We include enclosing script tagging.
+        """
+        json_repr = self.boxes_to_json(leaves, **options)
+        js = f'<graphics3d data="{json_repr}"/>'
+        return js
     def boxes_to_json(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something JSON like.
+        This can be used to embed in something else like MathML or Javascript.
+
+        In contrast to to javascript or MathML, no enclosing tags are included.
+        the caller will do that if it is needed.
+        """
         if not leaves:
             leaves = self._leaves
 
@@ -486,15 +689,11 @@ class Graphics3DBox(GraphicsBox):
 
         return json_repr
 
-    def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
-            leaves = self._leaves
-        return "-Graphics3D-"
-
-    def boxes_to_mathml(self, leaves=None, **options):
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
+        """Turn the Graphics3DBox into a MathML string"""
         json_repr = self.boxes_to_json(leaves, **options)
-        mathml = '<graphics3d data="{0}" />'.format(html.escape(json_repr))
-        mathml = "<mtable><mtr><mtd>{0}</mtd></mtr></mtable>".format(mathml)
+        mathml = f'<graphics3d data="{html.escape(json_repr)}" />'
+        mathml = f"<mtable><mtr><mtd>{mathml}</mtd></mtr></mtable>"
         return mathml
 
     def create_axes(
@@ -612,8 +811,6 @@ class Graphics3DElements(_GraphicsElements):
         ) = (
             self.pixel_width
         ) = self.pixel_height = self.extent_width = self.extent_height = None
-        self.view_width = None
-        self.content = content
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
