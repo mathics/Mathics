@@ -15,8 +15,8 @@ import subprocess
 from mathics.version import __version__
 from mathics.core.expression import (
     Expression,
-    Integer0,
     Integer,
+    Integer0,
     Real,
     String,
     SymbolFailed,
@@ -502,6 +502,39 @@ if have_psutil:
             """MemoryAvailable[]"""
             totalmem = psutil.virtual_memory().available
             return Integer(totalmem)
+else:
+    class SystemMemory(Predefined):
+        """
+        <dl>
+          <dt>'$SystemMemory'
+          <dd>Returns the total amount of physical memory when Python module "psutil" is installed.
+          This system however doesn't have that installed, so -1 is returned instead.
+        </dl>
+
+        >> $SystemMemory
+         = -1
+        """
+
+        name = "$SystemMemory"
+
+        def evaluate(self, evaluation) -> Integer:
+            return Integer(-1)
+
+    class MemoryAvailable(Builtin):
+        """
+        <dl>
+          <dt>'MemoryAvailable'
+          <dd>Returns the amount of the available physical when Python module "psutil" is installed.
+          This system however doesn't have that installed, so -1 is returned instead.
+        </dl>
+
+        >> MemoryAvailable[]
+         = -1
+        """
+
+        def apply(self, evaluation) -> Integer:
+            """MemoryAvailable[]"""
+            return Integer(-1)
 
 
 class MemoryInUse(Builtin):
