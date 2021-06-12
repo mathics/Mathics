@@ -167,8 +167,8 @@ def graphics_box(self, leaves=None, **options) -> str:
 
         if options.get("noheader", False):
             return svg_body
-        svg_main = """
-<svg xmlns:svg="http://www.w3.org/2000/svg"
+        svg_main = f"""
+<svg width="{w}px" height="{h}px" xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
                 version="1.1"
                 viewBox="%s">
