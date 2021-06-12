@@ -11,8 +11,7 @@ evaluation = Evaluation(session.definitions)
 GraphicsSymbol = Symbol("Graphics")
 ListSymbol = Symbol("List")
 
-svg_wrapper_pat = r"""^\s*
-\s*<svg width="[0-9.]+px" height="[0-9.]+px" xmlns:svg="http://www.w3.org/2000/svg"
+svg_wrapper_pat = r"""\s*<svg width="[0-9.]+px" height="[0-9.]+px" xmlns:svg="http://www.w3.org/2000/svg"
 \s*xmlns="http://www.w3.org/2000/svg"
 \s*version="1\.1"
 """
