@@ -12,7 +12,7 @@ GraphicsSymbol = Symbol("Graphics")
 ListSymbol = Symbol("List")
 
 svg_wrapper_pat = r"""^\s*
-\s*<svg xmlns:svg="http://www.w3.org/2000/svg"
+\s*<svg width="[0-9.]+px" height="[0-9.]+px" xmlns:svg="http://www.w3.org/2000/svg"
 \s*xmlns="http://www.w3.org/2000/svg"
 \s*version="1\.1"
 """
@@ -20,6 +20,7 @@ svg_wrapper_pat = r"""^\s*
 
 def extract_svg_body(svg):
     matches = re.match(svg_wrapper_pat, svg)
+    assert matches
     body = svg[len(matches.group(0)) :]
     assert matches
     view_inner_match = re.match(r"^\s+viewBox=.*\n\s+(.*)", body)
