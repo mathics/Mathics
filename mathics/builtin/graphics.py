@@ -51,6 +51,7 @@ GRAPHICS_OPTIONS = {
     "$OptionSyntax": "Ignore",
 }
 
+
 class CoordinatesError(BoxConstructError):
     pass
 
@@ -1319,6 +1320,7 @@ class PointBox(_Polyline):
     edge_color: _Color
     point_radius: radius of each point
     """
+
     def init(self, graphics, style, item=None):
         super(PointBox, self).init(graphics, item, style)
         self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
@@ -1331,7 +1333,7 @@ class PointBox(_Polyline):
         # FIXME: we don't have graphics options. Until we do, we'll
         # just assume an image width of 400
         image_width = 400
-        self.point_radius = (image_width * point_size.value)
+        self.point_radius = image_width * point_size.value
 
         if item is not None:
             if len(item.leaves) != 1:
@@ -1355,7 +1357,6 @@ class PointBox(_Polyline):
                     [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
                 )
         return result
-
 
 
 class Line(Builtin):
@@ -2503,6 +2504,10 @@ class GraphicsElements(_GraphicsElements):
 
 
 class GraphicsBox(BoxConstruct):
+    """Routines which get called when Boxing (adding formatting and bounding-box information)
+    to Graphics
+    """
+
     options = Graphics.options
 
     attributes = ("HoldAll", "ReadProtected")
@@ -2715,19 +2720,72 @@ class GraphicsBox(BoxConstruct):
 
         return elements, calc_dimensions
 
-    def boxes_to_mathml(self, leaves=None, **options) -> str:
-        if not leaves:
-            leaves = self._leaves
+    # FIXME: this doesn't always properly align with overlaid SVG plots
+    def axis_ticks(self, xmin, xmax):
+        def round_to_zero(value):
+            if value == 0:
+                return 0
+            elif value < 0:
+                return ceil(value)
+            else:
+                return floor(value)
 
-        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
-        xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
-        data = (elements, xmin, xmax, ymin, ymax, w, h, width, height)
-        elements.view_width = w
+        def round_step(value):
+            if not value:
+                return 1, 1
+            sub_steps = 5
+            try:
+                shift = 10.0 ** floor(log10(value))
+            except ValueError:
+                return 1, 1
+            value = value / shift
+            if value < 1.5:
+                value = 1
+            elif value < 3:
+                value = 2
+                sub_steps = 4
+            elif value < 8:
+                value = 5
+            else:
+                value = 10
+            return value * shift, sub_steps
+
+        step_x, sub_x = round_step((xmax - xmin) / 5.0)
+        step_x_small = step_x / sub_x
+        steps_x = int(floor((xmax - xmin) / step_x))
+        steps_x_small = int(floor((xmax - xmin) / step_x_small))
+
+        start_k_x = int(ceil(xmin / step_x))
+        start_k_x_small = int(ceil(xmin / step_x_small))
+
+        if xmin <= 0 <= xmax:
+            origin_k_x = 0
+        else:
+            origin_k_x = start_k_x
+        origin_x = origin_k_x * step_x
+
+        ticks = []
+        ticks_small = []
+        for k in range(start_k_x, start_k_x + steps_x + 1):
+            if k != origin_k_x:
+                x = k * step_x
+                if x > xmax:
+                    break
+                ticks.append(x)
+        for k in range(start_k_x_small, start_k_x_small + steps_x_small + 1):
+            if k % sub_x != 0:
+                x = k * step_x_small
+                if x > xmax:
+                    break
+                ticks_small.append(x)
+
+        return ticks, ticks_small, origin_x
+
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
 
         # FIXME: SVG is the only thing we can convert MathML into.
         # Handle other graphics formats.
-        format_fn = lookup_method(self, "svg")
-        svg_main = format_fn(self, leaves, data=data, **options)
+        svg_body = self.boxes_to_svg(leaves, **options)
 
         # mglyph, which is what we have been using, is bad because MathML standard changed.
         # metext does not work because the way in which we produce the svg images is also based on this outdated mglyph behaviour.
@@ -2737,14 +2795,25 @@ class GraphicsBox(BoxConstruct):
             #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
         )
         return template % (
-            #        int(width),
-            #        int(height),
-            int(width),
-            int(height),
-            base64.b64encode(svg_main.encode("utf8")).decode("utf8"),
+            int(self.width),
+            int(self.height),
+            base64.b64encode(svg_body.encode("utf8")).decode("utf8"),
         )
 
-    def boxes_to_tex(self, leaves=None, **options):
+    def boxes_to_svg(self, leaves=None, **options) -> str:
+        if not leaves:
+            leaves = self._leaves
+
+        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        xmin, xmax, ymin, ymax, w, h, self.width, self.height = calc_dimensions()
+        data = (elements, xmin, xmax, ymin, ymax, w, h, self.width, self.height)
+        elements.view_width = w
+
+        format_fn = lookup_method(self, "svg")
+        svg_body = format_fn(self, leaves, data=data, **options)
+        return svg_body
+
+    def boxes_to_tex(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
             fields = self._prepare_elements(leaves, options, max_width=450)
@@ -2805,73 +2874,12 @@ clip(%s);
 
         return tex
 
-    def boxes_to_text(self, leaves=None, **options):
+    def boxes_to_text(self, leaves=None, **options) -> str:
         if not leaves:
             leaves = self._leaves
 
         self._prepare_elements(leaves, options)  # to test for Box errors
         return "-Graphics-"
-
-    # FIXME: this isn't always properly align with overlaid SVG plots
-    def axis_ticks(self, xmin, xmax):
-        def round_to_zero(value):
-            if value == 0:
-                return 0
-            elif value < 0:
-                return ceil(value)
-            else:
-                return floor(value)
-
-        def round_step(value):
-            if not value:
-                return 1, 1
-            sub_steps = 5
-            try:
-                shift = 10.0 ** floor(log10(value))
-            except ValueError:
-                return 1, 1
-            value = value / shift
-            if value < 1.5:
-                value = 1
-            elif value < 3:
-                value = 2
-                sub_steps = 4
-            elif value < 8:
-                value = 5
-            else:
-                value = 10
-            return value * shift, sub_steps
-
-        step_x, sub_x = round_step((xmax - xmin) / 5.0)
-        step_x_small = step_x / sub_x
-        steps_x = int(floor((xmax - xmin) / step_x))
-        steps_x_small = int(floor((xmax - xmin) / step_x_small))
-
-        start_k_x = int(ceil(xmin / step_x))
-        start_k_x_small = int(ceil(xmin / step_x_small))
-
-        if xmin <= 0 <= xmax:
-            origin_k_x = 0
-        else:
-            origin_k_x = start_k_x
-        origin_x = origin_k_x * step_x
-
-        ticks = []
-        ticks_small = []
-        for k in range(start_k_x, start_k_x + steps_x + 1):
-            if k != origin_k_x:
-                x = k * step_x
-                if x > xmax:
-                    break
-                ticks.append(x)
-        for k in range(start_k_x_small, start_k_x_small + steps_x_small + 1):
-            if k % sub_x != 0:
-                x = k * step_x_small
-                if x > xmax:
-                    break
-                ticks_small.append(x)
-
-        return ticks, ticks_small, origin_x
 
     def create_axes(self, elements, graphics_options, xmin, xmax, ymin, ymax):
         axes = graphics_options.get("System`Axes")
