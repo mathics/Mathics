@@ -156,10 +156,9 @@ class Graphics3D(Graphics):
 
 
 class Graphics3DBox(GraphicsBox):
-    def boxes_to_text(self, leaves=None, **options):
-        if not leaves:
-            leaves = self._leaves
-        return "-Graphics3D-"
+    """Routines which get called when Boxing (adding formatting and bounding-box information)
+    to Graphics3D
+    """
 
     def _prepare_elements(self, leaves, options, max_width=None):
         if not leaves:
@@ -458,6 +457,80 @@ class Graphics3DBox(GraphicsBox):
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
 
+    def boxes_to_js(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something javascript-ish
+        We include enclosing script tagging.
+        """
+        json_repr = self.boxes_to_json(leaves, **options)
+        js = f'<graphics3d data="{json_repr}"/>'
+        return js
+
+    def boxes_to_json(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something JSON like.
+        This can be used to embed in something else like MathML or Javascript.
+
+        In contrast to to javascript or MathML, no enclosing tags are included.
+        the caller will do that if it is needed.
+        """
+        if not leaves:
+            leaves = self._leaves
+
+        (
+            elements,
+            axes,
+            ticks,
+            ticks_style,
+            calc_dimensions,
+            boxscale,
+        ) = self._prepare_elements(leaves, options)
+
+        js_ticks_style = [s.to_js() for s in ticks_style]
+
+        elements._apply_boxscaling(boxscale)
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
+        elements.view_width = w
+
+        # FIXME: json is the only thing we can convert MathML into.
+        # Handle other graphics formats.
+        format_fn = lookup_method(elements, "json")
+
+        json_repr = format_fn(elements, **options)
+
+        # TODO: Cubeoid (like this)
+        # json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None],
+        # 'size':[(1,1,1), None], 'type': 'cube'}]
+
+        json_repr = json.dumps(
+            {
+                "elements": json_repr,
+                "axes": {
+                    "hasaxes": axes,
+                    "ticks": ticks,
+                    "ticks_style": js_ticks_style,
+                },
+                "extent": {
+                    "xmin": xmin,
+                    "xmax": xmax,
+                    "ymin": ymin,
+                    "ymax": ymax,
+                    "zmin": zmin,
+                    "zmax": zmax,
+                },
+                "lighting": self.lighting,
+                "viewpoint": self.viewpoint,
+            }
+        )
+
+        return json_repr
+
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
+        """Turn the Graphics3DBox into a MathML string"""
+        json_repr = self.boxes_to_json(leaves, **options)
+        mathml = f'<graphics3d data="{html.escape(json_repr)}" />'
+        mathml = f"<mtable><mtr><mtd>{mathml}</mtd></mtr></mtable>"
+        return mathml
+
     def boxes_to_tex(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
@@ -659,79 +732,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         )
         return tex
 
-    def boxes_to_js(self, leaves=None, **options):
-        """Turn the Graphics3DBox to into a something javascript-ish
-        We include enclosing script tagging.
-        """
-        json_repr = self.boxes_to_json(leaves, **options)
-        js = f'<graphics3d data="{json_repr}"/>'
-        return js
-
-    def boxes_to_json(self, leaves=None, **options):
-        """Turn the Graphics3DBox to into a something JSON like.
-        This can be used to embed in something else like MathML or Javascript.
-
-        In contrast to to javascript or MathML, no enclosing tags are included.
-        the caller will do that if it is needed.
-        """
+    def boxes_to_text(self, leaves=None, **options):
         if not leaves:
             leaves = self._leaves
-
-        (
-            elements,
-            axes,
-            ticks,
-            ticks_style,
-            calc_dimensions,
-            boxscale,
-        ) = self._prepare_elements(leaves, options)
-
-        js_ticks_style = [s.to_js() for s in ticks_style]
-
-        elements._apply_boxscaling(boxscale)
-
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
-        elements.view_width = w
-
-        # FIXME: json is the only thing we can convert MathML into.
-        # Handle other graphics formats.
-        format_fn = lookup_method(elements, "json")
-
-        json_repr = format_fn(elements, **options)
-
-        # TODO: Cubeoid (like this)
-        # json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None],
-        # 'size':[(1,1,1), None], 'type': 'cube'}]
-
-        json_repr = json.dumps(
-            {
-                "elements": json_repr,
-                "axes": {
-                    "hasaxes": axes,
-                    "ticks": ticks,
-                    "ticks_style": js_ticks_style,
-                },
-                "extent": {
-                    "xmin": xmin,
-                    "xmax": xmax,
-                    "ymin": ymin,
-                    "ymax": ymax,
-                    "zmin": zmin,
-                    "zmax": zmax,
-                },
-                "lighting": self.lighting,
-                "viewpoint": self.viewpoint,
-            }
-        )
-
-        return json_repr
-
-    def boxes_to_mathml(self, leaves=None, **options) -> str:
-        """Turn the Graphics3DBox into a MathML string"""
-        json_repr = self.boxes_to_json(leaves, **options)
-        mathml = f'<graphics3d data="{html.escape(json_repr)}" />'
-        mathml = f"<mtable><mtr><mtd>{mathml}</mtd></mtr></mtable>"
-        return mathml
+        return "-Graphics3D-"
 
     def create_axes(
         self, elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
