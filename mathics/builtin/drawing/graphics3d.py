@@ -167,6 +167,15 @@ class Graphics3DBox(GraphicsBox):
 
         self.graphics_options = self.get_option_values(leaves[1:], **options)
 
+        background = self.graphics_options["System`Background"]
+        if (
+            isinstance(background, Symbol)
+            and background.get_name() == "System`Automatic"
+        ):
+            self.background_color = None
+        else:
+            self.background_color = _Color.create(background)
+
         evaluation = options["evaluation"]
 
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
@@ -426,12 +435,25 @@ class Graphics3DBox(GraphicsBox):
                     for vp in self.viewpoint
                 ]
 
-            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            w = 0 if (xmin is None or xmax is None) else xmax - xmin
+            h = 0 if (ymin is None or ymax is None) else ymax - ymin
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
+            return xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h
+
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions(
+            final_pass=False
+        )
 
         axes, ticks, ticks_style = self.create_axes(
-            elements, self.graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            elements,
+            self.graphics_options,
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+            boxscale,
         )
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
@@ -440,9 +462,14 @@ class Graphics3DBox(GraphicsBox):
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options, max_width=450
-        )
+        (
+            elements,
+            axes,
+            ticks,
+            ticks_style,
+            calc_dimensions,
+            boxscale,
+        ) = self._prepare_elements(leaves, options, max_width=450)
 
         elements._apply_boxscaling(boxscale)
 
@@ -452,7 +479,7 @@ class Graphics3DBox(GraphicsBox):
         else:
             asy = elements.to_asy()
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions()
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
 
         # TODO: Intelligently place the axes on the longest non-middle edge.
         # See algorithm used by web graphics in mathics/web/media/graphics.js
@@ -639,6 +666,7 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = self.boxes_to_json(leaves, **options)
         js = f'<graphics3d data="{json_repr}"/>'
         return js
+
     def boxes_to_json(self, leaves=None, **options):
         """Turn the Graphics3DBox to into a something JSON like.
         This can be used to embed in something else like MathML or Javascript.
@@ -649,9 +677,14 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options
-        )
+        (
+            elements,
+            axes,
+            ticks,
+            ticks_style,
+            calc_dimensions,
+            boxscale,
+        ) = self._prepare_elements(leaves, options)
 
         js_ticks_style = [s.to_js() for s in ticks_style]
 
@@ -673,7 +706,11 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = json.dumps(
             {
                 "elements": json_repr,
-                "axes": {"hasaxes": axes, "ticks": ticks, "ticks_style": js_ticks_style},
+                "axes": {
+                    "hasaxes": axes,
+                    "ticks": ticks,
+                    "ticks_style": js_ticks_style,
+                },
                 "extent": {
                     "xmin": xmin,
                     "xmax": xmax,
@@ -724,7 +761,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
             axes_style = [axes_style] * 3
 
         # FIXME: Not quite right. We only handle color
-        ticks_style = [elements.create_style(s).get_style(_Color, face_element=False)[0] for s in ticks_style]
+        ticks_style = [
+            elements.create_style(s).get_style(_Color, face_element=False)[0]
+            for s in ticks_style
+        ]
 
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
@@ -811,6 +851,8 @@ class Graphics3DElements(_GraphicsElements):
         ) = (
             self.pixel_width
         ) = self.pixel_height = self.extent_width = self.extent_height = None
+        self.view_width = None
+        self.content = content
 
     def extent(self, completely_visible_only=False):
         return total_extent_3d([element.extent() for element in self.elements])
