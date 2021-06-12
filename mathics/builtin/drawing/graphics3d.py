@@ -166,6 +166,7 @@ class Graphics3DBox(GraphicsBox):
             raise BoxConstructError
 
         self.graphics_options = self.get_option_values(leaves[1:], **options)
+
         background = self.graphics_options["System`Background"]
         if (
             isinstance(background, Symbol)
@@ -175,11 +176,11 @@ class Graphics3DBox(GraphicsBox):
         else:
             self.background_color = _Color.create(background)
 
+        evaluation = options["evaluation"]
+
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
             options, self.graphics_options, max_width
         )
-
-        evaluation = options["evaluation"]
 
         # TODO: Handle ImageScaled[], and Scaled[]
         lighting_option = self.graphics_options["System`Lighting"]
@@ -439,10 +440,20 @@ class Graphics3DBox(GraphicsBox):
 
             return xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions(final_pass=False)
+        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions(
+            final_pass=False
+        )
 
         axes, ticks, ticks_style = self.create_axes(
-            elements, self.graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            elements,
+            self.graphics_options,
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+            boxscale,
         )
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
@@ -451,9 +462,14 @@ class Graphics3DBox(GraphicsBox):
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options, max_width=450
-        )
+        (
+            elements,
+            axes,
+            ticks,
+            ticks_style,
+            calc_dimensions,
+            boxscale,
+        ) = self._prepare_elements(leaves, options, max_width=450)
 
         elements._apply_boxscaling(boxscale)
 
@@ -643,13 +659,32 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         )
         return tex
 
-    def boxes_to_mathml(self, leaves=None, **options):
+    def boxes_to_js(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something javascript-ish
+        We include enclosing script tagging.
+        """
+        json_repr = self.boxes_to_json(leaves, **options)
+        js = f'<graphics3d data="{json_repr}"/>'
+        return js
+
+    def boxes_to_json(self, leaves=None, **options):
+        """Turn the Graphics3DBox to into a something JSON like.
+        This can be used to embed in something else like MathML or Javascript.
+
+        In contrast to to javascript or MathML, no enclosing tags are included.
+        the caller will do that if it is needed.
+        """
         if not leaves:
             leaves = self._leaves
 
-        elements, axes, ticks, ticks_style, calc_dimensions, boxscale = self._prepare_elements(
-            leaves, options
-        )
+        (
+            elements,
+            axes,
+            ticks,
+            ticks_style,
+            calc_dimensions,
+            boxscale,
+        ) = self._prepare_elements(leaves, options)
 
         js_ticks_style = [s.to_js() for s in ticks_style]
 
@@ -671,7 +706,11 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         json_repr = json.dumps(
             {
                 "elements": json_repr,
-                "axes": {"hasaxes": axes, "ticks": ticks, "ticks_style": js_ticks_style},
+                "axes": {
+                    "hasaxes": axes,
+                    "ticks": ticks,
+                    "ticks_style": js_ticks_style,
+                },
                 "extent": {
                     "xmin": xmin,
                     "xmax": xmax,
@@ -685,13 +724,13 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
             }
         )
 
-        # return "<mn>3</mn>"
+        return json_repr
 
-        # mathml = ('<graphics3d xmin="%f" xmax="%f" ymin="%f" ymax="%f" '
-        #        'zmin="%f" zmax="%f" data="%s" />') % (
-        #           xmin, xmax, ymin, ymax, zmin, zmax, json_repr)
-        mathml = '<graphics3d data="{0}" />'.format(html.escape(json_repr))
-        mathml = "<mtable><mtr><mtd>{0}</mtd></mtr></mtable>".format(mathml)
+    def boxes_to_mathml(self, leaves=None, **options) -> str:
+        """Turn the Graphics3DBox into a MathML string"""
+        json_repr = self.boxes_to_json(leaves, **options)
+        mathml = f'<graphics3d data="{html.escape(json_repr)}" />'
+        mathml = f"<mtable><mtr><mtd>{mathml}</mtd></mtr></mtable>"
         return mathml
 
     def create_axes(
@@ -722,7 +761,10 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
             axes_style = [axes_style] * 3
 
         # FIXME: Not quite right. We only handle color
-        ticks_style = [elements.create_style(s).get_style(_Color, face_element=False)[0] for s in ticks_style]
+        ticks_style = [
+            elements.create_style(s).get_style(_Color, face_element=False)[0]
+            for s in ticks_style
+        ]
 
         axes_style = [elements.create_style(s) for s in axes_style]
         label_style = elements.create_style(label_style)
