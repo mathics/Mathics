@@ -165,16 +165,16 @@ class Graphics3DBox(GraphicsBox):
         if not leaves:
             raise BoxConstructError
 
-        graphics_options = self.get_option_values(leaves[1:], **options)
+        self.graphics_options = self.get_option_values(leaves[1:], **options)
 
         evaluation = options["evaluation"]
 
         base_width, base_height, size_multiplier, size_aspect = self._get_image_size(
-            options, graphics_options, max_width
+            options, self.graphics_options, max_width
         )
 
         # TODO: Handle ImageScaled[], and Scaled[]
-        lighting_option = graphics_options["System`Lighting"]
+        lighting_option = self.graphics_options["System`Lighting"]
         lighting = lighting_option.to_python()  # can take symbols or strings
         self.lighting = []
 
@@ -294,7 +294,7 @@ class Graphics3DBox(GraphicsBox):
             evaluation.message("Graphics3D", "invlight", lighting_option)
 
         # ViewPoint Option
-        viewpoint_option = graphics_options["System`ViewPoint"]
+        viewpoint_option = self.graphics_options["System`ViewPoint"]
         viewpoint = viewpoint_option.to_python(n_evaluation=evaluation)
 
         if isinstance(viewpoint, list) and len(viewpoint) == 3:
@@ -324,9 +324,9 @@ class Graphics3DBox(GraphicsBox):
         self.viewpoint = viewpoint
 
         # TODO Aspect Ratio
-        # aspect_ratio = graphics_options['AspectRatio'].to_python()
+        # aspect_ratio = self.graphics_options['AspectRatio'].to_python()
 
-        boxratios = graphics_options["System`BoxRatios"].to_python()
+        boxratios = self.graphics_options["System`BoxRatios"].to_python()
         if boxratios == "System`Automatic":
             boxratios = ["System`Automatic"] * 3
         else:
@@ -334,7 +334,7 @@ class Graphics3DBox(GraphicsBox):
         if not isinstance(boxratios, list) or len(boxratios) != 3:
             raise BoxConstructError
 
-        plot_range = graphics_options["System`PlotRange"].to_python()
+        plot_range = self.graphics_options["System`PlotRange"].to_python()
         if plot_range == "System`Automatic":
             plot_range = ["System`Automatic"] * 3
         if not isinstance(plot_range, list) or len(plot_range) != 3:
@@ -431,7 +431,7 @@ class Graphics3DBox(GraphicsBox):
         xmin, xmax, ymin, ymax, zmin, zmax, boxscale = calc_dimensions(final_pass=False)
 
         axes, ticks, ticks_style = self.create_axes(
-            elements, graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
+            elements, self.graphics_options, xmin, xmax, ymin, ymax, zmin, zmax, boxscale
         )
 
         return elements, axes, ticks, ticks_style, calc_dimensions, boxscale
