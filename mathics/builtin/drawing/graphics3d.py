@@ -462,7 +462,7 @@ class Graphics3DBox(GraphicsBox):
         We include enclosing script tagging.
         """
         json_repr = self.boxes_to_json(leaves, **options)
-        js = f'<graphics3d data="{json_repr}"/>'
+        js = f"<graphics3d data='{json_repr}'/>"
         return js
 
     def boxes_to_json(self, leaves=None, **options):
