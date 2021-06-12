@@ -139,14 +139,14 @@ def graphics_box(self, leaves=None, **options) -> str:
 
         data = options.get("data", None)
         if data:
-            elements, xmin, xmax, ymin, ymax, w, h, width, height = data
+            elements, xmin, xmax, ymin, ymax, self.boxwidth, self.boxheight, width, height = data
         else:
             elements, calc_dimensions = self._prepare_elements(
                 leaves, options, neg_y=True
             )
-            xmin, xmax, ymin, ymax, w, h, width, height = calc_dimensions()
+            xmin, xmax, ymin, ymax, self.boxwidth, self.boxheight, width, height = calc_dimensions()
 
-        elements.view_width = w
+        elements.view_width = self.boxwidth
 
         format_fn = lookup_method(elements, "svg")
         if format_fn is not None:
@@ -154,13 +154,16 @@ def graphics_box(self, leaves=None, **options) -> str:
         else:
             svg_body = elements.to_svg(**options)
 
+        self.boxwidth = options.get("width", self.boxwidth)
+        self.boxheight = options.get("height", self.boxheight)
+
         if self.background_color is not None:
             # Wrap svg_elements in a rectangle
             svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
                 xmin,
                 ymin,
-                w,
-                h,
+                self.boxwidth,
+                self.boxheight,
                 self.background_color.to_css()[0],
                 svg_body,
             )
@@ -168,14 +171,14 @@ def graphics_box(self, leaves=None, **options) -> str:
         if options.get("noheader", False):
             return svg_body
         svg_main = f"""
-<svg width="{w}px" height="{h}px" xmlns:svg="http://www.w3.org/2000/svg"
+<svg width="{self.boxwidth}px" height="{self.boxheight}px" xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
                 version="1.1"
                 viewBox="%s">
                 %s
 </svg>
 """ % (
-            " ".join("%f" % t for t in (xmin, ymin, w, h)),
+            " ".join("%f" % t for t in (xmin, ymin, self.boxwidth, self.boxheight)),
             svg_body,
         )
         # print("svg_main", svg_main)
