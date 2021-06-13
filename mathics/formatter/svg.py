@@ -287,14 +287,23 @@ add_conversion_fn(PointBox)
 
 
 def polygonbox(self, **options):
+    """
+    formatter for PolygonBoX
+    """
     line_width = self.style.get_line_width(face_element=True)
+
+
+    # I think face_color == None means the face color is transparent.
+    # FIXME: explain the relationshop between self.vertex_colors and self.face_color
     if self.vertex_colors is None:
         face_color = self.face_color
     else:
         face_color = None
+
     style = create_css(
         edge_color=self.edge_color, face_color=face_color, stroke_width=line_width
     )
+
     svg = ""
     if self.vertex_colors is not None:
         mesh = []
@@ -304,9 +313,14 @@ def polygonbox(self, **options):
                 for coords, color in zip(line, self.vertex_colors[index])
             ]
             mesh.append(data)
+        # FIXME: this is not valid SVG
         svg += '<meshgradient data="%s" />' % json.dumps(mesh)
 
-    # Perhaps one day this c
+    # WL says this about 2D polygons:
+    #   A point is an element of the polygon if a ray from the point in any direction in the plane crosses the boundary line segments an odd number of times.
+    #
+    # In SVG, this is called the "evenodd" fill rule.
+    # Perhaps one day we will find it useful to have other fill_rules specified as an option.
     fill_rule="evenodd"
 
     for line in self.lines:
