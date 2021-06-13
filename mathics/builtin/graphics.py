@@ -1239,10 +1239,14 @@ class _ArcBox(_RoundBox):
 
 
 class DiskBox(_ArcBox):
+    """Boxing class attribute for a Disk."""
+
     face_element = True
 
 
 class CircleBox(_ArcBox):
+    """Boxing class attribute for a Circle."""
+
     face_element = False
 
 
@@ -1315,7 +1319,8 @@ class Point(Builtin):
 # is kind of  wrong.
 class PointBox(_Polyline):
     """
-    A Bounding box for a list of points.
+    Boxing methods for a list of Point.
+
     object attributes:
     edge_color: _Color
     point_radius: radius of each point
@@ -1379,6 +1384,10 @@ class Line(Builtin):
 
 
 class LineBox(_Polyline):
+    """
+    Boxing methods for a list of Line.
+    """
+
     def init(self, graphics, style, item=None, lines=None):
         super(LineBox, self).init(graphics, item, style)
         self.edge_color, _ = style.get_style(_Color, face_element=False)
@@ -2504,8 +2513,8 @@ class GraphicsElements(_GraphicsElements):
 
 
 class GraphicsBox(BoxConstruct):
-    """Routines which get called when Boxing (adding formatting and bounding-box information)
-    to Graphics
+    """Boxing method which get called when Boxing (adding formatting and bounding-box information)
+    Graphics.
     """
 
     options = Graphics.options
