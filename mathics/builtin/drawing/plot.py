@@ -1674,7 +1674,10 @@ class _Plot3D(Builtin):
                 try:
                     return stored[(x_value, y_value)]
                 except KeyError:
-                    value = cf(x_value, y_value)
+                    try:
+                        value = cf(x_value, y_value)
+                    except:
+                        value = None
                     if value is not None:
                         value = float(value)
                     stored[(x_value, y_value)] = value
