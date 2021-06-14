@@ -3314,7 +3314,7 @@ GLOBALS = system_symbols_dict(
 
 GLOBALS.update(styles)
 
-GRAPHICS_SYMBOLS = frozenset(
+GRAPHICS_SYMBOLS = set(
     ["System`List", "System`Rule", "System`VertexColors"]
     + list(element_heads)
     + [element + "Box" for element in element_heads]

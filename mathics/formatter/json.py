@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Format a Mathics object as json
+Format a Mathics object as JSON data
 """
 
 from mathics.builtin.graphics import PointSize, RGBColor
@@ -13,8 +13,11 @@ from mathics.builtin.drawing.graphics3d import (
     Sphere3DBox,
 )
 
-from mathics.core.formatter import lookup_method, add_conversion_fn
+# FIXME
+# Add 2D elements like DensityPlot
 
+
+from mathics.core.formatter import lookup_method, add_conversion_fn
 
 def graphics_3D_elements(self, **options):
     result = []

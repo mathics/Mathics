@@ -288,7 +288,7 @@ add_conversion_fn(PointBox)
 
 def polygonbox(self, **options):
     """
-    formatter for PolygonBoX
+    SVG formatter for PolygonBox
     """
     line_width = self.style.get_line_width(face_element=True)
 

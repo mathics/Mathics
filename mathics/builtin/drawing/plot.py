@@ -40,6 +40,7 @@ try:
 except ImportError:
     has_compile = False
 
+
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression("ColorData", color_function).evaluate(evaluation)
@@ -1024,7 +1025,10 @@ class BarChart(_Chart):
 
     options = _Chart.options.copy()
     options.update(
-        {"Axes": "{False, True}", "AspectRatio": "1 / GoldenRatio",}
+        {
+            "Axes": "{False, True}",
+            "AspectRatio": "1 / GoldenRatio",
+        }
     )
 
     def _draw(self, data, color, evaluation, options):
@@ -2171,7 +2175,9 @@ class PolarPlot(_Plot):
 
     options = _Plot.options.copy()
     options.update(
-        {"AspectRatio": "1",}
+        {
+            "AspectRatio": "1",
+        }
     )
 
     def get_functions_param(self, functions):
