@@ -7,6 +7,7 @@ Format a Mathics object as an SVG string
 
 from mathics.builtin.drawing.graphics3d import Graphics3DElements
 from mathics.builtin.graphics import (
+    _ArcBox,
     ArrowBox,
     BezierCurveBox,
     FilledCurveBox,
@@ -76,7 +77,34 @@ def create_css(
     return "; ".join(css)
 
 
-def arrow_box(self, **options):
+def arcbox(self, **options) -> str:
+    if self.arc is None:
+        return super(_ArcBox, self).to_svg(**options)
+
+    x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
+
+    def path(closed):
+        if closed:
+            yield "M %f,%f" % (x, y)
+            yield "L %f,%f" % (sx, sy)
+        else:
+            yield "M %f,%f" % (sx, sy)
+
+        yield "A %f,%f,0,%d,0,%f,%f" % (rx, ry, large_arc, ex, ey)
+
+        if closed:
+            yield "Z"
+
+    l = self.style.get_line_width(face_element=self.face_element)
+    style = create_css(self.edge_color, self.face_color, stroke_width=l)
+    svg = '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
+    # print("XXX arcbox", svg)
+    return svg
+
+add_conversion_fn(_ArcBox, arcbox)
+
+
+def arrow_box(self, **options) -> str:
     width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=width)
     polyline = self.curve.make_draw_svg(style)
@@ -91,13 +119,15 @@ def arrow_box(self, **options):
     extent = self.graphics.view_width or 0
     default_arrow = self._default_arrow(polygon)
     custom_arrow = self._custom_arrow("svg", _SVGTransform)
-    return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+    svg = "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+    # print("XXX arrowbox", svg)
+    return svg
 
 
 add_conversion_fn(ArrowBox, arrow_box)
 
 
-def beziercurvebox(self, **options):
+def beziercurvebox(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
 
