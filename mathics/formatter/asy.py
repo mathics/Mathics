@@ -70,8 +70,13 @@ class _ASYTransform:
 
 
 def arcbox(self, **options) -> str:
+    """
+    Aymptote formatting for arc of a circle.
+    """
     if self.arc is None:
-        return super(_ArcBox, self).to_asy()
+        # We have a doughnut graph and this is the inner blank hole of that.
+        # It is an empty circle
+        return _roundbox(self, **options)
 
     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
@@ -136,10 +141,6 @@ def bezier_curve_box(self, **options) -> str:
                 path = "(0.,0.)" + path
             asy += "draw(%s, %s);" % (path, pen)
     return asy
-    if self.arc is None:
-        return _roundbox(self)
-
-    x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
 

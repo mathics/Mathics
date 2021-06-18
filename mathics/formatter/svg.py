@@ -78,8 +78,13 @@ def create_css(
 
 
 def arcbox(self, **options) -> str:
+    """
+    SVG formatting for arc of a circle.
+    """
     if self.arc is None:
-        return super(_ArcBox, self).to_svg(**options)
+        # We have a doughnut graph and this is the inner blank hole of that.
+        # It is an empty circle
+        return _roundbox(self, **options)
 
     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
