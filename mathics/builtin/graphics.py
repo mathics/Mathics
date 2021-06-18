@@ -2803,11 +2803,14 @@ class GraphicsBox(BoxConstruct):
             '<mglyph width="%dpx" height="%dpx" src="data:image/svg+xml;base64,%s"/>'
             #'<mglyph  src="data:image/svg+xml;base64,%s"/>'
         )
-        return template % (
+        # print(svg_body)
+        mathml = template % (
             int(self.width),
             int(self.height),
             base64.b64encode(svg_body.encode("utf8")).decode("utf8"),
-        )
+            )
+        # print("boxes_to_mathml", mathml)
+        return mathml
 
     def boxes_to_svg(self, leaves=None, **options) -> str:
         if not leaves:
