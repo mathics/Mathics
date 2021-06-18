@@ -37,8 +37,14 @@ class Axes(Builtin):
     """
     <dl>
       <dt>'Axes'
-      <dd>is an option for graphics functions that specifies whether axes should be drawn.
+      <dd>is an option for charting and graphics functions that specifies whether axes should be drawn.
     </dl>
+
+    <ul>
+      <li> 'Axes->True' draws all axes.
+      <li> 'Axes->False' draws no axes.
+      <li> 'Axes->{False,True}' draws an axis $y$ but no $x$ axis in two dimensions.
+    </ul>
 
     >> Graphics[Circle[], Axes -> True]
      = -Graphics-
@@ -66,6 +72,27 @@ class Bottom(Builtin):
 
     >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Bottom]
      = -Graphics-
+    """
+
+
+class ChartLabels(Builtin):
+    """
+    <dl>
+      <dt>'ChartLabels'
+      <dd>is a charting option that specifies what labels should be used for chart elements.
+    </dl>
+
+    >> PieChart[{30, 20, 10}, ChartLabels -> {Dogs, Cats, Fish}]
+     = -Graphics-
+    """
+
+
+class ChartLegends(Builtin):
+    """
+    <dl>
+      <dt>'ChartLegends'
+      <dd>is a charting option.
+    </dl>
     """
 
 
@@ -139,7 +166,7 @@ class Mesh(Builtin):
     """
     <dl>
        <dt>'Mesh'
-      <dd>is an option for 'Plot' that specifies the mesh to be drawn. The default is 'Mesh->None'.
+      <dd>is a charting option, such as for 'Plot', 'BarChart', 'PieChart', etc. that specifies the mesh to be drawn. The default is 'Mesh->None'.
      </dl>
 
     >> Plot[Sin[Cos[x^2]],{x,-4,4},Mesh->All]
@@ -176,7 +203,7 @@ class PlotRange(Builtin):
     """
     <dl>
       <dt>'PlotRange'
-      <dd>is an option for 'Plot' that gives the range of coordinates to include in a plot.
+      <dd>is a charting option, such as for 'Plot', 'BarChart', 'PieChart', etc. that gives the range of coordinates to include in a plot.
     </dl>
     <ul>
       <li>All all points are included.

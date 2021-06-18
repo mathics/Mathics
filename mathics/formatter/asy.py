@@ -69,6 +69,44 @@ class _ASYTransform:
         return self._template % (" * ".join(self.transforms), asy)
 
 
+def arcbox(self, **options) -> str:
+    """
+    Aymptote formatting for arc of a circle.
+    """
+    if self.arc is None:
+        # We have a doughnut graph and this is the inner blank hole of that.
+        # It is an empty circle
+        return _roundbox(self, **options)
+
+    x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
+
+    def path(closed):
+        if closed:
+            yield "(%s,%s)--(%s,%s)--" % tuple(
+                asy_number(t) for t in (x, y, sx, sy)
+            )
+
+        yield "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
+            asy_number(t) for t in (x, y, sx, sy, ex, ey)
+        )
+
+        if closed:
+            yield "--cycle"
+
+    l = self.style.get_line_width(face_element=self.face_element)
+    pen = asy_create_pens(
+        edge_color=self.edge_color,
+        face_color=self.face_color,
+        stroke_width=l,
+        is_face_element=self.face_element,
+    )
+    command = "filldraw" if self.face_element else "draw"
+    asy = "%s(%s, %s);" % (command, "".join(path(self.face_element)), pen)
+    # print("### arcbox", asy)
+    return asy
+
+add_conversion_fn(_ArcBox, arcbox)
+
 def arrow_box(self, **options) -> str:
     width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=width)
@@ -84,7 +122,9 @@ def arrow_box(self, **options) -> str:
     extent = self.graphics.view_width or 0
     default_arrow = self._default_arrow(polygon)
     custom_arrow = self._custom_arrow("asy", _ASYTransform)
-    return "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+    asy = "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+    # print("### arrowbox", asy)
+    return asy
 
 
 add_conversion_fn(ArrowBox, arrow_box)
@@ -101,10 +141,6 @@ def bezier_curve_box(self, **options) -> str:
                 path = "(0.,0.)" + path
             asy += "draw(%s, %s);" % (path, pen)
     return asy
-    if self.arc is None:
-        return _roundbox(self)
-
-    x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
 
@@ -324,7 +360,7 @@ def rectanglebox(self, **options) -> str:
         self.edge_color, self.face_color, line_width, is_face_element=True
     )
     x1, x2, y1, y2 = asy_number(x1), asy_number(x2), asy_number(y1), asy_number(y2)
-    return "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
+    asy = "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
         x1,
         y1,
         x2,
@@ -335,6 +371,8 @@ def rectanglebox(self, **options) -> str:
         y2,
         pens,
     )
+    # print("### rectanglebox", asy)
+    return asy
 
 
 add_conversion_fn(RectangleBox)

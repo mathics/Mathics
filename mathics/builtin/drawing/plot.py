@@ -40,7 +40,6 @@ try:
 except ImportError:
     has_compile = False
 
-
 def gradient_palette(color_function, n, evaluation):  # always returns RGB values
     if isinstance(color_function, String):
         color_data = Expression("ColorData", color_function).evaluate(evaluation)
@@ -841,26 +840,49 @@ class _Chart(Builtin):
 class PieChart(_Chart):
     """
     <dl>
-    <dt>'PieChart[{$p1$, $p2$ ...}]'
-        <dd>draws a pie chart.
+      <dt>'PieChart[{$a1$, $a2$ ...}]'
+      <dd>draws a pie chart with sector angles proportional to $a1$, $a2$, ....
     </dl>
 
-    >> PieChart[{1, 4, 2}]
+    Drawing options include -
+    Charting:
+    <ul>
+      <li>Mesh
+      <li>PlotRange
+      <li>ChartLabels
+      <li>ChartLegends
+      <li>ChartStyle
+    </ul>
+
+    PieChart specific:
+    <ul>
+      <li>Axes (default: False, False)
+      <li>AspectRatio (default 1)
+      <li>SectorOrigin: (default {Automatic, 0})
+      <li>SectorSpacing" (default Automatic)
+    </ul>
+
+    A pie chart for a list of values:
+    >> PieChart[Range[4]]
      = -Graphics-
 
+    A doughnut chart for a list of values:
     >> PieChart[{8, 16, 2}, SectorOrigin -> {Automatic, 1.5}]
      = -Graphics-
 
+    A Pie chart with multple datasets:
     >> PieChart[{{10, 20, 30}, {15, 22, 30}}]
      = -Graphics-
 
+    Same as the above, but without gaps between the groups of data:
     >> PieChart[{{10, 20, 30}, {15, 22, 30}}, SectorSpacing -> None]
      = -Graphics-
 
-    >> PieChart[{{10, 20, 30}, {15, 22, 30}}, ChartLabels -> {a, b, c}]
+    The doughnut chart above with labels on each of the 3 pieces:
+    >> PieChart[{{10, 20, 30}, {15, 22, 30}}, ChartLabels -> {A, B, C}]
      = -Graphics-
 
-    Negative values are clipped to 0.
+    Negative values are removed, the data below is the same as {1, 3}:
     >> PieChart[{1, -1, 3}]
      = -Graphics-
     """
@@ -1006,7 +1028,23 @@ class BarChart(_Chart):
         <dt>'BarChart[{$b1$, $b2$ ...}]'
         <dd>makes a bar chart with lengths $b1$, $b2$, ....
     </dl>
+    Drawing options include -
+    Charting:
+    <ul>
+      <li>Mesh
+      <li>PlotRange
+      <li>ChartLabels
+      <li>ChartLegends
+      <li>ChartStyle
+    </ul>
 
+    BarChart specific:
+    <ul>
+      <li>Axes  (default {False, True})
+      <li>AspectRatio: (default 1 / GoldenRatio)
+    </ul>
+
+    A bar chart of a list of heights:
     >> BarChart[{1, 4, 2}]
      = -Graphics-
 
@@ -1016,6 +1054,7 @@ class BarChart(_Chart):
     >> BarChart[{{1, 2, 3}, {2, 3, 4}}]
      = -Graphics-
 
+    Chart several datasets with categorical labels:
     >> BarChart[{{1, 2, 3}, {2, 3, 4}}, ChartLabels -> {"a", "b", "c"}]
      = -Graphics-
 
@@ -1025,10 +1064,7 @@ class BarChart(_Chart):
 
     options = _Chart.options.copy()
     options.update(
-        {
-            "Axes": "{False, True}",
-            "AspectRatio": "1 / GoldenRatio",
-        }
+        {"Axes": "{False, True}", "AspectRatio": "1 / GoldenRatio",}
     )
 
     def _draw(self, data, color, evaluation, options):
@@ -1678,10 +1714,7 @@ class _Plot3D(Builtin):
                 try:
                     return stored[(x_value, y_value)]
                 except KeyError:
-                    try:
-                        value = cf(x_value, y_value)
-                    except:
-                        value = None
+                    value = cf(x_value, y_value)
                     if value is not None:
                         value = float(value)
                     stored[(x_value, y_value)] = value
@@ -2175,9 +2208,7 @@ class PolarPlot(_Plot):
 
     options = _Plot.options.copy()
     options.update(
-        {
-            "AspectRatio": "1",
-        }
+        {"AspectRatio": "1",}
     )
 
     def get_functions_param(self, functions):
