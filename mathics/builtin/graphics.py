@@ -2839,9 +2839,12 @@ class GraphicsBox(BoxConstruct):
         fields = calc_dimensions()
         if len(fields) == 8:
             xmin, xmax, ymin, ymax, w, h, width, height = fields
+            elements.view_width = w
+
         else:
             assert len(fields) == 9
             xmin, xmax, ymin, ymax, _, _, _, width, height = fields
+            elements.view_width = width
 
         asy_completely_visible = "\n".join(
             lookup_method(element, "asy")(element)
