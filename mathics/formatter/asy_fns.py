@@ -63,19 +63,18 @@ def asy_bezier(*segments):
         connect = p[-1:]
 
 
-def asy_color(self) -> str:
-    """Return an asymptote string fragment for object's RGB or RGBA value"""
+def asy_color(self):
+    """Return an asymptote rgba string fragment for object's RGB or RGBA
+    value and it opacity (alpha) value"""
     rgba = self.to_rgba()
     alpha = rgba[3] if len(rgba) > 3 else 1.0
     return (
-        r"rgb(%s, %s, %s)"
-        % (asy_number(rgba[0]), asy_number(rgba[1]), asy_number(rgba[2])),
-        alpha,
+        fr"rgb({asy_number(rgba[0])}, {asy_number(rgba[1])}, {asy_number(rgba[2])})", alpha
     )
 
 
 def asy_create_pens(
-    edge_color=None, face_color=None, stroke_width=None, is_face_element=False
+      edge_color=None, face_color=None, stroke_width=None, is_face_element=False, dotfactor=None
 ) -> str:
     """
     Return an asymptote string fragment that creates a drawing pen.
@@ -84,20 +83,25 @@ def asy_create_pens(
     if face_color is not None:
         brush, opacity = asy_color(face_color)
         if opacity != 1:
-            brush += "+opacity(%s)" % asy_number(opacity)
+            brush += f"+opacity({asy_number(opacity)})"
+        if dotfactor is not None:
+            brush += f"+{dotfactor}"
         result.append(brush)
     elif is_face_element:
         result.append("nullpen")
     if edge_color is not None:
         pen, opacity = asy_color(edge_color)
         if opacity != 1:
-            pen += "+opacity(%s)" % asy_number(opacity)
+            pen += f"+opacity({asy_number(opacity)})"
         if stroke_width is not None:
-            pen += "+linewidth(%s)" % asy_number(stroke_width)
+            pen += f"+linewidth({asy_number(stroke_width)})"
         result.append(pen)
     elif is_face_element:
         result.append("nullpen")
-    return ", ".join(result)
+
+    pen_str = ", ".join(result)
+    # print(pen_str)
+    return pen_str
 
 
 def asy_number(value) -> str:

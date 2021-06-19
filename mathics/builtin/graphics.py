@@ -51,6 +51,8 @@ GRAPHICS_OPTIONS = {
     "$OptionSyntax": "Ignore",
 }
 
+# faction of point relative canvas width
+DEFAULT_POINT_FACTOR = 0.005
 
 class CoordinatesError(BoxConstructError):
     pass
@@ -1015,7 +1017,7 @@ class PointSize(_Size):
         if self.graphics.view_width is None:
             self.graphics.view_width = 400
         if self.value is None:
-            self.value = 0.005
+            self.value = DEFAULT_POINT_FACTOR
         return self.graphics.view_width * self.value
 
 
@@ -1333,7 +1335,7 @@ class PointBox(_Polyline):
         # Handle PointSize in a hacky way for now.
         point_size, _ = style.get_style(PointSize, face_element=False)
         if point_size is None:
-            point_size = PointSize(self.graphics, value=0.005)
+            point_size = PointSize(self.graphics, value=DEFAULT_POINT_FACTOR)
 
         # FIXME: we don't have graphics options. Until we do, we'll
         # just assume an image width of 400
