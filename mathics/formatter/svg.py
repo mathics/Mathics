@@ -251,7 +251,8 @@ def inset_box(self, **options)->str:
     SVG Formatting for boxing an Inset in a graphic.
     """
     x, y = self.pos.pos()
-    if options.get("offset", None):
+    offset = options.get("offset", None)
+    if offset is not None:
         x = x + offset[0]
         y = y + offset[1]
 
@@ -379,7 +380,8 @@ def rectanglebox(self, **options):
     ymin = min(y1, y2)
     w = max(x1, x2) - xmin
     h = max(y1, y2) - ymin
-    if options.get("offset", None):
+    offset = options.get("offset", None)
+    if offset is not None:
         x1, x2 = x1 + offset[0], x2 + offset[0]
         y1, y2 = y1 + offset[1], y2 + offset[1]
     style = create_css(self.edge_color, self.face_color, line_width)
