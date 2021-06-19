@@ -268,7 +268,7 @@ def inset_box(self, **options)->str:
         )
         text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
         # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
-        text_style_opts = "text-anchor:end; dominant-baseline:middle;"
+        text_style_opts = "text-anchor:end; dominant-baseline:hanging;"
         content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
         font_size = f'''font-size="{options.get("point_size", "10px")}"'''
         svg = f'<text {text_pos_opts} {font_size} style="{text_style_opts} {css_style}">{content}</text>'
