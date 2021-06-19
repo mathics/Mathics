@@ -3005,7 +3005,7 @@ clip(%s);
                                 elements, pos=p_origin(x), d=p_self0(-tick_label_d)
                             ),
                             opos=p_self0(1),
-                            opacity=0.5,
+                            opacity=1.0,
                         )
                     )
                 for x in ticks_small:
