@@ -10,6 +10,7 @@ from mathics.builtin.graphics import (
     _ArcBox,
     ArrowBox,
     BezierCurveBox,
+    DEFAULT_POINT_FACTOR,
     FilledCurveBox,
     GraphicsBox,
     GraphicsElements,
@@ -302,7 +303,7 @@ add_conversion_fn(LineBox, line_box)
 def pointbox(self, **options)->str:
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
-        point_size = PointSize(self.graphics, value=0.005)
+        point_size = PointSize(self.graphics, value= DEFAULT_POINT_FACTOR)
     size = point_size.get_absolute_size()
 
     style = create_css(

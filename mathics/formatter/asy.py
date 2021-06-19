@@ -5,12 +5,11 @@ Format a Mathics object as an Aymptote string
 """
 
 from mathics.builtin.graphics import (
-    _Color,
     _ArcBox,
     ArrowBox,
     BezierCurveBox,
+    DEFAULT_POINT_FACTOR,
     FilledCurveBox,
-    GraphicsBox,
     GraphicsElements,
     InsetBox,
     LineBox,
@@ -22,6 +21,8 @@ from mathics.builtin.graphics import (
     _RoundBox,
 )
 
+INVERSE_POINT_FACTOR = 1 / DEFAULT_POINT_FACTOR
+
 from mathics.builtin.drawing.graphics3d import (
     Graphics3DElements,
     Line3DBox,
@@ -31,8 +32,7 @@ from mathics.builtin.drawing.graphics3d import (
 )
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
-from mathics.formatter.asy_fns import asy_bezier, asy_color as _color, asy_create_pens, asy_number
-
+from mathics.formatter.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number
 
 class _ASYTransform:
     _template = """
@@ -252,21 +252,20 @@ add_conversion_fn(Point3DBox)
 
 def pointbox(self, **options) -> str:
 
-    # Figure out absolute point size
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
-        point_size = PointSize(self.graphics, value=0.005)
+        point_size = PointSize(self.graphics, value=DEFAULT_POINT_FACTOR)
 
-    absolute_point_size = point_size.get_absolute_size()
-
-    pen = asy_create_pens(face_color=self.face_color, is_face_element=False)
+    # We'll use the heuristic that the default line width is 1 should correspond
+    # to the DEFAULT_POINT_FACTOR
+    dotfactor = INVERSE_POINT_FACTOR * point_size.value
+    pen = asy_create_pens(face_color=self.face_color, is_face_element=False,
+                          dotfactor=dotfactor)
 
     asy = ""
     for line in self.lines:
         for coords in line:
-            # FIXME: either adjust the pen for the new size or use circle.
             asy += "dot(%s, %s);" % (coords.pos(), pen)
-            # asy += f"Circle(%s, %s, {absolute_point_size}), black;" % (coords.pos())
 
     # print("### pointbox", asy)
     return asy
@@ -328,7 +327,7 @@ def polygonbox(self, **options):
 
             # ignore opacity
             colors.append(
-                ",".join([_color(color)[0] for color in self.vertex_colors[index]])
+                ",".join([asy_color(color)[0] for color in self.vertex_colors[index]])
             )
 
             edges.append(",".join(["0"] + ["1"] * (len(self.vertex_colors[index]) - 1)))
