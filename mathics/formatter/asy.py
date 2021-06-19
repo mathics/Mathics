@@ -168,7 +168,7 @@ def graphics_elements(self, **options) -> str:
     for element in self.elements:
         format_fn = lookup_method(element, "asy")
         if format_fn is None:
-            result.append(element.to_asy(offset))
+            result.append(element.to_asy(**options))
         else:
             result.append(format_fn(element))
 
@@ -240,8 +240,8 @@ def point3dbox(self, **options) -> str:
     pen = asy_create_pens(face_color=face_color, is_face_element=False)
 
     return "".join(
-        "path3 g={0}--cycle;dot(g, {1});".format(
-            "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line), pen
+        f"path3 g={0}--cycle;dot(g, {pen});".format(
+            "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line)
         )
         for line in self.lines
     )
@@ -343,7 +343,7 @@ def polygonbox(self, **options):
             path = (
                 "--".join(["(%.5g,%.5g)" % coords.pos() for coords in line]) + "--cycle"
             )
-            asy += "filldraw(%s, %s);" % (path, pens)
+            asy += "filldraw(%s, evenodd+%s);" % (path, pens)
 
     # print("### polygonbox", asy)
     return asy
