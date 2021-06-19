@@ -14,11 +14,11 @@ doc_tex_data.pcl:
 
 #: Build mathics PDF
 mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf doc_tex_data.pcl
-	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
+	$(LATEXMK) --verbose -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
 
 #: Build test PDF
 mathics-test.pdf: mathics-test.tex
-	$(LATEXMK) -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics-test
+	$(LATEXMK) --verbose -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics-test
 
 
 #: Generate logos used in the titlepage
