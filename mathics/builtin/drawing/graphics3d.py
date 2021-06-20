@@ -34,7 +34,7 @@ from mathics.builtin.graphics import (
     _GraphicsElements,
 )
 
-from mathics.formatter.asy_fns import asy_create_pens, asy_number
+from mathics.format.asy_fns import asy_create_pens, asy_number
 
 
 def coords3D(value):

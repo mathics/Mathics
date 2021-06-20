@@ -148,7 +148,7 @@ setup(
         "mathics.builtin.pympler",
         "mathics.builtin.specialfns",
         "mathics.doc",
-        "mathics.formatter",
+        "mathics.format",
     ],
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
