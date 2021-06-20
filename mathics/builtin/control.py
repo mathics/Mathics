@@ -754,24 +754,24 @@ class Continue(Builtin):
 class Catch(Builtin):
     """
     <dl>
-    <dt>'Catch[`expr`]'
-        <dd> returns the argument of the first Throw generated in the evaluation of expr.
+      <dt>'Catch[$expr$]'
+      <dd> returns the argument of the first 'Throw' generated in the evaluation of $expr$.
 
-    <dt>'Catch[`expr`, `form`]'
-        <dd> returns value from the first Throw[`value`, `tag`] for which form matches `tag`.
+      <dt>'Catch[$expr$, $form$]'
+      <dd> returns value from the first 'Throw[$value$, $tag$]' for which $form$ matches $tag$.
 
-    <dt>'Catch[`expr`, `form`, `f`]'
-        <dd> returns the argument of the first `Throw` generated in the evaluation of `expr`.
+      <dt>'Catch[$expr$, $form$, $f$]'
+      <dd> returns $f$[$value$, $tag$].
     </dl>
 
-    Exit to the enclosing Catch as soon as Throw is evaluated:
+    Exit to the enclosing 'Catch' as soon as 'Throw' is evaluated:
     >> Catch[r; s; Throw[t]; u; v]
      = t
 
     Define a function that can "throw an exception":
     >> f[x_] := If[x > 12, Throw[overflow], x!]
 
-    The result of Catch is just what is thrown by Throw:
+    The result of 'Catch' is just what is thrown by 'Throw':
     >> Catch[f[1] + f[15]]
      = overflow
     >> Catch[f[1] + f[4]]
