@@ -70,6 +70,8 @@ class CompoundExpression(BinaryOperator):
     ## Issue 531
     #> z = Max[1, 1 + x]; x = 2; z
      = 3
+
+    #> Clear[x]; Clear[z]
     """
 
     operator = ";"
@@ -156,8 +158,8 @@ class Switch(Builtin):
      = y
     >> Switch[5, 1, x, 2, y]
      = Switch[5, 1, x, 2, y]
-    >> Switch[5, 1, x, 2, y, _, z]
-     = z
+    >> Switch[5, 1, x, 2, a, _, b]
+     = b
     >> Switch[2, 1]
      : Switch called with 2 arguments. Switch must be called with an odd number of arguments.
      = Switch[2, 1]
@@ -208,6 +210,8 @@ class Which(Builtin):
     >> f[x_] := Which[x < 0, -x, x == 0, 0, x > 0, x]
     >> f[-3]
      = 3
+
+    #> Clear[f]
 
     If no test yields 'True', 'Which' returns 'Null':
     >> Which[False, a]
@@ -667,6 +671,8 @@ class Return(Builtin):
     >> f[-1]
      = 0
 
+    #> Clear[f]
+
     >> Do[If[i > 3, Return[]]; Print[i], {i, 10}]
      | 1
      | 2
@@ -752,25 +758,26 @@ class Catch(Builtin):
         <dd> returns the argument of the first Throw generated in the evaluation of expr.
 
     <dt>'Catch[`expr`, `form`]'
-        <dd> returns value from the first Throw[`value`,`tag`] for which form matches `tag`.
+        <dd> returns value from the first Throw[`value`, `tag`] for which form matches `tag`.
 
-    <dt>'Catch[`expr`,`form`, `f`]'
+    <dt>'Catch[`expr`, `form`, `f`]'
         <dd> returns the argument of the first `Throw` generated in the evaluation of `expr`.
     </dl>
 
     Exit to the enclosing Catch as soon as Throw is evaluated:
-    << Catch[r; s; Throw[t]; u; v]
+    >> Catch[r; s; Throw[t]; u; v]
      = t
 
     Define a function that can "throw an exception":
-    << f[x_] := If[x > 12, Throw[overflow], x!]
-     = ...
-    The result of Catch is just what is thrown by Throw:
-    << Catch[f[1] + f[15]]
-     = overflow
-    << Catch[f[1]+f[4]]
-     = 24
+    >> f[x_] := If[x > 12, Throw[overflow], x!]
 
+    The result of Catch is just what is thrown by Throw:
+    >> Catch[f[1] + f[15]]
+     = overflow
+    >> Catch[f[1] + f[4]]
+     = 25
+
+    #> Clear[f]
     """
 
     attributes = ("HoldAll",)
@@ -808,16 +815,16 @@ class Throw(Builtin):
 
     <dt>'Catch[`value`, `tag`]'
         <dd> is caught only by `Catch[expr,form]`, where tag matches form.
-
     </dl>
 
-     Using Throw can affect the structure of what is returned by a function:
+    Using Throw can affect the structure of what is returned by a function:
 
-     << NestList[#^2 + 1 &, 1, 7]
-      = ...
-     << Catch[NestList[If[# > 1000, Throw[#], #^2 + 1] &, 1, 7]]
-      = 458330
-     << Throw[1]
+    >> NestList[#^2 + 1 &, 1, 7]
+     = ...
+    >> Catch[NestList[If[# > 1000, Throw[#], #^2 + 1] &, 1, 7]]
+     = 458330
+
+    X> Throw[1]
       = Null
     """
 
