@@ -7,6 +7,9 @@ from mathics.builtin.graphics import PointSize, RGBColor
 
 from mathics.builtin.drawing.graphics3d import (
     Graphics3DElements,
+)
+
+from mathics.builtin.box.graphics3d import (
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
