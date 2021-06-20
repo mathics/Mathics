@@ -2372,7 +2372,7 @@ class Range(Builtin):
         result = []
         while index <= imax:
             evaluation.check_stopped()
-            result.append(from_sympy(index))
+            result.append(index)
             index += di
         return Expression(SymbolList, *result)
 
