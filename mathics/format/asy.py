@@ -32,7 +32,7 @@ from mathics.builtin.drawing.graphics3d import (
 )
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
-from mathics.formatter.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number
+from mathics.format.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number
 
 class _ASYTransform:
     _template = """

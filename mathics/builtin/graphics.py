@@ -35,7 +35,7 @@ from mathics.core.expression import (
 from mathics.builtin.drawing.colors import convert as convert_color
 from mathics.core.formatter import lookup_method
 from mathics.core.numbers import machine_epsilon
-from mathics.formatter.asy_fns import asy_bezier, asy_color, asy_number
+from mathics.format.asy_fns import asy_bezier, asy_color, asy_number
 
 
 GRAPHICS_OPTIONS = {
