@@ -9,14 +9,15 @@ as a pipeline:
 3. It writes the LaTeX file containing the entire User Manual
 """
 
-import sys
-import re
-import pickle
 import os
+import pickle
+import re
+import sys
+
 from argparse import ArgumentParser
 from datetime import datetime
-import mathics
 
+import mathics
 
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation, Output
@@ -206,8 +207,8 @@ def create_output(tests, output, format="tex"):
         }
 
 
-def test_sections(
-    sections: set,
+def test_chapters(
+    chapters: set,
     quiet=False,
     stop_on_failure=False,
     generate_output=False,
@@ -215,11 +216,10 @@ def test_sections(
 ):
     failed = 0
     index = 0
-    print("Testing section(s): %s" % ", ".join(sections))
-    sections |= {"$" + s for s in sections}
+    print(f'Testing chapter(s): {", ".join(chapters)}')
     output_tex = load_doc_data() if reload else {}
     for tests in documentation.get_tests():
-        if tests.section in sections:
+        if tests.chapter in chapters:
             for test in tests.tests:
                 if test.ignore:
                     continue
@@ -238,8 +238,8 @@ def test_sections(
         print_and_log("OK")
 
 
-def test_chapters(
-    chapters: set,
+def test_sections(
+    sections: set,
     quiet=False,
     stop_on_failure=False,
     generate_output=False,
@@ -247,10 +247,11 @@ def test_chapters(
 ):
     failed = 0
     index = 0
-    print("Testing chapter(s): %s" % ", ".join(chapters))
+    print(f'Testing section(s): {", ".join(sections)}')
+    sections |= {"$" + s for s in sections}
     output_tex = load_doc_data() if reload else {}
     for tests in documentation.get_tests():
-        if tests.chapter in chapters:
+        if tests.section in sections:
             for test in tests.tests:
                 if test.ignore:
                     continue
@@ -557,7 +558,7 @@ def main():
         elif args.doc_only:
             extract_doc_from_source(
                 quiet=args.quiet,
-                reload=False,
+                reload=args.reload,
             )
         else:
             excludes = set(args.exclude.split(","))

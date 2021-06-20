@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
-from .doc import MathicsMainDocumentation
+from mathics.doc.common_doc import MathicsMainDocumentation
 
 documentation = MathicsMainDocumentation()
