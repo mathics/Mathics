@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import ctypes
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.builtin.base import Builtin
 from mathics.builtin.box.compilation import CompiledCodeBox
 from mathics.core.evaluation import Evaluation
