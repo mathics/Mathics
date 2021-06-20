@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """A module which extracts LaTeX from documentation/*.mdoc and from Mathics modules,
-and has common routines used by Django.
+and has common documentation routines used by Django.
 
 It also extracts doctests as well.
 
@@ -10,12 +10,11 @@ See also `../docpipeline.py` for a command-line interface that calls this.
 
 FIXME: Note too much of this code is duplicated in Django. Code should
 be moved for both to a separate package.  Also, this code should be
-replaced by sphinx and autodoc.
+replaced by Sphinx and autodoc.
 """
 
 import re
 from os import getenv, listdir
-import pickle
 import importlib
 import pkgutil
 
@@ -116,6 +115,7 @@ SPECIAL_COMMANDS = {
     "Wolfram": (r"<em>Wolfram</em>", r"\emph{Wolfram}"),
     "skip": (r"<br /><br />", r"\bigskip"),
 }
+
 
 def get_submodule_names(object):
     modpkgs = []
@@ -252,6 +252,7 @@ def escape_latex(text):
 
     text = LIST_RE.sub(repl_list, text)
 
+    # FIXME: get this from MathicsScanner
     text = _replace_all(
         text,
         [
@@ -655,9 +656,18 @@ class MathicsMainDocumentation(Documentation):
 
             builtin_part = DocPart(self, title, is_reference=start)
             for module in modules:
+                # FIXME add an additional mechanism in the module
+                # to allow a docstring and indicate it is not to go in the
+                # user manual
+                # Note: this code assumes that all chapters with sections/doctests in them
+                # are documented (as it should be)!
+                if module.__doc__ is None:
+                    continue
                 title, text = get_module_doc(module)
                 chapter = DocChapter(builtin_part, title, Doc(text))
                 builtins = builtins_by_module[module.__name__]
+                # FIXME: some Box routines, like RowBox *are*
+                # documented
                 section_names = [
                     builtin
                     for builtin in builtins
@@ -680,10 +690,15 @@ class MathicsMainDocumentation(Documentation):
                             installed=installed,
                         )
                     else:
+                        # FIXME add an additional mechanism in the module
+                        # to allow a docstring and indicate it is not to go in the
+                        # user manual
+                        if instance.__doc__ is None:
+                            continue
                         section = DocSection(
                             chapter,
                             strip_system_prefix(instance.get_name()),
-                            instance.__doc__ or "",
+                            instance.__doc__,
                             operator=instance.get_operator(),
                             installed=installed,
                         )

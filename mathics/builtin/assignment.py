@@ -999,7 +999,7 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
         bio = builtins.get(definition.name)
 
     if bio is not None:
-        from mathics.doc.doc import Doc
+        from mathics.doc.common_doc import Doc
 
         docstr = bio.builtin.__class__.__doc__
         if docstr is None:
