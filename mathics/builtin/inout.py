@@ -12,11 +12,15 @@ from typing import Any
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+from mathics.builtin.box.inout import (
+    RowBox
+)
+
 from mathics.builtin.base import (
-    Builtin,
-    BinaryOperator,
     BoxConstruct,
     BoxConstructError,
+    Builtin,
+    BinaryOperator,
     Operator,
 )
 from mathics.builtin.tensors import get_dimensions
@@ -123,7 +127,6 @@ def make_boxes_infix(leaves, ops, precedence, grouping, form):
 def real_to_s_exp(expr, n):
     if expr.is_zero:
         s = "0"
-        sign_prefix = ""
         if expr.is_machine_precision():
             exp = 0
         else:
@@ -613,16 +616,6 @@ class ToBoxes(Builtin):
         return boxes
 
 
-class RowBox(Builtin):
-    """
-    <dl>
-    <dt>'RowBox[{...}]'
-        <dd>is a box construct that represents a sequence of boxes
-        arranged in a horizontal row.
-    </dl>
-    """
-
-
 class BoxData(Builtin):
     """
     <dl>
@@ -641,77 +634,6 @@ class TextData(Builtin):
     cell.
     </dl>
     """
-
-
-class TooltipBox(Builtin):
-    """
-    <dl>
-    <dt>'TooltipBox[{...}]'
-        <dd>undocumented...
-    </dl>
-    """
-
-
-class InterpretationBox(Builtin):
-    """
-    <dl>
-    <dt>'InterpretationBox[{...}]'
-        <dd> is a low-level box construct that displays as
-    boxes but is interpreted on input as expr.
-    </dl>
-    """
-
-    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
-
-
-class StyleBox(Builtin):
-    """
-    <dl>
-    <dt>'StyleBox[boxes, options]'
-        <dd> is a low-level representation of boxes
-     to be shown with the specified option settings.
-    <dt>'StyleBox[boxes, style]'
-        <dd> uses the option setting for the specified style in
-    the current notebook.
-    </dl>
-    """
-
-    attributes = ("Protected", "ReadProtected")
-
-
-class ButtonBox(Builtin):
-    """
-    <dl>
-    <dt>'ButtonBox[$boxes$]'
-        <dd> is a low-level box construct that represents a button in a
-    notebook expression.
-    </dl>
-    """
-
-    attributes = ("Protected", "ReadProtected")
-
-
-class TagBox(Builtin):
-    """
-    <dl>
-    <dt>'TagBox[boxes, tag]'
-        <dd> is a low-level box construct that displays as
-    boxes but is interpreted on input as expr
-    </dl>
-    """
-
-    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
-
-
-class TemplateBox(Builtin):
-    """
-    <dl>
-    <dt>'TemplateBox[{$box_1$, $box_2$,...}, tag]'
-        <dd>is a low-level box structure that parameterizes the display and evaluation     of the boxes $box_i$ .
-    </dl>
-    """
-
-    attributes = ("HoldAllComplete", "Protected", "ReadProtected")
 
 
 class Row(Builtin):
@@ -740,12 +662,15 @@ class Row(Builtin):
             return RowBox(Expression(SymbolList, *result))
 
 
-def is_constant(list):
+# Right now this seems to be used only in GridBox.
+def is_constant_list(list):
     if list:
         return all(item == list[0] for item in list[1:])
     return True
 
 
+# TODO: Inheritance of options["ColumnAlignments"] prevents us from
+# putting this in mathics.builtin.box. Figure out what's up here.
 class GridBox(BoxConstruct):
     r"""
     <dl>
@@ -780,7 +705,7 @@ class GridBox(BoxConstruct):
             if not all(leaf.has_form("List", None) for leaf in expr.leaves):
                 raise BoxConstructError
         items = [leaf.leaves for leaf in expr.leaves]
-        if not is_constant([len(row) for row in items]):
+        if not is_constant_list([len(row) for row in items]):
             raise BoxConstructError
         return items, options
 
@@ -832,18 +757,15 @@ class GridBox(BoxConstruct):
             # invalid column alignment
             raise BoxConstructError
         joined_attrs = " ".join(
-            '{0}="{1}"'.format(name, value) for name, value in attrs.items()
+            f'{name}="{value}"' for name, value in attrs.items()
         )
-        result = "<mtable {0}>\n".format(joined_attrs)
+        result = f"<mtable {joined_attrs}>\n"
         new_box_options = box_options.copy()
         new_box_options["inside_list"] = True
         for row in items:
             result += "<mtr>"
             for item in row:
-                result += "<mtd {0}>{1}</mtd>".format(
-                    joined_attrs,
-                    item.evaluate(evaluation).boxes_to_mathml(**new_box_options),
-                )
+                result += f"<mtd {joined_attrs}>{item.evaluate(evaluation).boxes_to_mathml(**new_box_options)}</mtd>"
             result += "</mtr>\n"
         result += "</mtable>"
         return result
@@ -1080,10 +1002,6 @@ class Superscript(Builtin):
     }
 
 
-class SuperscriptBox(Builtin):
-    pass
-
-
 class Subscript(Builtin):
     """
     <dl>
@@ -1104,10 +1022,6 @@ class Subscript(Builtin):
         )
 
 
-class SubscriptBox(Builtin):
-    pass
-
-
 class Subsuperscript(Builtin):
     """
     <dl>
@@ -1125,10 +1039,6 @@ class Subsuperscript(Builtin):
             "SubsuperscriptBox[MakeBoxes[x, f], MakeBoxes[y, f], " "MakeBoxes[z, f]]"
         )
     }
-
-
-class SubsuperscriptBox(Builtin):
-    pass
 
 
 class Postfix(BinaryOperator):

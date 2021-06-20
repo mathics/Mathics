@@ -5,22 +5,25 @@ import json
 Format a Mathics object as an SVG string
 """
 
-from mathics.builtin.drawing.graphics3d import Graphics3DElements
-from mathics.builtin.graphics import (
+from mathics.builtin.box.graphics import (
     _ArcBox,
     ArrowBox,
     BezierCurveBox,
-    DEFAULT_POINT_FACTOR,
     FilledCurveBox,
     GraphicsBox,
-    GraphicsElements,
     InsetBox,
     LineBox,
     PointBox,
-    PointSize,
     PolygonBox,
     RectangleBox,
     _RoundBox,
+)
+
+from mathics.builtin.drawing.graphics3d import Graphics3DElements
+from mathics.builtin.graphics import (
+    DEFAULT_POINT_FACTOR,
+    GraphicsElements,
+    PointSize,
     _svg_bezier,
 )
 
@@ -268,7 +271,7 @@ def inset_box(self, **options)->str:
         )
         text_pos_opts = f'x="{x}" y="{y}" ox="{self.opos[0]}" oy="{self.opos[1]}"'
         # FIXME: don't hard code text_style_opts, but allow these to be adjustable.
-        text_style_opts = "text-anchor:end; dominant-baseline:hanging;"
+        text_style_opts = "text-anchor:end; dominant-baseline:middle;"
         content = self.content.boxes_to_text(evaluation=self.graphics.evaluation)
         font_size = f'''font-size="{options.get("point_size", "10px")}"'''
         svg = f'<text {text_pos_opts} {font_size} style="{text_style_opts} {css_style}">{content}</text>'

@@ -1,35 +1,39 @@
 # -*- coding: utf-8 -*-
 
 """
-Format a Mathics object as an Aymptote string
+Format a Mathics object as an Asymptote string
 """
 
-from mathics.builtin.graphics import (
+from mathics.builtin.box.graphics import (
     _ArcBox,
     ArrowBox,
     BezierCurveBox,
-    DEFAULT_POINT_FACTOR,
     FilledCurveBox,
-    GraphicsElements,
     InsetBox,
     LineBox,
     PointBox,
-    PointSize,
     PolygonBox,
-    RGBColor,
     RectangleBox,
     _RoundBox,
 )
 
-INVERSE_POINT_FACTOR = 1 / DEFAULT_POINT_FACTOR
-
-from mathics.builtin.drawing.graphics3d import (
+from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
     Sphere3DBox,
 )
+
+from mathics.builtin.graphics import (
+    DEFAULT_POINT_FACTOR,
+    GraphicsElements,
+    PointSize,
+    RGBColor,
+)
+
+INVERSE_POINT_FACTOR = 1 / DEFAULT_POINT_FACTOR
+
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
 from mathics.format.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number

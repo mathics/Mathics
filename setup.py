@@ -138,6 +138,7 @@ setup(
         "mathics.core",
         "mathics.core.parser",
         "mathics.builtin",
+        "mathics.builtin.box",
         "mathics.builtin.compile",
         "mathics.builtin.drawing",
         "mathics.builtin.fileformats",

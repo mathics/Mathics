@@ -14,6 +14,7 @@ from heapq import heappush, heappop
 from typing import Any, Callable, List
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
+
 from mathics.builtin.base import (
     BinaryOperator,
     Builtin,
@@ -1863,7 +1864,8 @@ class ToString(Builtin):
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
-
+# This isn't your normal Box class. We'll keep this here rather than
+# in mathics.builtin.box for now.
 class InterpretedBox(PrefixOperator):
     r"""
     <dl>

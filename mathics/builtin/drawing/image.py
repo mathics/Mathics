@@ -5,7 +5,9 @@ Image[] and image related functions.
 Note that you (currently) need scikit-image installed in order for this module to work.
 """
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin, AtomBuiltin, Test, BoxConstruct, String
+
+from mathics.builtin.base import Builtin, AtomBuiltin, Test, String
+from mathics.builtin.box.image import ImageBox
 from mathics.core.expression import (
     Atom,
     Expression,
@@ -2117,24 +2119,6 @@ class ImageQ(_ImageTest):
 
     def test(self, expr):
         return isinstance(expr, Image)
-
-
-class ImageBox(BoxConstruct):
-    def boxes_to_text(self, leaves=None, **options):
-        return "-Image-"
-
-    def boxes_to_mathml(self, leaves=None, **options):
-        if leaves is None:
-            leaves = self._leaves
-        # see https://tools.ietf.org/html/rfc2397
-        return '<mglyph src="%s" width="%dpx" height="%dpx" />' % (
-            leaves[0].get_string_value(),
-            leaves[1].get_int_value(),
-            leaves[2].get_int_value(),
-        )
-
-    def boxes_to_tex(self, leaves=None, **options):
-        return "-Image-"
 
 
 class Image(Atom):

@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import ctypes
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin, BoxConstruct
+
+from mathics.builtin.base import Builtin
+from mathics.builtin.box.compilation import CompiledCodeBox
 from mathics.core.evaluation import Evaluation
 from mathics.core.expression import (
     Atom,
@@ -201,27 +205,6 @@ class CompiledCode(Atom):
 
     def atom_to_boxes(self, f, evaluation):
         return CompiledCodeBox(String(self.__str__()), evaluation=evaluation)
-
-
-class CompiledCodeBox(BoxConstruct):
-    """
-    Used internally by <i>CompileCode[]</i>.
-    """
-
-    def boxes_to_text(self, leaves=None, **options):
-        if leaves is None:
-            leaves = self._leaves
-        return leaves[0].value
-
-    def boxes_to_mathml(self, leaves=None, **options):
-        if leaves is None:
-            leaves = self._leaves
-        return leaves[0].value
-
-    def boxes_to_tex(self, leaves=None, **options):
-        if leaves is None:
-            leaves = self._leaves
-        return leaves[0].value
 
 
 class CompiledFunction(Builtin):
