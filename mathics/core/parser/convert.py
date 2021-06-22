@@ -34,17 +34,17 @@ class GenericConverter(object):
         s = s.replace("\\t", "\t")
         return s
 
-    def convert_Symbol(self, node):
+    def convert_Symbol(self, node: Symbol):
         if node.context is not None:
             return "Symbol", node.context + "`" + node.value
         else:
             return "Lookup", node.value
 
-    def convert_String(self, node):
+    def convert_String(self, node: String):
         value = self.string_escape(node.value)
         return "String", value
 
-    def convert_Filename(self, node):
+    def convert_Filename(self, node: Filename):
         s = node.value
         if s.startswith('"'):
             assert s.endswith('"')
@@ -53,7 +53,7 @@ class GenericConverter(object):
         s = s.replace("\\", "\\\\")
         return "String", s
 
-    def convert_Number(self, node):
+    def convert_Number(self, node: Number):
         s = node.value
         sign = node.sign
         base = node.base

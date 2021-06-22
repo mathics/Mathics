@@ -57,7 +57,7 @@ class Atom(Node):
 
 
 class Number(Atom):
-    def __init__(self, value, sign=1, base=10, suffix=None, exp=0):
+    def __init__(self, value: str, sign: int = 1, base: int = 10, suffix=None, exp: int = 0):
         assert isinstance(value, str)
         assert sign in (-1, 1)
         assert isinstance(base, int)
@@ -88,7 +88,7 @@ class Number(Atom):
 
 
 class Symbol(Atom):
-    def __init__(self, value, context="System"):
+    def __init__(self, value: str, context="System"):
         self.context = context
         self.value = value
         self.children = []
