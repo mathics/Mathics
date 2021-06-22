@@ -2958,8 +2958,8 @@ class String(Atom):
     def get_string_value(self) -> str:
         return self.value
 
-    def to_sympy(self, **kwargs):
-        return None
+    def to_sympy(self, **kwargs) -> str:
+        return self.value
 
     def to_python(self, *args, **kwargs) -> str:
         if kwargs.get("string_quotes", True):
