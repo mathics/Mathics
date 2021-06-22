@@ -57,7 +57,7 @@ class SympyConvert(unittest.TestCase):
             sympy.Integer(-1) + sympy.I)
 
     def testString(self):
-        self.assertIsNone(mathics.String("abc").to_sympy())
+        assert mathics.String("abc").to_sympy() == "abc"
 
     def testAdd(self):
         self.compare(
