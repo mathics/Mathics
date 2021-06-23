@@ -17,6 +17,20 @@ from mathics.core.numbers import get_type, dps, prec, min_prec, machine_precisio
 from mathics.core.convert import sympy_symbol_prefix, SympyExpression
 import base64
 
+# In the future, this function should be replaced by one
+# handling different encodings.
+from mathics_scanner.characters import replace_wl_with_plain_text
+
+
+def wl_strings_to_specific_encoding(string, enc=None):
+    """
+    This function takes a string defined in the default
+    unicode WL encoding, and translate it to the corresponding
+    codepage. By now it is just an envelopment for
+    replace_wl_with_plain_text
+    """
+    return replace_wl_with_plain_text(string, enc in ("UTF8", "UTF-8"))
+
 # Imperical number that seems to work.
 # We have to be able to match mpmath values with sympy values
 COMPARE_PREC = 50
@@ -1976,7 +1990,8 @@ class Symbol(Atom):
         return Symbol(self.name)
 
     def boxes_to_text(self, **options) -> str:
-        return str(self.name)
+        encoding = options.get("encoding", "UTF-8")
+        return wl_strings_to_specific_encoding(str(self.name), encoding)
 
     def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
@@ -2824,7 +2839,8 @@ class String(Atom):
         ):
             value = value[1:-1]
 
-        return value
+        encoding = options.get("encoding", "UTF-8")
+        return wl_strings_to_specific_encoding(value, encoding)
 
     def boxes_to_mathml(self, show_string_characters=False, **options) -> str:
         from mathics.core.parser import is_symbol_name

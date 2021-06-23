@@ -1844,7 +1844,7 @@ class ToString(Builtin):
     """
 
     options = {
-        "CharacterEncoding": '"Unicode"',
+        "CharacterEncoding": "$SystemCharacterEncoding",
         "FormatType": "OutputForm",
         "NumberMarks": "$NumberMarks",
         "PageHeight": "Infinity",
@@ -1860,6 +1860,9 @@ class ToString(Builtin):
     def apply_form(self, value, form, evaluation, options):
         "ToString[value_, form_, OptionsPattern[ToString]]"
         encoding = options["System`CharacterEncoding"]
+        if not isinstance(encoding, String) or encoding.value not in _encodings:
+            evaluation.message("General", "charcode", encoding)
+            encoding = Symbol("$SystemCharacterEncoding")
         text = value.format(evaluation, form.get_name(), encoding=encoding)
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
