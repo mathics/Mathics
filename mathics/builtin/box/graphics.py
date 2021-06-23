@@ -11,19 +11,17 @@ from mathics.builtin.base import (
     BoxConstructError,
 )
 
+from mathics.builtin.drawing.colors import _Color, ColorError, RGBColor
+from mathics.builtin.drawing.graphics_internals import _GraphicsElement, GLOBALS
+
 from mathics.builtin.graphics import (
     Arrowheads,
-    ColorError,
     Coords,
     DEFAULT_POINT_FACTOR,
-    GLOBALS,
     Graphics,
     GraphicsElements,
     PointSize,
-    RGBColor,
     _BezierCurve,
-    _Color,
-    _GraphicsElement,
     _Line,
     _Polyline,
     _data_and_options,
@@ -1176,20 +1174,19 @@ class RegularPolygonBox(PolygonBox):
         super(RegularPolygonBox, self).init(graphics, style, new_item)
 
 
-GLOBALS_GRAPHICS = system_symbols_dict(
+# FIXME: GLOBALS is a horrible name.
+GLOBALS.update(
     {
-        "RectangleBox": RectangleBox,
-        "DiskBox": DiskBox,
-        "LineBox": LineBox,
-        "BezierCurveBox": BezierCurveBox,
-        "FilledCurveBox": FilledCurveBox,
-        "ArrowBox": ArrowBox,
-        "CircleBox": CircleBox,
-        "PolygonBox": PolygonBox,
-        "RegularPolygonBox": RegularPolygonBox,
-        "PointBox": PointBox,
-        "InsetBox": InsetBox,
+        "System`RectangleBox": RectangleBox,
+        "System`DiskBox": DiskBox,
+        "System`LineBox": LineBox,
+        "System`BezierCurveBox": BezierCurveBox,
+        "System`FilledCurveBox": FilledCurveBox,
+        "System`ArrowBox": ArrowBox,
+        "System`CircleBox": CircleBox,
+        "System`PolygonBox": PolygonBox,
+        "System`RegularPolygonBox": RegularPolygonBox,
+        "System`PointBox": PointBox,
+        "System`InsetBox": InsetBox,
     }
 )
-
-GLOBALS.update(GLOBALS_GRAPHICS)

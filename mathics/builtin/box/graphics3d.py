@@ -10,23 +10,16 @@ import numbers
 from mathics.builtin.base import BoxConstructError
 from mathics.builtin.box.graphics import GraphicsBox, LineBox, PointBox, PolygonBox
 
+from mathics.builtin.drawing.colors import _Color, RGBColor
+from mathics.builtin.drawing.graphics_internals import GLOBALS3D
 from mathics.builtin.drawing.graphics3d import (
     _Graphics3DElement,
     Coords3D,
     Graphics3DElements,
 )
 
-from mathics.core.expression import (
-    Symbol,
-    system_symbols_dict,
-)
-
-from mathics.builtin.graphics import (
-    RGBColor,
-    _Color,
-    get_class,
-)
-
+from mathics.builtin.drawing.graphics_internals import get_class
+from mathics.core.expression import Symbol
 from mathics.core.formatter import lookup_method
 from mathics.format.asy_fns import asy_create_pens, asy_number
 
@@ -809,11 +802,12 @@ class Sphere3DBox(_Graphics3DElement):
         pass
 
 
-GLOBALS3D = system_symbols_dict(
+# FIXME: GLOBALS3D is a horrible name.
+GLOBALS3D.update(
     {
-        "Polygon3DBox": Polygon3DBox,
-        "Line3DBox": Line3DBox,
-        "Point3DBox": Point3DBox,
-        "Sphere3DBox": Sphere3DBox,
+        "System`Polygon3DBox": Polygon3DBox,
+        "System`Line3DBox": Line3DBox,
+        "System`Point3DBox": Point3DBox,
+        "System`Sphere3DBox": Sphere3DBox,
     }
 )

@@ -9,7 +9,7 @@ import unittest
 from random import random
 
 
-import mathics.builtin.drawing.colors as colors
+import mathics.builtin.drawing.color_internals as colors
 from mathics.builtin.numpy_utils import array, stacked, vectorize
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
@@ -259,7 +259,7 @@ class ColorTest(unittest.TestCase):
                         c = components
                     else:
                         c = components[:3]
-                    result = colors.convert(c, src, dst)
+                    result = colors.convert_color(c, src, dst)
                     res_name = _color_string(src, c)
                     dst_name = _color_string(dst, result)
                     exp_name = _color_string(dst, expected)
