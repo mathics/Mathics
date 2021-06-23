@@ -50,6 +50,18 @@ using SymPy {sympy}, mpmath {mpmath}, numpy {numpy}""".format(
 if "cython" in version_info:
     version_string += f", cython {version_info['cython']}"
 
+
+def load_default_settings_files(definitions, load_cli_settings: bool = True):
+    import os.path as osp
+    from mathics.core.definitions import autoload_files
+
+    root_dir = osp.realpath(osp.dirname(__file__))
+
+    autoload_files(definitions, root_dir, "autoload", False)
+    if load_cli_settings:
+        autoload_files(definitions, root_dir, "autoload-cli", False)
+
+
 license_string = """\
 Copyright (C) 2011-2021 The Mathics Team.
 This program comes with ABSOLUTELY NO WARRANTY.

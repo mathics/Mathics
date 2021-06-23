@@ -41,7 +41,12 @@ def valuesname(name) -> str:
         return name[7:-6].lower()
 
 
-def autoload_files(defs, root_dir_path: str, autoload_dir):
+def autoload_files(
+    defs,
+    root_dir_path: str,
+    autoload_dir: str,
+    block_global_definitions: bool = True
+):
     from mathics.core.evaluation import Evaluation
 
     # Load symbols from the autoload folder
@@ -49,17 +54,18 @@ def autoload_files(defs, root_dir_path: str, autoload_dir):
         for path in [os.path.join(root, f) for f in files if f.endswith(".m")]:
             Expression("Get", String(path)).evaluate(Evaluation(defs))
 
-    # Move any user definitions created by autoloaded files to
-    # builtins, and clear out the user definitions list. This
-    # means that any autoloaded definitions become shared
-    # between users and no longer disappear after a Quit[].
-    #
-    # Autoloads that accidentally define a name in Global`
-    # could cause confusion, so check for this.
-    #
-    for name in defs.user:
-        if name.startswith("Global`"):
-            raise ValueError("autoload defined %s." % name)
+    if block_global_definitions:
+        # Move any user definitions created by autoloaded files to
+        # builtins, and clear out the user definitions list. This
+        # means that any autoloaded definitions become shared
+        # between users and no longer disappear after a Quit[].
+        #
+        # Autoloads that accidentally define a name in Global`
+        # could cause confusion, so check for this.
+
+        for name in defs.user:
+            if name.startswith("Global`"):
+                raise ValueError("autoload defined %s." % name)
 
 
 class PyMathicsLoadException(Exception):
