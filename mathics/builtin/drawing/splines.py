@@ -53,6 +53,10 @@ class BezierFunction(Builtin):
      =
 
     ## Graphics[{Red, Point[pts], Green, Line[pts]}, Axes -> True]
+
+    Plotting the Bézier Function accoss a Bézier curve:
+    >> Module[{p={{0, 0},{1, 1},{2, -1},{4, 0}}}, Graphics[{BezierCurve[p], Red, Point[Table[BezierFunction[p][x], {x, 0, 1, 0.1}]]}]]
+     = -Graphics-
     """
     rules = {
         "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
