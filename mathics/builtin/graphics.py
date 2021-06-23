@@ -1254,7 +1254,25 @@ def _svg_bezier(*segments):
             yield s
 
 
+# For a more generic implementation in Python using scipi,
+# sympy and numpy, see:
+#  https://github.com/Tarheel-Formal-Methods/kaa
 class BernsteinBasis(Builtin):
+    """
+    <dl>
+      <dt>'BernsteinBasis[$d$,$n$,$x$]'
+      <dd>returns the $n$th Bernstein basis of degree $d$ at $x$.
+    </dl>
+
+    A Bernstein polynomial is a polynomial that is a linear combination of Bernstein basis polynomials.
+
+    With the advent of computer graphics, Bernstein polynomials, restricted to the interval [0, 1], became important in the form of Bézier curves.
+
+    'BernsteinBasis[d,n,x]' equals 'Binomial[d, n] x^n (1-x)^(d-n)' in the interval [0, 1] and zero elsewhere.
+
+    >> BernsteinBasis[4, 3, 0.5]
+     = 0.25
+    """
     attributes = ("Listable", "NumericFunction", "Protected")
     rules = {
         "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
