@@ -1254,54 +1254,6 @@ def _svg_bezier(*segments):
             yield s
 
 
-# For a more generic implementation in Python using scipi,
-# sympy and numpy, see:
-#  https://github.com/Tarheel-Formal-Methods/kaa
-class BernsteinBasis(Builtin):
-    """
-    <dl>
-      <dt>'BernsteinBasis[$d$,$n$,$x$]'
-      <dd>returns the $n$th Bernstein basis of degree $d$ at $x$.
-    </dl>
-
-    A Bernstein polynomial is a polynomial that is a linear combination of Bernstein basis polynomials.
-
-    With the advent of computer graphics, Bernstein polynomials, restricted to the interval [0, 1], became important in the form of Bézier curves.
-
-    'BernsteinBasis[d,n,x]' equals 'Binomial[d, n] x^n (1-x)^(d-n)' in the interval [0, 1] and zero elsewhere.
-
-    >> BernsteinBasis[4, 3, 0.5]
-     = 0.25
-    """
-    attributes = ("Listable", "NumericFunction", "Protected")
-    rules = {
-        "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
-    }
-
-
-class BezierFunction(Builtin):
-    rules = {
-        "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
-    }
-
-
-class BezierCurve(Builtin):
-    """
-    <dl>
-    <dt>'BezierCurve[{$p1$, $p2$ ...}]'
-        <dd>represents a bezier curve with $p1$, $p2$ as control points.
-    </dl>
-
-    >> Graphics[BezierCurve[{{0, 0},{1, 1},{2, -1},{3, 0}}]]
-     = -Graphics-
-
-    >> Module[{p={{0, 0},{1, 1},{2, -1},{4, 0}}}, Graphics[{BezierCurve[p], Red, Point[Table[BezierFunction[p][x], {x, 0, 1, 0.1}]]}]]
-     = -Graphics-
-    """
-
-    options = {"SplineDegree": "3"}
-
-
 class FilledCurve(Builtin):
     """
     <dl>
