@@ -13,12 +13,12 @@ from mathics.core.expression import (
 )
 
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
+from mathics.builtin.drawing.colors import RGBColor
 from mathics.builtin.graphics import (
+    _GraphicsElements,
     CoordinatesError,
     Graphics,
-    RGBColor,
     Style,
-    _GraphicsElements,
 )
 
 

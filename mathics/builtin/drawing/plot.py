@@ -64,7 +64,7 @@ def gradient_palette(color_function, n, evaluation):  # always returns RGB value
     if len(colors.leaves) != n:
         return
 
-    from mathics.builtin.graphics import expression_to_color, ColorError
+    from mathics.builtin.drawing.colors import expression_to_color, ColorError
 
     try:
         objects = [expression_to_color(x) for x in colors.leaves]

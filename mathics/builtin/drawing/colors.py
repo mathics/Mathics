@@ -1,440 +1,585 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+Colors
 
-from math import pi
+Programmatic support for symbolic colors.
+
+"""
+
+from math import atan2, cos, exp, pi, radians, sin, sqrt
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.numpy_utils import (
-    sqrt,
-    floor,
-    mod,
-    cos,
-    sin,
-    arctan2,
-    minimum,
-    maximum,
-    dot_t,
+from mathics.builtin.drawing.color_internals import convert_color
+
+from mathics.builtin.base import (
+    Builtin,
+    BoxConstructError,
 )
-from mathics.builtin.numpy_utils import (
-    stack,
-    unstack,
-    array,
-    clip,
-    conditional,
-    choose,
-    stacked,
+from mathics.builtin.drawing.graphics_internals import _GraphicsElement, get_class
+from mathics.core.expression import (
+    Expression,
+    Real,
+    String,
+    Symbol,
+    from_python,
 )
 
-# in the long run, we might want to implement these functions using Compile[]. until Compile[] is available for all
-# Mathics configurations, this implementation works on Python and PyPy and with or without numpy.
+from mathics.core.numbers import machine_epsilon
 
+def _cie2000_distance(lab1, lab2):
+    # reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
+    e = machine_epsilon
+    kL = kC = kH = 1  # common values
 
-def _clip1(t):
-    return clip(t, 0, 1)
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
 
+    dL = L2 - L1
+    Lm = (L1 + L2) / 2
+    C1 = sqrt(a1 ** 2 + b1 ** 2)
+    C2 = sqrt(a2 ** 2 + b2 ** 2)
+    Cm = (C1 + C2) / 2
 
-class _PerfectReflectingDiffuser:
-    def __init__(self, *x):  # accepts (x1, y2) or (x, y, z)
-        assert 2 <= len(x) <= 3
+    a1 = a1 * (1 + (1 - sqrt(Cm ** 7 / (Cm ** 7 + 25 ** 7))) / 2)
+    a2 = a2 * (1 + (1 - sqrt(Cm ** 7 / (Cm ** 7 + 25 ** 7))) / 2)
 
-        if len(x) == 3:
-            self.xyz = x
-        else:
-            x1, x2 = x
-            scale = 1.0 / x2
-            self.xyz = (x1 * scale, 1.0, (1.0 - x1 - x2) * scale)
+    C1 = sqrt(a1 ** 2 + b1 ** 2)
+    C2 = sqrt(a2 ** 2 + b2 ** 2)
+    Cm = (C1 + C2) / 2
+    dC = C2 - C1
 
-        q_r = self.xyz[0] + 15.0 * self.xyz[1] + 3.0 * self.xyz[2]
-        self.u_r = 4.0 * self.xyz[0] / q_r
-        self.v_r = 9.0 * self.xyz[1] / q_r
+    h1 = (180 * atan2(b1, a1 + e)) / pi % 360
+    h2 = (180 * atan2(b2, a2 + e)) / pi % 360
+    if abs(h2 - h1) <= 180:
+        dh = h2 - h1
+    elif abs(h2 - h1) > 180 and h2 <= h1:
+        dh = h2 - h1 + 360
+    elif abs(h2 - h1) > 180 and h2 > h1:
+        dh = h2 - h1 - 360
 
+    dH = 2 * sqrt(C1 * C2) * sin(radians(dh) / 2)
 
-# MMA's reference white is a D50, 2 degrees diffuser; the standard values for this configuration
-# can be found at https://en.wikipedia.org/wiki/Standard_illuminant, MMA seems to use slightly
-# different values though.
-
-_ref_white = _PerfectReflectingDiffuser(0.96422, 1.0, 0.82521)
-
-# use rRGB D50 conversion like MMA. see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
-# MMA seems to round matrix values to six significant digits. we do the same.
-
-_xyz_from_rgb = [
-    [0.436075, 0.385065, 0.14308],
-    [0.222504, 0.716879, 0.0606169],
-    [0.0139322, 0.0971045, 0.714173],
-]
-
-# for matrix, see http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
-# MMA seems to round matrix values to six significant digits. we do the same.
-
-_rgb_from_xyz = [
-    [3.13386, -1.61687, -0.490615],
-    [-0.978768, 1.91614, 0.033454],
-    [0.0719453, -0.228991, 1.40524],
-]
-
-
-def rgb_to_grayscale(r, g, b, *rest):
-    # see https://en.wikipedia.org/wiki/Grayscale
-    y = 0.299 * r + 0.587 * g + 0.114 * b  # Y of Y'UV
-    return (y,) + rest
-
-
-def grayscale_to_rgb(g, *rest):
-    return (g, g, g) + rest
-
-
-@conditional
-def _inverse_compand_srgb(x):
-    if x > 0.04045:
-        return ((x + 0.055) / 1.055) ** 2.4
-    else:
-        return x / 12.92
-
-
-def rgb_to_xyz(r, g, b, *rest):
-    r, g, b = map(_inverse_compand_srgb, (r, g, b))
-    x, y, z = unstack(_clip1(dot_t(stack(r, g, b), _xyz_from_rgb)))
-    return map(_clip1, (x, y, z) + rest)
-
-
-@conditional
-def _compute_hsb_s(m1, c, eps):
-    if m1 < eps:
-        return 0
-    else:
-        return c / m1
-
-
-@conditional
-def _compute_hsb_h(m1, c, eps, r, g, b):
-    if c < eps:
-        return 0
-    elif m1 == r:
-        return mod(((g - b) / c), 6.0)
-    elif m1 == g:
-        return (b - r) / c + 2.0
-    elif m1 == b:
-        return (r - g) / c + 4.0
-
-
-@conditional
-def _wrap_hsb_h(h):
-    if h < 0.0:
-        return h + 1.0
-    else:
-        return h
-
-
-def rgb_to_hsb(r, g, b, *rest):
-    # see https://en.wikipedia.org/wiki/HSB_color_space. HSB is also known as HSV.
-    r, g, b = _clip1((r, g, b))
-
-    m1 = maximum(r, g, b)
-    m0 = minimum(r, g, b)
-    c = m1 - m0
-    eps = 1e-15
-
-    h = _compute_hsb_h(m1, c, eps, r, g, b)
-    h = _wrap_hsb_h(h * (60.0 / 360.0))
-    s = _compute_hsb_s(m1, c, eps)
-
-    return (h, s, m1) + rest
-
-
-def hsb_to_rgb(h, s, v, *rest):
-    i = floor(6 * h)
-    f = 6 * h - i
-    i = mod(i, 6)
-    p = v * (1 - s)
-    q = v * (1 - f * s)
-    t = v * (1 - (1 - f) * s)
-
-    r, g, b = choose(
-        i, (v, t, p), (q, v, p), (p, v, t), (p, q, v), (t, p, v), (v, p, q)
+    Hm = (h1 + h2) / 2 if abs(h2 - h1) <= 180 else (h1 + h2 + 360) / 2
+    T = (
+        1
+        - 0.17 * cos(radians(Hm - 30))
+        + 0.24 * cos(radians(2 * Hm))
+        + 0.32 * cos(radians(3 * Hm + 6))
+        - 0.2 * cos(radians(4 * Hm - 63))
     )
 
-    return (r, g, b) + rest
+    SL = 1 + (0.015 * (Lm - 50) ** 2) / sqrt(20 + (Lm - 50) ** 2)
+    SC = 1 + 0.045 * Cm
+    SH = 1 + 0.015 * Cm * T
 
-
-def cmyk_to_rgb(c, m, y, *rest):
-    if rest:
-        k = rest[0]
-        rest = rest[1:]
-    else:
-        k = 0
-    k_ = 1 - k
-
-    cmy = [(x * k_ + k) for x in (c, m, y)]
-    r, g, b = [1 - x for x in cmy]
-
-    return (r, g, b) + rest
-
-
-@conditional
-def _scale_rgb_to_cmyk(t, k, k_, eps):
-    if k_ < eps:
-        return 0
-    else:
-        return (1 - t - k) / k_
-
-
-def rgb_to_cmyk(r, g, b, *rest):
-    k_ = maximum(r, g, b)
-    k = 1 - k_
-    c, m, y = map(lambda t: _scale_rgb_to_cmyk(t, k, k_, 1e-15), (r, g, b))
-    return (c, m, y, k) + rest
-
-
-@conditional
-def _compand_srgb(t):
-    if t > 0.0031308:
-        return 1.055 * (t ** (1.0 / 2.4)) - 0.055
-    else:
-        return t * 12.92
-
-
-def xyz_to_rgb(x, y, z, *rest):
-    x, y, z = map(_clip1, (x, y, z))
-    r, g, b = unstack(dot_t(stack(x, y, z), _rgb_from_xyz))
-    r, g, b = map(_clip1, (r, g, b))
-    r, g, b = map(_compand_srgb, (r, g, b))
-    return map(_clip1, (r, g, b) + rest)
-
-
-@conditional
-def _scale_xyz_to_lab(t):
-    if t > 0.008856:
-        return t ** 0.33333333  # MMA specific
-    else:
-        return (903.3 * t + 16.0) / 116.0
-
-
-def xyz_to_lab(x, y, z, *rest):
-    # see http://www.brucelindbloom.com/Eqn_XYZ_to_Lab.html
-    xyz = array([u / v for u, v in zip([x, y, z], _ref_white.xyz)])
-    x, y, z = map(_scale_xyz_to_lab, xyz)
-
-    # MMA scales by 1/100
-    return ((1.16 * y) - 0.16, 5.0 * (x - y), 2.0 * (y - z)) + rest
-
-
-@conditional
-def _xyz_to_luv_scale_y(y):
-    if y > 0.008856:
-        return 116.0 * (y ** (1.0 / 3.0)) - 16
-    else:
-        return 903.3 * y
-
-
-def xyz_to_luv(x, y, z, *rest):
-    # see http://www.brucelindbloom.com/Eqn_XYZ_to_Luv.html
-    # and https://en.wikipedia.org/wiki/CIELUV
-    xyz = _clip1((x, y, z))
-
-    x_orig, y_orig, z_orig = xyz
-    y = y_orig / _ref_white.xyz[1]
-
-    lum = _xyz_to_luv_scale_y(y)
-
-    q_0 = x_orig + 15.0 * y_orig + 3.0 * z_orig
-    u_0 = 4.0 * x_orig / q_0
-    v_0 = 9.0 * y_orig / q_0
-
-    lum /= 100.0  # MMA specific
-    u = 13.0 * lum * (u_0 - _ref_white.u_r)
-    v = 13.0 * lum * (v_0 - _ref_white.v_r)
-
-    return (lum, u, v) + rest
-
-
-@conditional
-def _scale_lab_to_xyz(t):
-    if t > 0.2068930:  # 0.008856 ** (1/3)
-        return t ** 3
-    else:
-        return (t - 16.0 / 116.0) / 7.787
-
-
-@conditional
-def _luv_to_xyz_clip_zero(cie_l_is_zero, t):
-    if cie_l_is_zero:
-        return 0
-    else:
-        return t
-
-
-def luv_to_xyz(cie_l, cie_u, cie_v, *rest):
-    # see http://www.easyrgb.com/index.php?X=MATH&H=17#text17
-    u = cie_u / (13.0 * cie_l) + _ref_white.u_r
-    v = cie_v / (13.0 * cie_l) + _ref_white.v_r
-
-    cie_l_100 = cie_l * 100.0  # MMA specific
-    y = (cie_l_100 + 16.0) / 116.0
-    y = _scale_lab_to_xyz(y)
-
-    x = -(9 * y * u) / ((u - 4) * v - u * v)
-    z = (9 * y - (15 * v * y) - (v * x)) / (3 * v)
-
-    cie_l_is_zero = cie_l < 0.078
-    x, y, z = map(lambda t: _luv_to_xyz_clip_zero(cie_l_is_zero, t), (x, y, z))
-    x, y, z = clip([x, y, z], 0, 1)
-
-    return (x, y, z) + rest
-
-
-def lch_to_lab(l, c, h, *rest):
-    h *= 2 * pi  # MMA specific
-    return (l, c * cos(h), c * sin(h)) + rest
-
-
-@conditional
-def _wrap_lch_h(h, pi2):
-    if h < 0.0:
-        return h + pi2
-    else:
-        return h
-
-
-def lab_to_lch(l, a, b, *rest):
-    h = _wrap_lch_h(arctan2(b, a), 2.0 * pi)
-    h /= 2.0 * pi  # MMA specific
-    return (l, sqrt(a * a + b * b), h) + rest
-
-
-def lab_to_xyz(l, a, b, *rest):
-    # see http://www.easyrgb.com/index.php?X=MATH&H=08#text8
-    f_y = (l * 100.0 + 16.0) / 116.0
-    x, y, z = a / 5.0 + f_y, f_y, f_y - b / 2.0
-    x, y, z = map(_scale_lab_to_xyz, (x, y, z))
-
-    x, y, z = [u * v for u, v in zip((x, y, z), _ref_white.xyz)]
-    x, y, z = clip([x, y, z], 0, 1)
-
-    return (x, y, z) + rest
-
-
-# for an overview of color conversions see http://www.brucelindbloom.com/Math.html
-
-# the following table was computed by starting with the allowed hard
-# coded conversions from "conversions" and then finding the shortest
-# paths:
-
-# g = Graph[{"Grayscale" -> "RGB", "RGB" -> "Grayscale", "CMYK" -> "RGB", "RGB" -> "CMYK", "RGB" -> "HSB",
-#   "HSB" -> "RGB", "XYZ" -> "LAB", "XYZ" -> "LUV", "XYZ" -> "RGB", "LAB" -> "XYZ", "LAB" -> "LCH",
-#   "LCH" -> "LAB", "LUV" -> "XYZ", "RGB" -> "XYZ"}]
-# s = FindShortestPath[g, All, All]; {#, s @@ #} & /@ Permutations[{
-#   "Grayscale", "RGB", "CMYK", "HSB", "XYZ", "LAB", "LUV", "LCH"}, {2}] // CForm
-
-_paths = dict(
-    (
-        (("Grayscale", "RGB"), ("Grayscale", "RGB")),
-        (("Grayscale", "CMYK"), ("Grayscale", "RGB", "CMYK")),
-        (("Grayscale", "HSB"), ("Grayscale", "RGB", "HSB")),
-        (("Grayscale", "XYZ"), ("Grayscale", "RGB", "XYZ")),
-        (("Grayscale", "LAB"), ("Grayscale", "RGB", "XYZ", "LAB")),
-        (("Grayscale", "LUV"), ("Grayscale", "RGB", "XYZ", "LUV")),
-        (("Grayscale", "LCH"), ("Grayscale", "RGB", "XYZ", "LAB", "LCH")),
-        (("RGB", "Grayscale"), ("RGB", "Grayscale")),
-        (("RGB", "CMYK"), ("RGB", "CMYK")),
-        (("RGB", "HSB"), ("RGB", "HSB")),
-        (("RGB", "XYZ"), ("RGB", "XYZ")),
-        (("RGB", "LAB"), ("RGB", "XYZ", "LAB")),
-        (("RGB", "LUV"), ("RGB", "XYZ", "LUV")),
-        (("RGB", "LCH"), ("RGB", "XYZ", "LAB", "LCH")),
-        (("CMYK", "Grayscale"), ("CMYK", "RGB", "Grayscale")),
-        (("CMYK", "RGB"), ("CMYK", "RGB")),
-        (("CMYK", "HSB"), ("CMYK", "RGB", "HSB")),
-        (("CMYK", "XYZ"), ("CMYK", "RGB", "XYZ")),
-        (("CMYK", "LAB"), ("CMYK", "RGB", "XYZ", "LAB")),
-        (("CMYK", "LUV"), ("CMYK", "RGB", "XYZ", "LUV")),
-        (("CMYK", "LCH"), ("CMYK", "RGB", "XYZ", "LAB", "LCH")),
-        (("HSB", "Grayscale"), ("HSB", "RGB", "Grayscale")),
-        (("HSB", "RGB"), ("HSB", "RGB")),
-        (("HSB", "CMYK"), ("HSB", "RGB", "CMYK")),
-        (("HSB", "XYZ"), ("HSB", "RGB", "XYZ")),
-        (("HSB", "LAB"), ("HSB", "RGB", "XYZ", "LAB")),
-        (("HSB", "LUV"), ("HSB", "RGB", "XYZ", "LUV")),
-        (("HSB", "LCH"), ("HSB", "RGB", "XYZ", "LAB", "LCH")),
-        (("XYZ", "Grayscale"), ("XYZ", "RGB", "Grayscale")),
-        (("XYZ", "RGB"), ("XYZ", "RGB")),
-        (("XYZ", "CMYK"), ("XYZ", "RGB", "CMYK")),
-        (("XYZ", "HSB"), ("XYZ", "RGB", "HSB")),
-        (("XYZ", "LAB"), ("XYZ", "LAB")),
-        (("XYZ", "LUV"), ("XYZ", "LUV")),
-        (("XYZ", "LCH"), ("XYZ", "LAB", "LCH")),
-        (("LAB", "Grayscale"), ("LAB", "XYZ", "RGB", "Grayscale")),
-        (("LAB", "RGB"), ("LAB", "XYZ", "RGB")),
-        (("LAB", "CMYK"), ("LAB", "XYZ", "RGB", "CMYK")),
-        (("LAB", "HSB"), ("LAB", "XYZ", "RGB", "HSB")),
-        (("LAB", "XYZ"), ("LAB", "XYZ")),
-        (("LAB", "LUV"), ("LAB", "XYZ", "LUV")),
-        (("LAB", "LCH"), ("LAB", "LCH")),
-        (("LUV", "Grayscale"), ("LUV", "XYZ", "RGB", "Grayscale")),
-        (("LUV", "RGB"), ("LUV", "XYZ", "RGB")),
-        (("LUV", "CMYK"), ("LUV", "XYZ", "RGB", "CMYK")),
-        (("LUV", "HSB"), ("LUV", "XYZ", "RGB", "HSB")),
-        (("LUV", "XYZ"), ("LUV", "XYZ")),
-        (("LUV", "LAB"), ("LUV", "XYZ", "LAB")),
-        (("LUV", "LCH"), ("LUV", "XYZ", "LAB", "LCH")),
-        (("LCH", "Grayscale"), ("LCH", "LAB", "XYZ", "RGB", "Grayscale")),
-        (("LCH", "RGB"), ("LCH", "LAB", "XYZ", "RGB")),
-        (("LCH", "CMYK"), ("LCH", "LAB", "XYZ", "RGB", "CMYK")),
-        (("LCH", "HSB"), ("LCH", "LAB", "XYZ", "RGB", "HSB")),
-        (("LCH", "XYZ"), ("LCH", "LAB", "XYZ")),
-        (("LCH", "LAB"), ("LCH", "LAB")),
-        (("LCH", "LUV"), ("LCH", "LAB", "XYZ", "LUV")),
+    rT = (
+        -2
+        * sqrt(Cm ** 7 / (Cm ** 7 + 25 ** 7))
+        * sin(radians(60 * exp(-((Hm - 275) ** 2 / 25 ** 2))))
     )
-)
-
-conversions = {
-    "Grayscale>RGB": grayscale_to_rgb,
-    "RGB>Grayscale": rgb_to_grayscale,
-    "CMYK>RGB": cmyk_to_rgb,
-    "RGB>CMYK": rgb_to_cmyk,
-    "RGB>HSB": rgb_to_hsb,
-    "HSB>RGB": hsb_to_rgb,
-    "XYZ>LAB": xyz_to_lab,
-    "XYZ>LUV": xyz_to_luv,
-    "XYZ>RGB": xyz_to_rgb,
-    "LAB>XYZ": lab_to_xyz,
-    "LAB>LCH": lab_to_lch,
-    "LCH>LAB": lch_to_lab,
-    "LUV>XYZ": luv_to_xyz,
-    "RGB>XYZ": rgb_to_xyz,
-}
-
-colorspaces = frozenset(
-    ("Grayscale", "RGB", "CMYK", "HSB", "XYZ", "LAB", "LCH", "LUV",)
-)
+    return sqrt(
+        (dL / (SL * kL)) ** 2
+        + (dC / (SC * kC)) ** 2
+        + (dH / (SH * kH)) ** 2
+        + rT * (dC / (SC * kC)) * (dH / (SH * kH))
+    )
 
 
-def convert(components, src, dst, preserve_alpha=True):
-    if not preserve_alpha:
-        if src == "Grayscale":
-            non_alpha = 1
-        elif src == "CMYK":
-            non_alpha = 4
-        else:
-            non_alpha = 3
+def _CMC_distance(lab1, lab2, l, c):
+    # reference https://en.wikipedia.org/wiki/Color_difference#CMC_l:c_.281984.29
+    L1, L2 = lab1[0], lab2[0]
+    a1, a2 = lab1[1], lab2[1]
+    b1, b2 = lab1[2], lab2[2]
 
-        def omit_alpha(*c):
-            return c[:non_alpha]
+    dL, da, db = L2 - L1, a2 - a1, b2 - b1
+    e = machine_epsilon
 
-        components = stacked(omit_alpha, components)
+    C1 = sqrt(a1 ** 2 + b1 ** 2)
+    C2 = sqrt(a2 ** 2 + b2 ** 2)
 
-    if src == dst:
+    h1 = (180 * atan2(b1, a1 + e)) / pi % 360
+    dC = C2 - C1
+    dH2 = da ** 2 + db ** 2 - dC ** 2
+    F = C1 ** 2 / sqrt(C1 ** 4 + 1900)
+    T = (
+        0.56 + abs(0.2 * cos(radians(h1 + 168)))
+        if (164 <= h1 and h1 <= 345)
+        else 0.36 + abs(0.4 * cos(radians(h1 + 35)))
+    )
+
+    SL = 0.511 if L1 < 16 else (0.040975 * L1) / (1 + 0.01765 * L1)
+    SC = (0.0638 * C1) / (1 + 0.0131 * C1) + 0.638
+    SH = SC * (F * T + 1 - F)
+    return sqrt((dL / (l * SL)) ** 2 + (dC / (c * SC)) ** 2 + dH2 / SH ** 2)
+
+
+def _component_distance(a, b, i):
+    return abs(a[i] - b[i])
+
+
+def _euclidean_distance(a, b):
+    return sqrt(sum((x1 - x2) * (x1 - x2) for x1, x2 in zip(a, b)))
+
+
+class _Color(_GraphicsElement):
+    formats = {
+        # we are adding ImageSizeMultipliers in the rule below, because we do _not_ want color boxes to
+        # diminish in size when they appear in lists or rows. we only want the display of colors this
+        # way in the notebook, so we restrict the rule to StandardForm.
+        (
+            ("StandardForm",),
+            "%(name)s[x__?(NumericQ[#] && 0 <= # <= 1&)]",
+        ): "Style[Graphics[{EdgeForm[Black], %(name)s[x], Rectangle[]}, ImageSize -> 16], "
+        + "ImageSizeMultipliers -> {1, 1}]"
+    }
+
+    rules = {"%(name)s[x_List]": "Apply[%(name)s, x]"}
+
+    components_sizes = []
+    default_components = []
+
+    def init(self, item=None, components=None):
+        super(_Color, self).init(None, item)
+        if item is not None:
+            leaves = item.leaves
+            if len(leaves) in self.components_sizes:
+                # we must not clip here; we copy the components, without clipping,
+                # e.g. RGBColor[-1, 0, 0] stays RGBColor[-1, 0, 0]. this is especially
+                # important for color spaces like LAB that have negative components.
+
+                components = [value.round_to_float() for value in leaves]
+                if None in components:
+                    raise ColorError
+
+                # the following lines always extend to the maximum available
+                # default_components, so RGBColor[0, 0, 0] will _always_
+                # become RGBColor[0, 0, 0, 1]. does not seem the right thing
+                # to do in this general context. poke1024
+
+                if len(components) < 3:
+                    components.extend(self.default_components[len(components) :])
+
+                self.components = components
+            else:
+                raise ColorError
+        elif components is not None:
+            self.components = components
+
+    @staticmethod
+    def create(expr):
+        head = expr.get_head_name()
+        cls = get_class(head)
+        if cls is None:
+            raise ColorError
+        return cls(expr)
+
+    @staticmethod
+    def create_as_style(klass, graphics, item):
+        return klass(item)
+
+    def to_css(self):
+        rgba = self.to_rgba()
+        alpha = rgba[3] if len(rgba) > 3 else 1.0
+        return (
+            r"rgb(%f%%, %f%%, %f%%)" % (rgba[0] * 100, rgba[1] * 100, rgba[2] * 100),
+            alpha,
+        )
+
+    def to_js(self):
+        return self.to_rgba()
+
+    def to_expr(self):
+        return Expression(self.get_name(), *self.components)
+
+    def to_rgba(self):
+        return self.to_color_space("RGB")
+
+    def to_color_space(self, color_space):
+        components = convert_color(self.components, self.color_space, color_space)
+        if components is None:
+            raise ValueError(
+                "cannot convert from color space %s to %s."
+                % (self.color_space, color_space)
+            )
         return components
 
-    path = _paths.get((src, dst), None)
-    if path is None:
+
+class CMYKColor(_Color):
+    """
+    <dl>
+    <dt>'CMYKColor[$c$, $m$, $y$, $k$]'
+        <dd>represents a color with the specified cyan, magenta,
+        yellow and black components.
+    </dl>
+
+    >> Graphics[MapIndexed[{CMYKColor @@ #1, Disk[2*#2 ~Join~ {0}]} &, IdentityMatrix[4]], ImageSize->Small]
+     = -Graphics-
+    """
+
+    color_space = "CMYK"
+    components_sizes = [3, 4, 5]
+    default_components = [0, 0, 0, 0, 1]
+
+
+class ColorDistance(Builtin):
+    """
+    <dl>
+    <dt>'ColorDistance[$c1$, $c2$]'
+        <dd>returns a measure of color distance between the colors $c1$ and $c2$.
+    <dt>'ColorDistance[$list$, $c2$]'
+        <dd>returns a list of color distances between the colors in $list$ and $c2$.
+    </dl>
+
+    The option DistanceFunction specifies the method used to measure the color
+    distance. Available options are:
+
+    CIE76: euclidean distance in the LABColor space
+    CIE94: euclidean distance in the LCHColor space
+    CIE2000 or CIEDE2000: CIE94 distance with corrections
+    CMC: Colour Measurement Committee metric (1984)
+    DeltaL: difference in the L component of LCHColor
+    DeltaC: difference in the C component of LCHColor
+    DeltaH: difference in the H component of LCHColor
+
+    It is also possible to specify a custom distance
+
+    >> ColorDistance[Magenta, Green]
+     = 2.2507
+    >> ColorDistance[{Red, Blue}, {Green, Yellow}, DistanceFunction -> {"CMC", "Perceptibility"}]
+     = {1.0495, 1.27455}
+    #> ColorDistance[Blue, Red, DistanceFunction -> "CIE2000"]
+     = 0.557976
+    #> ColorDistance[Red, Black, DistanceFunction -> (Abs[#1[[1]] - #2[[1]]] &)]
+     = 0.542917
+
+    """
+
+    options = {"DistanceFunction": "Automatic"}
+
+    requires = ("numpy",)
+
+    messages = {
+        "invdist": "`1` is not Automatic or a valid distance specification.",
+        "invarg": "`1` and `2` should be two colors or a color and a lists of colors or "
+        + "two lists of colors of the same length.",
+    }
+
+    # If numpy is not installed, 100 * c1.to_color_space returns
+    # a list of 100 x 3 elements, instead of doing elementwise multiplication
+    requires = ("numpy",)
+
+    # the docs say LABColor's colorspace corresponds to the CIE 1976 L^* a^* b^* color space
+    # with {l,a,b}={L^*,a^*,b^*}/100. Corrections factors are put accordingly.
+
+    _distances = {
+        "CIE76": lambda c1, c2: _euclidean_distance(
+            c1.to_color_space("LAB")[:3], c2.to_color_space("LAB")[:3]
+        ),
+        "CIE94": lambda c1, c2: _euclidean_distance(
+            c1.to_color_space("LCH")[:3], c2.to_color_space("LCH")[:3]
+        ),
+        "CIE2000": lambda c1, c2: _cie2000_distance(
+            100 * c1.to_color_space("LAB")[:3], 100 * c2.to_color_space("LAB")[:3]
+        )
+        / 100,
+        "CIEDE2000": lambda c1, c2: _cie2000_distance(
+            100 * c1.to_color_space("LAB")[:3], 100 * c2.to_color_space("LAB")[:3]
+        )
+        / 100,
+        "DeltaL": lambda c1, c2: _component_distance(
+            c1.to_color_space("LCH"), c2.to_color_space("LCH"), 0
+        ),
+        "DeltaC": lambda c1, c2: _component_distance(
+            c1.to_color_space("LCH"), c2.to_color_space("LCH"), 1
+        ),
+        "DeltaH": lambda c1, c2: _component_distance(
+            c1.to_color_space("LCH"), c2.to_color_space("LCH"), 2
+        ),
+        "CMC": lambda c1, c2: _CMC_distance(
+            100 * c1.to_color_space("LAB")[:3], 100 * c2.to_color_space("LAB")[:3], 1, 1
+        )
+        / 100,
+    }
+
+    def apply(self, c1, c2, evaluation, options):
+        "ColorDistance[c1_, c2_, OptionsPattern[ColorDistance]]"
+
+        distance_function = options.get("System`DistanceFunction")
+        compute = None
+        if isinstance(distance_function, String):
+            compute = ColorDistance._distances.get(distance_function.get_string_value())
+            if not compute:
+                evaluation.message("ColorDistance", "invdist", distance_function)
+                return
+        elif distance_function.has_form("List", 2):
+            if distance_function.leaves[0].get_string_value() == "CMC":
+                if distance_function.leaves[1].get_string_value() == "Acceptability":
+                    compute = (
+                        lambda c1, c2: _CMC_distance(
+                            100 * c1.to_color_space("LAB")[:3],
+                            100 * c2.to_color_space("LAB")[:3],
+                            2,
+                            1,
+                        )
+                        / 100
+                    )
+                elif distance_function.leaves[1].get_string_value() == "Perceptibility":
+                    compute = ColorDistance._distances.get("CMC")
+
+                elif distance_function.leaves[1].has_form("List", 2):
+                    if isinstance(
+                        distance_function.leaves[1].leaves[0], Integer
+                    ) and isinstance(distance_function.leaves[1].leaves[1], Integer):
+                        if (
+                            distance_function.leaves[1].leaves[0].get_int_value() > 0
+                            and distance_function.leaves[1].leaves[1].get_int_value()
+                            > 0
+                        ):
+                            lightness = (
+                                distance_function.leaves[1].leaves[0].get_int_value()
+                            )
+                            chroma = (
+                                distance_function.leaves[1].leaves[1].get_int_value()
+                            )
+                            compute = (
+                                lambda c1, c2: _CMC_distance(
+                                    100 * c1.to_color_space("LAB")[:3],
+                                    100 * c2.to_color_space("LAB")[:3],
+                                    lightness,
+                                    chroma,
+                                )
+                                / 100
+                            )
+
+        elif (
+            isinstance(distance_function, Symbol)
+            and distance_function.get_name() == "System`Automatic"
+        ):
+            compute = ColorDistance._distances.get("CIE76")
+        else:
+
+            def compute(a, b):
+                return Expression(
+                    "Apply",
+                    distance_function,
+                    Expression(
+                        "List",
+                        Expression(
+                            "List", *[Real(val) for val in a.to_color_space("LAB")]
+                        ),
+                        Expression(
+                            "List", *[Real(val) for val in b.to_color_space("LAB")]
+                        ),
+                    ),
+                )
+
+        if compute == None:
+            evaluation.message("ColorDistance", "invdist", distance_function)
+            return
+
+        def distance(a, b):
+            try:
+                py_a = _Color.create(a)
+                py_b = _Color.create(b)
+            except ColorError:
+                evaluation.message("ColorDistance", "invarg", a, b)
+                raise
+            result = from_python(compute(py_a, py_b))
+            return result
+
+        try:
+            if c1.get_head_name() == "System`List":
+                if c2.get_head_name() == "System`List":
+                    if len(c1.leaves) != len(c2.leaves):
+                        evaluation.message("ColorDistance", "invarg", c1, c2)
+                        return
+                    else:
+                        return Expression(
+                            "List",
+                            *[distance(a, b) for a, b in zip(c1.leaves, c2.leaves)],
+                        )
+                else:
+                    return Expression(SymbolList, *[distance(c, c2) for c in c1.leaves])
+            elif c2.get_head_name() == "System`List":
+                return Expression(SymbolList, *[distance(c1, c) for c in c2.leaves])
+            else:
+                return distance(c1, c2)
+        except ColorError:
+            return
+        except NotImplementedError:
+            evaluation.message("ColorDistance", "invdist", distance_function)
+            return
+
+
+class ColorError(BoxConstructError):
+    pass
+
+
+class GrayLevel(_Color):
+    """
+    <dl>
+    <dt>'GrayLevel[$g$]'
+        <dd>represents a shade of gray specified by $g$, ranging from
+        0 (black) to 1 (white).
+    <dt>'GrayLevel[$g$, $a$]'
+        <dd>represents a shade of gray specified by $g$ with opacity $a$.
+    </dl>
+    """
+
+    color_space = "Grayscale"
+    components_sizes = [1, 2]
+    default_components = [0, 1]
+
+
+class Hue(_Color):
+    """
+    <dl>
+    <dt>'Hue[$h$, $s$, $l$, $a$]'
+        <dd>represents the color with hue $h$, saturation $s$,
+        lightness $l$ and opacity $a$.
+    <dt>'Hue[$h$, $s$, $l$]'
+        <dd>is equivalent to 'Hue[$h$, $s$, $l$, 1]'.
+    <dt>'Hue[$h$, $s$]'
+        <dd>is equivalent to 'Hue[$h$, $s$, 1, 1]'.
+    <dt>'Hue[$h$]'
+        <dd>is equivalent to 'Hue[$h$, 1, 1, 1]'.
+    </dl>
+    >> Graphics[Table[{EdgeForm[Gray], Hue[h, s], Disk[{12h, 8s}]}, {h, 0, 1, 1/6}, {s, 0, 1, 1/4}]]
+     = -Graphics-
+
+    >> Graphics[Table[{EdgeForm[{GrayLevel[0, 0.5]}], Hue[(-11+q+10r)/72, 1, 1, 0.6], Disk[(8-r) {Cos[2Pi q/12], Sin[2Pi q/12]}, (8-r)/3]}, {r, 6}, {q, 12}]]
+     = -Graphics-
+    """
+
+    color_space = "HSB"
+    components_sizes = [1, 2, 3, 4]
+    default_components = [0, 1, 1, 1]
+
+    def hsl_to_rgba(self):
+        h, s, l = self.components[:3]
+        if l < 0.5:
+            q = l * (1 + s)
+        else:
+            q = l + s - l * s
+        p = 2 * l - q
+
+        rgb = (h + 1 / 3, h, h - 1 / 3)
+
+        def map(value):
+            if value < 0:
+                value += 1
+            if value > 1:
+                value -= 1
+            return value
+
+        def trans(t):
+            if t < 1 / 6:
+                return p + ((q - p) * 6 * t)
+            elif t < 1 / 2:
+                return q
+            elif t < 2 / 3:
+                return p + ((q - p) * 6 * (2 / 3 - t))
+            else:
+                return p
+
+        result = tuple([trans(list(map(t))) for t in rgb]) + (self.components[3],)
+        return result
+
+
+class LABColor(_Color):
+    """
+    <dl>
+    <dt>'LABColor[$l$, $a$, $b$]'
+        <dd>represents a color with the specified lightness, red/green and yellow/blue
+        components in the CIE 1976 L*a*b* (CIELAB) color space.
+    </dl>
+    """
+
+    color_space = "LAB"
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class LCHColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $c$, $h$]'
+        <dd>represents a color with the specified lightness, chroma and hue
+        components in the CIELCh CIELab cube color space.
+    </dl>
+    """
+
+    color_space = "LCH"
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class LUVColor(_Color):
+    """
+    <dl>
+    <dt>'LCHColor[$l$, $u$, $v$]'
+        <dd>represents a color with the specified components in the CIE 1976 L*u*v* (CIELUV) color space.
+    </dl>
+    """
+
+    color_space = "LUV"
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+class RGBColor(_Color):
+    """
+    <dl>
+    <dt>'RGBColor[$r$, $g$, $b$]'
+        <dd>represents a color with the specified red, green and blue
+        components.
+    </dl>
+
+    >> Graphics[MapIndexed[{RGBColor @@ #1, Disk[2*#2 ~Join~ {0}]} &, IdentityMatrix[3]], ImageSize->Small]
+     = -Graphics-
+
+    >> RGBColor[0, 1, 0]
+     = RGBColor[0, 1, 0]
+
+    >> RGBColor[0, 1, 0] // ToBoxes
+     = StyleBox[GraphicsBox[...], ...]
+    """
+
+    color_space = "RGB"
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+    def to_rgba(self):
+        return self.components
+
+
+class XYZColor(_Color):
+    """
+    <dl>
+    <dt>'XYZColor[$x$, $y$, $z$]'
+        <dd>represents a color with the specified components in the CIE 1931 XYZ color space.
+    </dl>
+    """
+
+    color_space = "XYZ"
+    components_sizes = [3, 4]
+    default_components = [0, 0, 0, 1]
+
+
+def expression_to_color(color):
+    try:
+        return _Color.create(color)
+    except ColorError:
         return None
 
-    for s, d in zip(path[:-1], path[1:]):
-        func = conversions.get("%s>%s" % (s, d))
-        if not func:
-            return None
-        components = stacked(func, components)
 
-    return components
+def color_to_expression(components, colorspace):
+    if colorspace == "Grayscale":
+        converted_color_name = "GrayLevel"
+    elif colorspace == "HSB":
+        converted_color_name = "Hue"
+    else:
+        converted_color_name = colorspace + "Color"
+
+    return Expression(converted_color_name, *components)

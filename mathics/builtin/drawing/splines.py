@@ -45,10 +45,12 @@ class BezierFunction(Builtin):
     </dl>
 
     >> f = BezierFunction[{{0, 0}, {1, 1}, {2, 0}, {3, 2}}];
-     = None
+     =
 
     >> f[.5]
-     = {1,5, 0.625}
+     = {1.5, 0.625}
+    #> Clear[f];
+     =
 
     ## Graphics[{Red, Point[pts], Green, Line[pts]}, Axes -> True]
     """
@@ -72,14 +74,14 @@ class BezierCurve(Builtin):
 
     Set up some points...
     >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}, {5, 2}, {6, -1}, {7, 3}};
-     = None
+     =
 
      A composite Bézier curve and its control points:
     >> Graphics[{BezierCurve[pts], Green, Line[pts], Red, Point[pts]}]
      = -Graphics-
 
     #> Clear[pts];
-     = None
+     =
     """
 
     options = {"SplineDegree": "3"}
