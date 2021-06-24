@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Color Names
+"""Named Colors
 
 Mathics has definitions for the most common color names which can be
 used in a graphics or style specification.

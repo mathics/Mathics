@@ -1,15 +1,12 @@
 """
-Colors
-
-Programmatic support for symbolic colors.
-
+Color Directives
 """
 
 from math import atan2, cos, exp, pi, radians, sin, sqrt
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.drawing.color_internals import convert_color
+from mathics.builtin.colors.color_internals import convert_color
 
 from mathics.builtin.base import (
     Builtin,

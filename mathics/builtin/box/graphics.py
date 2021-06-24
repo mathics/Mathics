@@ -11,7 +11,7 @@ from mathics.builtin.base import (
     BoxConstructError,
 )
 
-from mathics.builtin.drawing.colors import _Color, ColorError, RGBColor
+from mathics.builtin.colors.color_directives import _Color, ColorError, RGBColor
 from mathics.builtin.drawing.graphics_internals import _GraphicsElement, GLOBALS
 
 from mathics.builtin.graphics import (
