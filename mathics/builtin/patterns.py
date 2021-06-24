@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Patterns and Rules
+Rules and Patterns
+
+The concept of transformation rules for arbitrary symbolic patterns is key in Mathics.
+
+Also, functions can get applied or transformed depending on whether or not functions arguments match.
 
 Some examples:
 >> a + b + c /. a + b -> t

@@ -1,14 +1,15 @@
 # cython: language_level=3
 # -*- coding: utf-8 -*-
 
+# Note: docstring is flowed in documentation. Line breaks in the docstring will appear in the
+# printed output, so be carful not to add then mid-sentence.
 
 """
-Numeric Evaluation
+Numeric Evaluation and Precision
 
-Support for numeric evaluation with arbitrary precision is just a
-proof-of-concept.
-Precision is not "guarded" through the evaluation process. Only
-integer precision is supported.
+Support for numeric evaluation with arbitrary precision is just a proof-of-concept.
+
+Precision is not "guarded" through the evaluation process. Only integer precision is supported.
 However, things like 'N[Pi, 100]' should work as expected.
 """
 from mathics.version import __version__  # noqa used in loading to check consistency.
