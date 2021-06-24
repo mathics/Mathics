@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Color Names
+# FIXME: this should live in colors/named_colors.py not here.
+# However there is some mysterious tie that can be seen when
+# running Graphics[{Red, Disk[]}] that doesn't associate Red in a DiskBox (or something like that -
+# if I knew the details better this would have been resolved.
+"""Named Colors
 
 Mathics has definitions for the most common color names which can be
 used in a graphics or style specification.

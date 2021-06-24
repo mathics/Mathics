@@ -16,12 +16,14 @@ from mathics.builtin.lists import get_part
 class ArrayQ(Builtin):
     """
     <dl>
-    <dt>'ArrayQ[$expr$]'
-        <dd>tests whether $expr$ is a full array.
-    <dt>'ArrayQ[$expr$, $pattern$]'
-        <dd>also tests whether the array depth of $expr$ matches $pattern$.
-    <dt>'ArrayQ[$expr$, $pattern$, $test$]'</dt>
-        <dd>furthermore tests whether $test$ yields 'True' for all elements of $expr$.
+      <dt>'ArrayQ[$expr$]'
+      <dd>tests whether $expr$ is a full array.
+
+      <dt>'ArrayQ[$expr$, $pattern$]'
+      <dd>also tests whether the array depth of $expr$ matches $pattern$.
+
+      <dt>'ArrayQ[$expr$, $pattern$, $test$]'</dt>
+      <dd>furthermore tests whether $test$ yields 'True' for all elements of $expr$.
         'ArrayQ[$expr$]' is equivalent to 'ArrayQ[$expr$, _, True&]'.
     </dl>
 
@@ -480,7 +482,7 @@ def get_default_distance(p):
     elif all(isinstance(q, String) for q in p):
         return "EditDistance"
     else:
-        from mathics.builtin.drawing.colors import expression_to_color
+        from mathics.builtin.colors.color_directives import expression_to_color
 
         if all(expression_to_color(q) is not None for q in p):
             return "ColorDistance"

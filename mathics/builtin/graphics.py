@@ -20,7 +20,7 @@ from mathics.builtin.drawing.graphics_internals import (
     GLOBALS,
     get_class,
 )
-from mathics.builtin.drawing.colors import (
+from mathics.builtin.colors.color_directives import (
     _Color,
     CMYKColor,
     ColorError,

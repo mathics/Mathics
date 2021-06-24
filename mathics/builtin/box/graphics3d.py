@@ -10,7 +10,7 @@ import numbers
 from mathics.builtin.base import BoxConstructError
 from mathics.builtin.box.graphics import GraphicsBox, LineBox, PointBox, PolygonBox
 
-from mathics.builtin.drawing.colors import _Color, RGBColor
+from mathics.builtin.colors.color_directives import _Color, RGBColor
 from mathics.builtin.drawing.graphics_internals import GLOBALS3D
 from mathics.builtin.drawing.graphics3d import (
     _Graphics3DElement,

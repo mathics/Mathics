@@ -23,7 +23,7 @@ from mathics.core.expression import (
     SymbolRule,
     from_python,
 )
-from mathics.builtin.drawing.color_internals import (
+from mathics.builtin.colors.color_internals import (
     convert_color,
     colorspaces as known_colorspaces,
 )
@@ -1296,7 +1296,7 @@ class ColorConvert(Builtin):
         if isinstance(input, Image):
             return input.color_convert(colorspace.get_string_value())
         else:
-            from mathics.builtin.drawing.colors import (
+            from mathics.builtin.colors.color_directives import (
                 expression_to_color,
                 color_to_expression,
             )
