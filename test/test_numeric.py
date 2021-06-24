@@ -2,6 +2,20 @@
 from .helper import check_evaluation
 
 
+def test_realvalued():
+    for str_expr, str_expected in (
+        (
+            "Internal`RealValuedNumberQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa, I}",
+            "{True, True, True, True, False, True, False, False}",
+        ),
+        (
+            "Internal`RealValuedNumericQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa,  I}",
+            "{True, True, True, True, True, True, False, False}",
+        ),
+    ):
+        check_evaluation(str_expr, str_expected)
+
+
 def test_realdigits():
     for str_expr, str_expected in (
         (

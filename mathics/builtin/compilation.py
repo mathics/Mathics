@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""Code Compilation
+
+Code compilation allows Mathics functions to be run faster.
+
+When LLVM and Python libraries are available, compilation produces LLVM code.
+"""
+
 
 import ctypes
 
@@ -21,9 +28,10 @@ from types import FunctionType
 class Compile(Builtin):
     """
     <dl>
-    <dt>'Compile[{$x1$, $x2$, ...}, $expr$]'
+      <dt>'Compile[{$x1$, $x2$, ...}, $expr$]'
       <dd>Compiles $expr$ assuming each $xi$ is a $Real$ number.
-    <dt>'Compile[{{$x1$, $t1$} {$x2$, $t1$} ...}, $expr$]'
+
+      <dt>'Compile[{{$x1$, $t1$} {$x2$, $t1$} ...}, $expr$]'
       <dd>Compiles assuming each $xi$ matches type $ti$.
     </dl>
 
