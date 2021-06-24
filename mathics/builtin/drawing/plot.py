@@ -863,8 +863,8 @@ class PieChart(_Chart):
       <li>SectorSpacing" (default Automatic)
     </ul>
 
-    A pie chart for a list of values:
-    >> PieChart[Range[4]]
+    A hypothetical comparsion between types of pets owned:
+    >> PieChart[{30, 20, 10}, ChartLabels -> {Dogs, Cats, Fish}]
      = -Graphics-
 
     A doughnut chart for a list of values:
@@ -2199,7 +2199,7 @@ class PolarPlot(_Plot):
     u"""
     <dl>
       <dt>'PolarPlot[$r$, {$t$, $t_min$, $t_max$}]'
-      <dd>creates a polar plot of curve with radious $r$ as a function of angle $t$ ranging from $t_min$ to $t_max$.
+      <dd>creates a polar plot of curve with radius $r$ as a function of angle $t$ ranging from $t_min$ to $t_max$.
     </dl>
 
     >> PolarPlot[Cos[5\\[Theta]], {\\[Theta], 0, Pi}]
