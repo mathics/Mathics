@@ -1,4 +1,3 @@
-
 import llvmlite.binding as llvm
 from llvmlite.llvmpy.core import Type
 from ctypes import CFUNCTYPE
@@ -46,14 +45,15 @@ engine = create_execution_engine()
 
 
 def _compile(expr, args):
-    ir_gen = IRGenerator(expr, args, 'mathics')
+    ir_gen = IRGenerator(expr, args, "mathics")
     llvm_ir, ret_type = ir_gen.generate_ir()
     mod = compile_ir(engine, llvm_ir)
 
     # lookup function pointer
-    func_ptr = engine.get_function_address('mathics')
+    func_ptr = engine.get_function_address("mathics")
 
     # run function via ctypes
-    cfunc = CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))(func_ptr)
+    cfunc = CFUNCTYPE(
+        llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args)
+    )(func_ptr)
     return cfunc
-

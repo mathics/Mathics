@@ -110,6 +110,7 @@ def arcbox(self, **options) -> str:
     # print("XXX arcbox", svg)
     return svg
 
+
 add_conversion_fn(_ArcBox, arcbox)
 
 
@@ -171,62 +172,80 @@ def filled_curve_box(self, **options):
 
 add_conversion_fn(FilledCurveBox, filled_curve_box)
 
+
 def graphics_box(self, leaves=None, **options) -> str:
 
-        if not leaves:
-            leaves = self._leaves
+    if not leaves:
+        leaves = self._leaves
 
-        data = options.get("data", None)
-        if data:
-            elements, xmin, xmax, ymin, ymax, self.boxwidth, self.boxheight, width, height = data
-        else:
-            elements, calc_dimensions = self._prepare_elements(
-                leaves, options, neg_y=True
-            )
-            xmin, xmax, ymin, ymax, self.boxwidth, self.boxheight, width, height = calc_dimensions()
+    data = options.get("data", None)
+    if data:
+        (
+            elements,
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            self.boxwidth,
+            self.boxheight,
+            width,
+            height,
+        ) = data
+    else:
+        elements, calc_dimensions = self._prepare_elements(leaves, options, neg_y=True)
+        (
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            self.boxwidth,
+            self.boxheight,
+            width,
+            height,
+        ) = calc_dimensions()
 
-        elements.view_width = self.boxwidth
+    elements.view_width = self.boxwidth
 
-        format_fn = lookup_method(elements, "svg")
-        if format_fn is not None:
-            svg_body = format_fn(elements, **options)
-        else:
-            svg_body = elements.to_svg(**options)
+    format_fn = lookup_method(elements, "svg")
+    if format_fn is not None:
+        svg_body = format_fn(elements, **options)
+    else:
+        svg_body = elements.to_svg(**options)
 
-        self.boxwidth = options.get("width", self.boxwidth)
-        self.boxheight = options.get("height", self.boxheight)
+    self.boxwidth = options.get("width", self.boxwidth)
+    self.boxheight = options.get("height", self.boxheight)
 
-        if self.background_color is not None:
-            # Wrap svg_elements in a rectangle
-            svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
-                xmin,
-                ymin,
-                self.boxwidth,
-                self.boxheight,
-                self.background_color.to_css()[0],
-                svg_body,
-            )
+    if self.background_color is not None:
+        # Wrap svg_elements in a rectangle
+        svg_body = '<rect x="%f" y="%f" width="%f" height="%f" style="fill:%s"/>%s' % (
+            xmin,
+            ymin,
+            self.boxwidth,
+            self.boxheight,
+            self.background_color.to_css()[0],
+            svg_body,
+        )
 
-        if options.get("noheader", False):
-            return svg_body
-        svg_main = f"""<svg width="{self.boxwidth}px" height="{self.boxheight}px" xmlns:svg="http://www.w3.org/2000/svg"
+    if options.get("noheader", False):
+        return svg_body
+    svg_main = f"""<svg width="{self.boxwidth}px" height="{self.boxheight}px" xmlns:svg="http://www.w3.org/2000/svg"
                 xmlns="http://www.w3.org/2000/svg"
                 version="1.1"
                 viewBox="%s">
                 %s
 </svg>
 """ % (
-            " ".join("%f" % t for t in (xmin, ymin, self.boxwidth, self.boxheight)),
-            svg_body,
-        )
-        # print("svg_main", svg_main)
-        return svg_main  # , width, height
+        " ".join("%f" % t for t in (xmin, ymin, self.boxwidth, self.boxheight)),
+        svg_body,
+    )
+    # print("svg_main", svg_main)
+    return svg_main  # , width, height
 
 
 add_conversion_fn(GraphicsBox, graphics_box)
 
 
-def graphics_elements(self, **options)->str:
+def graphics_elements(self, **options) -> str:
     """
     SVG Formatting for a list of graphics elements.
     """
@@ -249,7 +268,7 @@ graphics3delements = graphics_elements
 add_conversion_fn(Graphics3DElements)
 
 
-def inset_box(self, **options)->str:
+def inset_box(self, **options) -> str:
     """
     SVG Formatting for boxing an Inset in a graphic.
     """
@@ -289,7 +308,7 @@ def inset_box(self, **options)->str:
 add_conversion_fn(InsetBox, inset_box)
 
 
-def line_box(self, **options)->str:
+def line_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
     svg = ""
@@ -305,10 +324,10 @@ def line_box(self, **options)->str:
 add_conversion_fn(LineBox, line_box)
 
 
-def pointbox(self, **options)->str:
+def pointbox(self, **options) -> str:
     point_size, _ = self.style.get_style(PointSize, face_element=False)
     if point_size is None:
-        point_size = PointSize(self.graphics, value= DEFAULT_POINT_FACTOR)
+        point_size = PointSize(self.graphics, value=DEFAULT_POINT_FACTOR)
     size = point_size.get_absolute_size()
 
     style = create_css(
@@ -332,7 +351,6 @@ def polygonbox(self, **options):
     SVG formatter for PolygonBox
     """
     line_width = self.style.get_line_width(face_element=True)
-
 
     # I think face_color == None means the face color is transparent.
     # FIXME: explain the relationshop between self.vertex_colors and self.face_color
@@ -362,7 +380,7 @@ def polygonbox(self, **options):
     #
     # In SVG, this is called the "evenodd" fill rule.
     # Perhaps one day we will find it useful to have other fill_rules specified as an option.
-    fill_rule="evenodd"
+    fill_rule = "evenodd"
 
     for line in self.lines:
         svg += f"""
@@ -389,7 +407,7 @@ def rectanglebox(self, **options):
         x1, x2 = x1 + offset[0], x2 + offset[0]
         y1, y2 = y1 + offset[1], y2 + offset[1]
     style = create_css(self.edge_color, self.face_color, line_width)
-    svg =  '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
+    svg = '<rect x="%f" y="%f" width="%f" height="%f" style="%s" />' % (
         xmin,
         ymin,
         w,

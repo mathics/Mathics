@@ -57,7 +57,9 @@ class Atom(Node):
 
 
 class Number(Atom):
-    def __init__(self, value: str, sign: int = 1, base: int = 10, suffix=None, exp: int = 0):
+    def __init__(
+        self, value: str, sign: int = 1, base: int = 10, suffix=None, exp: int = 0
+    ):
         assert isinstance(value, str)
         assert sign in (-1, 1)
         assert isinstance(base, int)

@@ -62,9 +62,7 @@ for line in open("requirements-extra.txt").read().split("\n"):
         requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
         extras_require.append(requires)
 
-EXTRAS_REQUIRE = {
-    "full": extras_require
-}
+EXTRAS_REQUIRE = {"full": extras_require}
 
 DEPENDENCY_LINKS = [
     "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"

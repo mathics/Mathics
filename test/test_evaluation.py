@@ -4,6 +4,7 @@ from .helper import evaluate, check_evaluation
 import sys
 import pytest
 
+
 @pytest.mark.parametrize(
     "str_expr,str_expected",
     [
@@ -14,7 +15,6 @@ import pytest
         (r"s={x,1,3};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
         (r"s={x,{1,2,3}};Table[F[x],s]", "{F[1],F[2],F[3]}"),
-
         # Sum tests:
         (r"Sum[Identity[j], {j, 3}]", "6"),
         (r"Sum[2 Identity[j], {j, 3}]", "12"),
@@ -22,7 +22,6 @@ import pytest
         (r"Sum[k!, {k, 0, Quotient[4, 2]}]", "4"),
         ## Issue #431
         (r"Sum[2^(-i), {i, 1, \[Infinity]}]", "1"),
-
         # Global System Information
         (r"Abs[$ByteOrdering]", "1"),
         (r"Head[$CommandLine]", "List"),
@@ -61,50 +60,94 @@ def test_evaluation(str_expr: str, str_expected: str, message=""):
     else:
         assert result == expected
 
+
 @pytest.mark.parametrize(
     "str_setup,str_expr,str_expected,msg",
     [
-        (r'ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={"q"->12};f1[x_,OptionsPattern[]]:=x^OptionValue["q"]',
-         r'f1[y]',r'y ^ 12', None),
+        (
+            r'ClearAll[q];ClearAll[a];ClearAll[s]; Options[f1]:={"q"->12};f1[x_,OptionsPattern[]]:=x^OptionValue["q"]',
+            r"f1[y]",
+            r"y ^ 12",
+            None,
+        ),
         # Option is a symbol
-        (r'Options[f2]:={s->12};f2[x_,opt:OptionsPattern[]]:=x^OptionValue[s]',
-         r'f2[y]', r'y ^ 12', None),
+        (
+            r"Options[f2]:={s->12};f2[x_,opt:OptionsPattern[]]:=x^OptionValue[s]",
+            r"f2[y]",
+            r"y ^ 12",
+            None,
+        ),
         # OptionsPattern with an argument overwrites the Options of the function
         # Try with and without a name
-        (r'Options[f3]:={a->12};f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]',r'f3[y]', r'y ^ 4', None),
-        (r'Options[f4]:={a->12};f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]', r'f4[y]', r'y ^ 4', None),
+        (
+            r"Options[f3]:={a->12};f3[x_,opt:OptionsPattern[{a:>4}]]:=x^OptionValue[a]",
+            r"f3[y]",
+            r"y ^ 4",
+            None,
+        ),
+        (
+            r"Options[f4]:={a->12};f4[x_,OptionsPattern[{a:>4}]]:=x^OptionValue[a]",
+            r"f4[y]",
+            r"y ^ 4",
+            None,
+        ),
         # OptionValue outside a function
-        (r'Options[F]:={a->89,b->37}', r'OptionValue[F, a]', r'89', None),
-        (None, r'OptionValue[F, {a,b}]',r'{89, 37}', None),
-        (None, r'OptionValue[F, {a,b, l}]',r'{89, 37, l}', r"OptionValue::optnf: Option name l not found."),
-        (r'Options[f5]:={"a"->12};f5[x_,opt:OptionsPattern[]]:=x^OptionValue[a]', r'f5[y]', r'y ^ 12', None),
-        (r'Options[f6]:={a->12};f6[x_,opt:OptionsPattern[]]:=x^OptionValue["a"]', r'f6[y]', r'y ^ 12', None),
-        (r'Options[f7]:={a->12};f7[x_,OptionsPattern[{"a"->67}]]:=x^OptionValue[a]', r'f7[y]', r'y ^ 67', None),
+        (r"Options[F]:={a->89,b->37}", r"OptionValue[F, a]", r"89", None),
+        (None, r"OptionValue[F, {a,b}]", r"{89, 37}", None),
+        (
+            None,
+            r"OptionValue[F, {a,b, l}]",
+            r"{89, 37, l}",
+            r"OptionValue::optnf: Option name l not found.",
+        ),
+        (
+            r'Options[f5]:={"a"->12};f5[x_,opt:OptionsPattern[]]:=x^OptionValue[a]',
+            r"f5[y]",
+            r"y ^ 12",
+            None,
+        ),
+        (
+            r'Options[f6]:={a->12};f6[x_,opt:OptionsPattern[]]:=x^OptionValue["a"]',
+            r"f6[y]",
+            r"y ^ 12",
+            None,
+        ),
+        (
+            r'Options[f7]:={a->12};f7[x_,OptionsPattern[{"a"->67}]]:=x^OptionValue[a]',
+            r"f7[y]",
+            r"y ^ 67",
+            None,
+        ),
         # OptionValue with three parameters
-        (None, r'OptionValue[F, {l->77}, {a,b, l}]', r'{89, 37, 77}', None),
-        (None, r"OptionValue[F, {b->-1, l->77}, {a,b, l}]", r'{89, -1, 77}', None)
+        (None, r"OptionValue[F, {l->77}, {a,b, l}]", r"{89, 37, 77}", None),
+        (None, r"OptionValue[F, {b->-1, l->77}, {a,b, l}]", r"{89, -1, 77}", None),
     ],
 )
-def test_optionvalues(str_setup:str , str_expr:str , str_expected:str , msg:str , messages=""):
+def test_optionvalues(
+    str_setup: str, str_expr: str, str_expected: str, msg: str, messages=""
+):
     if str_setup:
         evaluate(str_setup)
-    result =  evaluate(str_expr)
+    result = evaluate(str_expr)
     expected = evaluate(str_expected)
     if msg:
         assert result == expected, msg
     else:
         assert result == expected
 
+
 if sys.platform in ("linux",):
 
     def test_system_specific_long_integer():
-        evaluate("""
+        evaluate(
+            """
         WRb[bytes_, form_] := Module[{str, res={}, byte}, str = OpenWrite[BinaryFormat -> True];
         BinaryWrite[str, bytes, form];
         str = OpenRead[Close[str], BinaryFormat -> True];
         While[Not[SameQ[byte = BinaryRead[str], EndOfFile]], res = Join[res, {byte}];];
         Close[str]; res]
-        """)
+        """
+        )
         for str_expr, str_expected, message in (
             (
                 r'WRb[{1885507541, 4157323149}, Table["UnsignedInteger32", {2}]]',
@@ -136,7 +179,6 @@ if sys.platform in ("linux",):
                 r"{53, 83, 116, 79, 81, 100, 60, 126, 202, 52, 241, 48, 5, 113, 92, 190}",
                 "UnsignedInteger128 - 2nd test",
             ),
-
             # This works but the $Precision is coming out UnsignedInt128 rather tha
             # UnsignedInt32
             # (
@@ -146,10 +188,10 @@ if sys.platform in ("linux",):
             #     " {-0.0832756, 0.765142, 0.638454}}",
             #     "Eigenvalues via mpmath",
             # ),
-
         ):
 
             check_evaluation(str_expr, str_expected, message)
+
 
 # import os.path as osp
 # def check_evaluation_with_err(str_expr: str, expected: str, message=""):

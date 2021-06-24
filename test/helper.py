@@ -4,11 +4,14 @@ from mathics.session import MathicsSession
 
 session = MathicsSession(add_builtin=True, catch_interrupt=False)
 
+
 def evaluate_value(str_expr: str):
     return session.evaluate(str_expr).value
 
+
 def evaluate(str_expr: str):
     return session.evaluate(str_expr)
+
 
 def check_evaluation(
     str_expr: str,

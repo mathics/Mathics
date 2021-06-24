@@ -27,21 +27,62 @@ list_test_assumptions_integrate = [
 ]
 
 list_test_assumptions_simplify = [
-    ("Simplify[a==b || a!=b]", "True", "",),
-    ("Simplify[a==b && a!=b]", "False", "",),
-    ("Simplify[a<=b && a>b]", "False", "",),
-    ("Simplify[a==b, ! a!=b]", "True", "",),
-    ("Simplify[a==b,   a!=b]", "False", "",),
-    ("Simplify[a > b,  {a==4}]", "b < 4", "",),
-    ("Simplify[And[a>b, b<a]]", "a>b", "",),
-    ("Simplify[Or[a>b, a<b]]", "a!=b", "",),
-    ("Simplify[Or[a>b, b<a]]", "a>b", "",),
-    ("Simplify[a>b,  {b<=a}]", "a>b", "",),
+    (
+        "Simplify[a==b || a!=b]",
+        "True",
+        "",
+    ),
+    (
+        "Simplify[a==b && a!=b]",
+        "False",
+        "",
+    ),
+    (
+        "Simplify[a<=b && a>b]",
+        "False",
+        "",
+    ),
+    (
+        "Simplify[a==b, ! a!=b]",
+        "True",
+        "",
+    ),
+    (
+        "Simplify[a==b,   a!=b]",
+        "False",
+        "",
+    ),
+    (
+        "Simplify[a > b,  {a==4}]",
+        "b < 4",
+        "",
+    ),
+    (
+        "Simplify[And[a>b, b<a]]",
+        "a>b",
+        "",
+    ),
+    (
+        "Simplify[Or[a>b, a<b]]",
+        "a!=b",
+        "",
+    ),
+    (
+        "Simplify[Or[a>b, b<a]]",
+        "a>b",
+        "",
+    ),
+    (
+        "Simplify[a>b,  {b<=a}]",
+        "a>b",
+        "",
+    ),
 ]
 
 
 @pytest.mark.parametrize(
-    ("str_expr", "str_expected", "message"), list_test_assumptions_integrate,
+    ("str_expr", "str_expected", "message"),
+    list_test_assumptions_integrate,
 )
 @pytest.mark.xfail
 def test_assumptions_integrate(str_expr, str_expected, message):
@@ -49,7 +90,8 @@ def test_assumptions_integrate(str_expr, str_expected, message):
 
 
 @pytest.mark.parametrize(
-    ("str_expr", "str_expected", "message"), list_test_assumptions_simplify,
+    ("str_expr", "str_expected", "message"),
+    list_test_assumptions_simplify,
 )
 @pytest.mark.xfail
 def test_assumptions_simplify(str_expr, str_expected, message):

@@ -1335,6 +1335,7 @@ class Arg(_MPMathFunction):
     >> Arg[0]
      = 0
     """
+
     rules = {
         "Arg[0]": "0",
         "Arg[DirectedInfinity[]]": "1",
@@ -1344,7 +1345,7 @@ class Arg(_MPMathFunction):
     attributes = ("Listable", "NumericFunction")
     options = {"Method": "Automatic"}
 
-    numpy_name = "angle" # for later
+    numpy_name = "angle"  # for later
     mpmath_name = "arg"
     sympy_name = "arg"
 
@@ -1859,6 +1860,7 @@ class Factorial(PostfixOperator, _MPMathFunction):
     precedence = 610
     mpmath_name = "factorial"
 
+
 class HarmonicNumber(_MPMathFunction):
     """
     <dl>
@@ -2145,8 +2147,8 @@ class Piecewise(SympyFunction):
 
     def apply(self, items, evaluation):
         "%(name)s[items__]"
-        result = self.to_sympy(Expression("Piecewise", *items.get_sequence()),
-                               evaluation=evaluation
+        result = self.to_sympy(
+            Expression("Piecewise", *items.get_sequence()), evaluation=evaluation
         )
         if result is None:
             return

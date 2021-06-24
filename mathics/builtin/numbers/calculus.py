@@ -166,7 +166,7 @@ class D(SympyFunction):
             return IntegerZero
         elif f == x:
             return Integer1
-        elif f.is_atom(): # Shouldn't happen
+        elif f.is_atom():  # Shouldn't happen
             1 / 0
             return
         # So, this is not an atom...
@@ -575,7 +575,9 @@ class Integrate(SympyFunction):
 
     def apply(self, f, xs, evaluation, options):
         "Integrate[f_, xs__, OptionsPattern[]]"
-        self.patpow0 = Pattern.create(Expression("Power", Integer0, Expression("Blank")))
+        self.patpow0 = Pattern.create(
+            Expression("Power", Integer0, Expression("Blank"))
+        )
         assuming = options["System`Assumptions"].evaluate(evaluation)
         f_sympy = f.to_sympy()
         if f_sympy is None or isinstance(f_sympy, SympyExpression):
@@ -647,17 +649,21 @@ class Integrate(SympyFunction):
                 # TODO: if something like 0^n or 1/expr appears,
                 # put the condition n!=0 or expr!=0 accordingly in the list of
                 # conditions...
-                cond = Expression("Simplify", case._leaves[1], assuming).evaluate(evaluation)
-                resif = Expression("Simplify", case._leaves[0], assuming).evaluate(evaluation)
+                cond = Expression("Simplify", case._leaves[1], assuming).evaluate(
+                    evaluation
+                )
+                resif = Expression("Simplify", case._leaves[0], assuming).evaluate(
+                    evaluation
+                )
                 if cond.is_true():
                     return resif
                 if resif.has_form("ConditionalExpression", 2):
-                    cond = Expression("And", resif._leaves[1] ,cond)
+                    cond = Expression("And", resif._leaves[1], cond)
                     cond = Expression("Simplify", cond, assuming).evaluate(evaluation)
                     resif = resif._leaves[0]
                 simplified_cases.append(Expression(SymbolList, resif, cond))
             cases = simplified_cases
-            if default == SymbolUndefined and len(cases)==1:
+            if default == SymbolUndefined and len(cases) == 1:
                 cases = cases[0]
                 result = Expression("ConditionalExpression", *(cases._leaves))
             else:

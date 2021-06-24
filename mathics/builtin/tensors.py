@@ -7,7 +7,14 @@ Tensors
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin, BinaryOperator
-from mathics.core.expression import Expression, Integer, Integer0, String, SymbolTrue, SymbolFalse
+from mathics.core.expression import (
+    Expression,
+    Integer,
+    Integer0,
+    String,
+    SymbolTrue,
+    SymbolFalse,
+)
 from mathics.core.rules import Pattern
 
 from mathics.builtin.lists import get_part

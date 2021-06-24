@@ -681,7 +681,6 @@ class OddQ(Test):
 
     attributes = ("Listable", "Protected")
 
-
     def test(self, n):
         value = n.get_int_value()
         return value is not None and value % 2 != 0
@@ -820,7 +819,6 @@ class PrimePi(SympyFunction):
     mpmath_name = "primepi"
 
     attributes = ("Listable", "NumericFunction")
-
 
     # TODO: Traditional Form
 

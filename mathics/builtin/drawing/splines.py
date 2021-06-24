@@ -30,6 +30,7 @@ class BernsteinBasis(Builtin):
     >> BernsteinBasis[4, 3, 0.5]
      = 0.25
     """
+
     attributes = ("Listable", "NumericFunction", "Protected")
     rules = {
         "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
@@ -58,6 +59,7 @@ class BezierFunction(Builtin):
     >> Module[{p={{0, 0},{1, 1},{2, -1},{4, 0}}}, Graphics[{BezierCurve[p], Red, Point[Table[BezierFunction[p][x], {x, 0, 1, 0.1}]]}]]
      = -Graphics-
     """
+
     rules = {
         "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
     }

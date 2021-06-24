@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .helper import check_evaluation
 
+
 def test_to_infinity():
     for str_expr, str_expected, message in (
         (
@@ -18,6 +19,5 @@ def test_to_infinity():
             '"sympy.pi"',
             "Pi",
         ),
-
     ):
         check_evaluation(str_expr, str_expected, message)

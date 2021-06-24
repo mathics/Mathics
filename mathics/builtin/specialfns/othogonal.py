@@ -7,6 +7,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.expression import Integer0
 
+
 class ChebyshevT(_MPMathFunction):
     """
     <dl>
@@ -24,6 +25,7 @@ class ChebyshevT(_MPMathFunction):
     nargs = 2
     sympy_name = "chebyshevt"
     mpmath_name = "chebyt"
+
 
 class ChebyshevU(_MPMathFunction):
     """
@@ -64,6 +66,7 @@ class GegenbauerC(_MPMathFunction):
     sympy_name = "gegenbauer"
     mpmath_name = "gegenbauer"
 
+
 class HermiteH(_MPMathFunction):
     """
     <dl>
@@ -84,6 +87,7 @@ class HermiteH(_MPMathFunction):
     nargs = 2
     sympy_name = "hermite"
     mpmath_name = "hermite"
+
 
 class JacobiP(_MPMathFunction):
     """
@@ -135,6 +139,7 @@ class LaguerreL(_MPMathFunction):
         if len(leaves) == 3:
             return [leaves[0], leaves[2], leaves[1]]
         return leaves
+
 
 class LegendreP(_MPMathFunction):
     """
@@ -224,6 +229,7 @@ class LegendreQ(_MPMathFunction):
         if leaves[1] == Integer0:
             return leaves[:1] + leaves[2:]
         return leaves
+
 
 class SphericalHarmonicY(_MPMathFunction):
     """

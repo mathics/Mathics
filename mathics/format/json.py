@@ -22,6 +22,7 @@ from mathics.builtin.box.graphics3d import (
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
 
+
 def graphics_3D_elements(self, **options):
     result = []
     for element in self.elements:

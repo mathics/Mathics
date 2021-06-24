@@ -38,6 +38,7 @@ INVERSE_POINT_FACTOR = 1 / DEFAULT_POINT_FACTOR
 from mathics.core.formatter import lookup_method, add_conversion_fn
 from mathics.format.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number
 
+
 class _ASYTransform:
     _template = """
     add(%s * (new picture() {
@@ -86,9 +87,7 @@ def arcbox(self, **options) -> str:
 
     def path(closed):
         if closed:
-            yield "(%s,%s)--(%s,%s)--" % tuple(
-                asy_number(t) for t in (x, y, sx, sy)
-            )
+            yield "(%s,%s)--(%s,%s)--" % tuple(asy_number(t) for t in (x, y, sx, sy))
 
         yield "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
             asy_number(t) for t in (x, y, sx, sy, ex, ey)
@@ -109,7 +108,9 @@ def arcbox(self, **options) -> str:
     # print("### arcbox", asy)
     return asy
 
+
 add_conversion_fn(_ArcBox, arcbox)
+
 
 def arrow_box(self, **options) -> str:
     width = self.style.get_line_width(face_element=False)
@@ -145,6 +146,7 @@ def bezier_curve_box(self, **options) -> str:
                 path = "(0.,0.)" + path
             asy += "draw(%s, %s);" % (path, pen)
     return asy
+
 
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
 
@@ -263,8 +265,9 @@ def pointbox(self, **options) -> str:
     # We'll use the heuristic that the default line width is 1 should correspond
     # to the DEFAULT_POINT_FACTOR
     dotfactor = INVERSE_POINT_FACTOR * point_size.value
-    pen = asy_create_pens(face_color=self.face_color, is_face_element=False,
-                          dotfactor=dotfactor)
+    pen = asy_create_pens(
+        face_color=self.face_color, is_face_element=False, dotfactor=dotfactor
+    )
 
     asy = ""
     for line in self.lines:

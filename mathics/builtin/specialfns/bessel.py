@@ -13,11 +13,13 @@ from mathics.core.expression import from_mpmath
 from mathics.core.numbers import machine_precision, get_precision, PrecisionValueError
 from mathics.core.numbers import prec as _prec
 
+
 class _Bessel(_MPMathFunction):
 
     attributes = ("Listable", "NumericFunction", "Protected", "ReadProtected")
 
     nargs = 2
+
 
 class AiryAi(_MPMathFunction):
     """
@@ -253,6 +255,7 @@ class AiryBiZero(Builtin):
             result = mpmath.airybizero(k_int)
             return from_mpmath(result, d)
 
+
 class AngerJ(_Bessel):
     """
     <dl>
@@ -276,6 +279,7 @@ class AngerJ(_Bessel):
 
 
 # Bessel Functions
+
 
 class BesselI(_Bessel):
     """
@@ -363,7 +367,6 @@ class BesselK(_Bessel):
     }
 
 
-
 class BesselY(_Bessel):
     """
     <dl>
@@ -436,9 +439,11 @@ class BesselYZero(_Bessel):
     mpmath_name = "besselyzero"
     sympy_name = ""
 
+
 # TODO: Spherical Bessel Functions
 
 # Hankel Functions
+
 
 class HankelH1(_Bessel):
     """
@@ -476,7 +481,9 @@ class HankelH2(_Bessel):
     sympy_name = "hankel2"
     mpmath_name = "hankel2"
 
+
 # Kelvin Functions
+
 
 class KelvinBei(_Bessel):
     """
@@ -605,7 +612,9 @@ class KelvinKer(_Bessel):
     mpmath_name = "ker"
     sympy_name = ""
 
+
 # Struve and Related Functions
+
 
 class StruveH(_Bessel):
     """

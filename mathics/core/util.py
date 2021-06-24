@@ -89,7 +89,7 @@ def subsets(items, min, max, included=None, less_first=False):
 
 
 def subsets_2(items, min, max, without_duplicates=True):
-    """ max may only be 1 or None (= infinity).
+    """max may only be 1 or None (= infinity).
     Respects include property of items
     """
 
@@ -236,6 +236,6 @@ def re_from_keys(d: dict) -> "re":
 
 
 def dict_with_escaped_keys(d: dict) -> dict:
-    """Takes a dictionary and returns a copy of it where the keys are escaped 
+    """Takes a dictionary and returns a copy of it where the keys are escaped
     with re.escape"""
     return {re.escape(k): v for k, v in d.items()}

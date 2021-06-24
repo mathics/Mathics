@@ -374,7 +374,8 @@ tests2 = [
 
 
 @pytest.mark.parametrize(
-    ("str_lhs", "str_rhs", "str_expected"), tests1,
+    ("str_lhs", "str_rhs", "str_expected"),
+    tests1,
 )
 def test_cmp1_no_pass(str_lhs, str_rhs, str_expected):
     if str_lhs == str_rhs:
@@ -400,7 +401,8 @@ def test_cmp1_no_pass(str_lhs, str_rhs, str_expected):
 
 
 @pytest.mark.parametrize(
-    ("str_lhs", "str_rhs", "str_expected"), tests2,
+    ("str_lhs", "str_rhs", "str_expected"),
+    tests2,
 )
 def test_cmp2_no_pass(str_lhs, str_rhs, str_expected):
     if str_lhs == str_rhs:

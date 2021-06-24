@@ -3,6 +3,7 @@
 
 try:
     import llvmlite
+
     has_llvmlite = True
 except ImportError:
     has_llvmlite = False

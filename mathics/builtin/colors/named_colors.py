@@ -11,6 +11,7 @@ from mathics.core.expression import strip_context
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
+
 class _ColorObject(Builtin):
     text_name = None
 
@@ -112,6 +113,7 @@ class LightBlue(_ColorObject):
     >> Plot[Sin[x], {x, 0, 2 Pi}, Background -> LightBlue]
      = -Graphics-
     """
+
     text_name = "light blue"
     rules = {"LightBlue": "RGBColor[0.87, 0.94, 1]"}
 
@@ -120,6 +122,7 @@ class LightBrown(_ColorObject):
     text_name = "light brown"
 
     rules = {"LightBrown": "Lighter[Brown, 0.85]"}
+
 
 class LightCyan(_ColorObject):
     text_name = "light cyan"
@@ -145,14 +148,17 @@ class LightOrange(_ColorObject):
     text_name = "light orange"
     rules = {"LightOrange": "RGBColor[1, 0.9, 0.8]"}
 
+
 class LightPink(_ColorObject):
     text_name = "light pink"
 
     rules = {"LightPink": "Lighter[Pink, 0.85]"}
 
+
 class LightPurple(_ColorObject):
     text_name = "light purple"
     rules = {"LightPurple": "Lighter[Purple, 0.88]"}
+
 
 class LightRed(_ColorObject):
     text_name = "light red"

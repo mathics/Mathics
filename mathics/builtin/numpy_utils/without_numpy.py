@@ -8,7 +8,13 @@ A couple of helper functions for doing numpy-like stuff without numpy.
 from mathics.core.expression import Expression
 from itertools import chain
 from contextlib import contextmanager
-from math import sin as sinf, cos as cosf, sqrt as sqrtf, atan2 as atan2f, floor as floorf
+from math import (
+    sin as sinf,
+    cos as cosf,
+    sqrt as sqrtf,
+    atan2 as atan2f,
+    floor as floorf,
+)
 import operator
 import inspect
 
@@ -19,6 +25,7 @@ import inspect
 #
 # INTERNAL FUNCTIONS
 #
+
 
 def _is_bottom(a):
     return any(not isinstance(x, list) for x in a)
@@ -41,6 +48,7 @@ def _apply_n(f, *p):
 #
 # ARRAY CREATION AND REORGANIZATION: STACK, UNSTACK, CONCAT, ...
 #
+
 
 def array(a):
     return a
@@ -95,6 +103,7 @@ def vectorize(a, depth, f):
 # MATHEMATICAL OPERATIONS
 #
 
+
 def clip(a, t0, t1):
     def _eval(x):
         return max(t0, min(t1, x))
@@ -145,6 +154,7 @@ def minimum(*a):
 # PUBLIC HELPER FUNCTIONS
 #
 
+
 def is_numpy_available():
     return False
 
@@ -179,7 +189,7 @@ def instantiate_elements(a, new_element, d=1):
         leaves = [new_element(x) for x in a]
     else:
         leaves = [instantiate_elements(e, new_element, d) for e in a]
-    return Expression('List', *leaves)
+    return Expression("List", *leaves)
 
 
 #
@@ -191,7 +201,10 @@ def _choose_descend(i, options):
     if isinstance(i, (int, float)):
         return options[int(i)]  # int cast needed for PyPy
     else:
-        return [_choose_descend(next_i, [o[k] for o in options]) for k, next_i in enumerate(i)]
+        return [
+            _choose_descend(next_i, [o[k] for o in options])
+            for k, next_i in enumerate(i)
+        ]
 
 
 def choose(i, *options):
@@ -208,7 +221,7 @@ def conditional(*args):  # essentially a noop
         return lambda f: conditional(f)  # with arguments
 
     if not inspect.isfunction(f):
-        raise Exception('@conditional can only be applied to functions')
+        raise Exception("@conditional can only be applied to functions")
 
     def wrapper(*a):
         return f(*a)

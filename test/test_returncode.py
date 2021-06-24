@@ -3,9 +3,11 @@ import subprocess
 
 import os.path as osp
 
+
 def get_testdir():
     filename = osp.normcase(osp.dirname(osp.abspath(__file__)))
     return osp.realpath(filename)
+
 
 def test_returncode():
     assert subprocess.run(["mathics", "-e", "Quit[5]"]).returncode == 5
@@ -14,6 +16,7 @@ def test_returncode():
 
     gcd_file = osp.join(get_testdir(), "data", "recursive-gcd.m")
     assert subprocess.run(["mathics", "-f", gcd_file]).returncode == 0
+
 
 if __name__ == "__main__":
     test_returncode()

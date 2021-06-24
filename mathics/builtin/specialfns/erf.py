@@ -8,6 +8,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.builtin.arithmetic import _MPMathFunction, _MPMathMultiFunction
 
+
 class Erf(_MPMathMultiFunction):
     """
     <dl>
@@ -45,6 +46,7 @@ class Erf(_MPMathMultiFunction):
         "Derivative[1][Erf]": "2 Exp[-#^2] / Sqrt[Pi] &",
     }
 
+
 class Erfc(_MPMathFunction):
     """
     <dl>
@@ -70,6 +72,7 @@ class Erfc(_MPMathFunction):
         "Derivative[1][Erfc]": "-2 Exp[-#^2] / Sqrt[Pi] &",
     }
 
+
 class FresnelC(_MPMathFunction):
     """
     <dl>
@@ -90,6 +93,7 @@ class FresnelC(_MPMathFunction):
     }
     mpmath_name = "fresnelc"
 
+
 class FresnelS(_MPMathFunction):
     """
     <dl>
@@ -109,6 +113,7 @@ class FresnelS(_MPMathFunction):
         "Derivative[1][FresnelS]": "Sin[(Pi*#1^2)/2]&",
     }
     mpmath_name = "fresnels"
+
 
 class InverseErf(_MPMathFunction):
     """
@@ -147,6 +152,7 @@ class InverseErf(_MPMathFunction):
                 return
             else:
                 raise
+
 
 class InverseErfc(_MPMathFunction):
     """

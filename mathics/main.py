@@ -17,9 +17,11 @@ from mathics.core.evaluation import Evaluation, Output
 from mathics import version_string, license_string, __version__
 from mathics import settings
 
+
 def get_srcdir():
     filename = osp.normcase(osp.dirname(osp.abspath(__file__)))
     return osp.realpath(filename)
+
 
 class TerminalShell(MathicsLineFeeder):
     def __init__(self, definitions, colors, want_readline, want_completion):
@@ -131,7 +133,7 @@ class TerminalShell(MathicsLineFeeder):
 
         out_str = str(result.result)
         if eval_type == "System`String" and not strict_wl_output:
-            out_str = '"' + out_str.replace('"', r'\"') + '"'
+            out_str = '"' + out_str.replace('"', r"\"") + '"'
         if eval_type == "System`Graph":
             out_str = "-Graph-"
 
@@ -342,7 +344,9 @@ Please contribute to Mathics!""",
         for expr in args.execute:
             evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
             result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(result, no_out_prompt=True, strict_wl_output=args.strict_wl_output)
+            shell.print_result(
+                result, no_out_prompt=True, strict_wl_output=args.strict_wl_output
+            )
             if evaluation.exc_result == Symbol("Null"):
                 exit_rc = 0
             elif evaluation.exc_result == Symbol("$Aborted"):

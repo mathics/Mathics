@@ -5,7 +5,6 @@ import pytest
 from mathics_scanner.errors import IncompleteSyntaxError
 
 
-
 str_test_set_with_oneidentity = """
 SetAttributes[SUNIndex, {OneIdentity}];
 SetAttributes[SUNFIndex, {OneIdentity}];
@@ -31,7 +30,9 @@ def test_setdelayed_oneidentity():
             continue
         expr = expr + line
         try:
-            check_evaluation(expr, "Null", to_string_expr=False, to_string_expected=False)
+            check_evaluation(
+                expr, "Null", to_string_expr=False, to_string_expected=False
+            )
             expr = ""
         except IncompleteSyntaxError:
             continue

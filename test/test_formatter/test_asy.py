@@ -42,9 +42,7 @@ def test_asy_circle():
 
     # Circles are implemented as ellipses with equal major and minor axes.
     # Check for that.
-    matches = re.match(
-        r'^draw\(ellipse\(\((.+),\s*(.+)\),(.*),(.*)\), .*', inner_asy
-    )
+    matches = re.match(r"^draw\(ellipse\(\((.+),\s*(.+)\),(.*),(.*)\), .*", inner_asy)
 
     assert matches
     # Check that center point is centered and
@@ -64,7 +62,7 @@ def test_asy_point():
 
     print(inner_asy)
     # matches = re.match(r'^Circle\((.+), (.+), (.+)\),.+;', inner_asy)
-    matches = re.match(r'^dot\(\((.+), (.+)\), .+\);.*', inner_asy)
+    matches = re.match(r"^dot\(\((.+), (.+)\), .+\);.*", inner_asy)
     assert matches
     # Since the x,y pont is the same, we'll check that whatever this
     # coordinate mapped to, it is the same.
@@ -86,7 +84,7 @@ def test_asy_arrowbox():
     asy = get_asy(expression)
     inner_asy = extract_asy_body(asy)
 
-    matches = re.match(r'^draw\(.*\)', inner_asy)
+    matches = re.match(r"^draw\(.*\)", inner_asy)
     # TODO: Match line and arrowbox
     assert matches
 
@@ -107,7 +105,7 @@ def test_asy_bezier_curve():
     asy = get_asy(expression)
     inner_asy = extract_asy_body(asy)
 
-    matches = re.match(r'^draw\(.*\)', inner_asy)
+    matches = re.match(r"^draw\(.*\)", inner_asy)
     # TODO: Match line and arrowbox
     assert matches
 

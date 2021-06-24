@@ -23,6 +23,7 @@ from mathics.core.expression import (
 
 from mathics.core.numbers import machine_epsilon
 
+
 def _cie2000_distance(lab1, lab2):
     # reference: https://en.wikipedia.org/wiki/Color_difference#CIEDE2000
     e = machine_epsilon

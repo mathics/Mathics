@@ -25,7 +25,6 @@ from mathics.builtin.base import (
     MessageException,
     NegativeIntegerException,
     CountableInteger,
-
 )
 from mathics.core.expression import (
     Expression,
@@ -2039,6 +2038,7 @@ class Cases(Builtin):
             return Expression(SymbolList)
 
         from mathics.builtin.patterns import Matcher
+
         if ls.has_form("Rule", 2):
             if ls.leaves[0].get_name() == "System`Heads":
                 heads = ls.leaves[1].is_true()
