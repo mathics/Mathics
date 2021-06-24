@@ -88,7 +88,10 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
             f"""{sep}Test failed: {section} in {part} / {chapter}
 {part}
 n{why}
-""".encode("utf-8"))
+""".encode(
+                "utf-8"
+            )
+        )
         return False
 
     if not quiet:

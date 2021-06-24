@@ -6,6 +6,8 @@ Tensors
 In mathematics, a tensor is an algebraic object that describes a (multilinear) relationship between sets of algebraic objects related to a vector space. Objects that tensors may map between include vectors and scalars, and even other tensors.
 
 There are many types of tensors, including scalars and vectors (which are the simplest tensors), dual vectors, multilinear maps between vector spaces, and even some operations such as the dot product. Tensors are defined independent of any basis, although they are often referred to by their components in a basis related to a particular coordinate system.
+
+Mathics represents tensors of vectors and matrices as lists; tensors of any rank can be handled.
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
