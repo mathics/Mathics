@@ -2198,14 +2198,14 @@ class ParametricPlot(_Plot):
 class PolarPlot(_Plot):
     u"""
     <dl>
-      <dt>'PolarPlot[$r$, {$\u03B8$, $\u03B8_min$, $\u03B8_max$}]'
-      <dd>creates a polar plot of curve with radious $r$ as a function of angle $\u03B8$ ranging from $\u03B8_min$ to $\u03B8_max$.
+      <dt>'PolarPlot[$r$, {$t$, $t_min$, $t_max$}]'
+      <dd>creates a polar plot of curve with radious $r$ as a function of angle $t$ ranging from $t_min$ to $t_max$.
     </dl>
 
     >> PolarPlot[Cos[5\\[Theta]], {\\[Theta], 0, Pi}]
      = -Graphics-
 
-    >> PolarPlot[{1, 1 + Sin[20 \u03B8] / 5}, {\u03B8, 0, 2 Pi}]
+    >> PolarPlot[{1, 1 + Sin[20 t] / 5}, {t, 0, 2 Pi}]
      = -Graphics-
 
     >> PolarPlot[Sqrt[t], {t, 0, 16 Pi}]
