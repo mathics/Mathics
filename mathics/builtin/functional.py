@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""
-Functional Programming
+"""Functional Programming
+
+Functional programming is a programming paradigm where programs are constructed by applying and composing functions.
+
+It is made richer by expressions like $f$[$x$] being treating as symbolic data.
 """
 
 from itertools import chain

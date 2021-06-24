@@ -2,6 +2,10 @@
 
 """
 Date and Time
+
+Dates and times are represented symbolically; computations can be performed on them.
+
+Date object can also input and output dates and times in a wide range of formats, as well as handle calendars.
 """
 
 from datetime import datetime, timedelta
