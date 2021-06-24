@@ -85,15 +85,16 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
     def fail(why):
         part, chapter, section = tests.part, tests.chapter, tests.section
         print_and_log(
-            "%sTest failed: %s in %s / %s\n%s\n%s\n"
-            % (sep, section, part, chapter, test, why)
-        )
+            f"""{sep}Test failed: {section} in {part} / {chapter}
+{part}
+n{why}
+""".encode("utf-8"))
         return False
 
     if not quiet:
         if section:
-            print("%s %s / %s %s" % (stars, tests.chapter, section, stars))
-        print("%4d (%2d): TEST %s" % (index, subindex, test))
+            print(f"{stars} {tests.chapter} / {section} {stars}".encode("utf-8"))
+        print(f"{index:4d} ({subindex:2d}): TEST {test}".encode("utf-8"))
 
     feeder = MathicsSingleLineFeeder(test, "<test>")
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())

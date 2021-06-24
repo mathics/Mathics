@@ -262,6 +262,7 @@ def escape_latex(text):
             ("\u00e9", r"\'e"),
             ("\u00ea", r"\^e"),
             ("\u03b3", r"$\gamma$"),
+            ("\u03b8", r"$\theta$"),
             ("\u03bc", r"$\mu$"),
             ("\u03c0", r"$\pi$"),
             ("\u2107", r"$\mathrm{e}$"),
