@@ -1187,11 +1187,9 @@ class NumericQ(Builtin):
 
 
 class RealValuedNumericQ(Builtin):
-    """
-    #> Internal`RealValuedNumericQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa,  I}
-     = {True, True, True, True, True, True, False, False}
-    """
-
+    # No docstring since this is internal and it will mess up documentation.
+    # FIXME: Perhaps in future we will have a more explicite way to indicate not
+    # to add something to the docs.
     context = "Internal`"
 
     rules = {
@@ -1200,11 +1198,9 @@ class RealValuedNumericQ(Builtin):
 
 
 class RealValuedNumberQ(Builtin):
-    """
-    #>  Internal`RealValuedNumberQ /@ {1, N[Pi], 1/2, Sin[1.], Pi, 3/4, aa, I}
-     = {True, True, True, True, False, True, False, False}
-    """
-
+    # No docstring since this is internal and it will mess up documentation.
+    # FIXME: Perhaps in future we will have a more explicite way to indicate not
+    # to add something to the docs.
     context = "Internal`"
 
     rules = {
