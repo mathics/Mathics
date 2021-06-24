@@ -30,7 +30,6 @@ from mathics.builtin.colors.color_internals import (
 
 import base64
 import functools
-import itertools
 import math
 from collections import defaultdict
 
@@ -1265,59 +1264,6 @@ class ImageColorSpace(_ImageBuiltin):
         return String(image.color_space)
 
 
-class ColorConvert(Builtin):
-    """
-    <dl>
-    <dt>'ColorConvert[$c$, $colspace$]'
-        <dd>returns the representation of $c$ in the color space $colspace$. $c$
-        may be a color or an image.
-    </dl>
-
-    Valid values for $colspace$ are:
-
-    CMYK: convert to CMYKColor
-    Grayscale: convert to GrayLevel
-    HSB: convert to Hue
-    LAB: concert to LABColor
-    LCH: convert to LCHColor
-    LUV: convert to LUVColor
-    RGB: convert to RGBColor
-    XYZ: convert to XYZColor
-    """
-
-    messages = {
-        "ccvinput": "`` should be a color.",
-        "imgcstype": "`` is not a valid color space.",
-    }
-
-    def apply(self, input, colorspace, evaluation):
-        "ColorConvert[input_, colorspace_String]"
-
-        if isinstance(input, Image):
-            return input.color_convert(colorspace.get_string_value())
-        else:
-            from mathics.builtin.colors.color_directives import (
-                expression_to_color,
-                color_to_expression,
-            )
-
-            py_color = expression_to_color(input)
-            if py_color is None:
-                evaluation.message("ColorConvert", "ccvinput", input)
-                return
-
-            py_colorspace = colorspace.get_string_value()
-            converted_components = convert_color(
-                py_color.components, py_color.color_space, py_colorspace
-            )
-
-            if converted_components is None:
-                evaluation.message("ColorConvert", "imgcstype", colorspace)
-                return
-
-            return color_to_expression(converted_components, py_colorspace)
-
-
 class ColorQuantize(_ImageBuiltin):
     """
     <dl>
@@ -1443,35 +1389,6 @@ class Binarize(_SkimageBuiltin):
         mask1 = pixels > t1.round_to_float()
         mask2 = pixels < t2.round_to_float()
         return Image(mask1 * mask2, "Grayscale")
-
-
-class ColorNegate(_ImageBuiltin):
-    """
-    <dl>
-      <dt>'ColorNegate[$image$]'
-      <dd>returns the negative of $image$ in which colors have been negated.
-
-      <dt>'ColorNegate[$color$]'
-      <dd>returns the negative of a color.
-
-      Yellow is RGBColor[1.0, 1.0, 0.0]
-      >> ColorNegate[Yellow]
-       = RGBColor[0., 0., 1.]
-    </dl>
-    """
-
-    def apply_for_image(self, image, evaluation):
-        "ColorNegate[image_Image]"
-        return image.filter(lambda im: PIL.ImageOps.invert(im))
-
-    def apply_for_color(self, color, evaluation):
-        "ColorNegate[color_RGBColor]"
-        # Get components
-        r, g, b = [leaf.to_python() for leaf in color.leaves]
-        # Invert
-        r, g, b = (1.0 - r, 1.0 - g, 1.0 - b)
-        # Reconstitute
-        return Expression("RGBColor", Real(r), Real(g), Real(b))
 
 
 class ColorSeparate(_ImageBuiltin):
@@ -1614,172 +1531,6 @@ class Colorize(_ImageBuiltin):
             numpy.concatenate([p[i][a].reshape(s) for i in range(3)], axis=2),
             color_space="RGB",
         )
-
-
-class DominantColors(_ImageBuiltin):
-    """
-    <dl>
-    <dt>'DominantColors[$image$]'
-      <dd>gives a list of colors which are dominant in the given image.
-    <dt>'DominantColors[$image$, $n$]'
-      <dd>returns at most $n$ colors.
-    <dt>'DominantColors[$image$, $n$, $prop$]'
-      <dd>returns the given property $prop$, which may be "Color" (return RGB colors), "LABColor" (return
-      LAB colors), "Count" (return the number of pixels a dominant color covers), "Coverage" (return the
-      fraction of the image a dominant color covers), or "CoverageImage" (return a black and white image
-      indicating with white the parts that are covered by a dominant color).
-    </dl>
-
-    The option "ColorCoverage" specifies the minimum amount of coverage needed to include a dominant color
-    in the result.
-
-    The option "MinColorDistance" specifies the distance (in LAB color space) up to which colors are merged
-    and thus regarded as belonging to the same dominant color.
-
-    >> img = Import["ExampleData/lena.tif"]
-     = -Image-
-
-    >> DominantColors[img]
-     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902], RGBColor[0.690196, 0.266667, 0.309804], RGBColor[0.533333, 0.192157, 0.298039], RGBColor[0.878431, 0.760784, 0.721569]}
-
-    >> DominantColors[img, 3]
-     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
-
-    >> DominantColors[img, 3, "Coverage"]
-     = {28579 / 131072, 751 / 4096, 23841 / 131072}
-
-    >> DominantColors[img, 3, "CoverageImage"]
-     = {-Image-, -Image-, -Image-}
-
-    >> DominantColors[img, 3, "Count"]
-     = {57158, 48064, 47682}
-
-    >> DominantColors[img, 2, "LABColor"]
-     = {LABColor[0.646831, 0.279785, 0.193184], LABColor[0.608465, 0.443559, 0.195911]}
-
-    >> DominantColors[img, MinColorDistance -> 0.5]
-     = {RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
-
-    >> DominantColors[img, ColorCoverage -> 0.15]
-     = {RGBColor[0.827451, 0.537255, 0.486275], RGBColor[0.87451, 0.439216, 0.45098], RGBColor[0.341176, 0.0705882, 0.254902]}
-    """
-
-    rules = {
-        "DominantColors[image_Image, n_Integer, options___]": 'DominantColors[image, n, "Color", options]',
-        "DominantColors[image_Image, options___]": 'DominantColors[image, 256, "Color", options]',
-    }
-
-    options = {"ColorCoverage": "Automatic", "MinColorDistance": "Automatic"}
-
-    def apply(self, image, n, prop, evaluation, options):
-        "DominantColors[image_Image, n_Integer, prop_String, OptionsPattern[%(name)s]]"
-
-        py_prop = prop.get_string_value()
-        if py_prop not in ("Color", "LABColor", "Count", "Coverage", "CoverageImage"):
-            return
-
-        color_coverage = self.get_option(options, "ColorCoverage", evaluation)
-        min_color_distance = self.get_option(options, "MinColorDistance", evaluation)
-
-        if (
-            isinstance(min_color_distance, Symbol)
-            and min_color_distance.get_name() == "System`Automatic"
-        ):
-            py_min_color_distance = 0.15
-        else:
-            py_min_color_distance = min_color_distance.round_to_float()
-            if py_min_color_distance is None:
-                return
-
-        if (
-            isinstance(color_coverage, Symbol)
-            and color_coverage.get_name() == "System`Automatic"
-        ):
-            py_min_color_coverage = 0.05
-            py_max_color_coverage = 1.0
-        elif color_coverage.has_form("List", 2):
-            py_min_color_coverage = color_coverage.leaves[0].round_to_float()
-            py_max_color_coverage = color_coverage.leaves[1].round_to_float()
-        else:
-            py_min_color_coverage = color_coverage.round_to_float()
-            py_max_color_coverage = 1.0
-
-        if py_min_color_coverage is None or py_max_color_coverage is None:
-            return
-
-        at_most = n.get_int_value()
-
-        if at_most > 256:
-            return
-
-        # reduce complexity by reducing to 256 colors. this is not uncommon; see Kiranyaz et al.,
-        # "Perceptual Dominant Color Extraction by Multidimensional Particle Swarm Optimization":
-        # "to reduce the computational complexity [...] a preprocessing step, which creates a
-        # limited color palette in RGB color domain, is first performed."
-
-        im = (
-            image.color_convert("RGB")
-            .pil()
-            .convert("P", palette=PIL.Image.ADAPTIVE, colors=256)
-        )
-        pixels = numpy.array(list(im.getdata()))
-
-        flat = numpy.array(list(im.getpalette())) / 255.0  # float values now
-        rgb_palette = [flat[i : i + 3] for i in range(0, len(flat), 3)]  # group by 3
-        lab_palette = [
-            numpy.array(x) for x in convert_color(rgb_palette, "RGB", "LAB", False)
-        ]
-
-        bins = numpy.bincount(pixels, minlength=len(rgb_palette))
-        num_pixels = im.size[0] * im.size[1]
-
-        from mathics.algorithm.clusters import (
-            agglomerate,
-            PrecomputedDistances,
-            FixedDistanceCriterion,
-        )
-
-        norm = numpy.linalg.norm
-
-        def df(i, j):
-            return norm(lab_palette[i] - lab_palette[j])
-
-        lab_distances = [df(i, j) for i in range(len(lab_palette)) for j in range(i)]
-
-        if py_prop == "LABColor":
-            out_palette = lab_palette
-            out_palette_head = "LABColor"
-        else:
-            out_palette = rgb_palette
-            out_palette_head = "RGBColor"
-
-        dominant = agglomerate(
-            (out_palette, bins),
-            (FixedDistanceCriterion, {"merge_limit": py_min_color_distance}),
-            PrecomputedDistances(lab_distances),
-            mode="dominant",
-        )
-
-        def result():
-            min_count = max(0, int(num_pixels * py_min_color_coverage))
-            max_count = min(num_pixels, int(num_pixels * py_max_color_coverage))
-
-            for prototype, count, members in dominant:
-                if max_count >= count > min_count:
-                    if py_prop == "Count":
-                        yield Integer(count)
-                    elif py_prop == "Coverage":
-                        yield Rational(int(count), num_pixels)
-                    elif py_prop == "CoverageImage":
-                        mask = numpy.ndarray(shape=pixels.shape, dtype=numpy.bool)
-                        mask.fill(0)
-                        for i in members:
-                            mask = mask | (pixels == i)
-                        yield Image(mask.reshape(tuple(reversed(im.size))), "Grayscale")
-                    else:
-                        yield Expression(out_palette_head, *prototype)
-
-        return Expression(SymbolList, *itertools.islice(result(), 0, at_most))
 
 
 # pixel access
