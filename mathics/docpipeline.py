@@ -88,14 +88,13 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
             f"""{sep}Test failed: {section} in {part} / {chapter}
 {part}
 n{why}
-"""
-        )
+""".encode("utf-8"))
         return False
 
     if not quiet:
         if section:
-            print(f"{stars} {tests.chapter} / {section} {stars}")
-        print(f"{index:4d} ({subindex:2d}): TEST {test}")
+            print(f"{stars} {tests.chapter} / {section} {stars}".encode("utf-8"))
+        print(f"{index:4d} ({subindex:2d}): TEST {test}".encode("utf-8"))
 
     feeder = MathicsSingleLineFeeder(test, "<test>")
     evaluation = Evaluation(definitions, catch_interrupt=False, output=TestOutput())
