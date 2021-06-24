@@ -48,6 +48,5 @@ def add_conversion_fn(cls, module_fn_name=None) -> None:
     elif hasattr(module_fn_name, "__name__"):
         module_fn_name = module_fn_name.__name__
 
-
     # Finally register the mapping: (Builtin-class, conversion name) -> conversion_function.
     format2fn[(conversion_type, cls)] = module_dict[module_fn_name]

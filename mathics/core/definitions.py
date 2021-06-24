@@ -42,10 +42,7 @@ def valuesname(name) -> str:
 
 
 def autoload_files(
-    defs,
-    root_dir_path: str,
-    autoload_dir: str,
-    block_global_definitions: bool = True
+    defs, root_dir_path: str, autoload_dir: str, block_global_definitions: bool = True
 ):
     from mathics.core.evaluation import Evaluation
 

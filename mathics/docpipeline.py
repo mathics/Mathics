@@ -541,13 +541,17 @@ def main():
         if args.pymathics:  # in case the section is in a pymathics module...
             documentation.load_pymathics_doc()
 
-        test_sections(sections, stop_on_failure=args.stop_on_failure, reload=args.reload)
+        test_sections(
+            sections, stop_on_failure=args.stop_on_failure, reload=args.reload
+        )
     elif args.chapters:
         chapters = set(args.chapters.split(","))
         if args.pymathics:  # in case the section is in a pymathics module...
             documentation.load_pymathics_doc()
 
-        test_chapters(chapters, stop_on_failure=args.stop_on_failure, reload=args.reload)
+        test_chapters(
+            chapters, stop_on_failure=args.stop_on_failure, reload=args.reload
+        )
     else:
         # if we want to check also the pymathics modules
         if args.pymathics:

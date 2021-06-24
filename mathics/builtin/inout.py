@@ -12,9 +12,7 @@ from typing import Any
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.box.inout import (
-    RowBox
-)
+from mathics.builtin.box.inout import RowBox
 
 from mathics.builtin.base import (
     BoxConstruct,
@@ -40,7 +38,7 @@ from mathics.core.expression import (
     PrecisionReal,
     SymbolList,
     SymbolMakeBoxes,
-    SymbolRule
+    SymbolRule,
 )
 from mathics.core.numbers import (
     dps,
@@ -477,7 +475,7 @@ class MakeBoxes(Builtin):
 
     def apply_general(self, expr, f, evaluation):
         """MakeBoxes[expr_,
-            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
+        f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
 
         if expr.is_atom():
             return expr.atom_to_boxes(f, evaluation)
@@ -519,13 +517,13 @@ class MakeBoxes(Builtin):
 
     def _apply_atom(self, x, f, evaluation):
         """MakeBoxes[x_?AtomQ,
-            f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
+        f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
 
         return x.atom_to_boxes(f, evaluation)
 
     def apply_outerprecedenceform(self, expr, prec, f, evaluation):
         """MakeBoxes[OuterPrecedenceForm[expr_, prec_],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         precedence = prec.get_int_value()
         boxes = MakeBoxes(expr)
@@ -533,7 +531,7 @@ class MakeBoxes(Builtin):
 
     def apply_postprefix(self, p, expr, h, prec, f, evaluation):
         """MakeBoxes[(p:Prefix|Postfix)[expr_, h_, prec_:None],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         if not isinstance(h, String):
             h = MakeBoxes(h, f)
@@ -556,7 +554,7 @@ class MakeBoxes(Builtin):
 
     def apply_infix(self, expr, h, prec, grouping, f, evaluation):
         """MakeBoxes[Infix[expr_, h_, prec_:None, grouping_:None],
-            f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         def get_op(op):
             if not isinstance(op, String):
@@ -646,7 +644,7 @@ class Row(Builtin):
 
     def apply_makeboxes(self, items, sep, f, evaluation):
         """MakeBoxes[Row[{items___}, sep_:""],
-            f:StandardForm|TraditionalForm|OutputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm]"""
 
         items = items.get_sequence()
         if not isinstance(sep, String):
@@ -756,9 +754,7 @@ class GridBox(BoxConstruct):
         except KeyError:
             # invalid column alignment
             raise BoxConstructError
-        joined_attrs = " ".join(
-            f'{name}="{value}"' for name, value in attrs.items()
-        )
+        joined_attrs = " ".join(f'{name}="{value}"' for name, value in attrs.items())
         result = f"<mtable {joined_attrs}>\n"
         new_box_options = box_options.copy()
         new_box_options["inside_list"] = True
@@ -835,19 +831,19 @@ class Grid(Builtin):
 
     def apply_makeboxes(self, array, f, evaluation, options) -> Expression:
         """MakeBoxes[Grid[array_?MatrixQ, OptionsPattern[Grid]],
-            f:StandardForm|TraditionalForm|OutputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm]"""
         return GridBox(
             Expression(
                 "List",
                 *(
                     Expression(
                         "List",
-                        *(Expression(SymbolMakeBoxes, item, f) for item in row.leaves)
+                        *(Expression(SymbolMakeBoxes, item, f) for item in row.leaves),
                     )
                     for row in array.leaves
-                )
+                ),
             ),
-            *options_to_rules(options)
+            *options_to_rules(options),
         )
 
 
@@ -896,7 +892,7 @@ class TableForm(Builtin):
 
     def apply_makeboxes(self, table, f, evaluation, options):
         """MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
-            f:StandardForm|TraditionalForm|OutputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm]"""
 
         dims = len(get_dimensions(table, head=Symbol("List")))
         depth = self.get_option(options, "TableDepth", evaluation).unformatted
@@ -915,7 +911,7 @@ class TableForm(Builtin):
                     *(
                         Expression(SymbolList, Expression(SymbolMakeBoxes, item, f))
                         for item in table.leaves
-                    )
+                    ),
                 )
             )
             # return Expression(
@@ -940,10 +936,10 @@ class TableForm(Builtin):
                             *(
                                 Expression(SymbolMakeBoxes, transform_item(item), f)
                                 for item in row.leaves
-                            )
+                            ),
                         )
                         for row in table.leaves
-                    )
+                    ),
                 )
             )
 
@@ -974,7 +970,7 @@ class MatrixForm(TableForm):
 
     def apply_makeboxes_matrix(self, table, f, evaluation, options):
         """MakeBoxes[%(name)s[table_, OptionsPattern[%(name)s]],
-            f:StandardForm|TraditionalForm]"""
+        f:StandardForm|TraditionalForm]"""
 
         result = super(MatrixForm, self).apply_makeboxes(table, f, evaluation, options)
         if result.get_head_name() == "System`GridBox":
@@ -1186,7 +1182,7 @@ class StringForm(Builtin):
 
     def apply_makeboxes(self, s, args, f, evaluation):
         """MakeBoxes[StringForm[s_String, args___],
-            f:StandardForm|TraditionalForm|OutputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm]"""
 
         s = s.value
         args = args.get_sequence()
@@ -2537,7 +2533,7 @@ class NumberForm(_NumberForm):
         ]
         return Expression(
             "List",
-            *[Expression("NumberForm", leaf, n, *options) for leaf in expr.leaves]
+            *[Expression("NumberForm", leaf, n, *options) for leaf in expr.leaves],
         )
 
     def apply_list_nf(self, expr, n, f, evaluation, options) -> Expression:
@@ -2551,12 +2547,12 @@ class NumberForm(_NumberForm):
             *[
                 Expression("NumberForm", leaf, Expression(SymbolList, n, f), *options)
                 for leaf in expr.leaves
-            ]
+            ],
         )
 
     def apply_makeboxes(self, expr, form, evaluation, options={}):
         """MakeBoxes[NumberForm[expr_, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]"""
+        form:StandardForm|TraditionalForm|OutputForm]"""
 
         fallback = Expression(SymbolMakeBoxes, expr, form)
 
@@ -2580,7 +2576,7 @@ class NumberForm(_NumberForm):
 
     def apply_makeboxes_n(self, expr, n, form, evaluation, options={}):
         """MakeBoxes[NumberForm[expr_, n_?NotOptionQ, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]"""
+        form:StandardForm|TraditionalForm|OutputForm]"""
 
         fallback = Expression(SymbolMakeBoxes, expr, form)
 
@@ -2599,7 +2595,7 @@ class NumberForm(_NumberForm):
 
     def apply_makeboxes_nf(self, expr, n, f, form, evaluation, options={}):
         """MakeBoxes[NumberForm[expr_, {n_, f_}, OptionsPattern[NumberForm]],
-            form:StandardForm|TraditionalForm|OutputForm]"""
+        form:StandardForm|TraditionalForm|OutputForm]"""
 
         fallback = Expression(SymbolMakeBoxes, expr, form)
 
@@ -2671,7 +2667,7 @@ class BaseForm(Builtin):
 
     def apply_makeboxes(self, expr, n, f, evaluation):
         """MakeBoxes[BaseForm[expr_, n_],
-            f:StandardForm|TraditionalForm|OutputForm]"""
+        f:StandardForm|TraditionalForm|OutputForm]"""
 
         base = n.get_int_value()
 

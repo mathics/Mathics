@@ -11,6 +11,7 @@ import mathics.builtin.numeric as numeric
 from mathics.core.definitions import Definitions
 from mathics.core.evaluation import Evaluation
 
+
 def mathics_system_info(defs):
     def eval(name, needs_head=True):
         evaled = name().evaluate(evaluation)
@@ -36,4 +37,4 @@ def mathics_system_info(defs):
         "$HomeDirectory": eval(filesystem.HomeDirectory),
         "$InstallationDirectory": eval(filesystem.InstallationDirectory),
         "$TemporaryDirectory": eval(filesystem.TemporaryDirectory),
-}
+    }

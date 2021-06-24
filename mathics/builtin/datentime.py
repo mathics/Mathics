@@ -679,7 +679,7 @@ class DateObject(_DateFormat):
             for i in range(len(datelist)):
                 if datelist[-1 - i] != 0:
                     datelist = datelist[:-i]
-                    epoch = self.granularities[-i-1]
+                    epoch = self.granularities[-i - 1]
                     break
         else:
             epoch = Symbol("Instant")
@@ -690,7 +690,12 @@ class DateObject(_DateFormat):
         else:
             datelist = [Integer(d) for d in datelist[:5]] + [Real(datelist[5])]
         return Expression(
-            "DateObject", datelist, epoch, Symbol("Gregorian"), timezone, fmt,
+            "DateObject",
+            datelist,
+            epoch,
+            Symbol("Gregorian"),
+            timezone,
+            fmt,
         )
 
     def apply_makeboxes(self, datetime, gran, cal, tz, fmt, evaluation):

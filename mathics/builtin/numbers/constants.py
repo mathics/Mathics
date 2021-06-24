@@ -307,18 +307,18 @@ class Degree(_MPMathConstant, _NumpyConstant, _SympyConstant):
 
 class E(_MPMathConstant, _NumpyConstant, _SympyConstant):
     """
-        <dl>
-        <dt>'E'</dt>
-            <dd>is the constant \u2107 with numerical value \u2243 2.71828.
-        </dl>
+    <dl>
+    <dt>'E'</dt>
+        <dd>is the constant \u2107 with numerical value \u2243 2.71828.
+    </dl>
 
-        >> N[E]
-         = 2.71828
-        >> N[E, 50]
-         = 2.7182818284590452353602874713526624977572470937000
+    >> N[E]
+     = 2.71828
+    >> N[E, 50]
+     = 2.7182818284590452353602874713526624977572470937000
 
-        #> 5. E
-         = 13.5914
+    #> 5. E
+     = 13.5914
     """
 
     mpmath_name = "e"
@@ -457,29 +457,29 @@ class Khinchin(_MPMathConstant):
 
 
 class Pi(_MPMathConstant, _SympyConstant):
-    u"""
-    <dl>
-      <dt>'Pi'</dt>
-      <dd>is the constant \u03c0.
-    </dl>
+    """
+     <dl>
+       <dt>'Pi'</dt>
+       <dd>is the constant \u03c0.
+     </dl>
 
-    >> N[Pi]
-     = 3.14159
+     >> N[Pi]
+      = 3.14159
 
-    Pi to a numeric precision of 20 digits:
-    >> N[Pi, 20]
-     = 3.1415926535897932385
+     Pi to a numeric precision of 20 digits:
+     >> N[Pi, 20]
+      = 3.1415926535897932385
 
-    Note that the above is not the same thing as the number of digits <i>after</i> the decimal point. This may differ from similar concepts from other mathematical libraries, including those which Mathics uses!
+     Note that the above is not the same thing as the number of digits <i>after</i> the decimal point. This may differ from similar concepts from other mathematical libraries, including those which Mathics uses!
 
-    Use numpy to compute Pi to 20 digits:
-    >> N[Pi, 20, Method->"numpy"]
-     = 3.1415...
+     Use numpy to compute Pi to 20 digits:
+     >> N[Pi, 20, Method->"numpy"]
+      = 3.1415...
 
-   "sympy" is the default method.
+    "sympy" is the default method.
 
-    >> Attributes[Pi]
-     = {Constant, Protected, ReadProtected}
+     >> Attributes[Pi]
+      = {Constant, Protected, ReadProtected}
     """
 
     sympy_name = "pi"

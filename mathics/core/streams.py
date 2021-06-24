@@ -17,6 +17,7 @@ from mathics.settings import ROOT_DIR
 HOME_DIR = osp.expanduser("~")
 PATH_VAR = [".", HOME_DIR, osp.join(ROOT_DIR, "data"), osp.join(ROOT_DIR, "packages")]
 
+
 def create_temporary_file(suffix=None, delete=False):
     if suffix == "":
         suffix = None
@@ -85,6 +86,7 @@ def path_search(filename):
 class StreamsManager(object):
     __instance = None
     STREAMS = {}
+
     @staticmethod
     def get_instance():
         """ Static access method. """
@@ -99,7 +101,14 @@ class StreamsManager(object):
         else:
             StreamsManager.__instance = self
 
-    def add(self, name: str, mode: Optional[str]=None, encoding=None, io=None, num: Optional[int]=None) -> Optional["Stream"]:
+    def add(
+        self,
+        name: str,
+        mode: Optional[str] = None,
+        encoding=None,
+        io=None,
+        num: Optional[int] = None,
+    ) -> Optional["Stream"]:
         if num is None:
             num = self.next
             # In theory in this branch we won't find num.
@@ -126,10 +135,11 @@ class StreamsManager(object):
     @property
     def next(self):
         numbers = [stream.n for stream in self.STREAMS.values()] + [2]
-        return max(numbers)+1
+        return max(numbers) + 1
 
 
 stream_manager = StreamsManager()
+
 
 class Stream(object):
     """
@@ -142,6 +152,7 @@ class Stream(object):
 
     However see mathics_open which wraps this
     """
+
     def __init__(self, name: str, mode="r", encoding=None, io=None, channel_num=None):
         if channel_num is None:
             channel_num = stream_manager.next
@@ -180,6 +191,7 @@ class Stream(object):
             self.io.close()
         # Leave around self.io so we can call closed() to query its status.
         stream_manager.delete(self.n)
+
 
 stream_manager.add("stdin", mode="r", num=0, io=sys.stdin)
 stream_manager.add("stdout", mode="w", num=1, io=sys.stdout)

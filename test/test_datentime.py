@@ -53,6 +53,7 @@ def test_datelist():
     ):
         check_evaluation(str_expr, str_expected)
 
+
 def test_datelist():
     for str_expr, str_expected in (
         ## Check Leading 0s
@@ -60,12 +61,13 @@ def test_datelist():
         #  'DateString[{1979, 3, 14}, {"DayName", "  ", "MonthShort", "-", "YearShort"}',
         # "Wednesday  3-79"
         # ),
-        ('DateString[{1979, 3, 4}]',
-         "Sun 4 Mar 1979 00:00:00",
-         ),
+        (
+            "DateString[{1979, 3, 4}]",
+            "Sun 4 Mar 1979 00:00:00",
+        ),
         ('DateString[{"5/19"}]', "5/19"),
-        ('DateString["2000-12-1", "Year"]',
-         '2000'
-         ),
+        ('DateString["2000-12-1", "Year"]', "2000"),
     ):
-        check_evaluation(str_expr, str_expected, to_string_expected=False, to_python_expected=True)
+        check_evaluation(
+            str_expr, str_expected, to_string_expected=False, to_python_expected=True
+        )

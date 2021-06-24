@@ -19,6 +19,5 @@ def test_calculus():
             "{x_ ^ 3 :> y}",
             "Issue #1251 part 3",
         ),
-
     ):
         check_evaluation(str_expr, str_expected, message)

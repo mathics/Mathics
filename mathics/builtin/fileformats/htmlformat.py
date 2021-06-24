@@ -92,6 +92,7 @@ if platform.python_implementation() == "PyPy":
         parser = lhtml.HTMLParser(encoding="utf8")
         return lhtml.parse(f, parser)
 
+
 else:
 
     def parse_html_stream(f):

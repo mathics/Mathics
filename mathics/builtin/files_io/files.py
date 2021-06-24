@@ -60,6 +60,7 @@ INPUTFILE_VAR = ""
 TMP_DIR = tempfile.gettempdir()
 SymbolPath = Symbol("$Path")
 
+
 def _channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
         name = channel.get_string_value()
@@ -166,6 +167,7 @@ class EndOfFile(Builtin):
       <dd>is returned by 'Read' when the end of an input stream is reached.
     </dl>
     """
+
 
 SymbolEndOfFile = Symbol("EndOfFile")
 
@@ -2048,7 +2050,9 @@ class Get(PrefixOperator):
         result = None
         pypath = path.get_string_value()
         definitions = evaluation.definitions
-        mathics.core.streams.PATH_VAR = SymbolPath.evaluate(evaluation).to_python(string_quotes=False)
+        mathics.core.streams.PATH_VAR = SymbolPath.evaluate(evaluation).to_python(
+            string_quotes=False
+        )
         try:
             if trace_fn:
                 trace_fn(pypath)

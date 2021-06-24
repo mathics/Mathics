@@ -3,6 +3,7 @@ from .helper import evaluate
 
 import pytest
 
+
 @pytest.mark.parametrize(
     "str_expr,str_expected",
     [

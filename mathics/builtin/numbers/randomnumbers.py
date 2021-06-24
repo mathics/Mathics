@@ -651,7 +651,7 @@ class RandomChoice(_RandomSelection):
     >> SeedRandom[42]
     >> RandomChoice[{1, 100, 5} -> {a, b, c}, 20]
      = {b, b, b, b, b, b, b, b, b, b, b, c, b, b, b, b, b, b, b, b}
-     """
+    """
 
     _replace = True
 
@@ -696,7 +696,7 @@ class RandomSample(_RandomSelection):
     >> SeedRandom[42]
     >> RandomSample[Range[100] -> Range[100], 5]
      = {62, 98, 86, 78, 40}
-     """
+    """
 
     _replace = False
 

@@ -11,7 +11,16 @@ from mathics_scanner import (
 
 from mathics.core.definitions import Definitions
 from mathics.core.parser import parse
-from mathics.core.expression import Symbol, Integer, Integer0, Integer1, Expression, Real, Rational, String
+from mathics.core.expression import (
+    Symbol,
+    Integer,
+    Integer0,
+    Integer1,
+    Expression,
+    Real,
+    Rational,
+    String,
+)
 
 
 definitions = Definitions(add_builtin=True)

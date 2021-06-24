@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .helper import check_evaluation
 
+
 def test_combinatorial():
 
     for str_expr, str_expected, message in (

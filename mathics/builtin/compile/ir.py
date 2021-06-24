@@ -11,10 +11,11 @@ from mathics.builtin.compile.base import CompileError
 
 
 def single_real_arg(f):
-    '''
+    """
     One real argument.
     Converts integer argument to real argument.
-    '''
+    """
+
     def wrapped_f(self, expr):
         leaves = expr.get_leaves()
         if len(leaves) != 1:
@@ -25,14 +26,16 @@ def single_real_arg(f):
         elif arg.type == int_type:
             arg = self.int_to_real(arg)
         return f(self, [arg])
+
     return wrapped_f
 
 
 def int_real_args(minargs):
-    '''
+    """
     Many real or integer arguments expected.
     If any real arguments are provided all integer arguments will be converted.
-    '''
+    """
+
     def wraps(f):
         def wrapped_f(self, expr):
             leaves = expr.get_leaves()
@@ -52,15 +55,18 @@ def int_real_args(minargs):
                     if arg.type == int_type:
                         args[i] = self.int_to_real(arg)
             return f(self, args, ret_type)
+
         return wrapped_f
+
     return wraps
 
 
 def int_args(f):
-    '''
+    """
     Integer arguments.
     Converts boolean to integer arguments.
-    '''
+    """
+
     def wrapped_f(self, expr):
         leaves = expr.get_leaves()
         args = [self._gen_ir(leaf) for leaf in leaves]
@@ -73,14 +79,16 @@ def int_args(f):
         if any(arg.type != int_type for arg in args):
             raise CompileError()
         return f(self, args)
+
     return wrapped_f
 
 
 def bool_args(f):
-    '''
+    """
     Boolean arguments.
     Converts integer to boolean arguments.
-    '''
+    """
+
     def wrapped_f(self, expr):
         leaves = expr.get_leaves()
         args = [self._gen_ir(leaf) for leaf in leaves]
@@ -93,6 +101,7 @@ def bool_args(f):
         if any(arg.type != bool_type for arg in args):
             raise CompileError()
         return f(self, args)
+
     return wrapped_f
 
 
@@ -100,16 +109,16 @@ class IRGenerator(object):
     def __init__(self, expr, args, func_name):
         self.expr = expr
         self.args = args
-        self.func_name = func_name      # function name of entry point
+        self.func_name = func_name  # function name of entry point
         self.builder = None
         self._known_ret_type = None
         self._returned_type = None
         self.lookup_args = None
 
     def generate_ir(self):
-        '''
+        """
         generates LLVM IR for a given expression
-        '''
+        """
         # assume that the function returns a real. Note that this is verified by
         # looking at the type of the head of the converted expression.
         ret_type = real_type if self._known_ret_type is None else self._known_ret_type
@@ -123,10 +132,12 @@ class IRGenerator(object):
         func = ir.Function(module, func_type, name=self.func_name)
 
         # implement the function
-        block = func.append_basic_block(name='entry')
+        block = func.append_basic_block(name="entry")
         self.builder = ir.IRBuilder(block)
 
-        self.lookup_args = {arg.name: func_arg for arg, func_arg in zip(self.args, func.args)}
+        self.lookup_args = {
+            arg.name: func_arg for arg, func_arg in zip(self.args, func.args)
+        }
 
         ir_code = self._gen_ir(self.expr)
 
@@ -155,12 +166,12 @@ class IRGenerator(object):
         return str(module), ret_type
 
     def call_fp_intr(self, name, args, ret_type=real_type):
-        '''
+        """
         call a LLVM intrinsic floating-point operation
-        '''
+        """
         # see https://github.com/numba/llvmlite/pull/205 for an explanation of declare_intrinsic
         mod = self.builder.module
-        fullname = name + '.' + ret_type.intrinsic_name
+        fullname = name + "." + ret_type.intrinsic_name
         fnty = ir.FunctionType(ret_type, [arg.type for arg in args])
         intr = mod.declare_intrinsic(fullname, fnty=fnty)
         return self.builder.call(intr, args)
@@ -172,35 +183,37 @@ class IRGenerator(object):
     def int_to_bool(self, arg):
         assert arg.type == int_type
         # any non-zero int is true
-        return self.builder.icmp_signed('!=', arg, int_type(0))
+        return self.builder.icmp_signed("!=", arg, int_type(0))
 
     def bool_to_int(self, arg):
         assert arg.type == bool_type
         return self.builder.zext(arg)
 
     def add_caller(self, py_f, ret_type, args):
-        '''
+        """
         Inserts a caller to a python function
-        '''
+        """
         # see http://eli.thegreenplace.net/2015/calling-back-into-python-from-llvmlite-jited-code/
 
-        c_func_type = ctypes.CFUNCTYPE(llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args))
+        c_func_type = ctypes.CFUNCTYPE(
+            llvm_to_ctype(ret_type), *(llvm_to_ctype(arg.type) for arg in args)
+        )
         c_func = c_func_type(py_f)
         c_func_addr = ctypes.cast(c_func, ctypes.c_void_p).value
 
         addrcaller_func_type = ir.FunctionType(ret_type, [arg.type for arg in args])
         cb_func_ptr_type = addrcaller_func_type.as_pointer()
 
-        f = self.builder.inttoptr(int_type(c_func_addr), cb_func_ptr_type, name='f')
+        f = self.builder.inttoptr(int_type(c_func_addr), cb_func_ptr_type, name="f")
         call = self.builder.call(f, args)
         if call.type == void_type:
             return self.builder.ret_void()
         return call
 
     def _gen_ir(self, expr):
-        '''
+        """
         walks an expression tree and constructs the ir block
-        '''
+        """
         if isinstance(expr, Symbol):
             try:
                 arg = self.lookup_args[expr.get_name()]
@@ -215,9 +228,9 @@ class IRGenerator(object):
             raise CompileError()
 
         head_name = expr.get_head_name()
-        if head_name.startswith('System`'):
+        if head_name.startswith("System`"):
             head_name = head_name[7:]
-            method = getattr(self, '_gen_' + head_name, None)
+            method = getattr(self, "_gen_" + head_name, None)
         else:
             method = None
 
@@ -227,7 +240,7 @@ class IRGenerator(object):
         return method(expr)
 
     def _gen_If(self, expr):
-        if not expr.has_form('If', 3):
+        if not expr.has_form("If", 3):
             raise CompileError()
 
         builder = self.builder
@@ -308,7 +321,11 @@ class IRGenerator(object):
         elif self._returned_type == int_type and arg.type == real_type:
             self._returned_type = arg.type
         else:
-            raise CompileError('Conflicting return types {} and {}.'.format(self._returned_type, arg.type))
+            raise CompileError(
+                "Conflicting return types {} and {}.".format(
+                    self._returned_type, arg.type
+                )
+            )
         return self.builder.ret(arg)
 
     @int_real_args(1)
@@ -339,15 +356,15 @@ class IRGenerator(object):
             return exponent
 
         # E ^ exponent
-        if leaves[0].sameQ(Symbol('E')) and exponent.type == real_type:
-            return self.call_fp_intr('llvm.exp', [exponent])
+        if leaves[0].sameQ(Symbol("E")) and exponent.type == real_type:
+            return self.call_fp_intr("llvm.exp", [exponent])
 
         # 2 ^ exponent
         if leaves[0].get_int_value() == 2 and exponent.type == real_type:
-            return self.call_fp_intr('llvm.exp2', [exponent])
+            return self.call_fp_intr("llvm.exp2", [exponent])
 
         # convert base
-        base =  self._gen_ir(leaves[0])
+        base = self._gen_ir(leaves[0])
         if base.type == int_type:
             base = self.int_to_real(base)
         elif base.type == void_type:
@@ -355,51 +372,51 @@ class IRGenerator(object):
 
         # base ^ exponent
         if base.type == real_type and exponent.type == real_type:
-            return self.call_fp_intr('llvm.pow', [base, exponent])
+            return self.call_fp_intr("llvm.pow", [base, exponent])
         else:
             raise CompileError()
 
     @single_real_arg
     def _gen_Sin(self, args):
-        return self.call_fp_intr('llvm.sin', args)
+        return self.call_fp_intr("llvm.sin", args)
 
     @single_real_arg
     def _gen_Cos(self, args):
-        return self.call_fp_intr('llvm.cos', args)
+        return self.call_fp_intr("llvm.cos", args)
 
     @single_real_arg
     def _gen_Tan(self, args):
         # FIXME this approach is inaccurate
-        sinx = self.call_fp_intr('llvm.sin', args)
-        cosx = self.call_fp_intr('llvm.cos', args)
+        sinx = self.call_fp_intr("llvm.sin", args)
+        cosx = self.call_fp_intr("llvm.cos", args)
         return self.builder.fdiv(sinx, cosx)
 
     @single_real_arg
     def _gen_Sec(self, args):
         # FIXME this approach is inaccurate
-        cosx = self.call_fp_intr('llvm.cos', args)
+        cosx = self.call_fp_intr("llvm.cos", args)
         return self.builder.fdiv(real_type(1.0), cosx)
 
     @single_real_arg
     def _gen_Csc(self, args):
         # FIXME this approach is inaccurate
-        sinx = self.call_fp_intr('llvm.sin', args)
+        sinx = self.call_fp_intr("llvm.sin", args)
         return self.builder.fdiv(real_type(1.0), sinx)
 
     @single_real_arg
     def _gen_Cot(self, args):
         # FIXME this approach is inaccurate
-        sinx = self.call_fp_intr('llvm.sin', args)
-        cosx = self.call_fp_intr('llvm.cos', args)
+        sinx = self.call_fp_intr("llvm.sin", args)
+        cosx = self.call_fp_intr("llvm.cos", args)
         return self.builder.fdiv(cosx, sinx)
 
     @single_real_arg
     def _gen_Exp(self, args):
-        return self.call_fp_intr('llvm.exp', args)
+        return self.call_fp_intr("llvm.exp", args)
 
     @single_real_arg
     def _gen_Log(self, args):
-        return self.call_fp_intr('llvm.log', args)
+        return self.call_fp_intr("llvm.log", args)
 
     @int_real_args(1)
     def _gen_Abs(self, args, ret_type):
@@ -409,36 +426,48 @@ class IRGenerator(object):
         if ret_type == int_type:
             # FIXME better way to do this?
             neg_arg = self.builder.mul(arg, int_type(-1))
-            cond = self.builder.icmp_signed('<', arg, int_type(0))
+            cond = self.builder.icmp_signed("<", arg, int_type(0))
             return self.builder.select(cond, neg_arg, arg)
         elif ret_type == real_type:
-            return self.call_fp_intr('llvm.fabs', args)
+            return self.call_fp_intr("llvm.fabs", args)
 
     @int_real_args(1)
     def _gen_Min(self, args, ret_type):
         if ret_type == int_type:
             # FIXME better way to do this?
-            return reduce(lambda arg1, arg2: self.builder.select(
-                self.builder.icmp_signed('<', arg1, arg2), arg1, arg2), args)
+            return reduce(
+                lambda arg1, arg2: self.builder.select(
+                    self.builder.icmp_signed("<", arg1, arg2), arg1, arg2
+                ),
+                args,
+            )
         elif ret_type == real_type:
-            return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.minnum', [arg1, arg2]), args)
+            return reduce(
+                lambda arg1, arg2: self.call_fp_intr("llvm.minnum", [arg1, arg2]), args
+            )
 
     @int_real_args(1)
     def _gen_Max(self, args, ret_type):
         if ret_type == int_type:
             # FIXME better way to do this?
-            return reduce(lambda arg1, arg2: self.builder.select(
-                self.builder.icmp_signed('>', arg1, arg2), arg1, arg2), args)
+            return reduce(
+                lambda arg1, arg2: self.builder.select(
+                    self.builder.icmp_signed(">", arg1, arg2), arg1, arg2
+                ),
+                args,
+            )
         elif ret_type == real_type:
-            return reduce(lambda arg1, arg2: self.call_fp_intr('llvm.maxnum', [arg1, arg2]), args)
+            return reduce(
+                lambda arg1, arg2: self.call_fp_intr("llvm.maxnum", [arg1, arg2]), args
+            )
 
     @single_real_arg
     def _gen_Sinh(self, args):
         # FIXME this approach is inaccurate
         # Sinh[x] = (Exp[x] - Exp[-x]) / 2
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         c = self.builder.fsub(a, b)
         return self.builder.fmul(c, real_type(0.5))
 
@@ -446,9 +475,9 @@ class IRGenerator(object):
     def _gen_Cosh(self, args):
         # FIXME this approach is inaccurate
         # Cosh[x] = (Exp[x] + Exp[-x]) / 2
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         c = self.builder.fadd(a, b)
         return self.builder.fmul(c, real_type(0.5))
 
@@ -456,36 +485,36 @@ class IRGenerator(object):
     def _gen_Tanh(self, args):
         # FIXME this approach is inaccurate
         # Tanh[x] = (Exp[x] - Exp[-x]) / (Exp[x] + Exp[-x])
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         return self.builder.fdiv(self.builder.fsub(a, b), self.builder.fadd(a, b))
 
     @single_real_arg
     def _gen_Sech(self, args):
         # FIXME this approach is inaccurate
         # Sech[x] = 2 / (Exp[x] - Exp[-x])
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         return self.builder.fdiv(real_type(2.0), self.builder.fadd(a, b))
 
     @single_real_arg
     def _gen_Csch(self, args):
         # FIXME this approach is inaccurate
         # Csch[x] = 2 / (Exp[x] + Exp[-x])
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         return self.builder.fdiv(real_type(2.0), self.builder.fsub(a, b))
 
     @single_real_arg
     def _gen_Coth(self, args):
         # FIXME this approach is inaccurate
         # Coth[x] = (Exp[x] + Exp[-x]) / (Exp[x] - Exp[-x])
-        a = self.call_fp_intr('llvm.exp', args)
+        a = self.call_fp_intr("llvm.exp", args)
         negx = self.builder.fsub(real_type(0.0), args[0])
-        b = self.call_fp_intr('llvm.exp', [negx])
+        b = self.call_fp_intr("llvm.exp", [negx])
         return self.builder.fdiv(self.builder.fadd(a, b), self.builder.fsub(a, b))
 
     @int_real_args(2)
@@ -493,9 +522,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in pairwise(args):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('==', lhs, rhs))
+                result.append(self.builder.fcmp_ordered("==", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('==', lhs, rhs))
+                result.append(self.builder.icmp_signed("==", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)
@@ -507,9 +536,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in itertools.combinations(args, 2):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('!=', lhs, rhs))
+                result.append(self.builder.fcmp_ordered("!=", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('!=', lhs, rhs))
+                result.append(self.builder.icmp_signed("!=", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)
@@ -519,9 +548,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in pairwise(args):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('<', lhs, rhs))
+                result.append(self.builder.fcmp_ordered("<", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('<', lhs, rhs))
+                result.append(self.builder.icmp_signed("<", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)
@@ -531,9 +560,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in pairwise(args):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('<=', lhs, rhs))
+                result.append(self.builder.fcmp_ordered("<=", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('<=', lhs, rhs))
+                result.append(self.builder.icmp_signed("<=", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)
@@ -543,9 +572,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in pairwise(args):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('>', lhs, rhs))
+                result.append(self.builder.fcmp_ordered(">", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('>', lhs, rhs))
+                result.append(self.builder.icmp_signed(">", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)
@@ -555,9 +584,9 @@ class IRGenerator(object):
         result = []
         for lhs, rhs in pairwise(args):
             if ret_type == real_type:
-                result.append(self.builder.fcmp_ordered('>=', lhs, rhs))
+                result.append(self.builder.fcmp_ordered(">=", lhs, rhs))
             elif ret_type == int_type:
-                result.append(self.builder.icmp_signed('>=', lhs, rhs))
+                result.append(self.builder.icmp_signed(">=", lhs, rhs))
             else:
                 raise CompileError()
         return reduce(self.builder.and_, result)

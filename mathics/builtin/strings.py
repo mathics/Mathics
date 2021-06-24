@@ -71,7 +71,7 @@ alphabet_descriptions = {
     },
 }
 
-alphabet_alias={
+alphabet_alias = {
     "English": "English",
     "French": "English",
     "German": "English",
@@ -685,6 +685,7 @@ class Alphabet(Builtin):
      = {a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z}
 
     """
+
     messages = {
         "nalph": "The alphabet `` is not known or not available.",
     }
@@ -1131,7 +1132,9 @@ class StringSplit(Builtin):
         for re_patt in re_patts:
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
-        return string_list(SymbolList, [String(x) for x in result if x != ""], evaluation)
+        return string_list(
+            SymbolList, [String(x) for x in result if x != ""], evaluation
+        )
 
 
 class StringPosition(Builtin):
@@ -1864,6 +1867,7 @@ class ToString(Builtin):
         text = text.boxes_to_text(evaluation=evaluation)
         return String(text)
 
+
 # This isn't your normal Box class. We'll keep this here rather than
 # in mathics.builtin.box for now.
 class InterpretedBox(PrefixOperator):
@@ -2389,7 +2393,6 @@ class StringTake(Builtin):
                 return None
             result_list.append(result)
         return Expression("List", *result_list)
-
 
 
 class StringDrop(Builtin):
@@ -3053,7 +3056,9 @@ def _pattern_search(name, string, patt, evaluation, options, matched):
             return evaluation.message(
                 name, "strse", Integer1, Expression(name, string, patt)
             )
-        return Expression(SymbolList, *[_search(re_patts, s, flags, matched) for s in py_s])
+        return Expression(
+            SymbolList, *[_search(re_patts, s, flags, matched) for s in py_s]
+        )
     else:
         py_s = string.get_string_value()
         if py_s is None:

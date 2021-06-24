@@ -177,6 +177,7 @@ class IOHookSyntaxHandler(Builtin):
     name = "$SyntaxHandler"
     attributes = ("Unprotected",)
 
+
 class Line(Builtin):
     """
     <dl>
@@ -197,6 +198,7 @@ class Line(Builtin):
     """
 
     name = "$Line"
+
 
 class Out(Builtin):
     """

@@ -9,8 +9,14 @@ import io
 
 class MagicRule(object):
     def __init__(
-        self, mimeType, parentType, extensions, allowsLeadingWhiteSpace,
-            magicNumbers, magicStrings):
+        self,
+        mimeType,
+        parentType,
+        extensions,
+        allowsLeadingWhiteSpace,
+        magicNumbers,
+        magicStrings,
+    ):
         self.mimeType = mimeType
         self.parentType = parentType
         self.extensions = extensions
@@ -28,23 +34,25 @@ class MagicDetector(object):
 
     def match(self, filename, data=None):
         matches = {}
-        
+
         if not data:
-            file = open(filename, 'rb')
-            buf = b''
+            file = open(filename, "rb")
+            buf = b""
         elif isinstance(data, str):
             from io import StringIO
+
             file = StringIO(data)
-            matches['text/plain'] =  self.mimetypes['text/plain']
-            buf = ''
-        elif hasattr(data, 'read'):
-            buf = b''
+            matches["text/plain"] = self.mimetypes["text/plain"]
+            buf = ""
+        elif hasattr(data, "read"):
+            buf = b""
             file = data
         else:
             from io import BytesIO
+
             file = BytesIO(data)
-            buf = b''
-            
+            buf = b""
+
         ext = os.path.splitext(filename)[1]
 
         if ext:
@@ -55,14 +63,14 @@ class MagicDetector(object):
                 if rule.parentType and rule.parentType not in list(matches.keys()):
                     continue
 
-                if rule.extensions and ext != ""  and ext not in rule.extensions:
+                if rule.extensions and ext != "" and ext not in rule.extensions:
                     continue
 
                 for offset, value in rule.magicNumbers:
                     if offset + len(value) > len(buf):
                         buf += file.read(offset + len(value) - len(buf))
 
-                    if buf[offset:offset + len(value)] == value:
+                    if buf[offset : offset + len(value)] == value:
                         matches[mimetype] = rule
                         break
 
@@ -70,7 +78,7 @@ class MagicDetector(object):
                     if len(value) > len(buf):
                         buf += file.read(len(value) - len(buf))
 
-                    if buf[:len(value)] == value:
+                    if buf[: len(value)] == value:
                         matches[mimetype] = rule
                         break
 
@@ -80,7 +88,7 @@ class MagicDetector(object):
 class MagicLoader(object):
     def __init__(self, filename=None):
         if not filename:
-            filename = os.path.join(os.path.dirname(__file__), 'mimetypes.xml')
+            filename = os.path.join(os.path.dirname(__file__), "mimetypes.xml")
 
         if not os.path.isfile(filename):
             raise IOError("magic mime type database '%s' doesn't exists" % filename)
@@ -91,19 +99,19 @@ class MagicLoader(object):
     def getText(self, node, name=None):
         from xml.dom.minidom import Node
 
-        text = b''
+        text = b""
 
         if name:
             for child in node.getElementsByTagName(name):
-                text += self.getText(child).encode('utf-8', 'ignore')
+                text += self.getText(child).encode("utf-8", "ignore")
         else:
             for child in node.childNodes:
                 if child.nodeType == child.TEXT_NODE:
-                    text += child.data.encode('utf-8', 'ignore')
+                    text += child.data.encode("utf-8", "ignore")
 
-        return text.decode('utf-8')
+        return text.decode("utf-8")
 
-    def getAttr(self, node, attr, default=''):
+    def getAttr(self, node, attr, default=""):
         if not node.hasAttribute(attr):
             return default
 
@@ -117,43 +125,61 @@ class MagicLoader(object):
 
         logging.info("loading magic database from %s", filename or self.filename)
 
-        descriptions = dom.getElementsByTagName('description')
+        descriptions = dom.getElementsByTagName("description")
 
         for desc in descriptions:
-            mimeType = self.getText(desc, 'mimeType')
-            parentType = self.getText(desc, 'parentType')
-            extensions = self.getText(desc, 'extensions').split(',')
-            allowsLeadingWhiteSpace = self.getText(desc, 'allowsLeadingWhiteSpace') == 'true'
+            mimeType = self.getText(desc, "mimeType")
+            parentType = self.getText(desc, "parentType")
+            extensions = self.getText(desc, "extensions").split(",")
+            allowsLeadingWhiteSpace = (
+                self.getText(desc, "allowsLeadingWhiteSpace") == "true"
+            )
 
             magicNumbers = []
 
-            for magicNumber in desc.getElementsByTagName('magicNumber'):
-                encoding = self.getAttr(magicNumber, 'encoding', 'string')
-                offset = self.getAttr(magicNumber, 'offset', 0)
+            for magicNumber in desc.getElementsByTagName("magicNumber"):
+                encoding = self.getAttr(magicNumber, "encoding", "string")
+                offset = self.getAttr(magicNumber, "offset", 0)
                 value = self.getText(magicNumber)
 
-                if encoding == 'hex':
-                    value = unhexlify(value.replace(' ', '').encode('ascii'))
+                if encoding == "hex":
+                    value = unhexlify(value.replace(" ", "").encode("ascii"))
 
                 magicNumbers.append((offset, value))
 
             magicStrings = []
 
-            for magicString in desc.getElementsByTagName('magicString'):
-                caseSensitive = not (self.getAttr(magicString, 'caseSensitive') == 'false')
+            for magicString in desc.getElementsByTagName("magicString"):
+                caseSensitive = not (
+                    self.getAttr(magicString, "caseSensitive") == "false"
+                )
                 value = self.getText(magicString)
 
                 magicStrings.append((caseSensitive, value))
 
-            self.mimetypes.setdefault(mimeType, []).append(MagicRule(mimeType, parentType, extensions, allowsLeadingWhiteSpace, magicNumbers, magicStrings))
+            self.mimetypes.setdefault(mimeType, []).append(
+                MagicRule(
+                    mimeType,
+                    parentType,
+                    extensions,
+                    allowsLeadingWhiteSpace,
+                    magicNumbers,
+                    magicStrings,
+                )
+            )
 
-        logging.info("loaded %d rules for %d MIME types from magic database", len(descriptions), len(self.mimetypes))
+        logging.info(
+            "loaded %d rules for %d MIME types from magic database",
+            len(descriptions),
+            len(self.mimetypes),
+        )
 
         return len(descriptions)
 
     def reload(self):
         self.mimetypes = {}
         self.load()
+
 
 import unittest
 
@@ -168,25 +194,34 @@ class TestDetector(unittest.TestCase):
             self.detector = MagicDetector(loader.mimetypes)
 
     def testMagicNumber(self):
-        self.assertEquals(['application/zip'], self.detector.match('test.zip', 'PKtest'))
-        self.assertEquals([], self.detector.match('test.zip', '_PKtest'))
-        self.assertEquals([], self.detector.match('test.zip1', 'PKtest'))
+        self.assertEquals(
+            ["application/zip"], self.detector.match("test.zip", "PKtest")
+        )
+        self.assertEquals([], self.detector.match("test.zip", "_PKtest"))
+        self.assertEquals([], self.detector.match("test.zip1", "PKtest"))
 
-        self.assertEquals(['application/gzip'], self.detector.match('test.gz', '\x1f\x8b\x08test'))
-        self.assertEquals(['application/gzip'], self.detector.match('test.tgz', '\x1f\x8b\x08test'))
-        self.assertEquals([], self.detector.match('test.gz1', '\x1f\x8b\x08test'))
-        self.assertEquals([], self.detector.match('test.gz', '\x1f \x8b\x08test'))
+        self.assertEquals(
+            ["application/gzip"], self.detector.match("test.gz", "\x1f\x8b\x08test")
+        )
+        self.assertEquals(
+            ["application/gzip"], self.detector.match("test.tgz", "\x1f\x8b\x08test")
+        )
+        self.assertEquals([], self.detector.match("test.gz1", "\x1f\x8b\x08test"))
+        self.assertEquals([], self.detector.match("test.gz", "\x1f \x8b\x08test"))
 
-        padding = ''.join([' ' for _ in range(257)])
+        padding = "".join([" " for _ in range(257)])
 
-        self.assertEquals(['application/x-tar'], self.detector.match('test.tar', padding + 'ustartest'))
-        self.assertEquals([], self.detector.match('test.tar1', padding + 'ustartest'))
-        self.assertEquals([], self.detector.match('test.tar', padding + 'ust artest'))
+        self.assertEquals(
+            ["application/x-tar"],
+            self.detector.match("test.tar", padding + "ustartest"),
+        )
+        self.assertEquals([], self.detector.match("test.tar1", padding + "ustartest"))
+        self.assertEquals([], self.detector.match("test.tar", padding + "ust artest"))
 
 
 class TestLoader(unittest.TestCase):
     def testInit(self):
-        self.assertRaises(IOError, MagicLoader, 'not_exists_file')
+        self.assertRaises(IOError, MagicLoader, "not_exists_file")
 
         self.assert_(MagicLoader().filename)
 
@@ -209,9 +244,11 @@ def dump(mimetypes):
             print(("\tmagic num = %s" % rule.magicNumbers))
             print(("\tmagic str = %s" % rule.magicStrings))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.DEBUG if '-v' in sys.argv else logging.WARN,
-        format='%(asctime)s %(levelname)-8s %(message)s')
+        level=logging.DEBUG if "-v" in sys.argv else logging.WARN,
+        format="%(asctime)s %(levelname)-8s %(message)s",
+    )
 
     unittest.main()

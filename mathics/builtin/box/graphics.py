@@ -78,6 +78,7 @@ class _RoundBox(_GraphicsElement):
         ry += l
         return [(x - rx, y - ry), (x - rx, y + ry), (x + rx, y - ry), (x + rx, y + ry)]
 
+
 class _ArcBox(_RoundBox):
     def init(self, graphics, style, item):
         if len(item.leaves) == 3:
@@ -126,6 +127,7 @@ class _ArcBox(_RoundBox):
         ey = y + ry * sin(end_angle)
 
         return x, y, abs(rx), abs(ry), sx, sy, ex, ey, large_arc
+
 
 class ArrowBox(_Polyline):
     def init(self, graphics, style, item=None):
@@ -343,6 +345,8 @@ class DiskBox(_ArcBox):
     """Boxing class attribute for a Disk."""
 
     face_element = True
+
+
 class GraphicsBox(BoxConstruct):
     """Boxing method which get called when Boxing (adding formatting and bounding-box information)
     Graphics.
@@ -639,7 +643,7 @@ class GraphicsBox(BoxConstruct):
             int(self.width),
             int(self.height),
             base64.b64encode(svg_body.encode("utf8")).decode("utf8"),
-            )
+        )
         # print("boxes_to_mathml", mathml)
         return mathml
 
@@ -1053,6 +1057,7 @@ class PointBox(_Polyline):
                     [(x - l, y - l), (x - l, y + l), (x + l, y - l), (x + l, y + l)]
                 )
         return result
+
 
 class PolygonBox(_Polyline):
     def init(self, graphics, style, item=None):

@@ -65,8 +65,8 @@ def _median5(v):  # for len(v) <= 5
             return _median3(a, b, e, index_a, index_b, index_e)
         else:  # second to largest = d
             return _median3(a, d, e, index_a, index_d, index_e)
-    else:   # second to smallest = c
-        if b < d:   # second to largest = b
+    else:  # second to smallest = c
+        if b < d:  # second to largest = b
             return _median3(c, b, e, index_c, index_b, index_e)
         else:  # second to largest = d
             return _median3(c, d, e, index_c, index_d, index_e)
@@ -121,7 +121,7 @@ def bfprt(a, k):  # changes a
         if len(a) == 1:
             return a[0]
 
-        median_indices = [_median5(a[i:i + 5]) for i in range(0, len(a), 5)]
+        median_indices = [_median5(a[i : i + 5]) for i in range(0, len(a), 5)]
         median_values = [a[5 * b + i] for b, i in enumerate(median_indices)]
         pivot = bfprt(median_values[:], len(median_values) // 2)
         pivot_block_index = [id(x) for x in median_values].index(id(pivot))
@@ -129,7 +129,7 @@ def bfprt(a, k):  # changes a
 
         i, j = _partition(a, pivot_index)
         if k <= i:
-            a = a[:i + 1]
+            a = a[: i + 1]
         elif k >= j:
             a = a[j:]
             k -= j
@@ -149,7 +149,7 @@ def introselect(a, k):  # changes a
         # see Algorithm 65 FIND in [1]
         i, j = _partition(a, p)
         if k <= i:
-            a = a[:i + 1]
+            a = a[: i + 1]
         elif k >= j:
             a = a[j:]
             k -= j
@@ -173,20 +173,20 @@ if __name__ == "__main__":
         b = sorted(a)
         c = [f(a[:], i) for i in range(len(a))]
         if b == c:
-            print('OK %s r: %d l: %d' % (name, r_max, l))
+            print("OK %s r: %d l: %d" % (name, r_max, l))
             return True
         else:
-            print('FAIL %s r: %d l: %d' % (name, r_max, l))
+            print("FAIL %s r: %d l: %d" % (name, r_max, l))
             print(a, b, c)
             return False
 
     def test_configuration(l_max, r_max):
         for l in range(l_max):
-            if not test_algorithm(l, r_max, 'bfprt', bfprt):
+            if not test_algorithm(l, r_max, "bfprt", bfprt):
                 return False
 
         for l in range(l_max):
-            if not test_algorithm(l, r_max, 'introselect', introselect):
+            if not test_algorithm(l, r_max, "introselect", introselect):
                 return False
 
         return True
@@ -197,22 +197,28 @@ if __name__ == "__main__":
 
     def test_median(median, l_min, l_max):
         for length in range(l_min, l_max + 1):
-            for i, a in enumerate(itertools.permutations([x * 10 for x in range(length)])):
+            for i, a in enumerate(
+                itertools.permutations([x * 10 for x in range(length)])
+            ):
                 b = sorted(a)
                 index = median(a)
                 if length == 2 and index in (0, 1):
-                    print('OK median %d %d' % (length, i))  # ok, median of 2 elements is not defined clearly
+                    print(
+                        "OK median %d %d" % (length, i)
+                    )  # ok, median of 2 elements is not defined clearly
                 elif a[index] != b[len(b) // 2]:
-                    print('FAIL median', a, b)
+                    print("FAIL median", a, b)
                     return False
                 else:
-                    print('OK median %d %d' % (length, i))
+                    print("OK median %d %d" % (length, i))
         return True
 
     def test_medians():
-        return test_median(lambda a: _median3(a[0], a[1], a[2], 0, 1, 2), 3, 3) and test_median(_median5, 1, 5)
+        return test_median(
+            lambda a: _median3(a[0], a[1], a[2], 0, 1, 2), 3, 3
+        ) and test_median(_median5, 1, 5)
 
     if test_medians() and test_range(200):
-        print('ALL OK.')
+        print("ALL OK.")
     else:
-        print('ABORTED WITH FAILURE.')
+        print("ABORTED WITH FAILURE.")

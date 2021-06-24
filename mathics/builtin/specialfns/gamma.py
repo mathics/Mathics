@@ -8,6 +8,7 @@ from mathics.builtin.arithmetic import _MPMathMultiFunction
 from mathics.builtin.base import SympyFunction
 from mathics.core.expression import Expression, Integer0
 
+
 class Gamma(_MPMathMultiFunction):
     """
     In number theory the logarithm of the gamma function often appears. For positive real numbers, this can be evaluated as 'Log[Gamma[$z$]]'.

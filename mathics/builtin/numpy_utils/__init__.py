@@ -38,4 +38,3 @@ is_numpy_available = numpy_layer.is_numpy_available
 allclose = numpy_layer.allclose
 errstate = numpy_layer.errstate
 instantiate_elements = numpy_layer.instantiate_elements
-

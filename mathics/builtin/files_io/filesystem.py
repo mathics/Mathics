@@ -41,8 +41,8 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.builtin.files_io.files import (
     DIRECTORY_STACK,
     INITIAL_DIR,  # noqa is used via global
-    mathics_open
-    )
+    mathics_open,
+)
 from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_regex
 from mathics.builtin.base import MessageException

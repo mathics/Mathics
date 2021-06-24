@@ -7,6 +7,7 @@ class ImageBox(BoxConstruct):
     """Routines which get called when Boxing (adding formatting and bounding-box information)
     an Image object.
     """
+
     def boxes_to_text(self, leaves=None, **options):
         return "-Image-"
 

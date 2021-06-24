@@ -29,6 +29,7 @@ from mathics.builtin.base import (
     PatternObject,
 )
 
+
 def add_builtins(new_builtins):
     for var_name, builtin in new_builtins:
         name = builtin.get_name()
@@ -47,12 +48,14 @@ def add_builtins(new_builtins):
             pattern_objects[name] = builtin.__class__
     _builtins.update(dict(new_builtins))
 
+
 def builtins_dict():
     return {
         builtin.get_name(): builtin
         for modname, builtins in builtins_by_module.items()
         for builtin in builtins
     }
+
 
 def contribute(definitions):
     # let MakeBoxes contribute first
@@ -73,6 +76,7 @@ def contribute(definitions):
             op = ensure_context(operator)
             definitions.builtin[op] = Definition(name=op)
 
+
 def get_module_doc(module):
     doc = module.__doc__
     if doc is not None:
@@ -89,12 +93,14 @@ def get_module_doc(module):
         text = ""
     return title, text
 
+
 def import_builtins(module_names: List[str], submodule_name=None) -> None:
     """
     Imports the list of Mathics Built-in modules so that inside
     Mathics we have these Builtin Functions, like Plus[], List[] are defined.
 
     """
+
     def import_module(module_name: str, import_name: str):
         try:
             module = importlib.import_module(import_name)
@@ -143,7 +149,9 @@ import_builtins(module_names)
 _builtins = []
 builtins_by_module = {}
 
-disable_file_module_names = [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
+disable_file_module_names = (
+    [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
+)
 
 for subdir in ("colors", "drawing", "files_io", "numbers", "specialfns", "fileformats"):
     import_name = f"{__name__}.{subdir}"

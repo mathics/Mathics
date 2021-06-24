@@ -8,7 +8,8 @@ import zlib
 from mathics.builtin.base import Builtin
 from mathics.core.expression import (
     String,
-    )
+)
+
 
 class Compress(Builtin):
     """

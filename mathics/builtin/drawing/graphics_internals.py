@@ -12,6 +12,7 @@ from mathics.builtin.base import (
 
 from mathics.core.expression import system_symbols_dict
 
+
 class _GraphicsElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None, opacity=1.0):
         if item is not None and not item.has_form(self.get_name(), None):
@@ -24,6 +25,7 @@ class _GraphicsElement(InstanceableBuiltin):
     @staticmethod
     def create_as_style(klass, graphics, item):
         return klass(graphics, item)
+
 
 def get_class(name):
     c = GLOBALS.get(name)

@@ -130,7 +130,12 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -1831,17 +1836,21 @@ class Expression(BaseExpression):
             return True, Expression(head, *leaves)
 
     def is_numeric(self) -> bool:
-        return self._head.get_name() in system_symbols(
-            "Sqrt",
-            "Times",
-            "Plus",
-            "Subtract",
-            "Minus",
-            "Power",
-            "Abs",
-            "Divide",
-            "Sin",
-        ) and all(leaf.is_numeric() for leaf in self._leaves)
+        return (
+            self._head.get_name()
+            in system_symbols(
+                "Sqrt",
+                "Times",
+                "Plus",
+                "Subtract",
+                "Minus",
+                "Power",
+                "Abs",
+                "Divide",
+                "Sin",
+            )
+            and all(leaf.is_numeric() for leaf in self._leaves)
+        )
         # TODO: complete list of numeric functions, or access NumericFunction
         # attribute
 
@@ -2263,8 +2272,10 @@ class Integer(Number):
     def is_zero(self) -> bool:
         return self.value == 0
 
+
 Integer0 = Integer(0)
 Integer1 = Integer(1)
+
 
 class Rational(Number):
     @lru_cache()
@@ -2359,7 +2370,9 @@ class Rational(Number):
             self.numerator().is_zero
         )  # (implicit) and not (self.denominator().is_zero)
 
+
 RationalOneHalf = Rational(1, 2)
+
 
 class Real(Number):
     def __new__(cls, value, p=None) -> "Real":
@@ -2616,8 +2629,9 @@ class Complex(Number):
         return self.real.to_sympy() + sympy.I * self.imag.to_sympy()
 
     def to_python(self, *args, **kwargs):
-        return complex(self.real.to_python(*args, **kwargs),
-                       self.imag.to_python(*args, **kwargs))
+        return complex(
+            self.real.to_python(*args, **kwargs), self.imag.to_python(*args, **kwargs)
+        )
 
     def to_mpmath(self):
         return mpmath.mpc(self.real.to_mpmath(), self.imag.to_mpmath())
@@ -2966,7 +2980,6 @@ class String(Atom):
             return '"%s"' % self.value  # add quotes to distinguish from Symbols
         else:
             return self.value
-
 
     def __hash__(self):
         return hash(("String", self.value))

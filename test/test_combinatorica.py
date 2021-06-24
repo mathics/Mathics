@@ -49,7 +49,6 @@ def test_permutations_1_1():
             " {3, 1, 2, 4}, {3, 1, 4, 2}, {3, 2, 1, 4}, {3, 2, 4, 1}, "
             " {3, 4, 1, 2}, {3, 4, 2, 1}, {4, 1, 2, 3}, {4, 1, 3, 2}, "
             " {4, 2, 1, 3}, {4, 2, 3, 1}, {4, 3, 1, 2}, {4, 3, 2, 1}} ",
-
             "slower method for computing permutations in lex order, 1.1.2, Page 6",
         ),
         (
@@ -301,7 +300,7 @@ def test_inversions_and_inversion_vectors_1_3():
             "g = MakeGraph[Range[Length[p]], ((#1<#2 && h[[#1]]>h[[#2]]) || (#1>#2 && h[[#1]]<h[[#2]]))&]; "
             "Inversions[p]",
             "M[g]",
-            "Edges equals # of inversions 1.3.1, Page 28"
+            "Edges equals # of inversions 1.3.1, Page 28",
         ),
         (
             "Inversions[p]",
@@ -343,6 +342,7 @@ def test_inversions_and_inversion_vectors_1_3():
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
+
 
 def test_special_classes_of_permutations_1_4():
 
@@ -397,6 +397,7 @@ def test_special_classes_of_permutations_1_4():
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
+
 
 def test_combinations_1_5():
 
@@ -474,6 +475,7 @@ def test_combinations_1_5():
         ),
     ):
         check_evaluation(str_expr, str_expected, message)
+
 
 def test_2_1_to_2_3():
 

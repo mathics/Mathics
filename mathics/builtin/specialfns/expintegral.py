@@ -9,6 +9,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics.builtin.arithmetic import _MPMathFunction
 from mathics.core.expression import from_mpmath
 
+
 class ExpIntegralE(_MPMathFunction):
     """
     <dl>

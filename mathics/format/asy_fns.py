@@ -4,6 +4,7 @@
 
 from itertools import chain
 
+
 def asy_bezier(*segments):
     # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
 
@@ -69,12 +70,17 @@ def asy_color(self):
     rgba = self.to_rgba()
     alpha = rgba[3] if len(rgba) > 3 else 1.0
     return (
-        fr"rgb({asy_number(rgba[0])}, {asy_number(rgba[1])}, {asy_number(rgba[2])})", alpha
+        fr"rgb({asy_number(rgba[0])}, {asy_number(rgba[1])}, {asy_number(rgba[2])})",
+        alpha,
     )
 
 
 def asy_create_pens(
-      edge_color=None, face_color=None, stroke_width=None, is_face_element=False, dotfactor=None
+    edge_color=None,
+    face_color=None,
+    stroke_width=None,
+    is_face_element=False,
+    dotfactor=None,
 ) -> str:
     """
     Return an asymptote string fragment that creates a drawing pen.
