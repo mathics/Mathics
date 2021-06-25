@@ -335,6 +335,32 @@ class Cuboid(Builtin):
         return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
 
 
+class Cylinder(Builtin):
+    """
+    <dl>
+    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}]'
+        <dd>represents a cylinder of radius 1.
+    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}, $r$]'
+        <dd>is a cylinder of radius $r$ starting at ($x1$, $y1$, $z1$) and ending at ($x2$, $y2$, $z2$).
+        <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }]'
+        <dd>is a collection cylinders of radius 1
+    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
+        <dd>is a collection cylinders of radius $r$
+    </dl>
+
+    >> Graphics3D[Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]]
+     = -Graphics3D-
+
+    >> Graphics3D[{Yellow, Cylinder[{{-1, 0, 0}, {1, 0, 0}, {0, 0, Sqrt[3]}, {1, 1, Sqrt[3]}}, 1]}]
+     = -Graphics3D-
+    """
+
+    rules = {
+        "Cylinder[]": "Cylinder[{0, 0, 0}, {1, 1, 1}, 1]",
+        "Cylinder[positions_]": "Cylinder[positions, 1]",
+    }
+
+
 class _Graphics3DElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
         if item is not None and not item.has_form(self.get_name(), None):
