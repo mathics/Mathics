@@ -32,7 +32,7 @@ def get_file_time(file) -> float:
 
 
 def valuesname(name) -> str:
-    " 'NValues' -> 'n' "
+    "'NValues' -> 'n'"
 
     assert name.startswith("System`"), name
     if name == "System`Messages":

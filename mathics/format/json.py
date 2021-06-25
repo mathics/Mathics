@@ -10,6 +10,7 @@ from mathics.builtin.drawing.graphics3d import (
 )
 
 from mathics.builtin.box.graphics3d import (
+    Cylinder3DBox,
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
@@ -37,6 +38,23 @@ def graphics_3D_elements(self, **options):
 
 
 add_conversion_fn(Graphics3DElements, graphics_3D_elements)
+
+
+def cylinder_3d_box(self):
+    face_color = self.face_color
+    if face_color is not None:
+        face_color = face_color.to_js()
+    return [
+        {
+            "type": "cylinder",
+            "coords": [coords.pos() for coords in self.points],
+            "radius": self.radius,
+            "faceColor": face_color,
+        }
+    ]
+
+
+add_conversion_fn(Cylinder3DBox, cylinder_3d_box)
 
 
 def line_3d_box(self):

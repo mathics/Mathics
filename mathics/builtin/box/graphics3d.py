@@ -694,12 +694,85 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         ]
 
 
-class Point3DBox(PointBox):
+class Cylinder3DBox(_Graphics3DElement):
+    """
+    Internal Python class used when Boxing a 'Cylinder' object.
+    """
+
+    def init(self, graphics, style, item):
+        super(Cylinder3DBox, self).init(graphics, item, style)
+
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+
+        if len(item.leaves) != 2:
+            raise BoxConstructError
+
+        points = item.leaves[0].to_python()
+        if not all(
+            len(point) == 3 and all(isinstance(p, numbers.Real) for p in point)
+            for point in points
+        ):
+            raise BoxConstructError
+
+        self.points = [Coords3D(graphics, pos=point) for point in points]
+        self.radius = item.leaves[1].to_python()
+
+    def to_asy(self):
+        # l = self.style.get_line_width(face_element=True)
+
+        if self.face_color is None:
+            face_color = (1, 1, 1)
+        else:
+            face_color = self.face_color.to_js()
+
+        rgb = f"rgb({face_color[0]}, {face_color[1]}, {face_color[2]})"
+        return "".join(
+            f"draw(surface(cylinder({tuple(coord.pos()[0])}, {self.radius}, {self.height})), {rgb});"
+            for coord in self.points
+        )
+
+    def to_json(self):
+        face_color = self.face_color
+        if face_color is not None:
+            face_color = face_color.to_js()
+        return [
+            {
+                "type": "cylinder",
+                "coords": [coords.pos() for coords in self.points],
+                "radius": self.radius,
+                "faceColor": face_color,
+            }
+        ]
+
+    def extent(self):
+        result = []
+        # FIXME: instead of `coords.add(±self.radius, ±self.radius, ±self.radius)` we should do:
+        # coords.add(transformation_vector.x * ±self.radius, transformation_vector.y * ±self.radius, transformation_vector.z * ±self.radius)
+        result.extend(
+            [
+                coords.add(self.radius, self.radius, self.radius).pos()[0]
+                for coords in self.points
+            ]
+        )
+        result.extend(
+            [
+                coords.add(-self.radius, -self.radius, -self.radius).pos()[0]
+                for coords in self.points
+            ]
+        )
+        return result
+
+    def _apply_boxscaling(self, boxscale):
+        # TODO
+        pass
+
+
+class Line3DBox(LineBox):
     def init(self, *args, **kwargs):
-        super(Point3DBox, self).init(*args, **kwargs)
+        super(Line3DBox, self).init(*args, **kwargs)
 
     def process_option(self, name, value):
-        super(Point3DBox, self).process_option(name, value)
+        super(Line3DBox, self).process_option(name, value)
 
     def extent(self):
         result = []
@@ -715,12 +788,12 @@ class Point3DBox(PointBox):
                 coords.scale(boxscale)
 
 
-class Line3DBox(LineBox):
+class Point3DBox(PointBox):
     def init(self, *args, **kwargs):
-        super(Line3DBox, self).init(*args, **kwargs)
+        super(Point3DBox, self).init(*args, **kwargs)
 
     def process_option(self, name, value):
-        super(Line3DBox, self).process_option(name, value)
+        super(Point3DBox, self).process_option(name, value)
 
     def extent(self):
         result = []
@@ -805,9 +878,10 @@ class Sphere3DBox(_Graphics3DElement):
 # FIXME: GLOBALS3D is a horrible name.
 GLOBALS3D.update(
     {
-        "System`Polygon3DBox": Polygon3DBox,
+        "System`Cylinder3DBox": Cylinder3DBox,
         "System`Line3DBox": Line3DBox,
         "System`Point3DBox": Point3DBox,
+        "System`Polygon3DBox": Polygon3DBox,
         "System`Sphere3DBox": Sphere3DBox,
     }
 )

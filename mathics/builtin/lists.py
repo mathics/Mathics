@@ -477,7 +477,7 @@ def get_part(varlist, indices):
 
 
 def set_part(varlist, indices, newval):
-    " Simple part replacement. indices must be a list of python integers. "
+    "Simple part replacement. indices must be a list of python integers."
 
     def rec(cur, rest):
         if len(rest) > 1:
