@@ -23,7 +23,7 @@ def test_export():
         expr += ', CharacterEncoding -> "{character_encoding}"' if character_encoding else ""
         expr += "]"
         result = session.evaluate(expr)
-        assert result.to_python() == fr'"{file_path}"'
+        assert result.to_python(string_quotes=False) == file_path
         return file_path
 
     def check_data(temp_dirname: str, short_name: str, file_data:str,
@@ -47,6 +47,11 @@ def test_export():
         # Check exporting SVG files (file extension ".svg")
         file_path = run_export(temp_dirname, "sine.svg", "Plot[Sin[x], {x,0,1}]", None)
         data = open(file_path, "r").read().strip()
+        if not data.startswith("<svg"):
+            print(data)
+            import os
+            os.system("ls -l file_path")
+        from trepan.api import debug; debug()
         assert data.startswith("<svg")
         assert data.endswith("</svg>")
 
