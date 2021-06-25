@@ -19,16 +19,16 @@ def test_export():
 
     def run_export(temp_dirname: str, short_name: str, file_data:str, character_encoding):
         file_path = osp.join(temp_dirname, short_name)
-        expr = f'Export["{file_path}", {file_data}'
+        expr = fr'Export["{file_path}", {file_data}'
         expr += ', CharacterEncoding -> "{character_encoding}"' if character_encoding else ""
         expr += "]"
         result = session.evaluate(expr)
-        assert result.to_python() == f'"{file_path}"'
+        assert result.to_python() == fr'"{file_path}"'
         return file_path
 
     def check_data(temp_dirname: str, short_name: str, file_data:str,
                    character_encoding=None, expected_data=None):
-        file_path = run_export(temp_dirname, short_name, f'"{file_data}"', character_encoding)
+        file_path = run_export(temp_dirname, short_name, fr'"{file_data}"', character_encoding)
         if expected_data is None:
             expected_data = file_data
         assert open(file_path, "r").read() == expected_data
