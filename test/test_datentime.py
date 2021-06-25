@@ -54,7 +54,7 @@ def test_datelist():
         check_evaluation(str_expr, str_expected)
 
 
-def test_datelist():
+def test_datestring():
     for str_expr, str_expected in (
         ## Check Leading 0s
         # (

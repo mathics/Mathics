@@ -1092,7 +1092,7 @@ class RegisterImport(Builtin):
 
     def apply(self, formatname, function, posts, evaluation, options):
         """ImportExport`RegisterImport[formatname_String, function_, posts_,
-                OptionsPattern[ImportExport`RegisterImport]]"""
+        OptionsPattern[ImportExport`RegisterImport]]"""
 
         if function.has_form("List", None):
             leaves = function.get_leaves()
@@ -1174,7 +1174,7 @@ class RegisterExport(Builtin):
 
     def apply(self, formatname, function, evaluation, options):
         """ImportExport`RegisterExport[formatname_String, function_,
-                OptionsPattern[ImportExport`RegisterExport]]"""
+        OptionsPattern[ImportExport`RegisterExport]]"""
         EXPORTERS[formatname.get_string_value()] = (function, options)
 
         return Symbol("Null")
@@ -1704,41 +1704,6 @@ class Export(Builtin):
 
     ## FORMATS
 
-    ## Text
-    #> Export["abc.txt", 1 + x + y]
-     = abc.txt
-    #> FilePrint[%]
-     | 1 + x + y
-    #> DeleteFile[%%]
-
-    #> Export["abc.txt", "ä", CharacterEncoding -> "ISOLatin1"];
-    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
-    #> BinaryRead[strm]
-     = 195
-    #> Close[strm];
-    #> DeleteFile["abc.txt"];
-
-    #> Export["abc.txt", "ä", CharacterEncoding -> "UTF-8"];
-    #> strm = OpenRead["abc.txt", BinaryFormat -> True];
-    #> BinaryRead[strm]
-     = 195
-    #> Close[strm];
-    #> DeleteFile["abc.txt"];
-
-    ## CSV
-    #> Export["abc.csv", {{1, 2, 3}, {4, 5, 6}}]
-     = abc.csv
-    #> FilePrint[%]
-     | 1,2,3
-     | 4,5,6
-    #> DeleteFile[%%]
-
-    ## SVG
-    #> Export["sine.svg", Plot[Sin[x], {x,0,1}]]
-     = sine.svg
-    #> FileFormat[%]
-     = SVG
-    #> DeleteFile[%%]
     """
 
     messages = {
@@ -2192,12 +2157,6 @@ class B64Encode(Builtin):
     >> System`Convert`B64Dump`B64Decode[%]
      = Integrate[f[x], {x, 0, 2}]
     """
-
-    # mmatera: please put in pytest conditionally
-    # >> System`Convert`B64Dump`B64Encode["∫ f  x"]
-    #  = 4oirIGYg752MIHg=
-    # >> System`Convert`B64Dump`B64Decode[%]
-    #  = ∫ f  x
 
     context = "System`Convert`B64Dump`"
     name = "B64Encode"
