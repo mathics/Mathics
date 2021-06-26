@@ -7,6 +7,6 @@ Settings`$TraceGet = False
 Unprotect[Settings`$TraceGet]
 
 
-Settings`$PreferredBackendMethod::usage = "Set this do whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods when there is a choice.";
+Settings`$PreferredBackendMethod::usage = "This sets whether to use mpmath, numpy or Sympy for numeric and symbolic constants and methods, when there is a choice.";
 Settings`$PreferredBackendMethod = "sympy"
 Unprotect[Settings`$PreferredBackendMethod]
