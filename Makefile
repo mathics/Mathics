@@ -39,8 +39,7 @@ develop:
 
 #: Set up to run from the source tree with full dependencies
 develop-full:
-	$(PIP) install -e .
-	$(PIP) install -r requirements-extra.txt
+	$(PIP) install -e .[full]
 
 
 #: Make distirbution: wheels, eggs, tarball
@@ -59,7 +58,8 @@ clean:
 	rm mathics/*/*.so; \
 	for dir in mathics/doc ; do \
 	   ($(MAKE) -C "$$dir" clean); \
-	done;
+	done; \
+	rm -f factorials || true
 
 #: Run py.test tests. Use environment variable "o" for pytest options
 pytest:

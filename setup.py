@@ -46,27 +46,27 @@ def read(*rnames):
 # stores __version__ in the current namespace
 exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
 
-# Get/set VERSION and long_description from files
 long_description = read("README.rst") + "\n"
 
 
 is_PyPy = platform.python_implementation() == "PyPy"
 
-INSTALL_REQUIRES = []
+INSTALL_REQUIRES = ["Mathics-Scanner >= 1.2.1,<1.3.0"]
+
 # stores __version__ in the current namespace
 exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
 
 extras_require = []
-for line in open("requirements-extra.txt").read().split("\n"):
+for line in open("requirements-full.txt").read().split("\n"):
     if line and not line.startswith("#"):
         requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
         extras_require.append(requires)
 
 EXTRAS_REQUIRE = {"full": extras_require}
 
-DEPENDENCY_LINKS = [
-    "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"
-]
+DEPENDENCY_LINKS = []
+#     "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"
+# ]
 
 try:
     if is_PyPy:
@@ -102,19 +102,15 @@ else:
 
 # General Requirements
 INSTALL_REQUIRES += [
-    "Mathics_Scanner>=1.2.0,<1.3.0",
+    "Mathics_Scanner>=1.2.1,<1.3.0",
     "sympy>=1.8, <= 1.9dev",
     "mpmath>=1.2.0",
     "numpy",
     "palettable",
     "pint",
     "python-dateutil",
-    # "psutil",  # for $SystemMemory
     "llvmlite",
     "requests",
-    # lxml is an optional dependency for HTML parsing used in builtin/fileformats/html
-    # "scikit-image", optional
-    # "wordcloud",  # Used in builtin/image.py by WordCloud()
 ]
 
 
@@ -122,8 +118,6 @@ def subdirs(root, file="*.*", depth=10):
     for k in range(depth):
         yield root + "*/" * k + file
 
-
-mathjax_files = list(subdirs("media/js/mathjax/"))
 
 setup(
     name="Mathics3",
