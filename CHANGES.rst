@@ -1,6 +1,87 @@
 CHANGES
 =======
 
+3.0.0
+-----
+
+Overall there is a major refactoring underway of how formatting works
+and its interaction with graphics.  More work will come in later releases.
+
+Some of the improvements are visible not here but in the front-ends
+mathicsscript and mathics-django. In mathicsscript, we can now show
+SVG images (via matplotlib).  In Mathics Django, images and threejs
+graphs are no longer embedded in MathML.
+
+A lot of the improvements in this release were done or made possible with the help of
+Tiago Cavalcante Trindade.
+
+Enhancements
+------------
+
+It is now possible to get back SVG, and graphics that are not embedded in MathML.
+
+The code is now Pyston 2.2 compatible. However ``scipy`` ``lxml`` are
+not currently available on Pyston so there is a slight loss of
+functionality. The code runs about 30% faster under Pyston 2.2. Note
+that the code also works under PyPy 3.7.
+
+Bugs
+----
+
+* Tick marks and the placement of numbers on charts have been corrected. PR #1437
+* Asymptote now respects the ``PointSize`` setting.
+* In graphs rendered in SVG, the ``PointSize`` has been made more closely match Mathematica.
+* Polygons rendered in Asymptote now respects the even/odd rule for filling areas.
+
+Density Plots rendered in SVG broke with this release. They will be reinstated in the future.
+
+Documentation
+-------------
+
+Go over settings file to ensure usage names are full sentences.
+
+We have started to put more builtins in the sections or subsections
+following the organization in Mathematics 5 or as found in the online
+Wolfram Language Reference. As a result, long lists in previous topics
+are a bit shorter and there are now more sections. This work was
+started in 2.2.0.
+
+More work is needed on formatting and showing this information, with
+the additional breakout we now have subsections. More reorganization
+and sectioning is needed.
+
+These cleanups will happen in a future version.
+
+Chapters without introductory text like ``Structural Operations``, or ``Tensors`` have had descriptions added.
+
+Sections that were empty have either been expanded or removed because
+the underlying name was never a user-level built in, e.g. the various
+internal Boxing functions like ``DiskBox``, or ``CompiledCodeBox``
+
+Documentation specific builtins like ``PolarPlot`` or
+``BernsteinBasis`` have been added improved, and document examples
+have been revised such as for ``PieChart``, ``Pi`` and others.
+
+The Mathics Gallery examples have been updated.
+
+Some slight improvements were made to producing the PDF and more kinds
+of non-ASCII symbols are tolerated. Expect more work on this in the
+future via tables from the `Mathics Scanner <https://pypi.org/project/Mathics-Scanner/1.2.1/>`_ project.
+
+Chapters are no longer in Roman Numerals.
+
+
+Internal changes
+----------------
+
+* ``docpipline.py``  accepts the option ``--chapters`` or ``-c`` to narrow tests to a particular chapter
+* Format routines have been isolated into its own module. Currently we have format routines for SVG, JSON and
+  Asymptote. Expect more reorganization in the future.
+* Boxing routines have been isolated to its own module.
+* The entire code base has been run through the Python formatter `black <https://black.readthedocs.io/en/stable/>`_.
+* More Python3 types to function signatures have been added.
+* More document tests that were not user-visible have been moved to
+  unit tests which run faster. More work is needed here.
 
 2.2.0
 -----
@@ -81,13 +162,14 @@ Incompatible changes
 Internal changes
 ----------------
 
-* doctest  accepts the option ``-d`` to show how long it takes to parse, evaluate and compare each individual test.
+* ``docpipeline.py``  accepts the option ``-d`` to show how long it takes to parse, evaluate and compare each individual test.
   ``-x`` option (akin to ``pytests -x`` is a short-hand for stop on first error
 * Some builtin functions have been grouped together in a module
   underneath the top-level builtin directory.  As a result, in the
   documents you will list some builtins listed under an overarching
   categery like ``Specific Functions`` or ``Graphics, Drawing, and
   Images``. More work is expected in the future to improve document sectioning.
+* ``System`$Notebooks`` is removed from settings. It is in all of the front-ends now.
 
 
 2.1.0
