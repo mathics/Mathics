@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+3.0.1
+-----
+
+New functions:
+- Cylinder
+- Factorial2 (!!)
+
 3.0.0
 -----
 
