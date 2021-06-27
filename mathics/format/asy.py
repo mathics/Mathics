@@ -19,6 +19,7 @@ from mathics.builtin.box.graphics import (
 
 from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
+    Cylinder3DBox,
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
@@ -149,6 +150,37 @@ def bezier_curve_box(self, **options) -> str:
 
 
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
+
+
+def cylinder3dbox(self, **options) -> str:
+    if self.face_color is None:
+        face_color = (1, 1, 1)
+    else:
+        face_color = self.face_color.to_js()
+
+    asy = ""
+    i = 0
+    while i < len(self.points) / 2:
+        asy += "draw(surface(cylinder({0}, {1}, {2}, {3})), rgb({2},{3},{4}));".format(
+            tuple(self.points[i * 2].pos()[0]),
+            self.radius,
+            # distance between start and end
+            (
+                (self.points[i * 2][0][0] - self.points[i * 2 + 1][0][0]) ** 2
+                + (self.points[i * 2][0][1] - self.points[i * 2 + 1][0][1]) ** 2
+                + (self.points[i * 2][0][2] - self.points[i * 2 + 1][0][2]) ** 2
+            )
+            ** 0.5,
+            (1, 1, 0),  # FIXME: currently always drawing around the axis X+Y
+            *face_color[:3],
+        )
+
+        i += 1
+
+    return asy
+
+
+add_conversion_fn(Cylinder3DBox)
 
 
 def filled_curve_box(self, **options) -> str:
@@ -310,7 +342,7 @@ def polygon3dbox(self, **options) -> str:
 add_conversion_fn(Polygon3DBox)
 
 
-def polygonbox(self, **options):
+def polygonbox(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=True)
     if self.vertex_colors is None:
         face_color = self.face_color

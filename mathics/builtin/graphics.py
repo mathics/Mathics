@@ -1361,20 +1361,21 @@ class Large(Builtin):
 
 element_heads = frozenset(
     system_symbols(
-        "Rectangle",
-        "Disk",
-        "Line",
         "Arrow",
-        "FilledCurve",
         "BezierCurve",
-        "Point",
         "Circle",
-        "Polygon",
-        "RegularPolygon",
+        "Cylinder",
+        "Disk",
+        "FilledCurve",
         "Inset",
-        "Text",
+        "Line",
+        "Point",
+        "Polygon",
+        "Rectangle",
+        "RegularPolygon",
         "Sphere",
         "Style",
+        "Text",
     )
 )
 

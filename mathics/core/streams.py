@@ -89,13 +89,13 @@ class StreamsManager(object):
 
     @staticmethod
     def get_instance():
-        """ Static access method. """
+        """Static access method."""
         if StreamsManager.__instance == None:
             StreamsManager()
         return StreamsManager.__instance
 
     def __init__(self):
-        """ Virtually private constructor. """
+        """Virtually private constructor."""
         if StreamsManager.__instance != None:
             raise Exception("this class is a singleton!")
         else:

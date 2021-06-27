@@ -309,7 +309,7 @@ class BaseExpression(KeyComparable):
         return []
 
     def get_name(self):
-        " Returns symbol's name if Symbol instance "
+        "Returns symbol's name if Symbol instance"
 
         return ""
 
@@ -320,7 +320,7 @@ class BaseExpression(KeyComparable):
         return False
 
     def get_lookup_name(self):
-        " Returns symbol name of leftmost head "
+        "Returns symbol name of leftmost head"
 
         return self.get_name()
 
@@ -1667,7 +1667,7 @@ class Expression(BaseExpression):
         )
 
     def sort(self, pattern=False):
-        " Sort the leaves according to internal ordering. "
+        "Sort the leaves according to internal ordering."
         leaves = list(self._leaves)
         if pattern:
             leaves.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
@@ -2048,7 +2048,7 @@ class Symbol(Atom):
             ]
 
     def equal2(self, rhs: Any) -> Optional[bool]:
-        """Mathics two-argument Equal (==) """
+        """Mathics two-argument Equal (==)"""
         if self.sameQ(rhs):
             return True
 
