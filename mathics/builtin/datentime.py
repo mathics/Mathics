@@ -312,7 +312,7 @@ class _DateFormat(Builtin):
         return date
 
     def to_datelist(self, epochtime, evaluation):
-        """ Converts date-time 'epochtime' to datelist """
+        """Converts date-time 'epochtime' to datelist"""
         etime = epochtime.to_python()
 
         form_name = self.get_name()

@@ -5,7 +5,7 @@ repos:
     - id: debug-statements
     - id: end-of-file-fixer
 -   repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 21.6b0
     hooks:
     - id: black
       language_version: python3

@@ -452,7 +452,7 @@ def join_lists(lists):
 
 
 def get_part(varlist, indices):
-    " Simple part extraction. indices must be a list of python integers. "
+    "Simple part extraction. indices must be a list of python integers."
 
     def rec(cur, rest):
         if rest:
