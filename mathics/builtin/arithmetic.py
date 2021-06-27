@@ -1861,6 +1861,67 @@ class Factorial(PostfixOperator, _MPMathFunction):
     mpmath_name = "factorial"
 
 
+class Factorial2(PostfixOperator, _MPMathFunction):
+    """
+    <dl>
+      <dt>'Factorial2[$n$]'
+      <dt>'$n$!!'
+      <dd>computes the double factorial of $n$.
+    </dl>
+
+    >> 5!!
+     = 15
+
+    >> Factorial2[-3]
+     = -1
+
+    'Factorial2' also accepts irrational numbers:
+    >> N[Pi!!, 6]
+     = 3.35237
+
+    'Factorial2' also accepts complex numbers:
+    >> N[I!!, 6]
+     = 2.71713 + 0.279527 I
+
+    'Factorial2' is not defined for even negative numbers.
+    #> (-4)!!
+     : Factorial2 is not defined for even negative numbers.
+     = -4!!
+    """
+
+    operator = "!!"
+    precedence = 610
+    mpmath_name = "fac2"
+    sympy_name = "factorial2"
+
+    messages = {
+        "ndf": "Factorial2 is not defined for even negative numbers.",
+        "unknownp": "'`1`' not in ('Automatic'', 'sympy', 'numpy', 'mpmath')",
+    }
+
+    def apply(self, number, evaluation, options={}):
+        "Factorial2[number_?NumberQ, OptionsPattern[%(name)s]]"
+
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
+
+        if preference not in ("Automatic", "sympy", "numpy", "mpmath"):
+            return evaluation.message("Factorial2", "unknownp", preference)
+
+        try:
+            if isinstance(number, Integer):
+                return from_sympy(getattr(sympy, self.sympy_name)(number.to_sympy()))
+            else:
+                return from_mpmath(
+                    getattr(mpmath, self.mpmath_name)(number.to_mpmath())
+                )
+        except:
+            if number.to_python() < 0 and number.to_python() % 2 == 0:
+                # even negative number
+                return evaluation.message("Factorial2", "ndf")
+
+            raise
+
+
 class HarmonicNumber(_MPMathFunction):
     """
     <dl>
