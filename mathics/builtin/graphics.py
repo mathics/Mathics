@@ -210,9 +210,12 @@ def _extract_graphics(graphics, format, evaluation):
 class Show(Builtin):
     """
     <dl>
-      <dt>'Show[$graphics$, $options$]'
-      <dd>shows graphics with the specified options added.
+    <dt>'Show[$graphics$, $options$]'
+        <dd>shows a list of graphics with the specified options added.
     </dl>
+
+    >> Show[{Plot[x, {x, 0, 10}], ListPlot[{1,2,3}]}]
+     = ...
     """
 
     options = GRAPHICS_OPTIONS
