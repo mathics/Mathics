@@ -15,9 +15,11 @@ from mathics.builtin.base import (
 from mathics.builtin.drawing.graphics_internals import _GraphicsElement, get_class
 from mathics.core.expression import (
     Expression,
+    Integer,
     Real,
     String,
     Symbol,
+    SymbolList,
     from_python,
 )
 
