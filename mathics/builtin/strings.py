@@ -532,7 +532,7 @@ class WhitespaceCharacter(Builtin):
      = True
 
     >> StringSplit["a\nb\r\nc\rd", WhitespaceCharacter]
-     = {a, b, c, d}
+     = {a, b, , c, d}
 
     For sequences of whitespace characters use 'Whitespace':
     >> StringMatchQ[" \n", WhitespaceCharacter]
@@ -1133,7 +1133,14 @@ class StringSplit(Builtin):
             result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
 
         return string_list(
-            SymbolList, [String(x) for x in result if x != ""], evaluation
+            SymbolList,
+            [
+                String(x)
+                for x in result
+                # remove the empty matches if we're not splitting by whitespace because Python's RegEx matches " " as ""
+                if x != "" or patts[0].to_python() in ("", "System`WhitespaceCharacter")
+            ],
+            evaluation,
         )
 
 
