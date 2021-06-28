@@ -340,25 +340,6 @@ Please contribute to Mathics!""",
 
         definitions.set_line_no(0)
 
-    if args.execute:
-        for expr in args.execute:
-            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
-            result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
-            shell.print_result(
-                result, no_out_prompt=True, strict_wl_output=args.strict_wl_output
-            )
-            if evaluation.exc_result == Symbol("Null"):
-                exit_rc = 0
-            elif evaluation.exc_result == Symbol("$Aborted"):
-                exit_rc = -1
-            elif evaluation.exc_result == Symbol("Overflow"):
-                exit_rc = -2
-            else:
-                exit_rc = -3
-
-        if not args.persist:
-            return exit_rc
-
     if args.FILE is not None:
         feeder = MathicsFileLineFeeder(args.FILE)
         try:
@@ -377,7 +358,26 @@ Please contribute to Mathics!""",
 
         if args.persist:
             definitions.set_line_no(0)
-        else:
+        elif not args.execute:
+            return exit_rc
+
+    if args.execute:
+        for expr in args.execute:
+            evaluation = Evaluation(shell.definitions, output=TerminalOutput(shell))
+            result = evaluation.parse_evaluate(expr, timeout=settings.TIMEOUT)
+            shell.print_result(
+                result, no_out_prompt=True, strict_wl_output=args.strict_wl_output
+            )
+            if evaluation.exc_result == Symbol("Null"):
+                exit_rc = 0
+            elif evaluation.exc_result == Symbol("$Aborted"):
+                exit_rc = -1
+            elif evaluation.exc_result == Symbol("Overflow"):
+                exit_rc = -2
+            else:
+                exit_rc = -3
+
+        if not args.persist:
             return exit_rc
 
     if not args.quiet:
