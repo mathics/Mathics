@@ -153,7 +153,7 @@ disable_file_module_names = (
     [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
 )
 
-for subdir in ("colors", "drawing", "files_io", "numbers", "specialfns", "fileformats"):
+for subdir in ("colors", "drawing", "files_io", "numbers", "specialfns", "string", "fileformats"):
     import_name = f"{__name__}.{subdir}"
 
     if import_name in disable_file_module_names:
