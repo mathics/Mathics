@@ -1092,7 +1092,7 @@ class RegisterImport(Builtin):
 
     def apply(self, formatname, function, posts, evaluation, options):
         """ImportExport`RegisterImport[formatname_String, function_, posts_,
-                OptionsPattern[ImportExport`RegisterImport]]"""
+        OptionsPattern[ImportExport`RegisterImport]]"""
         evaluation.cache_result = False
 
         if function.has_form("List", None):
@@ -1175,7 +1175,7 @@ class RegisterExport(Builtin):
 
     def apply(self, formatname, function, evaluation, options):
         """ImportExport`RegisterExport[formatname_String, function_,
-                OptionsPattern[ImportExport`RegisterExport]]"""
+        OptionsPattern[ImportExport`RegisterExport]]"""
 
         evaluation.cache_result = False
         EXPORTERS[formatname.get_string_value()] = (function, options)

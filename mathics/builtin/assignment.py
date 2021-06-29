@@ -315,8 +315,9 @@ class _SetOperator(object):
             #    $Context = $Context <> "test`"
             #
             if new_context.startswith("`"):
-                new_context = evaluation.definitions.get_current_context() + new_context.lstrip(
-                    "`"
+                new_context = (
+                    evaluation.definitions.get_current_context()
+                    + new_context.lstrip("`")
                 )
 
             evaluation.definitions.set_current_context(new_context)

@@ -621,7 +621,7 @@ class ClearSystemCache(Builtin):
       <dt>'ClearSystemCache[]'
       <dd> Clears the internal system cache of expressions.
     </dl>
-    
+
     """
 
     def apply_clear(self, evaluation):
