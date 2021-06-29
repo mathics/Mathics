@@ -8,7 +8,13 @@ import json
 import numbers
 
 from mathics.builtin.base import BoxConstructError
-from mathics.builtin.box.graphics import GraphicsBox, LineBox, PointBox, PolygonBox
+from mathics.builtin.box.graphics import (
+    GraphicsBox,
+    ArrowBox,
+    LineBox,
+    PointBox,
+    PolygonBox,
+)
 
 from mathics.builtin.colors.color_directives import _Color, RGBColor
 from mathics.builtin.drawing.graphics_internals import GLOBALS3D
@@ -694,6 +700,27 @@ currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
         ]
 
 
+class Arrow3DBox(ArrowBox):
+    def init(self, *args, **kwargs):
+        super(Arrow3DBox, self).init(*args, **kwargs)
+
+    def process_option(self, name, value):
+        super(Arrow3DBox, self).process_option(name, value)
+
+    def extent(self):
+        result = []
+        for line in self.lines:
+            for c in line:
+                p, d = c.pos()
+                result.append(p)
+        return result
+
+    def _apply_boxscaling(self, boxscale):
+        for line in self.lines:
+            for coords in line:
+                coords.scale(boxscale)
+
+
 class Cylinder3DBox(_Graphics3DElement):
     """
     Internal Python class used when Boxing a 'Cylinder' object.
@@ -718,8 +745,6 @@ class Cylinder3DBox(_Graphics3DElement):
         self.radius = item.leaves[1].to_python()
 
     def to_asy(self):
-        # l = self.style.get_line_width(face_element=True)
-
         if self.face_color is None:
             face_color = (1, 1, 1)
         else:
@@ -730,19 +755,6 @@ class Cylinder3DBox(_Graphics3DElement):
             f"draw(surface(cylinder({tuple(coord.pos()[0])}, {self.radius}, {self.height})), {rgb});"
             for coord in self.points
         )
-
-    def to_json(self):
-        face_color = self.face_color
-        if face_color is not None:
-            face_color = face_color.to_js()
-        return [
-            {
-                "type": "cylinder",
-                "coords": [coords.pos() for coords in self.points],
-                "radius": self.radius,
-                "faceColor": face_color,
-            }
-        ]
 
     def extent(self):
         result = []
@@ -878,6 +890,7 @@ class Sphere3DBox(_Graphics3DElement):
 # FIXME: GLOBALS3D is a horrible name.
 GLOBALS3D.update(
     {
+        "System`Arrow3DBox": Arrow3DBox,
         "System`Cylinder3DBox": Cylinder3DBox,
         "System`Line3DBox": Line3DBox,
         "System`Point3DBox": Point3DBox,

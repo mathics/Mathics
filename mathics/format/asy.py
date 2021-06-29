@@ -19,6 +19,7 @@ from mathics.builtin.box.graphics import (
 
 from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
+    Arrow3DBox,
     Cylinder3DBox,
     Line3DBox,
     Point3DBox,
