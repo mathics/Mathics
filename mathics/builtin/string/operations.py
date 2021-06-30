@@ -17,14 +17,15 @@ from mathics.builtin.base import (
 )
 from mathics.core.expression import (
     Expression,
-    Symbol,
-    SymbolFalse,
-    SymbolTrue,
-    SymbolList,
-    String,
     Integer,
     Integer1,
+    String,
+    Symbol,
+    SymbolFalse,
+    SymbolList,
+    SymbolTrue,
     from_python,
+    string_list,
 )
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.builtin.strings import (
@@ -673,6 +674,239 @@ class StringReverse(Builtin):
         return String(string.get_string_value()[::-1])
 
 
+class StringRiffle(Builtin):
+    """
+    <dl>
+    <dt>'StringRiffle[{s1, s2, s3, ...}]'
+      <dd>returns a new string by concatenating all the $si$, with spaces inserted between them.
+    <dt>'StringRiffle[list, sep]'
+      <dd>inserts the separator $sep$ between all elements in $list$.
+    <dt>'StringRiffle[list, {"left", "sep", "right"}]'
+      <dd>use $left$ and $right$ as delimiters after concatenation.
+
+    ## These 2 forms are not currently implemented
+    ## <dt>'StringRiffle[{{s11, s12, ...}, {s21, s22, ...}, ...}]'
+    ##   <dd>returns a new string by concatenating the $sij$, and inserting spaces at the lowest level and newlines at the higher level.
+    ## <dt>'StringRiffle[list, sep1, sep2, ...]'
+    ##   <dd>inserts separator $sepi$ between elements of list at level i.
+    </dl>
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}]
+     = a b c d e
+
+    #> StringRiffle[{a, b, c, "d", e, "f"}]
+     = a b c d e f
+
+    ## 1st is not a list
+    #> StringRiffle["abcdef"]
+     : List expected at position 1 in StringRiffle[abcdef].
+     : StringRiffle called with 1 argument; 2 or more arguments are expected.
+     = StringRiffle[abcdef]
+
+    #> StringRiffle[{"", "", ""}] // FullForm
+     = "  "
+
+    ## This form is not supported
+    #> StringRiffle[{{"a", "b"}, {"c", "d"}}]
+     : Sublist form in position 1 is is not implemented yet.
+     = StringRiffle[{{a, b}, {c, d}}]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, ", "]
+     = a, b, c, d, e
+
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, sep]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, sep].
+     = StringRiffle[{a, b, c, d, e}, sep]
+
+    >> StringRiffle[{"a", "b", "c", "d", "e"}, {"(", " ", ")"}]
+     = (a b c d e)
+
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {" ", ")"}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, { , )}].
+     = StringRiffle[{a, b, c, d, e}, { , )}]
+    #> StringRiffle[{"a", "b", "c", "d", "e"}, {left, " ", "."}]
+     : String expected at position 2 in StringRiffle[{a, b, c, d, e}, {left,  , .}].
+     = StringRiffle[{a, b, c, d, e}, {left,  , .}]
+
+    ## This form is not supported
+    #> StringRiffle[{"a", "b", "c"}, "+", "-"]
+    ## Mathematica result: a+b+c, but we are not support multiple separators
+     :  Multiple separators form is not implemented yet.
+     = StringRiffle[{a, b, c}, +, -]
+    """
+
+    attributes = ("ReadProtected",)
+
+    messages = {
+        "list": "List expected at position `1` in `2`.",
+        "argmu": "StringRiffle called with 1 argument; 2 or more arguments are expected.",
+        "argm": "StringRiffle called with 0 arguments; 2 or more arguments are expected.",
+        "string": "String expected at position `1` in `2`.",
+        "sublist": "Sublist form in position 1 is is not implemented yet.",
+        "mulsep": "Multiple separators form is not implemented yet.",
+    }
+
+    def apply(self, liststr, seps, evaluation):
+        "StringRiffle[liststr_, seps___]"
+        separators = seps.get_sequence()
+        exp = (
+            Expression("StringRiffle", liststr, seps)
+            if separators
+            else Expression("StringRiffle", liststr)
+        )
+
+        # Validate separators
+        if len(separators) > 1:
+            return evaluation.message("StringRiffle", "mulsep")
+        elif len(separators) == 1:
+            if separators[0].has_form("List", None):
+                if len(separators[0].leaves) != 3 or any(
+                    not isinstance(s, String) for s in separators[0].leaves
+                ):
+                    return evaluation.message("StringRiffle", "string", Integer(2), exp)
+            elif not isinstance(separators[0], String):
+                return evaluation.message("StringRiffle", "string", Integer(2), exp)
+
+        # Validate list of string
+        if not liststr.has_form("List", None):
+            evaluation.message("StringRiffle", "list", Integer1, exp)
+            return evaluation.message("StringRiffle", "argmu", exp)
+        elif any(leaf.has_form("List", None) for leaf in liststr.leaves):
+            return evaluation.message("StringRiffle", "sublist")
+
+        # Determine the separation token
+        left, right = "", ""
+        if len(separators) == 0:
+            sep = " "
+        else:
+            if separators[0].has_form("List", None):
+                left = separators[0].leaves[0].value
+                sep = separators[0].leaves[1].value
+                right = separators[0].leaves[2].value
+            else:
+                sep = separators[0].get_string_value()
+
+        # Getting all together
+        result = left
+        for i in range(len(liststr.leaves)):
+            text = (
+                liststr.leaves[i]
+                .format(evaluation, "System`OutputForm")
+                .boxes_to_text(evaluation=evaluation)
+            )
+            if i == len(liststr.leaves) - 1:
+                result += text + right
+            else:
+                result += text + sep
+
+        return String(result)
+
+
+class StringSplit(Builtin):
+    """
+    <dl>
+    <dt>'StringSplit["$s$"]'
+        <dd>splits the string $s$ at whitespace, discarding the
+        whitespace and returning a list of strings.
+    <dt>'StringSplit["$s$", "$d$"]'
+        <dd>splits $s$ at the delimiter $d$.
+    <dt>'StringSplit[$s$, {"$d1$", "$d2$", ...}]'
+        <dd>splits $s$ using multiple delimiters.
+    <dt>'StringSplit[{$s_1$, $s_2, ...}, {"$d1$", "$d2$", ...}]'
+        <dd>returns a list with the result of applying the function to
+            each element.
+    </dl>
+
+    >> StringSplit["abc,123", ","]
+     = {abc, 123}
+
+    >> StringSplit["abc 123"]
+     = {abc, 123}
+
+    #> StringSplit["  abc    123  "]
+     = {abc, 123}
+
+    >> StringSplit["abc,123.456", {",", "."}]
+     = {abc, 123, 456}
+
+    >> StringSplit["a  b    c", RegularExpression[" +"]]
+     = {a, b, c}
+
+    >> StringSplit[{"a  b", "c  d"}, RegularExpression[" +"]]
+     = {{a, b}, {c, d}}
+
+    #> StringSplit["x", "x"]
+     = {}
+
+    #> StringSplit[x]
+     : String or list of strings expected at position 1 in StringSplit[x].
+     = StringSplit[x, Whitespace]
+
+    #> StringSplit["x", x]
+     : Element x is not a valid string or pattern element in x.
+     = StringSplit[x, x]
+
+    #> StringSplit["12312123", "12"..]
+     = {3, 3}
+
+    #> StringSplit["abaBa", "b"]
+     = {a, aBa}
+    #> StringSplit["abaBa", "b", IgnoreCase -> True]
+     = {a, a, a}
+    """
+
+    rules = {
+        "StringSplit[s_]": "StringSplit[s, Whitespace]",
+    }
+
+    options = {
+        "IgnoreCase": "False",
+        "MetaCharacters": "None",
+    }
+
+    messages = {
+        "strse": "String or list of strings expected at position `1` in `2`.",
+        "pysplit": "As of Python 3.5 re.split does not handle empty pattern matches.",
+    }
+
+    def apply(self, string, patt, evaluation, options):
+        "StringSplit[string_, patt_, OptionsPattern[%(name)s]]"
+
+        if string.get_head_name() == "System`List":
+            leaves = [self.apply(s, patt, evaluation, options) for s in string._leaves]
+            return Expression(SymbolList, *leaves)
+
+        py_string = string.get_string_value()
+
+        if py_string is None:
+            return evaluation.message(
+                "StringSplit", "strse", Integer1, Expression("StringSplit", string)
+            )
+
+        if patt.has_form("List", None):
+            patts = patt.get_leaves()
+        else:
+            patts = [patt]
+        re_patts = []
+        for p in patts:
+            py_p = to_regex(p, evaluation)
+            if py_p is None:
+                return evaluation.message("StringExpression", "invld", p, patt)
+            re_patts.append(py_p)
+
+        flags = re.MULTILINE
+        if options["System`IgnoreCase"] == SymbolTrue:
+            flags = flags | re.IGNORECASE
+
+        result = [py_string]
+        for re_patt in re_patts:
+            result = [t for s in result for t in mathics_split(re_patt, s, flags=flags)]
+
+        return string_list(
+            SymbolList, [String(x) for x in result if x != ""], evaluation
+        )
+
+
 class StringTake(Builtin):
     """
     <dl>
@@ -779,3 +1013,49 @@ class StringTake(Builtin):
                 return None
             result_list.append(result)
         return Expression("List", *result_list)
+
+class StringTrim(Builtin):
+    """
+    <dl>
+    <dt>'StringTrim[$s$]'
+        <dd>returns a version of $s$ with whitespace removed from start and end.
+    </dl>
+
+    >> StringJoin["a", StringTrim["  \\tb\\n "], "c"]
+     = abc
+
+    >> StringTrim["ababaxababyaabab", RegularExpression["(ab)+"]]
+     = axababya
+    """
+
+    def apply(self, s, evaluation):
+        "StringTrim[s_String]"
+        return String(s.get_string_value().strip(" \t\n"))
+
+    def apply_pattern(self, s, patt, expression, evaluation):
+        "StringTrim[s_String, patt_]"
+        text = s.get_string_value()
+        if not text:
+            return s
+
+        py_patt = to_regex(patt, evaluation)
+        if py_patt is None:
+            return evaluation.message("StringExpression", "invld", patt, expression)
+
+        if not py_patt.startswith(r"\A"):
+            left_patt = r"\A" + py_patt
+        else:
+            left_patt = py_patt
+
+        if not py_patt.endswith(r"\Z"):
+            right_patt = py_patt + r"\Z"
+        else:
+            right_patt = py_patt
+
+        m = re.search(left_patt, text)
+        left = m.end(0) if m else 0
+
+        m = re.search(right_patt, text)
+        right = m.start(0) if m else len(text)
+
+        return String(text[left:right])
