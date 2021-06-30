@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Color Operations"""
+"""Color Operations
+
+Functions for manipulating colors and color images.
+"""
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 

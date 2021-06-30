@@ -1,5 +1,7 @@
 """
 Color Directives
+
+There are many different way to specify color; we support all of the color formats below and will convert between the different color formats.
 """
 
 from math import atan2, cos, exp, pi, radians, sin, sqrt
@@ -225,24 +227,27 @@ class CMYKColor(_Color):
 class ColorDistance(Builtin):
     """
     <dl>
-    <dt>'ColorDistance[$c1$, $c2$]'
-        <dd>returns a measure of color distance between the colors $c1$ and $c2$.
-    <dt>'ColorDistance[$list$, $c2$]'
-        <dd>returns a list of color distances between the colors in $list$ and $c2$.
+      <dt>'ColorDistance[$c1$, $c2$]'
+      <dd>returns a measure of color distance between the colors $c1$ and $c2$.
+
+      <dt>'ColorDistance[$list$, $c2$]'
+      <dd>returns a list of color distances between the colors in $list$ and $c2$.
     </dl>
 
     The option DistanceFunction specifies the method used to measure the color
     distance. Available options are:
 
-    CIE76: euclidean distance in the LABColor space
-    CIE94: euclidean distance in the LCHColor space
-    CIE2000 or CIEDE2000: CIE94 distance with corrections
-    CMC: Colour Measurement Committee metric (1984)
-    DeltaL: difference in the L component of LCHColor
-    DeltaC: difference in the C component of LCHColor
-    DeltaH: difference in the H component of LCHColor
+    <ul>
+      <li>CIE76: Euclidean distance in the LABColor space
+      <li>CIE94: Euclidean distance in the LCHColor space
+      <li>CIE2000 or CIEDE2000: CIE94 distance with corrections
+      <li>CMC: Color Measurement Committee metric (1984)
+      <li>DeltaL: difference in the L component of LCHColor
+      <li>DeltaC: difference in the C component of LCHColor
+      <li>DeltaH: difference in the H component of LCHColor
+    </ul>
 
-    It is also possible to specify a custom distance
+    It is also possible to specify a custom distance.
 
     >> ColorDistance[Magenta, Green]
      = 2.2507
@@ -374,7 +379,7 @@ class ColorDistance(Builtin):
                     ),
                 )
 
-        if compute == None:
+        if compute is None:
             evaluation.message("ColorDistance", "invdist", distance_function)
             return
 
