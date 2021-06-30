@@ -141,6 +141,7 @@ setup(
         "mathics.builtin.pymimesniffer",
         "mathics.builtin.pympler",
         "mathics.builtin.specialfns",
+        "mathics.builtin.string",
         "mathics.doc",
         "mathics.format",
     ],
