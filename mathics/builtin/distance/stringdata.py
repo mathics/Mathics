@@ -38,6 +38,7 @@ from mathics.core.expression import (
 #
 # note: double brackets indicate 1-based indices below, e.g. s1[[1]]
 
+
 def _one_based(l):  # makes an enumerated generator 1-based
     return ((i + 1, x) for i, x in l)
 
@@ -181,6 +182,7 @@ class DamerauLevenshteinDistance(_StringDistance):
 
     def _distance(self, s1, s2, sameQ: Callable[..., bool]):
         return _levenshtein_like_or_border_cases(s1, s2, sameQ, _damerau_levenshtein)
+
 
 class EditDistance(_StringDistance):
     """
