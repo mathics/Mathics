@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,7 +7,7 @@ Procedural programming is a programming paradigm, derived from imperative progra
 
 Procedures (a type of routine or subroutine) simply contain a series of computational steps to be carried out. Any given procedure might be called at any point during a program's execution, including by other procedures or itself.
 
-Procedural functions and are integrated into Mathics symbolic programming environment.
+Procedural functions are integrated into Mathics symbolic programming environment.
 """
 
 
@@ -36,8 +35,8 @@ from mathics.builtin.patterns import match
 class CompoundExpression(BinaryOperator):
     """
     <dl>
-    <dt>'CompoundExpression[$e1$, $e2$, ...]'
-    <dt>'$e1$; $e2$; ...'
+      <dt>'CompoundExpression[$e1$, $e2$, ...]'
+      <dt>'$e1$; $e2$; ...'
         <dd>evaluates its arguments in turn, returning the last result.
     </dl>
 
@@ -104,12 +103,14 @@ class CompoundExpression(BinaryOperator):
 class If(Builtin):
     """
     <dl>
-    <dt>'If[$cond$, $pos$, $neg$]'
-        <dd>returns $pos$ if $cond$ evaluates to 'True', and $neg$ if it evaluates to 'False'.
-    <dt>'If[$cond$, $pos$, $neg$, $other$]'
-        <dd>returns $other$ if $cond$ evaluates to neither 'True' nor 'False'.
-    <dt>'If[$cond$, $pos$]'
-        <dd>returns 'Null' if $cond$ evaluates to 'False'.
+      <dt>'If[$cond$, $pos$, $neg$]'
+      <dd>returns $pos$ if $cond$ evaluates to 'True', and $neg$ if it evaluates to 'False'.
+
+      <dt>'If[$cond$, $pos$, $neg$, $other$]'
+      <dd>returns $other$ if $cond$ evaluates to neither 'True' nor 'False'.
+
+      <dt>'If[$cond$, $pos$]'
+      <dd>returns 'Null' if $cond$ evaluates to 'False'.
     </dl>
 
     >> If[1<2, a, b]
@@ -156,8 +157,8 @@ class If(Builtin):
 class Switch(Builtin):
     """
     <dl>
-    <dt>'Switch[$expr$, $pattern1$, $value1$, $pattern2$, $value2$, ...]'
-        <dd>yields the first $value$ for which $expr$ matches the corresponding $pattern$.
+      <dt>'Switch[$expr$, $pattern1$, $value1$, $pattern2$, $value2$, ...]'
+      <dd>yields the first $value$ for which $expr$ matches the corresponding $pattern$.
     </dl>
 
     >> Switch[2, 1, x, 2, y, 3, z]
@@ -206,8 +207,8 @@ class Switch(Builtin):
 class Which(Builtin):
     """
     <dl>
-    <dt>'Which[$cond1$, $expr1$, $cond2$, $expr2$, ...]'
-        <dd>yields $expr1$ if $cond1$ evaluates to 'True', $expr2$ if $cond2$ evaluates to 'True', etc.
+      <dt>'Which[$cond1$, $expr1$, $cond2$, $expr2$, ...]'
+      <dd>yields $expr1$ if $cond1$ evaluates to 'True', $expr2$ if $cond2$ evaluates to 'True', etc.
     </dl>
 
     >> n = 5;
