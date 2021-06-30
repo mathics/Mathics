@@ -19,6 +19,7 @@ from mathics.builtin.box.graphics import (
 
 from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
+    Arrow3DBox,
     Cylinder3DBox,
     Line3DBox,
     Point3DBox,
@@ -134,6 +135,30 @@ def arrow_box(self, **options) -> str:
 
 
 add_conversion_fn(ArrowBox, arrow_box)
+
+
+def arrow3dbox(self, **options) -> str:
+    pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
+
+    # draw lines between all points except the last
+    asy = "".join(
+        "draw({0}, {1});".format(
+            "--".join("({0},{1},{2})".format(*coords.pos()[0]) for coords in line),
+            pen,
+        )
+        for line in self.lines[:-1]
+    )
+
+    # draw an arrow between the penultimate and the last point
+    asy += "draw(({0})".format(
+        "--".join("({0},{1},{2})").format(*coords.pos()[0])
+        for coords in self.lines[-2:]
+    ) + ", rgb({1},{2},{3}), Arrow3);".format(*self.edge_color[:3])
+
+    return asy
+
+
+add_conversion_fn(Arrow3DBox)
 
 
 def bezier_curve_box(self, **options) -> str:

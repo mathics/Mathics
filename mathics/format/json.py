@@ -11,6 +11,7 @@ from mathics.builtin.drawing.graphics3d import (
 
 from mathics.builtin.box.graphics3d import (
     Cylinder3DBox,
+    Arrow3DBox,
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
@@ -38,6 +39,24 @@ def graphics_3D_elements(self, **options):
 
 
 add_conversion_fn(Graphics3DElements, graphics_3D_elements)
+
+
+def arrow_3d_box(self):
+    # TODO: account for arrow widths and style
+    data = []
+    for line in self.lines:
+        data.append(
+            {
+                "type": "arrow",
+                "coords": [coords.pos() for coords in line],
+                "color": self.edge_color.to_rgba(),
+            }
+        )
+    # print("### json Arrow3DBox", data)
+    return data
+
+
+add_conversion_fn(Arrow3DBox, arrow_3d_box)
 
 
 def cylinder_3d_box(self):
