@@ -124,6 +124,7 @@ class TerminalShell(MathicsLineFeeder):
 
         last_eval = result.last_eval
 
+        eval_type = None
         if last_eval is not None:
             try:
                 eval_type = last_eval.get_head_name()

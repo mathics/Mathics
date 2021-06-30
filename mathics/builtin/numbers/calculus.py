@@ -513,22 +513,14 @@ class Integrate(SympyFunction):
 
     >> Integrate[f'[x], {x, a, b}]
      = f[b] - f[a]
-    >> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
-     = ConditionalExpression[t / 2, Abs[Arg[t]] < Pi / 2]
+    """
+    # Reinstate as a unit test or describe why it should be an example and fix.
+    # >> Integrate[x/Exp[x^2/t], {x, 0, Infinity}]
+    # = ConditionalExpression[t / 2, Abs[Arg[t]] < Pi / 2]
     # This should work after merging the more sophisticated predicate_evaluation routine
     # be merged...
     # >> Assuming[Abs[Arg[t]] < Pi / 2, Integrate[x/Exp[x^2/t], {x, 0, Infinity}]]
     # = t / 2
-    #
-    """
-
-    # TODO
-    """
-    >> Integrate[Sqrt[Tan[x]], x]
-     = 1/4 Log[1 + Tan[x] - Sqrt[2] Sqrt[Tan[x]]] Sqrt[2] + 1/2 ArcTan[-1/2 (Sqrt[2] - 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] + 1/2 ArcTan[1/2 (Sqrt[2] + 2 Sqrt[Tan[x]]) Sqrt[2]] Sqrt[2] - 1/4 Log[1 + Tan[x] + Sqrt[2] Sqrt[Tan[x]]] Sqrt[2]
-    >> Integrate[f'[x], {x, a, b}]
-     = f[b] - f[a]
-    """
     attributes = ("ReadProtected",)
 
     sympy_name = "Integral"
