@@ -1859,7 +1859,7 @@ class Print(Builtin):
 
     def apply(self, expr, evaluation):
         "Print[expr__]"
-
+        evaluation.cache_result = False
         expr = expr.get_sequence()
         expr = Expression("Row", Expression(SymbolList, *expr))
         evaluation.print_out(expr)

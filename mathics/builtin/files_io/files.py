@@ -476,7 +476,7 @@ class Read(Builtin):
 
     def apply(self, channel, types, evaluation, options):
         "Read[channel_, types_, OptionsPattern[Read]]"
-
+        evaluation.cache_result = False
         if channel.has_form("OutputStream", 2):
             evaluation.message("General", "openw", channel)
             return
@@ -699,6 +699,7 @@ class Read(Builtin):
 
     def apply_nostream(self, arg1, arg2, evaluation):
         "Read[arg1_, arg2_]"
+        evaluation.cache_result = False
         evaluation.message("General", "stream", arg1)
         return
 
@@ -726,6 +727,7 @@ class Write(Builtin):
 
     def apply(self, channel, expr, evaluation):
         "Write[channel_, expr___]"
+        evaluation.cache_result = False
 
         strm = _channel_to_stream(channel)
 
@@ -1314,10 +1316,12 @@ class BinaryWrite(Builtin):
 
     def apply_notype(self, name, n, b, evaluation):
         "BinaryWrite[OutputStream[name_, n_], b_]"
+        evaluation.cache_result = False
         return self.apply(name, n, b, None, evaluation)
 
     def apply(self, name, n, b, typ, evaluation):
         "BinaryWrite[OutputStream[name_, n_], b_, typ_]"
+        evaluation.cache_result = False
 
         channel = Expression("OutputStream", name, n)
 
@@ -1679,10 +1683,12 @@ class BinaryRead(Builtin):
 
     def apply_empty(self, name, n, evaluation):
         "BinaryRead[InputStream[name_, n_]]"
+        evaluation.cache_result = False
         return self.apply(name, n, None, evaluation)
 
     def apply(self, name, n, typ, evaluation):
         "BinaryRead[InputStream[name_, n_], typ_]"
+        evaluation.cache_result = False
 
         channel = Expression("InputStream", name, n)
 
@@ -1783,6 +1789,7 @@ class WriteString(Builtin):
 
     def apply(self, channel, expr, evaluation):
         "WriteString[channel_, expr___]"
+        evaluation.cache_result = False
         strm = _channel_to_stream(channel, "w")
 
         if strm is None:
@@ -1843,6 +1850,7 @@ class _OpenAction(Builtin):
 
     def apply_empty(self, evaluation, options):
         "%(name)s[OptionsPattern[]]"
+        evaluation.cache_result = False
 
         if isinstance(self, (OpenWrite, OpenAppend)):
             tmpf = tempfile.NamedTemporaryFile(dir=TMP_DIR)
@@ -1855,6 +1863,7 @@ class _OpenAction(Builtin):
 
     def apply_path(self, path, evaluation, options):
         "%(name)s[path_?NotOptionQ, OptionsPattern[]]"
+        evaluation.cache_result = False
 
         # Options
         # BinaryFormat
@@ -2026,6 +2035,7 @@ class Get(PrefixOperator):
 
     def apply(self, path, evaluation, options):
         "Get[path_String, OptionsPattern[Get]]"
+        evaluation.cache_result = False
 
         def check_options(options):
             # Options
@@ -2078,6 +2088,8 @@ class Get(PrefixOperator):
 
     def apply_default(self, filename, evaluation):
         "Get[filename_]"
+        evaluation.cache_result = False
+
         expr = Expression("Get", filename)
         evaluation.message("General", "stream", filename)
         return expr
@@ -2139,6 +2151,8 @@ class Put(BinaryOperator):
 
     def apply(self, exprs, filename, evaluation):
         "Put[exprs___, filename_String]"
+        evaluation.cache_result = False
+
         instream = Expression("OpenWrite", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
@@ -2150,6 +2164,8 @@ class Put(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         "Put[exprs___, OutputStream[name_, n_]]"
+        evaluation.cache_result = False
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io.closed:
@@ -2169,6 +2185,8 @@ class Put(BinaryOperator):
 
     def apply_default(self, exprs, filename, evaluation):
         "Put[exprs___, filename_]"
+        evaluation.cache_result = False
+
         expr = Expression("Put", exprs, filename)
         evaluation.message("General", "stream", filename)
         return expr
@@ -2229,6 +2247,8 @@ class PutAppend(BinaryOperator):
 
     def apply(self, exprs, filename, evaluation):
         "PutAppend[exprs___, filename_String]"
+        evaluation.cache_result = False
+
         instream = Expression("OpenAppend", filename).evaluate(evaluation)
         if len(instream.leaves) == 2:
             name, n = instream.leaves
@@ -2240,6 +2260,8 @@ class PutAppend(BinaryOperator):
 
     def apply_input(self, exprs, name, n, evaluation):
         "PutAppend[exprs___, OutputStream[name_, n_]]"
+        evaluation.cache_result = False
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io.closed:
@@ -2259,6 +2281,8 @@ class PutAppend(BinaryOperator):
 
     def apply_default(self, exprs, filename, evaluation):
         "PutAppend[exprs___, filename_]"
+        evaluation.cache_result = False
+
         expr = Expression("PutAppend", exprs, filename)
         evaluation.message("General", "stream", filename)
         return expr
@@ -2331,6 +2355,7 @@ class ReadList(Read):
 
     def apply(self, channel, types, evaluation, options):
         "ReadList[channel_, types_, OptionsPattern[ReadList]]"
+        evaluation.cache_result = False
 
         # Options
         # TODO: Implement extra options
@@ -2358,6 +2383,7 @@ class ReadList(Read):
 
     def apply_m(self, channel, types, m, evaluation, options):
         "ReadList[channel_, types_, m_, OptionsPattern[ReadList]]"
+        evaluation.cache_result = False
 
         # Options
         # TODO: Implement extra options
@@ -2425,6 +2451,8 @@ class FilePrint(Builtin):
 
     def apply(self, path, evaluation, options):
         "FilePrint[path_ OptionsPattern[FilePrint]]"
+        evaluation.cache_result = False
+
         pypath = path.to_python()
         if not (
             isinstance(pypath, str)
@@ -2507,6 +2535,7 @@ class Close(Builtin):
 
     def apply(self, channel, evaluation):
         "Close[channel_]"
+        evaluation.cache_result = False
 
         if channel.has_form(("InputStream", "OutputStream"), 2):
             [name, n] = channel.get_leaves()
@@ -2544,6 +2573,7 @@ class StreamPosition(Builtin):
     def apply_input(self, name, n, evaluation):
         "StreamPosition[InputStream[name_, n_]]"
         stream = stream_manager.lookup_stream(n.get_int_value())
+        evaluation.cache_result = False
 
         if stream is None or stream.io is None or stream.io.closed:
             evaluation.message("General", "openx", name)
@@ -2553,10 +2583,14 @@ class StreamPosition(Builtin):
 
     def apply_output(self, name, n, evaluation):
         "StreamPosition[OutputStream[name_, n_]]"
+        evaluation.cache_result = False
+
         self.input_apply(name, n, evaluation)
 
     def apply_default(self, stream, evaluation):
         "StreamPosition[stream_]"
+        evaluation.cache_result = False
+
         evaluation.message("General", "stream", stream)
         return
 
@@ -2604,6 +2638,8 @@ class SetStreamPosition(Builtin):
 
     def apply_input(self, name, n, m, evaluation):
         "SetStreamPosition[InputStream[name_, n_], m_]"
+        evaluation.cache_result = False
+
         stream = stream_manager.lookup_stream(n.get_int_value())
 
         if stream is None or stream.io is None or stream.io.closed:
@@ -2635,10 +2671,14 @@ class SetStreamPosition(Builtin):
 
     def apply_output(self, name, n, m, evaluation):
         "SetStreamPosition[OutputStream[name_, n_], m_]"
+        evaluation.cache_result = False
+
         return self.apply_input(name, n, m, evaluation)
 
     def apply_default(self, stream, evaluation):
         "SetStreamPosition[stream_]"
+        evaluation.cache_result = False
+
         evaluation.message("General", "stream", stream)
         return
 
@@ -2691,6 +2731,7 @@ class Skip(Read):
 
     def apply(self, name, n, types, m, evaluation, options):
         "Skip[InputStream[name_, n_], types_, m_, OptionsPattern[Skip]]"
+        evaluation.cache_result = False
 
         channel = Expression("InputStream", name, n)
 
@@ -2754,6 +2795,7 @@ class Find(Read):
 
     def apply(self, name, n, text, evaluation, options):
         "Find[InputStream[name_, n_], text_, OptionsPattern[Find]]"
+        evaluation.cache_result = False
 
         # Options
         # TODO Implement extra options
@@ -2811,6 +2853,8 @@ class InputStream(Builtin):
 
     def apply(self, name, n, evaluation):
         "InputStream[name_, n_]"
+        evaluation.cache_result = False
+
         return
 
 
@@ -2831,6 +2875,8 @@ class OutputStream(Builtin):
 
     def apply(self, name, n, evaluation):
         "OutputStream[name_, n_]"
+        evaluation.cache_result = False
+
         return
 
 
@@ -2858,6 +2904,8 @@ class StringToStream(Builtin):
 
     def apply(self, string, evaluation):
         "StringToStream[string_]"
+        evaluation.cache_result = False
+
         pystring = string.to_python()[1:-1]
         fp = io.StringIO(str(pystring))
 
@@ -2892,10 +2940,14 @@ class Streams(Builtin):
 
     def apply(self, evaluation):
         "Streams[]"
+        evaluation.cache_result = False
+
         return self.apply_name(None, evaluation)
 
     def apply_name(self, name, evaluation):
         "Streams[name_String]"
+        evaluation.cache_result = False
+
         result = []
         for stream in stream_manager.STREAMS.values():
             if stream is None or stream.io.closed:

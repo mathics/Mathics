@@ -1093,6 +1093,7 @@ class RegisterImport(Builtin):
     def apply(self, formatname, function, posts, evaluation, options):
         """ImportExport`RegisterImport[formatname_String, function_, posts_,
         OptionsPattern[ImportExport`RegisterImport]]"""
+        evaluation.cache_result = False
 
         if function.has_form("List", None):
             leaves = function.get_leaves()
@@ -1175,6 +1176,8 @@ class RegisterExport(Builtin):
     def apply(self, formatname, function, evaluation, options):
         """ImportExport`RegisterExport[formatname_String, function_,
         OptionsPattern[ImportExport`RegisterExport]]"""
+
+        evaluation.cache_result = False
         EXPORTERS[formatname.get_string_value()] = (function, options)
 
         return Symbol("Null")
@@ -1205,6 +1208,7 @@ class URLFetch(Builtin):
         import tempfile
         import os
 
+        evaluation.cache_result = False
         py_url = url.get_string_value()
 
         temp_handle, temp_path = tempfile.mkstemp(suffix="")
@@ -1329,18 +1333,21 @@ class Import(Builtin):
 
     def apply(self, filename, evaluation, options={}):
         "Import[filename_, OptionsPattern[]]"
+        evaluation.cache_result = False
         return self.apply_elements(
             filename, Expression(SymbolList), evaluation, options
         )
 
     def apply_element(self, filename, element, evaluation, options={}):
         "Import[filename_, element_String, OptionsPattern[]]"
+        evaluation.cache_result = False
         return self.apply_elements(
             filename, Expression(SymbolList, element), evaluation, options
         )
 
     def apply_elements(self, filename, elements, evaluation, options={}):
         "Import[filename_, elements_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
+        evaluation.cache_result = False
         # Check filename
         path = filename.to_python()
         if not (isinstance(path, str) and path[0] == path[-1] == '"'):
@@ -1742,7 +1749,7 @@ class Export(Builtin):
 
     def apply(self, filename, expr, evaluation, **options):
         "Export[filename_, expr_, OptionsPattern[Export]]"
-
+        evaluation.cache_result = False
         # Check filename
         if not self._check_filename(filename, evaluation):
             return SymbolFailed
@@ -1760,13 +1767,14 @@ class Export(Builtin):
 
     def apply_element(self, filename, expr, element, evaluation, options={}):
         "Export[filename_, expr_, element_String, OptionsPattern[]]"
+        evaluation.cache_result = False
         return self.apply_elements(
             filename, expr, Expression(SymbolList, element), evaluation, options
         )
 
     def apply_elements(self, filename, expr, elems, evaluation, options={}):
         "Export[filename_, expr_, elems_List?(AllTrue[#, NotOptionQ]&), OptionsPattern[]]"
-
+        evaluation.cache_result = False
         # Check filename
         if not self._check_filename(filename, evaluation):
             return SymbolFailed
@@ -2095,7 +2103,7 @@ class FileFormat(Builtin):
 
     def apply(self, filename, evaluation):
         "FileFormat[filename_String]"
-
+        evaluation.cache_result = False
         findfile = Expression("FindFile", filename).evaluate(evaluation)
         if findfile == SymbolFailed:
             evaluation.message(

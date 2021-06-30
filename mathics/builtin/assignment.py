@@ -65,6 +65,7 @@ class _SetOperator(object):
     def assign_elementary(self, lhs, rhs, evaluation, tags=None, upset=False):
         # TODO: This function should be splitted and simplified
 
+        evaluation.cache_result = False
         name = lhs.get_head_name()
         lhs._format_cache = None
         condition = None
@@ -547,7 +548,7 @@ class Set(BinaryOperator, _SetOperator):
 
     def apply(self, lhs, rhs, evaluation):
         "lhs_ = rhs_"
-
+        evaluation.cache_result = False
         self.assign(lhs, rhs, evaluation)
         return rhs
 
@@ -600,7 +601,7 @@ class SetDelayed(Set):
 
     def apply(self, lhs, rhs, evaluation):
         "lhs_ := rhs_"
-
+        evaluation.cache_result = False
         if self.assign(lhs, rhs, evaluation):
             return Symbol("Null")
         else:
@@ -648,7 +649,7 @@ class UpSet(BinaryOperator, _SetOperator):
 
     def apply(self, lhs, rhs, evaluation):
         "lhs_ ^= rhs_"
-
+        evaluation.cache_result = False
         self.assign_elementary(lhs, rhs, evaluation, upset=True)
         return rhs
 
@@ -681,7 +682,7 @@ class UpSetDelayed(UpSet):
 
     def apply(self, lhs, rhs, evaluation):
         "lhs_ ^:= rhs_"
-
+        evaluation.cache_result = False
         if self.assign_elementary(lhs, rhs, evaluation, upset=True):
             return Symbol("Null")
         else:
@@ -723,7 +724,7 @@ class TagSet(Builtin, _SetOperator):
 
     def apply(self, f, lhs, rhs, evaluation):
         "f_ /: lhs_ = rhs_"
-
+        evaluation.cache_result = False
         name = f.get_name()
         if not name:
             evaluation.message(self.get_name(), "sym", f, 1)
@@ -747,7 +748,7 @@ class TagSetDelayed(TagSet):
 
     def apply(self, f, lhs, rhs, evaluation):
         "f_ /: lhs_ := rhs_"
-
+        evaluation.cache_result = False
         name = f.get_name()
         if not name:
             evaluation.message(self.get_name(), "sym", f, 1)
@@ -1240,6 +1241,7 @@ class Clear(Builtin):
 
     def apply(self, symbols, evaluation):
         "%(name)s[symbols___]"
+        evaluation.cache_result = False
         if isinstance(symbols, Symbol):
             symbols = [symbols]
         elif isinstance(symbols, Expression):
@@ -1276,6 +1278,8 @@ class Clear(Builtin):
 
     def apply_all(self, evaluation):
         "Clear[System`All]"
+        evaluation.cache_result = False
+        evaluation.cache_expr = {}
         evaluation.definitions.set_user_definitions({})
         evaluation.definitions.clear_pymathics_modules()
         return
@@ -1315,6 +1319,8 @@ class ClearAll(Clear):
 
     def apply_all(self, evaluation):
         "ClearAll[System`All]"
+        evaluation.cache_result = False
+        evaluation.cache_expr = {}
         evaluation.definitions.set_user_definitions({})
         evaluation.definitions.clear_pymathics_modules()
         return
@@ -1403,6 +1409,7 @@ class Unset(PostfixOperator):
 
     def apply(self, expr, evaluation):
         "Unset[expr_]"
+        evaluation.cache_result = False
 
         name = expr.get_head_name()
         if name in system_symbols(
@@ -1659,7 +1666,7 @@ class Messages(Builtin):
 
     def apply(self, symbol, evaluation):
         "Messages[symbol_]"
-
+        evaluation.cache_result = False
         return get_symbol_values(symbol, "Messages", "messages", evaluation)
 
 
@@ -1922,6 +1929,7 @@ class LoadModule(Builtin):
 
     def apply(self, module, evaluation):
         "LoadModule[module_String]"
+        evaluation.cache_result = False
         try:
             evaluation.definitions.load_pymathics_module(module.value)
         except PyMathicsLoadException:

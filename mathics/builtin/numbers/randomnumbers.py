@@ -165,7 +165,7 @@ class RandomState(Builtin):
 
     def apply(self, evaluation):
         "$RandomState"
-
+        evaluation.cache_result = False
         with RandomEnv(evaluation):
             return Integer(get_random_state())
 
@@ -213,7 +213,7 @@ class SeedRandom(Builtin):
 
     def apply(self, x, evaluation):
         "SeedRandom[x_]"
-
+        evaluation.cache_result = False
         if isinstance(x, Integer):
             value = x.value
         elif isinstance(x, String):
@@ -315,7 +315,7 @@ class RandomInteger(Builtin):
 
     def apply(self, rmin, rmax, evaluation):
         "RandomInteger[{rmin_, rmax_}]"
-
+        evaluation.cache_result = False
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
             return evaluation.message(
                 "RandomInteger", "unifr", Expression("List", rmin, rmax)
@@ -326,6 +326,7 @@ class RandomInteger(Builtin):
 
     def apply_list(self, rmin, rmax, ns, evaluation):
         "RandomInteger[{rmin_, rmax_}, ns_?ListQ]"
+        evaluation.cache_result = False
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
             return evaluation.message(
                 "RandomInteger", "unifr", Expression("List", rmin, rmax)
@@ -392,7 +393,7 @@ class RandomReal(Builtin):
 
     def apply(self, xmin, xmax, evaluation):
         "RandomReal[{xmin_, xmax_}]"
-
+        evaluation.cache_result = False
         if not (
             isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))
         ):
@@ -414,7 +415,7 @@ class RandomReal(Builtin):
             return evaluation.message(
                 "RandomReal", "unifr", Expression("List", xmin, xmax)
             )
-
+        evaluation.cache_result = False
         min_value, max_value = xmin.to_python(), xmax.to_python()
         result = ns.to_python()
 
@@ -497,7 +498,7 @@ class RandomComplex(Builtin):
 
     def apply(self, zmin, zmax, evaluation):
         "RandomComplex[{zmin_, zmax_}]"
-
+        evaluation.cache_result = False
         min_value, max_value = (
             self.to_complex(zmin, evaluation),
             self.to_complex(zmax, evaluation),
@@ -515,7 +516,7 @@ class RandomComplex(Builtin):
     def apply_list(self, zmin, zmax, ns, evaluation):
         "RandomComplex[{zmin_, zmax_}, ns_]"
         expr = Expression("RandomComplex", Expression("List", zmin, zmax), ns)
-
+        evaluation.cache_result = False
         min_value, max_value = (
             self.to_complex(zmin, evaluation),
             self.to_complex(zmax, evaluation),
@@ -556,6 +557,7 @@ class _RandomSelection(_RandomBase):
 
     def apply(self, domain, size, evaluation):
         """%(name)s[domain_, size_]"""
+        evaluation.cache_result = False
         if domain.get_head_name() == "System`Rule":  # elements and weights
             err, py_weights = self._weights_to_python(domain.leaves[0], evaluation)
             if py_weights is None:

@@ -264,6 +264,8 @@ class Evaluation(object):
         # Necesary to handle OneIdentity on
         # lhs in assignment
         self.ignore_oneidentity = False
+        self.cache_eval = {}
+        self.cache_result = False
 
     def parse(self, query):
         "Parse a single expression and print the messages."
@@ -309,6 +311,7 @@ class Evaluation(object):
         self.stopped = False
         self.exc_result = self.SymbolNull
         self.last_eval = None
+        self.cache_result = True
         if format is None:
             format = self.format
 
@@ -330,11 +333,13 @@ class Evaluation(object):
                 self.last_eval = Expression("System`$Pre", query).evaluate(self)
             else:
                 self.last_eval = query.evaluate(self)
-
             if check_io_hook("System`$Post"):
                 self.last_eval = Expression("System`$Post", self.last_eval).evaluate(
                     self
                 )
+            # From there, it is all about format. Do not catch evaluations.
+            self.cache_result = False
+
             if history_length > 0:
                 if self.predetermined_out is not None:
                     out_result = self.predetermined_out
