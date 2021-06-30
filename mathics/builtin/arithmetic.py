@@ -1354,8 +1354,7 @@ class Arg(_MPMathFunction):
         "%(name)s[z_, OptionsPattern[%(name)s]]"
         if Expression("PossibleZeroQ", z).evaluate(evaluation) == SymbolTrue:
             return Integer0
-        preference = self.get_option(options, "Method", evaluation)
-
+        preference = self.get_option(options, "Method", evaluation).get_string_value()
         if preference is None or preference == "Automatic":
             return super(Arg, self).apply(z, evaluation)
         elif preference == "mpmath":
