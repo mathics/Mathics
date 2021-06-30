@@ -1014,6 +1014,7 @@ class StringTake(Builtin):
             result_list.append(result)
         return Expression("List", *result_list)
 
+
 class StringTrim(Builtin):
     """
     <dl>

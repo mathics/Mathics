@@ -15,16 +15,16 @@ from mathics.core.expression import (
     SymbolList,
 )
 
-from mathics.builtin.strings import (
-    _encodings,
-    to_python_encoding
-    )
+from mathics.builtin.strings import _encodings, to_python_encoding
+
 
 def pack_bytes(codes):
     return bytes(codes)
 
+
 def unpack_bytes(codes):
     return [int(code) for code in codes]
+
 
 class ToCharacterCode(Builtin):
     u"""
