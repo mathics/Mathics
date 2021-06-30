@@ -49,7 +49,8 @@ MAX_TESTS = 100000  # Number than the total number of tests
 
 def print_and_log(*args):
     global logfile
-    string = "".join(args)
+    a = [a.decode("utf-8") if isinstance(a, bytes) else a for a in args]
+    string = "".join(a)
     print(string)
     if logfile:
         logfile.write(string)
