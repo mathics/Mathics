@@ -40,7 +40,7 @@ def add_builtins(new_builtins):
         if isinstance(builtin, SympyObject):
             mathics_to_sympy[name] = builtin
             for sympy_name in builtin.get_sympy_names():
-                ### print("XXX1", sympy_name)
+                # print("XXX1", sympy_name)
                 sympy_to_mathics[sympy_name] = builtin
         if isinstance(builtin, Operator):
             builtins_precedence[name] = builtin.precedence
@@ -153,7 +153,16 @@ disable_file_module_names = (
     [] if ENABLE_FILES_MODULE else ["files_io.files", "files_io.importexport"]
 )
 
-for subdir in ("colors", "drawing", "files_io", "numbers", "specialfns", "string", "fileformats"):
+for subdir in (
+    "colors",
+    "distance",
+    "drawing",
+    "files_io",
+    "numbers",
+    "specialfns",
+    "string",
+    "fileformats",
+):
     import_name = f"{__name__}.{subdir}"
 
     if import_name in disable_file_module_names:
