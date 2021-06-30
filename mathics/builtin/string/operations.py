@@ -5,9 +5,6 @@ Operations on Strings
 """
 
 import re
-from sys import version_info
-from binascii import hexlify, unhexlify
-from heapq import heappush, heappop
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -30,10 +27,9 @@ from mathics.core.expression import (
 from mathics.builtin.lists import python_seq, convert_seq
 from mathics.builtin.strings import (
     _StringFind,
-    _decode_pname,
-    _encode_pname,
     _evaluate_match,
     _parallel_match,
+    mathics_split,
     to_regex,
 )
 

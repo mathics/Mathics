@@ -3,6 +3,7 @@
 Character Codes
 """
 
+import sys
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
@@ -15,7 +16,7 @@ from mathics.core.expression import (
     SymbolList,
 )
 
-from mathics.builtin.strings import _encodings, to_python_encoding
+from mathics.builtin.strings import to_python_encoding
 
 
 def pack_bytes(codes):

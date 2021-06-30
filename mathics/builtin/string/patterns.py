@@ -12,13 +12,18 @@ from mathics.builtin.base import BinaryOperator, Builtin
 from mathics.core.expression import (
     Expression,
     Integer1,
+    String,
     SymbolFalse,
+    SymbolList,
     SymbolTrue,
 )
 
 
 from mathics.builtin.strings import (
     _StringFind,
+    _evaluate_match,
+    _pattern_search,
+    _parallel_match,
     anchor_pattern,
     to_regex,
 )
@@ -27,7 +32,7 @@ from mathics.builtin.strings import (
 class DigitCharacter(Builtin):
     """
     <dl>
-    <dt>'DigitCharacter'
+      <dt>'DigitCharacter'
       <dd>represents the digits 0-9.
     </dl>
 
@@ -46,10 +51,47 @@ class DigitCharacter(Builtin):
     """
 
 
+class EndOfLine(Builtin):
+    r"""
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", "a" ~~ EndOfLine -> "c"]
+     = abc
+     . bbc
+     . c
+     . ab
+
+    >> StringSplit["abc\ndef\nhij", EndOfLine]
+     = {abc,
+     . def,
+     . hij}
+    """
+
+
+class EndOfString(Builtin):
+    r"""
+    <dl>
+    <dt>'EndOfString'
+      <dd>represents the end of a string.
+    </dl>
+
+    Test whether strings end with "e":
+    >> StringMatchQ[#, __ ~~ "e" ~~ EndOfString] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+
+    >> StringReplace["aab\nabb", "b" ~~ EndOfString -> "c"]
+     = aab
+     . abc
+    """
+
+
 class LetterCharacter(Builtin):
     """
     <dl>
-    <dt>'LetterCharacter'
+      <dt>'LetterCharacter'
       <dd>represents letters.
     </dl>
 
@@ -62,19 +104,60 @@ class LetterCharacter(Builtin):
     """
 
 
+class StartOfLine(Builtin):
+    r"""
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a line in a string.
+    </dl>
+
+    >> StringReplace["aba\nbba\na\nab", StartOfLine ~~ "a" -> "c"]
+     = cba
+     . bba
+     . c
+     . cb
+
+    >> StringSplit["abc\ndef\nhij", StartOfLine]
+     = {abc
+     . , def
+     . , hij}
+    """
+
+
+class StartOfString(Builtin):
+    r"""
+    <dl>
+    <dt>'StartOfString'
+      <dd>represents the start of a string.
+    </dl>
+
+    Test whether strings start with "a":
+    >> StringMatchQ[#, StartOfString ~~ "a" ~~ __] &/@ {"apple", "banana", "artichoke"}
+     = {True, False, True}
+
+    >> StringReplace["aba\nabb", StartOfString ~~ "a" -> "c"]
+     = cba
+     . abb
+    """
+
+
 class StringCases(_StringFind):
     """
     <dl>
-    <dt>'StringCases["$string$", $pattern$]'
-        <dd>gives all occurences of $pattern$ in $string$.
-    <dt>'StringReplace["$string$", $pattern$ -> $form$]'
-        <dd>gives all instances of $form$ that stem from occurences of $pattern$ in $string$.
-    <dt>'StringCases["$string$", {$pattern1$, $pattern2$, ...}]'
-        <dd>gives all occurences of $pattern1$, $pattern2$, ....
-    <dt>'StringReplace["$string$", $pattern$, $n$]'
-        <dd>gives only the first $n$ occurences.
-    <dt>'StringReplace[{"$string1$", "$string2$", ...}, $pattern$]'
-        <dd>gives occurences in $string1$, $string2$, ...
+      <dt>'StringCases["$string$", $pattern$]'
+      <dd>gives all occurences of $pattern$ in $string$.
+
+      <dt>'StringReplace["$string$", $pattern$ -> $form$]'
+      <dd>gives all instances of $form$ that stem from occurences of $pattern$ in $string$.
+
+      <dt>'StringCases["$string$", {$pattern1$, $pattern2$, ...}]'
+      <dd>gives all occurences of $pattern1$, $pattern2$, ....
+
+      <dt>'StringReplace["$string$", $pattern$, $n$]'
+      <dd>gives only the first $n$ occurences.
+
+      <dt>'StringReplace[{"$string1$", "$string2$", ...}, $pattern$]'
+      <dd>gives occurences in $string1$, $string2$, ...
     </dl>
 
     >> StringCases["axbaxxb", "a" ~~ x_ ~~ "b"]
@@ -361,7 +444,7 @@ class StringMatchQ(Builtin):
 class WhitespaceCharacter(Builtin):
     r"""
     <dl>
-    <dt>'WhitespaceCharacter'
+      <dt>'WhitespaceCharacter'
       <dd>represents a single whitespace character.
     </dl>
 
@@ -379,10 +462,23 @@ class WhitespaceCharacter(Builtin):
     """
 
 
+# strings.to_regex() seems to have the implementation here.
+class WordBoundary(Builtin):
+    """
+    <dl>
+      <dt>'WordBoundary'
+      <dd>represents the boundary between words.
+    </dl>
+
+    >> StringReplace["apple banana orange artichoke", "e" ~~ WordBoundary -> "E"]
+     = applE banana orangE artichokE
+    """
+
+
 class WordCharacter(Builtin):
     r"""
     <dl>
-    <dt>'WordCharacter'
+      <dt>'WordCharacter'
       <dd>represents a single letter or digit character.
     </dl>
 
