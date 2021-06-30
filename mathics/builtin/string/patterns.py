@@ -7,17 +7,14 @@ import re
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.builtin.base import (
-    BinaryOperator,
-    Builtin
-)
+from mathics.builtin.base import BinaryOperator, Builtin
 
 from mathics.core.expression import (
     Expression,
     Integer1,
     SymbolFalse,
     SymbolTrue,
-    )
+)
 
 
 from mathics.builtin.strings import (
@@ -25,6 +22,7 @@ from mathics.builtin.strings import (
     anchor_pattern,
     to_regex,
 )
+
 
 class DigitCharacter(Builtin):
     """
@@ -165,6 +163,7 @@ class StringExpression(BinaryOperator):
             return
         return String("".join(args))
 
+
 class StringFreeQ(Builtin):
     """
     <dl>
@@ -259,6 +258,7 @@ class StringFreeQ(Builtin):
         return _pattern_search(
             self.__class__.__name__, string, patt, evaluation, options, False
         )
+
 
 class StringMatchQ(Builtin):
     r"""
