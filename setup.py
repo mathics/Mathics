@@ -56,13 +56,15 @@ INSTALL_REQUIRES = ["Mathics-Scanner >= 1.2.1,<1.3.0"]
 # stores __version__ in the current namespace
 exec(compile(open("mathics/version.py").read(), "mathics/version.py", "exec"))
 
-extras_require = []
-for line in open("requirements-full.txt").read().split("\n"):
-    if line and not line.startswith("#"):
-        requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
-        extras_require.append(requires)
-
-EXTRAS_REQUIRE = {"full": extras_require}
+EXTRAS_REQUIRE = {}
+for kind in ("dev", "full"):
+    extras_require = []
+    requirements_file = f"requirements-{kind}.txt"
+    for line in open(requirements_file).read().split("\n"):
+        if line and not line.startswith("#"):
+            requires = re.sub(r"([^#]+)(\s*#.*$)?", r"\1", line)
+            extras_require.append(requires)
+    EXTRAS_REQUIRE[kind] = extras_require
 
 DEPENDENCY_LINKS = []
 #     "http://github.com/Mathics3/mathics-scanner/tarball/master#egg=Mathics_Scanner-1.0.0.dev"

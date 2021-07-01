@@ -4,5 +4,7 @@ include ChangeLog
 include COPYING.txt
 include FUTURE.rst
 include Makefile
+include requirements-dev.txt
+include requirements-full.txt
 recursive-include mathics *.py
 recursive-include test *.py *.m

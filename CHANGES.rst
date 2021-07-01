@@ -1,6 +1,20 @@
 CHANGES
 =======
 
+3.0.1
+-----
+
+New variables and builtins
+++++++++++++++++++++++++++
+
+* ``Cylinder`` (prelimnary)
+* ``Arrow`` (prelimnary)
+
+Enhancements
+------------
+
+Large sections like "Strings and Characters" was sections both in the docs and in the code.
+
 3.0.0
 -----
 
