@@ -7,8 +7,9 @@ CHANGES
 New variables and builtins
 ++++++++++++++++++++++++++
 
-* ``Cylinder`` (prelimnary)
 * ``Arrow`` (prelimnary)
+* ``Cylinder`` (prelimnary)
+* ``Factorial2`` PR #1459 Issue #682
 
 Enhancements
 ------------
