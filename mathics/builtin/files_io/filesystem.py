@@ -1206,9 +1206,9 @@ class FileNames(Builtin):
     >> FileNames["*.m", "formats"]//Length
      = 0
     >> FileNames["*.m", "formats", 3]//Length
-     = 13
+     = 14
     >> FileNames["*.m", "formats", Infinity]//Length
-     = 13
+     = 14
     """
     # >> FileNames[]//Length
     #  = 2
