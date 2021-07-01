@@ -1714,6 +1714,9 @@ class Export(Builtin):
         "nffil": "File `1` could not be opened",
     }
 
+    # TODO: This hard-linked dictionary should be
+    # replaced by a definition accesible from inside
+    # WL
     _extdict = {
         "bmp": "BMP",
         "gif": "GIF",
@@ -1728,6 +1731,7 @@ class Export(Builtin):
         "txt": "Text",
         "csv": "CSV",
         "svg": "SVG",
+        "asy": "asy",
     }
 
     rules = {
@@ -1860,6 +1864,8 @@ class Export(Builtin):
     def _infer_form(self, filename, evaluation):
         ext = Expression("FileExtension", filename).evaluate(evaluation)
         ext = ext.get_string_value().lower()
+        # TODO: This dictionary should be accesible from the WL API
+        # to allow defining specific converters
         return self._extdict.get(ext)
 
 
