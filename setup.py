@@ -132,6 +132,7 @@ setup(
         "mathics.core",
         "mathics.core.parser",
         "mathics.builtin",
+        "mathics.builtin.arithfns",
         "mathics.builtin.box",
         "mathics.builtin.colors",
         "mathics.builtin.compile",
