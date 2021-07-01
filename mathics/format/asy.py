@@ -138,23 +138,24 @@ add_conversion_fn(ArrowBox, arrow_box)
 
 
 def arrow3dbox(self, **options) -> str:
+
+    # Set style parameters.
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
+    edge_color_param = "rgb({0},{1},{2})".format(*self.edge_color.to_rgba()[:3])
 
-    # draw lines between all points except the last
-    asy = "".join(
-        "draw({0}, {1});".format(
-            "--".join("({0},{1},{2})".format(*coords.pos()[0]) for coords in line),
-            pen,
-        )
-        for line in self.lines[:-1]
+    # Draw lines between all points except the last.
+    lines_str = "--".join(
+        ["({0},{1},{2})".format(*(coords.pos()[0])) for coords in self.lines[0][:-1]]
     )
+    asy = f"draw({lines_str}, {pen}); "
 
-    # draw an arrow between the penultimate and the last point
-    asy += "draw(({0})".format(
-        "--".join("({0},{1},{2})").format(*coords.pos()[0])
-        for coords in self.lines[-2:]
-    ) + ", rgb({1},{2},{3}), Arrow3);".format(*self.edge_color[:3])
+    # Draw an arrow between the penultimate and the last point.
+    last_line_str = "--".join(
+        ["({0},{1},{2})".format(*(coords.pos()[0])) for coords in self.lines[0][-2:]]
+    )
+    asy += f"draw(({last_line_str}), {edge_color_param}, Arrow3);"
 
+    # print(asy)
     return asy
 
 
