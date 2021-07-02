@@ -2202,12 +2202,28 @@ class PolarPlot(_Plot):
       <dd>creates a polar plot of curve with radius $r$ as a function of angle $t$ ranging from $t_min$ to $t_max$.
     </dl>
 
-    >> PolarPlot[Cos[5\\[Theta]], {\\[Theta], 0, Pi}]
+    In a Polar Plot, a polar coordinate system is used.
+
+    A polar coordinate system is a two-dimensional coordinate system in which each point on a plane is determined by a distance from a reference point and an angle from a reference direction.
+
+    Here is a 5-blade propeller, or maybe a flower, using 'PolarPlot':
+
+    >> PolarPlot[Cos[5t], {t, 0, Pi}]
      = -Graphics-
 
+    The number of blades and be change by adjusting the $t$ multiplier.
+
+    A slight change adding 'Abs' turns this a clump of grass:
+
+    >> PolarPlot[Abs[Cos[5t]], {t, 0, Pi}]
+     = -Graphics-
+
+
+    Coils around a ring:
     >> PolarPlot[{1, 1 + Sin[20 t] / 5}, {t, 0, 2 Pi}]
      = -Graphics-
 
+    A spring having 16 turns:
     >> PolarPlot[Sqrt[t], {t, 0, 16 Pi}]
      = -Graphics-
     """
