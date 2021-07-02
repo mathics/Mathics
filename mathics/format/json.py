@@ -68,7 +68,7 @@ def cylinder_3d_box(self):
             "type": "cylinder",
             "coords": [coords.pos() for coords in self.points],
             "radius": self.radius,
-            "faceColor": face_color,
+            "color": face_color,
         }
     ]
 
@@ -138,7 +138,7 @@ def polygon_3d_box(self):
             {
                 "type": "polygon",
                 "coords": [coords.pos() for coords in line],
-                "faceColor": face_color,
+                "color": face_color,
             }
         )
     # print("### json Polygon3DBox", data)
@@ -157,7 +157,7 @@ def sphere_3d_box(self):
             "type": "sphere",
             "coords": [coords.pos() for coords in self.points],
             "radius": self.radius,
-            "faceColor": face_color,
+            "color": face_color,
         }
     ]
 
