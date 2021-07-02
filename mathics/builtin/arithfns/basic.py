@@ -42,6 +42,7 @@ from mathics.core.numbers import min_prec, dps
 
 from mathics.core.convert import from_sympy
 
+
 class CubeRoot(Builtin):
     """
     <dl>
@@ -91,6 +92,7 @@ class CubeRoot(Builtin):
 
         evaluation.message("CubeRoot", "preal", n)
         return Expression("Power", n, Expression("Divide", 1, 3))
+
 
 class Divide(BinaryOperator):
     """
@@ -194,6 +196,7 @@ class Minus(PrefixOperator):
         "Minus[x_Integer]"
 
         return Integer(-x.to_sympy())
+
 
 class Plus(BinaryOperator, SympyFunction):
     """
@@ -405,6 +408,7 @@ class Plus(BinaryOperator, SympyFunction):
             leaves.sort()
             return Expression("Plus", *leaves)
 
+
 class Power(BinaryOperator, _MPMathFunction):
     """
     <dl>
@@ -560,6 +564,7 @@ class Power(BinaryOperator, _MPMathFunction):
         if result is None or result != SymbolNull:
             return result
 
+
 class Sqrt(SympyFunction):
     """
     <dl>
@@ -598,6 +603,7 @@ class Sqrt(SympyFunction):
         ),
     }
 
+
 class Subtract(BinaryOperator):
     """
     <dl>
@@ -625,6 +631,7 @@ class Subtract(BinaryOperator):
     rules = {
         "Subtract[x_, y_]": "Plus[x, Times[-1, y]]",
     }
+
 
 class Times(BinaryOperator, SympyFunction):
     """

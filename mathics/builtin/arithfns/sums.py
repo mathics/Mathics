@@ -9,6 +9,7 @@ from mathics.version import __version__  # noqa used in loading to check consist
 
 from mathics.builtin.base import Builtin
 
+
 class Accumulate(Builtin):
     """
     <dl>
@@ -43,6 +44,7 @@ class Mean(Builtin):
     rules = {
         "Mean[list_]": "Total[list] / Length[list]",
     }
+
 
 class Total(Builtin):
     """

@@ -157,7 +157,7 @@ def arrow3dbox(self, **options) -> str:
     )
     asy += f"draw(({last_line_str}), {pen}, Arrow3);\n"
 
-    print(asy)
+    # print(asy)
     return asy
 
 
@@ -309,8 +309,10 @@ def point3dbox(self, **options) -> str:
     pen = asy_create_pens(face_color=face_color, is_face_element=False)
     points = []
     for line in self.lines:
-        point_coords = "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line)
-        point =  f"path3 g={point_coords}--cycle;dot(g, {pen});\n"
+        point_coords = "--".join(
+            "(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line
+        )
+        point = f"path3 g={point_coords}--cycle;dot(g, {pen});\n"
         points.append(point)
 
     asy = "\n".join(points)
