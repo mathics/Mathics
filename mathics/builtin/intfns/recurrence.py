@@ -37,7 +37,6 @@ class Fibonacci(_MPMathFunction):
     mpmath_name = "fibonacci"
 
 
-
 class HarmonicNumber(_MPMathFunction):
     """
     <dl>
@@ -89,6 +88,7 @@ class StirlingS1(Builtin):
         n_value = n.get_int_value()
         m_value = m.get_int_value()
         return Integer(stirling(n_value, m_value, kind=1, signed=True))
+
 
 class StirlingS2(Builtin):
     """

@@ -15,6 +15,7 @@ from mathics.core.expression import (
     Symbol,
 )
 
+
 class CoprimeQ(Builtin):
     """
     <dl>
@@ -115,6 +116,7 @@ class GCD(Builtin):
             result = sympy.gcd(result, value)
         return Integer(result)
 
+
 class LCM(Builtin):
     """
     <dl>
@@ -171,6 +173,7 @@ class Mod(Builtin):
             evaluation.message("Mod", "divz", m)
             return
         return Integer(n % m)
+
 
 class OddQ(Test):
     """
