@@ -138,22 +138,24 @@ add_conversion_fn(ArrowBox, arrow_box)
 
 
 def arrow3dbox(self, **options) -> str:
+    """
+    Aymptote 3D formatter for Arrow3DBox
+    """
 
     # Set style parameters.
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
-    edge_color_param = "rgb({0},{1},{2})".format(*self.edge_color.to_rgba()[:3])
 
     # Draw lines between all points except the last.
     lines_str = "--".join(
         ["({0},{1},{2})".format(*(coords.pos()[0])) for coords in self.lines[0][:-1]]
     )
-    asy = f"draw({lines_str}, {pen}); "
+    asy = f"draw({lines_str}, {pen});\n"
 
     # Draw an arrow between the penultimate and the last point.
     last_line_str = "--".join(
         ["({0},{1},{2})".format(*(coords.pos()[0])) for coords in self.lines[0][-2:]]
     )
-    asy += f"draw(({last_line_str}), {edge_color_param}, Arrow3);"
+    asy += f"draw(({last_line_str}), {pen}, Arrow3);\n"
 
     # print(asy)
     return asy
@@ -295,6 +297,9 @@ add_conversion_fn(LineBox)
 
 
 def point3dbox(self, **options) -> str:
+    """
+    Aymptote 3D formatter for Point3DBox
+    """
     face_color = self.face_color
 
     # Tempoary bug fix: default Point color should be black not white
@@ -302,13 +307,17 @@ def point3dbox(self, **options) -> str:
         face_color = RGBColor(components=(0, 0, 0, face_color.to_rgba()[3]))
 
     pen = asy_create_pens(face_color=face_color, is_face_element=False)
-
-    return "".join(
-        f"path3 g={0}--cycle;dot(g, {pen});".format(
-            "--".join("(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line)
+    points = []
+    for line in self.lines:
+        point_coords = "--".join(
+            "(%.5g,%.5g,%.5g)" % coords.pos()[0] for coords in line
         )
-        for line in self.lines
-    )
+        point = f"path3 g={point_coords}--cycle;dot(g, {pen});\n"
+        points.append(point)
+
+    asy = "\n".join(points)
+    # print asy
+    return asy
 
 
 add_conversion_fn(Point3DBox)

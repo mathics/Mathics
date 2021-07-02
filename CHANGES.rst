@@ -16,6 +16,12 @@ Enhancements
 
 Large sections like "Strings and Characters" was sections both in the docs and in the code.
 
+Bugs
+----
+
+* Some ``PointBox`` bugs were fixed
+
+
 3.0.0
 -----
 
