@@ -159,6 +159,7 @@ for subdir in (
     "distance",
     "drawing",
     "files_io",
+    "intfns",
     "numbers",
     "specialfns",
     "string",

@@ -3,6 +3,7 @@
 """Functional Programming
 
 Functional programming is a programming paradigm where programs are constructed by applying and composing functions.
+This is term is often used in contrast to Procedural programming.
 
 It is made richer by expressions like $f$[$x$] being treating as symbolic data.
 """
