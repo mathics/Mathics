@@ -47,7 +47,7 @@ def arrow_3d_box(self):
     for line in self.lines:
         data.append(
             {
-                "type": "arrow",
+                "type": "Arrow",
                 "coords": [coords.pos() for coords in line],
                 "color": self.edge_color.to_rgba(),
             }
@@ -65,7 +65,7 @@ def cylinder_3d_box(self):
         face_color = face_color.to_js()
     return [
         {
-            "type": "cylinder",
+            "type": "Cylinder",
             "coords": [coords.pos() for coords in self.points],
             "radius": self.radius,
             "color": face_color,
@@ -82,7 +82,7 @@ def line_3d_box(self):
     for line in self.lines:
         data.append(
             {
-                "type": "line",
+                "type": "Line",
                 "coords": [coords.pos() for coords in line],
                 "color": self.edge_color.to_rgba(),
             }
@@ -109,7 +109,7 @@ def point_3d_box(self):
     for line in self.lines:
         data.append(
             {
-                "type": "point",
+                "type": "Point",
                 "coords": [coords.pos() for coords in line],
                 "color": face_color.to_rgba(),
                 "pointSize": relative_point_size,
@@ -136,7 +136,7 @@ def polygon_3d_box(self):
     for line in self.lines:
         data.append(
             {
-                "type": "polygon",
+                "type": "Polygon",
                 "coords": [coords.pos() for coords in line],
                 "color": face_color,
             }
@@ -154,7 +154,7 @@ def sphere_3d_box(self):
         face_color = face_color.to_js()
     return [
         {
-            "type": "sphere",
+            "type": "Sphere",
             "coords": [coords.pos() for coords in self.points],
             "radius": self.radius,
             "color": face_color,
