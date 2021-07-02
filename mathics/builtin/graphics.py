@@ -754,14 +754,17 @@ class RegularPolygon(Builtin):
 class Arrow(Builtin):
     """
     <dl>
-    <dt>'Arrow[{$p1$, $p2$}]'
-        <dd>represents a line from $p1$ to $p2$ that ends with an arrow at $p2$.
-    <dt>'Arrow[{$p1$, $p2$}, $s$]'
-        <dd>represents a line with arrow that keeps a distance of $s$ from $p1$
-        and $p2$.
-    <dt>'Arrow[{$point_1$, $point_2$}, {$s1$, $s2$}]'
-        <dd>represents a line with arrow that keeps a distance of $s1$ from $p1$
-        and a distance of $s2$ from $p2$.
+      <dt>'Arrow[{$p1$, $p2$}]'
+      <dd>represents a line from $p1$ to $p2$ that ends with an arrow at $p2$.
+
+      <dt>'Arrow[{$p1$, $p2$}, $s$]'
+      <dd>represents a line with arrow that keeps a distance of $s$ from $p1$ and $p2$.
+
+      <dt>'Arrow[{$point_1$, $point_2$}, {$s1$, $s2$}]'
+      <dd>represents a line with arrow that keeps a distance of $s1$ from $p1$ and a distance of $s2$ from $p2$.
+
+      <dt>'Arrow[{$point_1$, $point_2$}, {$s1$, $s2$}]'
+      <dd>represents a line with arrow that keeps a distance of $s1$ from $p1$ and a distance of $s2$ from $p2$.
     </dl>
 
     >> Graphics[Arrow[{{0,0}, {1,1}}]]
@@ -769,6 +772,11 @@ class Arrow(Builtin):
 
     >> Graphics[{Circle[], Arrow[{{2, 1}, {0, 0}}, 1]}]
     = -Graphics-
+
+    Arrows can also be drawn in 3D by giving poing in three dimensions:
+
+    >> Graphics3D[Arrow[{{1, 1, -1}, {2, 2, 0}, {3, 3, -1}, {4, 4, 0}}]]
+     = -Graphics3D-
 
     Keeping distances may happen across multiple segments:
 
