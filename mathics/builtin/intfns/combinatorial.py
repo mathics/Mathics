@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Combinatorics
+Combinatorial Functions
 
 Combinatorics is an area of mathematics primarily concerned with counting, both as a means and an end in obtaining results, and certain properties of finite structures.
 
@@ -8,7 +8,6 @@ It is closely related to many other areas of mathematics and has many applicatio
 """
 
 
-from sympy.functions.combinatorial.numbers import stirling
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.builtin.base import Builtin
@@ -20,8 +19,8 @@ from itertools import combinations
 class Binomial(_MPMathFunction):
     """
     <dl>
-    <dt>'Binomial[$n$, $k$]'
-        <dd>gives the binomial coefficient $n$ choose $k$.
+      <dt>'Binomial[$n$, $k$]'
+      <dd>gives the binomial coefficient $n$ choose $k$.
     </dl>
 
     >> Binomial[5, 3]
@@ -52,8 +51,8 @@ class Binomial(_MPMathFunction):
 class Multinomial(Builtin):
     """
     <dl>
-    <dt>'Multinomial[$n1$, $n2$, ...]'
-        <dd>gives the multinomial coefficient '($n1$+$n2$+...)!/($n1$!$n2$!...)'.
+      <dt>'Multinomial[$n1$, $n2$, ...]'
+      <dd>gives the multinomial coefficient '($n1$+$n2$+...)!/($n1$!$n2$!...)'.
     </dl>
 
     >> Multinomial[2, 3, 4, 5]
@@ -80,29 +79,6 @@ class Multinomial(Builtin):
             total.append(value)
             leaves.append(Expression("Binomial", Expression("Plus", *total), value))
         return Expression("Times", *leaves)
-
-
-class Fibonacci(_MPMathFunction):
-    """
-    <dl>
-      <dt>'Fibonacci[$n$]'
-      <dd>computes the $n$th Fibonacci number.
-    </dl>
-
-    >> Fibonacci[0]
-     = 0
-    >> Fibonacci[1]
-     = 1
-    >> Fibonacci[10]
-     = 55
-    >> Fibonacci[200]
-     = 280571172992510140037611932413038677189525
-    """
-
-    nargs = 1
-    attributes = ("Listable", "NumericFunction", "ReadProtected")
-    sympy_name = "fibonacci"
-    mpmath_name = "fibonacci"
 
 
 class _NoBoolVector(Exception):
@@ -188,7 +164,7 @@ class JaccardDissimilarity(_BooleanDissimilarity):
 class DiceDissimilarity(_BooleanDissimilarity):
     """
     <dl>
-    <dt>'DiceDissimilarity[$u$, $v$]'
+      <dt>'DiceDissimilarity[$u$, $v$]'
       <dd>returns the Dice dissimilarity between the two boolean 1-D lists $u$ and $v$,
       which is defined as (c_tf + c_ft) / (2 * c_tt + c_ft + c_tf), where n is len($u$) and c_ij is
       the number of occurrences of $u$[k]=i and $v$[k]=j for k<n.
@@ -205,7 +181,7 @@ class DiceDissimilarity(_BooleanDissimilarity):
 class YuleDissimilarity(_BooleanDissimilarity):
     """
     <dl>
-    <dt>'YuleDissimilarity[$u$, $v$]'
+      <dt>'YuleDissimilarity[$u$, $v$]'
       <dd>returns the Yule dissimilarity between the two boolean 1-D lists $u$ and $v$,
       which is defined as R / (c_tt * c_ff + R / 2) where n is len($u$), c_ij is
       the number of occurrences of $u$[k]=i and $v$[k]=j for k<n, and R = 2 * c_tf * c_ft.
@@ -223,7 +199,7 @@ class YuleDissimilarity(_BooleanDissimilarity):
 class SokalSneathDissimilarity(_BooleanDissimilarity):
     """
     <dl>
-    <dt>'SokalSneathDissimilarity[$u$, $v$]'
+      <dt>'SokalSneathDissimilarity[$u$, $v$]'
       <dd>returns the Sokal-Sneath dissimilarity between the two boolean 1-D lists $u$ and $v$,
       which is defined as R / (c_tt + R) where n is len($u$), c_ij is
       the number of occurrences of $u$[k]=i and $v$[k]=j for k<n, and R = 2 * (c_tf + c_ft).
@@ -241,7 +217,7 @@ class SokalSneathDissimilarity(_BooleanDissimilarity):
 class RussellRaoDissimilarity(_BooleanDissimilarity):
     """
     <dl>
-    <dt>'RussellRaoDissimilarity[$u$, $v$]'
+      <dt>'RussellRaoDissimilarity[$u$, $v$]'
       <dd>returns the Russell-Rao dissimilarity between the two boolean 1-D lists $u$ and $v$,
       which is defined as (n - c_tt) / c_tt where n is len($u$) and c_ij is
       the number of occurrences of $u$[k]=i and $v$[k]=j for k<n.
@@ -258,7 +234,7 @@ class RussellRaoDissimilarity(_BooleanDissimilarity):
 class RogersTanimotoDissimilarity(_BooleanDissimilarity):
     """
     <dl>
-    <dt>'RogersTanimotoDissimilarity[$u$, $v$]'
+      <dt>'RogersTanimotoDissimilarity[$u$, $v$]'
       <dd>returns the Rogers-Tanimoto dissimilarity between the two boolean 1-D lists $u$ and $v$,
       which is defined as R / (c_tt + c_ff + R) where n is len($u$), c_ij is
       the number of occurrences of $u$[k]=i and $v$[k]=j for k<n, and R = 2 * (c_tf + c_ft).
@@ -271,60 +247,6 @@ class RogersTanimotoDissimilarity(_BooleanDissimilarity):
     def _compute(self, n, c_ff, c_ft, c_tf, c_tt):
         r = 2 * (c_tf + c_ft)
         return Expression("Divide", r, c_tt + c_ff + r)
-
-
-# Note: WL allows StirlingS1[{2, 4, 6}, 2], but we don't (yet).
-class StirlingS1(Builtin):
-    """
-    <dl>
-      <dt>'StirlingS1[$n$, $m$]'
-      <dd>gives the Stirling number of the first kind $ _n^m$.
-    </dl>
-
-    Integer mathematical function, suitable for both symbolic and numerical manipulation.
-    gives the number of permutations of $n$ elements that contain exactly $m$ cycles.
-
-    >> StirlingS1[50, 1]
-    = -608281864034267560872252163321295376887552831379210240000000000
-    """
-
-    attributes = ("Listable", "Protected")
-
-    nargs = 2
-    sympy_name = "functions.combinatorial.stirling"
-    mpmath_name = "stirling1"
-
-    def apply(self, n, m, evaluation):
-        "%(name)s[n_Integer, m_Integer]"
-        n_value = n.get_int_value()
-        m_value = m.get_int_value()
-        return Integer(stirling(n_value, m_value, kind=1, signed=True))
-
-
-class StirlingS2(Builtin):
-    """
-    <dl>
-      <dt>'StirlingS2[$n$, $m$]'
-      <dd>gives the Stirling number of the second kind  _n^m.
-    </dl>
-
-    returns the number of ways of partitioning a set of $n$ elements into $m$ non empty subsets.
-
-    >> Table[StirlingS2[10, m], {m, 10}]
-    = {1, 511, 9330, 34105, 42525, 22827, 5880, 750, 45, 1}
-    """
-
-    attributes = ("Listable", "Protected")
-
-    sympy_name = "functions.combinatorial.numbers.stirling"
-    mpmath_name = "stirling2"
-    nargs = 2
-
-    def apply(self, m, n, evaluation):
-        "%(name)s[n_Integer, m_Integer]"
-        n_value = n.get_int_value()
-        m_value = m.get_int_value()
-        return Integer(stirling(n_value, m_value, kind=2))
 
 
 class Subsets(Builtin):

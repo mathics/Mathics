@@ -1067,31 +1067,6 @@ class Factorial2(PostfixOperator, _MPMathFunction):
         return convert_from_fn(result)
 
 
-class HarmonicNumber(_MPMathFunction):
-    """
-    <dl>
-    <dt>'HarmonicNumber[n]'
-      <dd>returns the $n$th harmonic number.
-    </dl>
-
-    >> Table[HarmonicNumber[n], {n, 8}]
-     = {1, 3 / 2, 11 / 6, 25 / 12, 137 / 60, 49 / 20, 363 / 140, 761 / 280}
-
-    >> HarmonicNumber[3.8]
-     = 2.03806
-
-    #> HarmonicNumber[-1.5]
-     = 0.613706
-    """
-
-    rules = {
-        "HarmonicNumber[-1]": "ComplexInfinity",
-    }
-
-    sympy_name = "harmonic"
-    mpmath_name = "harmonic"
-
-
 class Sum(_IterationFunction, SympyFunction):
     """
     <dl>
