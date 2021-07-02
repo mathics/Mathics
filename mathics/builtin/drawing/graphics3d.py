@@ -123,7 +123,7 @@ class Graphics3D(Graphics):
      . draw(((-0.99452,1,-1)--(-0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . draw(((0.99452,1,-1)--(0.99452,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
      . \end{asy}
-     """
+    """
 
     options = Graphics.options.copy()
     options.update(
