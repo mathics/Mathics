@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .helper import session
-from mathics import load_default_settings_files
+from mathics.session import load_default_settings_files
 
 
 def test_settings():
