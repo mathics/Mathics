@@ -160,6 +160,7 @@ for subdir in (
     "drawing",
     "files_io",
     "intfns",
+    "list",
     "numbers",
     "specialfns",
     "string",

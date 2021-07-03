@@ -138,6 +138,7 @@ setup(
         "mathics.builtin.compile",
         "mathics.builtin.distance",
         "mathics.builtin.drawing",
+        "mathics.builtin.list",
         "mathics.builtin.fileformats",
         "mathics.builtin.files_io",
         "mathics.builtin.intfns",
