@@ -67,17 +67,17 @@ class Graphics3DBox(GraphicsBox):
                 {
                     "type": "Directional",
                     "color": [0.8, 0.0, 0.0],
-                    "position": [2, 0, 2],
+                    "coords": [[2, 0, 2]],
                 },
                 {
                     "type": "Directional",
                     "color": [0.0, 0.8, 0.0],
-                    "position": [2, 2, 2],
+                    "coords": [[2, 2, 2]],
                 },
                 {
                     "type": "Directional",
                     "color": [0.0, 0.0, 0.8],
-                    "position": [0, 2, 2],
+                    "coords": [[0, 2, 2]],
                 },
             ]
         elif lighting == "Neutral":  # Lighting->"Neutral"
@@ -86,17 +86,17 @@ class Graphics3DBox(GraphicsBox):
                 {
                     "type": "Directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [2, 0, 2],
+                    "coords": [[2, 0, 2]],
                 },
                 {
                     "type": "Directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [2, 2, 2],
+                    "coords": [[2, 2, 2]],
                 },
                 {
                     "type": "Directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [0, 2, 2],
+                    "coords": [[0, 2, 2]],
                 },
             ]
         elif lighting == "System`None":
@@ -131,7 +131,7 @@ class Graphics3DBox(GraphicsBox):
                             {
                                 "type": "Directional",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                             }
                         )
                     elif light[0] == '"Point"':
@@ -142,7 +142,7 @@ class Graphics3DBox(GraphicsBox):
                             {
                                 "type": "Point",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                             }
                         )
                     elif light[0] == '"Spot"':
@@ -167,7 +167,7 @@ class Graphics3DBox(GraphicsBox):
                             {
                                 "type": "Spot",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                                 "target": target,
                                 "angle": angle,
                             }
