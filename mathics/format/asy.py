@@ -206,7 +206,7 @@ def cylinder3dbox(self, **options) -> str:
         except:  # noqa
             pass
 
-        i += 1
+            i += 1
 
     return asy
 

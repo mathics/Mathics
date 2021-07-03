@@ -537,6 +537,34 @@ class Documentation(DocElement):
     def __str__(self):
         return "\n\n\n".join(str(part) for part in self.parts)
 
+    def get_part(self, part_slug):
+        return self.parts_by_slug.get(part_slug)
+
+    def get_chapter(self, part_slug, chapter_slug):
+        part = self.parts_by_slug.get(part_slug)
+        if part:
+            return part.chapters_by_slug.get(chapter_slug)
+        return None
+
+    def get_section(self, part_slug, chapter_slug, section_slug):
+        part = self.parts_by_slug.get(part_slug)
+        if part:
+            chapter = part.chapters_by_slug.get(chapter_slug)
+            if chapter:
+                return chapter.sections_by_slug.get(section_slug)
+        return None
+
+    def get_subsection(self, part_slug, chapter_slug, section_slug, subsection_slug):
+        part = self.parts_by_slug.get(part_slug)
+        if part:
+            chapter = part.chapters_by_slug.get(chapter_slug)
+            if chapter:
+                section = chapter.sections_by_slug.get(section_slug)
+                if section:
+                    return section.subsections_by_slug.get(subsection_slug)
+
+        return None
+
     def get_tests(self):
         for part in self.parts:
             for chapter in part.chapters:
@@ -549,27 +577,6 @@ class Documentation(DocElement):
                         if tests:
                             yield Tests(part.title, chapter.title, section.title, tests)
 
-    def get_part(self, part_slug):
-        return self.parts_by_slug.get(part_slug)
-
-    def get_chapter(self, part_slug, chapter_slug):
-        part = self.parts_by_slug.get(part_slug)
-        if part:
-            return part.chapters_by_slug.get(chapter_slug)
-        return None
-        """for part in self.parts:
-            if part.slug == part_slug:
-                for chapter in self:
-                    pass"""
-
-    def get_section(self, part_slug, chapter_slug, section_slug):
-        part = self.parts_by_slug.get(part_slug)
-        if part:
-            chapter = part.chapters_by_slug.get(chapter_slug)
-            if chapter:
-                return chapter.sections_by_slug.get(section_slug)
-        return None
-
     def latex(self, output):
         parts = []
         appendix = False
@@ -581,28 +588,6 @@ class Documentation(DocElement):
             parts.append(text)
         result = "\n\n".join(parts)
         result = post_process_latex(result)
-        return result
-
-    def search(self, query):
-        query = query.strip()
-        query_parts = [q.strip().lower() for q in query.split()]
-
-        def matches(text):
-            text = text.lower()
-            return all(q in text for q in query_parts)
-
-        result = []
-        for part in self.parts:
-            if matches(part.title):
-                result.append((False, part))
-            for chapter in part.chapters:
-                if matches(chapter.title):
-                    result.append((False, chapter))
-                for section in chapter.sections:
-                    if matches(section.title):
-                        result.append((section.title == query, section))
-                    elif query == section.operator:
-                        result.append((True, section))
         return result
 
 
@@ -637,6 +622,17 @@ class MathicsMainDocumentation(Documentation):
                         if title:
                             section = DocSection(chapter, title, text)
                             chapter.sections.append(section)
+                            subsections = SUBSECTION_RE.findall(text)
+                            for subsection_title in subsections:
+                                subsection = DocSubsection(
+                                    chapter,
+                                    section,
+                                    subsection_title,
+                                    text,
+                                )
+                                section.subsections.append(subsection)
+                                pass
+                            pass
                     part.chapters.append(chapter)
                 if file[0].isdigit():
                     self.parts.append(part)
@@ -945,17 +941,20 @@ class DocChapter(DocElement):
 
 class DocSection(DocElement):
     def __init__(self, chapter, title, text, operator=None, installed=True):
+
+        self.doc = Doc(text)
         self.chapter = chapter
-        self.title = title
+        self.installed = installed
+        self.operator = operator
         self.slug = slugify(title)
+        self.subsections = []
+        self.subsections_by_slug = {}
+        self.title = title
         if text.count("<dl>") != text.count("</dl>"):
             raise ValueError(
                 "Missing opening or closing <dl> tag in "
                 "{} documentation".format(title)
             )
-        self.doc = Doc(text)
-        self.operator = operator
-        self.installed = installed
         chapter.sections_by_slug[self.slug] = self
 
     def __str__(self):
@@ -978,6 +977,53 @@ class DocSection(DocElement):
 
     def get_collection(self):
         return self.chapter.sections
+
+
+class DocSubsection(DocElement):
+    """An object for a Documented Subsection.
+    A Subsection is part of a Section.
+    """
+
+    def __init__(
+        self,
+        chapter,
+        section,
+        title,
+        text,
+    ):
+        """
+        Information that goes into a subsection object. This can be a written text, or
+        text extracted from the docstring of a builtin module or class.
+
+        About some of the parameters...
+
+        Some of the subsections are contained in a grouping module and need special work to
+        get the grouping module name correct.
+
+        For example the Chapter "Colors" is a module so the docstring text for it is in
+        mathics/builtin/colors/__init__.py . In mathics/builtin/colors/named-colors.py we have
+        the "section" name for the class Read (the subsection) inside it.
+        """
+
+        self.doc = Doc(text)
+        self.chapter = chapter
+
+        self.section = section
+        self.slug = slugify(title)
+        self.title = title
+        if text.count("<dl>") != text.count("</dl>"):
+            raise ValueError(
+                "Missing opening or closing <dl> tag in "
+                "{} documentation".format(title)
+            )
+        self.section.subsections_by_slug[self.slug] = self
+
+    def __str__(self):
+        return f"=== {self.title} ===\n{self.doc}"
+
+    def get_collection(self) -> str:
+        """Return a list of subsections of the section."""
+        return self.section.subsections
 
 
 class Doc(object):
