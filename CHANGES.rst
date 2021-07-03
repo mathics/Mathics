@@ -1,26 +1,41 @@
 CHANGES
 =======
 
-3.0.1
+3.1.0
 -----
 
 New variables and builtins
 ++++++++++++++++++++++++++
 
-* ``Arrow`` (prelimnary)
-* ``Cylinder`` (prelimnary)
+* ``Arrow`` for Graphics3D (preliminary)
+* ``Cylinder`` (preliminary)
 * ``Factorial2`` PR #1459 Issue #682
 
 Enhancements
-------------
+++++++++++++
 
-Large sections like "Strings and Characters" was sections both in the docs and in the code.
+Large sections like the "Strings and Characters", "Integer Functions" and "Lists" sections
+have been broken up into subsections. These more closely match
+online WL "Guide" sections.  This is beneficial not just in the
+documentation, but also for code organization. See PRs #1464, #1473.
+
+A lot more work is needed here.
+
+The Introduction section of the manual has been revised. Licensing and Copyright/left sections
+have been reformatted for non-fixed-width displays. #1474
+
+PolarPlot documentation was improved. #1475.
+
+A getter/setter method for Mathics settings was added #1472.
+
 
 Bugs
-----
+++++
 
+* Add ``requirements-*.txt``to distribution files. ``pip install Mathics3[dev]`` should work now. PR #1461
 * Some ``PointBox`` bugs were fixed
-
+* Some ``Arrow3DBox`` and ``Point3DBox`` bugs were fixed PR #1463
+* Fix bug in ``mathics`` CLI when  ``-script`` and ``-e`` were combined PR #1455
 
 3.0.0
 -----
@@ -37,7 +52,7 @@ A lot of the improvements in this release were done or made possible with the he
 Tiago Cavalcante Trindade.
 
 Enhancements
-------------
+++++++++++++
 
 It is now possible to get back SVG, and graphics that are not embedded in MathML.
 
@@ -47,7 +62,7 @@ functionality. The code runs about 30% faster under Pyston 2.2. Note
 that the code also works under PyPy 3.7.
 
 Bugs
-----
+++++
 
 * Tick marks and the placement of numbers on charts have been corrected. PR #1437
 * Asymptote now respects the ``PointSize`` setting.
@@ -57,7 +72,7 @@ Bugs
 Density Plots rendered in SVG broke with this release. They will be reinstated in the future.
 
 Documentation
--------------
++++++++++++++
 
 Go over settings file to ensure usage names are full sentences.
 
@@ -93,7 +108,7 @@ Chapters are no longer in Roman Numerals.
 
 
 Internal changes
-----------------
+++++++++++++++++
 
 * ``docpipline.py``  accepts the option ``--chapters`` or ``-c`` to narrow tests to a particular chapter
 * Format routines have been isolated into its own module. Currently we have format routines for SVG, JSON and
