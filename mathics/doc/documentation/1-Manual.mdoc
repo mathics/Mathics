@@ -1,52 +1,60 @@
 <chapter title="Introduction">
 
-\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, open-source alternative to \Mathematica. It is free both as in "free beer" and as in "freedom". There are various online mirrors running \Mathics but it is also possible to run \Mathics locally. A list of mirrors can be found at the \Mathics homepage, <url>https://mathics.org</url>.
+\Mathics---to be pronounced like "Mathematics" without the "emat"---is a general-purpose computer algebra system (CAS). It is meant to be a free, open-source alternative to \Mathematica. It is free both as in "free beer" and as in "freedom". Mathics can be run \Mathics locally, and to facilitate installation of the vast amount of software need to run this, there is a docker image available. See <url>https://hub.docker.com/r/mathicsorg/mathics</url>.
 
-The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Mathematica as much as possible. However, \Mathics is in no way affiliated or supported by \Wolfram. \Mathics will probably never have the power to compete with \Mathematica in industrial applications; yet, it might be an interesting alternative for educational purposes.
+The programming language of \Mathics is meant to resemble \Wolfram\'s famous \Mathematica as much as possible. However, \Mathics is in no way affiliated or supported by \Wolfram. \Mathics will probably never have the power to compete with \Mathematica in industrial applications; yet, it is an alternative for educational purposes. It also invites community development at all levels.
 
-For implementation details see
-<url>https://github.com/mathics/Mathics/wiki</url>.
+See <url>https://mathics-development-guide.readthedocs.io/en/latest/installing/index.html</url> for the most recent instructions for installing from PyPI, source, or from <i>docker</i>.
+
+For implementation details see <url>https://mathics-development-guide.readthedocs.io/en/latest/</url>.
 
 <section title="Why yet another CAS?">
-\Mathematica is great, but it has one big disadvantage: It is not free. On the one hand, people might not be able or willing to pay hundreds of dollars for it; on the other hand, they would still not be able to see what\'s going on "inside" the program to understand their computations better. That\'s what free software is for!
+\Mathematica is great, but it a couple of disadvantages.
 
-\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core which includes a rich set of Python tools numeric computation, <url>https://numpy.org/numpy</url>, and symbolic mathematics, <url>https://sympy.org</url>.
+<ul>
+  <li>It is not open source.
+  <li>Its development is tightly controled and centralized.
+</ul>
 
-Of course, there are drawbacks to the \Mathematica language, despite all its beauty. It does not really provide object orientation and especially encapsulation, which might be crucial for big software projects. Nevertheless, \Wolfram still managed to create their amazing <em>Wolfram|Alpha</em> entirely with \Mathematica, so it can\'t be too bad!
+The last point some may find and advantage.
 
-However, it is not even the intention of \Mathics to be used in large-scale projects and calculations---at least not as the main framework---but rather as a tool for quick explorations and in educating people who might later switch to \Mathematica.
+Even if you are willing to pay hundreds of dollars for the software, would will not be able to see what\'s going on "inside" the program if that is your interest. That\'s what free, open-source, and community-supported software is for!
+
+\Mathics aims at combining the best of both worlds: the beauty of \Mathematica backed by a free, extensible Python core which includes a rich set of Python tools including:
+
+<ul>
+  <li>mpmath <url>https://mpmath.org/</url> for floating-point arithmetic with arbitrary precision,
+  <li>numpy <url>https://numpy.org/numpy</url> for numeric computation,
+  <li>sympy <url>https://sympy.org</url> for symbolic mathematics, and
+  <li>optionally scipy <url>https://www.scipy.org/</url> for Scientific calculations.
+</ul>
+
+Performance of \Mathics is not, right now, practical in large-scale projects and calculations. However can be used as a tool for quick explorations and to educate people who might later switch to \Mathematica.
 </section>
 
 <section title="What does it offer?">
-Some of the most important features of \Mathics are
+Some of the features of \Mathics are:
 <ul>
-<li>a powerful functional programming language,
-<li>a system driven by pattern matching and rules application,
-<li>rationals, complex numbers, and arbitrary-precision arithmetic,
-<li>lots of list and structure manipulation routines,
-<li>an interactive graphical user interface right in the Web browser using MathML (apart from a command line interface),
-<li>creation of graphics (e.g. plots) and display in the browser using SVG for 2D graphics and WebGL for 3D graphics,
-<li>export of results to \LaTeX (using Asymptote for graphics),
-<li>a very easy way of defining new functions in Python,
-<li>an integrated documentation and testing system.
+  <li>a powerful functional programming language,
+  <li>a system driven by pattern matching and rules application,
+  <li>rationals, complex numbers, and arbitrary-precision arithmetic,
+  <li>lots of list and structure manipulation routines,
+  <li>an interactive graphical user interface right in the Web browser using MathML (apart from a command line interface),
+  <li>creation of graphics (e.g. plots) and display in the browser using SVG for 2D graphics and three.js for 3D graphics,
+  <li>export of results to \LaTeX (using Asymptote for graphics),
+  <li>an easy way of defining new functions in Python and which hooks into Python libraries
+  <li>an integrated documentation and testing system.
 </ul>
 </section>
 
 <section title="What is missing?">
 There are lots of ways in which \Mathics could still be improved.
 
-Most notably, performance is still slow, so any serious usage in cutting-edge industry or research will fail, unfortunately. Although Cython can be used to speed up parts of \Mathics, more is needed to speed up pattern matching. Replacing recursion with iteration may help here.
+Most notably, performance is still slow. Although there are various ways to speed up Python, some serious work is need in \Mathics, to speed it up. This will be addressed in the future.
 
-Apart from performance issues, new features such as more functions in various mathematical fields like calculus, number theory, or graph theory are still to be added.
+Apart from performance issues, \Mathics has about about half of the features and libraries of \Mathematica.
 
-In the future we intend to make better use the the graphics available in the excellent packages:
-
-<ul>
-<li>sympy plotting,<url>https://docs.sympy.org/latest/modules/plotting.html</url>
-<li>mathplotlib pyplot, <url>https://matplotlib.org/api/pyplot_api.html</url>, and
-<li>networkx, <url>https://networkx.github.io/</url>
-</ul>
-
+Graphics has always been lagging and in the future we intend to decouple Graphics better so that the rich set of graphics packages that are out there can be more easily used.
 </section>
 
 <section title="Who is behind it?">
@@ -60,12 +68,6 @@ Welcome to \Mathics, have fun!
 
 </chapter>
 
-
-<chapter title="Installation and Running">
-
-\Mathics runs natively on a computer that has Python or PyPy 3.6 or later installed. Since \Mathics relies on <i>sympy</i> which in turn relies on <i>numpy</i>, you will need at least those installed.
-
-Since installation may change, see <url>https://github.com/mathics/Mathics/wiki/Installing-and-Running</url> for the most recent instructions for installing from PyPI, source, or from <i>docker</i>.
 
 </chapter>
 
