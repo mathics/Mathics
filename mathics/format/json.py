@@ -48,8 +48,8 @@ def arrow_3d_box(self):
         data.append(
             {
                 "type": "Arrow",
-                "coords": [coords.pos() for coords in line],
-                "color": self.edge_color.to_rgba(),
+                "Coords": [coords.pos() for coords in line],
+                "RGBGAColor": self.edge_color.to_rgba(),
             }
         )
     # print("### json Arrow3DBox", data)
@@ -66,9 +66,9 @@ def cylinder_3d_box(self):
     return [
         {
             "type": "Cylinder",
-            "coords": [coords.pos() for coords in self.points],
-            "radius": self.radius,
-            "color": face_color,
+            "Coords": [coords.pos() for coords in self.points],
+            "Radius": self.radius,
+            "RGBGAColor": face_color,
         }
     ]
 
@@ -83,8 +83,8 @@ def line_3d_box(self):
         data.append(
             {
                 "type": "Line",
-                "coords": [coords.pos() for coords in line],
-                "color": self.edge_color.to_rgba(),
+                "Coords": [coords.pos() for coords in line],
+                "RGBGAColor": self.edge_color.to_rgba(),
             }
         )
     # print("### json Line3DBox", data)
@@ -110,9 +110,9 @@ def point_3d_box(self):
         data.append(
             {
                 "type": "Point",
-                "coords": [coords.pos() for coords in line],
-                "color": face_color.to_rgba(),
-                "pointSize": relative_point_size,
+                "Coords": [coords.pos() for coords in line],
+                "PointSize": relative_point_size,
+                "RGBGAColor": face_color.to_rgba(),
             }
         )
     # print("### json Point3DBox", data)
@@ -137,8 +137,8 @@ def polygon_3d_box(self):
         data.append(
             {
                 "type": "Polygon",
-                "coords": [coords.pos() for coords in line],
-                "color": face_color,
+                "Coords": [coords.pos() for coords in line],
+                "Color": face_color,
             }
         )
     # print("### json Polygon3DBox", data)
@@ -155,9 +155,9 @@ def sphere_3d_box(self):
     return [
         {
             "type": "Sphere",
-            "coords": [coords.pos() for coords in self.points],
-            "radius": self.radius,
-            "color": face_color,
+            "Coords": [coords.pos() for coords in self.points],
+            "Radius": self.radius,
+            "Color": face_color,
         }
     ]
 

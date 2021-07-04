@@ -63,40 +63,40 @@ class Graphics3DBox(GraphicsBox):
 
         if lighting == "System`Automatic":
             self.lighting = [
-                {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
+                {"type": "Ambient", "RGBGAColor": [0.3, 0.2, 0.4]},
                 {
                     "type": "Directional",
-                    "color": [0.8, 0.0, 0.0],
-                    "coords": [[2, 0, 2]],
+                    "Coords": [[2, 0, 2]],
+                    "RGBGAColor": [0.8, 0.0, 0.0],
                 },
                 {
                     "type": "Directional",
-                    "color": [0.0, 0.8, 0.0],
-                    "coords": [[2, 2, 2]],
+                    "Coords": [[2, 2, 2]],
+                    "RGBGAColor": [0.0, 0.8, 0.0],
                 },
                 {
                     "type": "Directional",
-                    "color": [0.0, 0.0, 0.8],
-                    "coords": [[0, 2, 2]],
+                    "Coords": [[0, 2, 2]],
+                    "RGBGAColor": [0.0, 0.0, 0.8],
                 },
             ]
         elif lighting == "Neutral":  # Lighting->"Neutral"
             self.lighting = [
-                {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
+                {"type": "Ambient", "RGBGAColor": [0.3, 0.3, 0.3]},
                 {
                     "type": "Directional",
-                    "color": [0.3, 0.3, 0.3],
-                    "coords": [[2, 0, 2]],
+                    "Coords": [[2, 0, 2]],
+                    "RGBGAColor": [0.3, 0.3, 0.3],
                 },
                 {
                     "type": "Directional",
-                    "color": [0.3, 0.3, 0.3],
-                    "coords": [[2, 2, 2]],
+                    "Coords": [[2, 2, 2]],
+                    "RGBGAColor": [0.3, 0.3, 0.3],
                 },
                 {
                     "type": "Directional",
-                    "color": [0.3, 0.3, 0.3],
-                    "coords": [[0, 2, 2]],
+                    "Coords": [[0, 2, 2]],
+                    "RGBGAColor": [0.3, 0.3, 0.3],
                 },
             ]
         elif lighting == "System`None":
@@ -114,7 +114,7 @@ class Graphics3DBox(GraphicsBox):
                     color = get_class(head)(light[1])
                     if light[0] == '"Ambient"':
                         self.lighting.append(
-                            {"type": "Ambient", "color": color.to_rgba()}
+                            {"type": "Ambient", "RGBGAColor": color.to_rgba()}
                         )
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -130,8 +130,8 @@ class Graphics3DBox(GraphicsBox):
                         self.lighting.append(
                             {
                                 "type": "Directional",
-                                "color": color.to_rgba(),
-                                "coords": [position],
+                                "Coords": [position],
+                                "RGBGAColor": color.to_rgba(),
                             }
                         )
                     elif light[0] == '"Point"':
@@ -141,8 +141,8 @@ class Graphics3DBox(GraphicsBox):
                         self.lighting.append(
                             {
                                 "type": "Point",
-                                "color": color.to_rgba(),
-                                "coords": [position],
+                                "Coords": [position],
+                                "RGBGAColor": color.to_rgba(),
                             }
                         )
                     elif light[0] == '"Spot"':
@@ -166,10 +166,10 @@ class Graphics3DBox(GraphicsBox):
                         self.lighting.append(
                             {
                                 "type": "Spot",
-                                "color": color.to_rgba(),
-                                "coords": [position],
-                                "target": target,
-                                "angle": angle,
+                                "Angle": angle,
+                                "Coords": [position],
+                                "RGBGAColor": color.to_rgba(),
+                                "Target": target,
                             }
                         )
 
