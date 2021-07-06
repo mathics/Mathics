@@ -4,13 +4,11 @@
 List Functions - Miscellaneous
 """
 
-import functools
 import heapq
 import sympy
 
 from collections import defaultdict
 from itertools import chain
-from typing import Callable
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -55,7 +53,6 @@ from mathics.core.expression import (
     Real,
     String,
     Symbol,
-    SymbolAssociation,
     SymbolByteArray,
     SymbolFailed,
     SymbolList,
@@ -187,6 +184,17 @@ def find_matching_indices_with_levelspec(expr, pattern, evaluation, levelspec=1,
     return found
 
 
+class All(Predefined):
+    """
+    <dl>
+      <dt>'All'
+      <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
+    </dl>
+    """
+
+    pass
+
+
 class ByteArray(Builtin):
     r"""
     <dl>
@@ -244,6 +252,376 @@ class ByteArray(Builtin):
             evaluation.message("ByteArray", "aotd", values)
             return
         return Expression(SymbolByteArray, ByteArrayAtom(ba))
+
+
+class ContainsOnly(Builtin):
+    """
+    <dl>
+    <dt>'ContainsOnly[$list1$, $list2$]'
+        <dd>yields True if $list1$ contains only elements that appear in $list2$.
+    </dl>
+
+    >> ContainsOnly[{b, a, a}, {a, b, c}]
+     = True
+
+    The first list contains elements not present in the second list:
+    >> ContainsOnly[{b, a, d}, {a, b, c}]
+     = False
+
+    >> ContainsOnly[{}, {a, b, c}]
+     = True
+
+    #> ContainsOnly[1, {1, 2, 3}]
+     : List or association expected instead of 1.
+     = ContainsOnly[1, {1, 2, 3}]
+
+    #> ContainsOnly[{1, 2, 3}, 4]
+     : List or association expected instead of 4.
+     = ContainsOnly[{1, 2, 3}, 4]
+
+    Use Equal as the comparison function to have numerical tolerance:
+    >> ContainsOnly[{a, 1.0}, {1, a, b}, {SameTest -> Equal}]
+     = True
+
+    #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
+     : Unknown option IgnoreCase -> True in ContainsOnly.
+     : Unknown option IgnoreCase in .
+     = True
+    """
+
+    attributes = ("ReadProtected",)
+
+    messages = {
+        "lsa": "List or association expected instead of `1`.",
+        "nodef": "Unknown option `1` for ContainsOnly.",
+        "optx": "Unknown option `1` in `2`.",
+    }
+
+    options = {
+        "SameTest": "SameQ",
+    }
+
+    def check_options(self, expr, evaluation, options):
+        for key in options:
+            if key != "System`SameTest":
+                if expr is None:
+                    evaluation.message("ContainsOnly", "optx", Symbol(key))
+                else:
+                    return evaluation.message("ContainsOnly", "optx", Symbol(key), expr)
+        return None
+
+    def apply(self, list1, list2, evaluation, options={}):
+        "ContainsOnly[list1_?ListQ, list2_?ListQ, OptionsPattern[ContainsOnly]]"
+
+        same_test = self.get_option(options, "SameTest", evaluation)
+
+        def sameQ(a, b) -> bool:
+            """Mathics SameQ"""
+            result = Expression(same_test, a, b).evaluate(evaluation)
+            return result.is_true()
+
+        self.check_options(None, evaluation, options)
+        for a in list1.leaves:
+            if not any(sameQ(a, b) for b in list2.leaves):
+                return Symbol("False")
+        return Symbol("True")
+
+    def apply_msg(self, e1, e2, evaluation, options={}):
+        "ContainsOnly[e1_, e2_, OptionsPattern[ContainsOnly]]"
+
+        opts = (
+            options_to_rules(options)
+            if len(options) <= 1
+            else [Expression(SymbolList, *options_to_rules(options))]
+        )
+        expr = Expression("ContainsOnly", e1, e2, *opts)
+
+        if not isinstance(e1, Symbol) and not e1.has_form("List", None):
+            evaluation.message("ContainsOnly", "lsa", e1)
+            return self.check_options(expr, evaluation, options)
+
+        if not isinstance(e2, Symbol) and not e2.has_form("List", None):
+            evaluation.message("ContainsOnly", "lsa", e2)
+            return self.check_options(expr, evaluation, options)
+
+        return self.check_options(expr, evaluation, options)
+
+
+class Delete(Builtin):
+    """
+    <dl>
+    <dt>'Delete[$expr$, $i$]'
+        <dd>deletes the element at position $i$ in $expr$. The position is counted from the end if $i$ is negative.
+    <dt>'Delete[$expr$, {$m$, $n$, ...}]'
+        <dd>deletes the element at position {$m$, $n$, ...}.
+    <dt>'Delete[$expr$, {{$m1$, $n1$, ...}, {$m2$, $n2$, ...}, ...}]'
+        <dd>deletes the elements at several positions.
+    </dl>
+
+    Delete the element at position 3:
+    >> Delete[{a, b, c, d}, 3]
+     = {a, b, d}
+
+    Delete at position 2 from the end:
+    >> Delete[{a, b, c, d}, -2]
+     = {a, b, d}
+
+    Delete at positions 1 and 3:
+    >> Delete[{a, b, c, d}, {{1}, {3}}]
+     = {b, d}
+
+    Delete in a 2D array:
+    >> Delete[{{a, b}, {c, d}}, {2, 1}]
+     = {{a, b}, {d}}
+
+    Deleting the head of a whole expression gives a Sequence object:
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    Delete in an expression with any head:
+    >> Delete[f[a, b, c, d], 3]
+     = f[a, b, d]
+
+    Delete a head to splice in its arguments:
+    >> Delete[f[a, b, u + v, c], {3, 0}]
+     = f[a, b, u, v, c]
+
+    >> Delete[{a, b, c}, 0]
+     = Sequence[a, b, c]
+
+    #> Delete[1 + x ^ (a + b + c), {2, 2, 3}]
+     = 1 + x ^ (a + b)
+
+    #> Delete[f[a, g[b, c], d], {{2}, {2, 1}}]
+     = f[a, d]
+
+    #> Delete[f[a, g[b, c], d], m + n]
+     : The expression m + n cannot be used as a part specification. Use Key[m + n] instead.
+     = Delete[f[a, g[b, c], d], m + n]
+
+    Delete without the position:
+    >> Delete[{a, b, c, d}]
+     : Delete called with 1 argument; 2 arguments are expected.
+     = Delete[{a, b, c, d}]
+
+    Delete with many arguments:
+    >> Delete[{a, b, c, d}, 1, 2]
+     : Delete called with 3 arguments; 2 arguments are expected.
+     = Delete[{a, b, c, d}, 1, 2]
+
+    Delete the element out of range:
+    >> Delete[{a, b, c, d}, 5]
+     : Part {5} of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, 5]
+
+    #> Delete[{a, b, c, d}, {1, 2}]
+     : Part 2 of {a, b, c, d} does not exist.
+     = Delete[{a, b, c, d}, {1, 2}]
+
+    Delete the position not integer:
+    >> Delete[{a, b, c, d}, {1, n}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {1, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, n}]
+     : Position specification {n, {1}} in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, n}]
+
+    #> Delete[{a, b, c, d}, {{1}, {n}}]
+     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
+     = Delete[{a, b, c, d}, {{1}, {n}}]
+    """
+
+    messages = {
+        "argr": "Delete called with 1 argument; 2 arguments are expected.",
+        "argt": "Delete called with `1` arguments; 2 arguments are expected.",
+        "psl": "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
+        "pkspec": "The expression `1` cannot be used as a part specification. Use `2` instead.",
+    }
+
+    def apply_one(self, expr, position, evaluation):
+        "Delete[expr_, position_Integer]"
+        pos = position.get_int_value()
+        try:
+            return delete_one(expr, pos)
+        except PartRangeError:
+            evaluation.message("Part", "partw", Expression(SymbolList, pos), expr)
+
+    def apply(self, expr, positions, evaluation):
+        "Delete[expr_, positions___]"
+        positions = positions.get_sequence()
+        if len(positions) > 1:
+            return evaluation.message("Delete", "argt", Integer(len(positions) + 1))
+        elif len(positions) == 0:
+            return evaluation.message("Delete", "argr")
+
+        positions = positions[0]
+        if not positions.has_form("List", None):
+            return evaluation.message(
+                "Delete", "pkspec", positions, Expression("Key", positions)
+            )
+
+        # Create new python list of the positions and sort it
+        positions = (
+            [l for l in positions.leaves]
+            if positions.leaves[0].has_form("List", None)
+            else [positions]
+        )
+        positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
+        newexpr = expr
+        for position in positions:
+            pos = [p.get_int_value() for p in position.get_leaves()]
+            if None in pos:
+                return evaluation.message(
+                    "Delete", "psl", position.leaves[pos.index(None)], expr
+                )
+            if len(pos) == 0:
+                return evaluation.message(
+                    "Delete", "psl", Expression(SymbolList, *positions), expr
+                )
+            try:
+                newexpr = delete_rec(newexpr, pos)
+            except PartDepthError as exc:
+                return evaluation.message("Part", "partw", Integer(exc.index), expr)
+            except PartError:
+                return evaluation.message(
+                    "Part", "partw", Expression(SymbolList, *pos), expr
+                )
+        return newexpr
+
+
+class Failure(Builtin):
+    """
+    <dl>
+    <dt>Failure[$tag$, $assoc$]
+        <dd> represents a failure of a type indicated by $tag$, with details given by the association $assoc$.
+    </dl>
+    """
+
+    pass
+
+
+## From backports in CellsToTeX. This functions provides compatibility to WMA 10.
+##  TODO:
+##  * Add doctests
+##  * Translate to python the more complex rules
+##  * Complete the support.
+
+
+class Key(Builtin):
+    """
+    <dl>
+    <dt>Key[$key$]
+        <dd> represents a key used to access a value in an association.
+    <dt>Key[$key$][$assoc$]
+        <dd>
+    </dl>
+    """
+
+    rules = {
+        "Key[key_][assoc_Association]": "assoc[key]",
+    }
+
+
+class Level(Builtin):
+    """
+    <dl>
+    <dt>'Level[$expr$, $levelspec$]'
+        <dd>gives a list of all subexpressions of $expr$ at the
+        level(s) specified by $levelspec$.
+    </dl>
+
+    Level uses standard level specifications:
+
+    <dl>
+    <dt>$n$
+        <dd>levels 1 through $n$
+    <dt>'Infinity'
+        <dd>all levels from level 1
+    <dt>'{$n$}'
+        <dd>level $n$ only
+    <dt>'{$m$, $n$}'
+        <dd>levels $m$ through $n$
+    </dl>
+
+    Level 0 corresponds to the whole expression.
+
+    A negative level '-$n$' consists of parts with depth $n$.
+
+    Level -1 is the set of atoms in an expression:
+    >> Level[a + b ^ 3 * f[2 x ^ 2], {-1}]
+     = {a, b, 3, 2, x, 2}
+
+    >> Level[{{{{a}}}}, 3]
+     = {{a}, {{a}}, {{{a}}}}
+    >> Level[{{{{a}}}}, -4]
+     = {{{{a}}}}
+    >> Level[{{{{a}}}}, -5]
+     = {}
+
+    >> Level[h0[h1[h2[h3[a]]]], {0, -1}]
+     = {a, h3[a], h2[h3[a]], h1[h2[h3[a]]], h0[h1[h2[h3[a]]]]}
+
+    Use the option 'Heads -> True' to include heads:
+    >> Level[{{{{a}}}}, 3, Heads -> True]
+     = {List, List, List, {a}, {{a}}, {{{a}}}}
+    >> Level[x^2 + y^3, 3, Heads -> True]
+     = {Plus, Power, x, 2, x ^ 2, Power, y, 3, y ^ 3}
+
+    >> Level[a ^ 2 + 2 * b, {-1}, Heads -> True]
+     = {Plus, Power, a, 2, Times, 2, b}
+    >> Level[f[g[h]][x], {-1}, Heads -> True]
+     = {f, g, h, x}
+    >> Level[f[g[h]][x], {-2, -1}, Heads -> True]
+     = {f, g, h, g[h], x, f[g[h]][x]}
+    """
+
+    options = {
+        "Heads": "False",
+    }
+
+    def apply(self, expr, ls, evaluation, options={}):
+        "Level[expr_, ls_, OptionsPattern[Level]]"
+
+        try:
+            start, stop = python_levelspec(ls)
+        except InvalidLevelspecError:
+            evaluation.message("Level", "level", ls)
+            return
+        result = []
+
+        def callback(level):
+            result.append(level)
+            return level
+
+        heads = self.get_option(options, "Heads", evaluation).is_true()
+        walk_levels(expr, start, stop, heads=heads, callback=callback)
+        return Expression(SymbolList, *result)
+
+
+class LevelQ(Test):
+    """
+    <dl>
+    <dt>'LevelQ[$expr$]'
+        <dd>tests whether $expr$ is a valid level specification.
+    </dl>
+
+    >> LevelQ[2]
+     = True
+    >> LevelQ[{2, 4}]
+     = True
+    >> LevelQ[Infinity]
+     = True
+    >> LevelQ[a + b]
+     = False
+    """
+
+    def test(self, ls):
+        try:
+            start, stop = python_levelspec(ls)
+            return True
+        except InvalidLevelspecError:
+            return False
 
 
 class List(Builtin):
@@ -306,6 +684,14 @@ class NotListQ(Test):
         return expr.get_head_name() != "System`List"
 
 
+def riffle(items, sep):
+    result = items[:1]
+    for item in items[1:]:
+        result.append(sep)
+        result.append(item)
+    return result
+
+
 def list_boxes(items, f, open=None, close=None):
     result = [Expression(SymbolMakeBoxes, item, f) for item in items]
     if f.get_name() in ("System`OutputForm", "System`InputForm"):
@@ -325,17 +711,6 @@ def list_boxes(items, f, open=None, close=None):
         return [String(open)] + result + [String(close)]
     else:
         return result
-
-
-class All(Predefined):
-    """
-    <dl>
-      <dt>'All'
-      <dd>is a possible option value for 'Span', 'Quiet', 'Part' and related functions. 'All' specifies all parts at a particular level.
-    </dl>
-    """
-
-    pass
 
 
 class None_(Predefined):
@@ -693,107 +1068,6 @@ def python_levelspec(levelspec):
         return 1, value_to_level(levelspec)
 
 
-class Level(Builtin):
-    """
-    <dl>
-    <dt>'Level[$expr$, $levelspec$]'
-        <dd>gives a list of all subexpressions of $expr$ at the
-        level(s) specified by $levelspec$.
-    </dl>
-
-    Level uses standard level specifications:
-
-    <dl>
-    <dt>$n$
-        <dd>levels 1 through $n$
-    <dt>'Infinity'
-        <dd>all levels from level 1
-    <dt>'{$n$}'
-        <dd>level $n$ only
-    <dt>'{$m$, $n$}'
-        <dd>levels $m$ through $n$
-    </dl>
-
-    Level 0 corresponds to the whole expression.
-
-    A negative level '-$n$' consists of parts with depth $n$.
-
-    Level -1 is the set of atoms in an expression:
-    >> Level[a + b ^ 3 * f[2 x ^ 2], {-1}]
-     = {a, b, 3, 2, x, 2}
-
-    >> Level[{{{{a}}}}, 3]
-     = {{a}, {{a}}, {{{a}}}}
-    >> Level[{{{{a}}}}, -4]
-     = {{{{a}}}}
-    >> Level[{{{{a}}}}, -5]
-     = {}
-
-    >> Level[h0[h1[h2[h3[a]]]], {0, -1}]
-     = {a, h3[a], h2[h3[a]], h1[h2[h3[a]]], h0[h1[h2[h3[a]]]]}
-
-    Use the option 'Heads -> True' to include heads:
-    >> Level[{{{{a}}}}, 3, Heads -> True]
-     = {List, List, List, {a}, {{a}}, {{{a}}}}
-    >> Level[x^2 + y^3, 3, Heads -> True]
-     = {Plus, Power, x, 2, x ^ 2, Power, y, 3, y ^ 3}
-
-    >> Level[a ^ 2 + 2 * b, {-1}, Heads -> True]
-     = {Plus, Power, a, 2, Times, 2, b}
-    >> Level[f[g[h]][x], {-1}, Heads -> True]
-     = {f, g, h, x}
-    >> Level[f[g[h]][x], {-2, -1}, Heads -> True]
-     = {f, g, h, g[h], x, f[g[h]][x]}
-    """
-
-    options = {
-        "Heads": "False",
-    }
-
-    def apply(self, expr, ls, evaluation, options={}):
-        "Level[expr_, ls_, OptionsPattern[Level]]"
-
-        try:
-            start, stop = python_levelspec(ls)
-        except InvalidLevelspecError:
-            evaluation.message("Level", "level", ls)
-            return
-        result = []
-
-        def callback(level):
-            result.append(level)
-            return level
-
-        heads = self.get_option(options, "Heads", evaluation).is_true()
-        walk_levels(expr, start, stop, heads=heads, callback=callback)
-        return Expression(SymbolList, *result)
-
-
-class LevelQ(Test):
-    """
-    <dl>
-    <dt>'LevelQ[$expr$]'
-        <dd>tests whether $expr$ is a valid level specification.
-    </dl>
-
-    >> LevelQ[2]
-     = True
-    >> LevelQ[{2, 4}]
-     = True
-    >> LevelQ[Infinity]
-     = True
-    >> LevelQ[a + b]
-     = False
-    """
-
-    def test(self, ls):
-        try:
-            start, stop = python_levelspec(ls)
-            return True
-        except InvalidLevelspecError:
-            return False
-
-
 def python_seq(start, stop, step, length):
     """
     Converts mathematica sequence tuple to python slice object.
@@ -890,68 +1164,6 @@ def convert_seq(seq):
     else:
         return None
     return (start, stop, step)
-
-
-class Partition(Builtin):
-    """
-    <dl>
-    <dt>'Partition[$list$, $n$]'
-        <dd>partitions $list$ into sublists of length $n$.
-    <dt>'Parition[$list$, $n$, $d$]'
-        <dd>partitions $list$ into sublists of length $n$ which
-        overlap $d$ indicies.
-    </dl>
-
-    >> Partition[{a, b, c, d, e, f}, 2]
-     = {{a, b}, {c, d}, {e, f}}
-
-    >> Partition[{a, b, c, d, e, f}, 3, 1]
-     = {{a, b, c}, {b, c, d}, {c, d, e}, {d, e, f}}
-
-    #> Partition[{a, b, c, d, e}, 2]
-     = {{a, b}, {c, d}}
-    """
-
-    # TODO: Nested list length specifications
-    """
-    >> Partition[{{11, 12, 13}, {21, 22, 23}, {31, 32, 33}}, {2, 2}, 1]
-     = {{{{11, 12}, {21, 22}}, {{12, 13}, {22, 23}}}, {{{21, 22}, {31, 32}}, {{22, 23}, {32, 33}}}}
-    """
-
-    rules = {
-        "Parition[list_, n_, d_, k]": "Partition[list, n, d, {k, k}]",
-    }
-
-    def _partition(self, expr, n, d, evaluation):
-        assert n > 0 and d > 0
-
-        inner = structure("List", expr, evaluation)
-        outer = structure("List", inner, evaluation)
-
-        make_slice = inner.slice
-
-        def slices():
-            leaves = expr.leaves
-            for lower in range(0, len(leaves), d):
-                upper = lower + n
-
-                chunk = leaves[lower:upper]
-                if len(chunk) != n:
-                    continue
-
-                yield make_slice(expr, slice(lower, upper))
-
-        return outer(slices())
-
-    def apply_no_overlap(self, l, n, evaluation):
-        "Partition[l_List, n_Integer]"
-        # TODO: Error checking
-        return self._partition(l, n.get_int_value(), n.get_int_value(), evaluation)
-
-    def apply(self, l, n, d, evaluation):
-        "Partition[l_List, n_Integer, d_Integer]"
-        # TODO: Error checking
-        return self._partition(l, n.get_int_value(), d.get_int_value(), evaluation)
 
 
 def _drop_take_selector(name, seq, sliced):
@@ -1487,42 +1699,6 @@ class Join(Builtin):
             return Expression(SymbolList)
 
 
-class Catenate(Builtin):
-    """
-    <dl>
-    <dt>'Catenate[{$l1$, $l2$, ...}]'
-        <dd>concatenates the lists $l1$, $l2$, ...
-    </dl>
-
-    >> Catenate[{{1, 2, 3}, {4, 5}}]
-     = {1, 2, 3, 4, 5}
-    """
-
-    messages = {"invrp": "`1` is not a list."}
-
-    def apply(self, lists, evaluation):
-        "Catenate[lists_List]"
-
-        def parts():
-            for l in lists.leaves:
-                head_name = l.get_head_name()
-                if head_name == "System`List":
-                    yield l.leaves
-                elif head_name != "System`Missing":
-                    raise MessageException("Catenate", "invrp", l)
-
-        try:
-            result = list(chain(*list(parts())))
-            if result:
-                return lists.leaves[0].restructure(
-                    "List", result, evaluation, deps=lists.leaves
-                )
-            else:
-                return Expression(SymbolList)
-        except MessageException as e:
-            e.message(evaluation)
-
-
 class Insert(Builtin):
     """
     <dl>
@@ -1599,76 +1775,6 @@ class UnitVector(Builtin):
         return Expression(SymbolList, *(item(i) for i in range(1, n + 1)))
 
 
-def riffle(items, sep):
-    result = items[:1]
-    for item in items[1:]:
-        result.append(sep)
-        result.append(item)
-    return result
-
-
-def riffle_lists(items, seps):
-    if len(seps) == 0:  # special case
-        seps = [Expression(SymbolList)]
-
-    i = 0
-    while i < len(items):
-        yield items[i]
-        if i == len(items) - 1 and len(items) != len(seps):
-            return
-        yield seps[i % len(seps)]
-        i += 1
-
-
-class Riffle(Builtin):
-    """
-    <dl>
-    <dt>'Riffle[$list$, $x$]'
-        <dd>inserts a copy of $x$ between each element of $list$.
-    <dt>'Riffle[{$a1$, $a2$, ...}, {$b1$, $b2$, ...}]'
-        <dd>interleaves the elements of both lists, returning
-        '{$a1$, $b1$, $a2$, $b2$, ...}'.
-    </dl>
-
-    >> Riffle[{a, b, c}, x]
-     = {a, x, b, x, c}
-    >> Riffle[{a, b, c}, {x, y, z}]
-     = {a, x, b, y, c, z}
-    >> Riffle[{a, b, c, d, e, f}, {x, y, z}]
-     = {a, x, b, y, c, z, d, x, e, y, f}
-
-    #> Riffle[{1, 2, 3, 4}, {x, y, z, t}]
-     = {1, x, 2, y, 3, z, 4, t}
-    #> Riffle[{1, 2}, {1, 2, 3}]
-     = {1, 1, 2}
-    #> Riffle[{1, 2}, {1, 2}]
-     = {1, 1, 2, 2}
-
-    #> Riffle[{a,b,c}, {}]
-     = {a, {}, b, {}, c}
-    #> Riffle[{}, {}]
-     = {}
-    #> Riffle[{}, {a,b}]
-     = {}
-    """
-
-    def apply(self, list, sep, evaluation):
-        "Riffle[list_List, sep_]"
-
-        if sep.has_form("List", None):
-            result = riffle_lists(list.get_leaves(), sep.leaves)
-        else:
-            result = riffle_lists(list.get_leaves(), [sep])
-
-        return list.restructure("List", result, evaluation, deps=(list, sep))
-
-
-def _is_sameq(same_test):
-    # System`SameQ is protected, so nobody should ever be able to change
-    # it (see Set::wrsym). We just check for its name here thus.
-    return same_test.is_symbol() and same_test.get_name() == "System`SameQ"
-
-
 def _test_pair(test, a, b, evaluation, name):
     test_expr = Expression(test, a, b)
     result = test_expr.evaluate(evaluation)
@@ -1677,15 +1783,6 @@ def _test_pair(test, a, b, evaluation, name):
     ):
         evaluation.message(name, "smtst", test_expr, result)
     return result.is_true()
-
-
-class _DeleteDuplicatesBin:
-    def __init__(self, item):
-        self._item = item
-        self.add_to = lambda elem: None
-
-    def from_python(self):
-        return self._item
 
 
 class _FastEquivalence:
@@ -1717,71 +1814,6 @@ class _FastEquivalence:
         return a.sameQ(b)
 
 
-class _GatherBin:
-    def __init__(self, item):
-        self._items = [item]
-        self.add_to = self._items.append
-
-    def from_python(self):
-        return Expression(SymbolList, *self._items)
-
-
-class _GatherOperation(Builtin):
-    rules = {"%(name)s[list_]": "%(name)s[list, SameQ]"}
-
-    messages = {
-        "normal": "Nonatomic expression expected at position `1` in `2`.",
-        "list": "List expected at position `2` in `1`.",
-        "smtst": (
-            "Application of the SameTest yielded `1`, which evaluates "
-            "to `2`. The SameTest must evaluate to True or False at "
-            "every pair of elements."
-        ),
-    }
-
-    def apply(self, values, test, evaluation):
-        "%(name)s[values_, test_]"
-        if not self._check_list(values, test, evaluation):
-            return
-
-        if _is_sameq(test):
-            return self._gather(values, values, _FastEquivalence())
-        else:
-            return self._gather(
-                values, values, _SlowEquivalence(test, evaluation, self.get_name())
-            )
-
-    def _check_list(self, values, arg2, evaluation):
-        if values.is_atom():
-            expr = Expression(self.get_name(), values, arg2)
-            evaluation.message(self.get_name(), "normal", 1, expr)
-            return False
-
-        if values.get_head_name() != "System`List":
-            expr = Expression(self.get_name(), values, arg2)
-            evaluation.message(self.get_name(), "list", expr, 1)
-            return False
-
-        return True
-
-    def _gather(self, keys, values, equivalence):
-        bins = []
-        Bin = self._bin
-
-        for key, value in zip(keys.leaves, values.leaves):
-            selection = equivalence.select(key)
-            for prototype, add_to_bin in selection:  # find suitable bin
-                if equivalence.sameQ(prototype, key):
-                    add_to_bin(value)  # add to existing bin
-                    break
-            else:
-                new_bin = Bin(value)  # create new bin
-                selection.append((key, new_bin.add_to))
-                bins.append(new_bin)
-
-        return Expression(SymbolList, *[b.from_python() for b in bins])
-
-
 class _SlowEquivalence:
     # models an equivalence relation through a user defined test function. for n
     # distinct elements (each in its own bin), we need sum(1, .., n - 1) = O(n^2)
@@ -1799,313 +1831,6 @@ class _SlowEquivalence:
     def sameQ(self, a, b) -> bool:
         """Mathics SameQ"""
         return _test_pair(self._test, a, b, self._evaluation, self._name)
-
-
-class _TallyBin:
-    def __init__(self, item):
-        self._item = item
-        self._count = 1
-
-    def add_to(self, item):
-        self._count += 1
-
-    def from_python(self):
-        return Expression(SymbolList, self._item, Integer(self._count))
-
-
-class DeleteDuplicates(_GatherOperation):
-    """
-    <dl>
-    <dt>'DeleteDuplicates[$list$]'
-        <dd>deletes duplicates from $list$.
-    <dt>'DeleteDuplicates[$list$, $test$]'
-        <dd>deletes elements from $list$ based on whether the function
-        $test$ yields 'True' on pairs of elements.
-    DeleteDuplicates does not change the order of the remaining elements.
-    </dl>
-
-    >> DeleteDuplicates[{1, 7, 8, 4, 3, 4, 1, 9, 9, 2, 1}]
-     = {1, 7, 8, 4, 3, 9, 2}
-
-    >> DeleteDuplicates[{3,2,1,2,3,4}, Less]
-     = {3, 2, 1}
-
-    #> DeleteDuplicates[{3,2,1,2,3,4}, Greater]
-     = {3, 3, 4}
-
-    #> DeleteDuplicates[{}]
-     = {}
-    """
-
-    _bin = _DeleteDuplicatesBin
-
-
-class Gather(_GatherOperation):
-    """
-    <dl>
-    <dt>'Gather[$list$, $test$]'
-    <dd>gathers leaves of $list$ into sub lists of items that are the same according to $test$.
-
-    <dt>'Gather[$list$]'
-    <dd>gathers leaves of $list$ into sub lists of items that are the same.
-    </dl>
-
-    The order of the items inside the sub lists is the same as in the original list.
-
-    >> Gather[{1, 7, 3, 7, 2, 3, 9}]
-     = {{1}, {7, 7}, {3, 3}, {2}, {9}}
-
-    >> Gather[{1/3, 2/6, 1/9}]
-     = {{1 / 3, 1 / 3}, {1 / 9}}
-    """
-
-    _bin = _GatherBin
-
-
-class GatherBy(_GatherOperation):
-    """
-    <dl>
-    <dt>'GatherBy[$list$, $f$]'
-    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
-
-    <dt>'GatherBy[$list$, {$f$, $g$, ...}]'
-    <dd>gathers leaves of $list$ into sub lists of items whose image under $f identical.
-    Then, gathers these sub lists again into sub sub lists, that are identical under $g.
-    </dl>
-
-    >> GatherBy[{{1, 3}, {2, 2}, {1, 1}}, Total]
-     = {{{1, 3}, {2, 2}}, {{1, 1}}}
-
-    >> GatherBy[{"xy", "abc", "ab"}, StringLength]
-     = {{xy, ab}, {abc}}
-
-    >> GatherBy[{{2, 0}, {1, 5}, {1, 0}}, Last]
-     = {{{2, 0}, {1, 0}}, {{1, 5}}}
-
-    >> GatherBy[{{1, 2}, {2, 1}, {3, 5}, {5, 1}, {2, 2, 2}}, {Total, Length}]
-     = {{{{1, 2}, {2, 1}}}, {{{3, 5}}}, {{{5, 1}}, {{2, 2, 2}}}}
-    """
-
-    rules = {
-        "GatherBy[l_]": "GatherBy[l, Identity]",
-        "GatherBy[l_, {r__, f_}]": "Map[GatherBy[#, f]&, GatherBy[l, {r}], {Length[{r}]}]",
-        "GatherBy[l_, {f_}]": "GatherBy[l, f]",
-    }
-
-    _bin = _GatherBin
-
-    def apply(self, values, func, evaluation):
-        "%(name)s[values_, func_]"
-
-        if not self._check_list(values, func, evaluation):
-            return
-
-        keys = Expression("Map", func, values).evaluate(evaluation)
-        if len(keys.leaves) != len(values.leaves):
-            return
-
-        return self._gather(keys, values, _FastEquivalence())
-
-
-class _SetOperation(Builtin):
-    messages = {
-        "normal": "Non-atomic expression expected at position `1` in `2`.",
-        "heads": (
-            "Heads `1` and `2` at positions `3` and `4` are expected " "to be the same."
-        ),
-        "smtst": (
-            "Application of the SameTest yielded `1`, which evaluates "
-            "to `2`. The SameTest must evaluate to True or False at "
-            "every pair of elements."
-        ),
-    }
-
-    options = {
-        "SameTest": "SameQ",
-    }
-
-    @staticmethod
-    def _remove_duplicates(arg, same_test):
-        "removes duplicates from a single operand"
-        result = []
-        for a in arg:
-            if not any(same_test(a, b) for b in result):
-                result.append(a)
-        return result
-
-    def apply(self, lists, evaluation, options={}):
-        "%(name)s[lists__, OptionsPattern[%(name)s]]"
-
-        seq = lists.get_sequence()
-
-        for pos, e in enumerate(seq):
-            if e.is_atom():
-                return evaluation.message(
-                    self.get_name(),
-                    "normal",
-                    pos + 1,
-                    Expression(self.get_name(), *seq),
-                )
-
-        for pos, e in enumerate(zip(seq, seq[1:])):
-            e1, e2 = e
-            if e1.head != e2.head:
-                return evaluation.message(
-                    self.get_name(), "heads", e1.head, e2.head, pos + 1, pos + 2
-                )
-
-        same_test = self.get_option(options, "SameTest", evaluation)
-        operands = [l.leaves for l in seq]
-        if not _is_sameq(same_test):
-            sameQ = lambda a, b: _test_pair(
-                same_test, a, b, evaluation, self.get_name()
-            )
-            operands = [self._remove_duplicates(op, sameQ) for op in operands]
-            items = functools.reduce(
-                lambda a, b: [e for e in self._elementwise(a, b, sameQ)], operands
-            )
-        else:
-            items = list(
-                functools.reduce(getattr(set, self._operation), map(set, operands))
-            )
-
-        return Expression(seq[0].get_head(), *sorted(items))
-
-
-class Tally(_GatherOperation):
-    """
-    <dl>
-    <dt>'Tally[$list$]'
-    <dd>counts and returns the number of occurences of objects and returns
-    the result as a list of pairs {object, count}.
-    <dt>'Tally[$list$, $test$]'
-    <dd>counts the number of occurences of  objects and uses $test to
-    determine if two objects should be counted in the same bin.
-    </dl>
-
-    >> Tally[{a, b, c, b, a}]
-     = {{a, 2}, {b, 2}, {c, 1}}
-
-    Tally always returns items in the order as they first appear in $list$:
-    >> Tally[{b, b, a, a, a, d, d, d, d, c}]
-     = {{b, 2}, {a, 3}, {d, 4}, {c, 1}}
-    """
-
-    _bin = _TallyBin
-
-
-class Union(_SetOperation):
-    """
-    <dl>
-    <dt>'Union[$a$, $b$, ...]'
-    <dd>gives the union of the given set or sets. The resulting list will be sorted
-    and each element will only occur once.
-    </dl>
-
-    >> Union[{5, 1, 3, 7, 1, 8, 3}]
-     = {1, 3, 5, 7, 8}
-
-    >> Union[{a, b, c}, {c, d, e}]
-     = {a, b, c, d, e}
-
-    >> Union[{c, b, a}]
-     = {a, b, c}
-
-    >> Union[{{a, 1}, {b, 2}}, {{c, 1}, {d, 3}}, SameTest->(SameQ[Last[#1],Last[#2]]&)]
-     = {{b, 2}, {c, 1}, {d, 3}}
-
-    >> Union[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
-     = {1, 2, 2, 3, 4}
-
-    #> Union[{1, -1, 2}, {-2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
-     = {-2, 1, 3}
-    """
-
-    _operation = "union"
-
-    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
-        for eb in b:
-            yield eb
-        for ea in a:
-            if not any(sameQ(eb, ea) for eb in b):
-                yield ea
-
-
-class Intersection(_SetOperation):
-    """
-    <dl>
-    <dt>'Intersection[$a$, $b$, ...]'
-    <dd>gives the intersection of the sets. The resulting list will be sorted
-    and each element will only occur once.
-    </dl>
-
-    >> Intersection[{1000, 100, 10, 1}, {1, 5, 10, 15}]
-     = {1, 10}
-
-    >> Intersection[{{a, b}, {x, y}}, {{x, x}, {x, y}, {x, z}}]
-     = {{x, y}}
-
-    >> Intersection[{c, b, a}]
-     = {a, b, c}
-
-    >> Intersection[{1, 2, 3}, {2, 3, 4}, SameTest->Less]
-     = {3}
-
-    #> Intersection[{1, -1, -2, 2, -3}, {1, -2, 2, 3}, SameTest -> (Abs[#1] == Abs[#2] &)]
-     = {-3, -2, 1}
-    """
-
-    _operation = "intersection"
-
-    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
-        for ea in a:
-            if any(sameQ(eb, ea) for eb in b):
-                yield ea
-
-
-class Complement(_SetOperation):
-    """
-    <dl>
-    <dt>'Complement[$all$, $e1$, $e2$, ...]'
-        <dd>returns an expression containing the elements in the set
-        $all$ that are not in any of $e1$, $e2$, etc.
-    <dt>'Complement[$all$, $e1$, $e2$, ..., SameTest->$test$]'
-        <dd>applies $test$ to the elements in $all$ and each of the
-        $ei$ to determine equality.
-    </dl>
-
-    The sets $all$, $e1$, etc can have any head, which must all match.
-    The returned expression has the same head as the input
-    expressions. The expression will be sorted and each element will
-    only occur once.
-
-    >> Complement[{a, b, c}, {a, c}]
-     = {b}
-    >> Complement[{a, b, c}, {a, c}, {b}]
-     = {}
-    >> Complement[f[z, y, x, w], f[x], f[x, z]]
-     = f[w, y]
-    >> Complement[{c, b, a}]
-     = {a, b, c}
-
-    #> Complement[a, b]
-     : Non-atomic expression expected at position 1 in Complement[a, b].
-     = Complement[a, b]
-    #> Complement[f[a], g[b]]
-     : Heads f and g at positions 1 and 2 are expected to be the same.
-     = Complement[f[a], g[b]]
-    #> Complement[{a, b, c}, {a, c}, SameTest->(True&)]
-     = {}
-    #> Complement[{a, b, c}, {a, c}, SameTest->(False&)]
-     = {a, b, c}
-    """
-
-    _operation = "difference"
-
-    def _elementwise(self, a, b, sameQ: Callable[..., bool]):
-        for ea in a:
-            if not any(sameQ(eb, ea) for eb in b):
-                yield ea
 
 
 class IntersectingQ(Builtin):
@@ -2173,91 +1898,6 @@ class FoldList(Builtin):
         "FoldList[exp_, x_, head_]": "Module[{i = 1}, Head[head] @@ Prepend[Table[Fold[exp, x, Take[head, i]], {i, 1, Length[head]}], x]]",
         "FoldList[exp_, head_]": "If[Length[head] == 0, head, FoldList[exp, First[head], Rest[head]]]",
     }
-
-
-class Reverse(Builtin):
-    """
-    <dl>
-    <dt>'Reverse[$expr$]'
-        <dd>reverses the order of $expr$'s items (on the top level)
-    <dt>'Reverse[$expr$, $n$]'
-        <dd>reverses the order of items in $expr$ on level $n$
-    <dt>'Reverse[$expr$, {$n1$, $n2$, ...}]'
-        <dd>reverses the order of items in $expr$ on levels $n1$, $n2$, ...
-    </dl>
-
-    >> Reverse[{1, 2, 3}]
-     = {3, 2, 1}
-    >> Reverse[x[a, b, c]]
-     = x[c, b, a]
-    >> Reverse[{{1, 2}, {3, 4}}, 1]
-     = {{3, 4}, {1, 2}}
-    >> Reverse[{{1, 2}, {3, 4}}, 2]
-     = {{2, 1}, {4, 3}}
-    >> Reverse[{{1, 2}, {3, 4}}, {1, 2}]
-     = {{4, 3}, {2, 1}}
-    """
-
-    messages = {
-        "ilsmp": "Positive integer or list of positive integers expected at position 2 of ``."
-    }
-
-    @staticmethod
-    def _reverse(
-        expr, level, levels, evaluation
-    ):  # depth >= 1, levels are expected to be unique and sorted
-        if not isinstance(expr, Expression):
-            return expr
-
-        if levels[0] == level:
-            expr = expr.restructure(expr.head, reversed(expr.leaves), evaluation)
-
-            if len(levels) > 1:
-                expr = expr.restructure(
-                    expr.head,
-                    [
-                        Reverse._reverse(leaf, level + 1, levels[1:], evaluation)
-                        for leaf in expr.leaves
-                    ],
-                    evaluation,
-                )
-        else:
-            expr = expr.restructure(
-                expr.head,
-                [
-                    Reverse._reverse(leaf, level + 1, levels, evaluation)
-                    for leaf in expr.leaves
-                ],
-                evaluation,
-            )
-
-        return expr
-
-    def apply_top_level(self, expr, evaluation):
-        "Reverse[expr_]"
-        return Reverse._reverse(expr, 1, (1,), evaluation)
-
-    def apply(self, expr, levels, evaluation):
-        "Reverse[expr_, levels_]"
-        if isinstance(levels, Integer):
-            py_levels = [levels.get_int_value()]
-        elif levels.get_head_name() == "System`List":
-            if not levels.leaves:
-                return expr
-            if any(not isinstance(level, Integer) for level in levels.leaves):
-                py_levels = None
-            else:
-                py_levels = sorted(
-                    list(set(level.get_int_value() for level in levels.leaves))
-                )
-        else:
-            py_levels = None
-        if py_levels and py_levels[0] < 1:  # if py_level is not None, it's sorted
-            py_levels = None
-        if py_levels is None:
-            evaluation.message("Reverse", "ilsmp", Expression("Reverse", expr, levels))
-        else:
-            return Reverse._reverse(expr, 1, py_levels, evaluation)
 
 
 class CentralMoment(Builtin):  # see https://en.wikipedia.org/wiki/Central_moment
@@ -2502,96 +2142,6 @@ class Correlation(Builtin):
             return Expression(
                 "Divide", Expression("Covariance", a, b), Expression("Times", da, db)
             )
-
-
-class _Rotate(Builtin):
-    messages = {"rspec": "`` should be an integer or a list of integers."}
-
-    def _rotate(self, expr, n, evaluation):
-        if not isinstance(expr, Expression):
-            return expr
-
-        leaves = expr.leaves
-        if not leaves:
-            return expr
-
-        index = (self._sign * n[0]) % len(leaves)  # with Python's modulo: index >= 1
-        new_leaves = chain(leaves[index:], leaves[:index])
-
-        if len(n) > 1:
-            new_leaves = [self._rotate(item, n[1:], evaluation) for item in new_leaves]
-
-        return expr.restructure(expr.head, new_leaves, evaluation)
-
-    def apply_one(self, expr, evaluation):
-        "%(name)s[expr_]"
-        return self._rotate(expr, [1], evaluation)
-
-    def apply(self, expr, n, evaluation):
-        "%(name)s[expr_, n_]"
-        if isinstance(n, Integer):
-            py_cycles = [n.get_int_value()]
-        elif n.get_head_name() == "System`List" and all(
-            isinstance(x, Integer) for x in n.leaves
-        ):
-            py_cycles = [x.get_int_value() for x in n.leaves]
-            if not py_cycles:
-                return expr
-        else:
-            evaluation.message(self.get_name(), "rspec", n)
-            return
-
-        return self._rotate(expr, py_cycles, evaluation)
-
-
-class RotateLeft(_Rotate):
-    """
-    <dl>
-    <dt>'RotateLeft[$expr$]'
-        <dd>rotates the items of $expr$' by one item to the left.
-    <dt>'RotateLeft[$expr$, $n$]'
-        <dd>rotates the items of $expr$' by $n$ items to the left.
-    <dt>'RotateLeft[$expr$, {$n1$, $n2$, ...}]'
-        <dd>rotates the items of $expr$' by $n1$ items to the left at the first level, by $n2$ items to the left at
-        the second level, and so on.
-    </dl>
-
-    >> RotateLeft[{1, 2, 3}]
-     = {2, 3, 1}
-    >> RotateLeft[Range[10], 3]
-     = {4, 5, 6, 7, 8, 9, 10, 1, 2, 3}
-    >> RotateLeft[x[a, b, c], 2]
-     = x[c, a, b]
-    >> RotateLeft[{{a, b, c}, {d, e, f}, {g, h, i}}, {1, 2}]
-     = {{f, d, e}, {i, g, h}, {c, a, b}}
-    """
-
-    _sign = 1
-
-
-class RotateRight(_Rotate):
-    """
-    <dl>
-    <dt>'RotateRight[$expr$]'
-        <dd>rotates the items of $expr$' by one item to the right.
-    <dt>'RotateRight[$expr$, $n$]'
-        <dd>rotates the items of $expr$' by $n$ items to the right.
-    <dt>'RotateRight[$expr$, {$n1$, $n2$, ...}]'
-        <dd>rotates the items of $expr$' by $n1$ items to the right at the first level, by $n2$ items to the right at
-        the second level, and so on.
-    </dl>
-
-    >> RotateRight[{1, 2, 3}]
-     = {3, 1, 2}
-    >> RotateRight[Range[10], 3]
-     = {8, 9, 10, 1, 2, 3, 4, 5, 6, 7}
-    >> RotateRight[x[a, b, c], 2]
-     = x[b, c, a]
-    >> RotateRight[{{a, b, c}, {d, e, f}, {g, h, i}}, {1, 2}]
-     = {{h, i, g}, {b, c, a}, {e, f, d}}
-    """
-
-    _sign = -1
 
 
 class Median(_Rectangular):
@@ -3881,643 +3431,6 @@ def delete_rec(expr, pos):
         newleaf = delete_rec(leaves[truepos - 1], pos[1:])
         leaves = leaves[: truepos - 1] + (newleaf,) + leaves[truepos:]
     return Expression(expr.get_head(), *leaves)
-
-
-class Delete(Builtin):
-    """
-    <dl>
-    <dt>'Delete[$expr$, $i$]'
-        <dd>deletes the element at position $i$ in $expr$. The position is counted from the end if $i$ is negative.
-    <dt>'Delete[$expr$, {$m$, $n$, ...}]'
-        <dd>deletes the element at position {$m$, $n$, ...}.
-    <dt>'Delete[$expr$, {{$m1$, $n1$, ...}, {$m2$, $n2$, ...}, ...}]'
-        <dd>deletes the elements at several positions.
-    </dl>
-
-    Delete the element at position 3:
-    >> Delete[{a, b, c, d}, 3]
-     = {a, b, d}
-
-    Delete at position 2 from the end:
-    >> Delete[{a, b, c, d}, -2]
-     = {a, b, d}
-
-    Delete at positions 1 and 3:
-    >> Delete[{a, b, c, d}, {{1}, {3}}]
-     = {b, d}
-
-    Delete in a 2D array:
-    >> Delete[{{a, b}, {c, d}}, {2, 1}]
-     = {{a, b}, {d}}
-
-    Deleting the head of a whole expression gives a Sequence object:
-    >> Delete[{a, b, c}, 0]
-     = Sequence[a, b, c]
-
-    Delete in an expression with any head:
-    >> Delete[f[a, b, c, d], 3]
-     = f[a, b, d]
-
-    Delete a head to splice in its arguments:
-    >> Delete[f[a, b, u + v, c], {3, 0}]
-     = f[a, b, u, v, c]
-
-    >> Delete[{a, b, c}, 0]
-     = Sequence[a, b, c]
-
-    #> Delete[1 + x ^ (a + b + c), {2, 2, 3}]
-     = 1 + x ^ (a + b)
-
-    #> Delete[f[a, g[b, c], d], {{2}, {2, 1}}]
-     = f[a, d]
-
-    #> Delete[f[a, g[b, c], d], m + n]
-     : The expression m + n cannot be used as a part specification. Use Key[m + n] instead.
-     = Delete[f[a, g[b, c], d], m + n]
-
-    Delete without the position:
-    >> Delete[{a, b, c, d}]
-     : Delete called with 1 argument; 2 arguments are expected.
-     = Delete[{a, b, c, d}]
-
-    Delete with many arguments:
-    >> Delete[{a, b, c, d}, 1, 2]
-     : Delete called with 3 arguments; 2 arguments are expected.
-     = Delete[{a, b, c, d}, 1, 2]
-
-    Delete the element out of range:
-    >> Delete[{a, b, c, d}, 5]
-     : Part {5} of {a, b, c, d} does not exist.
-     = Delete[{a, b, c, d}, 5]
-
-    #> Delete[{a, b, c, d}, {1, 2}]
-     : Part 2 of {a, b, c, d} does not exist.
-     = Delete[{a, b, c, d}, {1, 2}]
-
-    Delete the position not integer:
-    >> Delete[{a, b, c, d}, {1, n}]
-     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
-     = Delete[{a, b, c, d}, {1, n}]
-
-    #> Delete[{a, b, c, d}, {{1}, n}]
-     : Position specification {n, {1}} in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
-     = Delete[{a, b, c, d}, {{1}, n}]
-
-    #> Delete[{a, b, c, d}, {{1}, {n}}]
-     : Position specification n in {a, b, c, d} is not a machine-sized integer or a list of machine-sized integers.
-     = Delete[{a, b, c, d}, {{1}, {n}}]
-    """
-
-    messages = {
-        "argr": "Delete called with 1 argument; 2 arguments are expected.",
-        "argt": "Delete called with `1` arguments; 2 arguments are expected.",
-        "psl": "Position specification `1` in `2` is not a machine-sized integer or a list of machine-sized integers.",
-        "pkspec": "The expression `1` cannot be used as a part specification. Use `2` instead.",
-    }
-
-    def apply_one(self, expr, position, evaluation):
-        "Delete[expr_, position_Integer]"
-        pos = position.get_int_value()
-        try:
-            return delete_one(expr, pos)
-        except PartRangeError:
-            evaluation.message("Part", "partw", Expression(SymbolList, pos), expr)
-
-    def apply(self, expr, positions, evaluation):
-        "Delete[expr_, positions___]"
-        positions = positions.get_sequence()
-        if len(positions) > 1:
-            return evaluation.message("Delete", "argt", Integer(len(positions) + 1))
-        elif len(positions) == 0:
-            return evaluation.message("Delete", "argr")
-
-        positions = positions[0]
-        if not positions.has_form("List", None):
-            return evaluation.message(
-                "Delete", "pkspec", positions, Expression("Key", positions)
-            )
-
-        # Create new python list of the positions and sort it
-        positions = (
-            [l for l in positions.leaves]
-            if positions.leaves[0].has_form("List", None)
-            else [positions]
-        )
-        positions.sort(key=lambda e: e.get_sort_key(pattern_sort=True))
-        newexpr = expr
-        for position in positions:
-            pos = [p.get_int_value() for p in position.get_leaves()]
-            if None in pos:
-                return evaluation.message(
-                    "Delete", "psl", position.leaves[pos.index(None)], expr
-                )
-            if len(pos) == 0:
-                return evaluation.message(
-                    "Delete", "psl", Expression(SymbolList, *positions), expr
-                )
-            try:
-                newexpr = delete_rec(newexpr, pos)
-            except PartDepthError as exc:
-                return evaluation.message("Part", "partw", Integer(exc.index), expr)
-            except PartError:
-                return evaluation.message(
-                    "Part", "partw", Expression(SymbolList, *pos), expr
-                )
-        return newexpr
-
-
-class Association(Builtin):
-    """
-    <dl>
-    <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
-    <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
-        <dd> represents an association between keys and values.
-    </dl>
-
-    'Association' is the head of associations:
-    >> Head[<|a -> x, b -> y, c -> z|>]
-     = Association
-
-    >> <|a -> x, b -> y|>
-     = <|a -> x, b -> y|>
-
-    >> Association[{a -> x, b -> y}]
-     = <|a -> x, b -> y|>
-
-    Associations can be nested:
-    >> <|a -> x, b -> y, <|a -> z, d -> t|>|>
-     = <|a -> z, b -> y, d -> t|>
-
-    #> <|a -> x, b -> y, c -> <|d -> t|>|>
-     = <|a -> x, b -> y, c -> <|d -> t|>|>
-    #> %["s"]
-     = Missing[KeyAbsent, s]
-
-    #> <|a -> x, b + c -> y, {<|{}|>, a -> {z}}|>
-     = <|a -> {z}, b + c -> y|>
-    #> %[a]
-     = {z}
-
-    #> <|"x" -> 1, {y} -> 1|>
-     = <|x -> 1, {y} -> 1|>
-    #> %["x"]
-     = 1
-
-    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {}, <||>|>, {d}|>[c]
-     =  Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {}, Association[]], {d}][c]
-
-    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z|>, {d}|>, {}, <||>|>[a]
-     = Association[Association[a -> v] -> x, Association[b -> y, a -> Association[c -> z], {d}], {}, Association[]][a]
-
-    #> <|<|a -> v|> -> x, <|b -> y, a -> <|c -> z, {d}|>, {}, <||>|>, {}, <||>|>
-     = <|<|a -> v|> -> x, b -> y, a -> Association[c -> z, {d}]|>
-    #> %[a]
-     = Association[c -> z, {d}]
-
-    #> <|a -> x, b -> y, c -> <|d -> t|>|> // ToBoxes
-     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{d, ->, t}], |>}]}]}], |>}]
-
-    #> Association[a -> x, b -> y, c -> Association[d -> t, Association[e -> u]]] // ToBoxes
-     = RowBox[{<|, RowBox[{RowBox[{a, ->, x}], ,, RowBox[{b, ->, y}], ,, RowBox[{c, ->, RowBox[{<|, RowBox[{RowBox[{d, ->, t}], ,, RowBox[{e, ->, u}]}], |>}]}]}], |>}]
-    """
-
-    error_idx = 0
-
-    attributes = (
-        "HoldAllComplete",
-        "Protected",
-    )
-
-    def apply_makeboxes(self, rules, f, evaluation):
-        """MakeBoxes[<|rules___|>,
-        f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
-
-        def validate(exprs):
-            for expr in exprs:
-                if expr.has_form(("Rule", "RuleDelayed"), 2):
-                    pass
-                elif expr.has_form("List", None) or expr.has_form("Association", None):
-                    if validate(expr.leaves) is not True:
-                        return False
-                else:
-                    return False
-            return True
-
-        rules = rules.get_sequence()
-        if self.error_idx == 0 and validate(rules) is True:
-            expr = Expression(
-                "RowBox", Expression(SymbolList, *list_boxes(rules, f, "<|", "|>"))
-            )
-        else:
-            self.error_idx += 1
-            symbol = Expression(SymbolMakeBoxes, SymbolAssociation, f)
-            expr = Expression(
-                "RowBox",
-                Expression(SymbolList, symbol, *list_boxes(rules, f, "[", "]")),
-            )
-
-        expr = expr.evaluate(evaluation)
-        if self.error_idx > 0:
-            self.error_idx -= 1
-        return expr
-
-    def apply(self, rules, evaluation):
-        "Association[rules__]"
-
-        def make_flatten(exprs, dic={}, keys=[]):
-            for expr in exprs:
-                if expr.has_form(("Rule", "RuleDelayed"), 2):
-                    key = expr.leaves[0].evaluate(evaluation)
-                    value = expr.leaves[1].evaluate(evaluation)
-                    dic[key] = Expression(expr.get_head(), key, value)
-                    if key not in keys:
-                        keys.append(key)
-                elif expr.has_form("List", None) or expr.has_form("Association", None):
-                    make_flatten(expr.leaves, dic, keys)
-                else:
-                    raise
-            return [dic[key] for key in keys]
-
-        try:
-            return Expression(SymbolAssociation, *make_flatten(rules.get_sequence()))
-        except:
-            return None
-
-    def apply_key(self, rules, key, evaluation):
-        "Association[rules__][key_]"
-
-        def find_key(exprs, dic={}):
-            for expr in exprs:
-                if expr.has_form(("Rule", "RuleDelayed"), 2):
-                    if expr.leaves[0] == key:
-                        dic[key] = expr.leaves[1]
-                elif expr.has_form("List", None) or expr.has_form("Association", None):
-                    find_key(expr.leaves)
-                else:
-                    raise
-            return dic
-
-        try:
-            result = find_key(rules.get_sequence())
-        except:
-            return None
-
-        return (
-            result[key] if result else Expression("Missing", Symbol("KeyAbsent"), key)
-        )
-
-
-class AssociationQ(Test):
-    """
-    <dl>
-    <dt>'AssociationQ[$expr$]'
-        <dd>return True if $expr$ is a valid Association object, and False otherwise.
-    </dl>
-
-    >> AssociationQ[<|a -> 1, b :> 2|>]
-     = True
-
-    >> AssociationQ[<|a, b|>]
-     = False
-    """
-
-    def test(self, expr):
-        def validate(leaves):
-            for leaf in leaves:
-                if leaf.has_form(("Rule", "RuleDelayed"), 2):
-                    pass
-                elif leaf.has_form("List", None) or leaf.has_form("Association", None):
-                    if validate(leaf.leaves) is not True:
-                        return False
-                else:
-                    return False
-            return True
-
-        return expr.get_head_name() == "System`Association" and validate(expr.leaves)
-
-
-class Keys(Builtin):
-    """
-    <dl>
-    <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
-        <dd>return a list of the keys $keyi$ in an association.
-    <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
-        <dd>return a list of the $keyi$ in a list of rules.
-    </dl>
-
-    >> Keys[<|a -> x, b -> y|>]
-     = {a, b}
-
-    >> Keys[{a -> x, b -> y}]
-     = {a, b}
-
-    Keys automatically threads over lists:
-    >> Keys[{<|a -> x, b -> y|>, {w -> z, {}}}]
-     = {{a, b}, {w, {}}}
-
-    Keys are listed in the order of their appearance:
-    >> Keys[{c -> z, b -> y, a -> x}]
-     = {c, b, a}
-
-    #> Keys[a -> x]
-     = a
-
-    #> Keys[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
-     = {a, a, {a, {b}, {}, {}}}
-
-    #> Keys[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
-     = {a, a, {a, b}}
-
-    #> Keys[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
-     = {a, b}
-
-    #> Keys[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
-     = {a, b}
-
-    #> Keys[<|a -> x, <|a -> y, b|>|>]
-     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
-     = Keys[Association[a -> x, Association[a -> y, b]]]
-
-    #> Keys[<|a -> x, {a -> y, b}|>]
-     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
-     = Keys[Association[a -> x, {a -> y, b}]]
-
-    #> Keys[{a -> x, <|a -> y, b|>}]
-     : The argument Association[a -> y, b] is not a valid Association or a list of rules.
-     = Keys[{a -> x, Association[a -> y, b]}]
-
-    #> Keys[{a -> x, {a -> y, b}}]
-     : The argument b is not a valid Association or a list of rules.
-     = Keys[{a -> x, {a -> y, b}}]
-
-    #> Keys[a -> x, b -> y]
-     : Keys called with 2 arguments; 1 argument is expected.
-     = Keys[a -> x, b -> y]
-    """
-
-    attributes = ("Protected",)
-
-    messages = {
-        "argx": "Keys called with `1` arguments; 1 argument is expected.",
-        "invrl": "The argument `1` is not a valid Association or a list of rules.",
-    }
-
-    def apply(self, rules, evaluation):
-        "Keys[rules___]"
-
-        def get_keys(expr):
-            if expr.has_form(("Rule", "RuleDelayed"), 2):
-                return expr.leaves[0]
-            elif expr.has_form("List", None) or (
-                expr.has_form("Association", None)
-                and AssociationQ(expr).evaluate(evaluation) == Symbol("True")
-            ):
-                return Expression(SymbolList, *[get_keys(leaf) for leaf in expr.leaves])
-            else:
-                evaluation.message("Keys", "invrl", expr)
-                raise
-
-        rules = rules.get_sequence()
-        if len(rules) != 1:
-            return evaluation.message("Keys", "argx", Integer(len(rules)))
-
-        try:
-            return get_keys(rules[0])
-        except:
-            return None
-
-
-class Values(Builtin):
-    """
-    <dl>
-    <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
-        <dd>return a list of the values $vali$ in an association.
-    <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
-        <dd>return a list of the $vali$ in a list of rules.
-    </dl>
-
-    >> Values[<|a -> x, b -> y|>]
-     = {x, y}
-
-    >> Values[{a -> x, b -> y}]
-     = {x, y}
-
-    Values automatically threads over lists:
-    >> Values[{<|a -> x, b -> y|>, {c -> z, {}}}]
-     = {{x, y}, {z, {}}}
-
-    Values are listed in the order of their appearance:
-    >> Values[{c -> z, b -> y, a -> x}]
-     = {z, y, x}
-
-    #> Values[a -> x]
-     = x
-
-    #> Values[{a -> x, a -> y, {a -> z, <|b -> t|>, <||>, {}}}]
-     = {x, y, {z, {t}, {}, {}}}
-
-    #> Values[{a -> x, a -> y, <|a -> z, {b -> t}, <||>, {}|>}]
-     = {x, y, {z, t}}
-
-    #> Values[<|a -> x, a -> y, <|a -> z, <|b -> t|>, <||>, {}|>|>]
-     = {z, t}
-
-    #> Values[<|a -> x, a -> y, {a -> z, {b -> t}, <||>, {}}|>]
-     = {z, t}
-
-    #> Values[<|a -> x, <|a -> y, b|>|>]
-     : The argument Association[a -> x, Association[a -> y, b]] is not a valid Association or a list of rules.
-     = Values[Association[a -> x, Association[a -> y, b]]]
-
-    #> Values[<|a -> x, {a -> y, b}|>]
-     : The argument Association[a -> x, {a -> y, b}] is not a valid Association or a list of rules.
-     = Values[Association[a -> x, {a -> y, b}]]
-
-    #> Values[{a -> x, <|a -> y, b|>}]
-     : The argument {a -> x, Association[a -> y, b]} is not a valid Association or a list of rules.
-     = Values[{a -> x, Association[a -> y, b]}]
-
-    #> Values[{a -> x, {a -> y, b}}]
-     : The argument {a -> x, {a -> y, b}} is not a valid Association or a list of rules.
-     = Values[{a -> x, {a -> y, b}}]
-
-    #> Values[a -> x, b -> y]
-     : Values called with 2 arguments; 1 argument is expected.
-     = Values[a -> x, b -> y]
-    """
-
-    attributes = ("Protected",)
-
-    messages = {
-        "argx": "Values called with `1` arguments; 1 argument is expected.",
-        "invrl": "The argument `1` is not a valid Association or a list of rules.",
-    }
-
-    def apply(self, rules, evaluation):
-        "Values[rules___]"
-
-        def get_values(expr):
-            if expr.has_form(("Rule", "RuleDelayed"), 2):
-                return expr.leaves[1]
-            elif expr.has_form("List", None) or (
-                expr.has_form("Association", None)
-                and AssociationQ(expr).evaluate(evaluation) == Symbol("True")
-            ):
-                return Expression(
-                    SymbolList, *[get_values(leaf) for leaf in expr.leaves]
-                )
-            else:
-                raise
-
-        rules = rules.get_sequence()
-        if len(rules) != 1:
-            return evaluation.message("Values", "argx", Integer(len(rules)))
-
-        try:
-            return get_values(rules[0])
-        except:
-            return evaluation.message("Values", "invrl", rules[0])
-
-
-class ContainsOnly(Builtin):
-    """
-    <dl>
-    <dt>'ContainsOnly[$list1$, $list2$]'
-        <dd>yields True if $list1$ contains only elements that appear in $list2$.
-    </dl>
-
-    >> ContainsOnly[{b, a, a}, {a, b, c}]
-     = True
-
-    The first list contains elements not present in the second list:
-    >> ContainsOnly[{b, a, d}, {a, b, c}]
-     = False
-
-    >> ContainsOnly[{}, {a, b, c}]
-     = True
-
-    #> ContainsOnly[1, {1, 2, 3}]
-     : List or association expected instead of 1.
-     = ContainsOnly[1, {1, 2, 3}]
-
-    #> ContainsOnly[{1, 2, 3}, 4]
-     : List or association expected instead of 4.
-     = ContainsOnly[{1, 2, 3}, 4]
-
-    Use Equal as the comparison function to have numerical tolerance:
-    >> ContainsOnly[{a, 1.0}, {1, a, b}, {SameTest -> Equal}]
-     = True
-
-    #> ContainsOnly[{c, a}, {a, b, c}, IgnoreCase -> True]
-     : Unknown option IgnoreCase -> True in ContainsOnly.
-     : Unknown option IgnoreCase in .
-     = True
-    """
-
-    attributes = ("ReadProtected",)
-
-    messages = {
-        "lsa": "List or association expected instead of `1`.",
-        "nodef": "Unknown option `1` for ContainsOnly.",
-        "optx": "Unknown option `1` in `2`.",
-    }
-
-    options = {
-        "SameTest": "SameQ",
-    }
-
-    def check_options(self, expr, evaluation, options):
-        for key in options:
-            if key != "System`SameTest":
-                if expr is None:
-                    evaluation.message("ContainsOnly", "optx", Symbol(key))
-                else:
-                    return evaluation.message("ContainsOnly", "optx", Symbol(key), expr)
-        return None
-
-    def apply(self, list1, list2, evaluation, options={}):
-        "ContainsOnly[list1_?ListQ, list2_?ListQ, OptionsPattern[ContainsOnly]]"
-
-        same_test = self.get_option(options, "SameTest", evaluation)
-
-        def sameQ(a, b) -> bool:
-            """Mathics SameQ"""
-            result = Expression(same_test, a, b).evaluate(evaluation)
-            return result.is_true()
-
-        self.check_options(None, evaluation, options)
-        for a in list1.leaves:
-            if not any(sameQ(a, b) for b in list2.leaves):
-                return Symbol("False")
-        return Symbol("True")
-
-    def apply_msg(self, e1, e2, evaluation, options={}):
-        "ContainsOnly[e1_, e2_, OptionsPattern[ContainsOnly]]"
-
-        opts = (
-            options_to_rules(options)
-            if len(options) <= 1
-            else [Expression(SymbolList, *options_to_rules(options))]
-        )
-        expr = Expression("ContainsOnly", e1, e2, *opts)
-
-        if not isinstance(e1, Symbol) and not e1.has_form("List", None):
-            evaluation.message("ContainsOnly", "lsa", e1)
-            return self.check_options(expr, evaluation, options)
-
-        if not isinstance(e2, Symbol) and not e2.has_form("List", None):
-            evaluation.message("ContainsOnly", "lsa", e2)
-            return self.check_options(expr, evaluation, options)
-
-        return self.check_options(expr, evaluation, options)
-
-
-## From backports in CellsToTeX. This functions provides compatibility to WMA 10.
-##  TODO:
-##  * Add doctests
-##  * Translate to python the more complex rules
-##  * Complete the support.
-
-
-class Key(Builtin):
-    """
-    <dl>
-    <dt>Key[$key$]
-        <dd> represents a key used to access a value in an association.
-    <dt>Key[$key$][$assoc$]
-        <dd>
-    </dl>
-    """
-
-    rules = {
-        "Key[key_][assoc_Association]": "assoc[key]",
-    }
-
-
-class Lookup(Builtin):
-    """
-    <dl>
-    <dt>Lookup[$assoc$, $key$]
-        <dd> looks up the value associated with $key$ in the association $assoc$, or Missing[$KeyAbsent$].
-    </dl>
-    """
-
-    attributes = "HoldAllComplete"
-    rules = {
-        "Lookup[assoc_?AssociationQ, key_, default_]": "FirstCase[assoc, _[Verbatim[key], val_] :> val, default]",
-        "Lookup[assoc_?AssociationQ, key_]": 'Lookup[assoc, key, Missing["KeyAbsent", key]]',
-    }
-
-
-class Failure(Builtin):
-    """
-    <dl>
-    <dt>Failure[$tag$, $assoc$]
-        <dd> represents a failure of a type indicated by $tag$, with details given by the association $assoc$.
-    </dl>
-    """
-
-    pass
 
 
 #    rules = {'Failure /: MakeBoxes[Failure[tag_, assoc_Association], StandardForm]' :
