@@ -170,7 +170,7 @@ def bezier_curve_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
-    asy = "// BezerCurveBox\n"
+    asy = "// BezierCurveBox\n"
     for line in self.lines:
         for path in asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
             if path[:2] == "..":
