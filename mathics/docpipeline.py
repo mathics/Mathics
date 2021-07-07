@@ -88,7 +88,7 @@ def test_case(test, tests, index=0, subindex=0, quiet=False, section=None):
         print_and_log(
             f"""{sep}Test failed: {section} in {part} / {chapter}
 {part}
-n{why}
+{why}
 """.encode(
                 "utf-8"
             )

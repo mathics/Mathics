@@ -20,6 +20,7 @@ from mathics.builtin.box.graphics import (
 from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
     Arrow3DBox,
+    Coords3D,
     Cylinder3DBox,
     Line3DBox,
     Point3DBox,
@@ -106,7 +107,8 @@ def arcbox(self, **options) -> str:
         is_face_element=self.face_element,
     )
     command = "filldraw" if self.face_element else "draw"
-    asy = "%s(%s, %s);" % (command, "".join(path(self.face_element)), pen)
+    asy = f"""// _ArcBox
+{command}({"".join(path(self.face_element))}, {pen});"""
     # print("### arcbox", asy)
     return asy
 
@@ -168,7 +170,7 @@ def bezier_curve_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
-    asy = ""
+    asy = "// BezierCurveBox\n"
     for line in self.lines:
         for path in asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
             if path[:2] == "..":
@@ -186,28 +188,41 @@ def cylinder3dbox(self, **options) -> str:
     else:
         face_color = self.face_color.to_js()
 
-    asy = ""
+    asy = "// Cylinder3DBox\n"
     i = 0
     while i < len(self.points) / 2:
         try:
-            asy += "draw(surface(cylinder({0}, {1}, {2}, {3})), rgb({2},{3},{4}));".format(
-                tuple(self.points[i * 2].pos()[0]),
-                self.radius,
-                # distance between start and end
-                (
-                    (self.points[i * 2][0][0] - self.points[i * 2 + 1][0][0]) ** 2
-                    + (self.points[i * 2][0][1] - self.points[i * 2 + 1][0][1]) ** 2
-                    + (self.points[i * 2][0][2] - self.points[i * 2 + 1][0][2]) ** 2
-                )
-                ** 0.5,
-                (1, 1, 0),  # FIXME: currently always drawing around the axis X+Y
-                *face_color[:3],
+            point1_obj = self.points[i * 2]
+            if isinstance(point1_obj, Coords3D):
+                point1 = point1_obj.pos()[0]
+            else:
+                point1 = point1_obj[0]
+            point2_obj = self.points[i * 2 + 1]
+            if isinstance(point2_obj, Coords3D):
+                point2 = point2_obj.pos()[0]
+            else:
+                point2 = point2_obj[0]
+
+            # Compute distance between start point and end point.
+            distance = (
+                (point1[0] - point2[0]) ** 2
+                + (point1[1] - point2[1]) ** 2
+                + (point1[2] - point2[2]) ** 2
+            ) ** 0.5
+
+            # FIXME: currently always drawing around the axis X+Y
+            axes_point = (1, 1, 0)
+            rgb = "rgb({0},{1},{1})".format(*face_color[:3])
+            asy += (
+                f"draw(surface(cylinder({tuple(point1)}, {self.radius}, {distance}, {axes_point})), {rgb});"
+                + "\n"
             )
         except:  # noqa
             pass
 
         i += 1
 
+    # print(asy)
     return asy
 
 
@@ -255,7 +270,8 @@ def insetbox(self, **options) -> str:
     x, y = self.pos.pos()
     content = self.content.boxes_to_tex(evaluation=self.graphics.evaluation)
     pen = asy_create_pens(edge_color=self.color)
-    asy = 'label("$%s$", (%s,%s), (%s,%s), %s);' % (
+    asy = """// InsetBox
+label("$%s$", (%s,%s), (%s,%s), %s);\n""" % (
         content,
         x,
         y,
@@ -274,7 +290,7 @@ def line3dbox(self, **options) -> str:
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=1)
 
     return "".join(
-        "draw({0}, {1});".format(
+        "// Line3DBox draw({0}, {1});".format(
             "--".join("({0},{1},{2})".format(*coords.pos()[0]) for coords in line),
             pen,
         )
@@ -288,7 +304,7 @@ add_conversion_fn(Line3DBox)
 def linebox(self) -> str:
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
-    asy = ""
+    asy = "// LineBox\n"
     for line in self.lines:
         path = "--".join(["(%.5g,%5g)" % coords.pos() for coords in line])
         asy += "draw(%s, %s);" % (path, pen)
@@ -318,7 +334,7 @@ def point3dbox(self, **options) -> str:
         point = f"path3 g={point_coords}--cycle;dot(g, {pen});\n"
         points.append(point)
 
-    asy = "\n".join(points)
+    asy = "// Point3DBox\n" + "\n".join(points)
     # print asy
     return asy
 
@@ -339,12 +355,12 @@ def pointbox(self, **options) -> str:
         face_color=self.face_color, is_face_element=False, dotfactor=dotfactor
     )
 
-    asy = ""
+    asy = "// PointBox\n"
     for line in self.lines:
         for coords in line:
             asy += "dot(%s, %s);" % (coords.pos(), pen)
 
-    # print("### pointbox", asy)
+    # print(asy)
     return asy
 
 
@@ -364,7 +380,7 @@ def polygon3dbox(self, **options) -> str:
         is_face_element=True,
     )
 
-    asy = ""
+    asy = "// Polygon3DBox\n"
     for line in self.lines:
         asy += (
             "path3 g="
@@ -373,7 +389,7 @@ def polygon3dbox(self, **options) -> str:
         )
         asy += "draw(surface(g), %s);" % (pen)
 
-    # print("### polygon3dbox", asy)
+    # print(asy)
     return asy
 
 
@@ -392,7 +408,7 @@ def polygonbox(self, **options) -> str:
         stroke_width=line_width,
         is_face_element=True,
     )
-    asy = ""
+    asy = "// PolygonBox\n"
     if self.vertex_colors is not None:
         paths = []
         colors = []
@@ -421,7 +437,7 @@ def polygonbox(self, **options) -> str:
             )
             asy += "filldraw(%s, evenodd+%s);" % (path, pens)
 
-    # print("### polygonbox", asy)
+    # print(asy)
     return asy
 
 
@@ -488,7 +504,7 @@ def sphere3dbox(self, **options) -> str:
     else:
         face_color = self.face_color.to_js()
 
-    return "".join(
+    return "// Sphere3DBox\n" + "\n".join(
         "draw(surface(sphere({0}, {1})), rgb({2},{3},{4}));".format(
             tuple(coord.pos()[0]), self.radius, *face_color[:3]
         )

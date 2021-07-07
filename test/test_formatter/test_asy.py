@@ -62,9 +62,9 @@ def test_asy_point():
 
     print(inner_asy)
     # matches = re.match(r'^Circle\((.+), (.+), (.+)\),.+;', inner_asy)
-    matches = re.match(r"^dot\(\((.+), (.+)\), .+\);.*", inner_asy)
+    matches = re.match(r"// PointBox\ndot\(\((.+), (.+)\), .+\);.*", inner_asy)
     assert matches
-    # Since the x,y pont is the same, we'll check that whatever this
+    # Since the x,y point is the same, we'll check that whatever this
     # coordinate mapped to, it is the same.
     assert matches.group(1) == matches.group(2)
 
@@ -105,7 +105,7 @@ def test_asy_bezier_curve():
     asy = get_asy(expression)
     inner_asy = extract_asy_body(asy)
 
-    matches = re.match(r"^draw\(.*\)", inner_asy)
+    matches = re.match(r"// BezierCurveBox\ndraw\(.*\)", inner_asy)
     # TODO: Match line and arrowbox
     assert matches
 
