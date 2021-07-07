@@ -161,6 +161,7 @@ for subdir in (
     "files_io",
     "intfns",
     "list",
+    "moments",
     "numbers",
     "specialfns",
     "string",
