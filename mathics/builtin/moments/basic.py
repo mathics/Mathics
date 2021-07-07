@@ -22,7 +22,7 @@ from mathics.core.expression import (
 class Median(_Rectangular):
     """
     <dl>
-    <dt>'Median[$list$]'
+      <dt>'Median[$list$]'
       <dd>returns the median of $list$.
     </dl>
 
@@ -67,7 +67,7 @@ class Median(_Rectangular):
 class Quantile(Builtin):
     """
     <dl>
-    <dt>'Quantile[$list$, $q$]'
+      <dt>'Quantile[$list$, $q$]'
       <dd>returns the $q$th quantile of $list$.
     </dl>
 

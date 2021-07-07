@@ -29,9 +29,9 @@ from mathics.core.expression import (
 class Association(Builtin):
     """
     <dl>
-    <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
-    <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
-        <dd> represents an association between keys and values.
+      <dt>'Association[$key1$ -> $val1$, $key2$ -> $val2$, ...]'
+      <dt>'<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>'
+      <dd> represents an association between keys and values.
     </dl>
 
     'Association' is the head of associations:
@@ -170,8 +170,8 @@ class Association(Builtin):
 class AssociationQ(Test):
     """
     <dl>
-    <dt>'AssociationQ[$expr$]'
-        <dd>return True if $expr$ is a valid Association object, and False otherwise.
+      <dt>'AssociationQ[$expr$]'
+      <dd>return True if $expr$ is a valid Association object, and False otherwise.
     </dl>
 
     >> AssociationQ[<|a -> 1, b :> 2|>]
@@ -199,10 +199,11 @@ class AssociationQ(Test):
 class Keys(Builtin):
     """
     <dl>
-    <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
-        <dd>return a list of the keys $keyi$ in an association.
-    <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
-        <dd>return a list of the $keyi$ in a list of rules.
+      <dt>'Keys[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+      <dd>return a list of the keys $keyi$ in an association.
+
+      <dt>'Keys[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+      <dd>return a list of the $keyi$ in a list of rules.
     </dl>
 
     >> Keys[<|a -> x, b -> y|>]
@@ -305,10 +306,11 @@ class Lookup(Builtin):
 class Values(Builtin):
     """
     <dl>
-    <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
-        <dd>return a list of the values $vali$ in an association.
-    <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
-        <dd>return a list of the $vali$ in a list of rules.
+      <dt>'Values[<|$key1$ -> $val1$, $key2$ -> $val2$, ...|>]'
+      <dd>return a list of the values $vali$ in an association.
+
+      <dt>'Values[{$key1$ -> $val1$, $key2$ -> $val2$, ...}]'
+      <dd>return a list of the $vali$ in a list of rules.
     </dl>
 
     >> Values[<|a -> x, b -> y|>]

@@ -16,7 +16,7 @@ from mathics.core.expression import Expression
 class Correlation(Builtin):
     """
     <dl>
-    <dt>'Correlation[$a$, $b$]'
+      <dt>'Correlation[$a$, $b$]'
       <dd>computes Pearson's correlation of two equal-sized vectors $a$ and $b$.
     </dl>
 
@@ -86,7 +86,7 @@ class Covariance(Builtin):
 class Kurtosis(Builtin):  # see https://en.wikipedia.org/wiki/Kurtosis
     """
     <dl>
-    <dt>'Kurtosis[$list$]'
+      <dt>'Kurtosis[$list$]'
       <dd>gives the Pearson measure of kurtosis for $list$ (a measure of existing outliers).
     </dl>
 
@@ -119,9 +119,8 @@ class Skewness(Builtin):  # see https://en.wikipedia.org/wiki/Skewness
 class StandardDeviation(_Rectangular):
     """
     <dl>
-    <dt>'StandardDeviation[$list$]'
-      <dd>computes the standard deviation of $list. $list$ may consist of numerical values
-      or symbols. Numerical values may be real or complex.
+      <dt>'StandardDeviation[$list$]'
+      <dd>computes the standard deviation of $list. $list$ may consist of numerical values or symbols. Numerical values may be real or complex.
 
       StandardDeviation[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}] will yield
       {StandardDeviation[{$a1$, $b1$, ...}, StandardDeviation[{$a2$, $b2$, ...}], ...}.
@@ -163,12 +162,10 @@ class StandardDeviation(_Rectangular):
 class Variance(_Rectangular):
     """
     <dl>
-    <dt>'Variance[$list$]'
-      <dd>computes the variance of $list. $list$ may consist of numerical values
-      or symbols. Numerical values may be real or complex.
+      <dt>'Variance[$list$]'
+      <dd>computes the variance of $list. $list$ may consist of numerical values or symbols. Numerical values may be real or complex.
 
-      Variance[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}] will yield
-      {Variance[{$a1$, $b1$, ...}, Variance[{$a2$, $b2$, ...}], ...}.
+      Variance[{{$a1$, $a2$, ...}, {$b1$, $b2$, ...}, ...}] will yield {Variance[{$a1$, $b1$, ...}, Variance[{$a2$, $b2$, ...}], ...}.
     </dl>
 
     >> Variance[{1, 2, 3}]
