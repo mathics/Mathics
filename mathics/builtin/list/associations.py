@@ -303,6 +303,10 @@ class Lookup(Builtin):
     }
 
 
+class Missing(Builtin):
+    pass
+
+
 class Values(Builtin):
     """
     <dl>

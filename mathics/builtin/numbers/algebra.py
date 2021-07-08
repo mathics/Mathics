@@ -1024,10 +1024,6 @@ class UpTo(Builtin):
     }
 
 
-class Missing(Builtin):
-    pass
-
-
 class MinimalPolynomial(Builtin):
     """
     <dl>
