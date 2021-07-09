@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
-
 """
 Format a Mathics object as an SVG string
 """
@@ -107,7 +105,7 @@ def arcbox(self, **options) -> str:
     l = self.style.get_line_width(face_element=self.face_element)
     style = create_css(self.edge_color, self.face_color, stroke_width=l)
     svg = '<path d="%s" style="%s" />' % (" ".join(path(self.face_element)), style)
-    # print("XXX arcbox", svg)
+    # print("_Arcbox: ", svg)
     return svg
 
 
@@ -129,8 +127,8 @@ def arrow_box(self, **options) -> str:
     extent = self.graphics.view_width or 0
     default_arrow = self._default_arrow(polygon)
     custom_arrow = self._custom_arrow("svg", _SVGTransform)
-    svg = "".join(self._draw(polyline, default_arrow, custom_arrow, extent))
-    # print("XXX arrowbox", svg)
+    svg = "\n".join(self._draw(polyline, default_arrow, custom_arrow, extent))
+    # print("ArrowBox: ", svg)
     return svg
 
 
@@ -141,15 +139,59 @@ def beziercurvebox(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
 
-    svg = ""
+    svg = "<!--BezierCurveBox-->\n"
     for line in self.lines:
-        s = " ".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
+        s = "\n".join(_svg_bezier((self.spline_degree, [xy.pos() for xy in line])))
         svg += f'<path d="{s}" style="{style}"/>'
-    # print("XXX bezier", svg)
+    # print("BezierCurveBox: ", svg)
     return svg
 
 
 add_conversion_fn(BezierCurveBox)
+
+
+def density_plot_box(self, **options):
+    """
+    SVG formatter for DensityPlotBox.
+    """
+    # A DensityPlot is a just a list of triangles each of which have its density color.
+    #
+    # So this code is similar to PolygonBox.
+    #
+    # However note that many of the PolygonBox features are a little
+    # different here. First, everything is a triangle, so there the
+    # notion of odd/even crossing with holes doesn't apply.  Second
+    # since each each point/triangle could be a different color, we'll
+    # have to write out a separate polygon for each.
+
+    # There is a lot of fanciness one could do here, like sort points into those that have
+    # the same color and put all of those into a single polygonbox.
+
+    # Here is an even more elaborate scheme which I won't use, but
+    # since it is a cute idea, it is worthy of comment space...  Put
+    # two triangles together to get a parallelogram. Compute the
+    # midpoint color in the enter and along all four sides. Then use
+    # two overlayed rectangular gradients each at opacity 0.5
+    # to go from the center to each of the (square) sides.
+
+    svg_data = ["<--DensityPlot-->"]
+    for index, triangle_coords in enumerate(self.lines):
+        triangle = [coords.pos() for coords in triangle_coords]
+        colors = [rgb.to_js() for rgb in self.vertex_colors[index]]
+        r = (colors[0][0] + colors[1][0] + colors[2][0]) / 3.0
+        g = (colors[0][1] + colors[1][1] + colors[2][1]) / 3.0
+        b = (colors[0][2] + colors[1][2] + colors[2][1]) / 3.0
+        mid_color = r"rgb(%f%%, %f%%, %f%%)" % (r * 100, g * 100, b * 100)
+
+        points = " ".join("%f,%f" % (point[0], point[1]) for point in triangle)
+        svg_data.append(f'<polygon points="{points}" style="fill: {mid_color}" />')
+
+    svg = "\n".join(svg_data)
+    # print("DensityPlot: ", svg)
+    return svg
+
+
+# No add_conversion_fn since this is a hacken-on polygonbox
 
 
 def filled_curve_box(self, **options):
@@ -163,7 +205,7 @@ def filled_curve_box(self, **options):
             transformed = [(k, [xy.pos() for xy in p]) for k, p in component]
             yield " ".join(_svg_bezier(*transformed)) + " Z"
 
-    # print("XXX FilledcurveBox", components)
+    # print("FilledCurveBox: ", components)
     return '<path d="%s" style="%s" fill-rule="evenodd"/>' % (
         " ".join(components()),
         style,
@@ -249,7 +291,7 @@ def graphics_elements(self, **options) -> str:
     """
     SVG Formatting for a list of graphics elements.
     """
-    result = []
+    result = ["<!--GraphicsElements-->"]
     for element in self.elements:
         format_fn = lookup_method(element, "svg")
         if format_fn is None:
@@ -258,7 +300,7 @@ def graphics_elements(self, **options) -> str:
             result.append(format_fn(element, **options))
 
     svg = "\n".join(result)
-    # print("graphics_elements", svg)
+    # print("GraphicsElements: ", svg)
     return svg
 
 
@@ -311,7 +353,7 @@ add_conversion_fn(InsetBox, inset_box)
 def line_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
-    svg = ""
+    svg = "<--LineBox-->\n"
     for line in self.lines:
         svg += '<polyline points="%s" style="%s" />' % (
             " ".join(["%f,%f" % coords.pos() for coords in line]),
@@ -333,7 +375,7 @@ def pointbox(self, **options) -> str:
     style = create_css(
         edge_color=self.edge_color, stroke_width=0, face_color=self.face_color
     )
-    svg = ""
+    svg = "<!--PointBox-->"
     for line in self.lines:
         for coords in line:
             svg += f"""
@@ -352,29 +394,17 @@ def polygonbox(self, **options):
     """
     line_width = self.style.get_line_width(face_element=True)
 
-    # I think face_color == None means the face color is transparent.
-    # FIXME: explain the relationshop between self.vertex_colors and self.face_color
-    if self.vertex_colors is None:
-        face_color = self.face_color
-    else:
-        face_color = None
+    # Hack alert. Currently we encode density plots as a polygon box where
+    # each polygon is a triangle with a color. We know we have this case because
+    # self.vertex_colors is not empty here.
+    if self.vertex_colors:
+        return density_plot_box(self, **options)
 
     style = create_css(
-        edge_color=self.edge_color, face_color=face_color, stroke_width=line_width
+        edge_color=self.edge_color, face_color=self.face_color, stroke_width=line_width
     )
 
-    svg = ""
-    if self.vertex_colors is not None:
-        mesh = []
-        for index, line in enumerate(self.lines):
-            data = [
-                [coords.pos(), color.to_js()]
-                for coords, color in zip(line, self.vertex_colors[index])
-            ]
-            mesh.append(data)
-        # FIXME: this is not valid SVG
-        svg += '<meshgradient data="%s" />' % json.dumps(mesh)
-
+    svg = "<!--PolygonBox-->\n"
     # WL says this about 2D polygons:
     #   A point is an element of the polygon if a ray from the point in any direction in the plane crosses the boundary line segments an odd number of times.
     #
@@ -386,8 +416,8 @@ def polygonbox(self, **options):
         svg += f"""
   <polygon points="{" ".join("%f,%f" % coords.pos() for coords in line)}"
            fill-rule="{fill_rule}"
-           style="{style}" />"""
-    # print("XXX PolygonBox", svg)
+           style="{style}" />\n"""
+    # print("PolygonBox: ", svg)
     return svg
 
 
@@ -435,7 +465,7 @@ def _roundbox(self, **options):
         ry,
         style,
     )
-    # print("_RoundBox", svg)
+    # print("_RoundBox: ", svg)
     return svg
 
 
