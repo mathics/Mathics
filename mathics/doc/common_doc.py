@@ -663,36 +663,71 @@ class MathicsMainDocumentation(Documentation):
                     for builtin in builtins
                     if not builtin.__class__.__name__.endswith("Box")
                 ]
-                for instance in sections:
-                    installed = True
-                    for package in getattr(instance, "requires", []):
-                        try:
-                            importlib.import_module(package)
-                        except ImportError:
-                            installed = False
-                            break
-                    if isinstance(instance, str):
-                        section = DocSection(
-                            chapter,
-                            instance,
-                            "",
-                            None,
-                            installed=installed,
-                        )
-                    else:
+                if module.__file__.endswith("__init__.py"):
+                    # We have a Guide Section.
+                    name = get_doc_name_from_module(module)
+                    guide_section = self.add_section(
+                        chapter, name, module, operator=None, is_guide=True
+                    )
+                    submodules = [
+                        value
+                        for value in module.__dict__.values()
+                        if isinstance(value, ModuleType)
+                    ]
+
+                    # Add sections in the guide section...
+                    for submodule in submodules:
                         # FIXME add an additional mechanism in the module
                         # to allow a docstring and indicate it is not to go in the
                         # user manual
-                        if instance.__doc__ is None:
+                        if submodule.__doc__ is None:
                             continue
-                        section = DocSection(
+                        if submodule in modules_seen:
+                            continue
+
+                        section = self.add_section(
                             chapter,
-                            strip_system_prefix(instance.get_name()),
-                            instance.__doc__,
-                            operator=instance.get_operator(),
-                            installed=installed,
+                            get_doc_name_from_module(submodule),
+                            submodule,
+                            operator=None,
+                            is_guide=False,
+                            in_guide=True,
                         )
-                    chapter.sections.append(section)
+                        modules_seen.add(submodule)
+                        guide_section.subsections.append(section)
+
+                        builtins = builtins_by_module[submodule.__name__]
+                        subsections = [
+                            builtin
+                            for builtin in builtins
+                            if not builtin.__class__.__name__.endswith("Box")
+                        ]
+                        for instance in subsections:
+                            modules_seen.add(instance)
+                            name = instance.get_name(short=True)
+                            self.add_subsection(
+                                chapter,
+                                section,
+                                instance.get_name(short=True),
+                                instance,
+                                instance.get_operator(),
+                            )
+                else:
+                    for instance in sections:
+                        if instance not in modules_seen:
+                            name = instance.get_name(short=True)
+                            self.add_section(
+                                chapter,
+                                instance.get_name(short=True),
+                                instance,
+                                instance.get_operator(),
+                                is_guide=False,
+                                in_guide=False,
+                            )
+                            modules_seen.add(instance)
+                            pass
+                        pass
+                    pass
                 builtin_part.chapters.append(chapter)
             self.parts.append(builtin_part)
 
@@ -703,6 +738,87 @@ class MathicsMainDocumentation(Documentation):
         for tests in self.get_tests():
             for test in tests.tests:
                 test.key = (tests.part, tests.chapter, tests.section, test.index)
+
+    def add_section(
+        self,
+        chapter,
+        section_name: str,
+        section_object,
+        operator,
+        is_guide: bool = False,
+        in_guide: bool = False,
+    ):
+        """
+        Adds a DocSection or DocGuideSection
+        object to the chapter, a DocChapter object.
+        "section_object" is either a Python module or a Class object instance.
+        """
+        installed = True
+        for package in getattr(section_object, "requires", []):
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                installed = False
+                break
+        # FIXME add an additional mechanism in the module
+        # to allow a docstring and indicate it is not to go in the
+        # user manual
+        if not section_object.__doc__:
+            return
+        if is_guide:
+            section = DocGuideSection(
+                chapter,
+                section_name,
+                section_object.__doc__,
+                section_object,
+                installed=installed,
+            )
+            chapter.guide_sections.append(section)
+        else:
+            section = DocSection(
+                chapter,
+                section_name,
+                section_object.__doc__,
+                operator=operator,
+                installed=installed,
+                in_guide=in_guide,
+            )
+            chapter.sections.append(section)
+
+        return section
+
+    def add_subsection(
+        self,
+        chapter,
+        section,
+        subsection_name: str,
+        instance,
+        operator=None,
+        in_guide=False,
+    ):
+        installed = True
+        for package in getattr(instance, "requires", []):
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                installed = False
+                break
+
+        # FIXME add an additional mechanism in the module
+        # to allow a docstring and indicate it is not to go in the
+        # user manual
+        if not instance.__doc__:
+            return
+        subsection = DocSubsection(
+            chapter,
+            section,
+            subsection_name,
+            instance.__doc__,
+            operator=operator,
+            installed=installed,
+            in_guide=in_guide,
+        )
+        section.subsections.append(subsection)
 
     def load_pymathics_doc(self):
         if self.pymathics_doc_loaded:
@@ -914,15 +1030,14 @@ class DocChapter(object):
                 intro,
                 short,
             )
-        return "".join(
-            [
-                "\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s"
-                % {"title": escape_latex(self.title), "intro": intro},
-                "\\chaptersections\n",
-                "\n\n".join(section.latex(output) for section in self.sections),
-                "\n\\chapterend\n",
-            ]
-        )
+        chapter_sections = [
+            ("\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s")
+            % {"title": escape_latex(self.title), "intro": intro},
+            "\\chaptersections\n",
+            "\n\n".join(section.latex(output) for section in self.sections),
+            "\n\\chapterend\n",
+        ]
+        return "".join(chapter_sections)
 
 
 class DocSection(object):
@@ -958,14 +1073,77 @@ class DocSection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        return (
-            "\n\n\\section*{%(title)s}%(index)s\n"
-            "\\sectionstart\n\n%(content)s\\sectionend"
-            "\\addcontentsline{toc}{section}{%(title)s}"
-        ) % {"title": title, "index": index, "content": self.doc.latex(output)}
+        sub = "sub" if self.in_guide else ""
+        content = self.doc.latex(output)
+        section_string = (
+            "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
+            "\\%(sub)ssectionstart\n\n%(content)s"
+            "\\addcontentsline{toc}{%(sub)ssection}{%(title)s}"
+            "%(sections)s"
+            "\\%(sub)ssectionend"
+        ) % {
+            "sub": "",  # sub,
+            "title": title,
+            "index": index,
+            "sections": "\n\n".join(
+                section.latex(output) for section in self.subsections
+            ),
+            "content": content,
+        }
+        return section_string
 
-    def get_collection(self):
-        return self.chapter.sections
+
+class DocGuideSection(DocSection):
+    """An object for a Documented Guide Section.
+    A Guide Section is part of a Chapter. "Colors" or "Special Functions"
+    are examples of Guide Sections, and each contains a number of Sections.
+    like NamedColors or Orthogonal Polynomials.
+    """
+
+    def __init__(
+        self, chapter: str, title: str, text: str, submodule, installed: bool = True
+    ):
+        self.chapter = chapter
+        self.doc = Doc(text, title)
+        self.in_guide = False
+        self.installed = installed
+        self.slug = slugify(title)
+        self.section = submodule
+        self.subsections = []
+        self.subsections_by_slug = {}
+        self.title = title
+
+        # FIXME: Sections never are operators. Subsections can have
+        # operators though.  Fix up the view and searching code not to
+        # look for the operator field of a section.
+        self.operator = False
+
+        if text.count("<dl>") != text.count("</dl>"):
+            raise ValueError(
+                "Missing opening or closing <dl> tag in "
+                "{} documentation".format(title)
+            )
+        # print("YYY Adding section", title)
+        chapter.sections_by_slug[self.slug] = self
+
+    def latex(self, output):
+        intro = self.doc.latex(output).strip()
+        if intro:
+            short = "short" if len(intro) < 300 else ""
+            intro = "\\begin{guidesectionintro%s}\n%s\n\n\\end{guidesectionintro%s}" % (
+                short,
+                intro,
+                short,
+            )
+        guide_sections = [
+            (
+                "\n\n\\section{%(title)s}\n\\sectionstart\n\n%(intro)s"
+                "\\addcontentsline{toc}{section}{%(title)s}"
+            )
+            % {"title": escape_latex(self.title), "intro": intro},
+            "\n\n".join(section.latex(output) for section in self.subsections),
+        ]
+        return "".join(guide_sections)
 
 
 class DocSubsection(object):
@@ -1017,6 +1195,34 @@ class DocSubsection(object):
 
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
+
+    def latex(self, output):
+        title = escape_latex(self.title)
+        if self.operator:
+            title += " (\\code{%s})" % escape_latex_code(self.operator)
+        index = (
+            "\index{%s}" % escape_latex(self.title)
+            if self.chapter.part.is_reference
+            else ""
+        )
+        if self.in_guide:
+            print("WOOT", self.title)
+        section_string = (
+            "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
+            "\\%(sub)ssectionstart\n\n%(content)s"
+            "\\addcontentsline{toc}{%(sub)ssection}{%(title)s}"
+            "%(sections)s"
+            "\\%(sub)ssectionend"
+        ) % {
+            "sub": "sub",
+            "title": title,
+            "index": index,
+            "content": self.doc.latex(output),
+            "sections": "\n\n".join(
+                section.latex(output) for section in self.subsections
+            ),
+        }
+        return section_string
 
 
 class Doc(object):
