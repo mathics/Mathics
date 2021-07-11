@@ -15,6 +15,7 @@ replaced by Sphinx and autodoc.
 
 import re
 from os import getenv, listdir
+from types import ModuleType
 import importlib
 import pkgutil
 
@@ -283,7 +284,7 @@ def escape_latex(text):
     def repl_char(match):
         char = match.group(1)
         return {
-            "^": "$^\wedge$",
+            "^": "$^\\wedge$",
         }[char]
 
     text = LATEX_CHAR_RE.sub(repl_char, text)
@@ -348,16 +349,16 @@ def escape_latex(text):
 
     text = ITALIC_RE.sub(repl_italic, text)
 
-    '''def repl_asy(match):
-        """
-        Ensure \begin{asy} and \end{asy} are on their own line,
-        but there shall be no extra empty lines
-        """
-        #tag = match.group(1)
-        #return '\n%s\n' % tag
-        #print "replace"
-        return '\\end{asy}\n\\begin{asy}'
-    text = LATEX_BETWEEN_ASY_RE.sub(repl_asy, text)'''
+    # def repl_asy(match):
+    #     """
+    #     Ensure \begin{asy} and \end{asy} are on their own line,
+    #     but there shall be no extra empty lines
+    #     """
+    #     #tag = match.group(1)
+    #     #return '\n%s\n' % tag
+    #     #print "replace"
+    #     return '\\end{asy}\n\\begin{asy}'
+    # text = LATEX_BETWEEN_ASY_RE.sub(repl_asy, text)
 
     def repl_subsection(match):
         return "\n\\subsection*{%s}\n" % match.group(1)
@@ -372,6 +373,17 @@ def escape_latex(text):
     text = post_sub(text, post_substitutions)
 
     return text
+
+
+def get_doc_name_from_module(module):
+    name = "???"
+    if module.__doc__:
+        lines = module.__doc__.strip()
+        if not lines:
+            name = module.__name__
+        else:
+            name = lines.split("\n")[0]
+    return name
 
 
 def post_process_latex(result):
@@ -509,31 +521,7 @@ class Tests(object):
         self.section, self.tests = section, tests
 
 
-class DocElement(object):
-    def href(self, ajax=False):
-        if ajax:
-            return "javascript:loadDoc('%s')" % self.get_url()
-        else:
-            return "/doc%s" % self.get_url()
-
-    def get_prev(self):
-        return self.get_prev_next()[0]
-
-    def get_next(self):
-        return self.get_prev_next()[1]
-
-    def get_collection(self):
-        return []
-
-    def get_prev_next(self):
-        collection = self.get_collection()
-        index = collection.index(self)
-        prev = collection[index - 1] if index > 0 else None
-        next = collection[index + 1] if index < len(collection) - 1 else None
-        return prev, next
-
-
-class Documentation(DocElement):
+class Documentation(object):
     def __str__(self):
         return "\n\n\n".join(str(part) for part in self.parts)
 
@@ -618,9 +606,11 @@ class MathicsMainDocumentation(Documentation):
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
                         if not chapter.doc:
-                            chapter.doc = Doc(pre_text)
+                            chapter.doc = Doc(pre_text, title)
                         if title:
-                            section = DocSection(chapter, title, text)
+                            section = DocSection(
+                                chapter, title, text, operator=None, installed=True
+                            )
                             chapter.sections.append(section)
                             subsections = SUBSECTION_RE.findall(text)
                             for subsection_title in subsections:
@@ -652,6 +642,7 @@ class MathicsMainDocumentation(Documentation):
             #  optional.optional_builtins_by_module, False)]:
 
             builtin_part = DocPart(self, title, is_reference=start)
+            modules_seen = set([])
             for module in modules:
                 # FIXME add an additional mechanism in the module
                 # to allow a docstring and indicate it is not to go in the
@@ -660,17 +651,19 @@ class MathicsMainDocumentation(Documentation):
                 # are documented (as it should be)!
                 if module.__doc__ is None:
                     continue
+                if module in modules_seen:
+                    continue
                 title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, Doc(text))
+                chapter = DocChapter(builtin_part, title, Doc(text, title))
                 builtins = builtins_by_module[module.__name__]
                 # FIXME: some Box routines, like RowBox *are*
                 # documented
-                section_names = [
+                sections = [
                     builtin
                     for builtin in builtins
                     if not builtin.__class__.__name__.endswith("Box")
                 ]
-                for instance in section_names:
+                for instance in sections:
                     installed = True
                     for package in getattr(instance, "requires", []):
                         try:
@@ -757,13 +750,11 @@ class PyMathicsDocumentation(Documentation):
             self.pymathicsmodule = importlib.import_module(module)
         except ImportError:
             print("Module does not exist")
-            mainfolder = ""
             self.pymathicsmodule = None
             self.parts = []
             return
 
         try:
-            mainfolder = self.pymathicsmodule.__path__[0]
             if "name" in self.pymathicsmodule.pymathics_version_data:
                 self.name = self.version = self.pymathicsmodule.pymathics_version_data[
                     "name"
@@ -774,7 +765,6 @@ class PyMathicsDocumentation(Documentation):
             self.author = self.pymathicsmodule.pymathics_version_data["author"]
         except (AttributeError, KeyError, IndexError):
             print(module + " is not a pymathics module.")
-            mainfolder = ""
             self.pymathicsmodule = None
             self.parts = []
             return
@@ -873,7 +863,7 @@ class PyMathicsDocumentation(Documentation):
                 test.key = (tests.part, tests.chapter, tests.section, test.index)
 
 
-class DocPart(DocElement):
+class DocPart(object):
     def __init__(self, doc, title, is_reference=False):
         self.doc = doc
         self.title = title
@@ -898,12 +888,11 @@ class DocPart(DocElement):
             result = "\n\n\\referencestart" + result
         return result
 
-    def get_collection(self):
-        return self.doc.parts
 
-
-class DocChapter(DocElement):
+class DocChapter(object):
     def __init__(self, part, title, doc=None):
+        self.doc = doc
+        self.guide_sections = []
         self.part = part
         self.title = title
         self.slug = slugify(title)
@@ -935,15 +924,15 @@ class DocChapter(DocElement):
             ]
         )
 
-    def get_collection(self):
-        return self.part.chapters
 
+class DocSection(object):
+    def __init__(
+        self, chapter, title, text, operator=None, installed=True, in_guide=False
+    ):
 
-class DocSection(DocElement):
-    def __init__(self, chapter, title, text, operator=None, installed=True):
-
-        self.doc = Doc(text)
+        self.doc = Doc(text, title)
         self.chapter = chapter
+        self.in_guide = in_guide
         self.installed = installed
         self.operator = operator
         self.slug = slugify(title)
@@ -979,7 +968,7 @@ class DocSection(DocElement):
         return self.chapter.sections
 
 
-class DocSubsection(DocElement):
+class DocSubsection(object):
     """An object for a Documented Subsection.
     A Subsection is part of a Section.
     """
@@ -990,6 +979,9 @@ class DocSubsection(DocElement):
         section,
         title,
         text,
+        operator=None,
+        installed=True,
+        in_guide=False,
     ):
         """
         Information that goes into a subsection object. This can be a written text, or
@@ -1005,12 +997,17 @@ class DocSubsection(DocElement):
         the "section" name for the class Read (the subsection) inside it.
         """
 
-        self.doc = Doc(text)
+        self.doc = Doc(text, title)
         self.chapter = chapter
+        self.in_guide = in_guide
+        self.installed = installed
+        self.operator = operator
 
         self.section = section
         self.slug = slugify(title)
+        self.subsections = []
         self.title = title
+
         if text.count("<dl>") != text.count("</dl>"):
             raise ValueError(
                 "Missing opening or closing <dl> tag in "
@@ -1021,14 +1018,11 @@ class DocSubsection(DocElement):
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
 
-    def get_collection(self) -> str:
-        """Return a list of subsections of the section."""
-        return self.section.subsections
-
 
 class Doc(object):
-    def __init__(self, doc):
+    def __init__(self, doc, title):
         self.items = []
+        self.title = title
         # remove commented lines
         doc = filter_comments(doc)
         # pre-substitute Python code because it might contain tests
