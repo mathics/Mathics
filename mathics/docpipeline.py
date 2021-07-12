@@ -198,9 +198,12 @@ def create_output(tests, output, format="tex"):
             continue
         key = test.key
         evaluation = Evaluation(
-            definitions, format=format, catch_interrupt=False, output=TestOutput()
+            definitions, format=format, catch_interrupt=True, output=TestOutput()
         )
-        result = evaluation.parse_evaluate(test.test)
+        try:
+            result = evaluation.parse_evaluate(test.test)
+        except:
+            result = None
         if result is None:
             result = []
         else:
@@ -272,6 +275,8 @@ def test_sections(
         print_and_log("%d test%s failed." % (failed, "s" if failed != 1 else ""))
     else:
         print_and_log("OK")
+    if generate_output and (failed == 0):
+        save_doc_data(output_tex)
 
 
 def open_ensure_dir(f, *args, **kwargs):
@@ -521,7 +526,10 @@ def main():
             documentation.load_pymathics_doc()
 
         test_sections(
-            sections, stop_on_failure=args.stop_on_failure, reload=args.reload
+            sections,
+            stop_on_failure=args.stop_on_failure,
+            generate_output=args.output,
+            reload=args.reload,
         )
     elif args.chapters:
         chapters = set(args.chapters.split(","))

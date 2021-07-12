@@ -516,9 +516,10 @@ def post_sub(text, post_substitutions):
 
 
 class Tests(object):
-    def __init__(self, part, chapter, section, tests):
+    # FIXME: add optional guide section
+    def __init__(self, part: str, chapter: str, section: str, doctests):
         self.part, self.chapter = part, chapter
-        self.section, self.tests = section, tests
+        self.section, self.tests = section, doctests
 
 
 class Documentation(object):
@@ -559,11 +560,28 @@ class Documentation(object):
                 tests = chapter.doc.get_tests()
                 if tests:
                     yield Tests(part.title, chapter.title, "", tests)
-                for section in chapter.sections:
+                for section in chapter.all_sections:
                     if section.installed:
-                        tests = section.doc.get_tests()
-                        if tests:
-                            yield Tests(part.title, chapter.title, section.title, tests)
+                        if isinstance(section, DocGuideSection):
+                            for docsection in section.subsections:
+                                for docsubsection in docsection.subsections:
+                                    for doctests in docsubsection.items:
+                                        doctest_list = list(doctests.get_tests())
+                                        for index, test in enumerate(doctest_list):
+                                            test.index = index
+                                        if doctest_list:
+                                            yield Tests(
+                                                section.chapter.part.title,
+                                                section.chapter.title,
+                                                docsubsection.title,
+                                                doctest_list,
+                                            )
+                        else:
+                            tests = section.doc.get_tests()
+                            if tests:
+                                yield Tests(
+                                    part.title, chapter.title, section.title, tests
+                                )
 
     def latex(self, output):
         parts = []
@@ -711,6 +729,7 @@ class MathicsMainDocumentation(Documentation):
                                 instance.get_name(short=True),
                                 instance,
                                 instance.get_operator(),
+                                in_guide=True,
                             )
                 else:
                     for instance in sections:
@@ -1021,6 +1040,10 @@ class DocChapter(object):
         sections = "\n".join(str(section) for section in self.sections)
         return f"= {self.title} =\n\n{sections}"
 
+    @property
+    def all_sections(self):
+        return sorted(self.sections + self.guide_sections)
+
     def latex(self, output):
         intro = self.doc.latex(output).strip()
         if intro:
@@ -1049,6 +1072,7 @@ class DocSection(object):
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
+        self.items = []  # tests in section when this is under a guide section
         self.operator = operator
         self.slug = slugify(title)
         self.subsections = []
@@ -1060,6 +1084,13 @@ class DocSection(object):
                 "{} documentation".format(title)
             )
         chapter.sections_by_slug[self.slug] = self
+
+    # Add __eq__ and __lt__ so we can sort Sections.
+    def __eq__(self, other):
+        return self.title == other.title
+
+    def __lt__(self, other):
+        return self.title < other.title
 
     def __str__(self):
         return f"== {self.title} ==\n{self.doc}"
@@ -1107,8 +1138,8 @@ class DocGuideSection(DocSection):
         self.doc = Doc(text, title)
         self.in_guide = False
         self.installed = installed
-        self.slug = slugify(title)
         self.section = submodule
+        self.slug = slugify(title)
         self.subsections = []
         self.subsections_by_slug = {}
         self.title = title
@@ -1125,6 +1156,17 @@ class DocGuideSection(DocSection):
             )
         # print("YYY Adding section", title)
         chapter.sections_by_slug[self.slug] = self
+
+    def get_tests(self):
+        # FIXME: The below is a little weird for Guide Sections.
+        # Figure out how to make this clearer.
+        # A guide section's subsection are Sections without the Guide.
+        # it is *their* subsections where we generally find tests.
+        for section in self.subsections:
+            for subsection in section.subsections:
+                # FIXME we are omitting the section title here...
+                for doctests in subsection.items:
+                    yield doctests.get_tests()
 
     def latex(self, output):
         intro = self.doc.latex(output).strip()
@@ -1186,6 +1228,13 @@ class DocSubsection(object):
         self.subsections = []
         self.title = title
 
+        if in_guide:
+            # Tests haven't been picked out yet from the doc string yet.
+            # Gather them here.
+            self.items = gather_tests(text)
+        else:
+            self.items = []
+
         if text.count("<dl>") != text.count("</dl>"):
             raise ValueError(
                 "Missing opening or closing <dl> tag in "
@@ -1205,8 +1254,6 @@ class DocSubsection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        if self.in_guide:
-            print("WOOT", self.title)
         section_string = (
             "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
             "\\%(sub)ssectionstart\n\n%(content)s"
@@ -1225,39 +1272,49 @@ class DocSubsection(object):
         return section_string
 
 
+def gather_tests(doc: str) -> list:
+    # Remove commented lines.
+    doc = filter_comments(doc)
+
+    # Remove leading <dl>...</dl>
+    doc = DL_RE.sub("", doc)
+
+    # pre-substitute Python code because it might contain tests
+    doc, post_substitutions = pre_sub(
+        PYTHON_RE, doc, lambda m: "<python>%s</python>" % m.group(1)
+    )
+
+    # HACK: Artificially construct a last testcase to get the "intertext"
+    # after the last (real) testcase. Ignore the test, of course.
+    doc += "\n>> test\n = test"
+    testcases = TESTCASE_RE.findall(doc)
+    tests = None
+    items = []
+    for index in range(len(testcases)):
+        testcase = list(testcases[index])
+        text = testcase.pop(0).strip()
+        if text:
+            if tests is not None:
+                items.append(tests)
+                tests = None
+            text = post_sub(text, post_substitutions)
+            items.append(DocText(text))
+            tests = None
+        if index < len(testcases) - 1:
+            test = DocTest(index, testcase)
+            if tests is None:
+                tests = DocTests()
+            tests.tests.append(test)
+        if tests is not None:
+            items.append(tests)
+            tests = None
+    return items
+
+
 class Doc(object):
     def __init__(self, doc, title):
-        self.items = []
         self.title = title
-        # remove commented lines
-        doc = filter_comments(doc)
-        # pre-substitute Python code because it might contain tests
-        doc, post_substitutions = pre_sub(
-            PYTHON_RE, doc, lambda m: "<python>%s</python>" % m.group(1)
-        )
-        # HACK: Artificially construct a last testcase to get the "intertext"
-        # after the last (real) testcase. Ignore the test, of course.
-        doc += "\n>> test\n = test"
-        testcases = TESTCASE_RE.findall(doc)
-        tests = None
-        for index in range(len(testcases)):
-            testcase = list(testcases[index])
-            text = testcase.pop(0).strip()
-            if text:
-                if tests is not None:
-                    self.items.append(tests)
-                    tests = None
-                text = post_sub(text, post_substitutions)
-                self.items.append(DocText(text))
-                tests = None
-            if index < len(testcases) - 1:
-                test = DocTest(index, testcase)
-                if tests is None:
-                    tests = DocTests()
-                tests.tests.append(test)
-            if tests is not None:
-                self.items.append(tests)
-                tests = None
+        self.items = gather_tests(doc)
 
     def __str__(self):
         return "\n".join(str(item) for item in self.items)
