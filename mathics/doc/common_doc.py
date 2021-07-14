@@ -1228,7 +1228,10 @@ class DocTest(object):
         text += "\\test{%s}\n" % escape_latex_code(self.test)
         if self.key is None:
             return ""
-        results = output[self.key]["results"]
+        output_for_key = output.get(self.key, None)
+        if output_for_key is None:
+            return ""
+        results = output_for_key.get("results", [])
         for result in results:
             for out in result["out"]:
                 kind = "message" if out["message"] else "print"
