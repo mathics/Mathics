@@ -1,4 +1,4 @@
-.PHONY: latex doc clean
+.PHONY: all clean doc doc-data latex
 
 PYTHON ?= python
 XETEX ?= xelatex
@@ -9,8 +9,8 @@ BASH ?= /bin/bash
 #: Default target: Make everything
 all doc: mathics.pdf
 
-doc_tex_data.pcl:
-	make -C ../../.. doc-data
+doc-data doc_tex_data.pcl:
+	(cd ../.. && $(PYTHON) docpipeline.py --output --keep-going)
 
 #: Build mathics PDF
 mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf doc_tex_data.pcl
@@ -26,8 +26,8 @@ logo-heptatom.pdf logo-text-nodrop.pdf:
 	(cd .. && $(BASH) ./images.sh)
 
 #: The build of the documentation which is derived from docstrings in the Python code
-documentation.tex:
-	(cd ../.. && $(PYTHON) docpipeline.py -ot)
+documentation.tex: doc_tex_data.pcl
+	$(PYTHON) ./doc2latex.py
 
 #: Same as mathics.pdf
 latex: mathics.pdf
@@ -37,6 +37,6 @@ clean:
 	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
 	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
 	rm -f mathics_*.* || true
-	rm -f mathics-*.* documentation.tex || true
+	rm -f mathics-*.* documentation.tex doc_tex_data.pcl || true
 	rm -f mathics.pdf mathics.dvi data_tex_data.pcl || true
 	rm -f mathics-test.pdf mathics-test.dvi || true

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Does 3 things which can either be done independently or
+Does 2 things which can either be done independently or
 as a pipeline:
 
 1. Extracts tests and runs them from static mdoc files and docstrings from Mathics built-in functions
 2. Creates/updates internal documentation data
-3. It writes the LaTeX file containing the entire User Manual
 """
 
 import os
@@ -394,18 +393,6 @@ def extract_doc_from_source(quiet=False, reload=False):
     save_doc_data(output_tex)
 
 
-def write_latex():
-    print(f"Load data {settings.DOC_TEX_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as output_file:
-        output_tex = pickle.load(output_file)
-
-    print(f"Write LaTeX {settings.DOC_LATEX_FILE}")
-    with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
-        content = documentation.latex(output_tex)
-        content = content.encode("utf-8")
-        doc.write(content)
-
-
 def main():
     from mathics.doc import documentation as main_mathics_documentation
 
@@ -484,24 +471,11 @@ def main():
         help="generate LaTeX pickled internal data without running tests; Can't be used with --section or --reload.",
     )
     parser.add_argument(
-        "--latex-only",
-        dest="latex_only",
-        action="store_true",
-        help="generate LaTeX output from internal data without running tests; assumes --reload",
-    )
-    parser.add_argument(
         "--reload",
         "-r",
         dest="reload",
         action="store_true",
         help="reload LaTeX pickled internal data, before possibly adding to it",
-    )
-    parser.add_argument(
-        "--tex",
-        "-t",
-        dest="tex",
-        action="store_true",
-        help="include LaTeX document generation file at the end of other steps",
     )
     parser.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
@@ -562,8 +536,6 @@ def main():
         if args.pymathics:
             print("Building pymathics documentation object")
             documentation.load_pymathics_doc()
-        elif args.latex_only:
-            write_latex()
         elif args.doc_only:
             extract_doc_from_source(
                 quiet=args.quiet,
@@ -584,9 +556,6 @@ def main():
             )
             end_time = datetime.now()
             print("Tests took ", end_time - start_time)
-    # If TeX output requested, try to build it:
-    if args.tex:
-        write_latex()
     if logfile:
         logfile.close()
 
