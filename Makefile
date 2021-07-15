@@ -72,8 +72,8 @@ gstest:
 
 
 #: Create data that is used to in Django docs and to build TeX PDF
-doc-data mathics/doc/tex/doc_tex_data.pcl: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
-	$(PYTHON) mathics/docpipeline.py -ot -k
+doc-data: mathics/builtin/*.py mathics/doc/documentation/*.mdoc mathics/doc/documentation/images/*
+	$(PYTHON) mathics/docpipeline.py --output --keep-going
 
 #: Run tests that appear in docstring in the code.
 doctest-workaround:
@@ -84,9 +84,9 @@ doctest-workaround:
 doctest:
 	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py $o
 
-#: Make Mathics PDF manual
-doc mathics.pdf: mathics/doc/tex/doc_tex_data.pcl
-	(cd mathics/doc/tex && $(MAKE) mathics.pdf)
+#: Make Mathics PDF manual via Asymptote and LaTeX
+doc:
+	(cd mathics/doc/tex && $(MAKE) doc)
 
 #: Remove ChangeLog
 rmChangeLog:
