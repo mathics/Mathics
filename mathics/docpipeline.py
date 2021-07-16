@@ -291,7 +291,7 @@ def open_ensure_dir(f, *args, **kwargs):
 
 def test_all(
     quiet=False,
-    generate_output=False,
+    generate_output=True,
     stop_on_failure=False,
     start_at=0,
     count=MAX_TESTS,

@@ -565,17 +565,21 @@ class Documentation(object):
                         if isinstance(section, DocGuideSection):
                             for docsection in section.subsections:
                                 for docsubsection in docsection.subsections:
+                                    doctest_list = []
+                                    index = 1
                                     for doctests in docsubsection.items:
-                                        doctest_list = list(doctests.get_tests())
-                                        for index, test in enumerate(doctest_list):
+                                        doctest_list += list(doctests.get_tests())
+                                        for test in doctest_list:
                                             test.index = index
-                                        if doctest_list:
-                                            yield Tests(
-                                                section.chapter.part.title,
-                                                section.chapter.title,
-                                                docsubsection.title,
-                                                doctest_list,
-                                            )
+                                            index += 1
+
+                                    if doctest_list:
+                                        yield Tests(
+                                            section.chapter.part.title,
+                                            section.chapter.title,
+                                            docsubsection.title,
+                                            doctest_list,
+                                        )
                         else:
                             tests = section.doc.get_tests()
                             if tests:
