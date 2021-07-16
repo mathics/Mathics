@@ -59,6 +59,7 @@ def print_and_log(*args):
 
 def write_latex(doc_data):
     from mathics.doc import documentation as main_mathics_documentation
+
     documentation = main_mathics_documentation
     print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
