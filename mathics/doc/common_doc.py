@@ -619,7 +619,7 @@ class MathicsMainDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.doc_dir = settings.DOC_DIR
-        self.tex_data_file = settings.DOC_TEX_DATA_PATH
+        self.tex_data_file = settings.DOC_DATA_PATH
         self.latex_file = settings.DOC_LATEX_FILE
         self.pymathics_doc_loaded = False
         files = listdir(self.doc_dir)

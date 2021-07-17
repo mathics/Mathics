@@ -26,7 +26,7 @@ def extract_doc_from_source(quiet=False):
     if not quiet:
         print(f"Extracting internal doc data for {version_string}")
     try:
-        return load_doc_data(settings.DOC_TEX_DATA_PATH)
+        return load_doc_data(settings.DOC_DATA_PATH)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
