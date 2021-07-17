@@ -35,10 +35,10 @@ SUBSECTION_RE = re.compile('(?s)<subsection title="(.*?)">')
 SUBSECTION_END_RE = re.compile("</subsection>")
 
 TESTCASE_RE = re.compile(
-    r"""(?mx)^"""
-    r"""((?:.|\n)*?)"""
-    r"""^\s*([>#SX])>[ ](.*)"""
-    r"""((?:\n\s*(?:[:|=.][ ]|\.).*)*)"""
+    r"""(?mx)^  # re.MULTILINE (multi-line match) and re.VERBOSE (readable regular expressions
+        ((?:.|\n)*?)
+        ^\s*([>#SX])>[ ](.*)  # test-code indicator
+        ((?:\n\s*(?:[:|=.][ ]|\.).*)*)  # test-code results"""
 )
 TESTCASE_OUT_RE = re.compile(r"^\s*([:|=])(.*)$")
 
@@ -1052,7 +1052,6 @@ class DocChapter(object):
         self.part = part
         self.title = title
         self.slug = slugify(title)
-        self.doc = doc
         self.sections = []
         self.sections_by_slug = {}
         part.chapters_by_slug[self.slug] = self
@@ -1397,18 +1396,6 @@ class XMLDoc(object):
         for item in self.items:
             tests.extend(item.get_tests())
         return tests
-
-    def html(self):
-        counters = {}
-        items = [item for item in self.items if not item.is_private()]
-        if len(items) and items[0].text.startswith(self.title):
-            # In module-style docstring tagging, the first line of the docstring is the section title.
-            # since that is tagged and shown as a title, it is redundant here is the section body.
-            # Or that is the intent. This code is a bit hacky.
-            items = items[1:]
-        return mark_safe(
-            "\n".join(item.html(counters) for item in items if not item.is_private())
-        )
 
     def latex(self, output):
         return "\n".join(

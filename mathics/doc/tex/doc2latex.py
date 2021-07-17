@@ -13,6 +13,7 @@ import mathics
 
 from mathics import version_string
 from mathics import settings
+from mathics.doc.common_doc import MathicsMainDocumentation
 
 # Global variables
 logfile = None
@@ -58,9 +59,7 @@ def print_and_log(*args):
 
 
 def write_latex(doc_data, quiet=False):
-    from mathics.doc import documentation as main_mathics_documentation
-
-    documentation = main_mathics_documentation
+    documentation = MathicsMainDocumentation()
     if not quiet:
         print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
@@ -71,7 +70,6 @@ def write_latex(doc_data, quiet=False):
 
 def main():
 
-    global documentation
     global logfile
 
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)

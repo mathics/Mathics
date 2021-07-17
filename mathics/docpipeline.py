@@ -25,6 +25,7 @@ from mathics.builtin import builtins_dict
 
 from mathics import version_string
 from mathics import settings
+from mathics.doc.common_doc import MathicsMainDocumentation
 
 builtins = builtins_dict()
 
@@ -399,14 +400,12 @@ def extract_doc_from_source(quiet=False, reload=False):
 
 
 def main():
-    from mathics.doc import documentation as main_mathics_documentation
-
     global definitions
     global documentation
     global logfile
     global check_partial_enlapsed_time
     definitions = Definitions(add_builtin=True)
-    documentation = main_mathics_documentation
+    documentation = MathicsMainDocumentation()
 
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
