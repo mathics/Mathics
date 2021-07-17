@@ -64,7 +64,7 @@ def write_latex(doc_data, quiet=False):
     if not quiet:
         print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
-        content = documentation.latex(doc_data, quiet)
+        content = documentation.latex(doc_data, quiet=quiet)
         content = content.encode("utf-8")
         doc.write(content)
 

@@ -594,7 +594,12 @@ class Documentation(object):
                                     part.title, chapter.title, section.title, tests
                                 )
 
-    def latex(self, output, quiet=False):
+    def latex(self, output, quiet=False) -> str:
+        """Render self as a LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         parts = []
         appendix = False
         for part in self.parts:
@@ -1026,7 +1031,12 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, output, quiet=False):
+    def latex(self, output, quiet=False) -> str:
+        """Render this Part object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
             "\n\n".join(chapter.latex(output, quiet) for chapter in self.chapters)
         )
@@ -1055,7 +1065,12 @@ class DocChapter(object):
     def all_sections(self):
         return sorted(self.sections + self.guide_sections)
 
-    def latex(self, output, quiet=False):
+    def latex(self, output, quiet=False) -> str:
+        """Render this Chapter object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         if not quiet:
             print(f"Formatting Chapter {self.title}")
         intro = self.doc.latex(output).strip()
@@ -1108,8 +1123,14 @@ class DocSection(object):
     def __str__(self):
         return f"== {self.title} ==\n{self.doc}"
 
-    def latex(self, output, quiet=False):
+    def latex(self, output, quiet=False) -> str:
+        """Render this Section object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         if not quiet:
+            # The leading spaces help show chapter level.
             print(f"  Formatting Section {self.title}")
         title = escape_latex(self.title)
         if self.operator:
@@ -1183,7 +1204,13 @@ class DocGuideSection(DocSection):
                     yield doctests.get_tests()
 
     def latex(self, output, quiet=False):
+        """Render this Guide Section object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         if not quiet:
+            # The leading spaces help show chapter level.
             print(f"  Formatting Guide Section {self.title}")
         intro = self.doc.latex(output).strip()
         if intro:
@@ -1262,12 +1289,14 @@ class DocSubsection(object):
         return f"=== {self.title} ===\n{self.doc}"
 
     def latex(self, output, quiet=False):
-        if not quiet:
-            print(f"    Formatting Subsection Section {self.title}")
-        if self.title in ("ArrayDepth", "Associations"):
-            from trepan.api import debug
+        """Render this Subsection object as LaTeX string and return that.
 
-            debug()
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
+        if not quiet:
+            # The leading spaces help show chapter, and section nesting level.
+            print(f"    Formatting Subsection Section {self.title}")
         title = escape_latex(self.title)
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
@@ -1300,7 +1329,7 @@ def gather_tests(doc: str) -> list:
     doc = filter_comments(doc)
 
     # Remove leading <dl>...</dl>
-    doc = DL_RE.sub("", doc)
+    # doc = DL_RE.sub("", doc)
 
     # pre-substitute Python code because it might contain tests
     doc, post_substitutions = pre_sub(
@@ -1526,7 +1555,7 @@ class DocTest(object):
     def __str__(self):
         return self.test
 
-    def latex(self, output):
+    def latex(self, output) -> str:
         text = ""
         text += "\\begin{testcase}\n"
         text += "\\test{%s}\n" % escape_latex_code(self.test)
