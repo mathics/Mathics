@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-
 r"""
-Attributes
+Attributes of Definitions
 
-There are several builtin-attributes which have a predefined meaning in \Mathics.
-However, you can set any symbol as an attribute, in contrast to \Mathematica.
+While a definition like 'cube[$x_$] = $x$^3' gives a way to specify <em>values</em> of a function, <em>attributes</em> allow a way to specify general properties of functions and symbols. This is independent of the parameters they take and the values they produce.
+
+The builtin-attributes having a predefined meaning in \Mathics which are described below.
+
+However in contrast to \Mathematica, you can set any symbol as an attribute.
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
