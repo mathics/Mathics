@@ -59,6 +59,7 @@ def print_and_log(*args):
 
 def write_latex(doc_data, quiet=False):
     from mathics.doc import documentation as main_mathics_documentation
+
     documentation = main_mathics_documentation
     if not quiet:
         print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
@@ -81,7 +82,11 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--quiet", "-q", dest="quiet", action="store_true", help="Don't show formatting progress tests"
+        "--quiet",
+        "-q",
+        dest="quiet",
+        action="store_true",
+        help="Don't show formatting progress tests",
     )
     args = parser.parse_args()
     doc_data = extract_doc_from_source(quiet=args.quiet)
