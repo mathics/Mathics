@@ -57,13 +57,13 @@ def print_and_log(*args):
         logfile.write(string)
 
 
-def write_latex(doc_data):
+def write_latex(doc_data, quiet=False):
     from mathics.doc import documentation as main_mathics_documentation
-
     documentation = main_mathics_documentation
-    print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
+    if not quiet:
+        print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
-        content = documentation.latex(doc_data)
+        content = documentation.latex(doc_data, quiet)
         content = content.encode("utf-8")
         doc.write(content)
 
@@ -81,7 +81,7 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
+        "--quiet", "-q", dest="quiet", action="store_true", help="Don't show formatting progress tests"
     )
     args = parser.parse_args()
     doc_data = extract_doc_from_source(quiet=args.quiet)

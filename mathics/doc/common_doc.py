@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
-"""A module which extracts LaTeX from documentation/*.mdoc and from Mathics modules,
-and has common documentation routines used by Django.
+"""A module and library which produces LaTeX from internal Python Pickle data
+and docstrings Mathics in mathics modules.
 
-It also extracts doctests as well.
+It currently also has common documentation routines used by Django.
+
+Command-line utility `../docpipeline.py` calls this as does
+getting usage strings from Mathics core.
 
 Running LaTeX, or the tests is done elsewhere.
 
-See also `../docpipeline.py` for a command-line interface that calls this.
-
 FIXME: Note too much of this code is duplicated in Django. Code should
-be moved for both to a separate package.  Also, this code should be
-replaced by Sphinx and autodoc.
+be moved for both to a separate package.
+
+More importantly, this code should be replaced by Sphinx and autodoc.
+Things are such a mess, that it is too difficult to contemplate this right now.
 """
 
 import re
@@ -32,11 +35,10 @@ SUBSECTION_RE = re.compile('(?s)<subsection title="(.*?)">')
 SUBSECTION_END_RE = re.compile("</subsection>")
 
 TESTCASE_RE = re.compile(
-    r"""(?mx)^
-    ((?:.|\n)*?)
-    ^\s*([>#SX])>[ ](.*)
-    ((?:\n\s*(?:[:|=.][ ]|\.).*)*)
-"""
+    r"""(?mx)^"""
+    r"""((?:.|\n)*?)"""
+    r"""^\s*([>#SX])>[ ](.*)"""
+    r"""((?:\n\s*(?:[:|=.][ ]|\.).*)*)"""
 )
 TESTCASE_OUT_RE = re.compile(r"^\s*([:|=])(.*)$")
 
@@ -565,6 +567,11 @@ class Documentation(object):
                         if isinstance(section, DocGuideSection):
                             for docsection in section.subsections:
                                 for docsubsection in docsection.subsections:
+                                    # FIXME: Something is weird here where tests for subsection items
+                                    # appear not as a collection but individually and need to be
+                                    # iterated below. Probably some other code is faulty and
+                                    # when fixed the below loop and collection into doctest_list[]
+                                    # will be removed.
                                     doctest_list = []
                                     index = 1
                                     for doctests in docsubsection.items:
@@ -587,11 +594,11 @@ class Documentation(object):
                                     part.title, chapter.title, section.title, tests
                                 )
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
         parts = []
         appendix = False
         for part in self.parts:
-            text = part.latex(output)
+            text = part.latex(output, quiet)
             if part.is_appendix and not appendix:
                 appendix = True
                 text = "\n\\appendix\n" + text
@@ -628,7 +635,7 @@ class MathicsMainDocumentation(Documentation):
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
                         if not chapter.doc:
-                            chapter.doc = Doc(pre_text, title)
+                            chapter.doc = XMLDoc(pre_text, title)
                         if title:
                             section = DocSection(
                                 chapter, title, text, operator=None, installed=True
@@ -676,7 +683,7 @@ class MathicsMainDocumentation(Documentation):
                 if module in modules_seen:
                     continue
                 title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, Doc(text, title))
+                chapter = DocChapter(builtin_part, title, XMLDoc(text, title))
                 builtins = builtins_by_module[module.__name__]
                 # FIXME: some Box routines, like RowBox *are*
                 # documented
@@ -958,7 +965,7 @@ class PyMathicsDocumentation(Documentation):
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
                         if not chapter.doc:
-                            chapter.doc = Doc(pre_text)
+                            chapter.doc = XMLDoc(pre_text)
                         if title:
                             section = DocSection(chapter, title, text)
                             chapter.sections.append(section)
@@ -972,7 +979,7 @@ class PyMathicsDocumentation(Documentation):
         # Builds the automatic documentation
         builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
         title, text = get_module_doc(self.pymathicsmodule)
-        chapter = DocChapter(builtin_part, title, Doc(text))
+        chapter = DocChapter(builtin_part, title, XMLDoc(text))
         for name in self.symbols:
             instance = self.symbols[name]
             installed = True
@@ -1019,9 +1026,9 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
-            "\n\n".join(chapter.latex(output) for chapter in self.chapters)
+            "\n\n".join(chapter.latex(output, quiet) for chapter in self.chapters)
         )
         if self.is_reference:
             result = "\n\n\\referencestart" + result
@@ -1048,7 +1055,9 @@ class DocChapter(object):
     def all_sections(self):
         return sorted(self.sections + self.guide_sections)
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
+        if not quiet:
+            print(f"Formatting Chapter {self.title}")
         intro = self.doc.latex(output).strip()
         if intro:
             short = "short" if len(intro) < 300 else ""
@@ -1061,7 +1070,7 @@ class DocChapter(object):
             ("\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s")
             % {"title": escape_latex(self.title), "intro": intro},
             "\\chaptersections\n",
-            "\n\n".join(section.latex(output) for section in self.sections),
+            "\n\n".join(section.latex(output, quiet) for section in self.sections),
             "\n\\chapterend\n",
         ]
         return "".join(chapter_sections)
@@ -1072,7 +1081,7 @@ class DocSection(object):
         self, chapter, title, text, operator=None, installed=True, in_guide=False
     ):
 
-        self.doc = Doc(text, title)
+        self.doc = XMLDoc(text, title)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
@@ -1099,7 +1108,9 @@ class DocSection(object):
     def __str__(self):
         return f"== {self.title} ==\n{self.doc}"
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
+        if not quiet:
+            print(f"  Formatting Section {self.title}")
         title = escape_latex(self.title)
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
@@ -1108,7 +1119,6 @@ class DocSection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        sub = "sub" if self.in_guide else ""
         content = self.doc.latex(output)
         section_string = (
             "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
@@ -1139,7 +1149,7 @@ class DocGuideSection(DocSection):
         self, chapter: str, title: str, text: str, submodule, installed: bool = True
     ):
         self.chapter = chapter
-        self.doc = Doc(text, title)
+        self.doc = XMLDoc(text, title)
         self.in_guide = False
         self.installed = installed
         self.section = submodule
@@ -1172,7 +1182,9 @@ class DocGuideSection(DocSection):
                 for doctests in subsection.items:
                     yield doctests.get_tests()
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
+        if not quiet:
+            print(f"  Formatting Guide Section {self.title}")
         intro = self.doc.latex(output).strip()
         if intro:
             short = "short" if len(intro) < 300 else ""
@@ -1221,7 +1233,7 @@ class DocSubsection(object):
         the "section" name for the class Read (the subsection) inside it.
         """
 
-        self.doc = Doc(text, title)
+        self.doc = XMLDoc(text, title)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
@@ -1249,7 +1261,13 @@ class DocSubsection(object):
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
 
-    def latex(self, output):
+    def latex(self, output, quiet=False):
+        if not quiet:
+            print(f"    Formatting Subsection Section {self.title}")
+        if self.title in ("ArrayDepth", "Associations"):
+            from trepan.api import debug
+
+            debug()
         title = escape_latex(self.title)
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
@@ -1258,6 +1276,7 @@ class DocSubsection(object):
             if self.chapter.part.is_reference
             else ""
         )
+        content = self.doc.latex(output)
         section_string = (
             "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
             "\\%(sub)ssectionstart\n\n%(content)s"
@@ -1268,9 +1287,9 @@ class DocSubsection(object):
             "sub": "sub",
             "title": title,
             "index": index,
-            "content": self.doc.latex(output),
+            "content": content,
             "sections": "\n\n".join(
-                section.latex(output) for section in self.subsections
+                section.latex(output, quiet) for section in self.subsections
             ),
         }
         return section_string
@@ -1315,7 +1334,13 @@ def gather_tests(doc: str) -> list:
     return items
 
 
-class Doc(object):
+class XMLDoc(object):
+    """A class to hold our internal XML-like format data.
+    The `latex()` method can turn this into LaTeX.
+
+    Mathics core also uses this in getting usage strings (`??`).
+    """
+
     def __init__(self, doc, title):
         self.title = title
         self.items = gather_tests(doc)
@@ -1343,6 +1368,18 @@ class Doc(object):
         for item in self.items:
             tests.extend(item.get_tests())
         return tests
+
+    def html(self):
+        counters = {}
+        items = [item for item in self.items if not item.is_private()]
+        if len(items) and items[0].text.startswith(self.title):
+            # In module-style docstring tagging, the first line of the docstring is the section title.
+            # since that is tagged and shown as a title, it is redundant here is the section body.
+            # Or that is the intent. This code is a bit hacky.
+            items = items[1:]
+        return mark_safe(
+            "\n".join(item.html(counters) for item in items if not item.is_private())
+        )
 
     def latex(self, output):
         return "\n".join(
