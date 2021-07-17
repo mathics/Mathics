@@ -1394,7 +1394,7 @@ class XMLDoc(object):
             # Note: we elide section.title
             key_prefix = (part.title, chapter.title, title)
         else:
-            key_prefix=None
+            key_prefix = None
 
         self.items = gather_tests(doc, key_prefix)
 
@@ -1535,7 +1535,6 @@ class DocTest(object):
             self.ignore = False
 
         self.test = strip_sentinal(testcase[1])
-
 
         self.key = None
         if key_prefix:

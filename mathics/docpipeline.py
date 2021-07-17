@@ -225,7 +225,7 @@ def test_chapters(
     failed = 0
     index = 0
     chapter_names = ", ".join(chapters)
-    print(f'Testing chapter(s): {chapter_names}')
+    print(f"Testing chapter(s): {chapter_names}")
     output_data = load_doc_data() if reload else {}
     prev_key = []
     for tests in documentation.get_tests():
@@ -265,7 +265,7 @@ def test_sections(
     failed = 0
     index = 0
     section_names = ", ".join(sections)
-    print(f'Testing section(s): {section_names}')
+    print(f"Testing section(s): {section_names}")
     sections |= {"$" + s for s in sections}
     output_data = load_doc_data() if reload else {}
     prev_key = []

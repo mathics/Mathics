@@ -1011,7 +1011,7 @@ class Transliterate(Builtin):
     # >> Transliterate["Алекса́ндр Пу́шкин"]
     #  = Aleksandr Pushkin
 
-    #> Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
+    # > Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
     # = meter gar te me phesi thea Thetis arguropeza
 
     requires = ("unidecode",)
