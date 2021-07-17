@@ -37,7 +37,7 @@ SUBSECTION_END_RE = re.compile("</subsection>")
 TESTCASE_RE = re.compile(
     r"""(?mx)^  # re.MULTILINE (multi-line match) and re.VERBOSE (readable regular expressions
         ((?:.|\n)*?)
-        ^\s*([>#SX])>[ ](.*)  # test-code indicator
+        ^\s+([>#SX])>[ ](.*)  # test-code indicator
         ((?:\n\s*(?:[:|=.][ ]|\.).*)*)  # test-code results"""
 )
 TESTCASE_OUT_RE = re.compile(r"^\s*([:|=])(.*)$")
@@ -639,8 +639,6 @@ class MathicsMainDocumentation(Documentation):
                     text += '<section title=""></section>'
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
-                        if not chapter.doc:
-                            chapter.doc = XMLDoc(pre_text, title)
                         if title:
                             section = DocSection(
                                 chapter, title, text, operator=None, installed=True
@@ -657,6 +655,11 @@ class MathicsMainDocumentation(Documentation):
                                 section.subsections.append(subsection)
                                 pass
                             pass
+                        else:
+                            section = None
+                        if not chapter.doc:
+                            chapter.doc = XMLDoc(pre_text, title, section)
+
                     part.chapters.append(chapter)
                 if file[0].isdigit():
                     self.parts.append(part)
@@ -688,7 +691,7 @@ class MathicsMainDocumentation(Documentation):
                 if module in modules_seen:
                     continue
                 title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, XMLDoc(text, title))
+                chapter = DocChapter(builtin_part, title, XMLDoc(text, title, None))
                 builtins = builtins_by_module[module.__name__]
                 # FIXME: some Box routines, like RowBox *are*
                 # documented
@@ -1095,7 +1098,6 @@ class DocSection(object):
         self, chapter, title, text, operator=None, installed=True, in_guide=False
     ):
 
-        self.doc = XMLDoc(text, title)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
@@ -1110,6 +1112,11 @@ class DocSection(object):
                 "Missing opening or closing <dl> tag in "
                 "{} documentation".format(title)
             )
+
+        # Needs to come after self.chapter is initialized since
+        # XMLDoc uses self.chapter.
+        self.doc = XMLDoc(text, title, self)
+
         chapter.sections_by_slug[self.slug] = self
 
     # Add __eq__ and __lt__ so we can sort Sections.
@@ -1169,7 +1176,7 @@ class DocGuideSection(DocSection):
         self, chapter: str, title: str, text: str, submodule, installed: bool = True
     ):
         self.chapter = chapter
-        self.doc = XMLDoc(text, title)
+        self.doc = XMLDoc(text, title, None)
         self.in_guide = False
         self.installed = installed
         self.section = submodule
@@ -1259,7 +1266,7 @@ class DocSubsection(object):
         the "section" name for the class Read (the subsection) inside it.
         """
 
-        self.doc = XMLDoc(text, title)
+        self.doc = XMLDoc(text, title, section)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
@@ -1296,6 +1303,7 @@ class DocSubsection(object):
         if not quiet:
             # The leading spaces help show chapter, and section nesting level.
             print(f"    Formatting Subsection Section {self.title}")
+
         title = escape_latex(self.title)
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
@@ -1323,9 +1331,9 @@ class DocSubsection(object):
         return section_string
 
 
-def gather_tests(doc: str) -> list:
+def gather_tests(doc: str, key_part=None) -> list:
     # Remove commented lines.
-    doc = filter_comments(doc)
+    doc = filter_comments(doc).strip("\s")
 
     # Remove leading <dl>...</dl>
     # doc = DL_RE.sub("", doc)
@@ -1339,6 +1347,15 @@ def gather_tests(doc: str) -> list:
     # after the last (real) testcase. Ignore the test, of course.
     doc += "\n>> test\n = test"
     testcases = TESTCASE_RE.findall(doc)
+
+    # Hack around pattern matching bugs
+    if len(testcases):
+        matches = DL_RE.match(doc)
+        if matches:
+            header = matches.group(0)
+            doc = DL_RE.sub("", doc)
+            testcases = [header] + TESTCASE_RE.findall(doc)
+
     tests = None
     items = []
     for index in range(len(testcases)):
@@ -1352,7 +1369,7 @@ def gather_tests(doc: str) -> list:
             items.append(DocText(text))
             tests = None
         if index < len(testcases) - 1:
-            test = DocTest(index, testcase)
+            test = DocTest(index, testcase, key_part)
             if tests is None:
                 tests = DocTests()
             tests.tests.append(test)
@@ -1369,9 +1386,17 @@ class XMLDoc(object):
     Mathics core also uses this in getting usage strings (`??`).
     """
 
-    def __init__(self, doc, title):
+    def __init__(self, doc, title, section):
         self.title = title
-        self.items = gather_tests(doc)
+        if section:
+            chapter = section.chapter
+            part = chapter.part
+            # Note: we elide section.title
+            key_prefix = (part.title, chapter.title, title)
+        else:
+            key_prefix=None
+
+        self.items = gather_tests(doc, key_prefix)
 
     def __str__(self):
         return "\n".join(str(item) for item in self.items)
@@ -1475,7 +1500,7 @@ class DocTest(object):
       `|`  Prints output.
     """
 
-    def __init__(self, index, testcase):
+    def __init__(self, index, testcase, key_prefix=None):
         def strip_sentinal(line):
             """Remove END_LINE_SENTINAL from the end of a line if it appears.
 
@@ -1511,7 +1536,10 @@ class DocTest(object):
 
         self.test = strip_sentinal(testcase[1])
 
+
         self.key = None
+        if key_prefix:
+            self.key = tuple(key_prefix + (index,))
         outs = testcase[2].splitlines()
         for line in outs:
             line = strip_sentinal(line)
@@ -1528,6 +1556,8 @@ class DocTest(object):
                     continue
 
                 match = TESTCASE_OUT_RE.match(line)
+                if not match:
+                    continue
                 symbol, text = match.group(1), match.group(2)
                 text = text.strip()
                 if symbol == "=":
@@ -1550,8 +1580,9 @@ class DocTest(object):
             return ""
         output_for_key = output.get(self.key, None)
         if output_for_key is None:
-            return ""
-        results = output_for_key.get("results", [])
+            results = []
+        else:
+            results = output_for_key.get("results", [])
         for result in results:
             for out in result["out"]:
                 kind = "message" if out["message"] else "print"
