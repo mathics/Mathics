@@ -7,9 +7,9 @@ doc strings. This data is stored in a way that facilitates:
 * running documentation tests
 * producing HTML-based documentation
 
-The Mathics core command-line utility `../docpipeline.py` accesses
-functions here, as do the Mathics-core routines for getting usage
-strings from Mathics function.
+The command-line utility `docpipeline.py` accesses functions here, as
+do the Mathics-core routines for getting usage strings from Mathics
+function.
 
 Mathics Django also uses this library for its HTML-based documentation.
 
@@ -22,20 +22,20 @@ More importantly, this code should be replaced by Sphinx and autodoc.
 Things are such a mess, that it is too difficult to contemplate this right now.
 """
 
-import re
-from os import getenv, listdir
-from types import ModuleType
 import importlib
 import pkgutil
+import re
 
-from mathics import settings
+from os import getenv, listdir
+from types import ModuleType
 
 from mathics import builtin
+from mathics import settings
 from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
 
-# These rebumar expressions pull out information from docstring or text in a file.
+# These regular expressions pull out information from docstring or text in a file.
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
 SUBSECTION_RE = re.compile('(?s)<subsection title="(.*?)">')
@@ -51,7 +51,7 @@ TESTCASE_OUT_RE = re.compile(r"^\s*([:|=])(.*)$")
 
 MATHICS_RE = re.compile(r"(?<!\\)\'(.*?)(?<!\\)\'")
 
-# preserve space before and after inline code variables
+# Preserve space before and after in-line code variables.
 LATEX_RE = re.compile(r"(\s?)\$(\w+?)\$(\s?)")
 
 DL_RE = re.compile(r"(?s)<dl>(.*?)</dl>")
@@ -172,8 +172,9 @@ def get_results_by_test(test_expr: str, full_test_key: list, doc_data: dict) -> 
                 if result:
                     # Already found something
                     print(
-                        f"Warning, multiple results appear under {search_key}; using first one"
+                        f"Warning, multiple results appear under {search_key}."
                     )
+                    return {}
                 else:
                     result = result_candidate
 

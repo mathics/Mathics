@@ -636,10 +636,12 @@ class RandomChoice(_RandomSelection):
         <dd>randomly picks a structured list of items from $items$ using weights $weights$.
     </dl>
 
+    Note: 'SeedRandom' is used below so we get repeatable "random" numbers that we can test.
+
     >> SeedRandom[42]
     >> RandomChoice[{a, b, c}]
      = {c}
-    >> SeedRandom[42]
+    >> SeedRandom[42] (* Set for repeatable randomness *)
     >> RandomChoice[{a, b, c}, 20]
      = {c, a, c, c, a, a, c, b, c, c, c, c, a, c, b, a, b, b, b, b}
     >> SeedRandom[42]
