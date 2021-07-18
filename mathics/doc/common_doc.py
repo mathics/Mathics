@@ -694,7 +694,6 @@ class Documentation(object):
             pass
         return
 
-
     def latex(self, doc_data: dict, quiet=False) -> str:
         """Render self as a LaTeX string and return that.
 
@@ -1243,7 +1242,7 @@ class DocSection(object):
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
         index = (
-            "\index{%s}" % escape_latex(self.title)
+            r"\index{%s}" % escape_latex(self.title)
             if self.chapter.part.is_reference
             else ""
         )
@@ -1409,7 +1408,7 @@ class DocSubsection(object):
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
         index = (
-            "\index{%s}" % escape_latex(self.title)
+            r"\index{%s}" % escape_latex(self.title)
             if self.chapter.part.is_reference
             else ""
         )
@@ -1434,7 +1433,7 @@ class DocSubsection(object):
 
 def gather_tests(doc: str, key_part=None) -> list:
     # Remove commented lines.
-    doc = filter_comments(doc).strip("\s")
+    doc = filter_comments(doc).strip(r"\s")
 
     # Remove leading <dl>...</dl>
     # doc = DL_RE.sub("", doc)

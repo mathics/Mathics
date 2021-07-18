@@ -203,7 +203,7 @@ def create_output(tests, doc_data, format="tex"):
         )
         try:
             result = evaluation.parse_evaluate(test.test)
-        except:
+        except:  # noqa
             result = None
         if result is None:
             result = []
