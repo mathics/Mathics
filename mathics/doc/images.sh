@@ -1,4 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+# The program create PDF images that can be imbedded into the
+# Mathics manual. In particular the Mathics heptatom logo and the
+# Mathics logo with a showdow that extends a little bit down forward right.
 mkdir -p "tex/images"
 
 for filename in $(find documentation/images/ -name "*.eps"); do
@@ -8,5 +11,5 @@ for filename in $(find documentation/images/ -name "*.eps"); do
 done
 
 for filename in images/logo-{heptatom,text-nodrop}.svg; do
-    inkscape $filename --export-pdf="tex/$(basename "$filename" .svg).pdf"
+    inkscape $filename --export-filename="tex/$(basename "$filename" .svg).pdf" --batch-process
 done
