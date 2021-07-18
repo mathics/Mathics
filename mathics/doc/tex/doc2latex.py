@@ -13,28 +13,30 @@ import mathics
 
 from mathics import version_string
 from mathics import settings
+from mathics.doc.common_doc import MathicsMainDocumentation
 
 # Global variables
-documentation = None
 logfile = None
 
 
-def load_doc_data():
-    print(f"Loading LaTeX internal data from {settings.DOC_TEX_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as tex_data_file:
-        return pickle.load(tex_data_file)
+def extract_doc_from_source(quiet=False):
+    """
+    Write internal (pickled) TeX doc mdoc files and example data in docstrings.
+    """
+    if not quiet:
+        print(f"Extracting internal doc data for {version_string}")
+    try:
+        return load_doc_data(settings.DOC_DATA_PATH)
+    except KeyboardInterrupt:
+        print("\nAborted.\n")
+        return
 
 
-def print_and_log(*args):
-    global logfile
-    a = [a.decode("utf-8") if isinstance(a, bytes) else a for a in args]
-    string = "".join(a)
-    print(string)
-    if logfile:
-        logfile.write(string)
-
-
-stars = "*" * 10
+def load_doc_data(data_path, quiet=False):
+    if not quiet:
+        print(f"Loading LaTeX internal data from {data_path}")
+    with open_ensure_dir(data_path, "rb") as doc_data_fp:
+        return pickle.load(doc_data_fp)
 
 
 def open_ensure_dir(f, *args, **kwargs):
@@ -47,39 +49,28 @@ def open_ensure_dir(f, *args, **kwargs):
         return open(f, *args, **kwargs)
 
 
-def extract_doc_from_source(quiet=False):
-    """
-    Write internal (pickled) TeX doc mdoc files and example data in docstrings.
-    """
+def print_and_log(*args):
+    global logfile
+    a = [a.decode("utf-8") if isinstance(a, bytes) else a for a in args]
+    string = "".join(a)
+    print(string)
+    if logfile:
+        logfile.write(string)
+
+
+def write_latex(doc_data, quiet=False):
+    documentation = MathicsMainDocumentation()
     if not quiet:
-        print(f"Extracting internal doc data for {version_string}")
-        print("This may take a while...")
-
-    try:
-        output_tex = load_doc_data()
-    except KeyboardInterrupt:
-        print("\nAborted.\n")
-        return
-
-
-def write_latex():
-    print(f"Load data {settings.DOC_TEX_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as output_file:
-        output_tex = pickle.load(output_file)
-
-    print(f"Write LaTeX {settings.DOC_LATEX_FILE}")
+        print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
     with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
-        content = documentation.latex(output_tex)
+        content = documentation.latex(doc_data, quiet=quiet)
         content = content.encode("utf-8")
         doc.write(content)
 
 
 def main():
-    from mathics.doc import documentation as main_mathics_documentation
 
-    global documentation
     global logfile
-    documentation = main_mathics_documentation
 
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
@@ -89,12 +80,15 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
-        "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
+        "--quiet",
+        "-q",
+        dest="quiet",
+        action="store_true",
+        help="Don't show formatting progress tests",
     )
     args = parser.parse_args()
-
-    extract_doc_from_source(quiet=args.quiet)
-    write_latex()
+    doc_data = extract_doc_from_source(quiet=args.quiet)
+    write_latex(doc_data)
 
 
 if __name__ == "__main__":

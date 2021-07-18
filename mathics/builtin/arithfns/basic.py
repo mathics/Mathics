@@ -46,8 +46,8 @@ from mathics.core.convert import from_sympy
 class CubeRoot(Builtin):
     """
     <dl>
-    <dt>'CubeRoot[$n$]'
-        <dd>finds the real-valued cube root of the given $n$.
+      <dt>'CubeRoot[$n$]'
+      <dd>finds the real-valued cube root of the given $n$.
     </dl>
 
     >> CubeRoot[16]

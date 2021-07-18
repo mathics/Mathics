@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
-"""A module which extracts LaTeX from documentation/*.mdoc and from Mathics modules,
-and has common documentation routines used by Django.
+"""A module and library that assists in retrieving and orgnaizing
+document data obtained either from static files or Python module/class
+doc strings. This data is stored in a way that facilitates:
 
-It also extracts doctests as well.
+* organizing information to produce a LaTeX file
+* running documentation tests
+* producing HTML-based documentation
 
-Running LaTeX, or the tests is done elsewhere.
+The Mathics core command-line utility `../docpipeline.py` accesses
+functions here, as do the Mathics-core routines for getting usage
+strings from Mathics function.
 
-See also `../docpipeline.py` for a command-line interface that calls this.
+Mathics Django also uses this library for its HTML-based documentation.
 
-FIXME: Note too much of this code is duplicated in Django. Code should
-be moved for both to a separate package.  Also, this code should be
-replaced by Sphinx and autodoc.
+Final assembly to a LateX file or running documentation tests is done elsewhere.
+
+FIXME: too much of this code is duplicated in Django. Code should
+be moved for both to a separate package.
+
+More importantly, this code should be replaced by Sphinx and autodoc.
+Things are such a mess, that it is too difficult to contemplate this right now.
 """
 
 import re
@@ -26,17 +35,17 @@ from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
 
+# These rebumar expressions pull out information from docstring or text in a file.
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
 SUBSECTION_RE = re.compile('(?s)<subsection title="(.*?)">')
 SUBSECTION_END_RE = re.compile("</subsection>")
 
 TESTCASE_RE = re.compile(
-    r"""(?mx)^
-    ((?:.|\n)*?)
-    ^\s*([>#SX])>[ ](.*)
-    ((?:\n\s*(?:[:|=.][ ]|\.).*)*)
-"""
+    r"""(?mx)^  # re.MULTILINE (multi-line match) and re.VERBOSE (readable regular expressions
+        ((?:.|\n)*?)
+        ^\s+([>#SX])>[ ](.*)  # test-code indicator
+        ((?:\n\s*(?:[:|=.][ ]|\.).*)*)  # test-code results"""
 )
 TESTCASE_OUT_RE = re.compile(r"^\s*([:|=])(.*)$")
 
@@ -84,6 +93,7 @@ LATEX_ARRAY_RE = re.compile(
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
+# These are all of the XML/HTML-like tags that documentation supports.
 ALLOWED_TAGS = (
     "dl",
     "dd",
@@ -118,7 +128,85 @@ SPECIAL_COMMANDS = {
 }
 
 
-def get_submodule_names(object):
+# Used for getting test results by test expresson and chapter/section information.
+test_result_map = {}
+
+
+def get_results_by_test(test_expr: str, full_test_key: list, doc_data: dict) -> list:
+    """
+    Sometimes test numbering is off, either due to bugs or changes since the
+    data was read.
+
+    Here, we compensate for this by looking up the test by its chapter and section name
+    portion stored in `full_test_key` along with the and the test expresion data
+    stored in `test_expr`.
+
+    This new key is looked up in `test_result_map` its value is returned.
+
+    `doc_data` is only first time this is called to populate `test_result_map`.
+    """
+
+    # Strip off the test index form new key with this and the test string.
+    # Add to any existing value for that "result". This is now what we want to
+    # use as a tee in test_result_map to look for.
+    test_section = list(full_test_key)[:-1]
+    search_key = tuple(test_section)
+
+    if not test_result_map:
+        # Populate test_result_map from doc_data
+        for key, result in doc_data.items():
+            test_section = list(key)[:-1]
+            new_test_key = tuple(test_section)
+            next_result = test_result_map.get(new_test_key, None)
+            if next_result:
+                next_result.append(result)
+            else:
+                next_result = [result]
+            test_result_map[new_test_key] = next_result
+
+    results = test_result_map.get(search_key, None)
+    result = {}
+    if results:
+        for result_candidate in results:
+            if result_candidate["query"] == test_expr:
+                if result:
+                    # Already found something
+                    print(
+                        f"Warning, multiple results appear under {search_key}; using first one"
+                    )
+                else:
+                    result = result_candidate
+
+    return result
+
+
+def get_submodule_names(object) -> list:
+    """Many builtins are organized into modules which, from a documentation
+    standpoint, are like Mathematica Online Guide Docs.
+
+    "List Functions", "Colors", or "Distance and Similarity Measures"
+    are some examples Guide Documents group group various Bultin Functions,
+    under submodules relate to that general classification.
+
+    Here, we want to return a list of the Python modules under a "Guide Doc"
+    module.
+
+    As an example of a "Guide Doc" and its submodules, consider the
+    module named mathics.builtin.colors. It collects code and documentation pertaining
+    to the builtin functions that would be found in the Guide documenation for "Colors".
+
+    The `mathics.builtin.colors` module has a submodule
+    `mathics.builtin.colors.named_colors`.
+
+    The builtin functions defined in `named_colors` then are those found in the
+    "Named Colors" group of the "Colors" Guide Doc.
+
+    So in this example then, in the list the modules returned for
+    Python module `mathics.builtin.colors` would be the
+    `mathics.builtin.colors.named_colors` module which contains the
+    definition and docs for the "Named Colors" Mathics Bultin
+    Functions.
+    """
     modpkgs = []
     if hasattr(object, "__path__"):
         for importer, modname, ispkg in pkgutil.iter_modules(object.__path__):
@@ -127,7 +215,9 @@ def get_submodule_names(object):
     return modpkgs
 
 
-def filter_comments(doc):
+def filter_comments(doc: str) -> str:
+    """Remove docstring documentation comments. These are lines
+    that start with ##"""
     return "\n".join(
         line for line in doc.splitlines() if not line.lstrip().startswith("##")
     )
@@ -516,9 +606,10 @@ def post_sub(text, post_substitutions):
 
 
 class Tests(object):
-    def __init__(self, part, chapter, section, tests):
+    # FIXME: add optional guide section
+    def __init__(self, part: str, chapter: str, section: str, doctests):
         self.part, self.chapter = part, chapter
-        self.section, self.tests = section, tests
+        self.section, self.tests = section, doctests
 
 
 class Documentation(object):
@@ -559,17 +650,48 @@ class Documentation(object):
                 tests = chapter.doc.get_tests()
                 if tests:
                     yield Tests(part.title, chapter.title, "", tests)
-                for section in chapter.sections:
+                for section in chapter.all_sections:
                     if section.installed:
-                        tests = section.doc.get_tests()
-                        if tests:
-                            yield Tests(part.title, chapter.title, section.title, tests)
+                        if isinstance(section, DocGuideSection):
+                            for docsection in section.subsections:
+                                for docsubsection in docsection.subsections:
+                                    # FIXME: Something is weird here where tests for subsection items
+                                    # appear not as a collection but individually and need to be
+                                    # iterated below. Probably some other code is faulty and
+                                    # when fixed the below loop and collection into doctest_list[]
+                                    # will be removed.
+                                    doctest_list = []
+                                    index = 1
+                                    for doctests in docsubsection.items:
+                                        doctest_list += list(doctests.get_tests())
+                                        for test in doctest_list:
+                                            test.index = index
+                                            index += 1
 
-    def latex(self, output):
+                                    if doctest_list:
+                                        yield Tests(
+                                            section.chapter.part.title,
+                                            section.chapter.title,
+                                            docsubsection.title,
+                                            doctest_list,
+                                        )
+                        else:
+                            tests = section.doc.get_tests()
+                            if tests:
+                                yield Tests(
+                                    part.title, chapter.title, section.title, tests
+                                )
+
+    def latex(self, doc_data: dict, quiet=False) -> str:
+        """Render self as a LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         parts = []
         appendix = False
         for part in self.parts:
-            text = part.latex(output)
+            text = part.latex(doc_data, quiet)
             if part.is_appendix and not appendix:
                 appendix = True
                 text = "\n\\appendix\n" + text
@@ -585,7 +707,7 @@ class MathicsMainDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.doc_dir = settings.DOC_DIR
-        self.tex_data_file = settings.DOC_TEX_DATA_PATH
+        self.tex_data_file = settings.DOC_DATA_PATH
         self.latex_file = settings.DOC_LATEX_FILE
         self.pymathics_doc_loaded = False
         files = listdir(self.doc_dir)
@@ -605,8 +727,6 @@ class MathicsMainDocumentation(Documentation):
                     text += '<section title=""></section>'
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
-                        if not chapter.doc:
-                            chapter.doc = Doc(pre_text, title)
                         if title:
                             section = DocSection(
                                 chapter, title, text, operator=None, installed=True
@@ -623,6 +743,11 @@ class MathicsMainDocumentation(Documentation):
                                 section.subsections.append(subsection)
                                 pass
                             pass
+                        else:
+                            section = None
+                        if not chapter.doc:
+                            chapter.doc = XMLDoc(pre_text, title, section)
+
                     part.chapters.append(chapter)
                 if file[0].isdigit():
                     self.parts.append(part)
@@ -654,7 +779,7 @@ class MathicsMainDocumentation(Documentation):
                 if module in modules_seen:
                     continue
                 title, text = get_module_doc(module)
-                chapter = DocChapter(builtin_part, title, Doc(text, title))
+                chapter = DocChapter(builtin_part, title, XMLDoc(text, title, None))
                 builtins = builtins_by_module[module.__name__]
                 # FIXME: some Box routines, like RowBox *are*
                 # documented
@@ -663,36 +788,72 @@ class MathicsMainDocumentation(Documentation):
                     for builtin in builtins
                     if not builtin.__class__.__name__.endswith("Box")
                 ]
-                for instance in sections:
-                    installed = True
-                    for package in getattr(instance, "requires", []):
-                        try:
-                            importlib.import_module(package)
-                        except ImportError:
-                            installed = False
-                            break
-                    if isinstance(instance, str):
-                        section = DocSection(
-                            chapter,
-                            instance,
-                            "",
-                            None,
-                            installed=installed,
-                        )
-                    else:
+                if module.__file__.endswith("__init__.py"):
+                    # We have a Guide Section.
+                    name = get_doc_name_from_module(module)
+                    guide_section = self.add_section(
+                        chapter, name, module, operator=None, is_guide=True
+                    )
+                    submodules = [
+                        value
+                        for value in module.__dict__.values()
+                        if isinstance(value, ModuleType)
+                    ]
+
+                    # Add sections in the guide section...
+                    for submodule in submodules:
                         # FIXME add an additional mechanism in the module
                         # to allow a docstring and indicate it is not to go in the
                         # user manual
-                        if instance.__doc__ is None:
+                        if submodule.__doc__ is None:
                             continue
-                        section = DocSection(
+                        if submodule in modules_seen:
+                            continue
+
+                        section = self.add_section(
                             chapter,
-                            strip_system_prefix(instance.get_name()),
-                            instance.__doc__,
-                            operator=instance.get_operator(),
-                            installed=installed,
+                            get_doc_name_from_module(submodule),
+                            submodule,
+                            operator=None,
+                            is_guide=False,
+                            in_guide=True,
                         )
-                    chapter.sections.append(section)
+                        modules_seen.add(submodule)
+                        guide_section.subsections.append(section)
+
+                        builtins = builtins_by_module[submodule.__name__]
+                        subsections = [
+                            builtin
+                            for builtin in builtins
+                            if not builtin.__class__.__name__.endswith("Box")
+                        ]
+                        for instance in subsections:
+                            modules_seen.add(instance)
+                            name = instance.get_name(short=True)
+                            self.add_subsection(
+                                chapter,
+                                section,
+                                instance.get_name(short=True),
+                                instance,
+                                instance.get_operator(),
+                                in_guide=True,
+                            )
+                else:
+                    for instance in sections:
+                        if instance not in modules_seen:
+                            name = instance.get_name(short=True)
+                            self.add_section(
+                                chapter,
+                                instance.get_name(short=True),
+                                instance,
+                                instance.get_operator(),
+                                is_guide=False,
+                                in_guide=False,
+                            )
+                            modules_seen.add(instance)
+                            pass
+                        pass
+                    pass
                 builtin_part.chapters.append(chapter)
             self.parts.append(builtin_part)
 
@@ -703,6 +864,87 @@ class MathicsMainDocumentation(Documentation):
         for tests in self.get_tests():
             for test in tests.tests:
                 test.key = (tests.part, tests.chapter, tests.section, test.index)
+
+    def add_section(
+        self,
+        chapter,
+        section_name: str,
+        section_object,
+        operator,
+        is_guide: bool = False,
+        in_guide: bool = False,
+    ):
+        """
+        Adds a DocSection or DocGuideSection
+        object to the chapter, a DocChapter object.
+        "section_object" is either a Python module or a Class object instance.
+        """
+        installed = True
+        for package in getattr(section_object, "requires", []):
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                installed = False
+                break
+        # FIXME add an additional mechanism in the module
+        # to allow a docstring and indicate it is not to go in the
+        # user manual
+        if not section_object.__doc__:
+            return
+        if is_guide:
+            section = DocGuideSection(
+                chapter,
+                section_name,
+                section_object.__doc__,
+                section_object,
+                installed=installed,
+            )
+            chapter.guide_sections.append(section)
+        else:
+            section = DocSection(
+                chapter,
+                section_name,
+                section_object.__doc__,
+                operator=operator,
+                installed=installed,
+                in_guide=in_guide,
+            )
+            chapter.sections.append(section)
+
+        return section
+
+    def add_subsection(
+        self,
+        chapter,
+        section,
+        subsection_name: str,
+        instance,
+        operator=None,
+        in_guide=False,
+    ):
+        installed = True
+        for package in getattr(instance, "requires", []):
+            try:
+                importlib.import_module(package)
+            except ImportError:
+                installed = False
+                break
+
+        # FIXME add an additional mechanism in the module
+        # to allow a docstring and indicate it is not to go in the
+        # user manual
+        if not instance.__doc__:
+            return
+        subsection = DocSubsection(
+            chapter,
+            section,
+            subsection_name,
+            instance.__doc__,
+            operator=operator,
+            installed=installed,
+            in_guide=in_guide,
+        )
+        section.subsections.append(subsection)
 
     def load_pymathics_doc(self):
         if self.pymathics_doc_loaded:
@@ -819,7 +1061,7 @@ class PyMathicsDocumentation(Documentation):
                     sections = SECTION_RE.findall(text)
                     for pre_text, title, text in sections:
                         if not chapter.doc:
-                            chapter.doc = Doc(pre_text)
+                            chapter.doc = XMLDoc(pre_text)
                         if title:
                             section = DocSection(chapter, title, text)
                             chapter.sections.append(section)
@@ -833,7 +1075,7 @@ class PyMathicsDocumentation(Documentation):
         # Builds the automatic documentation
         builtin_part = DocPart(self, "Pymathics Modules", is_reference=True)
         title, text = get_module_doc(self.pymathicsmodule)
-        chapter = DocChapter(builtin_part, title, Doc(text))
+        chapter = DocChapter(builtin_part, title, XMLDoc(text))
         for name in self.symbols:
             instance = self.symbols[name]
             installed = True
@@ -880,9 +1122,14 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, output):
+    def latex(self, doc_data: dict, quiet=False) -> str:
+        """Render this Part object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
-            "\n\n".join(chapter.latex(output) for chapter in self.chapters)
+            "\n\n".join(chapter.latex(doc_data, quiet) for chapter in self.chapters)
         )
         if self.is_reference:
             result = "\n\n\\referencestart" + result
@@ -896,7 +1143,6 @@ class DocChapter(object):
         self.part = part
         self.title = title
         self.slug = slugify(title)
-        self.doc = doc
         self.sections = []
         self.sections_by_slug = {}
         part.chapters_by_slug[self.slug] = self
@@ -905,8 +1151,19 @@ class DocChapter(object):
         sections = "\n".join(str(section) for section in self.sections)
         return f"= {self.title} =\n\n{sections}"
 
-    def latex(self, output):
-        intro = self.doc.latex(output).strip()
+    @property
+    def all_sections(self):
+        return sorted(self.sections + self.guide_sections)
+
+    def latex(self, doc_data: dict, quiet=False) -> str:
+        """Render this Chapter object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
+        if not quiet:
+            print(f"Formatting Chapter {self.title}")
+        intro = self.doc.latex(doc_data).strip()
         if intro:
             short = "short" if len(intro) < 300 else ""
             intro = "\\begin{chapterintro%s}\n%s\n\n\\end{chapterintro%s}" % (
@@ -914,15 +1171,14 @@ class DocChapter(object):
                 intro,
                 short,
             )
-        return "".join(
-            [
-                "\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s"
-                % {"title": escape_latex(self.title), "intro": intro},
-                "\\chaptersections\n",
-                "\n\n".join(section.latex(output) for section in self.sections),
-                "\n\\chapterend\n",
-            ]
-        )
+        chapter_sections = [
+            ("\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s")
+            % {"title": escape_latex(self.title), "intro": intro},
+            "\\chaptersections\n",
+            "\n\n".join(section.latex(doc_data, quiet) for section in self.sections),
+            "\n\\chapterend\n",
+        ]
+        return "".join(chapter_sections)
 
 
 class DocSection(object):
@@ -930,10 +1186,10 @@ class DocSection(object):
         self, chapter, title, text, operator=None, installed=True, in_guide=False
     ):
 
-        self.doc = Doc(text, title)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
+        self.items = []  # tests in section when this is under a guide section
         self.operator = operator
         self.slug = slugify(title)
         self.subsections = []
@@ -944,12 +1200,32 @@ class DocSection(object):
                 "Missing opening or closing <dl> tag in "
                 "{} documentation".format(title)
             )
+
+        # Needs to come after self.chapter is initialized since
+        # XMLDoc uses self.chapter.
+        self.doc = XMLDoc(text, title, self)
+
         chapter.sections_by_slug[self.slug] = self
+
+    # Add __eq__ and __lt__ so we can sort Sections.
+    def __eq__(self, other):
+        return self.title == other.title
+
+    def __lt__(self, other):
+        return self.title < other.title
 
     def __str__(self):
         return f"== {self.title} ==\n{self.doc}"
 
-    def latex(self, output):
+    def latex(self, doc_data: dict, quiet=False) -> str:
+        """Render this Section object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
+        if not quiet:
+            # The leading spaces help show chapter level.
+            print(f"  Formatting Section {self.title}")
         title = escape_latex(self.title)
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
@@ -958,14 +1234,95 @@ class DocSection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        return (
-            "\n\n\\section*{%(title)s}%(index)s\n"
-            "\\sectionstart\n\n%(content)s\\sectionend"
-            "\\addcontentsline{toc}{section}{%(title)s}"
-        ) % {"title": title, "index": index, "content": self.doc.latex(output)}
+        content = self.doc.latex(doc_data)
+        section_string = (
+            "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
+            "\\%(sub)ssectionstart\n\n%(content)s"
+            "\\addcontentsline{toc}{%(sub)ssection}{%(title)s}"
+            "%(sections)s"
+            "\\%(sub)ssectionend"
+        ) % {
+            "sub": "",  # sub,
+            "title": title,
+            "index": index,
+            "sections": "\n\n".join(
+                section.latex(doc_data) for section in self.subsections
+            ),
+            "content": content,
+        }
+        return section_string
 
-    def get_collection(self):
-        return self.chapter.sections
+
+class DocGuideSection(DocSection):
+    """An object for a Documented Guide Section.
+    A Guide Section is part of a Chapter. "Colors" or "Special Functions"
+    are examples of Guide Sections, and each contains a number of Sections.
+    like NamedColors or Orthogonal Polynomials.
+    """
+
+    def __init__(
+        self, chapter: str, title: str, text: str, submodule, installed: bool = True
+    ):
+        self.chapter = chapter
+        self.doc = XMLDoc(text, title, None)
+        self.in_guide = False
+        self.installed = installed
+        self.section = submodule
+        self.slug = slugify(title)
+        self.subsections = []
+        self.subsections_by_slug = {}
+        self.title = title
+
+        # FIXME: Sections never are operators. Subsections can have
+        # operators though.  Fix up the view and searching code not to
+        # look for the operator field of a section.
+        self.operator = False
+
+        if text.count("<dl>") != text.count("</dl>"):
+            raise ValueError(
+                "Missing opening or closing <dl> tag in "
+                "{} documentation".format(title)
+            )
+        # print("YYY Adding section", title)
+        chapter.sections_by_slug[self.slug] = self
+
+    def get_tests(self):
+        # FIXME: The below is a little weird for Guide Sections.
+        # Figure out how to make this clearer.
+        # A guide section's subsection are Sections without the Guide.
+        # it is *their* subsections where we generally find tests.
+        for section in self.subsections:
+            for subsection in section.subsections:
+                # FIXME we are omitting the section title here...
+                for doctests in subsection.items:
+                    yield doctests.get_tests()
+
+    def latex(self, doc_data: dict, quiet=False):
+        """Render this Guide Section object as LaTeX string and return that.
+
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
+        if not quiet:
+            # The leading spaces help show chapter level.
+            print(f"  Formatting Guide Section {self.title}")
+        intro = self.doc.latex(doc_data).strip()
+        if intro:
+            short = "short" if len(intro) < 300 else ""
+            intro = "\\begin{guidesectionintro%s}\n%s\n\n\\end{guidesectionintro%s}" % (
+                short,
+                intro,
+                short,
+            )
+        guide_sections = [
+            (
+                "\n\n\\section{%(title)s}\n\\sectionstart\n\n%(intro)s"
+                "\\addcontentsline{toc}{section}{%(title)s}"
+            )
+            % {"title": escape_latex(self.title), "intro": intro},
+            "\n\n".join(section.latex(doc_data) for section in self.subsections),
+        ]
+        return "".join(guide_sections)
 
 
 class DocSubsection(object):
@@ -997,7 +1354,7 @@ class DocSubsection(object):
         the "section" name for the class Read (the subsection) inside it.
         """
 
-        self.doc = Doc(text, title)
+        self.doc = XMLDoc(text, title, section)
         self.chapter = chapter
         self.in_guide = in_guide
         self.installed = installed
@@ -1007,6 +1364,13 @@ class DocSubsection(object):
         self.slug = slugify(title)
         self.subsections = []
         self.title = title
+
+        if in_guide:
+            # Tests haven't been picked out yet from the doc string yet.
+            # Gather them here.
+            self.items = gather_tests(text)
+        else:
+            self.items = []
 
         if text.count("<dl>") != text.count("</dl>"):
             raise ValueError(
@@ -1018,40 +1382,101 @@ class DocSubsection(object):
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
 
+    def latex(self, doc_data: dict, quiet=False):
+        """Render this Subsection object as LaTeX string and return that.
 
-class Doc(object):
-    def __init__(self, doc, title):
-        self.items = []
-        self.title = title
-        # remove commented lines
-        doc = filter_comments(doc)
-        # pre-substitute Python code because it might contain tests
-        doc, post_substitutions = pre_sub(
-            PYTHON_RE, doc, lambda m: "<python>%s</python>" % m.group(1)
+        `output` is not used here but passed along to the bottom-most
+        level in getting expected test results.
+        """
+        if not quiet:
+            # The leading spaces help show chapter, and section nesting level.
+            print(f"    Formatting Subsection Section {self.title}")
+
+        title = escape_latex(self.title)
+        if self.operator:
+            title += " (\\code{%s})" % escape_latex_code(self.operator)
+        index = (
+            "\index{%s}" % escape_latex(self.title)
+            if self.chapter.part.is_reference
+            else ""
         )
-        # HACK: Artificially construct a last testcase to get the "intertext"
-        # after the last (real) testcase. Ignore the test, of course.
-        doc += "\n>> test\n = test"
-        testcases = TESTCASE_RE.findall(doc)
-        tests = None
-        for index in range(len(testcases)):
-            testcase = list(testcases[index])
-            text = testcase.pop(0).strip()
-            if text:
-                if tests is not None:
-                    self.items.append(tests)
-                    tests = None
-                text = post_sub(text, post_substitutions)
-                self.items.append(DocText(text))
-                tests = None
-            if index < len(testcases) - 1:
-                test = DocTest(index, testcase)
-                if tests is None:
-                    tests = DocTests()
-                tests.tests.append(test)
+        content = self.doc.latex(doc_data)
+        section_string = (
+            "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
+            "\\%(sub)ssectionstart\n\n%(content)s"
+            "\\addcontentsline{toc}{%(sub)ssection}{%(title)s}"
+            "%(sections)s"
+            "\\%(sub)ssectionend"
+        ) % {
+            "sub": "sub",
+            "title": title,
+            "index": index,
+            "content": content,
+            "sections": "\n\n".join(
+                section.latex(doc_data, quiet) for section in self.subsections
+            ),
+        }
+        return section_string
+
+
+def gather_tests(doc: str, key_part=None) -> list:
+    # Remove commented lines.
+    doc = filter_comments(doc).strip("\s")
+
+    # Remove leading <dl>...</dl>
+    # doc = DL_RE.sub("", doc)
+
+    # pre-substitute Python code because it might contain tests
+    doc, post_substitutions = pre_sub(
+        PYTHON_RE, doc, lambda m: "<python>%s</python>" % m.group(1)
+    )
+
+    # HACK: Artificially construct a last testcase to get the "intertext"
+    # after the last (real) testcase. Ignore the test, of course.
+    doc += "\n>> test\n = test"
+    testcases = TESTCASE_RE.findall(doc)
+
+    tests = None
+    items = []
+    for index in range(len(testcases)):
+        testcase = list(testcases[index])
+        text = testcase.pop(0).strip()
+        if text:
             if tests is not None:
-                self.items.append(tests)
+                items.append(tests)
                 tests = None
+            text = post_sub(text, post_substitutions)
+            items.append(DocText(text))
+            tests = None
+        if index < len(testcases) - 1:
+            test = DocTest(index, testcase, key_part)
+            if tests is None:
+                tests = DocTests()
+            tests.tests.append(test)
+        if tests is not None:
+            items.append(tests)
+            tests = None
+    return items
+
+
+class XMLDoc(object):
+    """A class to hold our internal XML-like format data.
+    The `latex()` method can turn this into LaTeX.
+
+    Mathics core also uses this in getting usage strings (`??`).
+    """
+
+    def __init__(self, doc, title, section):
+        self.title = title
+        if section:
+            chapter = section.chapter
+            part = chapter.part
+            # Note: we elide section.title
+            key_prefix = (part.title, chapter.title, title)
+        else:
+            key_prefix = None
+
+        self.items = gather_tests(doc, key_prefix)
 
     def __str__(self):
         return "\n".join(str(item) for item in self.items)
@@ -1077,9 +1502,9 @@ class Doc(object):
             tests.extend(item.get_tests())
         return tests
 
-    def latex(self, output):
+    def latex(self, doc_data: dict):
         return "\n".join(
-            item.latex(output) for item in self.items if not item.is_private()
+            item.latex(doc_data) for item in self.items if not item.is_private()
         )
 
 
@@ -1096,7 +1521,7 @@ class DocText(object):
     def __str__(self):
         return self.text
 
-    def latex(self, output):
+    def latex(self, doc_data):
         return escape_latex(self.text)
 
     def test_indices(self):
@@ -1116,12 +1541,12 @@ class DocTests(object):
     def __str__(self):
         return "\n".join(str(test) for test in self.tests)
 
-    def latex(self, output):
+    def latex(self, doc_data: dict):
         if len(self.tests) == 0:
             return "\n"
 
         testLatexStrings = [
-            test.latex(output) for test in self.tests if not test.private
+            test.latex(doc_data) for test in self.tests if not test.private
         ]
         testLatexStrings = [t for t in testLatexStrings if len(t) > 1]
         if len(testLatexStrings) == 0:
@@ -1155,7 +1580,7 @@ class DocTest(object):
       `|`  Prints output.
     """
 
-    def __init__(self, index, testcase):
+    def __init__(self, index, testcase, key_prefix=None):
         def strip_sentinal(line):
             """Remove END_LINE_SENTINAL from the end of a line if it appears.
 
@@ -1192,6 +1617,8 @@ class DocTest(object):
         self.test = strip_sentinal(testcase[1])
 
         self.key = None
+        if key_prefix:
+            self.key = tuple(key_prefix + (index,))
         outs = testcase[2].splitlines()
         for line in outs:
             line = strip_sentinal(line)
@@ -1208,6 +1635,8 @@ class DocTest(object):
                     continue
 
                 match = TESTCASE_OUT_RE.match(line)
+                if not match:
+                    continue
                 symbol, text = match.group(1), match.group(2)
                 text = text.strip()
                 if symbol == "=":
@@ -1222,15 +1651,16 @@ class DocTest(object):
     def __str__(self):
         return self.test
 
-    def latex(self, output):
+    def latex(self, doc_data: dict) -> str:
         text = ""
         text += "\\begin{testcase}\n"
         text += "\\test{%s}\n" % escape_latex_code(self.test)
         if self.key is None:
             return ""
-        output_for_key = output.get(self.key, None)
+        output_for_key = doc_data.get(self.key, None)
         if output_for_key is None:
-            return ""
+            output_for_key = get_results_by_test(self.test, self.key, doc_data)
+
         results = output_for_key.get("results", [])
         for result in results:
             for out in result["out"]:

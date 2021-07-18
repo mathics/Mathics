@@ -25,6 +25,7 @@ from mathics.builtin import builtins_dict
 
 from mathics import version_string
 from mathics import settings
+from mathics.doc.common_doc import MathicsMainDocumentation
 
 builtins = builtins_dict()
 
@@ -191,21 +192,24 @@ def test_tests(
 
 
 # FIXME: move this to common routine
-def create_output(tests, output, format="tex"):
+def create_output(tests, doc_data, format="tex"):
     definitions.reset_user_definitions()
     for test in tests.tests:
         if test.private:
             continue
         key = test.key
         evaluation = Evaluation(
-            definitions, format=format, catch_interrupt=False, output=TestOutput()
+            definitions, format=format, catch_interrupt=True, output=TestOutput()
         )
-        result = evaluation.parse_evaluate(test.test)
+        try:
+            result = evaluation.parse_evaluate(test.test)
+        except:
+            result = None
         if result is None:
             result = []
         else:
             result = [result.get_data()]
-        output[key] = {
+        doc_data[key] = {
             "query": test.test,
             "results": result,
         }
@@ -220,11 +224,18 @@ def test_chapters(
 ):
     failed = 0
     index = 0
-    print(f'Testing chapter(s): {", ".join(chapters)}')
-    output_tex = load_doc_data() if reload else {}
+    chapter_names = ", ".join(chapters)
+    print(f"Testing chapter(s): {chapter_names}")
+    output_data = load_doc_data() if reload else {}
+    prev_key = []
     for tests in documentation.get_tests():
         if tests.chapter in chapters:
             for test in tests.tests:
+                key = list(test.key)[1:-1]
+                if prev_key != key:
+                    prev_key = key
+                    print(f'Testing section: {" / ".join(key)}')
+                    index = 0
                 if test.ignore:
                     continue
                 index += 1
@@ -233,13 +244,15 @@ def test_chapters(
                     if stop_on_failure:
                         break
             if generate_output and failed == 0:
-                create_output(tests, output_tex)
+                create_output(tests, output_data)
 
     print()
-    if failed > 0:
+    if index == 0:
+        print_and_log(f"No chapters found named {chapter_names}.")
+    elif failed > 0:
         print_and_log("%d test%s failed." % (failed, "s" if failed != 1 else ""))
     else:
-        print_and_log("OK")
+        print_and_log("All tests passed.")
 
 
 def test_sections(
@@ -251,12 +264,19 @@ def test_sections(
 ):
     failed = 0
     index = 0
-    print(f'Testing section(s): {", ".join(sections)}')
+    section_names = ", ".join(sections)
+    print(f"Testing section(s): {section_names}")
     sections |= {"$" + s for s in sections}
-    output_tex = load_doc_data() if reload else {}
+    output_data = load_doc_data() if reload else {}
+    prev_key = []
     for tests in documentation.get_tests():
         if tests.section in sections:
             for test in tests.tests:
+                key = list(test.key)[1:-1]
+                if prev_key != key:
+                    prev_key = key
+                    print(f'Testing section: {" / ".join(key)}')
+                    index = 0
                 if test.ignore:
                     continue
                 index += 1
@@ -265,13 +285,17 @@ def test_sections(
                     if stop_on_failure:
                         break
             if generate_output and failed == 0:
-                create_output(tests, output_tex)
+                create_output(tests, output_data)
 
     print()
-    if failed > 0:
+    if index == 0:
+        print_and_log(f"No sections found named {section_names}.")
+    elif failed > 0:
         print_and_log("%d test%s failed." % (failed, "s" if failed != 1 else ""))
     else:
-        print_and_log("OK")
+        print_and_log("All tests passed.")
+    if generate_output and (failed == 0):
+        save_doc_data(output_data)
 
 
 def open_ensure_dir(f, *args, **kwargs):
@@ -286,7 +310,7 @@ def open_ensure_dir(f, *args, **kwargs):
 
 def test_all(
     quiet=False,
-    generate_output=False,
+    generate_output=True,
     stop_on_failure=False,
     start_at=0,
     count=MAX_TESTS,
@@ -300,12 +324,12 @@ def test_all(
 
     if generate_output:
         if texdatafolder is None:
-            texdatafolder = settings.DOC_TEX_DATA_PATH
+            texdatafolder = settings.DOC_DATA_PATH
     try:
         index = 0
         total = failed = skipped = 0
         failed_symbols = set()
-        output_tex = {}
+        output_data = {}
         for tests in documentation.get_tests():
             sub_total, sub_failed, sub_skipped, symbols, index = test_tests(
                 tests,
@@ -317,7 +341,7 @@ def test_all(
                 excludes=excludes,
             )
             if generate_output:
-                create_output(tests, output_tex)
+                create_output(tests, output_data)
             total += sub_total
             failed += sub_failed
             skipped += sub_skipped
@@ -351,7 +375,7 @@ def test_all(
             print_and_log("  - %s in %s / %s" % (section, part, chapter))
 
     if generate_output and (failed == 0 or doc_even_if_error):
-        save_doc_data(output_tex)
+        save_doc_data(output_data)
         return True
 
     if failed == 0:
@@ -362,46 +386,44 @@ def test_all(
 
 
 def load_doc_data():
-    print(f"Loading LaTeX internal data from {settings.DOC_TEX_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "rb") as tex_data_file:
+    print(f"Loading internal document data from {settings.DOC_DATA_PATH}")
+    with open_ensure_dir(settings.DOC_DATA_PATH, "rb") as tex_data_file:
         return pickle.load(tex_data_file)
 
 
-def save_doc_data(output_tex):
-    print(f"Writing LaTeX internal data to {settings.DOC_TEX_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_TEX_DATA_PATH, "wb") as output_file:
-        pickle.dump(output_tex, output_file, 4)
+def save_doc_data(output_data):
+    print(f"Writing internal document data to {settings.DOC_DATA_PATH}")
+    with open_ensure_dir(settings.DOC_DATA_PATH, "wb") as output_file:
+        pickle.dump(output_data, output_file, 4)
 
 
 def extract_doc_from_source(quiet=False, reload=False):
     """
-    Write internal (pickled) TeX doc mdoc files and example data in docstrings.
+    Write internal (pickled) doc mdoc files and example data in docstrings.
     """
     if not quiet:
         print(f"Extracting internal doc data for {version_string}")
         print("This may take a while...")
 
     try:
-        output_tex = load_doc_data() if reload else {}
+        output_data = load_doc_data() if reload else {}
         for tests in documentation.get_tests():
-            create_output(tests, output_tex)
+            create_output(tests, output_data)
     except KeyboardInterrupt:
         print("\nAborted.\n")
         return
 
     print("done.\n")
-    save_doc_data(output_tex)
+    save_doc_data(output_data)
 
 
 def main():
-    from mathics.doc import documentation as main_mathics_documentation
-
     global definitions
     global documentation
     global logfile
     global check_partial_enlapsed_time
     definitions = Definitions(add_builtin=True)
-    documentation = main_mathics_documentation
+    documentation = MathicsMainDocumentation()
 
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
@@ -462,20 +484,20 @@ def main():
         "-o",
         dest="output",
         action="store_true",
-        help="generate LaTeX pickled internal data",
+        help="generate pickled internal document data",
     )
     parser.add_argument(
         "--doc-only",
         dest="doc_only",
         action="store_true",
-        help="generate LaTeX pickled internal data without running tests; Can't be used with --section or --reload.",
+        help="generate pickled internal document data without running tests; Can't be used with --section or --reload.",
     )
     parser.add_argument(
         "--reload",
         "-r",
         dest="reload",
         action="store_true",
-        help="reload LaTeX pickled internal data, before possibly adding to it",
+        help="reload pickled internal document data, before possibly adding to it",
     )
     parser.add_argument(
         "--quiet", "-q", dest="quiet", action="store_true", help="hide passed tests"
@@ -521,7 +543,10 @@ def main():
             documentation.load_pymathics_doc()
 
         test_sections(
-            sections, stop_on_failure=args.stop_on_failure, reload=args.reload
+            sections,
+            stop_on_failure=args.stop_on_failure,
+            generate_output=args.output,
+            reload=args.reload,
         )
     elif args.chapters:
         chapters = set(args.chapters.split(","))

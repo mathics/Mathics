@@ -996,20 +996,23 @@ class Transliterate(Builtin):
         <dd>transliterates a text in some script into an ASCII string.
     </dl>
 
-    # The following examples were taken from
-    # https://en.wikipedia.org/wiki/Iliad,
-    # https://en.wikipedia.org/wiki/Russian_language, and
-    # https://en.wikipedia.org/wiki/Hiragana
-
-    >> Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
-     = meter gar te me phesi thea Thetis arguropeza
-
-    >> Transliterate["Алекса́ндр Пу́шкин"]
-     = Aleksandr Pushkin
-
-    >> Transliterate["つかう"]
-     = tsukau
+    ASCII translateration examples can be found in:
+    <ul>
+      <li><url>https://en.wikipedia.org/wiki/Iliad,</url>
+      <li><url>https://en.wikipedia.org/wiki/Russian_language</url>, and
+      <li><url>https://en.wikipedia.org/wiki/Hiragana</url>
+    </ul>
     """
+
+    # Causes XeTeX to barf. Put this inside a unit test.
+    # >> Transliterate["つかう"]
+    #  = tsukau
+
+    # >> Transliterate["Алекса́ндр Пу́шкин"]
+    #  = Aleksandr Pushkin
+
+    # > Transliterate["μήτηρ γάρ τέ μέ φησι θεὰ Θέτις ἀργυρόπεζα"]
+    # = meter gar te me phesi thea Thetis arguropeza
 
     requires = ("unidecode",)
 

@@ -1000,15 +1000,15 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
         bio = builtins.get(definition.name)
 
     if bio is not None:
-        from mathics.doc.common_doc import Doc
+        from mathics.doc.common_doc import XMLDoc
 
         docstr = bio.builtin.__class__.__doc__
         if docstr is None:
             return None
         if htmlout:
-            usagetext = Doc(docstr).html()
+            usagetext = XMLDoc(docstr).html()
         else:
-            usagetext = Doc(docstr).text(0)
+            usagetext = XMLDoc(docstr).text(0)
         usagetext = re.sub(r"\$([0-9a-zA-Z]*)\$", r"\1", usagetext)
         return usagetext
     return None
