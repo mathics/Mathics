@@ -1,25 +1,29 @@
 # -*- coding: utf-8 -*-
-"""A module and library that assists in retrieving and orgnaizing
-document data obtained either from static files or Python module/class
-doc strings. This data is stored in a way that facilitates:
+"""A module and library that assists in organizing document data
+previously obtained from static files and Python module/class doc
+strings. This data is stored in a way that facilitates:
 
 * organizing information to produce a LaTeX file
 * running documentation tests
 * producing HTML-based documentation
 
-The command-line utility `docpipeline.py` accesses functions here, as
-do the Mathics-core routines for getting usage strings from Mathics
-function.
+The command-line utility `docpipeline.py`, which loads the data from
+Python modules and static files, accesses functions here.
+
+Mathics-core routines also use this to get usage strings of Mathics
+Built-in functions.
 
 Mathics Django also uses this library for its HTML-based documentation.
 
-Final assembly to a LateX file or running documentation tests is done elsewhere.
+As with reading in data, final assembly to a LateX file or running
+documentation tests is done elsewhere.
 
 FIXME: too much of this code is duplicated in Django. Code should
 be moved for both to a separate package.
 
 More importantly, this code should be replaced by Sphinx and autodoc.
 Things are such a mess, that it is too difficult to contemplate this right now.
+
 """
 
 import importlib
@@ -171,9 +175,7 @@ def get_results_by_test(test_expr: str, full_test_key: list, doc_data: dict) -> 
             if result_candidate["query"] == test_expr:
                 if result:
                     # Already found something
-                    print(
-                        f"Warning, multiple results appear under {search_key}."
-                    )
+                    print(f"Warning, multiple results appear under {search_key}.")
                     return {}
                 else:
                     result = result_candidate
@@ -682,6 +684,13 @@ class Documentation(object):
                                 yield Tests(
                                     part.title, chapter.title, section.title, tests
                                 )
+                                pass
+                            pass
+                        pass
+                    pass
+                pass
+            pass
+        return
 
     def latex(self, doc_data: dict, quiet=False) -> str:
         """Render self as a LaTeX string and return that.
@@ -704,13 +713,13 @@ class Documentation(object):
 
 class MathicsMainDocumentation(Documentation):
     def __init__(self):
-        self.title = "Overview"
+        self.doc_dir = settings.DOC_DIR
+        self.latex_file = settings.DOC_LATEX_FILE
         self.parts = []
         self.parts_by_slug = {}
-        self.doc_dir = settings.DOC_DIR
-        self.tex_data_file = settings.DOC_DATA_PATH
-        self.latex_file = settings.DOC_LATEX_FILE
         self.pymathics_doc_loaded = False
+        self.doc_data_file = settings.DOC_DATA_PATH
+        self.title = "Overview"
         files = listdir(self.doc_dir)
         files.sort()
         appendix = []
@@ -980,7 +989,7 @@ class PyMathicsDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.doc_dir = None
-        self.tex_data_file = None
+        self.doc_data_file = None
         self.latex_file = None
         self.symbols = {}
         if module is None:
@@ -1014,7 +1023,7 @@ class PyMathicsDocumentation(Documentation):
 
         # Paths
         self.doc_dir = self.pymathicsmodule.__path__[0] + "/doc/"
-        self.tex_data_file = self.doc_dir + "tex/data"
+        self.doc_data_file = self.doc_dir + "tex/data"
         self.latex_file = self.doc_dir + "tex/documentation.tex"
 
         # Load the dictionary of mathics symbols defined in the module
@@ -1044,7 +1053,7 @@ class PyMathicsDocumentation(Documentation):
             files.sort()
         except FileNotFoundError:
             self.doc_dir = ""
-            self.tex_data_file = ""
+            self.doc_data_file = ""
             self.latex_file = ""
             files = []
         appendix = []
@@ -1231,7 +1240,7 @@ class DocSection(object):
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
         index = (
-            "\index{%s}" % escape_latex(self.title)
+            r"\index{%s}" % escape_latex(self.title)
             if self.chapter.part.is_reference
             else ""
         )
@@ -1397,7 +1406,7 @@ class DocSubsection(object):
         if self.operator:
             title += " (\\code{%s})" % escape_latex_code(self.operator)
         index = (
-            "\index{%s}" % escape_latex(self.title)
+            r"\index{%s}" % escape_latex(self.title)
             if self.chapter.part.is_reference
             else ""
         )
@@ -1422,7 +1431,7 @@ class DocSubsection(object):
 
 def gather_tests(doc: str, key_part=None) -> list:
     # Remove commented lines.
-    doc = filter_comments(doc).strip("\s")
+    doc = filter_comments(doc).strip(r"\s")
 
     # Remove leading <dl>...</dl>
     # doc = DL_RE.sub("", doc)
