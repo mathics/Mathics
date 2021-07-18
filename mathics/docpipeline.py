@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# FIXME: combine with same thing in Mathics core
 """
 Does 2 things which can either be done independently or
 as a pipeline:
@@ -39,7 +40,7 @@ sep = "-" * 70 + "\n"
 
 # Global variables
 definitions = None
-documentation = None
+documentation = MathicsMainDocumentation()
 check_partial_enlapsed_time = False
 logfile = None
 
@@ -48,7 +49,6 @@ MAX_TESTS = 100000  # Number than the total number of tests
 
 
 def print_and_log(*args):
-    global logfile
     a = [a.decode("utf-8") if isinstance(a, bytes) else a for a in args]
     string = "".join(a)
     print(string)
@@ -318,7 +318,6 @@ def test_all(
     doc_even_if_error=False,
     excludes=[],
 ):
-    global documentation
     if not quiet:
         print(f"Testing {version_string}")
 
@@ -387,8 +386,8 @@ def test_all(
 
 def load_doc_data():
     print(f"Loading internal document data from {settings.DOC_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_DATA_PATH, "rb") as tex_data_file:
-        return pickle.load(tex_data_file)
+    with open_ensure_dir(settings.DOC_DATA_PATH, "rb") as doc_data_file:
+        return pickle.load(doc_data_file)
 
 
 def save_doc_data(output_data):
@@ -399,7 +398,7 @@ def save_doc_data(output_data):
 
 def extract_doc_from_source(quiet=False, reload=False):
     """
-    Write internal (pickled) doc mdoc files and example data in docstrings.
+    Write internal (pickled) doc files and example data in docstrings.
     """
     if not quiet:
         print(f"Extracting internal doc data for {version_string}")
@@ -419,11 +418,9 @@ def extract_doc_from_source(quiet=False, reload=False):
 
 def main():
     global definitions
-    global documentation
     global logfile
     global check_partial_enlapsed_time
     definitions = Definitions(add_builtin=True)
-    documentation = MathicsMainDocumentation()
 
     parser = ArgumentParser(description="Mathics test suite.", add_help=False)
     parser.add_argument(
@@ -528,6 +525,9 @@ def main():
         default=MAX_TESTS,
         help="run only  N tests",
     )
+
+    global logfile
+
     args = parser.parse_args()
 
     if args.enlapsed_times:
