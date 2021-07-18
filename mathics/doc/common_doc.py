@@ -1348,14 +1348,6 @@ def gather_tests(doc: str, key_part=None) -> list:
     doc += "\n>> test\n = test"
     testcases = TESTCASE_RE.findall(doc)
 
-    # Hack around pattern matching bugs
-    if len(testcases):
-        matches = DL_RE.match(doc)
-        if matches:
-            header = matches.group(0)
-            doc = DL_RE.sub("", doc)
-            testcases = [header] + TESTCASE_RE.findall(doc)
-
     tests = None
     items = []
     for index in range(len(testcases)):
