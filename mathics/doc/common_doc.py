@@ -175,9 +175,7 @@ def get_results_by_test(test_expr: str, full_test_key: list, doc_data: dict) -> 
             if result_candidate["query"] == test_expr:
                 if result:
                     # Already found something
-                    print(
-                        f"Warning, multiple results appear under {search_key}."
-                    )
+                    print(f"Warning, multiple results appear under {search_key}.")
                     return {}
                 else:
                     result = result_candidate
