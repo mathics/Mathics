@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
-"""A module and library which produces LaTeX from internal Python Pickle data
-and docstrings Mathics in mathics modules.
+"""A module and library that assists in retrieving and orgnaizing
+document data obtained either from static files or Python module/class
+doc strings. This data is stored in a way that facilitates:
 
-It currently also has common documentation routines used by Django.
+* organizing information to produce a LaTeX file
+* running documentation tests
+* producing HTML-based documentation
 
-Command-line utility `../docpipeline.py` calls this as does
-getting usage strings from Mathics core.
+The Mathics core command-line utility `../docpipeline.py` accesses
+functions here, as do the Mathics-core routines for getting usage
+strings from Mathics function.
 
-Running LaTeX, or the tests is done elsewhere.
+Mathics Django also uses this library for its HTML-based documentation.
 
-FIXME: Note too much of this code is duplicated in Django. Code should
+Final assembly to a LateX file or running documentation tests is done elsewhere.
+
+FIXME: too much of this code is duplicated in Django. Code should
 be moved for both to a separate package.
 
 More importantly, this code should be replaced by Sphinx and autodoc.
@@ -29,6 +35,7 @@ from mathics.builtin import get_module_doc
 from mathics.core.evaluation import Message, Print
 from mathics.doc.utils import slugify
 
+# These rebumar expressions pull out information from docstring or text in a file.
 CHAPTER_RE = re.compile('(?s)<chapter title="(.*?)">(.*?)</chapter>')
 SECTION_RE = re.compile('(?s)(.*?)<section title="(.*?)">(.*?)</section>')
 SUBSECTION_RE = re.compile('(?s)<subsection title="(.*?)">')
@@ -86,6 +93,7 @@ LATEX_ARRAY_RE = re.compile(
 LATEX_INLINE_END_RE = re.compile(r"(?s)(?P<all>\\lstinline'[^']*?'\}?[.,;:])")
 LATEX_CONSOLE_RE = re.compile(r"\\console\{(.*?)\}")
 
+# These are all of the XML/HTML-like tags that documentation supports.
 ALLOWED_TAGS = (
     "dl",
     "dd",
@@ -120,7 +128,33 @@ SPECIAL_COMMANDS = {
 }
 
 
-def get_submodule_names(object):
+def get_submodule_names(object) -> list:
+    """Many builtins are organized into modules which, from a documentation
+    standpoint, are like Mathematica Online Guide Docs.
+
+    "List Functions", "Colors", or "Distance and Similarity Measures"
+    are some examples Guide Documents group group various Bultin Functions,
+    under submodules relate to that general classification.
+
+    Here, we want to return a list of the Python modules under a "Guide Doc"
+    module.
+
+    As an example of a "Guide Doc" and its submodules, consider the
+    module named mathics.builtin.colors. It collects code and documentation pertaining
+    to the builtin functions that would be found in the Guide documenation for "Colors".
+
+    The `mathics.builtin.colors` module has a submodule
+    `mathics.builtin.colors.named_colors`.
+
+    The builtin functions defined in `named_colors` then are those found in the
+    "Named Colors" group of the "Colors" Guide Doc.
+
+    So in this example then, in the list the modules returned for
+    Python module `mathics.builtin.colors` would be the
+    `mathics.builtin.colors.named_colors` module which contains the
+    definition and docs for the "Named Colors" Mathics Bultin
+    Functions.
+    """
     modpkgs = []
     if hasattr(object, "__path__"):
         for importer, modname, ispkg in pkgutil.iter_modules(object.__path__):
@@ -129,7 +163,9 @@ def get_submodule_names(object):
     return modpkgs
 
 
-def filter_comments(doc):
+def filter_comments(doc: str) -> str:
+    """Remove docstring documentation comments. These are lines
+    that start with ##"""
     return "\n".join(
         line for line in doc.splitlines() if not line.lstrip().startswith("##")
     )
