@@ -128,6 +128,58 @@ SPECIAL_COMMANDS = {
 }
 
 
+# Used for getting test results by test expresson and chapter/section information.
+test_result_map = {}
+
+
+def get_results_by_test(test_expr: str, full_test_key: list, doc_data: dict) -> list:
+    """
+    Sometimes test numbering is off, either due to bugs or changes since the
+    data was read.
+
+    Here, we compensate for this by looking up the test by its chapter and section name
+    portion stored in `full_test_key` along with the and the test expresion data
+    stored in `test_expr`.
+
+    This new key is looked up in `test_result_map` its value is returned.
+
+    `doc_data` is only first time this is called to populate `test_result_map`.
+    """
+
+    # Strip off the test index form new key with this and the test string.
+    # Add to any existing value for that "result". This is now what we want to
+    # use as a tee in test_result_map to look for.
+    test_section = list(full_test_key)[:-1]
+    search_key = tuple(test_section)
+
+    if not test_result_map:
+        # Populate test_result_map from doc_data
+        for key, result in doc_data.items():
+            test_section = list(key)[:-1]
+            new_test_key = tuple(test_section)
+            next_result = test_result_map.get(new_test_key, None)
+            if next_result:
+                next_result.append(result)
+            else:
+                next_result = [result]
+            test_result_map[new_test_key] = next_result
+
+    results = test_result_map.get(search_key, None)
+    result = {}
+    if results:
+        for result_candidate in results:
+            if result_candidate["query"] == test_expr:
+                if result:
+                    # Already found something
+                    print(
+                        f"Warning, multiple results appear under {search_key}; using first one"
+                    )
+                else:
+                    result = result_candidate
+
+    return result
+
+
 def get_submodule_names(object) -> list:
     """Many builtins are organized into modules which, from a documentation
     standpoint, are like Mathematica Online Guide Docs.
@@ -630,7 +682,7 @@ class Documentation(object):
                                     part.title, chapter.title, section.title, tests
                                 )
 
-    def latex(self, output, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False) -> str:
         """Render self as a LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -639,7 +691,7 @@ class Documentation(object):
         parts = []
         appendix = False
         for part in self.parts:
-            text = part.latex(output, quiet)
+            text = part.latex(doc_data, quiet)
             if part.is_appendix and not appendix:
                 appendix = True
                 text = "\n\\appendix\n" + text
@@ -1070,14 +1122,14 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, output, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False) -> str:
         """Render this Part object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
         level in getting expected test results.
         """
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
-            "\n\n".join(chapter.latex(output, quiet) for chapter in self.chapters)
+            "\n\n".join(chapter.latex(doc_data, quiet) for chapter in self.chapters)
         )
         if self.is_reference:
             result = "\n\n\\referencestart" + result
@@ -1103,7 +1155,7 @@ class DocChapter(object):
     def all_sections(self):
         return sorted(self.sections + self.guide_sections)
 
-    def latex(self, output, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False) -> str:
         """Render this Chapter object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1111,7 +1163,7 @@ class DocChapter(object):
         """
         if not quiet:
             print(f"Formatting Chapter {self.title}")
-        intro = self.doc.latex(output).strip()
+        intro = self.doc.latex(doc_data).strip()
         if intro:
             short = "short" if len(intro) < 300 else ""
             intro = "\\begin{chapterintro%s}\n%s\n\n\\end{chapterintro%s}" % (
@@ -1123,7 +1175,7 @@ class DocChapter(object):
             ("\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s")
             % {"title": escape_latex(self.title), "intro": intro},
             "\\chaptersections\n",
-            "\n\n".join(section.latex(output, quiet) for section in self.sections),
+            "\n\n".join(section.latex(doc_data, quiet) for section in self.sections),
             "\n\\chapterend\n",
         ]
         return "".join(chapter_sections)
@@ -1165,7 +1217,7 @@ class DocSection(object):
     def __str__(self):
         return f"== {self.title} ==\n{self.doc}"
 
-    def latex(self, output, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False) -> str:
         """Render this Section object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1182,7 +1234,7 @@ class DocSection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        content = self.doc.latex(output)
+        content = self.doc.latex(doc_data)
         section_string = (
             "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
             "\\%(sub)ssectionstart\n\n%(content)s"
@@ -1194,7 +1246,7 @@ class DocSection(object):
             "title": title,
             "index": index,
             "sections": "\n\n".join(
-                section.latex(output) for section in self.subsections
+                section.latex(doc_data) for section in self.subsections
             ),
             "content": content,
         }
@@ -1245,7 +1297,7 @@ class DocGuideSection(DocSection):
                 for doctests in subsection.items:
                     yield doctests.get_tests()
 
-    def latex(self, output, quiet=False):
+    def latex(self, doc_data: dict, quiet=False):
         """Render this Guide Section object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1254,7 +1306,7 @@ class DocGuideSection(DocSection):
         if not quiet:
             # The leading spaces help show chapter level.
             print(f"  Formatting Guide Section {self.title}")
-        intro = self.doc.latex(output).strip()
+        intro = self.doc.latex(doc_data).strip()
         if intro:
             short = "short" if len(intro) < 300 else ""
             intro = "\\begin{guidesectionintro%s}\n%s\n\n\\end{guidesectionintro%s}" % (
@@ -1268,7 +1320,7 @@ class DocGuideSection(DocSection):
                 "\\addcontentsline{toc}{section}{%(title)s}"
             )
             % {"title": escape_latex(self.title), "intro": intro},
-            "\n\n".join(section.latex(output) for section in self.subsections),
+            "\n\n".join(section.latex(doc_data) for section in self.subsections),
         ]
         return "".join(guide_sections)
 
@@ -1330,7 +1382,7 @@ class DocSubsection(object):
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
 
-    def latex(self, output, quiet=False):
+    def latex(self, doc_data: dict, quiet=False):
         """Render this Subsection object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1348,7 +1400,7 @@ class DocSubsection(object):
             if self.chapter.part.is_reference
             else ""
         )
-        content = self.doc.latex(output)
+        content = self.doc.latex(doc_data)
         section_string = (
             "\n\n\\%(sub)ssection*{%(title)s}%(index)s\n"
             "\\%(sub)ssectionstart\n\n%(content)s"
@@ -1361,7 +1413,7 @@ class DocSubsection(object):
             "index": index,
             "content": content,
             "sections": "\n\n".join(
-                section.latex(output, quiet) for section in self.subsections
+                section.latex(doc_data, quiet) for section in self.subsections
             ),
         }
         return section_string
@@ -1450,9 +1502,9 @@ class XMLDoc(object):
             tests.extend(item.get_tests())
         return tests
 
-    def latex(self, output):
+    def latex(self, doc_data: dict):
         return "\n".join(
-            item.latex(output) for item in self.items if not item.is_private()
+            item.latex(doc_data) for item in self.items if not item.is_private()
         )
 
 
@@ -1469,7 +1521,7 @@ class DocText(object):
     def __str__(self):
         return self.text
 
-    def latex(self, output):
+    def latex(self, doc_data):
         return escape_latex(self.text)
 
     def test_indices(self):
@@ -1489,12 +1541,12 @@ class DocTests(object):
     def __str__(self):
         return "\n".join(str(test) for test in self.tests)
 
-    def latex(self, output):
+    def latex(self, doc_data: dict):
         if len(self.tests) == 0:
             return "\n"
 
         testLatexStrings = [
-            test.latex(output) for test in self.tests if not test.private
+            test.latex(doc_data) for test in self.tests if not test.private
         ]
         testLatexStrings = [t for t in testLatexStrings if len(t) > 1]
         if len(testLatexStrings) == 0:
@@ -1599,17 +1651,17 @@ class DocTest(object):
     def __str__(self):
         return self.test
 
-    def latex(self, output) -> str:
+    def latex(self, doc_data: dict) -> str:
         text = ""
         text += "\\begin{testcase}\n"
         text += "\\test{%s}\n" % escape_latex_code(self.test)
         if self.key is None:
             return ""
-        output_for_key = output.get(self.key, None)
+        output_for_key = doc_data.get(self.key, None)
         if output_for_key is None:
-            results = []
-        else:
-            results = output_for_key.get("results", [])
+            output_for_key = get_results_by_test(self.test, self.key, doc_data)
+
+        results = output_for_key.get("results", [])
         for result in results:
             for out in result["out"]:
                 kind = "message" if out["message"] else "print"
