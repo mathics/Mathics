@@ -1326,7 +1326,7 @@ class FileNames(Builtin):
 class FileNameSplit(Builtin):
     """
     <dl>
-    <dt>'FileNameSplit["$filenams$"]'
+      <dt>'FileNameSplit["$filenames$"]'
       <dd>splits a $filename$ into a list of parts.
     </dl>
 
