@@ -501,6 +501,19 @@ def test_2_1_to_2_3():
             "False",
             "Young Tableau 2.3, Page 63",
         ),
+        # Need to not evaluate expected which reformats \n's
+#         (
+#             "TableForm[ {{1,2,5}, {3,4,5}, {6}} ]",
+#             """{1, 2, 5}
+
+#         {3, 4, 5}
+
+#         {6}
+
+# """
+#             "False",
+#             "Young Tableau 2.3, Page 63",
+#         ),
     ):
         check_evaluation(str_expr, str_expected, message)
 

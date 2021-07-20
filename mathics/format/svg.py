@@ -353,7 +353,7 @@ add_conversion_fn(InsetBox, inset_box)
 def line_box(self, **options) -> str:
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
-    svg = "<--LineBox-->\n"
+    svg = "<!--LineBox-->\n"
     for line in self.lines:
         svg += '<polyline points="%s" style="%s" />' % (
             " ".join(["%f,%f" % coords.pos() for coords in line]),
