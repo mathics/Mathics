@@ -373,7 +373,7 @@ class Graphics3DBox(GraphicsBox):
         json_repr = format_fn(elements, **options)
 
         # TODO: Cubeoid (like this)
-        # json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None],
+        # json_repr = [{'color': (1, 1, 1, 1), 'position': [(0,0,0), None],
         # 'size':[(1,1,1), None], 'type': 'cube'}]
 
         json_repr = json.dumps(

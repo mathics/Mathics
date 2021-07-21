@@ -41,7 +41,6 @@ def convert_coord_collection(
                     "type": object_type,
                     "coords": [coords.pos() for coords in items],
                     "opacity": opacity,
-                    "rgb_color": color[:3],
                 },
             }
         )
@@ -93,7 +92,7 @@ def cylinder_3d_box(self):
         [self.points],
         "cylinder",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"color": face_color, "radius": self.radius},
     )
     # print("### json Cylinder3DBox", data)
     return data
@@ -163,7 +162,7 @@ def polygon_3d_box(self) -> list:
         self.lines,
         "polygon",
         face_color,
-        {"faceColor": face_color},
+        {"color": face_color},
     )
     # print("### json Polygon3DBox", data)
     return data
@@ -180,7 +179,7 @@ def sphere_3d_box(self) -> list:
         [self.points],
         "sphere",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"color": face_color, "radius": self.radius},
     )
     # print("### json Sphere3DBox", data)
     return data
