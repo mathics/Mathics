@@ -63,40 +63,40 @@ class Graphics3DBox(GraphicsBox):
 
         if lighting == "System`Automatic":
             self.lighting = [
-                {"type": "Ambient", "color": [0.3, 0.2, 0.4]},
+                {"type": "ambient", "color": [0.3, 0.2, 0.4]},
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.8, 0.0, 0.0],
-                    "position": [2, 0, 2],
+                    "coords": [[2, 0, 2]],
                 },
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.0, 0.8, 0.0],
-                    "position": [2, 2, 2],
+                    "coords": [[2, 2, 2]],
                 },
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.0, 0.0, 0.8],
-                    "position": [0, 2, 2],
+                    "coords": [[0, 2, 2]],
                 },
             ]
         elif lighting == "Neutral":  # Lighting->"Neutral"
             self.lighting = [
-                {"type": "Ambient", "color": [0.3, 0.3, 0.3]},
+                {"type": "ambient", "color": [0.3, 0.3, 0.3]},
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [2, 0, 2],
+                    "coords": [[2, 0, 2]],
                 },
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [2, 2, 2],
+                    "coords": [[2, 2, 2]],
                 },
                 {
-                    "type": "Directional",
+                    "type": "directional",
                     "color": [0.3, 0.3, 0.3],
-                    "position": [0, 2, 2],
+                    "coords": [[0, 2, 2]],
                 },
             ]
         elif lighting == "System`None":
@@ -114,7 +114,7 @@ class Graphics3DBox(GraphicsBox):
                     color = get_class(head)(light[1])
                     if light[0] == '"Ambient"':
                         self.lighting.append(
-                            {"type": "Ambient", "color": color.to_rgba()}
+                            {"type": "ambient", "color": color.to_rgba()}
                         )
                     elif light[0] == '"Directional"':
                         position = [0, 0, 0]
@@ -129,9 +129,9 @@ class Graphics3DBox(GraphicsBox):
                                 ]
                         self.lighting.append(
                             {
-                                "type": "Directional",
+                                "type": "directional",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                             }
                         )
                     elif light[0] == '"Point"':
@@ -140,9 +140,9 @@ class Graphics3DBox(GraphicsBox):
                             position = light[2]
                         self.lighting.append(
                             {
-                                "type": "Point",
+                                "type": "point",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                             }
                         )
                     elif light[0] == '"Spot"':
@@ -165,9 +165,9 @@ class Graphics3DBox(GraphicsBox):
                         angle = light[3]
                         self.lighting.append(
                             {
-                                "type": "Spot",
+                                "type": "spot",
                                 "color": color.to_rgba(),
-                                "position": position,
+                                "coords": [position],
                                 "target": target,
                                 "angle": angle,
                             }
@@ -295,8 +295,8 @@ class Graphics3DBox(GraphicsBox):
                 # Rescale lighting
                 for i, light in enumerate(self.lighting):
                     if self.lighting[i]["type"] != "Ambient":
-                        self.lighting[i]["position"] = [
-                            light["position"][j] * boxscale[j] for j in range(3)
+                        self.lighting[i]["coords"][0] = [
+                            light["coords"][0][j] * boxscale[j] for j in range(3)
                         ]
                     if self.lighting[i]["type"] == "Spot":
                         self.lighting[i]["target"] = [
