@@ -303,12 +303,6 @@ class Graphics3DBox(GraphicsBox):
                             light["target"][j] * boxscale[j] for j in range(3)
                         ]
 
-                # Rescale viewpoint
-                self.viewpoint = [
-                    vp * max([xmax - xmin, ymax - ymin, zmax - zmin])
-                    for vp in self.viewpoint
-                ]
-
             w = 0 if (xmin is None or xmax is None) else xmax - xmin
             h = 0 if (ymin is None or ymax is None) else ymax - ymin
 
@@ -363,9 +357,6 @@ class Graphics3DBox(GraphicsBox):
 
         elements._apply_boxscaling(boxscale)
 
-        xmin, xmax, ymin, ymax, zmin, zmax, boxscale, w, h = calc_dimensions()
-        elements.view_width = w
-
         # FIXME: json is the only thing we can convert MathML into.
         # Handle other graphics formats.
         format_fn = lookup_method(elements, "json")
@@ -383,14 +374,6 @@ class Graphics3DBox(GraphicsBox):
                     "hasaxes": axes,
                     "ticks": ticks,
                     "ticks_style": js_ticks_style,
-                },
-                "extent": {
-                    "xmin": xmin,
-                    "xmax": xmax,
-                    "ymin": ymin,
-                    "ymax": ymax,
-                    "zmin": zmin,
-                    "zmax": zmax,
                 },
                 "lighting": self.lighting,
                 "viewpoint": self.viewpoint,
