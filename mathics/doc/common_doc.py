@@ -1486,7 +1486,8 @@ class XMLDoc(object):
         else:
             key_prefix = None
 
-        self.items = gather_tests(doc, key_prefix)
+        self.rawdoc = doc
+        self.items = gather_tests(self.rawdoc, key_prefix)
 
     def __str__(self):
         return "\n".join(str(item) for item in self.items)
@@ -1513,6 +1514,11 @@ class XMLDoc(object):
         return tests
 
     def latex(self, doc_data: dict):
+        if len(self.items) == 0:
+            if hasattr(self, "rawdoc") and len(self.rawdoc) != 0:
+                # We have text but no tests
+                return escape_latex(self.rawdoc)
+
         return "\n".join(
             item.latex(doc_data) for item in self.items if not item.is_private()
         )
