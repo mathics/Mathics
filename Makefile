@@ -85,7 +85,7 @@ doctest:
 	SANDBOX=$(SANDBOX) $(PYTHON) mathics/docpipeline.py $o
 
 #: Make Mathics PDF manual via Asymptote and LaTeX
-doc:
+texdoc doc:
 	(cd mathics/doc/tex && $(MAKE) doc)
 
 #: Remove ChangeLog
