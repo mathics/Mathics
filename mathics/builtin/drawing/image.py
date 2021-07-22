@@ -1992,7 +1992,11 @@ class Image(Atom):
         encoded = base64.b64encode(contents)
         encoded = b"data:image/png;base64," + encoded
 
-        return ImageBox(String(encoded), Integer(scaled_width), Integer(scaled_height))
+        return ImageBox(
+            String(encoded.decode("utf-8")),
+            Integer(scaled_width),
+            Integer(scaled_height),
+        )
 
     def __str__(self):
         return "-Image-"
