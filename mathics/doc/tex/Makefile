@@ -1,4 +1,4 @@
-.PHONY: all clean doc doc-data latex
+.PHONY: all clean doc doc-data latex texdoc
 
 PYTHON ?= python
 XETEX ?= xelatex
@@ -7,7 +7,7 @@ BASH ?= /bin/bash
 #-quiet
 
 #: Default target: Make everything
-all doc: mathics.pdf
+all doc texdoc: mathics.pdf
 
 doc-data doc_tex_data.pcl:
 	(cd ../.. && $(PYTHON) docpipeline.py --output --keep-going)

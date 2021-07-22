@@ -30,6 +30,7 @@ Even if you are willing to pay hundreds of dollars for the software, would will 
 </ul>
 
 Performance of \Mathics is not, right now, practical in large-scale projects and calculations. However can be used as a tool for quick explorations and to educate people who might later switch to \Mathematica.
+
 </section>
 
 <section title="What does it offer?">
@@ -45,6 +46,7 @@ Some of the features of \Mathics are:
   <li>an easy way of defining new functions in Python and which hooks into Python libraries
   <li>an integrated documentation and testing system.
 </ul>
+
 </section>
 
 <section title="What is missing?">
@@ -55,6 +57,7 @@ Most notably, performance is still slow. Although there are various ways to spee
 Apart from performance issues, \Mathics has about about half of the features and libraries of \Mathematica.
 
 Graphics has always been lagging and in the future we intend to decouple Graphics better so that the rich set of graphics packages that are out there can be more easily used.
+
 </section>
 
 <section title="Who is behind it?">
@@ -81,328 +84,418 @@ However if you google for "Mathematica Tutorials" you will find easily dozens of
 <section title="Basic calculations">
 \Mathics can be used to calculate basic stuff:
 
->> 1 + 2
- = 3
+  >> 1 + 2
+  = 3
+
 To submit a command to \Mathics, press 'Shift+Return' in the Web interface or 'Return' in the console interface. The result will be printed in a new line below your query.
 
 \Mathics understands all basic arithmetic operators and applies the usual operator precedence. Use parentheses when needed:
->> 1 - 2 * (3 + 5) / 4
- = -3
+
+  >> 1 - 2 * (3 + 5) / 4
+  = -3
+
 The multiplication can be omitted:
->> 1 - 2 (3 + 5) / 4
- = -3
->> 2 4
- = 8
+
+  >> 1 - 2 (3 + 5) / 4
+  = -3
+
+  >> 2 4
+  = 8
+
 Powers can be entered using '^':
->> 3 ^ 4
- = 81
+
+  >> 3 ^ 4
+  = 81
+
 Integer divisions yield rational numbers:
->> 6 / 4
- = 3 / 2
+
+  >> 6 / 4
+  = 3 / 2
+
 To convert the result to a floating point number, apply the function 'N':
->> N[6 / 4]
- = 1.5
+  >> N[6 / 4]
+  = 1.5
+
 As you can see, functions are applied using square braces '[' and ']', in contrast to the common notation of '(' and ')'. At first hand, this might seem strange, but this distinction between function application and precedence change is necessary to allow some general syntax structures, as you will see later.
 
 \Mathics provides many common mathematical functions and constants, e.g.:
->> Log[E]
- = 1
->> Sin[Pi]
- = 0
->> Cos[0.5]
- = 0.877583
+  >> Log[E]
+  = 1
+
+  >> Sin[Pi]
+  = 0
+
+  >> Cos[0.5]
+  = 0.877583
+
 When entering floating point numbers in your query, \Mathics will perform a numerical evaluation and present a numerical result, pretty much like if you had applied 'N'.
 
 Of course, \Mathics has complex numbers:
->> Sqrt[-4]
- = 2 I
->> I ^ 2
- = -1
->> (3 + 2 I) ^ 4
- = -119 + 120 I
->> (3 + 2 I) ^ (2.5 - I)
- = 43.663 + 8.28556 I
->> Tan[I + 0.5]
- = 0.195577 + 0.842966 I
+  >> Sqrt[-4]
+  = 2 I
+
+  >> I ^ 2
+  = -1
+
+  >> (3 + 2 I) ^ 4
+  = -119 + 120 I
+
+  >> (3 + 2 I) ^ (2.5 - I)
+  = 43.663 + 8.28556 I
+
+  >> Tan[I + 0.5]
+  = 0.195577 + 0.842966 I
 
 'Abs' calculates absolute values:
->> Abs[-3]
- = 3
->> Abs[3 + 4 I]
- = 5
+  >> Abs[-3]
+  = 3
+
+  >> Abs[3 + 4 I]
+  = 5
 
 \Mathics can operate with pretty huge numbers:
->> 100!
- = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+  >> 100!
+  = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+
 ('!' denotes the factorial function.)
 The precision of numerical evaluation can be set:
->> N[Pi, 100]
- = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
+
+  >> N[Pi, 100]
+  = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068
 
 Division by zero is forbidden:
->> 1 / 0
- : Infinite expression 1 / 0 encountered.
- = ComplexInfinity
+  >> 1 / 0
+  : Infinite expression 1 / 0 encountered.
+   = ComplexInfinity
+
 Other expressions involving 'Infinity' are evaluated:
->> Infinity + 2 Infinity
- = Infinity
+  >> Infinity + 2 Infinity
+  = Infinity
+
 In contrast to combinatorial belief, '0^0' is undefined:
->> 0 ^ 0
+  >> 0 ^ 0
  : Indeterminate expression 0 ^ 0 encountered.
- = Indeterminate
+   = Indeterminate
 
 The result of the previous query to \Mathics can be accessed by '%':
->> 3 + 4
- = 7
->> % ^ 2
- = 49
+
+  >> 3 + 4
+  = 7
+
+  >> % ^ 2
+  = 49
+
 </section>
 
 <section title="Symbols and Assignments">
 Symbols need not be declared in \Mathics, they can just be entered and remain variable:
->> x
- = x
+  >> x
+  = x
 Basic simplifications are performed:
->> x + 2 x
- = 3 x
+  >> x + 2 x
+  = 3 x
 Symbols can have any name that consists of characters and digits:
->> iAm1Symbol ^ 2
- = iAm1Symbol ^ 2
+  >> iAm1Symbol ^ 2
+  = iAm1Symbol ^ 2
 
 You can assign values to symbols:
->> a = 2
- = 2
->> a ^ 3
- = 8
->> a = 4
- = 4
->> a ^ 3
- = 64
+  >> a = 2
+  = 2
+  >> a ^ 3
+  = 8
+  >> a = 4
+  = 4
+  >> a ^ 3
+  = 64
 Assigning a value returns that value. If you want to suppress the output of any result, add a ';' to the end of your query:
->> a = 4;
+  >> a = 4;
 
 Values can be copied from one variable to another:
->> b = a;
+
+  >> b = a;
+
 Now changing 'a' does not affect 'b':
->> a = 3;
->> b
- = 4
+
+  >> a = 3;
+  >> b
+   = 4
+
 Such a dependency can be achieved by using "delayed assignment" with the ':=' operator (which does not return anything, as the right side is not even evaluated):
->> b := a ^ 2
->> b
- = 9
->> a = 5;
->> b
- = 25
+
+  >> b := a ^ 2
+  >> b
+   = 9
+
+  >> a = 5;
+  >> b
+   = 25
 </section>
 
 
 <section title="Comparisons and Boolean Logic">
 Values can be compared for equality using the operator '==':
->> 3 == 3
- = True
->> 3 == 4
- = False
+
+  >> 3 == 3
+  = True
+
+  >> 3 == 4
+   = False
+
 The special symbols 'True' and 'False' are used to denote truth values. Naturally, there are inequality comparisons as well:
->> 3 > 4
- = False
+
+  >> 3 > 4
+  = False
+
 Inequalities can be chained:
->> 3 < 4 >= 2 != 1
- = True
+  >> 3 < 4 >= 2 != 1
+  = True
 
 Truth values can be negated using '!' (logical <em>not</em>) and combined using '&&' (logical <em>and</em>) and '||' (logical <em>or</em>):
->> !True
- = False
->> !False
- = True
->> 3 < 4 && 6 > 5
- = True
+
+  >> !True
+  = False
+
+  >> !False
+  = True
+
+  >> 3 < 4 && 6 > 5
+  = True
+
 '&&' has higher precedence than '||', i.e. it binds stronger:
->> True && True || False && False
- = True
->> True && (True || False) && False
- = False
+
+  >> True && True || False && False
+  = True
+
+  >> True && (True || False) && False
+  = False
 </section>
 
 <section title="Strings">
 Strings can be entered with '"' as delimiters:
->> "Hello world!"
- = Hello world!
+
+  >> "Hello world!"
+  = Hello world!
+
 As you can see, quotation marks are not printed in the output by default. This can be changed by using 'InputForm':
->> InputForm["Hello world!"]
- = "Hello world!"
+  >> InputForm["Hello world!"]
+  = "Hello world!"
 
 Strings can be joined using '<>':
->> "Hello" <> " " <> "world!"
- = Hello world!
+  >> "Hello" <> " " <> "world!"
+  = Hello world!
+
 Numbers cannot be joined to strings:
->> "Debian" <> 6
- : String expected.
- = Debian <> 6
+  >> "Debian" <> 6
+  : String expected.
+  = Debian <> 6
+
 They have to be converted to strings using 'ToString' first:
->> "Debian" <> ToString[6]
- = Debian6
+  >> "Debian" <> ToString[6]
+  = Debian6
 </section>
 
 <section title="Lists">
 Lists can be entered in \Mathics with curly braces '{' and '}':
->> mylist = {a, b, c, d}
- = {a, b, c, d}
+
+  >> mylist = {a, b, c, d}
+  = {a, b, c, d}
+
 There are various functions for constructing lists:
->> Range[5]
- = {1, 2, 3, 4, 5}
->> Array[f, 4]
- = {f[1], f[2], f[3], f[4]}
->> ConstantArray[x, 4]
- = {x, x, x, x}
->> Table[n ^ 2, {n, 2, 5}]
- = {4, 9, 16, 25}
+  >> Range[5]
+  = {1, 2, 3, 4, 5}
+
+  >> Array[f, 4]
+  = {f[1], f[2], f[3], f[4]}
+
+  >> ConstantArray[x, 4]
+  = {x, x, x, x}
+
+  >> Table[n ^ 2, {n, 2, 5}]
+  = {4, 9, 16, 25}
 
 The number of elements of a list can be determined with 'Length':
->> Length[mylist]
- = 4
+  >> Length[mylist]
+  = 4
+
 Elements can be extracted using double square braces:
->> mylist[[3]]
- = c
+  >> mylist[[3]]
+  = c
+
 Negative indices count from the end:
->> mylist[[-3]]
- = b
+  >> mylist[[-3]]
+  = b
 
 Lists can be nested:
->> mymatrix = {{1, 2}, {3, 4}, {5, 6}};
+  >> mymatrix = {{1, 2}, {3, 4}, {5, 6}};
+
 There are alternate forms to display lists:
->> TableForm[mymatrix]
- = 1   2
- .
- . 3   4
- .
- . 5   6
->> MatrixForm[mymatrix]
- = 1   2
- .
- . 3   4
- .
- . 5   6
+  >> TableForm[mymatrix]
+  = 1   2
+  .
+  . 3   4
+  .
+  . 5   6
+
+  >> MatrixForm[mymatrix]
+  = 1   2
+  .
+  . 3   4
+  .
+  . 5   6
 
 There are various ways of extracting elements from a list:
->> mymatrix[[2, 1]]
- = 3
->> mymatrix[[;;, 2]]
- = {2, 4, 6}
->> Take[mylist, 3]
- = {a, b, c}
->> Take[mylist, -2]
- = {c, d}
->> Drop[mylist, 2]
- = {c, d}
->> First[mymatrix]
- = {1, 2}
->> Last[mylist]
- = d
->> Most[mylist]
- = {a, b, c}
->> Rest[mylist]
- = {b, c, d}
+
+  >> mymatrix[[2, 1]]
+  = 3
+  >> mymatrix[[;;, 2]]
+  = {2, 4, 6}
+  >> Take[mylist, 3]
+  = {a, b, c}
+  >> Take[mylist, -2]
+  = {c, d}
+  >> Drop[mylist, 2]
+  = {c, d}
+  >> First[mymatrix]
+  = {1, 2}
+  >> Last[mylist]
+  = d
+  >> Most[mylist]
+  = {a, b, c}
+  >> Rest[mylist]
+  = {b, c, d}
 
 Lists can be used to assign values to multiple variables at once:
->> {a, b} = {1, 2};
->> a
- = 1
->> b
- = 2
+
+  >> {a, b} = {1, 2};
+  >> a
+  = 1
+  >> b
+  = 2
 
 Many operations, like addition and multiplication, "thread" over lists, i.e. lists are combined element-wise:
->> {1, 2, 3} + {4, 5, 6}
- = {5, 7, 9}
->> {1, 2, 3} * {4, 5, 6}
- = {4, 10, 18}
+
+  >> {1, 2, 3} + {4, 5, 6}
+  = {5, 7, 9}
+  >> {1, 2, 3} * {4, 5, 6}
+  = {4, 10, 18}
+
 It is an error to combine lists with unequal lengths:
->> {1, 2} + {4, 5, 6}
- : Objects of unequal length cannot be combined.
- = {1, 2} + {4, 5, 6}
+  >> {1, 2} + {4, 5, 6}
+  : Objects of unequal length cannot be combined.
+  = {1, 2} + {4, 5, 6}
+
+  >>
 </section>
 
 <section title="The Structure of Things">
 Every expression in \Mathics is built upon the same principle: it consists of a <em>head</em> and an arbitrary number of <em>children</em>, unless it is an <em>atom</em>, i.e. it can not be subdivided any further. To put it another way: everything is a function call. This can be best seen when displaying expressions in their "full form":
->> FullForm[a + b + c]
- = Plus[a, b, c]
-Nested calculations are nested function calls:
->> FullForm[a + b * (c + d)]
- = Plus[a, Times[b, Plus[c, d]]]
-Even lists are function calls of the function 'List':
->> FullForm[{1, 2, 3}]
- = List[1, 2, 3]
 
-The head of an expression can be determined with 'Head':
->> Head[a + b + c]
- = Plus
+  >> FullForm[a + b + c]
+  = Plus[a, b, c]
+
+Nested calculations are nested function calls:
+  >> FullForm[a + b * (c + d)]
+  = Plus[a, Times[b, Plus[c, d]]]
+
+Even lists are function calls of the function 'List':
+  >> FullForm[{1, 2, 3}]
+  = List[1, 2, 3]
+
+ The head of an expression can be determined with 'Head':
+  >> Head[a + b + c]
+  = Plus
+
 The children of an expression can be accessed like list elements:
->> (a + b + c)[[2]]
- = b
+  >> (a + b + c)[[2]]
+  = b
+
 The head is the 0th element:
->> (a + b + c)[[0]]
- = Plus
+  >> (a + b + c)[[0]]
+  = Plus
 
 The head of an expression can be exchanged using the function 'Apply':
->> Apply[g, f[x, y]]
- = g[x, y]
->> Apply[Plus, a * b * c]
- = a + b + c
+
+  >> Apply[g, f[x, y]]
+  = g[x, y]
+
+  >> Apply[Plus, a * b * c]
+  = a + b + c
+
 'Apply' can be written using the operator '@@':
->> Times @@ {1, 2, 3, 4}
- = 24
+  >> Times @@ {1, 2, 3, 4}
+  = 24
+
 (This exchanges the head 'List' of '{1, 2, 3, 4}' with 'Times', and then the expression 'Times[1, 2, 3, 4]' is evaluated, yielding 24.)
 'Apply' can also be applied on a certain <em>level</em> of an expression:
->> Apply[f, {{1, 2}, {3, 4}}, {1}]
- = {f[1, 2], f[3, 4]}
+
+  >> Apply[f, {{1, 2}, {3, 4}}, {1}]
+  = {f[1, 2], f[3, 4]}
+
 Or even on a range of levels:
->> Apply[f, {{1, 2}, {3, 4}}, {0, 2}]
- = f[f[1, 2], f[3, 4]]
+  >> Apply[f, {{1, 2}, {3, 4}}, {0, 2}]
+  = f[f[1, 2], f[3, 4]]
+
 'Apply' is similar to 'Map' ('/@'):
->> Map[f, {1, 2, 3, 4}]
- = {f[1], f[2], f[3], f[4]}
->> f /@ {{1, 2}, {3, 4}}
- = {f[{1, 2}], f[{3, 4}]}
+  >> Map[f, {1, 2, 3, 4}]
+  = {f[1], f[2], f[3], f[4]}
+
+  >> f /@ {{1, 2}, {3, 4}}
+  = {f[{1, 2}], f[{3, 4}]}
 
 The atoms of \Mathics are numbers, symbols, and strings. 'AtomQ' tests whether an expression is an atom:
->> AtomQ[5]
- = True
->> AtomQ[a + b]
- = False
+
+  >> AtomQ[5]
+  = True
+
+  >> AtomQ[a + b]
+  = False
+
 The full form of rational and complex numbers looks like they were compound expressions:
->> FullForm[3 / 5]
- = Rational[3, 5]
->> FullForm[3 + 4 I]
- = Complex[3, 4]
+  >> FullForm[3 / 5]
+  = Rational[3, 5]
+  >> FullForm[3 + 4 I]
+  = Complex[3, 4]
+
 However, they are still atoms, thus unaffected by applying functions, for instance:
->> f @@ Complex[3, 4]
- = 3 + 4 I
+  >> f @@ Complex[3, 4]
+  = 3 + 4 I
+
 Nevertheless, every atom has a head:
->> Head /@ {1, 1/2, 2.0, I, "a string", x}
- = {Integer, Rational, Real, Complex, String, Symbol}
+  >> Head /@ {1, 1/2, 2.0, I, "a string", x}
+  = {Integer, Rational, Real, Complex, String, Symbol}
 
 The operator '===' tests whether two expressions are the same on a structural level:
->> 3 === 3
- = True
->> 3 == 3.0
- = True
-But
->> 3 === 3.0
- = False
+  >> 3 === 3
+  = True
+
+  >> 3 == 3.0
+  = True
+
+But:
+
+  >> 3 === 3.0
+  = False
+
 because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different.
+
+  >>
 </section>
 
 <section title="Functions and Patterns">
+
 Functions can be defined in the following way:
->> f[x_] := x ^ 2
+  >> f[x_] := x ^ 2
+
 This tells \Mathics to replace every occurrence of 'f' with one (arbitrary) parameter 'x' with 'x ^ 2'.
->> f[3]
- = 9
->> f[a]
- = a ^ 2
+  >> f[3]
+  = 9
+
+  >> f[a]
+  = a ^ 2
+
 The definition of 'f' does not specify anything for two parameters, so any such call will stay unevaluated:
->> f[1, 2]
- = f[1, 2]
+  >> f[1, 2]
+  = f[1, 2]
 
 In fact, <em>functions</em> in \Mathics are just one aspect of <em>patterns</em>: 'f[x_]' is a pattern that <em>matches</em> expressions like 'f[3]' and 'f[a]'. The following patterns are available:
 <dl>
@@ -431,69 +524,85 @@ In fact, <em>functions</em> in \Mathics are just one aspect of <em>patterns</em>
 </dl>
 
 As before, patterns can be used to define functions:
->> g[s___] := Plus[s] ^ 2
->> g[1, 2, 3]
- = 36
+
+  >> g[s___] := Plus[s] ^ 2
+  >> g[1, 2, 3]
+  = 36
 
 'MatchQ[$e$, $p$]' tests whether $e$ matches $p$:
->> MatchQ[a + b, x_ + y_]
- = True
->> MatchQ[6, _Integer]
- = True
+  >> MatchQ[a + b, x_ + y_]
+  = True
+
+  >> MatchQ[6, _Integer]
+  = True
 
 'ReplaceAll' ('/.') replaces all occurrences of a pattern in an expression using a 'Rule' given by '->':
->> {2, "a", 3, 2.5, "b", c} /. x_Integer -> x ^ 2
- = {4, a, 9, 2.5, b, c}
+  >> {2, "a", 3, 2.5, "b", c} /. x_Integer -> x ^ 2
+  = {4, a, 9, 2.5, b, c}
+
 You can also specify a list of rules:
->> {2, "a", 3, 2.5, "b", c} /. {x_Integer -> x ^ 2.0, y_String -> 10}
- = {4., 10, 9., 2.5, 10, c}
+  >> {2, "a", 3, 2.5, "b", c} /. {x_Integer -> x ^ 2.0, y_String -> 10}
+  = {4., 10, 9., 2.5, 10, c}
+
 'ReplaceRepeated' ('//.') applies a set of rules repeatedly, until the expression doesn\'t change anymore:
->> {2, "a", 3, 2.5, "b", c} //. {x_Integer -> x ^ 2.0, y_String -> 10}
- = {4., 100., 9., 2.5, 100., c}
+  >> {2, "a", 3, 2.5, "b", c} //. {x_Integer -> x ^ 2.0, y_String -> 10}
+  = {4., 100., 9., 2.5, 100., c}
 
 There is a "delayed" version of 'Rule' which can be specified by ':>' (similar to the relation of ':=' to '='):
->> a :> 1 + 2
- = a :> 1 + 2
->> a -> 1 + 2
- = a -> 3
+
+  >> a :> 1 + 2
+  = a :> 1 + 2
+
+  >> a -> 1 + 2
+  = a -> 3
+
 This is useful when the right side of a rule should not be evaluated immediately (before matching):
->> {1, 2} /. x_Integer -> N[x]
- = {1, 2}
+  >> {1, 2} /. x_Integer -> N[x]
+  = {1, 2}
+
 Here, 'N' is applied to 'x' before the actual matching, simply yielding 'x'. With a delayed rule this can be avoided:
->> {1, 2} /. x_Integer :> N[x]
- = {1., 2.}
+  >> {1, 2} /. x_Integer :> N[x]
+  = {1., 2.}
 
 While 'ReplaceAll' and 'ReplaceRepeated' simply take the first possible match into account, 'ReplaceList' returns a list of all possible matches. This can be used to get all subsequences of a list, for instance:
->> ReplaceList[{a, b, c}, {___, x__, ___} -> {x}]
- = {{a}, {a, b}, {a, b, c}, {b}, {b, c}, {c}}
+
+  >> ReplaceList[{a, b, c}, {___, x__, ___} -> {x}]
+  = {{a}, {a, b}, {a, b, c}, {b}, {b, c}, {c}}
 'ReplaceAll' would just return the first expression:
->> ReplaceAll[{a, b, c}, {___, x__, ___} -> {x}]
- = {a}
+  >> ReplaceAll[{a, b, c}, {___, x__, ___} -> {x}]
+   = {a}
 
 In addition to defining functions as rules for certain patterns, there are <em>pure</em> functions that can be defined using the '&' postfix operator, where everything before it is treated as the function body and '#' can be used as argument placeholder:
->> h = # ^ 2 &;
->> h[3]
- = 9
+
+  >> h = # ^ 2 &;
+  >> h[3]
+  = 9
+
 Multiple arguments can simply be indexed:
->> sum = #1 + #2 &;
->> sum[4, 6]
- = 10
+  >> sum = #1 + #2 &;
+  >> sum[4, 6]
+  = 10
+
 It is also possible to name arguments using 'Function':
->> prod = Function[{x, y}, x * y];
->> prod[4, 6]
- = 24
+  >> prod = Function[{x, y}, x * y];
+  >> prod[4, 6]
+  = 24
+
 Pure functions are very handy when functions are used only locally, e.g., when combined with operators like 'Map':
->> # ^ 2 & /@ Range[5]
- = {1, 4, 9, 16, 25}
+  >> # ^ 2 & /@ Range[5]
+  = {1, 4, 9, 16, 25}
+
 Sort according to the second part of a list:
->> Sort[{{x, 10}, {y, 2}, {z, 5}}, #1[[2]] < #2[[2]] &]
- = {{y, 2}, {z, 5}, {x, 10}}
+  >> Sort[{{x, 10}, {y, 2}, {z, 5}}, #1[[2]] < #2[[2]] &]
+  = {{y, 2}, {z, 5}, {x, 10}}
 
 Functions can be applied using prefix or postfix notation, in addition to using '[]':
->> h @ 3
- = 9
->> 3 // h
- = 9
+  >> h @ 3
+  = 9
+
+  >> 3 // h
+  = 9
+
 </section>
 
 <section title="Control Statements">
@@ -518,21 +627,25 @@ Like most programming languages, \Mathics has common control statements for cond
         <dd>starting with $expr$, repeatedly applies $f$ until the result no longer changes.
 </dl>
 
->> If[2 < 3, a, b]
- = a
->> x = 3; Which[x < 2, a, x > 4, b, x < 5, c]
- = c
+  >> If[2 < 3, a, b]
+  = a
+  >> x = 3; Which[x < 2, a, x > 4, b, x < 5, c]
+  = c
 
 Compound statements can be entered with ';'. The result of a compound expression is its last part or 'Null' if it ends with a ';'.
->> 1; 2; 3
- = 3
->> 1; 2; 3;
+  >> 1; 2; 3
+  = 3
+  >> 1; 2; 3;
 
 Inside 'For', 'While', and 'Do' loops, 'Break[]' exits the loop and 'Continue[]' continues to the next iteration.
->> For[i = 1, i <= 5, i++, If[i == 4, Break[]]; Print[i]]
- | 1
- | 2
- | 3
+
+  >> For[i = 1, i <= 5, i++, If[i == 4, Break[]]; Print[i]]
+  | 1
+  | 2
+  | 3
+
+ ##
+
 </section>
 
 <section title="Scoping">
@@ -553,43 +666,53 @@ However, sometimes "local" variables are needed in order not to disturb the glob
 </dl>
 
 Both scoping constructs shield inner variables from affecting outer ones:
->> t = 3;
->> Module[{t}, t = 2]
- = 2
->> Block[{t}, t = 2]
- = 2
->> t
- = 3
+
+  >> t = 3;
+  >> Module[{t}, t = 2]
+  = 2
+  >> Block[{t}, t = 2]
+  = 2
+  >> t
+  = 3
 
 'Module' creates new variables:
->> y = x ^ 3;
->> Module[{x = 2}, x * y]
- = 2 x ^ 3
+  >> y = x ^ 3;
+
+  >> Module[{x = 2}, x * y]
+  = 2 x ^ 3
+
 'Block' does not:
->> Block[{x = 2}, x * y]
- = 16
+  >> Block[{x = 2}, x * y]
+   = 16
+
 Thus, 'Block' can be used to temporarily assign a value to a variable:
->> expr = x ^ 2 + x;
->> Block[{x = 3}, expr]
- = 12
->> x
- = x
+  >> expr = x ^ 2 + x;
+  >> Block[{x = 3}, expr]
+  = 12
+
+  >> x
+  = x
 
 'Block' can also be used to temporarily change the value of system parameters:
->> Block[{$RecursionLimit = 30}, x = 2 x]
- : Recursion depth of 30 exceeded.
- = $Aborted
 
->> f[x_] := f[x + 1]; Block[{$IterationLimit = 30}, f[1]]
- : Iteration limit of 30 exceeded.
- = $Aborted
+  >> Block[{$RecursionLimit = 30}, x = 2 x]
+  : Recursion depth of 30 exceeded.
+  = $Aborted
+
+  >> f[x_] := f[x + 1]; Block[{$IterationLimit = 30}, f[1]]
+  : Iteration limit of 30 exceeded.
+  = $Aborted
 
 It is common to use scoping constructs for function definitions with local variables:
->> fac[n_] := Module[{k, p}, p = 1; For[k = 1, k <= n, ++k, p *= k]; p]
->> fac[10]
- = 3628800
->> 10!
- = 3628800
+
+  >> fac[n_] := Module[{k, p}, p = 1; For[k = 1, k <= n, ++k, p *= k]; p]
+  >> fac[10]
+  = 3628800
+
+  >> 10!
+  = 3628800
+
+ ##
 </section>
 
 <section title="Formatting Output">
@@ -604,21 +727,22 @@ The way results are formatted for output in \Mathics is rather sophisticated, as
 As a consequence, there are various ways to implement your own formatting strategy for custom objects.
 
 You can specify how a symbol shall be formatted by assigning values to 'Format':
->> Format[x] = "y";
->> x
- = y
+  >> Format[x] = "y";
+  >> x
+  = y
 This will apply to 'MathMLForm', 'OutputForm', 'StandardForm', 'TeXForm', and 'TraditionalForm'.
->> x // InputForm
- = x
+
+  >> x // InputForm
+  = x
 You can specify a specific form in the assignment to 'Format':
->> Format[x, TeXForm] = "z";
->> x // TeXForm
- = \text{z}
+  >> Format[x, TeXForm] = "z";
+  >> x // TeXForm
+  = \text{z}
 
 Special formats might not be very relevant for individual symbols, but rather for custom functions (objects):
->> Format[r[args___]] = "<an r object>";
->> r[1, 2, 3]
- = <an r object>
+  >> Format[r[args___]] = "<an r object>";
+  >> r[1, 2, 3]
+  = <an r object>
 You can use several helper functions to format expressions:
 <dl>
 <dt>'Infix[$expr$, $op$]'
@@ -630,11 +754,12 @@ You can use several helper functions to format expressions:
 <dt>'StringForm[$form$, $arg1$, $arg2$, ...]'
   <dd>formats arguments using a format string.
 </dl>
->> Format[r[args___]] = Infix[{args}, "~"];
->> r[1, 2, 3]
- = 1 ~ 2 ~ 3
->> StringForm["`1` and `2`", n, m]
- = n and m
+
+  >> Format[r[args___]] = Infix[{args}, "~"];
+  >> r[1, 2, 3]
+  = 1 ~ 2 ~ 3
+  >> StringForm["`1` and `2`", n, m]
+  = n and m
 
 There are several methods to display expressions in 2-D:
 <dl>
@@ -647,78 +772,97 @@ There are several methods to display expressions in 2-D:
 <dt>'Superscript[$expr$, $exp$]'
   <dd>displays $expr$ with superscript (exponent) $exp$.
 </dl>
->> Grid[{{a, b}, {c, d}}]
- = a   b
- .
- . c   d
->> Subscript[a, 1, 2] // TeXForm
- = a_{1,2}
+
+  >> Grid[{{a, b}, {c, d}}]
+  = a   b
+  .
+  . c   d
+
+  >> Subscript[a, 1, 2] // TeXForm
+  = a_{1,2}
 
 If you want even more low-level control of how expressions are displayed, you can override 'MakeBoxes':
->> MakeBoxes[b, StandardForm] = "c";
->> b
- = b
+
+  >> MakeBoxes[b, StandardForm] = "c";
+  >> b
+  = b
+
 ## this will be displayed as c in the browser and LaTeX documentation
 This will even apply to 'TeXForm', because 'TeXForm' implies 'StandardForm':
->> b // TeXForm
- = c
+  >> b // TeXForm
+  = c
+
 Except some other form is applied first:
->> b // OutputForm // TeXForm
- = b
+  >> b // OutputForm // TeXForm
+  = b
 'MakeBoxes' for another form:
->> MakeBoxes[b, TeXForm] = "d";
->> b // TeXForm
- = d
+
+  >> MakeBoxes[b, TeXForm] = "d";
+  >> b // TeXForm
+  = d
 You can cause a much bigger mess by overriding 'MakeBoxes' than by sticking to 'Format', e.g. generate invalid XML:
->> MakeBoxes[c, MathMLForm] = "<not closed";
->> c // MathMLForm
- = <not closed
+
+  >> MakeBoxes[c, MathMLForm] = "<not closed";
+  >> c // MathMLForm
+  = <not closed
+
 However, this will not affect formatting of expressions involving 'c':
->> c + 1 // MathMLForm
- = ...
+  >> c + 1 // MathMLForm
+  = ...
+
 That\'s because 'MathMLForm' will, when not overridden for a special case, call 'StandardForm' first.
 'Format' will produce escaped output:
->> Format[d, MathMLForm] = "<not closed";
->> d // MathMLForm
- = ...
->> d + 1 // MathMLForm
- = ...
+
+  >> Format[d, MathMLForm] = "<not closed";
+  >> d // MathMLForm
+  = ...
+
+  >> d + 1 // MathMLForm
+  = ...
 
 For instance, you can override 'MakeBoxes' to format lists in a different way:
->> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
->> {1, 2, 3}
- = {1, 2, 3}
-#> {1, 2, 3} // TeXForm
- = \left[1 2 3\right]
+  >> MakeBoxes[{items___}, StandardForm] := RowBox[{"[", Sequence @@ Riffle[MakeBoxes /@ {items}, " "], "]"}]
+  >> {1, 2, 3}
+  = {1, 2, 3}
+
+ #> {1, 2, 3} // TeXForm
+  = \left[1 2 3\right]
+
 However, this will not be accepted as input to \Mathics anymore:
->> [1 2 3]
- : Expression cannot begin with "[1 2 3]" (line 1 of "<test>").
->> Clear[MakeBoxes]
+  >> [1 2 3]
+  : Expression cannot begin with "[1 2 3]" (line 1 of "<test>").
+
+  >> Clear[MakeBoxes]
+
 By the way, 'MakeBoxes' is the only built-in symbol that is not protected by default:
->> Attributes[MakeBoxes]
- = {HoldAllComplete}
+  >> Attributes[MakeBoxes]
+  = {HoldAllComplete}
 
 'MakeBoxes' must return a valid box construct:
->> MakeBoxes[squared[args___], StandardForm] := squared[args] ^ 2
->> squared[1, 2]
- = squared[1, 2]
+  >> MakeBoxes[squared[args___], StandardForm] := squared[args] ^ 2
+  >> squared[1, 2]
+   = squared[1, 2]
+
 ## different in LaTeX and MathML
-X> squared[1, 2] // TeXForm
- : Power[squared[1, 2], 2] is not a valid box structure.
- =
+ X> squared[1, 2] // TeXForm
+  : Power[squared[1, 2], 2] is not a valid box structure.
+  =
+
 The desired effect can be achieved in the following way:
->> MakeBoxes[squared[args___], StandardForm] := SuperscriptBox[RowBox[{MakeBoxes[squared], "[", RowBox[Riffle[MakeBoxes[#]& /@ {args}, ","]], "]"}], 2]
->> squared[1, 2]
- = squared[1, 2]
-#> squared[1, 2] // TeXForm
- = \text{squared}\left[1,2\right]^2
+  >> MakeBoxes[squared[args___], StandardForm] := SuperscriptBox[RowBox[{MakeBoxes[squared], "[", RowBox[Riffle[MakeBoxes[#]& /@ {args}, ","]], "]"}], 2]
+  >> squared[1, 2]
+  = squared[1, 2]
+ #> squared[1, 2] // TeXForm
+  = \text{squared}\left[1,2\right]^2
 
 You can view the box structure of a formatted expression using 'ToBoxes':
->> ToBoxes[m + n]
- = RowBox[{m, +, n}]
+
+  >> ToBoxes[m + n]
+  = RowBox[{m, +, n}]
+
 The list elements in this 'RowBox' are strings, though string delimiters are not shown in the default output form:
->> InputForm[%]
- = RowBox[{"m", "+", "n"}]
+  >> InputForm[%]
+  = RowBox[{"m", "+", "n"}]
 </section>
 
 <section title="Graphics Introduction Examples">
@@ -726,41 +870,53 @@ Two-dimensional graphics can be created using the function 'Graphics' and a list
 <dl>
 <dt>'Circle[{$x$, $y$}, $r$]'
   <dd>draws a circle.
-<dt>'Disk[{$x$, $y$}, $r$]'
+  <dt>'Disk[{$x$, $y$}, $r$]'
+
   <dd>draws a filled disk.
-<dt>'Rectangle[{$x1$, $y1$}, {$x2$, $y2$}]'
+  <dt>'Rectangle[{$x1$, $y1$}, {$x2$, $y2$}]'
+
   <dd>draws a filled rectangle.
-<dt>'Polygon[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+  <dt>'Polygon[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+
   <dd>draws a filled polygon.
-<dt>'Line[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+  <dt>'Line[{{$x1$, $y1$}, {$x2$, $y2$}, ...}]'
+
   <dd>draws a line.
-<dt>'Text[$text$, {$x$, $y$}]'
+  <dt>'Text[$text$, {$x$, $y$}]'
   <dd>draws text in a graphics.
 </dl>
 
->> Graphics[{Circle[{0, 0}, 1]}]
- = -Graphics-
->> Graphics[{Line[{{0, 0}, {0, 1}, {1, 1}, {1, -1}}], Rectangle[{0, 0}, {-1, -1}]}]
- = -Graphics-
+  >> Graphics[{Circle[{0, 0}, 1]}]
+  = -Graphics-
+
+  >> Graphics[{Line[{{0, 0}, {0, 1}, {1, 1}, {1, -1}}], Rectangle[{0, 0}, {-1, -1}]}]
+  = -Graphics-
 
 Colors can be added in the list of graphics primitives to change the drawing color. The following ways to specify colors are supported:
 <dl>
-<dt>'RGBColor[$r$, $g$, $b$]'
+  <dt>'RGBColor[$r$, $g$, $b$]'
   <dd>specifies a color using red, green, and blue.
-<dt>'CMYKColor[$c$, $m$, $y$, $k$]'
+
+  <dt>'CMYKColor[$c$, $m$, $y$, $k$]'
   <dd>specifies a color using cyan, magenta, yellow, and black.
-<dt>'Hue[$h$, $s$, $b$]'
+
+  <dt>'Hue[$h$, $s$, $b$]'
   <dd>specifies a color using hue, saturation, and brightness.
-<dt>'GrayLevel[$l$]'
+
+  <dt>'GrayLevel[$l$]'
   <dd>specifies a color using a gray level.
 </dl>
 All components range from 0 to 1. Each color function can be supplied with an additional argument specifying the desired opacity ("alpha") of the color. There are many predefined colors, such as 'Black', 'White', 'Red', 'Green', 'Blue', etc.
 
->> Graphics[{Red, Disk[]}]
- = -Graphics-
+  >> Graphics[{Red, Disk[]}]
+  = -Graphics-
+
 Table of hues:
->> Graphics[Table[{Hue[h, s], Disk[{12h, 8s}]}, {h, 0, 1, 1/6}, {s, 0, 1, 1/4}]]
- = -Graphics-
+
+  >> Graphics[Table[{Hue[h, s], Disk[{12h, 8s}]}, {h, 0, 1, 1/6}, {s, 0, 1, 1/4}]]
+   = -Graphics-
+
+  ##
 
 Colors can be mixed and altered using the following functions:
 <dl>
@@ -772,12 +928,14 @@ Colors can be mixed and altered using the following functions:
   <dd>makes $color$ darker (mixes it with 'Black').
 </dl>
 
->> Graphics[{Lighter[Red], Disk[]}]
- = -Graphics-
+  >> Graphics[{Lighter[Red], Disk[]}]
+   = -Graphics-
 
 'Graphics' produces a 'GraphicsBox':
->> Head[ToBoxes[Graphics[{Circle[]}]]]
- = GraphicsBox
+  >> Head[ToBoxes[Graphics[{Circle[]}]]]
+   = GraphicsBox
+
+  ##
 </section>
 
 <section title="3D Graphics">
@@ -791,37 +949,37 @@ Three-dimensional graphics are created using the function 'Graphics3D' and a lis
   <dd>draws a point.
 </dl>
 
->> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
- = -Graphics3D-
+  >> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
+   = -Graphics3D-
 
 Colors can also be added to three-dimensional primitives.
->> Graphics3D[{Orange, Polygon[{{0,0,0}, {1,1,1}, {1,0,0}}]}, Axes->True]
- = -Graphics3D-
+  >> Graphics3D[{Orange, Polygon[{{0,0,0}, {1,1,1}, {1,0,0}}]}, Axes->True]
+   = -Graphics3D-
 
 'Graphics3D' produces a 'Graphics3DBox':
->> Head[ToBoxes[Graphics3D[{Polygon[]}]]]
- = Graphics3DBox
+  >> Head[ToBoxes[Graphics3D[{Polygon[]}]]]
+   = Graphics3DBox
 </section>
 
 <section title="Plotting Introduction Examples">
 \Mathics can plot functions:
->> Plot[Sin[x], {x, 0, 2 Pi}]
- = -Graphics-
+  >> Plot[Sin[x], {x, 0, 2 Pi}]
+   = -Graphics-
 You can also plot multiple functions at once:
->> Plot[{Sin[x], Cos[x], x ^ 2}, {x, -1, 1}]
- = -Graphics-
+  >> Plot[{Sin[x], Cos[x], x ^ 2}, {x, -1, 1}]
+   = -Graphics-
 
 Two-dimensional functions can be plotted using 'DensityPlot':
->> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
- = -Graphics-
+  >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}]
+   = -Graphics-
 You can use a custom coloring function:
->> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}, ColorFunction -> (Blend[{Red, Green, Blue}, #]&)]
- = -Graphics-
+  >> DensityPlot[x ^ 2 + 1 / y, {x, -1, 1}, {y, 1, 4}, ColorFunction -> (Blend[{Red, Green, Blue}, #]&)]
+   = -Graphics-
 One problem with 'DensityPlot' is that it\'s still very slow, basically due to function evaluation being pretty slow in general---and 'DensityPlot' has to evaluate a lot of functions.
 
 Three-dimensional plots are supported as well:
->> Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]
- = -Graphics3D-
+  >> Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]
+   = -Graphics3D-
 </section>
 
 
@@ -833,153 +991,167 @@ Three-dimensional plots are supported as well:
 
 <section title="Curve sketching">
 Let\'s sketch the function
->> f[x_] := 4 x / (x ^ 2 + 3 x + 5)
+  >> f[x_] := 4 x / (x ^ 2 + 3 x + 5)
 The derivatives are
->> {f'[x], f''[x], f'''[x]} // Together
- = {-4 (-5 + x ^ 2) / (5 + 3 x + x ^ 2) ^ 2, 8 (-15 - 15 x + x ^ 3) / (5 + 3 x + x ^ 2) ^ 3, -24 (-20 - 60 x - 30 x ^ 2 + x ^ 4) / (5 + 3 x + x ^ 2) ^ 4}
+  >> {f'[x], f''[x], f'''[x]} // Together
+   = {-4 (-5 + x ^ 2) / (5 + 3 x + x ^ 2) ^ 2, 8 (-15 - 15 x + x ^ 3) / (5 + 3 x + x ^ 2) ^ 3, -24 (-20 - 60 x - 30 x ^ 2 + x ^ 4) / (5 + 3 x + x ^ 2) ^ 4}
 To get the extreme values of 'f', compute the zeroes of the first derivatives:
->> extremes = Solve[f'[x] == 0, x]
- = {{x -> -Sqrt[5]}, {x -> Sqrt[5]}}
+  >> extremes = Solve[f'[x] == 0, x]
+   = {{x -> -Sqrt[5]}, {x -> Sqrt[5]}}
 And test the second derivative:
->> f''[x] /. extremes // N
- = {1.65086, -0.064079}
+  >> f''[x] /. extremes // N
+   = {1.65086, -0.064079}
 Thus, there is a local maximum at 'x = Sqrt[5]' and a local minimum at 'x = -Sqrt[5]'.
 Compute the inflection points numerically, chopping imaginary parts close to 0:
->> inflections = Solve[f''[x] == 0, x] // N // Chop
- = {{x -> -1.0852}, {x -> -3.21463}, {x -> 4.29983}}
+  >> inflections = Solve[f''[x] == 0, x] // N // Chop
+   = {{x -> -1.0852}, {x -> -3.21463}, {x -> 4.29983}}
 Insert into the third derivative:
->> f'''[x] /. inflections
- = {-3.67683, 0.694905, 0.00671894}
+  >> f'''[x] /. inflections
+   = {-3.67683, 0.694905, 0.00671894}
 Being different from 0, all three points are actual inflection points.
 'f' is not defined where its denominator is 0:
->> Solve[Denominator[f[x]] == 0, x]
- = {{x -> -3 / 2 - I / 2 Sqrt[11]}, {x -> -3 / 2 + I / 2 Sqrt[11]}}
+  >> Solve[Denominator[f[x]] == 0, x]
+   = {{x -> -3 / 2 - I / 2 Sqrt[11]}, {x -> -3 / 2 + I / 2 Sqrt[11]}}
 These are non-real numbers, consequently 'f' is defined on all real numbers.
 The behaviour of 'f' at the boundaries of its definition:
->> Limit[f[x], x -> Infinity]
- = 0
->> Limit[f[x], x -> -Infinity]
- = 0
+  >> Limit[f[x], x -> Infinity]
+   = 0
+  >> Limit[f[x], x -> -Infinity]
+   = 0
 Finally, let\'s plot 'f':
->> Plot[f[x], {x, -8, 6}]
- = -Graphics-
+  >> Plot[f[x], {x, -8, 6}]
+   = -Graphics-
 </section>
 
 
 <section title="Linear algebra">
 Let\'s consider the matrix
->> A = {{1, 1, 0}, {1, 0, 1}, {0, 1, 1}};
->> MatrixForm[A]
- = 1   1   0
- .
- . 1   0   1
- .
- . 0   1   1
+  >> A = {{1, 1, 0}, {1, 0, 1}, {0, 1, 1}};
+  >> MatrixForm[A]
+   = 1   1   0
+  .
+  . 1   0   1
+  .
+  . 0   1   1
 
 We can compute its eigenvalues and eigenvectors:
->> Eigenvalues[A]
- = {2, -1, 1}
->> Eigenvectors[A]
- = {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}
+  >> Eigenvalues[A]
+   = {2, -1, 1}
+  >> Eigenvectors[A]
+   = {{1, 1, 1}, {1, -2, 1}, {-1, 0, 1}}
 This yields the diagonalization of 'A':
->> T = Transpose[Eigenvectors[A]]; MatrixForm[T]
- = 1   1    -1
- .
- . 1   -2   0
- .
- . 1   1    1
->> Inverse[T] . A . T // MatrixForm
- = 2   0    0
- .
- . 0   -1   0
- .
- . 0   0    1
->> % == DiagonalMatrix[Eigenvalues[A]]
- = True
+  >> T = Transpose[Eigenvectors[A]]; MatrixForm[T]
+   = 1   1    -1
+  .
+  . 1   -2   0
+  .
+  . 1   1    1
+  >> Inverse[T] . A . T // MatrixForm
+   = 2   0    0
+  .
+  . 0   -1   0
+  .
+  . 0   0    1
+  >> % == DiagonalMatrix[Eigenvalues[A]]
+   = True
 
 We can solve linear systems:
->> LinearSolve[A, {1, 2, 3}]
- = {0, 1, 2}
->> A . %
- = {1, 2, 3}
+  >> LinearSolve[A, {1, 2, 3}]
+   = {0, 1, 2}
+  >> A . %
+   = {1, 2, 3}
 In this case, the solution is unique:
->> NullSpace[A]
- = {}
+  >> NullSpace[A]
+   = {}
 
 Let\'s consider a singular matrix:
->> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
->> MatrixRank[B]
- = 2
->> s = LinearSolve[B, {1, 2, 3}]
- = {-1 / 3, 2 / 3, 0}
->> NullSpace[B]
- = {{1, -2, 1}}
->> B . (RandomInteger[100] * %[[1]] + s)
- = {1, 2, 3}
+  >> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  >> MatrixRank[B]
+   = 2
+  >> s = LinearSolve[B, {1, 2, 3}]
+   = {-1 / 3, 2 / 3, 0}
+  >> NullSpace[B]
+   = {{1, -2, 1}}
+  >> B . (RandomInteger[100] * %[[1]] + s)
+   = {1, 2, 3}
 </section>
 
 
 <section title="Dice">
 Let\'s play with dice in this example. A 'Dice' object shall represent the outcome of a series of rolling a dice with six faces, e.g.:
->> Dice[1, 6, 4, 4]
- = Dice[1, 6, 4, 4]
+  >> Dice[1, 6, 4, 4]
+   = Dice[1, 6, 4, 4]
+
 Like in most games, the ordering of the individual throws does not matter. We can express this by making 'Dice' 'Orderless':
->> SetAttributes[Dice, Orderless]
->> Dice[1, 6, 4, 4]
- = Dice[1, 4, 4, 6]
+  >> SetAttributes[Dice, Orderless]
+  >> Dice[1, 6, 4, 4]
+   = Dice[1, 4, 4, 6]
+
 A dice object shall be displayed as a rectangle with the given number of points in it, positioned like on a traditional dice:
->> Format[Dice[n_Integer?(1 <= # <= 6 &)]] := Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
->> Dice[1]
- = -Graphics-
+  >> Format[Dice[n_Integer?(1 <= # <= 6 &)]] := Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{1 - p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, 1 - p}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{1 - p, p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{1 - p, 0.5}, r]}]}, ImageSize -> Tiny]]
+  >> Dice[1]
+   = -Graphics-
 
 #> Definition[Dice]
- = Attributes[Dice] = {Orderless}
- .
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- .
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- .
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- .
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
- .
- . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
+   = Attributes[Dice] = {Orderless}
+  .
+  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], MathMLForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
+  .
+  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], OutputForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
+  .
+  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], StandardForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
+  .
+  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TeXForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
+  .
+  . Format[Dice[n_Integer ? (1 <= #1 <= 6&)], TraditionalForm] = Block[{p = 0.2, r = 0.05}, Graphics[{EdgeForm[Black], White, Rectangle[], Black, EdgeForm[], If[OddQ[n], Disk[{0.5, 0.5}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{p, p}, r]], If[MemberQ[{2, 3, 4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{p, Plus[1, Times[-1, p]]}, r]], If[MemberQ[{4, 5, 6}, n], Disk[{Plus[1, Times[-1, p]], p}, r]], If[n === 6, {Disk[{p, 0.5}, r], Disk[{Plus[1, Times[-1, p]], 0.5}, r]}]}, ImageSize -> Tiny]]
 
 The empty series of dice shall be displayed as an empty dice:
->> Format[Dice[]] := Graphics[{EdgeForm[Black], White, Rectangle[]}, ImageSize -> Tiny]
->> Dice[]
- = -Graphics-
+  >> Format[Dice[]] := Graphics[{EdgeForm[Black], White, Rectangle[]}, ImageSize -> Tiny]
+  >> Dice[]
+   = -Graphics-
+
 Any non-empty series of dice shall be displayed as a row of individual dice:
->> Format[Dice[d___Integer?(1 <= # <= 6 &)]] := Row[Dice /@ {d}]
->> Dice[1, 6, 4, 4]
- = -Graphics--Graphics--Graphics--Graphics-
+  >> Format[Dice[d___Integer?(1 <= # <= 6 &)]] := Row[Dice /@ {d}]
+  >> Dice[1, 6, 4, 4]
+   = -Graphics--Graphics--Graphics--Graphics-
+
 Note that \Mathics will automatically sort the given format rules according to their "generality", so the rule for the empty dice does not get overridden by the rule for a series of dice.
 We can still see the original form by using 'InputForm':
->> Dice[1, 6, 4, 4] // InputForm
- = Dice[1, 4, 4, 6]
+
+  >> Dice[1, 6, 4, 4] // InputForm
+   = Dice[1, 4, 4, 6]
+
 We want to combine 'Dice' objects using the '+' operator:
->> Dice[a___] + Dice[b___] ^:= Dice[Sequence @@ {a, b}]
+  >> Dice[a___] + Dice[b___] ^:= Dice[Sequence @@ {a, b}]
+
 The '^:=' ('UpSetDelayed') tells \Mathics to associate this rule with 'Dice' instead of 'Plus', which is protected---we would have to unprotect it first:
->> Dice[a___] + Dice[b___] := Dice[Sequence @@ {a, b}]
+  >> Dice[a___] + Dice[b___] := Dice[Sequence @@ {a, b}]
  : Tag Plus in Dice[a___] + Dice[b___] is Protected.
- = $Failed
+   = $Failed
+
 We can now combine dice:
->> Dice[1, 5] + Dice[3, 2] + Dice[4]
- = -Graphics--Graphics--Graphics--Graphics--Graphics-
+  >> Dice[1, 5] + Dice[3, 2] + Dice[4]
+   = -Graphics--Graphics--Graphics--Graphics--Graphics-
 #> Dice[1, 5] + Dice[3, 2] + Dice[4] // InputForm
- = Dice[1, 2, 3, 4, 5]
+   = Dice[1, 2, 3, 4, 5]
+
 Let\'s write a function that returns the sum of the rolled dice:
->> DiceSum[Dice[d___]] := Plus @@ {d}
->> DiceSum @ Dice[1, 2, 5]
- = 8
+  >> DiceSum[Dice[d___]] := Plus @@ {d}
+  >> DiceSum @ Dice[1, 2, 5]
+   = 8
+
 And now let\'s put some dice into a table:
->> Table[{Dice[Sequence @@ d], DiceSum @ Dice[Sequence @@ d]}, {d, {{1, 2}, {2, 2}, {2, 6}}}] // TableForm
- = -Graphics--Graphics-   3
- .
- . -Graphics--Graphics-   4
- .
- . -Graphics--Graphics-   8
+  >> Table[{Dice[Sequence @@ d], DiceSum @ Dice[Sequence @@ d]}, {d, {{1, 2}, {2, 2}, {2, 6}}}] // TableForm
+   = -Graphics--Graphics-   3
+  .
+  . -Graphics--Graphics-   4
+  .
+  . -Graphics--Graphics-   8
+
+  ##
+
 It is not very sophisticated from a mathematical point of view, but it\'s beautiful.
+
 </section>
 
 </chapter>

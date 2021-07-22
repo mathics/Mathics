@@ -3,7 +3,7 @@
 # Note: This makefile include remake-style target comments.
 # These comments before the targets start with #:
 
-.PHONY: latex
+.PHONY: latex texdoc
 
 all: latex
 
