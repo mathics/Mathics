@@ -8,7 +8,7 @@ See <url>https://mathics-development-guide.readthedocs.io/en/latest/installing/i
 
 For implementation details see <url>https://mathics-development-guide.readthedocs.io/en/latest/</url>.
 
-<section title="Why yet another CAS?">
+<section title="Why yet another CAS, one based on Mathematica?">
 \Mathematica is great, but it a couple of disadvantages.
 
 <ul>
@@ -33,7 +33,7 @@ Performance of \Mathics is not, right now, practical in large-scale projects and
 
 </section>
 
-<section title="What does it offer?">
+<section title="What does \Mathics offer?">
 Some of the features of \Mathics are:
 <ul>
   <li>a powerful functional programming language,
@@ -185,6 +185,7 @@ The result of the previous query to \Mathics can be accessed by '%':
   >> % ^ 2
   = 49
 
+  ##
 </section>
 
 <section title="Symbols and Assignments">
@@ -229,6 +230,8 @@ Such a dependency can be achieved by using "delayed assignment" with the ':=' op
   >> a = 5;
   >> b
    = 25
+
+  ##
 </section>
 
 
@@ -268,6 +271,8 @@ Truth values can be negated using '!' (logical <em>not</em>) and combined using 
 
   >> True && (True || False) && False
   = False
+
+  ##
 </section>
 
 <section title="Strings">
@@ -292,9 +297,11 @@ Numbers cannot be joined to strings:
 They have to be converted to strings using 'ToString' first:
   >> "Debian" <> ToString[6]
   = Debian6
+
+  ##
 </section>
 
-<section title="Lists">
+<section title="Working with Lists">
 Lists can be entered in \Mathics with curly braces '{' and '}':
 
   >> mylist = {a, b, c, d}
@@ -384,10 +391,10 @@ It is an error to combine lists with unequal lengths:
   : Objects of unequal length cannot be combined.
   = {1, 2} + {4, 5, 6}
 
-  >>
+  ##
 </section>
 
-<section title="The Structure of Things">
+<section title="The Structure of \Mathics Objects">
 Every expression in \Mathics is built upon the same principle: it consists of a <em>head</em> and an arbitrary number of <em>children</em>, unless it is an <em>atom</em>, i.e. it can not be subdivided any further. To put it another way: everything is a function call. This can be best seen when displaying expressions in their "full form":
 
   >> FullForm[a + b + c]
@@ -478,7 +485,7 @@ But:
 
 because '3' (an 'Integer') and '3.0' (a 'Real') are structurally different.
 
-  >>
+  ##
 </section>
 
 <section title="Functions and Patterns">
@@ -603,10 +610,11 @@ Functions can be applied using prefix or postfix notation, in addition to using 
   >> 3 // h
   = 9
 
+  ##
 </section>
 
-<section title="Control Statements">
-Like most programming languages, \Mathics has common control statements for conditions, loops, etc.:
+<section title="Program-Flow Control Statements">
+Like most programming languages, \Mathics has common program-flow control statements for conditions, loops, etc.:
 <dl>
 <dt>'If[$cond$, $pos$, $neg$]'
   <dd>returns $pos$ if $cond$ evaluates to 'True', and $neg$ if it evaluates to 'False'.
@@ -852,17 +860,21 @@ The desired effect can be achieved in the following way:
   >> MakeBoxes[squared[args___], StandardForm] := SuperscriptBox[RowBox[{MakeBoxes[squared], "[", RowBox[Riffle[MakeBoxes[#]& /@ {args}, ","]], "]"}], 2]
   >> squared[1, 2]
   = squared[1, 2]
- #> squared[1, 2] // TeXForm
-  = \text{squared}\left[1,2\right]^2
+
+  #> squared[1, 2] // TeXForm
+   = \text{squared}\left[1,2\right]^2
 
 You can view the box structure of a formatted expression using 'ToBoxes':
 
   >> ToBoxes[m + n]
-  = RowBox[{m, +, n}]
+   = RowBox[{m, +, n}]
 
 The list elements in this 'RowBox' are strings, though string delimiters are not shown in the default output form:
+
   >> InputForm[%]
-  = RowBox[{"m", "+", "n"}]
+   = RowBox[{"m", "+", "n"}]
+
+  ##
 </section>
 
 <section title="Graphics Introduction Examples">
@@ -887,7 +899,7 @@ Two-dimensional graphics can be created using the function 'Graphics' and a list
 </dl>
 
   >> Graphics[{Circle[{0, 0}, 1]}]
-  = -Graphics-
+   = -Graphics-
 
   >> Graphics[{Line[{{0, 0}, {0, 1}, {1, 1}, {1, -1}}], Rectangle[{0, 0}, {-1, -1}]}]
   = -Graphics-
@@ -959,6 +971,8 @@ Colors can also be added to three-dimensional primitives.
 'Graphics3D' produces a 'Graphics3DBox':
   >> Head[ToBoxes[Graphics3D[{Polygon[]}]]]
    = Graphics3DBox
+
+  ##
 </section>
 
 <section title="Plotting Introduction Examples">
@@ -980,6 +994,8 @@ One problem with 'DensityPlot' is that it\'s still very slow, basically due to f
 Three-dimensional plots are supported as well:
   >> Plot3D[Exp[x] Cos[y], {x, -2, 1}, {y, -Pi, 2 Pi}]
    = -Graphics3D-
+
+  ##
 </section>
 
 
@@ -1084,6 +1100,8 @@ Let\'s consider a singular matrix:
    = {{1, -2, 1}}
   >> B . (RandomInteger[100] * %[[1]] + s)
    = {1, 2, 3}
+
+ ##
 </section>
 
 
