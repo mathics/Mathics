@@ -18,6 +18,8 @@ from mathics.doc.common_doc import MathicsMainDocumentation
 # Global variables
 logfile = None
 
+DOC_LATEX_FILE = os.environ.get("DOC_LATEX_FILE", settings.DOC_LATEX_FILE)
+
 
 def extract_doc_from_source(quiet=False):
     """
@@ -61,8 +63,8 @@ def print_and_log(*args):
 def write_latex(doc_data, quiet=False):
     documentation = MathicsMainDocumentation()
     if not quiet:
-        print(f"Writing LaTeX {settings.DOC_LATEX_FILE}")
-    with open_ensure_dir(settings.DOC_LATEX_FILE, "wb") as doc:
+        print(f"Writing LaTeX {DOC_LATEX_FILE}")
+    with open_ensure_dir(DOC_LATEX_FILE, "wb") as doc:
         content = documentation.latex(doc_data, quiet=quiet)
         content = content.encode("utf-8")
         doc.write(content)
