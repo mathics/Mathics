@@ -32,6 +32,7 @@ import re
 
 from os import getenv, listdir
 from types import ModuleType
+from typing import Callable
 
 from mathics import builtin
 from mathics import settings
@@ -1378,7 +1379,7 @@ class DocSubsection(object):
         if in_guide:
             # Tests haven't been picked out yet from the doc string yet.
             # Gather them here.
-            self.items = gather_tests(text)
+            self.items = gather_tests(text, DocTests, DocTest, DocText)
         else:
             self.items = []
 
@@ -1429,7 +1430,19 @@ class DocSubsection(object):
         return section_string
 
 
-def gather_tests(doc: str, key_part=None) -> list:
+def gather_tests(
+    doc: str,
+    test_collection_constructor: Callable,
+    test_case_constructor: Callable,
+    text_constructor: Callable,
+    key_part=None,
+) -> list:
+    """
+    This parses string `doc` (using regular expresssions) into Python objects.
+    test_collection_fn() is the class construtorto call to create an object for the
+    test collection. Each test is created via test_case_fn().
+    Text within the test is stored via text_constructor.
+    """
     # Remove commented lines.
     doc = filter_comments(doc).strip(r"\s")
 
@@ -1443,7 +1456,7 @@ def gather_tests(doc: str, key_part=None) -> list:
 
     # HACK: Artificially construct a last testcase to get the "intertext"
     # after the last (real) testcase. Ignore the test, of course.
-    doc += "\n>> test\n = test"
+    doc += "\n >> test\n = test"
     testcases = TESTCASE_RE.findall(doc)
 
     tests = None
@@ -1456,12 +1469,12 @@ def gather_tests(doc: str, key_part=None) -> list:
                 items.append(tests)
                 tests = None
             text = post_sub(text, post_substitutions)
-            items.append(DocText(text))
+            items.append(text_constructor(text))
             tests = None
         if index < len(testcases) - 1:
-            test = DocTest(index, testcase, key_part)
+            test = test_case_constructor(index, testcase, key_part)
             if tests is None:
-                tests = DocTests()
+                tests = test_collection_constructor()
             tests.tests.append(test)
         if tests is not None:
             items.append(tests)
@@ -1487,7 +1500,7 @@ class XMLDoc(object):
             key_prefix = None
 
         self.rawdoc = doc
-        self.items = gather_tests(self.rawdoc, key_prefix)
+        self.items = gather_tests(self.rawdoc, DocTests, DocTest, DocText, key_prefix)
 
     def __str__(self):
         return "\n".join(str(item) for item in self.items)

@@ -34,9 +34,10 @@ latex: mathics.pdf
 
 #: Remove all auto-generated files
 clean:
-	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc
-	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre
+	rm -f mathics.asy mathics.aux mathics.idx mathics.log mathics.mtc mathics.mtc* mathics.out mathics.toc || true
+	rm -f test-mathics.aux test-mathics.idx test-mathics.log test-mathics.mtc test-mathics.mtc* test-mathics.out test-mathics.toc || true
+	rm -f mathics.fdb_latexmk mathics.ilg mathics.ind mathics.maf mathics.pre || true
 	rm -f mathics_*.* || true
 	rm -f mathics-*.* documentation.tex doc_tex_data.pcl || true
-	rm -f mathics.pdf mathics.dvi data_tex_data.pcl || true
+	rm -f mathics.pdf mathics.dvi data_tex_data.pcl test-mathics.pdf test-mathics.dvi || true
 	rm -f mathics-test.pdf mathics-test.dvi || true
