@@ -1,3 +1,24 @@
+% -*- latex -*-
+%
+% This is the top-level LaTeX file to build the Mathics Book (Tutorial + Reference)
+% which is stored in mathic.pdf
+%
+% To build this:
+%    make mathics.pdf
+%
+% The bulk of this LaTeX is in file documentation.tex which is
+% automatically generated via ./doc2latex.py from:
+%
+%  * static files in ../documentation/*.mdoc (Tutorial and
+%  * SVG images in ./images/*.svg  (Mostly logos right now)
+%  * Information pulled out of the Python docstrings for built-in Functions. These
+%    are stored in
+%
+% Since this file is rather bulky, to troubleshoot, put stripped down
+% text such as from documentation.tex in a file called testing.tex
+% and build that using:
+%  make mathics-test.pdf
+
 \documentclass[index=totoc,fleqn,10pt,oneside,toc=flat]{scrbook}
 
 %\usepackage[utf8]{inputenc}

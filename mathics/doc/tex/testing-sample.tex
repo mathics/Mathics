@@ -1,0 +1,50 @@
+% -*- latex -*-
+
+% This file can be used for troubleshooting problems.
+
+% Adjust this file to your liking and then build using:
+%    make mathics-test.pdf
+\chapter{Test Chapter}
+\chapterstart
+\chaptersections
+\section*{TestSection}
+\sectionstart
+
+Here is what we want to test:
+
+\begin{asy}
+if(!settings.multipleView) settings.batchView=false;
+settings.tex="xelatex";
+defaultfilename="mathics-test-1";   % Note that filename line has been altered!
+if(settings.render < 0) settings.render=4;
+settings.outformat="";
+settings.inlineimage=true;
+settings.embed=true;
+settings.toolbar=false;
+viewportmargin=(2,2);
+
+% Copy stuff here from mathics-xxx.asy
+% The below is from the "Darker" section around mathics-114.asy
+
+import three;
+import solids;
+size(6.6667cm, 6.6667cm);
+currentprojection=perspective(2.6,-4.8,4.0);
+currentlight=light(rgb(0.5,0.5,1), specular=red, (2,0,2), (2,2,2), (0,2,2));
+// Sphere3DBox
+draw(surface(sphere((0, 0, 0), 1)), rgb(0.0,0.6666666666666667,0.0));
+draw(((-1,-1,-1)--(1,-1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,1,-1)--(1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,-1,1)--(1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,1,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,-1,-1)--(-1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((1,-1,-1)--(1,1,-1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,-1,1)--(-1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((1,-1,1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,-1,-1)--(-1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((1,-1,-1)--(1,-1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((-1,1,-1)--(-1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+draw(((1,1,-1)--(1,1,1)), rgb(0.4, 0.4, 0.4)+linewidth(1));
+\end{asy}
+\sectionend
+\chapterend
