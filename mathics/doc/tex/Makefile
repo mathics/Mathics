@@ -17,7 +17,7 @@ mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pd
 	$(LATEXMK) --verbose -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
 
 #: Build test PDF
-mathics-test.pdf: mathics-test.tex
+mathics-test.pdf: mathics-test.tex testing.tex
 	$(LATEXMK) --verbose -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics-test
 
 
