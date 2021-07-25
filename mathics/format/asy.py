@@ -79,7 +79,7 @@ class _ASYTransform:
 
 def arcbox(self, **options) -> str:
     """
-    Aymptote formatting for arc of a circle.
+    Aymptote formatting for an arc of a circle or an ellipse.
     """
     if self.arc is None:
         # We have a doughnut graph and this is the inner blank hole of that.
@@ -88,16 +88,33 @@ def arcbox(self, **options) -> str:
 
     x, y, rx, ry, sx, sy, ex, ey, large_arc = self._arc_params()
 
-    def path(closed):
-        if closed:
-            yield "(%s,%s)--(%s,%s)--" % tuple(asy_number(t) for t in (x, y, sx, sy))
+    ry = max(ry, 0.1)  # Avoid division by 0
+    yscale = ry / rx
 
-        yield "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
+    def create_arc_path(is_closed: bool, yscale: float) -> str:
+        """Constructs arc path taking into account whether the path
+        is closed and the scaling along the Y dimension (i.e. Mathics
+        disks support ellipses.
+
+        An Asymptote string for the path is returned.
+        """
+        arc_path = ""
+        if is_closed:
+            arc_path = "(%s,%s)--(%s,%s)--" % tuple(
+                asy_number(t) for t in (x, y, sx, sy)
+            )
+
+        arc_path += "arc((%s,%s), (%s, %s), (%s, %s))" % tuple(
             asy_number(t) for t in (x, y, sx, sy, ex, ey)
         )
 
-        if closed:
-            yield "--cycle"
+        if is_closed:
+            arc_path += "--cycle"
+
+        if yscale != 1.0:
+            arc_path = f"yscale({yscale}) * ({arc_path})"
+
+        return arc_path
 
     l = self.style.get_line_width(face_element=self.face_element)
     pen = asy_create_pens(
@@ -107,8 +124,9 @@ def arcbox(self, **options) -> str:
         is_face_element=self.face_element,
     )
     command = "filldraw" if self.face_element else "draw"
-    asy = f"""// _ArcBox
-{command}({"".join(path(self.face_element))}, {pen});"""
+    arc_path = create_arc_path(self.face_element, yscale)
+    asy = f"""// ArcBox
+{command}({arc_path}, {pen});"""
     # print("### arcbox", asy)
     return asy
 
