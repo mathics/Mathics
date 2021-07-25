@@ -42,7 +42,6 @@ from mathics.core.expression import (
     String,
     Symbol,
     SymbolList,
-    system_symbols_dict,
 )
 
 # Note: has to come before _ArcBox
@@ -68,7 +67,11 @@ class _RoundBox(_GraphicsElement):
                 rx = ry = r.round_to_float()
         self.r = self.c.add(rx, ry)
 
-    def extent(self):
+    def extent(self) -> list:
+        """
+        Compute the bounding box for _RoundBox. Note that
+        We handle ellipses here too.
+        """
         l = self.style.get_line_width(face_element=self.face_element) / 2
         x, y = self.c.pos()
         rx, ry = self.r.pos()
