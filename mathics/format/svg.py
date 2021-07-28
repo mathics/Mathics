@@ -178,13 +178,13 @@ def density_plot_box(self, **options):
     for index, triangle_coords in enumerate(self.lines):
         triangle = [coords.pos() for coords in triangle_coords]
         colors = [rgb.to_js() for rgb in self.vertex_colors[index]]
-        r = (colors[0][0] + colors[1][0] + colors[2][0]) / 3.0
-        g = (colors[0][1] + colors[1][1] + colors[2][1]) / 3.0
-        b = (colors[0][2] + colors[1][2] + colors[2][1]) / 3.0
-        mid_color = r"rgb(%f%%, %f%%, %f%%)" % (r * 100, g * 100, b * 100)
+        r = (colors[0][0] + colors[1][0] + colors[2][0]) / 3
+        g = (colors[0][1] + colors[1][1] + colors[2][1]) / 3
+        b = (colors[0][2] + colors[1][2] + colors[2][1]) / 3
+        mid_color = r"rgb(%f, %f, %f)" % (r * 255, g * 255, b * 255)
 
         points = " ".join("%f,%f" % (point[0], point[1]) for point in triangle)
-        svg_data.append(f'<polygon points="{points}" style="fill: {mid_color}" />')
+        svg_data.append(f'<polygon points="{points}" fill="{mid_color}" />')
 
     svg = "\n".join(svg_data)
     # print("DensityPlot: ", svg)
