@@ -1003,12 +1003,13 @@ def _get_usage_string(symbol, evaluation, htmlout=False):
         from mathics.doc.common_doc import XMLDoc
 
         docstr = bio.builtin.__class__.__doc__
+        title = bio.builtin.__class__.__name__
         if docstr is None:
             return None
         if htmlout:
-            usagetext = XMLDoc(docstr).html()
+            usagetext = XMLDoc(docstr, title).html()
         else:
-            usagetext = XMLDoc(docstr).text(0)
+            usagetext = XMLDoc(docstr, title).text(0)
         usagetext = re.sub(r"\$([0-9a-zA-Z]*)\$", r"\1", usagetext)
         return usagetext
     return None
