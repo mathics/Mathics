@@ -1489,7 +1489,7 @@ class XMLDoc(object):
     Mathics core also uses this in getting usage strings (`??`).
     """
 
-    def __init__(self, doc, title, section):
+    def __init__(self, doc, title, section=None):
         self.title = title
         if section:
             chapter = section.chapter
