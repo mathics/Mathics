@@ -20,20 +20,17 @@ The overall top-level LaTeX document is ``mathic.tex``. The pulls in
 program ``doc2latex.py`` and that in turn gets its data from
 ``doc_tex_data.pcl`` which in turn gets its data from ``../documentation/*.mdoc``.
 
-Here is a flow of the data:
+Here is a flow of the data::
 
-```
-doc/documentation/*.mdoc --+
-                           |
-bultins/*.py  -------------+--> doc/tex/doc_tex_data.pcl ---> documentation.tex -+
-               docpipeline.py                          doc2latex.py              |
-                                                                                 |
-doc/images/*.svg -------------> doc/tex/log*.pdf --------------------------------+---------------------> mathics.pdf
-                 images.sh                                                       |  xetex,asyptote,gv
-                                                                                 |
-doc/tex/mathics.tex -------------------------------------------------------------+
-
-```
+    doc/documentation/*.mdoc --+
+                               |
+    bultins/*.py  -------------+--> doc/tex/doc_tex_data.pcl ---> documentation.tex -+
+                   docpipeline.py                          doc2latex.py              |
+                                                                                     |
+    doc/images/*.svg -------------> doc/tex/log*.pdf --------------------------------+---------------------> mathics.pdf
+                     images.sh                                                       |  xetex,asyptote,gv
+                                                                                     |
+    doc/tex/mathics.tex -------------------------------------------------------------+
 
 A GNU Makefile in this directory has been created to manage the complicated workflow above.
 
@@ -48,7 +45,7 @@ just its number, you may be able to figure out its number by going
 into ``documetation.tex`` and finding the appropriate section in the
 LaTeX document and then getting the number that is listed there.
 
-To view one of the asymptote figures, e.g. ``mathics-83.asy``:
+To view one of the asymptote figures, e.g. ``mathics-83.asy``::
 
     $ asy
     asy
