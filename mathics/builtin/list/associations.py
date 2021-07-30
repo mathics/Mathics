@@ -88,6 +88,8 @@ class Association(Builtin):
         "Protected",
     )
 
+    summary_text = "an association between keys and values"
+
     def apply_makeboxes(self, rules, f, evaluation):
         """MakeBoxes[<|rules___|>,
         f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
@@ -179,7 +181,10 @@ class AssociationQ(Test):
 
     >> AssociationQ[<|a, b|>]
      = False
+
     """
+
+    summary_text = "test if an expression is a valid association"
 
     def test(self, expr):
         def validate(leaves):
@@ -263,6 +268,8 @@ class Keys(Builtin):
         "invrl": "The argument `1` is not a valid Association or a list of rules.",
     }
 
+    summary_text = "list association keys"
+
     def apply(self, rules, evaluation):
         "Keys[rules___]"
 
@@ -291,8 +298,8 @@ class Keys(Builtin):
 class Lookup(Builtin):
     """
     <dl>
-    <dt>Lookup[$assoc$, $key$]
-        <dd> looks up the value associated with $key$ in the association $assoc$, or Missing[$KeyAbsent$].
+      <dt>Lookup[$assoc$, $key$]
+      <dd> looks up the value associated with $key$ in the association $assoc$, or Missing[$KeyAbsent$].
     </dl>
     """
 
@@ -301,6 +308,8 @@ class Lookup(Builtin):
         "Lookup[assoc_?AssociationQ, key_, default_]": "FirstCase[assoc, _[Verbatim[key], val_] :> val, default]",
         "Lookup[assoc_?AssociationQ, key_]": 'Lookup[assoc, key, Missing["KeyAbsent", key]]',
     }
+
+    summary_text = "perform lookup of a value by key, returning a specified default if it is not found"
 
 
 class Missing(Builtin):
@@ -373,6 +382,8 @@ class Values(Builtin):
         "argx": "Values called with `1` arguments; 1 argument is expected.",
         "invrl": "The argument `1` is not a valid Association or a list of rules.",
     }
+
+    summary_text = "list association values"
 
     def apply(self, rules, evaluation):
         "Values[rules___]"
