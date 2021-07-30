@@ -87,6 +87,8 @@ class CubeRoot(Builtin):
         ),
     }
 
+    summary_text = "cubed root"
+
     def apply(self, n, evaluation):
         "CubeRoot[n_Complex]"
 
@@ -155,6 +157,8 @@ class Divide(BinaryOperator):
         ),
     }
 
+    summary_text = r"division"
+
 
 class Minus(PrefixOperator):
     """
@@ -191,6 +195,8 @@ class Minus(PrefixOperator):
             'Prefix[{Infix[expr, op, 400, grouping]}, "-", 399]'
         ),
     }
+
+    summary_text = "arithmetic negation"
 
     def apply_int(self, x, evaluation):
         "Minus[x_Integer]"
@@ -273,6 +279,7 @@ class Plus(BinaryOperator, SympyFunction):
         None: "0",
     }
 
+    summary_text = "addition of numbers, lists, arrays, or symbolic expressions"
     sympy_name = "Add"
 
     def format_plus(self, items, evaluation):
@@ -536,6 +543,8 @@ class Power(BinaryOperator, _MPMathFunction):
         "Power[x_]": "x",
     }
 
+    summary_text = "exponentiation"
+
     def apply_check(self, x, y, evaluation):
         "Power[x_, y_]"
 
@@ -603,6 +612,8 @@ class Sqrt(SympyFunction):
         ),
     }
 
+    summary_text = "square root"
+
 
 class Subtract(BinaryOperator):
     """
@@ -631,6 +642,8 @@ class Subtract(BinaryOperator):
     rules = {
         "Subtract[x_, y_]": "Plus[x, Times[-1, y]]",
     }
+
+    summary_text = "subtraction"
 
 
 class Times(BinaryOperator, SympyFunction):
@@ -731,11 +744,13 @@ class Times(BinaryOperator, SympyFunction):
 
     default_formats = False
 
-    sympy_name = "Mul"
+    formats = {}
 
     rules = {}
 
-    formats = {}
+    sympy_name = "Mul"
+
+    summary_text = "mutiplication"
 
     def format_times(self, items, evaluation, op="\u2062"):
         "Times[items__]"

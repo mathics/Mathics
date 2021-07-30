@@ -757,6 +757,8 @@ class AbsoluteTime(_DateFormat):
      = 1000
     """
 
+    abstract = "absolute time in seconds"
+
     def apply_now(self, evaluation):
         "AbsoluteTime[]"
 
