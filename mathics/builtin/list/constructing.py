@@ -69,6 +69,8 @@ class Array(Builtin):
         "plen": "`1` and `2` should have the same length.",
     }
 
+    summary_text = "form an array of any dimension by applying a function to successive indices"
+
     def apply(self, f, dimsexpr, origins, head, evaluation):
         "Array[f_, dimsexpr_, origins_:1, head_:List]"
 
@@ -130,6 +132,7 @@ class ConstantArray(Builtin):
         "ConstantArray[c_, n_Integer]": "ConstantArray[c, {n}]",
     }
 
+    summary_text = "form a constant array of any dimension"
 
 class Normal(Builtin):
     """
@@ -138,6 +141,8 @@ class Normal(Builtin):
       <dd> Brings especial expressions to a normal expression from different especial forms.
     </dl>
     """
+
+    summary_text = "converts objects to normal expressions"
 
 
 class Range(Builtin):
@@ -164,6 +169,8 @@ class Range(Builtin):
     }
 
     attributes = ("Listable", "Protected")
+
+    summary_text = "form a list from a range of numbers or other objects"
 
     def apply(self, imin, imax, di, evaluation):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]"
@@ -212,6 +219,8 @@ class Permutations(Builtin):
         "argt": "Permutation expects at least one argument.",
         "nninfseq": "The number specified at position 2 of `` must be a non-negative integer, All, or Infinity.",
     }
+
+    summary_text = "forms permutations of a list"
 
     def apply_argt(self, evaluation):
         "Permutations[]"
@@ -412,6 +421,8 @@ class Table(_IterationFunction):
         "Table[expr_, n_Integer]": "Table[expr, {n}]",
     }
 
+    summary_text = "form a Mathematical Table of any dimension from expressions or lists"
+
     def get_result(self, items):
         return Expression(SymbolList, *items)
 
@@ -443,6 +454,9 @@ class Tuples(Builtin):
     >> Tuples[{f[a, b], g[c, d]}]
      = {{a, c}, {a, d}, {b, c}, {b, d}}
     """
+
+    summary_text = "form n-tuples from a list"
+
 
     def apply_n(self, expr, n, evaluation):
         "Tuples[expr_, n_Integer]"
