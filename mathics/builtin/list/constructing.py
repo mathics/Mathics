@@ -134,6 +134,7 @@ class ConstantArray(Builtin):
         "ConstantArray[c_, n_Integer]": "ConstantArray[c, {n}]",
     }
 
+    summary_text = "form a constant array of any dimension"
 
 
 class Normal(Builtin):
@@ -143,6 +144,8 @@ class Normal(Builtin):
       <dd> Brings especial expressions to a normal expression from different especial forms.
     </dl>
     """
+
+    summary_text = "converts objects to normal expressions"
 
 
 class Range(Builtin):
@@ -169,6 +172,8 @@ class Range(Builtin):
     }
 
     attributes = ("Listable", "Protected")
+
+    summary_text = "form a list from a range of numbers or other objects"
 
     def apply(self, imin, imax, di, evaluation):
         "Range[imin_?RealNumberQ, imax_?RealNumberQ, di_?RealNumberQ]"
@@ -217,6 +222,8 @@ class Permutations(Builtin):
         "argt": "Permutation expects at least one argument.",
         "nninfseq": "The number specified at position 2 of `` must be a non-negative integer, All, or Infinity.",
     }
+
+    summary_text = "forms permutations of a list"
 
     def apply_argt(self, evaluation):
         "Permutations[]"
