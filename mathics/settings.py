@@ -73,7 +73,7 @@ def get_doc_tex_data_path(should_be_readable=False, create_parent=False) -> str:
     if should_be_readable:
         return (
             DOC_USER_TEX_DATA_PATH
-            if doc_user_tex_data_path.is_file
+            if doc_user_tex_data_path.is_file()
             else DOC_SYSTEM_TEX_DATA_PATH
         )
     else:
