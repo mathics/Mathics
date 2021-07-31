@@ -24,13 +24,13 @@ Here is a flow of the data::
 
     doc/documentation/*.mdoc --+
                                |
-    bultins/*.py  -------------+--> doc/tex/doc_tex_data.pcl ---> documentation.tex -+
-                   docpipeline.py                          doc2latex.py              |
-                                                                                     |
-    doc/images/*.svg -------------> doc/tex/log*.pdf --------------------------------+------------------------------> mathics.pdf
-                     images.sh                                                       |  latexmk,xetex,asyptote,gv
-                                                                                     |
-    doc/tex/mathics.tex -------------------------------------------------------------+
+    bultins/*.py  -------------+--> doc_tex_data.pcl ---> documentation.tex -+
+                   docpipeline.py                  doc2latex.py              |
+                                                                             |
+    doc/images/*.svg -------------> doc/tex/log*.pdf ------------------------+------------------------------> mathics.pdf
+                     images.sh                                               |  latexmk,xetex,asyptote,gv
+                                                                             |
+    doc/tex/mathics.tex -----------------------------------------------------+
 
 A GNU Makefile in this directory has been created to manage the complicated workflow above.
 
