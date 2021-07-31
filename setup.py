@@ -158,8 +158,10 @@ setup(
     package_data={
         "mathics": [
             "data/*.csv",
+            "data/*.json",
             "data/*.yml",
             "data/*.yaml",
+            "data/*.pcl",
             "data/ExampleData/*",
             "doc/xml/data",
             "doc/tex/data",

@@ -7,4 +7,5 @@ include Makefile
 include requirements-dev.txt
 include requirements-full.txt
 recursive-include mathics *.py
+recursive-include mathics/data *
 recursive-include test *.py *.m
