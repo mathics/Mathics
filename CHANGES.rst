@@ -1,6 +1,79 @@
 CHANGES
 =======
 
+4.0.0
+-----
+
+The main thrust behind this API-breaking release is to be able to
+support a protocol for Graphics3D.
+
+It new Graphics3D protocol is currently expressed in JSON. There is an
+independent `threejs-based module
+<https://www.npmjs.com/package/@mathicsorg/mathics-threejs-backend>`_
+to implement this. Tiago Cavalcante Trindade is responsible for this
+code.
+
+The other main API-breaking change is more decentralization of the
+Mathics Documentation. A lot more work needs to go on here, and so
+there will be one or two more API breaking releases. After this
+release, the documentation code will be split off into its own git
+repository.
+
+Enhancements
+++++++++++++
+
+* a Graphics3D protocol, mentioned above, has been started
+* ``mathics.setting`` have been gone over to simplify.
+* A rudimentary and crude SVG Density Plot was added. The prior method
+  relied on mysterious secret handshakes in JSON between Mathics Core
+  and Mathics Django. While the density plot output was nicer in
+  Mathics Django, from an overall API perspective this was untenable. A
+  future version may improve SVG handling of Density plots using
+  elliptic density gratings in SVG. And/or we may define this in the
+  JSON API.
+
+Documentation
+.............
+
+* Document data used in producing PDFs and HTML-rendered documents is now stored
+  in both the user space, where it can be extended, and in the package install
+  space -- which is useful when there is no user-space data.
+* The documentation pipeline has been gone over. Turning the internal data
+  into a LaTeX file is now a separate own program. See ``mathics/doc/test/README.rst``
+  for an overview of the dataflow needed to create a PDF.
+* Summary text for various built-in functions has been started. These
+  summaries are visible in Mathics Django when lists links are given
+  in Chapters, Guide Sections, or Sections.
+* A Sections for Lists has been started and grouping for these
+  have been added. So code and sections have moved around here.
+* Regexp detection of tests versus document text has been improved.
+* Documentation improved
+* The flakiness around showing sine graphs with filling on the axes or below has
+  been addressed. We now warn when a version of Asymptote or Ghostscript is used
+  that is likely to give a problem.
+
+Bugs
+++++
+
+* A small SVGTransform bug was fixed. Thanks to axelclk for spotting.
+* Elliptic arcs are now supported in Asymptote. There still is a bug however
+  in calculating the bounding box when this happens.
+* A bug in image decoding introduced in 3.1.0 or so was fixed.
+* A bug SVG LineBoxes was fixed
+* SVG and Asymptote drawing now includes inline comments indicating
+  which Box Structures are being implemented in code
+
+Regressions
++++++++++++
+
+* Some of the test output for buitins inside a guide sections is not automatically rendered
+* Density plot rendered in Mathics Django do not render as nice since we no longer
+  use the secret protocol handshake hack. We may fix this in a future release
+* Some of the Asymptote graphs look different. Graphic3D mesh lines are not as
+  prominent or don't appear. This is due to using a newer version of Asymptote, and
+  we will address this in a future release.
+
+
 3.1.0
 -----
 

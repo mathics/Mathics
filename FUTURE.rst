@@ -1,120 +1,92 @@
 For the Future
 ==============
 
-Additional Format Types
------------------------
+*One can always dream...*
 
-There are currently 4 kinds of format types:
+Graphics3D
+----------
 
-- ``xml`` (which is really MathML)
-- ``text``: ASCII text
-- ``tex``: Knuth's TeX typesetting system
-- ``boxes``: combinations of the above
+With 4.0.0, we have started defining a Graphics3D protocol.  It is
+currently expressed in JSON. There is an independent `threejs-based
+module
+<https://www.npmjs.com/package/@mathicsorg/mathics-threejs-backend>`_
+to implement this. Tiago Cavalcante Trindade is responsible for this
+code and for modernizing our JavaScript, and it use in threejs.
 
-Proposed is to add two more:
+We expect a lot more to come. For example UniformPolyhedra is too new
+to have been able to make this release.
 
-- ``rst``: restructured text
-- ``graphics``: a higher-level graphics-package independent format
+We also need to define a protocol and implementation for 2D Graphics.
 
-The problem with using TeX for formatting is that in of itself it is
-more of a low-level formatter. LaTeX was the corresponding
-higher-level formatter, but this too is a bit more cumbersome than
-current documentation practice. Since the code is Python-based,
-ReStructured text now makes more sense since there are good libraries
-for that and this integrates with the documentation better described
-above.
 
-Right now for non-text front-ends the XML format is used. Within that,
-is an embedded image of some sort like SVG, or PNG. The problem with
-this is that decisions have already been baked in with respect to a
-number of drawing parameters and those are impossible to undo since
-metadata and user-supplied options have been lost. Better graphing and
-drawing packages exist which are in a better position to make layout
-and drawing parameter if given a chance.
+Boxing, Formatting, Forms
+-------------------------
 
-Actually, it is often the case it it is not that there are new drawing
-packages so much as there are *newer* *versions* of graphic packages and the
-Mathics core hasn't been updated to make use of those improvements
+While we have started to segregate boxing (bounding-box layout) and
+formatting (translation to a conventional rendering format or
+language), a lot more work needs to be done.
 
-In sum, decisions about plotting and drawing need to get moved closer
-to the front end which knows better about which drawing packages are
-available and what it capabilities are.
+Also, a lot more Forms should be defined. And those that exist, like
+TeXForm, and StandardForm, could use improvement.
 
-PyModules
----------
+This area is still a big mess.
 
-To reduce core depencencies on python and system libraries, allow for
-a more distributed growth and speed up startup time, Mathics
-introdcued a mechanism which is basically doing a Python ``import``
-which is similar to how its internal built-in and predefined packages
-and symbols work. From Mathics the function is called ``LoadModule[]``.
+Jupyter and other Front Ends
+----------------------------
 
-Unfortunately, this wasn't scalable and more work is needed. As a
-result some modules, notably the module for Natural Language
-Processesing (NLP) was removed.
+Although we had planned to move forward on this previously, it now
+appears that we should nail down some of the above better, before
+undertaking. Jupyter uses a wire protocol, and we still have
+work to do in defining the interfaces mentioned above.
 
-Graph Module
-++++++++++++
+That said, this is still on the horizon.
 
-A module for working and plotting with graphs was also started and
-made one of the few custom PyMathics module. It started to use the
-fine `networkx <https://networkx.github.io/>`_ package for showing
-graphs.
-
-However it was using a rather old version *networkx* and there is the
-problem of handling graphics in Mathics mentioned above.
-
-For these reasons rather than provide a somewhat incomplete package,
-we optioed for delaying introduction of this until a better job can be
-done.
-
-The hope is that with this package in place we will be able to support
-the full `Combinatorica
-<http://homepage.divms.uiowa.edu/~sriram/Combinatorica/>`_ package
-doing computational discrete mathematics.
+Interest has also been expressed in WebGL, and Flask front ends. But
+these too will require use to have better protocols defined and in
+place.
 
 
 Documentation
 -------------
 
-After release 1.1.0, a rethinking of the documentation systems may be
-done to reflect 2020's Python-centric tools, thinking and practice.
+Sometime release 4.0.0, all of the code related to producing
+documentation in LaTeX and in Mathics Django, and running doctests
+will be split off and put into its own git repository.
 
-This may include integration into RsT/Sphinx/Readthedocs.
-Sphinx has a mechanism for embedding testable code into its docs.
+I've spent a lot of time banging on this to try to get to to be be
+less fragile, more modular, more intelligible, but it still needs a
+*lot* more work and still is very fragile.
 
-Testing
--------
+Also there is much to do on the editor side of things in terms of
+reorganizing sections (which also implies reorganizing the builtin
+module structure, since those are tightly bound together).
 
-Related to documentation, testing may be modularized better and
-expanded. Right now most of the tests are hooked into documentation,
-and while this is cool, not all tests are interesting to have in
-documentation. In particular, obscure bugs fall into this category.
+We still need to convert this into Sphinx-based, with its doctest.  We
+also need to be able to extract information in sphinx/RsT format
+rather than its home-brew markup language which is sort of XML like.
 
-Command-line interface
-----------------------
+Performance
+-----------
 
-In 1.1.0, a new CLI frontend, ``mathicsscript`` was been started.
+This is one area where we know a lot about what *kinds* of things need
+to be done, but have barely scratched the surface here.
 
-It supports:
+The current implementation is pretty bare bones.
 
-* Save history over sessions
-* Understands groupings of lines which form one logical Mathics statement
-* Supports Pygments-based syntax coloring of output, and Pygments styles
-* Can automatically detect whether a terminal has a dark or light background
+We have problems with recursion, memory consumption, loading time, and
+overall speed in computation.
 
-With changes to the format types mentioned above and by using
-``sympy``'s ASCII rendering routines, ``mathicsscript`` will support
-opening a matplotlib window to show graphics, and will display output
-in ASCII better.
+Support for External Packages
+-----------------------------
 
-Jupyter Interface
------------------
+I would have liked to have seen this going earlier. However right now
+Mathics is still at too primitive a level for any serious package to
+be run on it. This will change at some point though.
 
-this may happen around January 2021.
+Support for Mathematica Language Levels
+---------------------------------------
 
-In the future, Django may be split off to a separate package, same as
-the CLI and existing Jupyter interfaces.
-
-It is possbile if IPython via Jupyter works well, the CLI interface
-won't be needed. However I (rocky) suspect not.
+This is something that I think would be extremely useful and is
+straightforward to do someone has used Mathematica over the years
+knows it well. I think most of this could be supported in Mathics code
+itself and loaded as packages. Any takers?
