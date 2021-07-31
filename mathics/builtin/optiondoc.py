@@ -59,7 +59,7 @@ class Axis(Builtin):
       <dd>is a possible value for the 'Filling' option.
     </dl>
 
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis]
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.2}], Filling->Axis]
      = -Graphics-
     """
 
@@ -247,6 +247,6 @@ class Top(Builtin):
         <dd>is a possible value for the 'Filling' option.
     </dl>
 
-    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.5}], Filling->Axis|Top|Bottom]
+    >> ListLinePlot[Table[Sin[x], {x, -5, 5, 0.2}], Filling->Axis|Top|Bottom]
      = -Graphics-
     """

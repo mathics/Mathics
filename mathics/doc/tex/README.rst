@@ -27,8 +27,8 @@ Here is a flow of the data::
     bultins/*.py  -------------+--> doc/tex/doc_tex_data.pcl ---> documentation.tex -+
                    docpipeline.py                          doc2latex.py              |
                                                                                      |
-    doc/images/*.svg -------------> doc/tex/log*.pdf --------------------------------+---------------------> mathics.pdf
-                     images.sh                                                       |  xetex,asyptote,gv
+    doc/images/*.svg -------------> doc/tex/log*.pdf --------------------------------+------------------------------> mathics.pdf
+                     images.sh                                                       |  latexmk,xetex,asyptote,gv
                                                                                      |
     doc/tex/mathics.tex -------------------------------------------------------------+
 
