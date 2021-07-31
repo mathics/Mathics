@@ -1,4 +1,51 @@
+# -*- Perl -*-
+# This is a configuration read and used by latexmk.
+# Specifically, we use it to direct how to process Asymptote (asy) vector graphics.
+
+# Note the following is actually Perl code.
+
+
+# Check whether the Asymptote (asy) is new enough.
+my $min_asy_version = "2.71";
+my $out = `asy --version 2>&1 | head -1`;
+if ($? >> 8 == 0) {
+    # Continue checking the version number
+    if ($out =~ /version (\d.\d+)/) {
+	my $version = "$1";
+	if ($version < $min_asy_version) {
+	    print("Warning - your Asymptote version, ${version}, may be too old to handle everything.\n");
+	    print("We would like version ${min_asy_version}. Continuing with fingers crossed...\n");
+	}
+    }
+} else {
+    print("Trouble checking Aymptote version -- skipping version check for ${min_asy_version}\n");
+}
+
+# Check whether the Ghostscript (gs) is new enough.
+my $min_gs_version = "9.54";
+$out = `gs --version 2>&1`;
+if ($? >> 8 == 0) {
+    # Continue checking the version number
+    if ($out =~ /(\d.\d+)/) {
+	my $version = "$1";
+	if ($version < $min_gs_version) {
+	    print("Warning - your Ghostscript version, ${version}, may be too old to handle everything.\n");
+	    print("We would like version ${min_gs_version}. Continuing with fingers crossed...\n");
+	}
+    }
+} else {
+    print("Trouble checking GhostScript version -- skipping version check for ${min_gs_version}\n");
+}
+
+
+# The Redefinition of function asy below allows us to customize how to call
+# asy (asymptote).
 sub asy {return system("asy '$_[0]' -render=0 -nosafe -noprc --gsOptions='-P'");}
+
+# The following add custom dependencies for Asymptote:
+# Basically the parameters are
+# from extension, to_extension, must (0=file does not have to exist), name of function
+# See the section "Custom Dependencies" under "man latexmk".
 add_cus_dep("asy","eps",0,"asy");
 add_cus_dep("asy","pdf",0,"asy");
 add_cus_dep("asy","tex",0,"asy");
