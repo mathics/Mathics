@@ -67,6 +67,7 @@ SymbolPath = Symbol("$Path")
 ### FIXME: All of this is related to Read[]
 ### it can be moved somewhere else.
 
+
 class MathicsOpen(Stream):
     def __init__(self, name, mode="r", encoding=None):
         if encoding is not None:
@@ -457,8 +458,10 @@ class Read(Builtin):
 
         record_separators, word_separators = read_get_separators(options)
 
-        result = read_from_stream(
-            stream, types_list, record_separators, word_separators, evaluation
+        result = list(
+            read_from_stream(
+                stream, types_list, record_separators, word_separators, evaluation
+            )
         )
 
         if isinstance(result, Symbol):

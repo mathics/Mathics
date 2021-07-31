@@ -21,8 +21,7 @@ READ_TYPES = [
 
 
 def read_list_from_types(read_types):
-    """Return a Mathics List from a list of read_type names or a single read_type
-    """
+    """Return a Mathics List from a list of read_type names or a single read_type"""
 
     # Trun read_types into a list if it isn't already one.
     if read_types.has_form("List", None):
@@ -110,8 +109,7 @@ def read_check_options(options: dict) -> dict:
 
 
 def read_get_separators(options):
-    """Get record and word separators from apply "options".
-    """
+    """Get record and word separators from apply "options"."""
     # Options
     # TODO Implement extra options
     py_options = read_check_options(options)
