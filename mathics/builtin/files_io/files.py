@@ -60,8 +60,10 @@ INPUTFILE_VAR = ""
 TMP_DIR = tempfile.gettempdir()
 SymbolPath = Symbol("$Path")
 
+### FIXME: All of this is related to Read[]
+### it can be moved somewhere else.
 
-def _channel_to_stream(channel, mode="r"):
+def channel_to_stream(channel, mode="r"):
     if isinstance(channel, String):
         name = channel.get_string_value()
         opener = mathics_open(name, mode)
@@ -81,46 +83,30 @@ def _channel_to_stream(channel, mode="r"):
     else:
         return None
 
+def read_name_and_stream_from_channel(channel, evaluation):
+    if channel.has_form("OutputStream", 2):
+        evaluation.message("General", "openw", channel)
+        return None, None
 
-class mathics_open(Stream):
-    def __init__(self, name, mode="r", encoding=None):
-        if encoding is not None:
-            encoding = to_python_encoding(encoding)
-            if "b" in mode:
-                # We should not specify an encoding for a binary mode
-                encoding = None
-            elif encoding is None:
-                raise MessageException("General", "charcode", self.encoding)
-        self.encoding = encoding
-        super().__init__(name, mode, self.encoding)
-        self.old_inputfile_var = None  # Set in __enter__ and __exit__
+    strm = channel_to_stream(channel, "r")
 
-    def __enter__(self):
-        # find path
-        path = path_search(self.name)
-        if path is None and self.mode in ["w", "a", "wb", "ab"]:
-            path = self.name
-        if path is None:
-            raise IOError
+    if strm is None:
+        return None, None
 
-        # open the stream
-        fp = io.open(path, self.mode, encoding=self.encoding)
-        global INPUTFILE_VAR
-        INPUTFILE_VAR = osp.abspath(path)
+    name, n = strm.get_leaves()
 
-        stream_manager.add(
-            name=path,
-            mode=self.mode,
-            encoding=self.encoding,
-            io=fp,
-            num=stream_manager.next,
-        )
-        return fp
+    stream = stream_manager.lookup_stream(n.get_int_value())
+    if stream is None:
+        evaluation.message("Read", "openx", strm)
+        return None, None
 
-    def __exit__(self, type, value, traceback):
-        global INPUTFILE_VAR
-        INPUTFILE_VAR = self.old_inputfile_var or ""
-        super().__exit__(type, value, traceback)
+    if stream.io is None:
+        stream.__enter__()
+
+    if stream.io.closed:
+        evaluation.message("Read", "openx", strm)
+        return None, None
+    return name, stream
 
 
 def read_check_options(options: dict) -> dict:
@@ -188,7 +174,7 @@ def read_check_options(options: dict) -> dict:
 
     return result
 
-def read_preamble(options, name):
+def read_get_separators(options, name):
     # Options
     # TODO Implement extra options
     py_options = read_check_options(options)
@@ -200,6 +186,47 @@ def read_preamble(options, name):
 
     py_name = name.to_python()
     return record_separators, word_separators, py_name
+
+
+class mathics_open(Stream):
+    def __init__(self, name, mode="r", encoding=None):
+        if encoding is not None:
+            encoding = to_python_encoding(encoding)
+            if "b" in mode:
+                # We should not specify an encoding for a binary mode
+                encoding = None
+            elif encoding is None:
+                raise MessageException("General", "charcode", self.encoding)
+        self.encoding = encoding
+        super().__init__(name, mode, self.encoding)
+        self.old_inputfile_var = None  # Set in __enter__ and __exit__
+
+    def __enter__(self):
+        # find path
+        path = path_search(self.name)
+        if path is None and self.mode in ["w", "a", "wb", "ab"]:
+            path = self.name
+        if path is None:
+            raise IOError
+
+        # open the stream
+        fp = io.open(path, self.mode, encoding=self.encoding)
+        global INPUTFILE_VAR
+        INPUTFILE_VAR = osp.abspath(path)
+
+        stream_manager.add(
+            name=path,
+            mode=self.mode,
+            encoding=self.encoding,
+            io=fp,
+            num=stream_manager.next,
+        )
+        return fp
+
+    def __exit__(self, type, value, traceback):
+        global INPUTFILE_VAR
+        INPUTFILE_VAR = self.old_inputfile_var or ""
+        super().__exit__(type, value, traceback)
 
 class Input(Predefined):
     """
@@ -218,31 +245,6 @@ class Input(Predefined):
     def evaluate(self, evaluation):
         global INPUT_VAR
         return String(INPUT_VAR)
-
-def read_get_name_from_stream(channel, evaluation):
-    if channel.has_form("OutputStream", 2):
-        evaluation.message("General", "openw", channel)
-        return
-
-    strm = _channel_to_stream(channel, "r")
-
-    if strm is None:
-        return
-
-    [name, n] = strm.get_leaves()
-
-    stream = stream_manager.lookup_stream(n.get_int_value())
-    if stream is None:
-        evaluation.message("Read", "openx", strm)
-        return
-
-    if stream.io is None:
-        stream.__enter__()
-
-    if stream.io.closed:
-        evaluation.message("Read", "openx", strm)
-        return
-    return name, n, stream
 
 class InputFileName(Predefined):
     """
@@ -514,7 +516,7 @@ class Read(Builtin):
     def apply(self, channel, types, evaluation, options):
         "Read[channel_, types_, OptionsPattern[Read]]"
 
-        name, n, stream = read_get_name_from_stream(channel, evaluation)
+        name, stream = read_name_and_stream_from_channel(channel, evaluation)
         if name is None:
             return
 
@@ -557,7 +559,7 @@ class Read(Builtin):
                 evaluation.message("Read", "readf", typ)
                 return SymbolFailed
 
-        record_separators, word_separators, py_name = read_preamble(options, name)
+        record_separators, word_separators, py_name = read_get_separators(options, name)
 
         result = []
 
@@ -737,7 +739,7 @@ class Write(Builtin):
     def apply(self, channel, expr, evaluation):
         "Write[channel_, expr___]"
 
-        strm = _channel_to_stream(channel)
+        strm = channel_to_stream(channel)
 
         if strm is None:
             return
@@ -1793,7 +1795,7 @@ class WriteString(Builtin):
 
     def apply(self, channel, expr, evaluation):
         "WriteString[channel_, expr___]"
-        strm = _channel_to_stream(channel, "w")
+        strm = channel_to_stream(channel, "w")
 
         if strm is None:
             return
