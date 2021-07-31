@@ -187,7 +187,7 @@ setup(
     zip_safe=False,
     # metadata for upload to PyPI
     maintainer="Mathics Group",
-    maintainer_email="mathic-devel@googlegroups.com",
+    maintainer_email="mathics-devel@googlegroups.com",
     description="A general-purpose computer algebra system.",
     license="GPL",
     url="https://mathics.org/",
