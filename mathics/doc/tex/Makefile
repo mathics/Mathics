@@ -6,10 +6,12 @@ LATEXMK ?= latexmk
 BASH ?= /bin/bash
 #-quiet
 
+DOC_DATA_PCL ?= $(HOME)/.local/var/mathics/doc_tex_data.pcl
+
 #: Default target: Make everything
 all doc texdoc: mathics.pdf
 
-doc-data doc_tex_data.pcl:
+doc-data $(DOC_DATA_PCL):
 	(cd ../.. && $(PYTHON) docpipeline.py --output --keep-going)
 
 #: Build mathics PDF
