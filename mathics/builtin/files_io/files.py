@@ -19,21 +19,19 @@ from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics_scanner.errors import IncompleteSyntaxError, InvalidSyntaxError
 from mathics_scanner import TranslateError
-from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, parse
+from mathics.core.parser import MathicsFileLineFeeder, parse
 from mathics.core.read import (
     read_get_separators,
     read_list_from_types,
+    read_from_stream,
     READ_TYPES,
-    reader,
 )
 
 
 from mathics.core.expression import (
     BoxError,
     Complex,
-    BaseExpression,
     Expression,
     Integer,
     MachineReal,
@@ -68,93 +66,6 @@ SymbolPath = Symbol("$Path")
 
 ### FIXME: All of this is related to Read[]
 ### it can be moved somewhere else.
-
-
-def channel_to_stream(channel, mode="r"):
-
-    if isinstance(channel, String):
-        name = channel.get_string_value()
-        opener = MathicsOpen(name, mode)
-        opener.__enter__()
-        n = opener.n
-        if mode in ["r", "rb"]:
-            head = "InputStream"
-        elif mode in ["w", "a", "wb", "ab"]:
-            head = "OutputStream"
-        else:
-            raise ValueError(f"Unknown format {mode}")
-        return Expression(head, channel, Integer(n))
-    elif channel.has_form("InputStream", 2):
-        return channel
-    elif channel.has_form("OutputStream", 2):
-        return channel
-    else:
-        return None
-
-
-def read_check_options(options: dict) -> dict:
-    # Options
-    # TODO Proper error messages
-
-    result = {}
-    keys = list(options.keys())
-
-    # AnchoredSearch
-    if "System`AnchoredSearch" in keys:
-        anchored_search = options["System`AnchoredSearch"].to_python()
-        assert anchored_search in [True, False]
-        result["AnchoredSearch"] = anchored_search
-
-    # IgnoreCase
-    if "System`IgnoreCase" in keys:
-        ignore_case = options["System`IgnoreCase"].to_python()
-        assert ignore_case in [True, False]
-        result["IgnoreCase"] = ignore_case
-
-    # WordSearch
-    if "System`WordSearch" in keys:
-        word_search = options["System`WordSearch"].to_python()
-        assert word_search in [True, False]
-        result["WordSearch"] = word_search
-
-    # RecordSeparators
-    if "System`RecordSeparators" in keys:
-        record_separators = options["System`RecordSeparators"].to_python()
-        assert isinstance(record_separators, list)
-        assert all(
-            isinstance(s, str) and s[0] == s[-1] == '"' for s in record_separators
-        )
-        record_separators = [s[1:-1] for s in record_separators]
-        result["RecordSeparators"] = record_separators
-
-    # WordSeparators
-    if "System`WordSeparators" in keys:
-        word_separators = options["System`WordSeparators"].to_python()
-        assert isinstance(word_separators, list)
-        assert all(isinstance(s, str) and s[0] == s[-1] == '"' for s in word_separators)
-        word_separators = [s[1:-1] for s in word_separators]
-        result["WordSeparators"] = word_separators
-
-    # NullRecords
-    if "System`NullRecords" in keys:
-        null_records = options["System`NullRecords"].to_python()
-        assert null_records in [True, False]
-        result["NullRecords"] = null_records
-
-    # NullWords
-    if "System`NullWords" in keys:
-        null_words = options["System`NullWords"].to_python()
-        assert null_words in [True, False]
-        result["NullWords"] = null_words
-
-    # TokenWords
-    if "System`TokenWords" in keys:
-        token_words = options["System`TokenWords"].to_python()
-        assert token_words == []
-        result["TokenWords"] = token_words
-
-    return result
-
 
 class MathicsOpen(Stream):
     def __init__(self, name, mode="r", encoding=None):
@@ -545,7 +456,6 @@ class Read(Builtin):
                 return SymbolFailed
 
         record_separators, word_separators = read_get_separators(options)
-        py_name = name.to_python()
 
         result = read_from_stream(
             stream, types_list, record_separators, word_separators, evaluation
@@ -2216,7 +2126,6 @@ class ReadList(Read):
         #         return SymbolFailed
 
         record_separators, word_separators = read_get_separators(options)
-        py_name = name.to_python()
 
         result = []
         while True:

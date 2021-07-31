@@ -124,7 +124,7 @@ def read_get_separators(options):
     return record_separators, word_separators
 
 
-def reader(stream, word_separators, evaluation, accepted=None):
+def read_from_stream(stream, types_list, word_separators, evaluation, accepted=None):
     while True:
         word = ""
         while True:
