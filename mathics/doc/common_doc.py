@@ -27,6 +27,7 @@ Things are such a mess, that it is too difficult to contemplate this right now.
 """
 
 import importlib
+import os.path as osp
 import pkgutil
 import re
 
@@ -719,7 +720,7 @@ class MathicsMainDocumentation(Documentation):
         self.parts = []
         self.parts_by_slug = {}
         self.pymathics_doc_loaded = False
-        self.doc_data_file = settings.DOC_DATA_PATH
+        self.doc_data_file = settings.get_doc_tex_data_path(should_be_readable=True)
         self.title = "Overview"
         files = listdir(self.doc_dir)
         files.sort()
@@ -730,7 +731,7 @@ class MathicsMainDocumentation(Documentation):
             if part_title.endswith(".mdoc"):
                 part_title = part_title[: -len(".mdoc")]
                 part = DocPart(self, part_title)
-                text = open(self.doc_dir + file, "rb").read().decode("utf8")
+                text = open(osp.join(self.doc_dir, file), "rb").read().decode("utf8")
                 text = filter_comments(text)
                 chapters = CHAPTER_RE.findall(text)
                 for title, text in chapters:

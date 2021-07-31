@@ -10,6 +10,7 @@ as a pipeline:
 """
 
 import os
+import os.path as osp
 import pickle
 import re
 import sys
@@ -302,8 +303,8 @@ def open_ensure_dir(f, *args, **kwargs):
     try:
         return open(f, *args, **kwargs)
     except (IOError, OSError):
-        d = os.path.dirname(f)
-        if d and not os.path.exists(d):
+        d = osp.dirname(f)
+        if d and not osp.exists(d):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
@@ -323,7 +324,11 @@ def test_all(
 
     if generate_output:
         if texdatafolder is None:
-            texdatafolder = settings.DOC_DATA_PATH
+            texdatafolder = osp.dirname(
+                settings.get_doc_tex_data_path(
+                    should_be_readable=False, create_parent=True
+                )
+            )
     try:
         index = 0
         total = failed = skipped = 0
@@ -385,14 +390,18 @@ def test_all(
 
 
 def load_doc_data():
-    print(f"Loading internal document data from {settings.DOC_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_DATA_PATH, "rb") as doc_data_file:
+    doc_tex_data_path = settings.get_doc_tex_data_path(should_be_readable=True)
+    print(f"Loading internal document data from {doc_tex_data_path}")
+    with open_ensure_dir(doc_tex_data_path, "rb") as doc_data_file:
         return pickle.load(doc_data_file)
 
 
 def save_doc_data(output_data):
-    print(f"Writing internal document data to {settings.DOC_DATA_PATH}")
-    with open_ensure_dir(settings.DOC_DATA_PATH, "wb") as output_file:
+    doc_tex_data_path = settings.get_doc_tex_data_path(
+        should_be_readable=False, create_parent=True
+    )
+    print(f"Writing internal document data to {doc_tex_data_path}")
+    with open(settings.DOC_USER_TEX_DATA_PATH, "wb") as output_file:
         pickle.dump(output_data, output_file, 4)
 
 
