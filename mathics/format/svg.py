@@ -36,7 +36,7 @@ class _SVGTransform:
         # a c e
         # b d f
         # 0 0 1
-        self.transforms.append(f"matrix({a:f}, {b:f}, {c:f}, {d:f}, {e:f}, {e:f})")
+        self.transforms.append(f"matrix({a:f}, {b:f}, {c:f}, {d:f}, {e:f}, {f:f})")
 
     def translate(self, x, y):
         self.transforms.append(f"translate({x:f}, {y:f})")
