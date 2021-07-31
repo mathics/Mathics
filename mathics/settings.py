@@ -30,7 +30,7 @@ if sys.platform.startswith("win"):
 else:
     DATA_DIR = osp.expanduser("~/.local/var/mathics/")
 
-# Location of internal document data. Current this is in Python
+# Location of internal document data. Currently this is in Python
 # Pickle form, but storing this in JSON if possible would be preferable and faster
 
 # We need two versions, one in the user space which is updated with
