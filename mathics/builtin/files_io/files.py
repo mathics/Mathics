@@ -72,7 +72,7 @@ def channel_to_stream(channel, mode="r"):
 
     if isinstance(channel, String):
         name = channel.get_string_value()
-        opener = mathics_open(name, mode)
+        opener = MathicsOpen(name, mode)
         opener.__enter__()
         n = opener.n
         if mode in ["r", "rb"]:
@@ -88,32 +88,6 @@ def channel_to_stream(channel, mode="r"):
         return channel
     else:
         return None
-
-
-def read_name_and_stream_from_channel(channel, evaluation):
-    if channel.has_form("OutputStream", 2):
-        evaluation.message("General", "openw", channel)
-        return None, None
-
-    strm = channel_to_stream(channel, "r")
-
-    if strm is None:
-        return None, None
-
-    name, n = strm.get_leaves()
-
-    stream = stream_manager.lookup_stream(n.get_int_value())
-    if stream is None:
-        evaluation.message("Read", "openx", strm)
-        return None, None
-
-    if stream.io is None:
-        stream.__enter__()
-
-    if stream.io.closed:
-        evaluation.message("Read", "openx", strm)
-        return None, None
-    return name, stream
 
 
 def read_check_options(options: dict) -> dict:
@@ -180,7 +154,7 @@ def read_check_options(options: dict) -> dict:
     return result
 
 
-class mathics_open(Stream):
+class MathicsOpen(Stream):
     def __init__(self, name, mode="r", encoding=None):
         if encoding is not None:
             encoding = to_python_encoding(encoding)
@@ -219,6 +193,32 @@ class mathics_open(Stream):
         global INPUTFILE_VAR
         INPUTFILE_VAR = self.old_inputfile_var or ""
         super().__exit__(type, value, traceback)
+
+
+def read_name_and_stream_from_channel(channel, evaluation):
+    if channel.has_form("OutputStream", 2):
+        evaluation.message("General", "openw", channel)
+        return None, None, None
+
+    strm = channel_to_stream(channel, "r")
+
+    if strm is None:
+        return None, None, None
+
+    name, n = strm.get_leaves()
+
+    stream = stream_manager.lookup_stream(n.get_int_value())
+    if stream is None:
+        evaluation.message("Read", "openx", strm)
+        return None, None, None
+
+    if stream.io is None:
+        stream.__enter__()
+
+    if stream.io.closed:
+        evaluation.message("Read", "openx", strm)
+        return None, None, None
+    return name, n, stream
 
 
 class Input(Predefined):
@@ -1848,7 +1848,7 @@ class _OpenAction(Builtin):
             if not isinstance(encoding, String):
                 return
 
-            opener = mathics_open(
+            opener = MathicsOpen(
                 path_string, mode=mode, encoding=encoding.get_string_value()
             )
             opener.__enter__()
@@ -2022,7 +2022,7 @@ class Get(PrefixOperator):
         try:
             if trace_fn:
                 trace_fn(pypath)
-            with mathics_open(pypath, "r") as f:
+            with MathicsOpen(pypath, "r") as f:
                 feeder = MathicsFileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
@@ -2417,7 +2417,7 @@ class FilePrint(Builtin):
             return SymbolFailed
 
         try:
-            with mathics_open(pypath, "r") as f:
+            with MathicsOpen(pypath, "r") as f:
                 result = f.read()
         except IOError:
             evaluation.message("General", "noopen", path)
