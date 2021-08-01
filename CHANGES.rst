@@ -31,6 +31,8 @@ Enhancements
   future version may improve SVG handling of Density plots using
   elliptic density gratings in SVG. And/or we may define this in the
   JSON API.
+* SVG and Asymptote drawing now includes inline comments indicating
+  which Box Structures are being implemented in code
 
 Documentation
 .............
@@ -60,8 +62,6 @@ Bugs
   in calculating the bounding box when this happens.
 * A bug in image decoding introduced in 3.1.0 or so was fixed.
 * A bug SVG LineBoxes was fixed
-* SVG and Asymptote drawing now includes inline comments indicating
-  which Box Structures are being implemented in code
 
 Regressions
 +++++++++++
