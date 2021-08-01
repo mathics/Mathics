@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from .helper import session
-from mathics.session import load_default_settings_files
+from mathics.session import load_default_settings_files, get_settings_value
 
 
 def test_settings():
     load_default_settings_files(session.definitions)
 
+    assert get_settings_value(session.definitions, "NoSettingHere") == None
     assert type(session.evaluate("Settings`$TraceGet").to_python()) is bool
 
     assert (
