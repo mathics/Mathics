@@ -10,8 +10,9 @@ from mathics.builtin.drawing.graphics3d import (
 )
 
 from mathics.builtin.box.graphics3d import (
-    Cylinder3DBox,
     Arrow3DBox,
+    Cuboid3DBox,
+    Cylinder3DBox,
     Line3DBox,
     Point3DBox,
     Polygon3DBox,
@@ -80,6 +81,26 @@ def arrow_3d_box(self):
 
 
 add_conversion_fn(Arrow3DBox, arrow_3d_box)
+
+
+def cuboid_3d_box(self):
+    """
+    Compact (lower-level) JSON formatting of a Cuboid3DBox.
+    """
+    face_color = self.face_color
+    if face_color is not None:
+        face_color = face_color.to_js()
+    data = convert_coord_collection(
+        [self.points],
+        "cuboid",
+        face_color,
+        {"color": face_color},
+    )
+    # print("### json Cuboid3DBox", data)
+    return data
+
+
+add_conversion_fn(Cuboid3DBox, cuboid_3d_box)
 
 
 def cylinder_3d_box(self):
