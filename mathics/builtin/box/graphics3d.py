@@ -364,15 +364,9 @@ class Graphics3DBox(GraphicsBox):
         # Handle other graphics formats.
         format_fn = lookup_method(elements, "json")
 
-        json_repr = format_fn(elements, **options)
-
-        # TODO: Cubeoid (like this)
-        # json_repr = [{'faceColor': (1, 1, 1, 1), 'position': [(0,0,0), None],
-        # 'size':[(1,1,1), None], 'type': 'cube'}]
-
         json_repr = json.dumps(
             {
-                "elements": json_repr,
+                "elements": format_fn(elements, **options),
                 "axes": {
                     "hasaxes": axes,
                     "ticks": ticks,
@@ -742,18 +736,6 @@ class Cylinder3DBox(_Graphics3DElement):
 
         self.points = [Coords3D(graphics, pos=point) for point in points]
         self.radius = item.leaves[1].to_python()
-
-    def to_asy(self):
-        if self.face_color is None:
-            face_color = (1, 1, 1)
-        else:
-            face_color = self.face_color.to_js()
-
-        rgb = f"rgb({face_color[0]}, {face_color[1]}, {face_color[2]})"
-        return "".join(
-            f"draw(surface(cylinder({tuple(coord.pos()[0])}, {self.radius}, {self.height})), {rgb});"
-            for coord in self.points
-        )
 
     def extent(self):
         result = []
