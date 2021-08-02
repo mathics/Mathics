@@ -215,126 +215,34 @@ class Cuboid(Builtin):
     <dl>
     <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}]'
         <dd>is a unit cube.
-    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}, {$xmax$, $ymax$, $zmax$}]'
-        <dd>represents a cuboid extending from {$xmin$, $ymin$, $zmin$} to {$xmax$, $ymax$, $zmax$}.
+    <dt>'Cuboid[{{$xmin$, $ymin$, $zmin$}, {$xmax$, $ymax$, $zmax$}}]'
+        <dd>is a cuboid with two opposite corners at ($xmin$, $ymin$, $zmin$) and ($xmax$, $ymax$, $zmax$).
+    <dt>'Cuboid[{{$x1min$, $y1min$, $z1min$}, {$x1max$, $y1max$, $z1max$}, ...}]'
+        <dd>is a collection of cuboids.
     </dl>
 
     >> Graphics3D[Cuboid[{0, 0, 1}]]
      = -Graphics3D-
 
-    >> Graphics3D[{Red, Cuboid[{0, 0, 0}, {1, 1, 0.5}], Blue, Cuboid[{0.25, 0.25, 0.5}, {0.75, 0.75, 1}]}]
+    >> Graphics3D[{Red, Cuboid[{{0, 0, 0}, {1, 1, 0.5}}], Blue, Cuboid[{{0.25, 0.25, 0.5}, {0.75, 0.75, 1}}]}]
      = -Graphics3D-
     """
 
-    rules = {"Cuboid[]": "Cuboid[{0,0,0}]"}
+    rules = {
+        "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
+        "Cuboid[{xmin, ymin, zmin}]": "Cuboid[{{xmin, ymin, zmin}, {xmin + 1, ymin + 1, zmin + 1}}]",
+    }
 
-    def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]"
+    messages = {"oddn": "The number of points must be even."}
 
-        xmin, ymin, zmin = [
-            value.round_to_float(evaluation) for value in (xmin, ymin, zmin)
-        ]
-        xmax, ymax, zmax = [
-            value.round_to_float(evaluation) for value in (xmax, ymax, zmax)
-        ]
-        if None in (xmin, ymin, zmin, xmax, ymax, zmax):
-            return  # TODO
+    def apply_check(self, positions, evaluation):
+        "Cuboid[positions_]"
 
-        if (xmax <= xmin) or (ymax <= ymin) or (zmax <= zmin):
-            return  # TODO
+        if len(positions.get_leaves()) % 2 == 1:
+            # number of points is odd so abort
+            evaluation.error("Cuboid", "oddn", positions)
 
-        polygons = [
-            # X
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmin, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmin, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            # Y
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmax, ymin, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmin, ymax, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            # Z
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmin, ymax, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmax, ymin, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-        ]
-
-        return Expression("Polygon", Expression(SymbolList, *polygons))
-
-    def apply_min(self, xmin, ymin, zmin, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}]"
-        xmin, ymin, zmin = [
-            value.round_to_float(evaluation) for value in (xmin, ymin, zmin)
-        ]
-        if None in (xmin, ymin, zmin):
-            return  # TODO
-
-        (xmax, ymax, zmax) = (from_python(value + 1) for value in (xmin, ymin, zmin))
-        (xmin, ymin, zmin) = (from_python(value) for value in (xmin, ymin, zmin))
-
-        return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
+        return Expression("Cuboid", positions)
 
 
 class Cylinder(Builtin):
@@ -345,7 +253,7 @@ class Cylinder(Builtin):
     <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}, $r$]'
         <dd>is a cylinder of radius $r$ starting at ($x1$, $y1$, $z1$) and ending at ($x2$, $y2$, $z2$).
     <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
-        <dd>is a collection cylinders of radius $r$
+        <dd>is a collection cylinders of radius $r$.
     </dl>
 
     >> Graphics3D[Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]]

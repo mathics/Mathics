@@ -1375,6 +1375,7 @@ element_heads = frozenset(
         "Arrow",
         "BezierCurve",
         "Circle",
+        "Cuboid",
         "Cylinder",
         "Disk",
         "FilledCurve",

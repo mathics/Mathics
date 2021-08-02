@@ -21,6 +21,7 @@ from mathics.builtin.box.graphics3d import (
     Graphics3DElements,
     Arrow3DBox,
     Coords3D,
+    Cuboid3DBox,
     Cylinder3DBox,
     Line3DBox,
     Point3DBox,
@@ -198,6 +199,57 @@ def bezier_curve_box(self, **options) -> str:
 
 
 add_conversion_fn(BezierCurveBox, bezier_curve_box)
+
+
+def cuboid3dbox(self, **options) -> str:
+    if self.face_color is None:
+        face_color = (1, 1, 1)
+    else:
+        face_color = self.face_color.to_js()
+
+    asy = "// Cuboid3DBox\n"
+
+    pen = asy_create_pens(
+        edge_color=self.edge_color,
+        face_color=face_color,
+        stroke_width=l,
+        is_face_element=True,
+    )
+
+    i = 0
+    while i < len(self.points) / 2:
+        try:
+            point1_obj = self.points[i * 2]
+            if isinstance(point1_obj, Coords3D):
+                point1 = point1_obj.pos()[0]
+            else:
+                point1 = point1_obj[0]
+            point2_obj = self.points[i * 2 + 1]
+            if isinstance(point2_obj, Coords3D):
+                point2 = point2_obj.pos()[0]
+            else:
+                point2 = point2_obj[0]
+
+            rgb = "rgb({0},{1},{1})".format(*face_color[:3])
+
+            asy += f"""
+                draw(unitcube * scale(
+                    {point2[0] - point1[0]},
+                    {point2[1] - point1[1]},
+                    {point2[2] - point1[2]}
+                ), {rgb});
+            """
+
+        except:  # noqa
+            pass
+
+        i += 1
+
+    # print(asy)
+    return asy
+
+
+add_conversion_fn(Cuboid3DBox)
 
 
 def cylinder3dbox(self, **options) -> str:

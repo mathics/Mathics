@@ -714,6 +714,36 @@ class Arrow3DBox(ArrowBox):
                 coords.scale(boxscale)
 
 
+class Cuboid3DBox(_Graphics3DElement):
+    """
+    Internal Python class used when Boxing a 'Cuboid' object.
+    """
+
+    def init(self, graphics, style, item):
+        super(Cuboid3DBox, self).init(graphics, item, style)
+
+        self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
+
+        if len(item.leaves) != 1:
+            raise BoxConstructError
+
+        points = item.leaves[0]
+        if not all(
+            len(point) == 3 and all(isinstance(p, numbers.Real) for p in point)
+            for point in points
+        ):
+            raise BoxConstructError
+
+        self.points = [Coords3D(graphics, pos=point) for point in points]
+
+    def extent(self):
+        return [coords.pos()[0] for coords in self.points]
+
+    def _apply_boxscaling(self, boxscale):
+        # TODO
+        pass
+
+
 class Cylinder3DBox(_Graphics3DElement):
     """
     Internal Python class used when Boxing a 'Cylinder' object.
@@ -872,6 +902,7 @@ class Sphere3DBox(_Graphics3DElement):
 GLOBALS3D.update(
     {
         "System`Arrow3DBox": Arrow3DBox,
+        "System`Cuboid3DBox": Cuboid3DBox,
         "System`Cylinder3DBox": Cylinder3DBox,
         "System`Line3DBox": Line3DBox,
         "System`Point3DBox": Point3DBox,
