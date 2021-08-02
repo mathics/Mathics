@@ -70,7 +70,7 @@ class Array(Builtin):
     }
 
     summary_text = (
-        "form an array of any dimension by applying a function to successive indices"
+        "form an array by applying a function to successive indices"
     )
 
     def apply(self, f, dimsexpr, origins, head, evaluation):
@@ -134,7 +134,7 @@ class ConstantArray(Builtin):
         "ConstantArray[c_, n_Integer]": "ConstantArray[c, {n}]",
     }
 
-    summary_text = "form a constant array of any dimension"
+    summary_text = "form a constant array"
 
 
 class Normal(Builtin):
@@ -425,7 +425,7 @@ class Table(_IterationFunction):
     }
 
     summary_text = (
-        "form a Mathematical Table of any dimension from expressions or lists"
+        "form a Mathematical Table from expressions or lists"
     )
 
     def get_result(self, items):
