@@ -211,13 +211,19 @@ class Sphere(Builtin):
 
 class Cuboid(Builtin):
     """
+    Cuboid also known as interval, rectangle, square, cube, rectangular parallelepiped, tesseract, orthotope, and box.
     <dl>
-    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}]'
-        <dd>is a unit cube.
-    <dt>'Cuboid[{{$xmin$, $ymin$, $zmin$}, {$xmax$, $ymax$, $zmax$}}]'
-        <dd>is a cuboid with two opposite corners at ($xmin$, $ymin$, $zmin$) and ($xmax$, $ymax$, $zmax$).
-    <dt>'Cuboid[{{$x1min$, $y1min$, $z1min$}, {$x1max$, $y1max$, $z1max$}, ...}]'
-        <dd>is a collection of cuboids.
+      <dt>'Cuboid[{$p_min$}]'
+      <dd>is a unit cube with its lower corner at point $p_min$.
+
+      <dt>'Cuboid[$p_min$, $p_max$]'
+      <dd>is a cuboid with lower corner $p_min$ and upper corner $p_max$.
+
+      <dt>'Cuboid[$p1_min$, $p1_max$, ...}]'
+      <dd>is a collection of cuboids.
+
+      <dt>'Cuboid[]' is equivalent to 'Cuboid[{0,0,0}]'.
+
     </dl>
 
     >> Graphics3D[Cuboid[{0, 0, 1}]]
@@ -227,18 +233,19 @@ class Cuboid(Builtin):
      = -Graphics3D-
     """
 
-    rules = {
-        "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
-        "Cuboid[{xmin, ymin, zmin}]": "Cuboid[{{xmin, ymin, zmin}, {xmin + 1, ymin + 1, zmin + 1}}]",
-    }
-
     messages = {"oddn": "The number of points must be even."}
 
+    rules = {
+        "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
+    }
+
+    summary_text = "unit cube"
+
     def apply_check(self, positions, evaluation):
-        "Cuboid[positions_]"
+        "Cuboid[positions_List]"
 
         if len(positions.get_leaves()) % 2 == 1:
-            # number of points is odd so abort
+            # The number of points is odd, so abort.
             evaluation.error("Cuboid", "oddn", positions)
 
         return Expression("Cuboid", positions)
