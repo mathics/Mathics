@@ -69,9 +69,7 @@ class Array(Builtin):
         "plen": "`1` and `2` should have the same length.",
     }
 
-    summary_text = (
-        "form an array by applying a function to successive indices"
-    )
+    summary_text = "form an array by applying a function to successive indices"
 
     def apply(self, f, dimsexpr, origins, head, evaluation):
         "Array[f_, dimsexpr_, origins_:1, head_:List]"
@@ -424,9 +422,7 @@ class Table(_IterationFunction):
         "Table[expr_, n_Integer]": "Table[expr, {n}]",
     }
 
-    summary_text = (
-        "form a Mathematical Table from expressions or lists"
-    )
+    summary_text = "form a Mathematical Table from expressions or lists"
 
     def get_result(self, items):
         return Expression(SymbolList, *items)
