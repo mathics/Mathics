@@ -7,7 +7,7 @@ Functions for working with 3D graphics.
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.core.expression import Expression
+from mathics.core.expression import Expression, Real
 
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from mathics.builtin.colors.color_directives import RGBColor
@@ -17,6 +17,7 @@ from mathics.builtin.graphics import (
     Graphics,
     Style,
 )
+from mathics.builtin.lists import List
 
 
 def coords3D(value):
@@ -213,17 +214,16 @@ class Cuboid(Builtin):
     """
     Cuboid also known as interval, rectangle, square, cube, rectangular parallelepiped, tesseract, orthotope, and box.
     <dl>
-      <dt>'Cuboid[{$p_min$}]'
+      <dt>'Cuboid[$p_min$]'
       <dd>is a unit cube with its lower corner at point $p_min$.
 
-      <dt>'Cuboid[$p_min$, $p_max$]'
+      <dt>'Cuboid[{$p_min$, $p_max$}]'
       <dd>is a cuboid with lower corner $p_min$ and upper corner $p_max$.
 
-      <dt>'Cuboid[$p1_min$, $p1_max$, ...}]'
+      <dt>'Cuboid[{$p1_min$, $p1_max$, ...}]'
       <dd>is a collection of cuboids.
 
       <dt>'Cuboid[]' is equivalent to 'Cuboid[{0,0,0}]'.
-
     </dl>
 
     >> Graphics3D[Cuboid[{0, 0, 1}]]
@@ -240,6 +240,21 @@ class Cuboid(Builtin):
     }
 
     summary_text = "unit cube"
+
+    def apply_unit_cube(self, xmin, ymin, zmin, evaluation):
+        "Cuboid[{xmin_, ymin_, zmin_}]"
+
+        return Expression(
+            "Cuboid",
+            List(
+                List(xmin, ymin, zmin),
+                List(
+                    Real(xmin.to_python() + 1),
+                    Real(ymin.to_python() + 1),
+                    Real(zmin.to_python() + 1),
+                ),
+            ),
+        )
 
     def apply_check(self, positions, evaluation):
         "Cuboid[positions_List]"
