@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""
-Three-Dimensional Graphics
+"""Three-Dimensional Graphics
+
+Functions for working with 3D graphics.
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
@@ -71,7 +72,7 @@ class Graphics3D(Graphics):
       <dt>'Graphics3D[$primitives$, $options$]'
       <dd>represents a three-dimensional graphic.
 
-    See also the Section "Plotting" for a list of Plot options.
+      <dd>See also the Section "Plotting" for a list of Plot options.
     </dl>
 
     >> Graphics3D[Polygon[{{0,0,0}, {0,1,1}, {1,0,0}}]]
@@ -134,12 +135,14 @@ class Graphics3D(Graphics):
 
     box_suffix = "3DBox"
 
+    messages = {"invlight": "`1` is not a valid list of light sources."}
+
     rules = {
         "MakeBoxes[Graphics3D[content_, OptionsPattern[Graphics3D]], "
         "        OutputForm]": '"-Graphics3D-"'
     }
 
-    messages = {"invlight": "`1` is not a valid list of light sources."}
+    summary_text = "a three-dimensional graphics image wrapper"
 
 
 def total_extent_3d(extents):
@@ -340,12 +343,14 @@ class Cuboid(Builtin):
 class Cylinder(Builtin):
     """
     <dl>
-    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}]'
-        <dd>represents a cylinder of radius 1.
-    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}, $r$]'
-        <dd>is a cylinder of radius $r$ starting at ($x1$, $y1$, $z1$) and ending at ($x2$, $y2$, $z2$).
-    <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
-        <dd>is a collection cylinders of radius $r$
+      <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}]'
+      <dd>represents a cylinder of radius 1.
+
+      <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}}, $r$]'
+      <dd>is a cylinder of radius $r$ starting at ($x1$, $y1$, $z1$) and ending at ($x2$, $y2$, $z2$).
+
+      <dt>'Cylinder[{{$x1$, $y1$, $z1$}, {$x2$, $y2$, $z2$}, ... }, $r$]'
+      <dd>is a collection cylinders of radius $r$.
     </dl>
 
     >> Graphics3D[Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]]
@@ -355,18 +360,18 @@ class Cylinder(Builtin):
      = -Graphics3D-
     """
 
-    rules = {
-        "Cylinder[]": "Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]",
-        "Cylinder[positions_]": "Cylinder[positions, 1]",
-    }
-
     messages = {"oddn": "The number of points must be even."}
 
+    rules = {
+        "Cylinder[]": "Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]",
+        "Cylinder[positions_List]": "Cylinder[positions, 1]",
+    }
+
     def apply_check(self, positions, radius, evaluation):
-        "Cylinder[positions_, radius_?NumericQ]"
+        "Cylinder[positions_List, radius_?NumericQ]"
 
         if len(positions.get_leaves()) % 2 == 1:
-            # number of points is odd so abort
+            # The number of points is odd, so abort.
             evaluation.error("Cylinder", "oddn", positions)
 
         return Expression("Cylinder", positions, radius)
