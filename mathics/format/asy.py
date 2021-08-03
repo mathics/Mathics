@@ -207,14 +207,9 @@ def cuboid3dbox(self, **options) -> str:
     else:
         face_color = self.face_color.to_js()
 
-    asy = "// Cuboid3DBox\n"
+    rgb = "rgb({0},{1},{1})".format(*face_color[:3])
 
-    pen = asy_create_pens(
-        edge_color=self.edge_color,
-        face_color=face_color,
-        stroke_width=l,
-        is_face_element=True,
-    )
+    asy = "// Cuboid3DBox\n"
 
     i = 0
     while i < len(self.points) / 2:
@@ -229,8 +224,6 @@ def cuboid3dbox(self, **options) -> str:
                 point2 = point2_obj.pos()[0]
             else:
                 point2 = point2_obj[0]
-
-            rgb = "rgb({0},{1},{1})".format(*face_color[:3])
 
             asy += f"""
                 draw(unitcube * scale(
@@ -258,6 +251,10 @@ def cylinder3dbox(self, **options) -> str:
     else:
         face_color = self.face_color.to_js()
 
+    # FIXME: currently always drawing around the axis X+Y
+    axes_point = (1, 1, 0)
+    rgb = "rgb({0},{1},{1})".format(*face_color[:3])
+
     asy = "// Cylinder3DBox\n"
     i = 0
     while i < len(self.points) / 2:
@@ -280,9 +277,6 @@ def cylinder3dbox(self, **options) -> str:
                 + (point1[2] - point2[2]) ** 2
             ) ** 0.5
 
-            # FIXME: currently always drawing around the axis X+Y
-            axes_point = (1, 1, 0)
-            rgb = "rgb({0},{1},{1})".format(*face_color[:3])
             asy += (
                 f"draw(surface(cylinder({tuple(point1)}, {self.radius}, {distance}, {axes_point})), {rgb});"
                 + "\n"
