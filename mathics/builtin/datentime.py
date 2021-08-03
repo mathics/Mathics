@@ -446,16 +446,14 @@ class _DateFormat(Builtin):
 class DateList(_DateFormat):
     """
     <dl>
-    <dt>'DateList[]'
+      <dt>'DateList[]'
       <dd>returns the current local time in the form {$year$, $month$, $day$, $hour$, $minute$, $second$}.
-    <dt>'DateList[$time$]'
+
+      <dt>'DateList[$time$]'
       <dd>returns a formatted date for the number of seconds $time$ since epoch Jan 1 1900.
-    <dt>'DateList[{$y$, $m$, $d$, $h$, $m$, $s$}]'
+
+      <dt>'DateList[{$y$, $m$, $d$, $h$, $m$, $s$}]'
       <dd>converts an incomplete date list to the standard representation.
-    <dt>'DateString[$string$]'
-      <dd>returns the formatted date list of a date string specification.
-    <dt>'DateString[$string$, {$e1$, $e2$, ...}]'
-      <dd>returns the formatted date list of a $string$ obtained from elements $ei$.
     </dl>
 
     >> DateList[0]
@@ -513,19 +511,25 @@ class DateList(_DateFormat):
 class DateString(_DateFormat):
     """
     <dl>
-    <dt>'DateString[]'
+      <dt>'DateString[]'
       <dd>returns the current local time and date as a string.
-    <dt>'DateString[$elem$]'
+
+      <dt>'DateString[$elem$]'
       <dd>returns the time formatted according to $elems$.
-    <dt>'DateString[{$e1$, $e2$, ...}]'
+
+      <dt>'DateString[{$e1$, $e2$, ...}]'
       <dd>concatinates the time formatted according to elements $ei$.
-    <dt>'DateString[$time$]'
+
+      <dt>'DateString[$time$]'
       <dd>returns the date string of an AbsoluteTime.
-    <dt>'DateString[{$y$, $m$, $d$, $h$, $m$, $s$}]'
+
+      <dt>'DateString[{$y$, $m$, $d$, $h$, $m$, $s$}]'
       <dd>returns the date string of a date list specification.
-    <dt>'DateString[$string$]'
+
+      <dt>'DateString[$string$]'
       <dd>returns the formatted date string of a date string specification.
-    <dt>'DateString[$spec$, $elems$]'
+
+      <dt>'DateString[$spec$, $elems$]'
       <dd>formats the time in turns of $elems$. Both $spec$ and $elems$ can take any of the above formats.
     </dl>
 
