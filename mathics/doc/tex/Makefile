@@ -16,8 +16,12 @@ doc-data $(DOC_TEX_DATA_PCL):
 	(cd ../.. && $(PYTHON) docpipeline.py --output --keep-going)
 
 #: Build mathics PDF
-mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf $(DOC_TEX_DATA_PCL)
+mathics.pdf: mathics.tex documentation.tex logo-text-nodrop.pdf logo-heptatom.pdf version-info.tex $(DOC_TEX_DATA_PCL)
 	$(LATEXMK) --verbose -f -pdf -pdflatex="$(XETEX) -halt-on-error" mathics
+
+#: File containing version information
+version-info.tex: doc2latex.py
+	$(PYTHON) doc2latex.py
 
 #: Build test PDF
 mathics-test.pdf: mathics-test.tex testing.tex
@@ -43,4 +47,4 @@ clean:
 	rm -f mathics_*.* || true
 	rm -f mathics-*.* documentation.tex $(DOC_TEX_DATA_PCL) || true
 	rm -f mathics.pdf mathics.dvi test-mathics.pdf test-mathics.dvi || true
-	rm -f mathics-test.pdf mathics-test.dvi core-version.tex || true
+	rm -f mathics-test.pdf mathics-test.dvi version-info.tex || true
