@@ -43,4 +43,4 @@ clean:
 	rm -f mathics_*.* || true
 	rm -f mathics-*.* documentation.tex $(DOC_TEX_DATA_PCL) || true
 	rm -f mathics.pdf mathics.dvi test-mathics.pdf test-mathics.dvi || true
-	rm -f mathics-test.pdf mathics-test.dvi || true
+	rm -f mathics-test.pdf mathics-test.dvi core-version.tex || true
