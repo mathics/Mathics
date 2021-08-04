@@ -43,7 +43,7 @@
 \usepackage{breqn}
 \usepackage{environ}
 \usepackage{multicol}
-
+\usepackage[]{colophon}
 \usepackage[k-tight]{minitoc}
 \setlength{\mtcindent}{0pt}
 \mtcsetformat{minitoc}{tocrightmargin}{2.55em plus 1fil}
@@ -69,7 +69,7 @@
     \includegraphics[height=0.08125\linewidth]{logo-text-nodrop.pdf}
 \\[.5em]
   {\LARGE\color{subtitle}\textit{\textmd{A free, open-source alternative to Mathematica}}}
-  \par\textmd{Mathics Core Version \version}
+  \par\textmd{Mathics Core Version \MathicsCoreVersion}
 }
 \author{The Mathics Team}
 
@@ -247,7 +247,7 @@
 \hyphenation{assign-ments}
 
 \begin{document}
-\input{core-version.tex}
+\input{version-info.tex}
 
 \maketitle
 
@@ -270,5 +270,13 @@
 \input{documentation.tex}
 
 \printindex
-
+\begin{colophon}
+\begin{description}
+  \item[Mathics Core] \hfill \\ \MathicsCoreVersion
+  \item[Python] \hfill \\ \PythonVersion
+  \item[XeTeX] \hfill \\ \XeTeXVersion
+  \item[Asymptote] \hfill \\ \AsymptoteVersion
+  \item[Ghostscript] \hfill \\ \GhostscriptVersion
+\end{description}
+\end{colophon}
 \end{document}

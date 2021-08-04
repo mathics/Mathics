@@ -7,6 +7,8 @@ Reads in Pickle'd file and write LaTeX file containing the entire User Manual
 import os
 import os.path as osp
 import pickle
+import subprocess
+import sys
 
 from argparse import ArgumentParser
 
@@ -61,6 +63,29 @@ def print_and_log(*args):
         logfile.write(string)
 
 
+def get_versions():
+    def try_cmd(cmd_list: tuple, stdout_or_stderr: str) -> str:
+        status = subprocess.run(cmd_list, capture_output=True)
+        if status.returncode == 0:
+            out = getattr(status, stdout_or_stderr)
+            return out.decode("utf-8").split("\n")[0]
+        else:
+            return "Unknown"
+
+    versions = {
+        "MathicsCoreVersion": __version__,
+        "PythonVersion": sys.version,
+    }
+
+    for name, cmd, field in (
+        ["AsymptoteVersion", ("asy", "--version"), "stderr"],
+        ["XeTeXVersion", ("xetex", "--version"), "stdout"],
+        ["GhostscriptVersion", ("gs", "--version"), "stdout"],
+    ):
+        versions[name] = try_cmd(cmd, field)
+    return versions
+
+
 def write_latex(doc_data, quiet=False):
     documentation = MathicsMainDocumentation()
     if not quiet:
@@ -69,15 +94,13 @@ def write_latex(doc_data, quiet=False):
         content = documentation.latex(doc_data, quiet=quiet)
         content = content.encode("utf-8")
         doc.write(content)
-    DOC_VERSION_FILE = osp.join(osp.dirname(DOC_LATEX_FILE), "core-version.tex")
+    DOC_VERSION_FILE = osp.join(osp.dirname(DOC_LATEX_FILE), "version-info.tex")
     if not quiet:
         print(f"Writing Mathics Core Version Information to {DOC_VERSION_FILE}")
     with open(DOC_VERSION_FILE, "w") as doc:
-        doc.write(
-            r"""%% Mathics core version number created via doc2latex.py
-\newcommand{\version}{%s}"""
-            % __version__
-        )
+        doc.write("%% Mathics core version number created via doc2latex.py\n\n")
+        for name, version_info in get_versions().items():
+            doc.write("""\\newcommand{\\%s}{%s}\n""" % (name, version_info))
 
 
 def main():
