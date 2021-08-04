@@ -7,11 +7,7 @@ Functions for working with 3D graphics.
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics.core.expression import (
-    Expression,
-    from_python,
-    SymbolList,
-)
+from mathics.core.expression import Expression, Real
 
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from mathics.builtin.colors.color_directives import RGBColor
@@ -21,6 +17,7 @@ from mathics.builtin.graphics import (
     Graphics,
     Style,
 )
+from mathics.builtin.lists import List
 
 
 def coords3D(value):
@@ -215,129 +212,60 @@ class Sphere(Builtin):
 
 class Cuboid(Builtin):
     """
+    Cuboid also known as interval, rectangle, square, cube, rectangular parallelepiped, tesseract, orthotope, and box.
     <dl>
-    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}]'
-        <dd>is a unit cube.
-    <dt>'Cuboid[{$xmin$, $ymin$, $zmin$}, {$xmax$, $ymax$, $zmax$}]'
-        <dd>represents a cuboid extending from {$xmin$, $ymin$, $zmin$} to {$xmax$, $ymax$, $zmax$}.
+      <dt>'Cuboid[$p_min$]'
+      <dd>is a unit cube with its lower corner at point $p_min$.
+
+      <dt>'Cuboid[{$p_min$, $p_max$}]'
+      <dd>is a cuboid with lower corner $p_min$ and upper corner $p_max$.
+
+      <dt>'Cuboid[{$p1_min$, $p1_max$, ...}]'
+      <dd>is a collection of cuboids.
+
+      <dt>'Cuboid[]' is equivalent to 'Cuboid[{0,0,0}]'.
     </dl>
 
     >> Graphics3D[Cuboid[{0, 0, 1}]]
      = -Graphics3D-
 
-    >> Graphics3D[{Red, Cuboid[{0, 0, 0}, {1, 1, 0.5}], Blue, Cuboid[{0.25, 0.25, 0.5}, {0.75, 0.75, 1}]}]
+    >> Graphics3D[{Red, Cuboid[{{0, 0, 0}, {1, 1, 0.5}}], Blue, Cuboid[{{0.25, 0.25, 0.5}, {0.75, 0.75, 1}}]}]
      = -Graphics3D-
+
+    ##
     """
 
-    rules = {"Cuboid[]": "Cuboid[{0,0,0}]"}
+    messages = {"oddn": "The number of points must be even."}
 
-    def apply_full(self, xmin, ymin, zmin, xmax, ymax, zmax, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}, {xmax_, ymax_, zmax_}]"
+    rules = {
+        "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
+    }
 
-        xmin, ymin, zmin = [
-            value.round_to_float(evaluation) for value in (xmin, ymin, zmin)
-        ]
-        xmax, ymax, zmax = [
-            value.round_to_float(evaluation) for value in (xmax, ymax, zmax)
-        ]
-        if None in (xmin, ymin, zmin, xmax, ymax, zmax):
-            return  # TODO
+    summary_text = "unit cube"
 
-        if (xmax <= xmin) or (ymax <= ymin) or (zmax <= zmin):
-            return  # TODO
-
-        polygons = [
-            # X
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmin, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmin, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            # Y
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmax, ymin, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmin, ymax, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            # Z
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmin, ymax, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmin),
-                Expression(SymbolList, xmax, ymin, zmin),
-                Expression(SymbolList, xmax, ymax, zmin),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmin, ymax, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-            Expression(
-                "List",
-                Expression(SymbolList, xmin, ymin, zmax),
-                Expression(SymbolList, xmax, ymin, zmax),
-                Expression(SymbolList, xmax, ymax, zmax),
-            ),
-        ]
-
-        return Expression("Polygon", Expression(SymbolList, *polygons))
-
-    def apply_min(self, xmin, ymin, zmin, evaluation):
+    def apply_unit_cube(self, xmin, ymin, zmin, evaluation):
         "Cuboid[{xmin_, ymin_, zmin_}]"
-        xmin, ymin, zmin = [
-            value.round_to_float(evaluation) for value in (xmin, ymin, zmin)
-        ]
-        if None in (xmin, ymin, zmin):
-            return  # TODO
 
-        (xmax, ymax, zmax) = (from_python(value + 1) for value in (xmin, ymin, zmin))
-        (xmin, ymin, zmin) = (from_python(value) for value in (xmin, ymin, zmin))
+        return Expression(
+            "Cuboid",
+            List(
+                List(xmin, ymin, zmin),
+                List(
+                    Real(xmin.to_python() + 1),
+                    Real(ymin.to_python() + 1),
+                    Real(zmin.to_python() + 1),
+                ),
+            ),
+        )
 
-        return self.apply_full(xmin, ymin, zmin, xmax, ymax, zmax, evaluation)
+    def apply_check(self, positions, evaluation):
+        "Cuboid[positions_List]"
+
+        if len(positions.get_leaves()) % 2 == 1:
+            # The number of points is odd, so abort.
+            evaluation.error("Cuboid", "oddn", positions)
+
+        return Expression("Cuboid", positions)
 
 
 class Cylinder(Builtin):
