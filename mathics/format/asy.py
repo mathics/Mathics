@@ -226,7 +226,7 @@ def cuboid3dbox(self, **options) -> str:
                 point2 = point2_obj[0]
 
             asy += f"""
-                draw(scale(
+                draw(shift({point1[0]}, {point1[1]}, {point1[2]}) * scale(
                     {point2[0] - point1[0]},
                     {point2[1] - point1[1]},
                     {point2[2] - point1[2]}
