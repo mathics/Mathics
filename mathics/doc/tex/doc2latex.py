@@ -5,13 +5,14 @@ Reads in Pickle'd file and write LaTeX file containing the entire User Manual
 """
 
 import os
+import os.path as osp
 import pickle
 
 from argparse import ArgumentParser
 
 import mathics
 
-from mathics import version_string
+from mathics import version_string, __version__
 from mathics import settings
 from mathics.doc.common_doc import MathicsMainDocumentation
 
@@ -45,8 +46,8 @@ def open_ensure_dir(f, *args, **kwargs):
     try:
         return open(f, *args, **kwargs)
     except (IOError, OSError):
-        d = os.path.dirname(f)
-        if d and not os.path.exists(d):
+        d = osp.dirname(f)
+        if d and not osp.exists(d):
             os.makedirs(d)
         return open(f, *args, **kwargs)
 
@@ -63,11 +64,20 @@ def print_and_log(*args):
 def write_latex(doc_data, quiet=False):
     documentation = MathicsMainDocumentation()
     if not quiet:
-        print(f"Writing LaTeX {DOC_LATEX_FILE}")
+        print(f"Writing LaTeX document to {DOC_LATEX_FILE}")
     with open_ensure_dir(DOC_LATEX_FILE, "wb") as doc:
         content = documentation.latex(doc_data, quiet=quiet)
         content = content.encode("utf-8")
         doc.write(content)
+    DOC_VERSION_FILE = osp.join(osp.dirname(DOC_LATEX_FILE), "core-version.tex")
+    if not quiet:
+        print(f"Writing Mathics Core Version Information to {DOC_VERSION_FILE}")
+    with open(DOC_VERSION_FILE, "w") as doc:
+        doc.write(
+            r"""%% Mathics core version number created via doc2latex.py
+\newcommand{\version}{%s}"""
+            % __version__
+        )
 
 
 def main():
