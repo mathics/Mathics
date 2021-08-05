@@ -157,7 +157,7 @@ def point_3d_box(self) -> list:
         self.lines,
         "point",
         face_color,
-        {"color": face_color, "pointSize": relative_point_size},
+        {"color": face_color, "pointSize": relative_point_size * 0.5},
     )
 
     # print("### json Point3DBox", data)
