@@ -26,6 +26,78 @@ from mathics.core.rules import Pattern
 from mathics.builtin.lists import get_part
 
 
+def get_default_distance(p):
+    if all(q.is_numeric() for q in p):
+        return "SquaredEuclideanDistance"
+    elif all(q.get_head_name() == "System`List" for q in p):
+        dimensions = [get_dimensions(q) for q in p]
+        if len(dimensions) < 1:
+            return None
+        d0 = dimensions[0]
+        if not all(d == d0 for d in dimensions[1:]):
+            return None
+        if len(dimensions[0]) == 1:  # vectors?
+
+            def is_boolean(x):
+                return x.get_head_name() == "System`Symbol" and x in (
+                    SymbolTrue,
+                    SymbolFalse,
+                )
+
+            if all(all(is_boolean(e) for e in q.leaves) for q in p):
+                return "JaccardDissimilarity"
+        return "SquaredEuclideanDistance"
+    elif all(isinstance(q, String) for q in p):
+        return "EditDistance"
+    else:
+        from mathics.builtin.colors.color_directives import expression_to_color
+
+        if all(expression_to_color(q) is not None for q in p):
+            return "ColorDistance"
+
+        return None
+
+
+def get_dimensions(expr, head=None):
+    if expr.is_atom():
+        return []
+    else:
+        if head is not None and not expr.head.sameQ(head):
+            return []
+        sub_dim = None
+        sub = []
+        for leaf in expr.leaves:
+            sub = get_dimensions(leaf, expr.head)
+            if sub_dim is None:
+                sub_dim = sub
+            else:
+                if sub_dim != sub:
+                    sub = []
+                    break
+        return [len(expr.leaves)] + sub
+
+
+class ArrayDepth(Builtin):
+    """
+    <dl>
+    <dt>'ArrayDepth[$a$]'
+        <dd>returns the depth of the non-ragged array $a$, defined as
+        'Length[Dimensions[$a$]]'.
+    </dl>
+
+    >> ArrayDepth[{{a,b},{c,d}}]
+     = 2
+    >> ArrayDepth[x]
+     = 0
+    """
+
+    rules = {
+        "ArrayDepth[list_]": "Length[Dimensions[list]]",
+    }
+
+    summary_text = "the rank of a tensor"
+
+
 class ArrayQ(Builtin):
     """
     <dl>
@@ -54,6 +126,8 @@ class ArrayQ(Builtin):
         "ArrayQ[expr_]": "ArrayQ[expr, _, True&]",
         "ArrayQ[expr_, pattern_]": "ArrayQ[expr, pattern, True&]",
     }
+
+    summary_text = "test whether an object is a tensor of a given rank"
 
     def apply(self, expr, pattern, test, evaluation):
         "ArrayQ[expr_, pattern_, test_]"
@@ -91,64 +165,36 @@ class ArrayQ(Builtin):
         return SymbolTrue
 
 
-class VectorQ(Builtin):
+class DiagonalMatrix(Builtin):
     """
     <dl>
-    <dt>'VectorQ[$v$]'
-        <dd>returns 'True' if $v$ is a list of elements which are
-        not themselves lists.
-    <dt>'VectorQ[$v$, $f$]'
-        <dd>returns 'True' if $v$ is a vector and '$f$[$x$]' returns
-        'True' for each element $x$ of $v$.
+      <dt>'DiagonalMatrix[$list$]'
+      <dd>gives a matrix with the values in $list$ on its diagonal and zeroes elsewhere.
     </dl>
 
-    >> VectorQ[{a, b, c}]
-     = True
+    >> DiagonalMatrix[{1, 2, 3}]
+     = {{1, 0, 0}, {0, 2, 0}, {0, 0, 3}}
+    >> MatrixForm[%]
+     = 1   0   0
+     .
+     . 0   2   0
+     .
+     . 0   0   3
+
+    #> DiagonalMatrix[a + b]
+     = DiagonalMatrix[a + b]
     """
 
-    rules = {
-        "VectorQ[expr_]": "ArrayQ[expr, 1]",
-        "VectorQ[expr_, test_]": "ArrayQ[expr, 1, test]",
-    }
+    def apply(self, list, evaluation):
+        "DiagonalMatrix[list_List]"
 
-
-class MatrixQ(Builtin):
-    """
-    <dl>
-    <dt>'MatrixQ[$m$]'
-        <dd>returns 'True' if $m$ is a list of equal-length lists.
-    <dt>'MatrixQ[$m$, $f$]'
-        <dd>only returns 'True' if '$f$[$x$]' returns 'True' for each
-        element $x$ of the matrix $m$.
-    </dl>
-
-    >> MatrixQ[{{1, 3}, {4.0, 3/2}}, NumberQ]
-     = True
-    """
-
-    rules = {
-        "MatrixQ[expr_]": "ArrayQ[expr, 2]",
-        "MatrixQ[expr_, test_]": "ArrayQ[expr, 2, test]",
-    }
-
-
-def get_dimensions(expr, head=None):
-    if expr.is_atom():
-        return []
-    else:
-        if head is not None and not expr.head.sameQ(head):
-            return []
-        sub_dim = None
-        sub = []
-        for leaf in expr.leaves:
-            sub = get_dimensions(leaf, expr.head)
-            if sub_dim is None:
-                sub_dim = sub
-            else:
-                if sub_dim != sub:
-                    sub = []
-                    break
-        return [len(expr.leaves)] + sub
+        result = []
+        n = len(list.leaves)
+        for index, item in enumerate(list.leaves):
+            row = [Integer0] * n
+            row[index] = item
+            result.append(Expression("List", *row))
+        return Expression("List", *result)
 
 
 class Dimensions(Builtin):
@@ -180,29 +226,12 @@ class Dimensions(Builtin):
      = {1, 0}
     """
 
+    summary_text = "the dimensions of a tensor"
+
     def apply(self, expr, evaluation):
         "Dimensions[expr_]"
 
         return Expression("List", *[Integer(dim) for dim in get_dimensions(expr)])
-
-
-class ArrayDepth(Builtin):
-    """
-    <dl>
-    <dt>'ArrayDepth[$a$]'
-        <dd>returns the depth of the non-ragged array $a$, defined as
-        'Length[Dimensions[$a$]]'.
-    </dl>
-
-    >> ArrayDepth[{{a,b},{c,d}}]
-     = 2
-    >> ArrayDepth[x]
-     = 0
-    """
-
-    rules = {
-        "ArrayDepth[list_]": "Length[Dimensions[list]]",
-    }
 
 
 class Dot(BinaryOperator):
@@ -232,6 +261,24 @@ class Dot(BinaryOperator):
 
     rules = {
         "Dot[a_List, b_List]": "Inner[Times, a, b, Plus]",
+    }
+
+    summary_text = "dot product"
+
+
+class IdentityMatrix(Builtin):
+    """
+    <dl>
+    <dt>'IdentityMatrix[$n$]'
+        <dd>gives the identity matrix with $n$ rows and columns.
+    </dl>
+
+    >> IdentityMatrix[3]
+     = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    """
+
+    rules = {
+        "IdentityMatrix[n_Integer]": "DiagonalMatrix[Table[1, {n}]]",
     }
 
 
@@ -268,16 +315,18 @@ class Inner(Builtin):
      = {{1 / Sqrt[b], 0}, {a / Sqrt[b], Sqrt[b]}}
     """
 
-    rules = {
-        "Inner[f_, list1_, list2_]": "Inner[f, list1, list2, Plus]",
-    }
-
     messages = {
         "incom": (
             "Length `1` of dimension `2` in `3` is incommensurate with "
             "length `4` of dimension 1 in `5."
         ),
     }
+
+    rules = {
+        "Inner[f_, list1_, list2_]": "Inner[f, list1, list2, Plus]",
+    }
+
+    summary_text = "generalized inner product"
 
     def apply(self, f, list1, list2, g, evaluation):
         "Inner[f_, list1_, list2_, g_]"
@@ -359,6 +408,8 @@ class Outer(Builtin):
      = {{0, 1, 0}, {1, 0, 1}, {0, ComplexInfinity, 0}}
     """
 
+    summary_text = "generalized outer product"
+
     def apply(self, f, lists, evaluation):
         "Outer[f_, lists__]"
 
@@ -390,11 +441,121 @@ class Outer(Builtin):
         return rec(lists[0], lists[1:], [])
 
 
+class MatrixQ(Builtin):
+    """
+    <dl>
+    <dt>'MatrixQ[$m$]'
+        <dd>returns 'True' if $m$ is a list of equal-length lists.
+    <dt>'MatrixQ[$m$, $f$]'
+        <dd>only returns 'True' if '$f$[$x$]' returns 'True' for each
+        element $x$ of the matrix $m$.
+    </dl>
+
+    >> MatrixQ[{{1, 3}, {4.0, 3/2}}, NumberQ]
+     = True
+    """
+
+    rules = {
+        "MatrixQ[expr_]": "ArrayQ[expr, 2]",
+        "MatrixQ[expr_, test_]": "ArrayQ[expr, 2, test]",
+    }
+
+
+class RotationTransform(Builtin):
+    """
+    <dl>
+      <dt>'RotationTransform[$phi$]'
+      <dd>gives a rotation by $phi$.
+
+      <dt>'RotationTransform[$phi$, $p$]'
+      <dd>gives a rotation by $phi$ around the point $p$.
+    </dl>
+    """
+
+    rules = {
+        "RotationTransform[phi_]": "TransformationFunction[{{Cos[phi], -Sin[phi], 0}, {Sin[phi], Cos[phi], 0}, {0, 0, 1}}]",
+        "RotationTransform[phi_, p_]": "TranslationTransform[p] . RotationTransform[phi] . TranslationTransform[-p]",
+    }
+
+
+class ScalingTransform(Builtin):
+    """
+    <dl>
+      <dt>'ScalingTransform[$v$]'
+      <dd>gives a scaling transform of $v$. $v$ may be a scalar or a vector.
+
+      <dt>'ScalingTransform[$phi$, $p$]'
+      <dd>gives a scaling transform of $v$ that is centered at the point $p$.
+    </dl>
+    """
+
+    rules = {
+        "ScalingTransform[v_]": "TransformationFunction[DiagonalMatrix[Join[v, {1}]]]",
+        "ScalingTransform[v_, p_]": "TranslationTransform[p] . ScalingTransform[v] . TranslationTransform[-p]",
+    }
+
+
+class ShearingTransform(Builtin):
+    """
+    <dl>
+    <dt>'ShearingTransform[$phi$, {1, 0}, {0, 1}]'
+        <dd>gives a horizontal shear by the angle $phi$.
+    <dt>'ShearingTransform[$phi$, {0, 1}, {1, 0}]'
+        <dd>gives a vertical shear by the angle $phi$.
+    <dt>'ShearingTransform[$phi$, $u$, $u$, $p$]'
+        <dd>gives a shear centered at the point $p$.
+    </dl>
+    """
+
+    rules = {
+        "ShearingTransform[phi_, {1, 0}, {0, 1}]": "TransformationFunction[{{1, Tan[phi], 0}, {0, 1, 0}, {0, 0, 1}}]",
+        "ShearingTransform[phi_, {0, 1}, {1, 0}]": "TransformationFunction[{{1, 0, 0}, {Tan[phi], 1, 0}, {0, 0, 1}}]",
+        "ShearingTransform[phi_, u_, v_, p_]": "TranslationTransform[p] . ShearingTransform[phi, u, v] . TranslationTransform[-p]",
+    }
+
+
+class TransformationFunction(Builtin):
+    """
+    <dl>
+      <dt>'TransformationFunction[$m$]'
+      <dd>represents a transformation.
+    </dl>
+
+    >> RotationTransform[Pi].TranslationTransform[{1, -1}]
+     = TransformationFunction[{{-1, 0, -1}, {0, -1, 1}, {0, 0, 1}}]
+
+    >> TranslationTransform[{1, -1}].RotationTransform[Pi]
+     = TransformationFunction[{{-1, 0, 1}, {0, -1, -1}, {0, 0, 1}}]
+    """
+
+    rules = {
+        "Dot[TransformationFunction[a_], TransformationFunction[b_]]": "TransformationFunction[a . b]",
+        "TransformationFunction[m_][v_]": "Take[m . Join[v, {1}], Length[v]]",
+    }
+
+
+class TranslationTransform(Builtin):
+    """
+    <dl>
+      <dt>'TranslationTransform[$v$]'
+      <dd>gives the translation by the vector $v$.
+    </dl>
+
+    >> TranslationTransform[{1, 2}]
+     = TransformationFunction[{{1, 0, 1}, {0, 1, 2}, {0, 0, 1}}]
+    """
+
+    rules = {
+        "TranslationTransform[v_]": "TransformationFunction[IdentityMatrix[Length[v] + 1] + "
+        "(Join[ConstantArray[0, Length[v]], {#}]& /@ Join[v, {0}])]",
+    }
+
+
 class Transpose(Builtin):
     """
     <dl>
-    <dt>'Tranpose[$m$]'
-        <dd>transposes rows and columns in the matrix $m$.
+      <dt>'Tranpose[$m$]'
+      <dd>transposes rows and columns in the matrix $m$.
     </dl>
 
     >> Transpose[{{1, 2, 3}, {4, 5, 6}}]
@@ -410,6 +571,8 @@ class Transpose(Builtin):
      = Transpose[x]
     """
 
+    summary_text = "transpose to rearrange indices in any way"
+
     def apply(self, m, evaluation):
         "Transpose[m_?MatrixQ]"
 
@@ -423,81 +586,23 @@ class Transpose(Builtin):
         return Expression("List", *[Expression("List", *row) for row in result])
 
 
-class DiagonalMatrix(Builtin):
+class VectorQ(Builtin):
     """
     <dl>
-    <dt>'DiagonalMatrix[$list$]'
-        <dd>gives a matrix with the values in $list$ on its diagonal and zeroes elsewhere.
+      <dt>'VectorQ[$v$]'
+      <dd>returns 'True' if $v$ is a list of elements which are not themselves lists.
+
+      <dt>'VectorQ[$v$, $f$]'
+      <dd>returns 'True' if $v$ is a vector and '$f$[$x$]' returns 'True' for each element $x$ of $v$.
     </dl>
 
-    >> DiagonalMatrix[{1, 2, 3}]
-     = {{1, 0, 0}, {0, 2, 0}, {0, 0, 3}}
-    >> MatrixForm[%]
-     = 1   0   0
-     .
-     . 0   2   0
-     .
-     . 0   0   3
-
-    #> DiagonalMatrix[a + b]
-     = DiagonalMatrix[a + b]
-    """
-
-    def apply(self, list, evaluation):
-        "DiagonalMatrix[list_List]"
-
-        result = []
-        n = len(list.leaves)
-        for index, item in enumerate(list.leaves):
-            row = [Integer0] * n
-            row[index] = item
-            result.append(Expression("List", *row))
-        return Expression("List", *result)
-
-
-class IdentityMatrix(Builtin):
-    """
-    <dl>
-    <dt>'IdentityMatrix[$n$]'
-        <dd>gives the identity matrix with $n$ rows and columns.
-    </dl>
-
-    >> IdentityMatrix[3]
-     = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    >> VectorQ[{a, b, c}]
+     = True
     """
 
     rules = {
-        "IdentityMatrix[n_Integer]": "DiagonalMatrix[Table[1, {n}]]",
+        "VectorQ[expr_]": "ArrayQ[expr, 1]",
+        "VectorQ[expr_, test_]": "ArrayQ[expr, 1, test]",
     }
 
-
-def get_default_distance(p):
-    if all(q.is_numeric() for q in p):
-        return "SquaredEuclideanDistance"
-    elif all(q.get_head_name() == "System`List" for q in p):
-        dimensions = [get_dimensions(q) for q in p]
-        if len(dimensions) < 1:
-            return None
-        d0 = dimensions[0]
-        if not all(d == d0 for d in dimensions[1:]):
-            return None
-        if len(dimensions[0]) == 1:  # vectors?
-
-            def is_boolean(x):
-                return x.get_head_name() == "System`Symbol" and x in (
-                    SymbolTrue,
-                    SymbolFalse,
-                )
-
-            if all(all(is_boolean(e) for e in q.leaves) for q in p):
-                return "JaccardDissimilarity"
-        return "SquaredEuclideanDistance"
-    elif all(isinstance(q, String) for q in p):
-        return "EditDistance"
-    else:
-        from mathics.builtin.colors.color_directives import expression_to_color
-
-        if all(expression_to_color(q) is not None for q in p):
-            return "ColorDistance"
-
-        return None
+    summary_text = "test whether an object is a vector"
