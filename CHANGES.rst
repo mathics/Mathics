@@ -1,6 +1,20 @@
 CHANGES
 =======
 
+4.0.1
+-----
+
+New builtins
+++++++++++++
+
+Tensor functions:
+
+* ``RotationTransform``
+* ``ScalingTransform``
+* ``ShearingTransform``
+* ``TransformationFunction``
+* ``TranslationTransform``
+
 4.0.0
 -----
 
