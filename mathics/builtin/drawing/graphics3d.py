@@ -8,6 +8,7 @@ Functions for working with 3D graphics.
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 from mathics.core.expression import Expression, Real
+from mathics.core.coordinates import Coordinates
 
 from mathics.builtin.base import BoxConstructError, Builtin, InstanceableBuiltin
 from mathics.builtin.colors.color_directives import RGBColor
@@ -249,46 +250,47 @@ class Cuboid(Builtin):
 
     summary_text = "unit cube"
 
-    def apply_unit_square(self, xmin, ymin, evaluation):
-        "Cuboid[{xmin_, ymin_}]"
-
-        return Expression(
-            "Rectangle",
-            List(xmin, ymin),
-            List(
-                Real(xmin.to_python() + 1),
-                Real(ymin.to_python() + 1),
-            ),
-        )
-
-    def apply_unit_cube(self, xmin, ymin, zmin, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}]"
-
-        return Expression(
-            "Cuboid",
-            List(
-                List(xmin, ymin, zmin),
-                List(
-                    Real(xmin.to_python() + 1),
-                    Real(ymin.to_python() + 1),
-                    Real(zmin.to_python() + 1),
-                ),
-            ),
-        )
-
     def apply_rectangle(self, xmin, ymin, xmax, ymax, evaluation):
         "Cuboid[{xmin_, ymin_}, {xmax_, ymax_}]"
 
         return Expression("Rectangle", List(xmin, ymin), List(xmax, ymax))
 
-    def apply_check(self, positions, evaluation):
+    def apply(self, positions, evaluation):
         "Cuboid[positions_List]"
 
-        if len(positions.get_leaves()) % 2 == 1:
+        if not isinstance(positions.get_leaves()[0], list):
+            positions = List(positions)
+
+        coordinates = Coordinates(positions)
+
+        if len(coordinates) == 1:
+            if coordinates.dimension == 2:
+                return Expression(
+                    "Rectangle",
+                    List(*(coordinates.coordinates[0])),
+                    List(
+                        Real(coordinates.coordinates[0][0] + 1),
+                        Real(coordinates.coordinates[0][1] + 1),
+                    ),
+                )
+
+            return Expression(
+                "Cuboid",
+                List(
+                    List(*(coordinates.coordinates[0])),
+                    List(
+                        Real(coordinates.coordinates[0][0] + 1),
+                        Real(coordinates.coordinates[0][1] + 1),
+                        Real(coordinates.coordinates[0][2] + 1),
+                    ),
+                ),
+            )
+
+        if len(coordinates) % 2 == 1:
             # The number of points is odd, so abort.
             evaluation.error("Cuboid", "oddn", positions)
 
-        return Expression("Cuboid", positions)
+        return Expression("Cuboid", coordinates)
 
 
 class Cylinder(Builtin):

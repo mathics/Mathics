@@ -727,14 +727,7 @@ class Cuboid3DBox(_Graphics3DElement):
         if len(item.leaves) != 1:
             raise BoxConstructError
 
-        points = item.leaves[0].to_python()
-        if not all(
-            len(point) == 3 and all(isinstance(p, numbers.Real) for p in point)
-            for point in points
-        ):
-            raise BoxConstructError
-
-        self.points = [Coords3D(graphics, pos=point) for point in points]
+        self.points = [Coords3D(graphics, pos=point) for point in item.leaves[0]]
 
     def extent(self):
         return [coords.pos()[0] for coords in self.points]
