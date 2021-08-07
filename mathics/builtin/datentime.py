@@ -1027,7 +1027,7 @@ class Pause(Builtin):
         ),
     }
 
-    summary_text = "pauses for aseconds."
+    summary_text = "pauses for a number of seconds"
 
     def apply(self, n, evaluation):
         "Pause[n_]"
