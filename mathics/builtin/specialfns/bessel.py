@@ -44,12 +44,13 @@ class AiryAi(_MPMathFunction):
 
     # attributes = ("Listable", "NumericFunction") # inherited
 
-    mpmath_name = "airyai"
-    sympy_name = "airyai"
-
     rules = {
         "Derivative[1][AiryAi]": "AiryAiPrime",
     }
+
+    mpmath_name = "airyai"
+    summary_text = "Airy function Ai"
+    sympy_name = "airyai"
 
 
 class AiryAiPrime(_MPMathFunction):
@@ -68,13 +69,15 @@ class AiryAiPrime(_MPMathFunction):
      = -0.224911
     """
 
+    mpmath_name = ""
+
     rules = {
         "Derivative[1][AiryAiPrime]": "(#1 AiryAi[#1])&",
     }
 
     attributes = ("Listable", "NumericFunction")
 
-    mpmath_name = ""
+    summary_text = "Derivative of the Airy function Ai"
     sympy_name = "airyaiprime"
 
     def get_mpmath_function(self, args):
@@ -117,6 +120,8 @@ class AiryAiZero(Builtin):
     rules = {
         "AiryAi[AiryAiZero[k_]]": "0",
     }
+
+    summary_text = "Get kth zero of an Airy function Ai"
 
     def apply_N(self, k, precision, evaluation):
         "N[AiryAiZero[k_Integer], precision_]"
@@ -162,11 +167,13 @@ class AiryBi(_MPMathFunction):
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "airybi"
-    sympy_name = "airybi"
 
     rules = {
         "Derivative[1][AiryBi]": "AiryBiPrime",
     }
+
+    summary_text = "Airy function Bi"
+    sympy_name = "airybi"
 
 
 class AiryBiPrime(_MPMathFunction):
@@ -194,6 +201,8 @@ class AiryBiPrime(_MPMathFunction):
     rules = {
         "Derivative[1][AiryBiPrime]": "(#1 AiryBi[#1])&",
     }
+
+    summary_text = "Derivative of the Airy function Bi"
 
     def get_mpmath_function(self, args):
         return lambda x: mpmath.airybi(x, derivative=1)
@@ -236,6 +245,8 @@ class AiryBiZero(Builtin):
         "AiryBi[AiryBiZero[z_]]": "0",
     }
 
+    summary_text = "Get kth zero of an Airy function Bi"
+
     def apply_N(self, k, precision, evaluation):
         "N[AiryBiZero[k_Integer], precision_]"
 
@@ -275,6 +286,7 @@ class AngerJ(_Bessel):
     # attributes = ("Listable", "NumericFunction") # inherited
 
     mpmath_name = "angerj"
+    summary_text = "Anger function J"
     sympy_name = ""
 
 
@@ -422,13 +434,14 @@ class BesselJZero(_Bessel):
     >> N[BesselJZero[0, 1]]
      = 2.40483
 
-    #> N[BesselJZero[0, 1], 20]
-     = 2.4048255576957727686
+    >> N[BesselJZero[0, 1], 10]
+     = 2.404825558
     """
 
     # attributes = ("Listable", "NumericFunction") # inherited
 
     mpmath_name = "besseljzero"
+    summary_text = "Get kth zero of an BesselJ function"
     sympy_name = ""
 
 
@@ -442,13 +455,14 @@ class BesselYZero(_Bessel):
     >> N[BesselYZero[0, 1]]
      = 0.893577
 
-    #> N[BesselYZero[0, 1]]
-     = 0.893577
+    >> N[BesselYZero[0, 1], 10]
+     = 0.8935769663
     """
 
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "besselyzero"
+    summary_text = "Get kth zero of an BesselY function"
     sympy_name = ""
 
 
@@ -466,11 +480,13 @@ class HankelH1(_Bessel):
      = 0.185286 + 0.367112 I
     """
 
+    mpmath_name = "hankel1"
+
     rules = {
         "Derivative[0, 1][HankelH1]": "((HankelH1[-1 + #1, #2] - HankelH1[1 + #1, #2])/2)&",
     }
+    summary_text = "Hankel function zero of the first kind"
     sympy_name = "hankel1"
-    mpmath_name = "hankel1"
 
 
 class HankelH2(_Bessel):
@@ -484,12 +500,13 @@ class HankelH2(_Bessel):
      = 0.185286 - 0.367112 I
     """
 
+    mpmath_name = "hankel2"
     rules = {
         "Derivative[0, 1][HankelH2]": "((HankelH2[-1 + #1, #2] - HankelH2[1 + #1, #2])/2)&",
     }
 
+    summary_text = "Hankel function zero of the second kind"
     sympy_name = "hankel2"
-    mpmath_name = "hankel2"
 
 
 # Kelvin Functions
@@ -518,14 +535,15 @@ class KelvinBei(_Bessel):
      = -Graphics-
     """
 
+    attributes = ("Listable", "NumericFunction")
+
+    mpmath_name = "bei"
     rules = {
         "KelvinBei[z_]": "KelvinBei[0, z]",
         "Derivative[1][KelvinBei]": "((2*KelvinBei[1, #1] - 2*KelvinBer[1, #1])/(2*Sqrt[2]))&",
     }
 
-    attributes = ("Listable", "NumericFunction")
-
-    mpmath_name = "bei"
+    summary_text = "Kelvin function bei"
     sympy_name = ""
 
 
@@ -552,14 +570,15 @@ class KelvinBer(_Bessel):
      = -Graphics-
     """
 
+    attributes = ("Listable", "NumericFunction")
+
+    mpmath_name = "ber"
     rules = {
         "KelvinBer[z_]": "KelvinBer[0, z]",
         "Derivative[1][KelvinBer]": "((2*KelvinBei[1, #1] + 2*KelvinBer[1, #1])/(2*Sqrt[2]))&",
     }
 
-    attributes = ("Listable", "NumericFunction")
-
-    mpmath_name = "ber"
+    summary_text = "Kelvin function ber"
     sympy_name = ""
 
 
@@ -586,12 +605,14 @@ class KelvinKei(_Bessel):
      = -Graphics-
     """
 
+    mpmath_name = "kei"
+
     rules = {
         "KelvinKei[z_]": "KelvinKei[0, z]",
     }
 
+    summary_text = "Kelvin function kei"
     sympy_name = ""
-    mpmath_name = "kei"
 
 
 class KelvinKer(_Bessel):
@@ -616,65 +637,108 @@ class KelvinKer(_Bessel):
      = -Graphics-
     """
 
-    rules = {
-        "KelvinKer[z_]": "KelvinKer[0, z]",
-    }
-
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "ker"
+    rules = {
+        "KelvinKer[z_]": "KelvinKer[0, z]",
+    }
+    summary_text = "Kelvin function ker"
     sympy_name = ""
 
 
-# TODO:
-# this "works" but only giving symbolic results, not numeric results. Seems to be a Sympy limitation?
+class SphericalBesselJ(_Bessel):
+    """
 
-# class SphericalBesselJ(_Bessel):
-#     """
+    Spherical Bessel function of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
 
-#     Spherical Bessel funciton of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+    <dl>
+      <dt>'SphericalBesselJ[$n$, $z$]'
+      <dd>returns the spherical Bessel function of the first kind Y_$n$($z$).
+    </dl>
 
-#     <dl>
-#       <dt>'SphericalBesselJ[$n$, $z$]'
-#       <dd>returns the spherical Bessel function of the first kind Y_$n$($z$).
-#     </dl>
+    >> SphericalBesselJ[1, 5.2]
+     = -0.122771
 
-#     >> SphericalBesselJ[1, 5.2]
-#      = -0.122771
+    ## FIXME: should be able to tolerate Plotting at 0.
+    >> Plot[SphericalBesselJ[1, x], {x, 0.1, 10}]
+     = -Graphics-
+    """
 
-#     >> Plot[SphericalBesselJ[1, x], {x, 0, 20}]
-#      = -Graphics-
-#     """
+    attributes = ("Listable", "NumericFunction", "Protected")
 
-#     attributes = ("Listable", "NumericFunction", "Protected")
+    rules = {"SphericalBesselJ[n_, z_]": "Sqrt[Pi / 2] / Sqrt[z] BesselJ[n + 0.5, z]"}
 
-#     summary_text = "spherical Bessel function of the second kind"
-#     sympy_name = "jn"
-
-
-# class SphericalBesselY(_Bessel):
-#     """
-#     Spherical Bessel funciton of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
-
-#     <dl>
-#       <dt>'SphericalBesselY[$n$, $z$]'
-#       <dd>returns the spherical Bessel function of the second kind Y_$n$($z$).
-#     </dl>
-
-#     >> SphericalBesselY[1, 5.5]
-#      = 0.104853
-
-#     >> Plot[SphericalBesselY[1, x], {x, 0, 20}]
-#      = -Graphics-
-#     """
-
-#     attributes = ("Listable", "NumericFunction", "Protected")
-
-#     summary_text = "spherical Bessel function of the second kind"
-#     sympy_name = "yn"
+    summary_text = "spherical Bessel function of the second kind"
+    sympy_name = "jn"
 
 
-# Struve and Related Functions
+class SphericalBesselY(_Bessel):
+    """
+    Spherical Bessel function of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+
+    <dl>
+      <dt>'SphericalBesselY[$n$, $z$]'
+      <dd>returns the spherical Bessel function of the second kind Y_$n$($z$).
+    </dl>
+
+    >> SphericalBesselY[1, 5.5]
+     = 0.104853
+
+    >> Plot[SphericalBesselY[1, x], {x, 0, 10}]
+     = -Graphics-
+    """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    rules = {"SphericalBesselY[n_, z_]": "Sqrt[Pi / 2] / Sqrt[z] BesselY[n + 0.5, z]"}
+
+    summary_text = "spherical Bessel function of the second kind"
+    sympy_name = "yn"
+
+
+class SphericalHankelH1(_Bessel):
+    """
+
+    Spherical Bessel function of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+
+    <dl>
+      <dt>'SphericalHankelH1[$n$, $z$]'
+      <dd>returns the spherical Hankel function of the first kind h_$n$^(1)($z$).
+    </dl>
+
+    >> SphericalHankelH1[3, 1.5]
+     = 0.0283246 - 3.78927 I
+    """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    rules = {"SphericalHankelH1[n_, z_]": "Sqrt[Pi / 2] / Sqrt[z] HankelH1[n + 0.5, z]"}
+
+    summary_text = "spherical Hankel function of the first kind"
+    sympy_name = "hankel1"
+
+
+class SphericalHankelH2(_Bessel):
+    """
+
+    Spherical Bessel function of the second kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+
+    <dl>
+      <dt>'SphericalHankelH1[$n$, $z$]'
+      <dd>returns the spherical Hankel function of the second kind h_$n$^(2)($z$).
+    </dl>
+
+    >> SphericalHankelH2[3, 1.5]
+     = 0.0283246 + 3.78927 I
+    """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    rules = {"SphericalHankelH2[n_, z_]": "Sqrt[Pi / 2] / Sqrt[z] HankelH2[n + 0.5, z]"}
+
+    summary_text = "spherical Hankel function of the second kind"
+    sympy_name = "hankel2"
 
 
 class StruveH(_Bessel):
@@ -687,13 +751,14 @@ class StruveH(_Bessel):
     >> StruveH[1.5, 3.5]
      = 1.13192
 
-    >> Plot[StruveH[0, x], {x, 0, 20}]
+    >> Plot[StruveH[0, x], {x, 0, 10}]
      = -Graphics-
     """
 
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "struveh"
+    summary_text = "Struvel function H"
     sympy_name = ""
 
 
@@ -714,6 +779,7 @@ class StruveL(_Bessel):
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "struvel"
+    summary_text = "Struvel function L"
     sympy_name = ""
 
 
@@ -736,4 +802,5 @@ class WeberE(_Bessel):
     attributes = ("Listable", "NumericFunction")
 
     mpmath_name = "webere"
+    summary_text = "Weber function E"
     sympy_name = ""
