@@ -283,6 +283,9 @@ class AngerJ(_Bessel):
 
 class BesselI(_Bessel):
     """
+
+    Bessel function of the first kind. See <url>https://en.wikipedia.org/wiki/Bessel_function#Bessel_functions_of_the_first_kind:_J%CE%B1</url>.
+
     <dl>
     <dt>'BesselI[$n$, $z$]'
       <dd>returns the modified Bessel function of the first kind I_$n$($z$).
@@ -301,12 +304,15 @@ class BesselI(_Bessel):
 
     attributes = ("Listable", "NumericFunction", "Protected")
 
-    sympy_name = "besseli"
     mpmath_name = "besseli"
+    sympy_name = "besseli"
+    summary_text = "Bessel function of the second kind"
 
 
 class BesselJ(_Bessel):
     """
+    Bessel function of the first kind. See <url>https://en.wikipedia.org/wiki/Bessel_function#Bessel_functions_of_the_first_kind:_J%CE%B1</url>.
+
     <dl>
     <dt>'BesselJ[$n$, $z$]'
       <dd>returns the Bessel function of the first kind J_$n$($z$).
@@ -333,20 +339,23 @@ class BesselJ(_Bessel):
     >> BesselJ[1/2, x]
      = Sqrt[2 / Pi] Sin[x] / Sqrt[x]
     """
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    mpmath_name = "besselj"
     rules = {
         "Derivative[0,1][BesselJ]": "(BesselJ[#1- 1, #2] / 2 - BesselJ[#1 + 1, #2] / 2)&",
     }
 
-    attributes = ("Listable", "NumericFunction", "Protected")
-
+    summary_text = "Bessel function of the first kind"
     sympy_name = "besselj"
-    mpmath_name = "besselj"
 
 
 class BesselK(_Bessel):
     """
+    Modified Bessel function of the second kind. See <url>https://en.wikipedia.org/wiki/Bessel_function#Modified_Bessel_functions:_I%CE%B1,_K%CE%B1</url>.
+
     <dl>
-    <dt>'BesselK[$n$, $z$]'
+      <dt>'BesselK[$n$, $z$]'
       <dd>returns the modified Bessel function of the second kind K_$n$($z$).
     </dl>
 
@@ -360,17 +369,19 @@ class BesselK(_Bessel):
     attributes = ("Listable", "NumericFunction", "Protected")
 
     mpmath_name = "besselk"
-    sympy_name = "besselk"
 
     rules = {
         "Derivative[0, 1][BesselK]": "((-BesselK[-1 + #1, #2] - BesselK[1 + #1, #2])/2)&",
     }
 
+    summary_text = "Modified Bessel function of the second kind"
+    sympy_name = "besselk"
+
 
 class BesselY(_Bessel):
     """
     <dl>
-    <dt>'BesselY[$n$, $z$]'
+      <dt>'BesselY[$n$, $z$]'
       <dd>returns the Bessel function of the second kind Y_$n$($z$).
     </dl>
 
@@ -397,13 +408,14 @@ class BesselY(_Bessel):
     attributes = ("Listable", "NumericFunction", "Protected")
 
     mpmath_name = "bessely"
+    summary_text = "function of the second kind"
     sympy_name = "bessely"
 
 
 class BesselJZero(_Bessel):
     """
     <dl>
-    <dt>'BesselJZero[$n$, $k$]'
+      <dt>'BesselJZero[$n$, $k$]'
       <dd>returns the $k$th zero of the Bessel function of the first kind J_$n$($z$).
     </dl>
 
@@ -416,14 +428,14 @@ class BesselJZero(_Bessel):
 
     # attributes = ("Listable", "NumericFunction") # inherited
 
-    sympy_name = ""
     mpmath_name = "besseljzero"
+    sympy_name = ""
 
 
 class BesselYZero(_Bessel):
     """
     <dl>
-    <dt>'BesselYZero[$n$, $k$]'
+      <dt>'BesselYZero[$n$, $k$]'
       <dd>returns the $k$th zero of the Bessel function of the second kind Y_$n$($z$).
     </dl>
 
@@ -439,8 +451,6 @@ class BesselYZero(_Bessel):
     mpmath_name = "besselyzero"
     sympy_name = ""
 
-
-# TODO: Spherical Bessel Functions
 
 # Hankel Functions
 
@@ -466,7 +476,7 @@ class HankelH1(_Bessel):
 class HankelH2(_Bessel):
     """
     <dl>
-    <dt>'HankelH2[$n$, $z$]'
+      <dt>'HankelH2[$n$, $z$]'
       <dd>returns the Hankel function of the second kind H_$n$^2 ($z$).
     </dl>
 
@@ -488,9 +498,10 @@ class HankelH2(_Bessel):
 class KelvinBei(_Bessel):
     """
     <dl>
-    <dt>'KelvinBei[$z$]'
+      <dt>'KelvinBei[$z$]'
       <dd>returns the Kelvin function bei($z$).
-    <dt>'KelvinBei[$n$, $z$]'
+
+      <dt>'KelvinBei[$n$, $z$]'
       <dd>returns the Kelvin function bei_$n$($z$).
     </dl>
 
@@ -521,9 +532,10 @@ class KelvinBei(_Bessel):
 class KelvinBer(_Bessel):
     """
     <dl>
-    <dt>'KelvinBer[$z$]'
+      <dt>'KelvinBer[$z$]'
       <dd>returns the Kelvin function ber($z$).
-    <dt>'KelvinBer[$n$, $z$]'
+
+      <dt>'KelvinBer[$n$, $z$]'
       <dd>returns the Kelvin function ber_$n$($z$).
     </dl>
 
@@ -554,9 +566,10 @@ class KelvinBer(_Bessel):
 class KelvinKei(_Bessel):
     """
     <dl>
-    <dt>'KelvinKei[$z$]'
+      <dt>'KelvinKei[$z$]'
       <dd>returns the Kelvin function kei($z$).
-    <dt>'KelvinKei[$n$, $z$]'
+
+      <dt>'KelvinKei[$n$, $z$]'
       <dd>returns the Kelvin function kei_$n$($z$).
     </dl>
 
@@ -613,13 +626,61 @@ class KelvinKer(_Bessel):
     sympy_name = ""
 
 
+# TODO:
+# this "works" but only giving symbolic results, not numeric results. Seems to be a Sympy limitation?
+
+# class SphericalBesselJ(_Bessel):
+#     """
+
+#     Spherical Bessel funciton of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+
+#     <dl>
+#       <dt>'SphericalBesselJ[$n$, $z$]'
+#       <dd>returns the spherical Bessel function of the first kind Y_$n$($z$).
+#     </dl>
+
+#     >> SphericalBesselJ[1, 5.2]
+#      = -0.122771
+
+#     >> Plot[SphericalBesselJ[1, x], {x, 0, 20}]
+#      = -Graphics-
+#     """
+
+#     attributes = ("Listable", "NumericFunction", "Protected")
+
+#     summary_text = "spherical Bessel function of the second kind"
+#     sympy_name = "jn"
+
+
+# class SphericalBesselY(_Bessel):
+#     """
+#     Spherical Bessel funciton of the first kind. See <url>href="https://en.wikipedia.org/wiki/Bessel_function#Spherical_Bessel_functions</url>
+
+#     <dl>
+#       <dt>'SphericalBesselY[$n$, $z$]'
+#       <dd>returns the spherical Bessel function of the second kind Y_$n$($z$).
+#     </dl>
+
+#     >> SphericalBesselY[1, 5.5]
+#      = 0.104853
+
+#     >> Plot[SphericalBesselY[1, x], {x, 0, 20}]
+#      = -Graphics-
+#     """
+
+#     attributes = ("Listable", "NumericFunction", "Protected")
+
+#     summary_text = "spherical Bessel function of the second kind"
+#     sympy_name = "yn"
+
+
 # Struve and Related Functions
 
 
 class StruveH(_Bessel):
     """
     <dl>
-    <dt>'StruveH[$n$, $z$]'
+      <dt>'StruveH[$n$, $z$]'
       <dd>returns the Struve function H_$n$($z$).
     </dl>
 
@@ -659,7 +720,7 @@ class StruveL(_Bessel):
 class WeberE(_Bessel):
     """
     <dl>
-    <dt>'WeberE[$n$, $z$]'
+      <dt>'WeberE[$n$, $z$]'
       <dd>returns the Weber function E_$n$($z$).
     </dl>
 

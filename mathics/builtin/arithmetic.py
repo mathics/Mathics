@@ -175,6 +175,8 @@ class _MPMathMultiFunction(_MPMathFunction):
             name = fallback_name
             if names is not None:
                 name = names[len(leaves)]
+            if name is None:
+                return None
             return getattr(module, name)
         except KeyError:
             return None
