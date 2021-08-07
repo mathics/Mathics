@@ -15,6 +15,13 @@ Tensor functions:
 * ``TransformationFunction``
 * ``TranslationTransform``
 
+Spherical Bessel functions:
+
+* ``SphericalBesselJ``
+* ``SphericalBesselY``
+* ``SphericalHankelH1``
+* ``SphericalHankelH2``
+
 4.0.0
 -----
 

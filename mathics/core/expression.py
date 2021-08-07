@@ -593,6 +593,8 @@ class BaseExpression(KeyComparable):
         """
         if evaluation is None:
             value = self
+        elif isinstance(evaluation, sympy.core.numbers.NaN):
+            return None
         else:
             value = Expression(SymbolN, self).evaluate(evaluation)
         if isinstance(value, Number):
@@ -2419,6 +2421,9 @@ class Real(Number):
         if pattern_sort:
             return super().get_sort_key(True)
         return [0, 0, self.value, 0, 1]
+
+    def is_nan(self, d=None) -> bool:
+        return isinstance(self.value, sympy.core.numbers.NaN)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Real):

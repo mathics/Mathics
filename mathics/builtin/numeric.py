@@ -1106,6 +1106,8 @@ class Rationalize(Builtin):
 
 def chop(expr, delta=10.0 ** (-10.0)):
     if isinstance(expr, Real):
+        if expr.is_nan(expr):
+            return expr
         if -delta < expr.get_float_value() < delta:
             return Integer0
     elif isinstance(expr, Complex) and expr.is_inexact():
