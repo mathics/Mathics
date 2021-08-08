@@ -44,7 +44,7 @@ DOC_USER_TEX_DATA_PATH = os.environ.get(
 # We need another version as a fallback, and that is distributed with the
 # package. It is note user writable and not in the user space.
 DOC_SYSTEM_TEX_DATA_PATH = os.environ.get(
-    "DOC_USER_TEX_DATA_PATH", osp.join(ROOT_DIR, "data", "doc_tex_data.pcl")
+    "DOC_SYSTEM_TEX_DATA_PATH", osp.join(ROOT_DIR, "data", "doc_tex_data.pcl")
 )
 
 DOC_DIR = osp.join(ROOT_DIR, "doc", "documentation")
