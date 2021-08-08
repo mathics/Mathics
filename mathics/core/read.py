@@ -4,6 +4,8 @@ Functions to support Read[]
 
 from mathics.core.expression import Expression, Symbol
 
+SymbolEndOfFile = Symbol("EndOfFile")
+
 READ_TYPES = [
     Symbol(k)
     for k in [
@@ -122,22 +124,30 @@ def read_get_separators(options):
     return record_separators, word_separators
 
 
-def read_from_stream(stream, types_list, word_separators, evaluation, accepted=None):
-    while True:
+def read_from_stream(stream, word_separators, msgfn, accepted=None):
+    """
+    This is a generator that returns "wors" from stream deliminated by
+    "word_separators"
+    """
+    eof_seen = False
+    while not eof_seen:
         word = ""
         while True:
             try:
                 tmp = stream.io.read(1)
             except UnicodeDecodeError:
                 tmp = " "  # ignore
-                evaluation.message("General", "ucdec")
+                msgfn("General", "ucdec")
+            except EOFError:
+                return SymbolEndOfFile
 
             if tmp == "":
                 if word == "":
                     pos = stream.io.tell()
                     newchar = stream.io.read(1)
                     if pos == stream.io.tell():
-                        raise EOFError
+                        eof_seen = True
+                        break
                     else:
                         if newchar:
                             word = newchar
@@ -154,7 +164,6 @@ def read_from_stream(stream, types_list, word_separators, evaluation, accepted=N
                 if word == "":
                     continue
                 if stream.io.seekable():
-                    # stream.io.seek(-1, 1) #Python3
                     stream.io.seek(stream.io.tell() - 1)
                 last_word = word
                 word = ""

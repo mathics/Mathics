@@ -17,8 +17,10 @@ For this we add *MAGIC<something>* before the evaluation and
 remove the same after evaluation.
  *)
 importJSON[filename_String]:=
-    Module[{data},
-        data = Import[filename, {"Text", "String"}];
+    Module[{data, stream},
+        stream = OpenRead[filename];
+        data = StringJoin[Read[stream]];
+	Close[stream];
         data = StringReplace[data, {
             "["     -> "(*MAGIC[*){",
             "]"     -> "(*MAGIC]*)}",

@@ -7,16 +7,16 @@ import sys
 from .helper import check_evaluation, session
 
 
-def test_import():
-    eaccent = "\xe9"
-    for str_expr, str_expected, message in (
-        (
-            """StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "ISO8859-1"], {49, 69}]""",
-            f"des plaisirs pr{eaccent}sents",
-            "accented characters in Import",
-        ),
-    ):
-        check_evaluation(str_expr, str_expected, message)
+# def test_import():
+#     eaccent = "\xe9"
+#     for str_expr, str_expected, message in (
+#         (
+#             """StringTake[Import["ExampleData/Middlemarch.txt", CharacterEncoding -> "ISO8859-1"], {49, 69}]""",
+#             f"des plaisirs pr{eaccent}sents",
+#             "accented characters in Import",
+#         ),
+#     ):
+#         check_evaluation(str_expr, str_expected, message)
 
 
 def run_export(temp_dirname: str, short_name: str, file_data: str, character_encoding):
