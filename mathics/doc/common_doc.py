@@ -694,7 +694,9 @@ class Documentation(object):
             pass
         return
 
-    def latex(self, doc_data: dict, quiet=False) -> str:
+    def latex(
+        self, doc_data: dict, quiet=False, filter_parts=None, filter_chapters=None
+    ) -> str:
         """Render self as a LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -703,7 +705,10 @@ class Documentation(object):
         parts = []
         appendix = False
         for part in self.parts:
-            text = part.latex(doc_data, quiet)
+            if filter_parts:
+                if part.title not in filter_parts:
+                    continue
+            text = part.latex(doc_data, quiet, filter_chapters=filter_chapters)
             if part.is_appendix and not appendix:
                 appendix = True
                 text = "\n\\appendix\n" + text
@@ -1134,14 +1139,18 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, doc_data: dict, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False, filter_chapters=None) -> str:
         """Render this Part object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
         level in getting expected test results.
         """
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
-            "\n\n".join(chapter.latex(doc_data, quiet) for chapter in self.chapters)
+            "\n\n".join(
+                chapter.latex(doc_data, quiet)
+                for chapter in self.chapters
+                if not filter_chapters or chapter.title in filter_chapters
+            )
         )
         if self.is_reference:
             result = "\n\n\\referencestart" + result
@@ -1394,7 +1403,7 @@ class DocSubsection(object):
     def __str__(self):
         return f"=== {self.title} ===\n{self.doc}"
 
-    def latex(self, doc_data: dict, quiet=False):
+    def latex(self, doc_data: dict, quiet=False, chapters=None):
         """Render this Subsection object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
