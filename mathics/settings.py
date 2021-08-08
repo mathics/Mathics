@@ -26,20 +26,26 @@ MAX_STORED_SIZE = 10000
 
 ROOT_DIR = pkg_resources.resource_filename("mathics", "")
 if sys.platform.startswith("win"):
-    DATA_DIR = os.environ["APPDATA"].replace(os.sep, "/") + "/Python/Mathics/"
+    DATA_DIR = osp.join(os.environ["APPDATA"], "Python", "Mathics")
 else:
-    DATA_DIR = osp.expanduser("~/.local/var/mathics/")
+    DATA_DIR = osp.join(
+        os.environ.get("APPDATA", osp.expanduser("~/.local/var/mathics/"))
+    )
 
 # Location of internal document data. Currently this is in Python
 # Pickle form, but storing this in JSON if possible would be preferable and faster
 
 # We need two versions, one in the user space which is updated with
 # local packages installed and is user writable.
-DOC_USER_TEX_DATA_PATH = osp.join(DATA_DIR, "doc_tex_data.pcl")
+DOC_USER_TEX_DATA_PATH = os.environ.get(
+    "DOC_USER_TEX_DATA_PATH", osp.join(DATA_DIR, "doc_tex_data.pcl")
+)
 
 # We need another version as a fallback, and that is distributed with the
 # package. It is note user writable and not in the user space.
-DOC_SYSTEM_TEX_DATA_PATH = osp.join(ROOT_DIR, "data", "doc_tex_data.pcl")
+DOC_SYSTEM_TEX_DATA_PATH = os.environ.get(
+    "DOC_USER_TEX_DATA_PATH", osp.join(ROOT_DIR, "data", "doc_tex_data.pcl")
+)
 
 DOC_DIR = osp.join(ROOT_DIR, "doc", "documentation")
 DOC_LATEX_FILE = osp.join(ROOT_DIR, "doc", "tex", "documentation.tex")
