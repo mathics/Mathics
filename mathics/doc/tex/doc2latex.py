@@ -86,12 +86,17 @@ def get_versions():
     return versions
 
 
-def write_latex(doc_data, quiet=False):
+def write_latex(doc_data, quiet=False, filter_parts=None, filter_chapters=None):
     documentation = MathicsMainDocumentation()
     if not quiet:
         print(f"Writing LaTeX document to {DOC_LATEX_FILE}")
     with open_ensure_dir(DOC_LATEX_FILE, "wb") as doc:
-        content = documentation.latex(doc_data, quiet=quiet)
+        content = documentation.latex(
+            doc_data,
+            quiet=quiet,
+            filter_parts=filter_parts,
+            filter_chapters=filter_chapters,
+        )
         content = content.encode("utf-8")
         doc.write(content)
     DOC_VERSION_FILE = osp.join(osp.dirname(DOC_LATEX_FILE), "version-info.tex")
@@ -115,6 +120,22 @@ def main():
         "--version", "-v", action="version", version="%(prog)s " + mathics.__version__
     )
     parser.add_argument(
+        "--chapters",
+        "-c",
+        dest="chapters",
+        metavar="CHAPTER",
+        help="only test CHAPTER(s). "
+        "You can list multiple chapters by adding a comma (and no space) in between chapter names.",
+    )
+    parser.add_argument(
+        "--parts",
+        "-p",
+        dest="parts",
+        metavar="PART",
+        help="only test PART(s). "
+        "You can list multiple parts by adding a comma (and no space) in between part names.",
+    )
+    parser.add_argument(
         "--quiet",
         "-q",
         dest="quiet",
@@ -123,7 +144,12 @@ def main():
     )
     args = parser.parse_args()
     doc_data = extract_doc_from_source(quiet=args.quiet)
-    write_latex(doc_data)
+    write_latex(
+        doc_data,
+        quiet=args.quiet,
+        filter_parts=args.parts,
+        filter_chapters=args.chapters,
+    )
 
 
 if __name__ == "__main__":
