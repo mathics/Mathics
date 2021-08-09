@@ -695,7 +695,12 @@ class Documentation(object):
         return
 
     def latex(
-        self, doc_data: dict, quiet=False, filter_parts=None, filter_chapters=None
+        self,
+        doc_data: dict,
+        quiet=False,
+        filter_parts=None,
+        filter_chapters=None,
+        filter_sections=None,
     ) -> str:
         """Render self as a LaTeX string and return that.
 
@@ -708,7 +713,12 @@ class Documentation(object):
             if filter_parts:
                 if part.title not in filter_parts:
                     continue
-            text = part.latex(doc_data, quiet, filter_chapters=filter_chapters)
+            text = part.latex(
+                doc_data,
+                quiet,
+                filter_chapters=filter_chapters,
+                filter_sections=filter_sections,
+            )
             if part.is_appendix and not appendix:
                 appendix = True
                 text = "\n\\appendix\n" + text
@@ -1139,7 +1149,9 @@ class DocPart(object):
             "\n".join(str(chapter) for chapter in self.chapters),
         )
 
-    def latex(self, doc_data: dict, quiet=False, filter_chapters=None) -> str:
+    def latex(
+        self, doc_data: dict, quiet=False, filter_chapters=None, filter_sections=None
+    ) -> str:
         """Render this Part object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1147,7 +1159,7 @@ class DocPart(object):
         """
         result = "\n\n\\part{%s}\n\n" % escape_latex(self.title) + (
             "\n\n".join(
-                chapter.latex(doc_data, quiet)
+                chapter.latex(doc_data, quiet, filter_sections=filter_sections)
                 for chapter in self.chapters
                 if not filter_chapters or chapter.title in filter_chapters
             )
@@ -1176,7 +1188,7 @@ class DocChapter(object):
     def all_sections(self):
         return sorted(self.sections + self.guide_sections)
 
-    def latex(self, doc_data: dict, quiet=False) -> str:
+    def latex(self, doc_data: dict, quiet=False, filter_sections=None) -> str:
         """Render this Chapter object as LaTeX string and return that.
 
         `output` is not used here but passed along to the bottom-most
@@ -1196,7 +1208,11 @@ class DocChapter(object):
             ("\n\n\\chapter{%(title)s}\n\\chapterstart\n\n%(intro)s")
             % {"title": escape_latex(self.title), "intro": intro},
             "\\chaptersections\n",
-            "\n\n".join(section.latex(doc_data, quiet) for section in self.sections),
+            "\n\n".join(
+                section.latex(doc_data, quiet)
+                for section in self.sections
+                if not filter_sections or section.title in filter_sections
+            ),
             "\n\\chapterend\n",
         ]
         return "".join(chapter_sections)

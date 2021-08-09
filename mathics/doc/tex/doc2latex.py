@@ -86,7 +86,9 @@ def get_versions():
     return versions
 
 
-def write_latex(doc_data, quiet=False, filter_parts=None, filter_chapters=None):
+def write_latex(
+    doc_data, quiet=False, filter_parts=None, filter_chapters=None, filter_sections=None
+):
     documentation = MathicsMainDocumentation()
     if not quiet:
         print(f"Writing LaTeX document to {DOC_LATEX_FILE}")
@@ -96,6 +98,7 @@ def write_latex(doc_data, quiet=False, filter_parts=None, filter_chapters=None):
             quiet=quiet,
             filter_parts=filter_parts,
             filter_chapters=filter_chapters,
+            filter_sections=filter_sections,
         )
         content = content.encode("utf-8")
         doc.write(content)
@@ -128,6 +131,14 @@ def main():
         "You can list multiple chapters by adding a comma (and no space) in between chapter names.",
     )
     parser.add_argument(
+        "--sections",
+        "-s",
+        dest="sections",
+        metavar="SECTION",
+        help="only test SECTION(s). "
+        "You can list multiple chapters by adding a comma (and no space) in between chapter names.",
+    )
+    parser.add_argument(
         "--parts",
         "-p",
         dest="parts",
@@ -149,6 +160,7 @@ def main():
         quiet=args.quiet,
         filter_parts=args.parts,
         filter_chapters=args.chapters,
+        filter_sections=args.sections,
     )
 
 
