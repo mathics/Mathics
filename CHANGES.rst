@@ -7,6 +7,8 @@ CHANGES
 New builtins
 ++++++++++++
 
+* ``Guidermannian``
+
 Tensor functions:
 
 * ``RotationTransform``
