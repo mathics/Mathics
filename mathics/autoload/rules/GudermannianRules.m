@@ -1,4 +1,6 @@
+(* From symja_android_library/symja_android_library/rules/QuantileRules.m *)
 Begin["System`"]
+Gudermannian::usage = "gives the Gudermannian function";
 Gudermannian[Undefined]=Undefined;
 Gudermannian[0]=0;
 Gudermannian[2*Pi*I]=0;
