@@ -75,12 +75,12 @@ class Quantile(Builtin):
      = 4
 
     >> Quantile[Range[16], 1/4]
-     = 5
+     = 4
     """
 
     rules = {
         "Quantile[list_List, q_, abcd_]": "Quantile[list, {q}, abcd]",
-        "Quantile[list_List, q_]": "Quantile[list, q, {{0, 1}, {1, 0}}]",
+        "Quantile[list_List, q_]": "Quantile[list, q, {{0, 0}, {1, 0}}]",
     }
 
     messages = {
