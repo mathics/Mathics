@@ -74,8 +74,8 @@ class Quantile(Builtin):
     >> Quantile[Range[11], 1/3]
      = 4
 
-    >> Quantile[Range[16], 1/4]
-     = 4
+    >> Quantile[{1, 2, 3, 4, 5, 6, 7}, {1/4, 3/4}]
+     = {2, 6}
     """
 
     rules = {
