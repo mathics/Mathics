@@ -24,6 +24,11 @@ Spherical Bessel functions:
 * ``SphericalHankelH1``
 * ``SphericalHankelH2``
 
+Bugs
+++++
+
+Fix and document better behavior of ``Quantile``.
+
 4.0.0
 -----
 
