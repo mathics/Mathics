@@ -66,6 +66,8 @@ class Median(_Rectangular):
 
 class Quantile(Builtin):
     """
+        In statistics and probability, quantiles are cut points dividing the range of a probability distribution into continuous intervals with equal probabilities, or dividing the observations in a sample in the same way.
+
         Quantile is also known as value at risk (VaR) or fractile.
         <dl>
           <dt>'Quantile[$list$, $q$]'
@@ -100,14 +102,16 @@ class Quantile(Builtin):
          = {2, 6}
     """
 
+    messages = {
+        "nquan": "The quantile `1` has to be between 0 and 1.",
+    }
+
     rules = {
         "Quantile[list_List, q_, abcd_]": "Quantile[list, {q}, abcd]",
         "Quantile[list_List, q_]": "Quantile[list, q, {{0, 0}, {1, 0}}]",
     }
 
-    messages = {
-        "nquan": "The quantile `1` has to be between 0 and 1.",
-    }
+    summary_text = "cut points dividing the range of a probability distribution into continuous intervals"
 
     def apply(self, l, qs, a, b, c, d, evaluation):
         """Quantile[l_List, qs_List, {{a_, b_}, {c_, d_}}]"""
