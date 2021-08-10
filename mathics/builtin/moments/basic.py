@@ -66,16 +66,38 @@ class Median(_Rectangular):
 
 class Quantile(Builtin):
     """
-    <dl>
-      <dt>'Quantile[$list$, $q$]'
-      <dd>returns the $q$th quantile of $list$.
-    </dl>
+        Quantile is also known as value at risk (VaR) or fractile.
+        <dl>
+          <dt>'Quantile[$list$, $q$]'
+          <dd>returns the $q$th quantile of $list$.
 
-    >> Quantile[Range[11], 1/3]
-     = 4
+          <dt>'Quantile[$list$, $q$, {{$a$,$b$}, {$c$,$d$}}]'
+          <dd>uses the quantile definition specified by parameters $a$, $b$, $c$, $d$.
+          <dt>For a list of length $n$, 'Quantile[list, $q$, {{$a$,$b$}, {$c$,$d$}}]' depends on $x$=$a$+($n$+$b$)$q$.
 
-    >> Quantile[{1, 2, 3, 4, 5, 6, 7}, {1/4, 3/4}]
-     = {2, 6}
+          If $x$ is an integer, the result is '$s$[[$x$]]', where $s$='Sort[list,Less]'.
+
+          Otherwise, the result is 's[[Floor[x]]]+(s[[Ceiling[x]]]-s[[Floor[x]]])(c+dFractionalPart[x])', with the indices taken to be 1 or n if they are out of range.
+
+    The default choice of parameters is '{{0,0},{1,0}}'.
+        </dl>
+
+        Common choices of parameters include:
+        <ul>
+        <li>'{{0, 0}, {1, 0}}' inverse empirical CDF (default)
+        <li>'{{0, 0}, {0, 1}}' linear interpolation (California method)
+        </ul>
+
+        'Quantile[list,q]' always gives a result equal to an element of list.
+
+        >> Quantile[Range[11], 1/3]
+         = 4
+
+        >> Quantile[Range[16], 1/4]
+         = 4
+
+        >> Quantile[{1, 2, 3, 4, 5, 6, 7}, {1/4, 3/4}]
+         = {2, 6}
     """
 
     rules = {
