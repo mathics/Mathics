@@ -535,12 +535,14 @@ class Test(Builtin):
 
 
 class SympyFunction(SympyObject):
-    def apply(self, *args):
-        """
-        Generic apply method that uses the class sympy_name.
-        to call the corresponding sympy function. Arguments are
-        converted to python and the result is converted from sympy
-        """
+    def apply(self, z, evaluation):
+        #
+        # Generic apply method that uses the class sympy_name.
+        # to call the corresponding sympy function. Arguments are
+        # converted to python and the result is converted from sympy
+        #
+        # "%(name)s[z__]"
+        args = z.numerify(evaluation).get_sequence()
         sympy_args = [a.to_sympy() for a in args]
         sympy_fn = getattr(sympy, self.sympy_name)
         return from_sympy(sympy_fn(*sympy_args))

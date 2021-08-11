@@ -482,7 +482,7 @@ class Arg(_MPMathFunction):
         elif preference == "mpmath":
             return _MPMathFunction.apply(self, z, evaluation)
         elif preference == "sympy":
-            return SympyFunction.apply(self, z)
+            return SympyFunction.apply(self, z, evaluation)
         # TODO: add NumpyFunction
         evaluation.message(
             "meth", f'Arg Method {preference} not in ("sympy", "mpmath")'
@@ -536,7 +536,7 @@ class Sign(SympyFunction):
         sympy_x = x.to_sympy()
         if sympy_x is None:
             return None
-        return super().apply(x)
+        return super().apply(x, evaluation)
 
     def apply_error(self, x, seqs, evaluation):
         "Sign[x_, seqs__]"

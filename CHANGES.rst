@@ -24,6 +24,13 @@ Spherical Bessel functions:
 * ``SphericalHankelH1``
 * ``SphericalHankelH2``
 
+Gamma functions:
+
+* ``PolyGamma``
+* ``Stieltjes``
+
+
+
 Bugs
 ++++
 

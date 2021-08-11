@@ -47,7 +47,7 @@ class ContinuedFraction(SympyFunction):
 
     def apply_1(self, x, evaluation):
         "%(name)s[x_]"
-        return super().apply(x)
+        return super().apply(x, evaluation)
 
     def apply_2(self, x, n, evaluation):
         "%(name)s[x_, n_Integer]"
@@ -522,7 +522,7 @@ class PartitionsP(SympyFunction):
 
     def apply(self, n, evaluation):
         "PartitionsP[n_Integer]"
-        return super().apply(n)
+        return super().apply(n, evaluation)
 
 
 class Prime(SympyFunction):

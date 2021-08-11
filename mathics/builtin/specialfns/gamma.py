@@ -66,10 +66,10 @@ class Gamma(_MPMathMultiFunction):
     """
 
     mpmath_names = {
-        1: "gamma",
+        1: "gamma",  # one argument
     }
     sympy_names = {
-        1: "gamma",
+        1: "gamma",  # one argument
         2: "uppergamma",
     }
 
@@ -98,8 +98,8 @@ class Pochhammer(SympyFunction):
     The Pochhammer symbol or rising factorial often appears in series expansions for hypergeometric functions.
     The Pochammer symbol has a definie value even when the gamma functions which appear in its definition are infinite.
     <dl>
-    <dt>'Pochhammer[$a$, $n$]'
-        <dd>is the Pochhammer symbol (a)_n.
+      <dt>'Pochhammer[$a$, $n$]'
+      <dd>is the Pochhammer symbol (a)_n.
     </dl>
 
     >> Pochhammer[4, 8]
@@ -115,3 +115,55 @@ class Pochhammer(SympyFunction):
         "Derivative[1,0][Pochhammer]": "(Pochhammer[#1, #2]*(-PolyGamma[0, #1] + PolyGamma[0, #1 + #2]))&",
         "Derivative[0,1][Pochhammer]": "(Pochhammer[#1, #2]*PolyGamma[0, #1 + #2])&",
     }
+
+
+class PolyGamma(_MPMathMultiFunction):
+    r"""
+    PolyGamma is a meromorphic function on the complex numbers and is defined as a derivative of the logarithm of the gamma function.
+    <dl>
+      <dt>PolyGamma[z]
+      <dd>returns the digamma function.
+
+      <dt>PolyGamma[n,z]
+      <dd>gives the n^(th) derivative of the digamma function.
+    </dl>
+
+    >> PolyGamma[5]
+     = 25 / 12 - EulerGamma
+
+    >> PolyGamma[3, 5]
+     = -22369 / 3456 + Pi ^ 4 / 15
+    """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    mpmath_names = {
+        1: "digamma",  # 1 argument
+        2: "psi",
+    }
+
+    summary_text = "PolyGamma function"
+
+    sympy_names = {1: "digamma", 2: "polygamma"}  # 1 argument
+
+
+class StieltjesGamma(SympyFunction):
+    r"""
+    PolyGamma is a meromorphic function on the complex numbers and is defined as a derivative of the logarithm of the gamma function.
+    <dl>
+      <dt>'StieltjesGamma[$n$]'
+      <dd>returns the Stieljs contstant for $n$.
+
+      <dt>'StieltjesGamma[$n$, $a$]'
+      <dd>gives the generalized Stieltjes constant of its parameters
+    </dl>
+
+    ## Todo...
+    ## >> N[StieltjesGamma[1], 50]
+    ##  = ...
+    """
+
+    attributes = ("Listable", "NumericFunction", "Protected")
+
+    summary_text = "Stieltjes function"
+    sympy_name = "stieltjes"
