@@ -516,7 +516,8 @@ def rectanglebox(self, **options) -> str:
         self.edge_color, self.face_color, line_width, is_face_element=True
     )
     x1, x2, y1, y2 = asy_number(x1), asy_number(x2), asy_number(y1), asy_number(y2)
-    asy = "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
+    asy = "// RectangleBox\n"
+    asy += "filldraw((%s,%s)--(%s,%s)--(%s,%s)--(%s,%s)--cycle, %s);" % (
         x1,
         y1,
         x2,
