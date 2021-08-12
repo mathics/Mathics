@@ -651,6 +651,9 @@ class GraphicsBox(BoxConstruct):
         return mathml
 
     def boxes_to_svg(self, leaves=None, **options) -> str:
+        """This is the top-level function that converts a Mathics Expression
+        in to something suitable for SVG rendering.
+        """
         if not leaves:
             leaves = self._leaves
 
@@ -664,6 +667,14 @@ class GraphicsBox(BoxConstruct):
         return svg_body
 
     def boxes_to_tex(self, leaves=None, **options) -> str:
+        """This is the top-level function that converts a Mathics Expression
+        in to something suitable for LaTeX.  (Yes, the name "tex" is
+        perhaps misleading of vague.)
+
+        However right now the only LaTeX support for graphics is via Asymptote and
+        that seems to be the package of choice in general for LaTeX.
+        """
+
         if not leaves:
             leaves = self._leaves
             fields = self._prepare_elements(leaves, options, max_width=450)

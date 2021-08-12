@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Format a Mathics object as an Asymptote string
 """
@@ -40,7 +39,14 @@ INVERSE_POINT_FACTOR = 1 / DEFAULT_POINT_FACTOR
 
 
 from mathics.core.formatter import lookup_method, add_conversion_fn
-from mathics.format.asy_fns import asy_bezier, asy_color, asy_create_pens, asy_number
+from mathics.format.asy_fns import (
+    asy_add_bezier_fn,
+    asy_add_graph_import,
+    asy_bezier,
+    asy_color,
+    asy_create_pens,
+    asy_number,
+)
 
 
 class _ASYTransform:
@@ -63,6 +69,8 @@ class _ASYTransform:
         # b d f
         # 0 0 1
         # see http://asymptote.sourceforge.net/doc/Transforms.html#Transforms
+        # Note that the values a..f go down the rows and then across the columns
+        # and not across the columns and then down the rows
         self.transforms.append("(%f, %f, %f, %f, %f, %f)" % (e, f, a, c, b, d))
 
     def translate(self, x, y):
@@ -186,15 +194,24 @@ add_conversion_fn(Arrow3DBox)
 
 
 def bezier_curve_box(self, **options) -> str:
+    """
+    Asymptote formatter for BezerCurveBox.
+    """
     line_width = self.style.get_line_width(face_element=False)
     pen = asy_create_pens(edge_color=self.edge_color, stroke_width=line_width)
 
     asy = "// BezierCurveBox\n"
-    for line in self.lines:
-        for path in asy_bezier((self.spline_degree, [xy.pos() for xy in line])):
-            if path[:2] == "..":
-                path = "(0.,0.)" + path
-            asy += "draw(%s, %s);" % (path, pen)
+    asy += asy_add_graph_import(self)
+    asy += asy_add_bezier_fn(self)
+    for i, line in enumerate(self.lines):
+        scaled_pts = []
+        for xy in line:
+            x, y = xy.pos()
+            scaled_pts.append(str((x / 100.0, y / 100.0)))
+        asy += """pair[] P%d={%s};\n""" % (i, ", ".join(scaled_pts))
+        asy += """pair G%d(real t){return Bezier(P%d,t);}\n""" % (i, i)
+        asy += """draw(shift(0, -2)*graph(G%d,0,1,350), %s);\n""" % (i, pen)
+    # print("BezierCurveBox: " asy)
     return asy
 
 

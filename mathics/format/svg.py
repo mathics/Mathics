@@ -135,7 +135,10 @@ def arrow_box(self, **options) -> str:
 add_conversion_fn(ArrowBox, arrow_box)
 
 
-def beziercurvebox(self, **options) -> str:
+def bezier_curve_box(self, **options) -> str:
+    """
+    Asymptote formatter for BezerCurveBox.
+    """
     line_width = self.style.get_line_width(face_element=False)
     style = create_css(edge_color=self.edge_color, stroke_width=line_width)
 
@@ -147,7 +150,7 @@ def beziercurvebox(self, **options) -> str:
     return svg
 
 
-add_conversion_fn(BezierCurveBox)
+add_conversion_fn(BezierCurveBox, bezier_curve_box)
 
 
 def density_plot_box(self, **options):
