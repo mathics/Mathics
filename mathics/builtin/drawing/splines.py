@@ -2,7 +2,7 @@
 """
 Splines
 
-Splines are used both in graphics and computations.
+A Spline is a mathematical function used for interpolation or smoothing. Splines are used both in graphics and computations
 """
 
 from mathics.builtin.base import (
@@ -21,7 +21,7 @@ class BernsteinBasis(Builtin):
       <dd>returns the $n$th Bernstein basis of degree $d$ at $x$.
     </dl>
 
-    A Bernstein polynomial is a polynomial that is a linear combination of Bernstein basis polynomials.
+    A Bernstein polynomial <url>https://en.wikipedia.org/wiki/Bernstein_polynomial</url> is a polynomial that is a linear combination of Bernstein basis polynomials.
 
     With the advent of computer graphics, Bernstein polynomials, restricted to the interval [0, 1], became important in the form of Bézier curves.
 
@@ -35,6 +35,8 @@ class BernsteinBasis(Builtin):
     rules = {
         "BernsteinBasis[d_, n_, x_]": "Piecewise[{{Binomial[d, n] * x ^ n * (1 - x) ^ (d - n), 0 < x < 1}}, 0]"
     }
+
+    summary_text = "The basis of a Bernstein polynomial used in Bézier curves."
 
 
 class BezierFunction(Builtin):
@@ -64,38 +66,45 @@ class BezierFunction(Builtin):
         "BezierFunction[p_]": "Function[x, Total[p * BernsteinBasis[Length[p] - 1, Range[0, Length[p] - 1], x]]]"
     }
 
+    summary_text = "underlying function used in a Bézier curve"
+
 
 class BezierCurve(Builtin):
-    """
-    <dl>
-      <dt>'BezierCurve[{$pt_1$, $pt_2$ ...}]'
-      <dd>represents a Bézier curve with control points $p_i$.
-    </dl>
+    u"""
+     <dl>
+       <dt>'BezierCurve[{$pt_1$, $pt_2$ ...}]'
+       <dd>represents a Bézier curve with control points $p_i$.
+       <dd>The result is a curve by combining the Bézier curves when points are taken triples at a time.
+     </dl>
 
-    Option:
-    <ul>
-      <li>'SplineDegree->$d$' specifies that the underlying polynomial basis should have maximal degree d.
-    </ul>
+     Option:
+     <ul>
+       <li>'SplineDegree->$d$' specifies that the underlying polynomial basis should have maximal degree d.
+     </ul>
 
 
-    Set up some points to form a simple zig-zag...
-    >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}};
-     =
+     Set up some points to form a simple zig-zag...
+     >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}};
+      =
 
-    A composite Bézier curve and its control points:
-    >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
-     = -Graphics-
+     >> Graphics[{Line[pts], Red, Point[pts]}]
+      = -Graphics-
 
-    Extend points...
-    >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0} {5, 2}, {6, -1}, {7, 3}};
-     =
+    A composite Bézier curve, shown in blue, smooths the zig zag. Control points are shown in red:
+     >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
+      = -Graphics-
 
-    A longer composite Bézier curve and its control points:
-    >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
-     = -Graphics-
+     Extend points...
+     >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}, {5, 2}, {6, -1}, {7, 3}};
+      =
 
-    #> Clear[pts];
-     =
+     A longer composite Bézier curve and its control points:
+     >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
+      = -Graphics-
+
+     Notice how the curve from the first to third point is not changed by any points outside the interval. The same is true for points three to five, and so on.
+
+     #> Clear[pts];
     """
 
     options = {"SplineDegree": "3"}
