@@ -4,6 +4,7 @@
 
 from itertools import chain
 
+
 def asy_add_bezier_fn(self) -> str:
     if hasattr(self.graphics, "bezier_fn_added") and self.graphics.bezier_fn_added:
         return ""
@@ -26,7 +27,8 @@ def asy_add_graph_import(self) -> str:
     if hasattr(self.graphics, "bezier_import_added") and self.graph_import_added:
         return ""
     self.graphics.graph_import_added = True
-    return 'import graph;\n\n'
+    return "import graph;\n\n"
+
 
 def asy_bezier(*segments):
     # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves

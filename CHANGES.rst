@@ -34,7 +34,8 @@ Gamma functions:
 Bugs
 ++++
 
-Fix and document better behavior of ``Quantile``.
+* Fix and document better behavior of ``Quantile``
+* Improve ``BezierCurve``
 
 4.0.0
 -----
