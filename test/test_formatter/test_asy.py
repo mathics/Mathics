@@ -105,7 +105,7 @@ def test_asy_bezier_curve():
     asy = get_asy(expression)
     inner_asy = extract_asy_body(asy)
 
-    matches = re.match(r"// BezierCurveBox\ndraw\(.*\)", inner_asy)
+    matches = re.match(r"// BezierCurveBox\nimport graph;", inner_asy)
     # TODO: Match line and arrowbox
     assert matches
 

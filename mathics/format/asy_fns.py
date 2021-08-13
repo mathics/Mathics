@@ -5,6 +5,31 @@
 from itertools import chain
 
 
+def asy_add_bezier_fn(self) -> str:
+    if hasattr(self.graphics, "bezier_fn_added") and self.graphics.bezier_fn_added:
+        return ""
+    self.graphics.graph_import_added = True
+    return """
+pair Bezier(pair P[], real t)
+{ // https://tex.stackexchange.com/a/554290/236162
+  pair Bezi;
+  for (int k=0; k <= P.length-1; ++k)
+  {
+    Bezi=Bezi+choose(P.length-1,k)*(1-t)^(P.length-1-k)*t^k*P[k];
+  }
+  return Bezi;
+}
+
+"""
+
+
+def asy_add_graph_import(self) -> str:
+    if hasattr(self.graphics, "bezier_import_added") and self.graph_import_added:
+        return ""
+    self.graphics.graph_import_added = True
+    return "import graph;\n\n"
+
+
 def asy_bezier(*segments):
     # see http://asymptote.sourceforge.net/doc/Bezier-curves.html#Bezier-curves
 

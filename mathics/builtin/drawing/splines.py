@@ -68,8 +68,8 @@ class BezierFunction(Builtin):
 class BezierCurve(Builtin):
     """
     <dl>
-    <dt>'BezierCurve[{$pt_1$, $pt_2$ ...}]'
-        <dd>represents a Bézier curve with control points $p_i$.
+      <dt>'BezierCurve[{$pt_1$, $pt_2$ ...}]'
+      <dd>represents a Bézier curve with control points $p_i$.
     </dl>
 
     Option:
@@ -78,12 +78,20 @@ class BezierCurve(Builtin):
     </ul>
 
 
-    Set up some points...
-    >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}, {5, 2}, {6, -1}, {7, 3}};
+    Set up some points to form a simple zig-zag...
+    >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0}};
      =
 
-     A composite Bézier curve and its control points:
-    >> Graphics[{BezierCurve[pts], Green, Line[pts], Red, Point[pts]}]
+    A composite Bézier curve and its control points:
+    >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
+     = -Graphics-
+
+    Extend points...
+    >> pts = {{0, 0}, {1, 1}, {2, -1}, {3, 0} {5, 2}, {6, -1}, {7, 3}};
+     =
+
+    A longer composite Bézier curve and its control points:
+    >> Graphics[{BezierCurve[pts], Blue, Line[pts], Red, Point[pts]}]
      = -Graphics-
 
     #> Clear[pts];
@@ -91,3 +99,5 @@ class BezierCurve(Builtin):
     """
 
     options = {"SplineDegree": "3"}
+
+    summary_text = "composite Bézier curve"
