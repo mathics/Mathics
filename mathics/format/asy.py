@@ -204,10 +204,12 @@ def bezier_curve_box(self, **options) -> str:
     asy += asy_add_graph_import(self)
     asy += asy_add_bezier_fn(self)
     for i, line in enumerate(self.lines):
-        scaled_pts = [str(xy.pos()) for xy in line]
-        asy += """pair[] P%d={%s};\n""" % (i, ", ".join(scaled_pts))
-        asy += """pair G%d(real t){return Bezier(P%d,t);}\n""" % (i, i)
-        asy += """draw(shift(0, -2)*graph(G%d,0,1,350), %s);\n""" % (i, pen)
+        pts = [str(xy.pos()) for xy in line]
+        for j in range(1, len(pts) - 1, 3):
+            triple = ", ".join(pts[j - 1 : j + 3])
+            asy += """pair[] P%d_%d={%s};\n""" % (i, j, triple)
+            asy += """pair G%d_%d(real t){return Bezier(P%d_%d,t);}\n""" % (i, j, i, j)
+            asy += """draw(shift(0, -2)*graph(G%d_%d,0,1,350), %s);\n""" % (i, j, pen)
     # print("BezierCurveBox: " asy)
     return asy
 
