@@ -30,12 +30,11 @@ Gamma functions:
 * ``Stieltjes``
 
 
-
 Bugs
 ++++
 
 * Fix and document better behavior of ``Quantile``
-* Improve ``BezierCurve``
+* Improve Asymptote ``BezierCurve``implementation
 
 4.0.0
 -----
