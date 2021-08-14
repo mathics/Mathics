@@ -34,20 +34,20 @@ def convert_coord_collection(
     """Convert collection into a list of dictionary items where each item is some sort of lower-level
     JSON object.
     """
-    data = []
     opacity = 1 if len(color) < 4 else color[3]
-    for items in collection:
-        data.append(
-            {
-                **default_values,
-                **{
-                    "type": object_type,
-                    "coords": [coords.pos() for coords in items],
-                    "opacity": opacity,
-                    "color": color[:3],
-                },
-            }
-        )
+    data = [
+        {
+            **default_values,
+            **{
+                "type": object_type,
+                "coords": [coords.pos() for coords in items],
+                "opacity": opacity,
+                "color": color[:3],
+            },
+        }
+        for items in collection
+    ]
+
     # print(data)
     return data
 
@@ -59,10 +59,7 @@ def graphics_3D_elements(self, **options) -> list:
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "json")
-        if format_fn is None:
-            result += element.to_json()
-        else:
-            result += format_fn(element)
+        result += format_fn(element)
 
     # print("### json Graphics3DElements", result)
     return result
@@ -129,7 +126,6 @@ def line_3d_box(self):
     Compact (lower-level) JSON formatting of a Line3DBox.
     """
     # TODO: account for line widths and style
-    data = []
     color = self.edge_color.to_rgba()
     data = convert_coord_collection(self.lines, "line", color)
     # print("### json Line3DBox", data)
@@ -144,7 +140,6 @@ def point_3d_box(self) -> list:
     Compact (lower-level) JSON formatting of a Point3DBox.
     """
     # TODO: account for point size
-    data = []
 
     # Tempoary bug fix: default Point color should be black not white
     face_color = self.face_color.to_rgba()
