@@ -6,7 +6,7 @@ Drawing Graphics
 """
 
 
-from math import floor, sqrt
+from math import sqrt
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
@@ -23,7 +23,6 @@ from mathics.builtin.drawing.graphics_internals import (
 from mathics.builtin.colors.color_directives import (
     _Color,
     CMYKColor,
-    ColorError,
     GrayLevel,
     Hue,
     LABColor,
