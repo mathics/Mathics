@@ -34,20 +34,19 @@ def convert_coord_collection(
     """Convert collection into a list of dictionary items where each item is some sort of lower-level
     JSON object.
     """
-    data = []
     opacity = 1 if len(color) < 4 else color[3]
-    for items in collection:
-        data.append(
-            {
-                **default_values,
-                **{
-                    "type": object_type,
-                    "coords": [coords.pos() for coords in items],
-                    "opacity": opacity,
-                    "color": color[:3],
-                },
-            }
-        )
+    data = [
+        {
+            **default_values,
+            **{
+                "type": object_type,
+                "coords": [coords.pos() for coords in items],
+                "opacity": opacity,
+                "color": color[:3],
+            },
+        } for items in collection
+    ]
+
     # print(data)
     return data
 
