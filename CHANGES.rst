@@ -30,10 +30,11 @@ Gamma functions:
 * ``Stieltjes``
 
 Uniform Polyhedron
-* ``UniformPolyedron``
 * ``Dodecahedron``
+* ``Isohedron``
 * ``Octahedron``
 * ``TetraHedron``
+* ``UniformPolyedron``
 
 
 Bugs
