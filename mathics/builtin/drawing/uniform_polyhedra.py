@@ -34,10 +34,17 @@ class UniformPolyhedron(Builtin):
         "argtype": f"Argument `1` is not one of: {uniform_polyhedra_names}",
     }
 
-    def apply_with_name(self, name, evaluation):
-        "UniformPolyhedron[name_String]"
+    rules = {
+        "UniformPolyhedron[name_String]": "UniformPolyhedron[name, {{0, 0, 0}}, 1]"
+    }
 
-        return Expression("UniformPolyhedron", name)
+    def apply(self, name, positions, edgelength, evaluation):
+        "UniformPolyhedron[name_String, positions_List, edgelength_?NumericQ]"
+
+        if name.to_python(string_quotes=False) not in uniform_polyhedra_set:
+            evaluation.error("UniformPolyhedron", "argtype", name)
+
+        return Expression("UniformPolyhedron", name, positions, edgelength)
 
 
 class Dodecahedron(Builtin):
@@ -54,18 +61,18 @@ class Dodecahedron(Builtin):
     rules = {"Dodecahedron[]": """UniformPolyhedron["dodecahedron"]"""}
 
 
-class Icosohedron(Builtin):
+class Icosahedron(Builtin):
     """
     <dl>
-      <dt>'Icosohedron[]'
-      <dd>a regular Icosohedron centered at the origin with unit edge length.
+      <dt>'Icosahedron[]'
+      <dd>a regular Icosahedron centered at the origin with unit edge length.
     </dl>
 
-    >> Graphics3D[Icosohedron[]]
+    >> Graphics3D[Icosahedron[]]
      = -Graphics3D-
     """
 
-    rules = {"Iscosohedron[]": """UniformPolyhedron["icosohedron"]"""}
+    rules = {"Icosahedron[]": """UniformPolyhedron["icosahedron"]"""}
 
 
 class Octahedron(Builtin):

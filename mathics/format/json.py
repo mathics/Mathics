@@ -209,14 +209,12 @@ def uniform_polyhedron_3d_box(self) -> list:
     face_color = self.face_color
     if face_color is not None:
         face_color = face_color.to_js()
-    data = [
-        {
-            "type": "uniformPolyhedron",
-            "color": face_color[:3],
-            "coords": [[[0, 0, 0]]],
-            "subType": self.sub_type,
-        }
-    ]
+    data = convert_coord_collection(
+        [self.points],
+        "uniformPolyhedron",
+        face_color,
+        {"subType": self.sub_type},
+    )
     # print("### json UniformPolyhedron3DBox", data)
     return data
 
