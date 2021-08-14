@@ -57,18 +57,18 @@ class Dodecahedron(Builtin):
     rules = {"Dodecahedron[]": """UniformPolyhedron["dodecahedron"]"""}
 
 
-class Icosohedron(Builtin):
+class Icosahedron(Builtin):
     """
     <dl>
-      <dt>'Icosohedron[]'
-      <dd>a regular Icosohedron centered at the origin with unit edge length.
+      <dt>'Icosahedron[]'
+      <dd>a regular Icosahedron centered at the origin with unit edge length.
     </dl>
 
-    >> Graphics3D[Icosohedron[]]
+    >> Graphics3D[Icosahedron[]]
      = -Graphics3D-
     """
 
-    rules = {"Iscosohedron[]": """UniformPolyhedron["icosohedron"]"""}
+    rules = {"Icosahedron[]": """UniformPolyhedron["icosahedron"]"""}
 
 
 class Octahedron(Builtin):
