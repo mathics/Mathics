@@ -58,10 +58,7 @@ def graphics_3D_elements(self, **options) -> list:
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "json")
-        if format_fn is None:
-            result += element.to_json()
-        else:
-            result += format_fn(element)
+        result += format_fn(element)
 
     # print("### json Graphics3DElements", result)
     return result
