@@ -44,7 +44,7 @@ def convert_coord_collection(
                     "type": object_type,
                     "coords": [coords.pos() for coords in items],
                     "opacity": opacity,
-                    "rgb_color": color[:3],
+                    "color": color[:3],
                 },
             }
         )
@@ -77,7 +77,7 @@ def arrow_3d_box(self):
     """
     # TODO: account for arrow widths and style
     color = self.edge_color.to_rgba()
-    data = convert_coord_collection(self.lines, "arrow", color, {"color": color})
+    data = convert_coord_collection(self.lines, "arrow", color)
     # print("### json Arrow3DBox", data)
     return data
 
@@ -96,7 +96,6 @@ def cuboid_3d_box(self):
         [self.points],
         "cuboid",
         face_color,
-        {"color": face_color},
     )
     # print("### json Cuboid3DBox", data)
     return data
@@ -116,7 +115,7 @@ def cylinder_3d_box(self):
         [self.points],
         "cylinder",
         face_color,
-        {"color": face_color, "radius": self.radius},
+        {"radius": self.radius},
     )
     # print("### json Cylinder3DBox", data)
     return data
@@ -132,7 +131,7 @@ def line_3d_box(self):
     # TODO: account for line widths and style
     data = []
     color = self.edge_color.to_rgba()
-    data = convert_coord_collection(self.lines, "line", color, {"color": color})
+    data = convert_coord_collection(self.lines, "line", color)
     # print("### json Line3DBox", data)
     return data
 
@@ -159,7 +158,7 @@ def point_3d_box(self) -> list:
         self.lines,
         "point",
         face_color,
-        {"color": face_color, "pointSize": relative_point_size * 0.5},
+        {"pointSize": relative_point_size * 0.5},
     )
 
     # print("### json Point3DBox", data)
@@ -186,7 +185,6 @@ def polygon_3d_box(self) -> list:
         self.lines,
         "polygon",
         face_color,
-        {"color": face_color},
     )
     # print("### json Polygon3DBox", data)
     return data
@@ -203,7 +201,7 @@ def sphere_3d_box(self) -> list:
         [self.points],
         "sphere",
         face_color,
-        {"color": face_color, "radius": self.radius},
+        {"radius": self.radius},
     )
     # print("### json Sphere3DBox", data)
     return data
