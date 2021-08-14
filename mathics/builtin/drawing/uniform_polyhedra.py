@@ -26,7 +26,7 @@ class UniformPolyhedron(Builtin):
     >> Graphics3D[UniformPolyhedron["octahedron"]]
      = -Graphics3D-
 
-    >> Graphics3D[UniformPolyhedron["dodecadron"]]
+    >> Graphics3D[UniformPolyhedron["dodecahedron"]]
      = -Graphics3D-
 
     >> Graphics3D[{"Brown", UniformPolyhedron["tetrahedron"]}]
@@ -111,7 +111,7 @@ class Tetrahedron(Builtin):
       <dd>a regular tetrahedron centered at the origin with unit edge length.
     </dl>
 
-    >> Graphics3D[Tetrahedron[{{0,0,0}, {1,1,1}}, 2]]
+    >> Graphics3D[Tetrahedron[{{0,0,0}, {1,1,1}}, 2], Axes->True]
      = -Graphics3D-
     """
 
