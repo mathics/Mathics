@@ -37,7 +37,10 @@ class UniformPolyhedron(Builtin):
     def apply_with_name(self, name, evaluation):
         "UniformPolyhedron[name_String]"
 
-        return Expression("UniformPolyhedron", name)
+        if name.to_python(string_quotes=False) not in uniform_polyhedra_set:
+            evaluation.error("UniformPolyhedron", "argtype", name)
+
+        return Expression("UniformPolyhedron", name, positions, edgelength)
 
 
 class Dodecahedron(Builtin):

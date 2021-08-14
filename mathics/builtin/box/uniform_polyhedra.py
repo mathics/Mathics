@@ -13,11 +13,10 @@ class UniformPolyhedron3DBox(_Graphics3DElement):
         self.edge_color, self.face_color = style.get_style(_Color, face_element=True)
         if len(item.leaves) != 1:
             raise BoxConstructError("Expecting a Polyhedron name")
-        sub_type = item.leaves[0].to_python(string_quotes=False)
-        if sub_type not in uniform_polyhedra_set:
-            raise BoxConstructError(f"Polyhedron name {sub_type} is not one know")
 
         self.sub_type = item.leaves[0].to_python(string_quotes=False)
+
+
 
     def extent(self):
         # FIXME: figure this out.
