@@ -116,7 +116,7 @@ def cylinder_3d_box(self):
         [self.points],
         "cylinder",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"color": face_color, "radius": self.radius},
     )
     # print("### json Cylinder3DBox", data)
     return data
@@ -186,7 +186,7 @@ def polygon_3d_box(self) -> list:
         self.lines,
         "polygon",
         face_color,
-        {"faceColor": face_color},
+        {"color": face_color},
     )
     # print("### json Polygon3DBox", data)
     return data
@@ -203,7 +203,7 @@ def sphere_3d_box(self) -> list:
         [self.points],
         "sphere",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"color": face_color, "radius": self.radius},
     )
     # print("### json Sphere3DBox", data)
     return data
@@ -220,7 +220,6 @@ def uniform_polyhedron_3d_box(self) -> list:
         {
             "type": "uniformPolyhedron",
             "color": face_color[:3],
-            "faceColor": face_color,
             "coords": [[[0, 0, 0]]],
             "subType": self.sub_type,
         }
