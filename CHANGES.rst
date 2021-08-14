@@ -31,7 +31,7 @@ Gamma functions:
 
 Uniform Polyhedron
 * ``Dodecahedron``
-* ``Icosohedron``
+* ``Icosahedron``
 * ``Octahedron``
 * ``TetraHedron``
 * ``UniformPolyedron``
