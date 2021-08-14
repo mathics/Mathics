@@ -65,11 +65,16 @@ class Style3D(Style):
 
 class _Graphics3DElement(InstanceableBuiltin):
     def init(self, graphics, item=None, style=None):
-        if item is not None and not item.has_form(self.get_name(), None):
+        if (
+            item is not None
+            and hasattr(item, "has_form")
+            and not item.has_form(self.get_name(), None)
+        ):
             raise BoxConstructError
         self.graphics = graphics
         self.style = style
         self.is_completely_visible = False  # True for axis elements
+
 
 class Graphics3D(Graphics):
     r"""
