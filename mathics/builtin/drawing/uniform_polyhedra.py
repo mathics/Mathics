@@ -23,10 +23,13 @@ class UniformPolyhedron(Builtin):
       <dd>Names are "tetrahedron", "octahedron", "dodecahedron", or "icosahedron".
     </dl>
 
-    >> Graphics3D[UniformPolyhedron["tetrahedron"]]
+    >> Graphics3D[UniformPolyhedron["octahedron"]]
      = -Graphics3D-
 
-    >> Graphics3D[UniformPolyhedron["octahedron"]]
+    >> Graphics3D[UniformPolyhedron["dodecadron"]]
+     = -Graphics3D-
+
+    >> Graphics3D[{"Brown", UniformPolyhedron["tetrahedron"]}]
      = -Graphics3D-
     """
 
@@ -35,7 +38,7 @@ class UniformPolyhedron(Builtin):
     }
 
     rules = {
-        "UniformPolyhedron[name_String]": "UniformPolyhedron[name, {{0, 0, 0}}, 1]"
+        "UniformPolyhedron[name_String]": "UniformPolyhedron[name, {{0, 0, 0}}, 1]",
     }
 
     def apply(self, name, positions, edgelength, evaluation):
@@ -58,7 +61,11 @@ class Dodecahedron(Builtin):
      = -Graphics3D-
     """
 
-    rules = {"Dodecahedron[]": """UniformPolyhedron["dodecahedron"]"""}
+    rules = {
+        "Dodecahedron[]": """UniformPolyhedron["dodecahedron"]""",
+        "Dodecahedron[l_?NumericQ]": """UniformPolyhedron["dodecahedron", {{0, 0, 0}}, l]""",
+        "Dodecahedron[positions_List, l_?NumericQ]": """UniformPolyhedron["dodecahedron", positions, l]""",
+    }
 
 
 class Icosahedron(Builtin):
@@ -72,7 +79,11 @@ class Icosahedron(Builtin):
      = -Graphics3D-
     """
 
-    rules = {"Icosahedron[]": """UniformPolyhedron["icosahedron"]"""}
+    rules = {
+        "Icosahedron[]": """UniformPolyhedron["icosahedron"]""",
+        "Icosahedron[l_?NumericQ]": """UniformPolyhedron["icosahedron", {{0, 0, 0}}, l]""",
+        "Icosahedron[positions_List, l_?NumericQ]": """UniformPolyhedron["icosahedron", positions, l]""",
+    }
 
 
 class Octahedron(Builtin):
@@ -82,11 +93,15 @@ class Octahedron(Builtin):
       <dd>a regular octahedron centered at the origin with unit edge length.
     </dl>
 
-    >> Graphics3D[Octahedron[]]
+    >> Graphics3D[{Red, Octahedron[]}]
      = -Graphics3D-
     """
 
-    rules = {"Octahedron[]": """UniformPolyhedron["octahedron"]"""}
+    rules = {
+        "Octahedron[]": """UniformPolyhedron["octahedron"]""",
+        "Octahedron[l_?NumericQ]": """UniformPolyhedron["octahedron", {{0, 0, 0}}, l]""",
+        "Octahedron[positions_List, l_?NumericQ]": """UniformPolyhedron["octahedron", positions, l]""",
+    }
 
 
 class Tetrahedron(Builtin):
@@ -96,11 +111,15 @@ class Tetrahedron(Builtin):
       <dd>a regular tetrahedron centered at the origin with unit edge length.
     </dl>
 
-    >> Graphics3D[Tetrahedron[]]
+    >> Graphics3D[Tetrahedron[{{0,0,0}, {1,1,1}}, 2]]
      = -Graphics3D-
     """
 
-    rules = {"Tetrahedron[]": """UniformPolyhedron["tetrahedron"]"""}
+    rules = {
+        "Tetrahedron[]": """UniformPolyhedron["tetrahedron"]""",
+        "Tetrahedron[l_?NumericQ]": """UniformPolyhedron["tetrahedron", {{0, 0, 0}}, l]""",
+        "Tetrahedron[positions_List, l_?NumericQ]": """UniformPolyhedron["tetrahedron", positions, l]""",
+    }
 
     def apply_with_length(self, length, evaluation):
         "Tetrahedron[l_?Numeric]"
