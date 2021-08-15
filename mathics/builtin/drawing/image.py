@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Image[] and image related functions.
+Image[] and image related functions
 
 Note that you (currently) need scikit-image installed in order for this module to work.
 """

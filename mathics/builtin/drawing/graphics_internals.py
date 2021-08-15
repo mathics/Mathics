@@ -10,6 +10,9 @@ from mathics.builtin.base import (
     BoxConstructError,
 )
 
+# Signals to Mathics doc processing not to include this module in its documentation.
+no_doc = True
+
 from mathics.core.expression import system_symbols_dict
 
 
