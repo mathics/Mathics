@@ -701,11 +701,7 @@ class Arrow3DBox(ArrowBox):
         super(Arrow3DBox, self).process_option(name, value)
 
     def extent(self):
-        result = []
-        for line in self.lines:
-            for c in line:
-                p, d = c.pos()
-                result.append(p)
+        result = [coordinate.pos()[0] for line in self.lines for coordinate in line]
         return result
 
     def _apply_boxscaling(self, boxscale):
@@ -798,11 +794,7 @@ class Line3DBox(LineBox):
         super(Line3DBox, self).process_option(name, value)
 
     def extent(self):
-        result = []
-        for line in self.lines:
-            for c in line:
-                p, d = c.pos()
-                result.append(p)
+        result = [coordinate.pos()[0] for line in self.lines for coordinate in line]
         return result
 
     def _apply_boxscaling(self, boxscale):
@@ -819,11 +811,7 @@ class Point3DBox(PointBox):
         super(Point3DBox, self).process_option(name, value)
 
     def extent(self):
-        result = []
-        for line in self.lines:
-            for c in line:
-                p, d = c.pos()
-                result.append(p)
+        result = [coordinate.pos()[0] for line in self.lines for coordinate in line]
         return result
 
     def _apply_boxscaling(self, boxscale):
@@ -845,11 +833,7 @@ class Polygon3DBox(PolygonBox):
             super(Polygon3DBox, self).process_option(name, value)
 
     def extent(self):
-        result = []
-        for line in self.lines:
-            for c in line:
-                p, d = c.pos()
-                result.append(p)
+        result = [coordinate.pos()[0] for line in self.lines for coordinate in line]
         return result
 
     def _apply_boxscaling(self, boxscale):

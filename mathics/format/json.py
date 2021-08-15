@@ -19,6 +19,8 @@ from mathics.builtin.box.graphics3d import (
     Sphere3DBox,
 )
 
+from mathics.builtin.box.uniform_polyhedra import UniformPolyhedron3DBox
+
 # FIXME
 # Add 2D elements like DensityPlot
 
@@ -32,20 +34,20 @@ def convert_coord_collection(
     """Convert collection into a list of dictionary items where each item is some sort of lower-level
     JSON object.
     """
-    data = []
     opacity = 1 if len(color) < 4 else color[3]
-    for items in collection:
-        data.append(
-            {
-                **default_values,
-                **{
-                    "type": object_type,
-                    "coords": [coords.pos() for coords in items],
-                    "opacity": opacity,
-                    "rgb_color": color[:3],
-                },
-            }
-        )
+    data = [
+        {
+            **default_values,
+            **{
+                "type": object_type,
+                "coords": [coords.pos() for coords in items],
+                "opacity": opacity,
+                "color": color[:3],
+            },
+        }
+        for items in collection
+    ]
+
     # print(data)
     return data
 
@@ -57,10 +59,7 @@ def graphics_3D_elements(self, **options) -> list:
     result = []
     for element in self.elements:
         format_fn = lookup_method(element, "json")
-        if format_fn is None:
-            result += element.to_json()
-        else:
-            result += format_fn(element)
+        result += format_fn(element)
 
     # print("### json Graphics3DElements", result)
     return result
@@ -75,7 +74,7 @@ def arrow_3d_box(self):
     """
     # TODO: account for arrow widths and style
     color = self.edge_color.to_rgba()
-    data = convert_coord_collection(self.lines, "arrow", color, {"color": color})
+    data = convert_coord_collection(self.lines, "arrow", color)
     # print("### json Arrow3DBox", data)
     return data
 
@@ -94,7 +93,6 @@ def cuboid_3d_box(self):
         [self.points],
         "cuboid",
         face_color,
-        {"color": face_color},
     )
     # print("### json Cuboid3DBox", data)
     return data
@@ -114,7 +112,7 @@ def cylinder_3d_box(self):
         [self.points],
         "cylinder",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"radius": self.radius},
     )
     # print("### json Cylinder3DBox", data)
     return data
@@ -128,9 +126,8 @@ def line_3d_box(self):
     Compact (lower-level) JSON formatting of a Line3DBox.
     """
     # TODO: account for line widths and style
-    data = []
     color = self.edge_color.to_rgba()
-    data = convert_coord_collection(self.lines, "line", color, {"color": color})
+    data = convert_coord_collection(self.lines, "line", color)
     # print("### json Line3DBox", data)
     return data
 
@@ -143,7 +140,6 @@ def point_3d_box(self) -> list:
     Compact (lower-level) JSON formatting of a Point3DBox.
     """
     # TODO: account for point size
-    data = []
 
     # Tempoary bug fix: default Point color should be black not white
     face_color = self.face_color.to_rgba()
@@ -157,7 +153,7 @@ def point_3d_box(self) -> list:
         self.lines,
         "point",
         face_color,
-        {"color": face_color, "pointSize": relative_point_size * 0.5},
+        {"pointSize": relative_point_size * 0.5},
     )
 
     # print("### json Point3DBox", data)
@@ -184,7 +180,6 @@ def polygon_3d_box(self) -> list:
         self.lines,
         "polygon",
         face_color,
-        {"faceColor": face_color},
     )
     # print("### json Polygon3DBox", data)
     return data
@@ -201,10 +196,27 @@ def sphere_3d_box(self) -> list:
         [self.points],
         "sphere",
         face_color,
-        {"faceColor": face_color, "radius": self.radius},
+        {"radius": self.radius},
     )
     # print("### json Sphere3DBox", data)
     return data
 
 
 add_conversion_fn(Sphere3DBox, sphere_3d_box)
+
+
+def uniform_polyhedron_3d_box(self) -> list:
+    face_color = self.face_color
+    if face_color is not None:
+        face_color = face_color.to_js()
+    data = convert_coord_collection(
+        [self.points],
+        "uniformPolyhedron",
+        face_color,
+        {"subType": self.sub_type},
+    )
+    # print("### json UniformPolyhedron3DBox", data)
+    return data
+
+
+add_conversion_fn(UniformPolyhedron3DBox, uniform_polyhedron_3d_box)
