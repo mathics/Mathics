@@ -1,25 +1,13 @@
 """
 Graphics, Drawing, and Images
 
-Functions like 'Plot' and 'ListPlot' can be used to draw graphs of functions and data.
+Showing something visually can be don in a number of ways:
 
-Graphics is implemented as a collection of <i>graphics primitives</i>. Primatives are objects like 'Point', 'Line', and 'Polygon' and become elements of a <i>graphics object</i>.
-
-A graphics object can have directives as well such as 'RGBColor', and 'Thickness'.
-
-There are several kinds of graphics objects; each kind has a head which identifies its type.
-
->> ListPlot[ Table[Prime[n], {n, 20} ]]
- = -Graphics-
->> Head[%]
- = Graphics
->> Graphics3D[Sphere[]]
- = -Graphics3D-
->> Head[%]
- = Graphics3D
->>
-
-
+<ul>
+  <li>Starting with complete images and modifiying them. The 'Image' function is in this category.
+  <li>Use pre-defined 2D or 3D objects like 'Circle' and 'Cuboid' and place them in a coordiate space.
+  <li>Compute the points of the space using a function. This is done using functions like 'Plot' and 'ListPlot'.
+</ul>
 """
 
 from mathics.version import __version__  # noqa used in loading to check consistency.

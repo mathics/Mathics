@@ -3,6 +3,9 @@
 """helper functions for images
 """
 
+# Signals to Mathics doc processing not to include this module in its documentation.
+no_doc = True
+
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
 import numpy
