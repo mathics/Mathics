@@ -1,11 +1,42 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import sys
 from itertools import chain
 
 FORMAT_RE = re.compile(r"\`(\d*)\`")
+
+import time
+
+# A small, simple timing tool
+MIN_ELAPSE_REPORT = int(os.environ.get("MIN_ELAPSE_REPORT", "0"))
+def timeit(method):
+    """Add this as a decorator to time parts of the code.
+
+    For example:
+        @timit
+        def long_running_function():
+            ...
+    """
+    def timed(*args, **kw):
+        method_name = method.__name__
+        # print(f"{date.today()}	{method_name} starts")
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        elapsed = int((te - ts) * 1000)
+        if elapsed > MIN_ELAPSE_REPORT:
+            if "log_time" in kw:
+                name = kw.get("log_name", method.__name__.upper())
+                kw["log_time"][name] = elapsed
+            else:
+                print("%r  %2.2f ms" % (method_name, elapsed))
+        # print(f"{date.today()}	{method_name} ends")
+        return result
+
+    return timed
 
 
 def interpolate_string(text, get_param) -> str:

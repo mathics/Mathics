@@ -1,2 +1,2 @@
-Get[ "IntegrationUtilityFunctions" ]
-Get[ "RubiRules4.16.0" ]
+Get[ "Rubi`IntegrationUtilityFunctions" ]
+Get[ "Rubi`RubiRules4.16.0" ]

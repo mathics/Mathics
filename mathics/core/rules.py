@@ -5,10 +5,9 @@
 
 from mathics.core.expression import Expression, strip_context, KeyComparable
 from mathics.core.pattern import Pattern, StopGenerator
-from mathics.core.util import function_arguments
+from mathics.core.util import function_arguments, timeit
 
 from itertools import chain
-
 
 class StopGenerator_BaseRule(StopGenerator):
     pass
@@ -82,6 +81,7 @@ class Rule(BaseRule):
         super(Rule, self).__init__(pattern, system=system)
         self.replace = replace
 
+    # @timeit
     def do_replace(self, expression, vars, options, evaluation):
         new = self.replace.replace_vars(vars)
         new.options = options
@@ -115,6 +115,7 @@ class BuiltinRule(BaseRule):
         self.check_options = check_options
         self.pass_expression = "expression" in function_arguments(function)
 
+    # @timeit
     def do_replace(self, expression, vars, options, evaluation):
         if options and self.check_options:
             if not self.check_options(options, evaluation):

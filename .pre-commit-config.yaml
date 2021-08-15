@@ -1,11 +1,11 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.0.0
+    rev: v4.0.1
     hooks:
     - id: debug-statements
     - id: end-of-file-fixer
 -   repo: https://github.com/psf/black
-    rev: 21.6b0
+    rev: 21.7b0
     hooks:
     - id: black
       language_version: python3
