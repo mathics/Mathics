@@ -801,8 +801,8 @@ class GreaterEqual(_ComparisonOperator, SympyComparison):
 class Positive(Builtin):
     """
     <dl>
-    <dt>'Positive[$x$]'
-        <dd>returns 'True' if $x$ is a positive real number.
+      <dt>'Positive[$x$]'
+      <dd>returns 'True' if $x$ is a positive real number.
     </dl>
 
     >> Positive[1]
@@ -861,8 +861,8 @@ class Negative(Builtin):
 class NonNegative(Builtin):
     """
     <dl>
-    <dt>'NonNegative[$x$]'
-        <dd>returns 'True' if $x$ is a positive real number or zero.
+      <dt>'NonNegative[$x$]'
+      <dd>returns 'True' if $x$ is a positive real number or zero.
     </dl>
 
     >> {Positive[0], NonNegative[0]}

@@ -1309,6 +1309,10 @@ class Rationalize(Builtin):
     >> Rationalize[2.2]
     = 11 / 5
 
+    For negative $x$, '-Rationalize[-$x$] == Rationalize[$x$]' which gives symmetric results:
+    >> Rationalize[-11.5, 1]
+    = -11 / 1
+
     Not all numbers can be well approximated.
     >> Rationalize[N[Pi]]
      = 3.14159
@@ -1347,7 +1351,16 @@ class Rationalize(Builtin):
         py_x = x.to_sympy()
         if py_x is None or (not py_x.is_number) or (not py_x.is_real):
             return x
-        return from_sympy(self.find_approximant(py_x))
+
+        # For negative x, MMA treads Rationalize[x] as -Rationalize[-x].
+        # Whether this is an implementation choice or not, it has been
+        # expressed that having this give symmetric results for +/-
+        # is nice.
+        # See https://mathematica.stackexchange.com/questions/253637/how-to-think-about-the-answer-to-rationlize-11-5-1
+        if py_x.is_positive:
+            return from_sympy(self.find_approximant(py_x))
+        else:
+            return -from_sympy(self.find_approximant(-py_x))
 
     @staticmethod
     def find_approximant(x):
@@ -1390,9 +1403,20 @@ class Rationalize(Builtin):
             return evaluation.message("Rationalize", "tolnn", dx)
         elif py_dx == 0:
             return from_sympy(self.find_exact(py_x))
-        a = self.approx_interval_continued_fraction(py_x - py_dx, py_x + py_dx)
-        sym_x = sympy.ntheory.continued_fraction_reduce(a)
-        return Rational(sym_x)
+
+        # For negative x, MMA treads Rationalize[x] as -Rationalize[-x].
+        # Whether this is an implementation choice or not, it has been
+        # expressed that having this give symmetric results for +/-
+        # is nice.
+        # See https://mathematica.stackexchange.com/questions/253637/how-to-think-about-the-answer-to-rationlize-11-5-1
+        if py_x.is_positive:
+            a = self.approx_interval_continued_fraction(py_x - py_dx, py_x + py_dx)
+            sym_x = sympy.ntheory.continued_fraction_reduce(a)
+            return Rational(sym_x)
+        else:
+            a = self.approx_interval_continued_fraction(-py_x - py_dx, -py_x + py_dx)
+            sym_x = sympy.ntheory.continued_fraction_reduce(a)
+            return Rational(-sym_x)
 
     @staticmethod
     def approx_interval_continued_fraction(xmin, xmax):
