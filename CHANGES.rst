@@ -42,6 +42,8 @@ Bugs
 
 * Fix and document better behavior of ``Quantile``
 * Improve Asymptote ``BezierCurve``implementation
+* ``Rationalize`` gives symmetric results for +/- like MMA does. If
+  the result is an integer, it stays that way.
 
 4.0.0
 -----
