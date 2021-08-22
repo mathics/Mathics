@@ -1311,7 +1311,7 @@ class Rationalize(Builtin):
 
     For negative $x$, '-Rationalize[-$x$] == Rationalize[$x$]' which gives symmetric results:
     >> Rationalize[-11.5, 1]
-    = -11 / 1
+    = -11
 
     Not all numbers can be well approximated.
     >> Rationalize[N[Pi]]
@@ -1412,11 +1412,11 @@ class Rationalize(Builtin):
         if py_x.is_positive:
             a = self.approx_interval_continued_fraction(py_x - py_dx, py_x + py_dx)
             sym_x = sympy.ntheory.continued_fraction_reduce(a)
-            return Rational(sym_x)
         else:
             a = self.approx_interval_continued_fraction(-py_x - py_dx, -py_x + py_dx)
-            sym_x = sympy.ntheory.continued_fraction_reduce(a)
-            return Rational(-sym_x)
+            sym_x = -sympy.ntheory.continued_fraction_reduce(a)
+
+        return Integer(sym_x) if sym_x.is_integer else Rational(sym_x)
 
     @staticmethod
     def approx_interval_continued_fraction(xmin, xmax):

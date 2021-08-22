@@ -9,11 +9,10 @@ def test_rationalize():
             "Rationalize[42]",
             "42",
         ),
-        # We get 3 / 1 instead of 3
-        # (
-        #     "Rationalize[3, 1]",
-        #     "3",
-        # ),
+        (
+            "Rationalize[3, 1]",
+            "3",
+        ),
         (
             "Rationalize[N[Pi] + 0.8 I, 0]",
             "245850922 / 78256779 + 4 I / 5",
