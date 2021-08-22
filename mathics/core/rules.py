@@ -73,6 +73,46 @@ class BaseRule(KeyComparable):
         else:
             return None
 
+    def fast_apply(
+        self, expression, evaluation, fully=True
+    ):
+        # count = 0
+
+        def yield_match(vars, rest):
+            if rest is None:
+                rest = ([], [])
+            if 0 < len(rest[0]) + len(rest[1]) == len(expression.get_leaves()):
+                # continue
+                return [None, None]
+            options = {}
+            for name, value in list(vars.items()):
+                if name.startswith("_option_"):
+                    options[name[len("_option_") :]] = value
+                    del vars[name]
+            new_expression = self.do_replace(expression, vars, options, evaluation)
+            if new_expression is None:
+                new_expression = expression
+            if rest[0] or rest[1]:
+                result = Expression(
+                    expression.get_head(),
+                    *list(chain(rest[0], [new_expression], rest[1]))
+                )
+            else:
+                result = new_expression
+
+            # Flatten out sequences (important for Rule itself!)
+            result = result.flatten_pattern_sequence(evaluation)
+            # only first possibility counts
+            raise StopGenerator_BaseRule(result)
+
+        try:
+            self.pattern.match(yield_match, expression, {}, evaluation, fully=fully)
+        except StopGenerator_BaseRule as exc:
+            from trepan.api import debug; debug()
+            return exc.value, self
+
+        return None, self
+
     def get_sort_key(self):
         return (self.system, self.pattern.get_sort_key(True))
 

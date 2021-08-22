@@ -320,7 +320,7 @@ class Re(SympyFunction):
 
         return number
 
-    def apply(self, number, evaluation):
+    def apply_generic(self, number, evaluation):
         "Re[number_]"
 
         return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))

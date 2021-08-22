@@ -875,7 +875,7 @@ class ExpandAll(_Expand):
 
     """
 
-    def apply_patt(self, expr, target, evaluation, options):
+    def apply_expr_and_target(self, expr, target, evaluation, options):
         "ExpandAll[expr_, target_, OptionsPattern[Expand]]"
         if target.get_head_name() in ("System`Rule", "System`DelayedRule"):
             optname = target.leaves[0].get_name()
@@ -891,7 +891,7 @@ class ExpandAll(_Expand):
         kwargs["evaluation"] = evaluation
         return expand(expr, numer=True, denom=True, deep=True, **kwargs)
 
-    def apply(self, expr, evaluation, options):
+    def apply_expr(self, expr, evaluation, options):
         "ExpandAll[expr_, OptionsPattern[ExpandAll]]"
 
         kwargs = self.convert_options(options, evaluation)

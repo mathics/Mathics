@@ -7,7 +7,7 @@ import math
 import re
 
 import typing
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Tuple, Union
 from itertools import chain
 from bisect import bisect_left
 from functools import lru_cache
@@ -713,6 +713,50 @@ class Expression(BaseExpression):
     leaves: typing.List[Any]
     _sequences: Any
 
+    def eval_range(self, indices, leaves, evaluation):
+        """Evaluates the "leaves" having "indices"."""
+        for index in indices:
+            leaf = leaves[index]
+            if not leaf.has_form("Unevaluated", 1):
+                leaf = leaf.evaluate(evaluation)
+                if leaf:
+                    leaves[index] = leaf
+
+    def flatten_callback(self, new_leaves, old):
+        """A callback function for flatten() using evaluating
+        expressions. Here this just marks the all of the leaves
+        "unevaluated".
+        """
+        for leaf in new_leaves:
+            leaf.unevaluated = old.unevaluated
+
+    def rest_range(self, indices, attributes, leaves, evaluation):
+        if "System`HoldAllComplete" not in attributes:
+            if self._no_symbol("System`Evaluate"):
+                return
+            for index in indices:
+                leaf = leaves[index]
+                if leaf.has_form("Evaluate", 1):
+                    leaves[index] = leaf.evaluate(evaluation)
+
+    def rules(self, new, attributes, leaves, evaluation):
+        rules_names = set()
+        if "System`HoldAllComplete" not in attributes:
+            for leaf in leaves:
+                name = leaf.get_lookup_name()
+                if len(name) > 0:  # only lookup rules if this is a symbol
+                    if name not in rules_names:
+                        rules_names.add(name)
+                        for rule in evaluation.definitions.get_upvalues(name):
+                            yield rule
+        lookup_name = new.get_lookup_name()
+        if lookup_name == new.get_head_name():
+            for rule in evaluation.definitions.get_downvalues(lookup_name):
+                yield rule
+        else:
+            for rule in evaluation.definitions.get_subvalues(lookup_name):
+                yield rule
+
     def __new__(cls, head, *leaves, **kwargs) -> "Expression":
         self = super().__new__(cls)
         if isinstance(head, str):
@@ -1344,41 +1388,23 @@ class Expression(BaseExpression):
 
         return expr
 
-    def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
+    def evaluate_fast(self, evaluation, rule: Optional['BaseRule']) -> Tuple[Union["Expression", "Symbol"], bool, Optional['BaseRule']]:
         from mathics.builtin.base import BoxConstruct
-
         head = self._head.evaluate(evaluation)
         attributes = head.get_attributes(evaluation.definitions)
         leaves = self.get_mutable_leaves()
 
-        def rest_range(indices):
-            if "System`HoldAllComplete" not in attributes:
-                if self._no_symbol("System`Evaluate"):
-                    return
-                for index in indices:
-                    leaf = leaves[index]
-                    if leaf.has_form("Evaluate", 1):
-                        leaves[index] = leaf.evaluate(evaluation)
-
-        def eval_range(indices):
-            for index in indices:
-                leaf = leaves[index]
-                if not leaf.has_form("Unevaluated", 1):
-                    leaf = leaf.evaluate(evaluation)
-                    if leaf:
-                        leaves[index] = leaf
-
         if "System`HoldAll" in attributes or "System`HoldAllComplete" in attributes:
             # eval_range(range(0, 0))
-            rest_range(range(len(leaves)))
+            self.rest_range(range(len(leaves)), attributes, leaves, evaluation)
         elif "System`HoldFirst" in attributes:
-            rest_range(range(0, min(1, len(leaves))))
-            eval_range(range(1, len(leaves)))
+            self.rest_range(range(0, min(1, len(leaves))), attributes, leaves, evaluation)
+            self.eval_range(range(1, len(leaves)), leaves, evaluation)
         elif "System`HoldRest" in attributes:
-            eval_range(range(0, min(1, len(leaves))))
-            rest_range(range(1, len(leaves)))
+            self.eval_range(range(0, min(1, len(leaves))), leaves, evaluation)
+            self.rest_range(range(1, len(leaves)), attributes, leaves, evaluation)
         else:
-            eval_range(range(len(leaves)))
+            self.eval_range(range(len(leaves)), leaves, evaluation)
             # rest_range(range(0, 0))
 
         new = Expression(head)
@@ -1409,45 +1435,140 @@ class Expression(BaseExpression):
                 new._leaves = tuple(dirty_leaves)
                 leaves = dirty_leaves
 
-        def flatten_callback(new_leaves, old):
-            for leaf in new_leaves:
-                leaf.unevaluated = old.unevaluated
-
         if "System`Flat" in attributes:
-            new = new.flatten(new._head, callback=flatten_callback)
+            new = new.flatten(new._head, callback=self.flatten_callback)
         if "System`Orderless" in attributes:
             new.sort()
 
         new._timestamp_cache(evaluation)
 
+        # If the function computed is Listable, then the function an
+        # on each thread independently.
         if "System`Listable" in attributes:
             done, threaded = new.thread(evaluation)
             if done:
+                # Rocky: I think the idea is that if another lists is the same
+                # as one then I don't have to compute this one.
+                # In running over the test cases, we don't ever have a situation
+                # where the sameQ test below. is true. So I wonder if the
+                # overhead of the cache is more effort than its worth.
+                if threaded.sameQ(new):
+                    new._timestamp_cache(evaluation)
+                    return new, False, None
+                else:
+                    return threaded, True, None
+
+        if rule:
+            result = rule.apply(new, evaluation, fully=False)
+            if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False, rule
+                if result.sameQ(new):
+                    new._timestamp_cache(evaluation)
+                    return new, False, rule
+                else:
+                    return result, True, rule
+
+        for rule in self.rules(new, attributes, leaves, evaluation):
+            result = rule.apply(new, evaluation, fully=False)
+            if result is not None:
+                if isinstance(result, BoxConstruct):
+                    return result, False, rule
+                if result.sameQ(new):
+                    new._timestamp_cache(evaluation)
+                    return new, False, rule
+                else:
+                    return result, True, rule
+
+        dirty_leaves = None
+
+        # Expression did not change, re-apply Unevaluated
+        for index, leaf in enumerate(new._leaves):
+            if leaf.unevaluated:
+                if dirty_leaves is None:
+                    dirty_leaves = list(new._leaves)
+                dirty_leaves[index] = Expression("Unevaluated", leaf)
+
+        if dirty_leaves:
+            new = Expression(head)
+            new._leaves = tuple(dirty_leaves)
+
+        new.unformatted = self.unformatted
+        new._timestamp_cache(evaluation)
+        return new, False, None
+
+    def evaluate_next(self, evaluation) -> typing.Tuple["Expression", bool]:
+        from mathics.builtin.base import BoxConstruct
+
+        head = self._head.evaluate(evaluation)
+        attributes = head.get_attributes(evaluation.definitions)
+        leaves = self.get_mutable_leaves()
+
+        if "System`HoldAll" in attributes or "System`HoldAllComplete" in attributes:
+            # eval_range(range(0, 0))
+            self.rest_range(range(len(leaves)), attributes, leaves, evaluation)
+        elif "System`HoldFirst" in attributes:
+            self.rest_range(range(0, min(1, len(leaves))), attributes, leaves, evaluation)
+            self.eval_range(range(1, len(leaves)), leaves, evaluation)
+        elif "System`HoldRest" in attributes:
+            self.eval_range(range(0, min(1, len(leaves))), leaves, evaluation)
+            self.rest_range(range(1, len(leaves)), attributes, leaves, evaluation)
+        else:
+            self.eval_range(range(len(leaves)), leaves, evaluation)
+            # rest_range(range(0, 0))
+
+        new = Expression(head)
+        new._leaves = tuple(leaves)
+
+        if (
+            "System`SequenceHold" not in attributes
+            and "System`HoldAllComplete" not in attributes  # noqa
+        ):
+            new = new.flatten_sequence(evaluation)
+            leaves = new._leaves
+
+        for leaf in leaves:
+            leaf.unevaluated = False
+
+        if "System`HoldAllComplete" not in attributes:
+            dirty_leaves = None
+
+            for index, leaf in enumerate(leaves):
+                if leaf.has_form("Unevaluated", 1):
+                    if dirty_leaves is None:
+                        dirty_leaves = list(leaves)
+                    dirty_leaves[index] = leaf._leaves[0]
+                    dirty_leaves[index].unevaluated = True
+
+            if dirty_leaves:
+                new = Expression(head)
+                new._leaves = tuple(dirty_leaves)
+                leaves = dirty_leaves
+
+        if "System`Flat" in attributes:
+            new = new.flatten(new._head, callback=self.flatten_callback)
+        if "System`Orderless" in attributes:
+            new.sort()
+
+        new._timestamp_cache(evaluation)
+
+        # If the function computed is Listable, then the function an
+        # on each thread independently.
+        if "System`Listable" in attributes:
+            done, threaded = new.thread(evaluation)
+            if done:
+                # Rocky: I think the idea is that if another lists is the same
+                # as one then I don't have to compute this one.
+                # In running over the test cases, we don't ever have a situation
+                # where the sameQ test below. is true. So I wonder if the
+                # overhead of the cache is more effort than its worth.
                 if threaded.sameQ(new):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
                     return threaded, True
 
-        def rules():
-            rules_names = set()
-            if "System`HoldAllComplete" not in attributes:
-                for leaf in leaves:
-                    name = leaf.get_lookup_name()
-                    if len(name) > 0:  # only lookup rules if this is a symbol
-                        if name not in rules_names:
-                            rules_names.add(name)
-                            for rule in evaluation.definitions.get_upvalues(name):
-                                yield rule
-            lookup_name = new.get_lookup_name()
-            if lookup_name == new.get_head_name():
-                for rule in evaluation.definitions.get_downvalues(lookup_name):
-                    yield rule
-            else:
-                for rule in evaluation.definitions.get_subvalues(lookup_name):
-                    yield rule
-
-        for rule in rules():
+        for rule in self.rules(new, attributes, leaves, evaluation):
             result = rule.apply(new, evaluation, fully=False)
             if result is not None:
                 if isinstance(result, BoxConstruct):
