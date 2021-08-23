@@ -129,8 +129,7 @@ def read_from_stream(stream, word_separators, msgfn, accepted=None):
     This is a generator that returns "words" from stream deliminated by
     "word_separators"
     """
-    eof_seen = False
-    while not eof_seen:
+    while True:
         word = ""
         while True:
             try:
@@ -146,8 +145,7 @@ def read_from_stream(stream, word_separators, msgfn, accepted=None):
                     pos = stream.io.tell()
                     newchar = stream.io.read(1)
                     if pos == stream.io.tell():
-                        eof_seen = True
-                        break
+                        raise EOFError
                     else:
                         if newchar:
                             word = newchar
