@@ -531,21 +531,6 @@ class Read(Builtin):
         )
         types = Expression("List", *types)
 
-        READ_TYPES = [
-            Symbol(k)
-            for k in [
-                "Byte",
-                "Character",
-                "Expression",
-                "HoldExpression",
-                "Number",
-                "Real",
-                "Record",
-                "String",
-                "Word",
-            ]
-        ]
-
         for typ in types.leaves:
             if typ not in READ_TYPES:
                 evaluation.message("Read", "readf", typ)
@@ -557,64 +542,18 @@ class Read(Builtin):
 
         result = []
 
-        # This CRUD should be moved to mathics.core.streams
-        def reader(stream, word_separators, accepted=None):
-            while True:
-                word = ""
-                while True:
-                    try:
-                        tmp = stream.io.read(1)
-                    except UnicodeDecodeError:
-                        tmp = " "  # ignore
-                        evaluation.message("General", "ucdec")
-
-                    if tmp == "":
-                        if word == "":
-                            pos = stream.io.tell()
-                            newchar = stream.io.read(1)
-                            if pos == stream.io.tell():
-                                raise EOFError
-                            else:
-                                if newchar:
-                                    word = newchar
-                                    continue
-                                else:
-                                    yield word
-                                    continue
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    if tmp in word_separators:
-                        if word == "":
-                            continue
-                        if stream.io.seekable():
-                            # stream.io.seek(-1, 1) #Python3
-                            stream.io.seek(stream.io.tell() - 1)
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    if accepted is not None and tmp not in accepted:
-                        last_word = word
-                        word = ""
-                        yield last_word
-                        break
-
-                    word += tmp
-
-        read_word = reader(stream, word_separators)
-        read_record = reader(stream, record_separators)
-        read_number = reader(
+        read_word = read_from_stream(stream, word_separators, evaluation.message)
+        read_record = read_from_stream(stream, record_separators, evaluation.message)
+        read_number = read_from_stream(
             stream,
             word_separators + record_separators,
+            evaluation.message,
             ["+", "-", "."] + [str(i) for i in range(10)],
         )
-        read_real = reader(
+        read_real = read_from_stream(
             stream,
             word_separators + record_separators,
+            evaluation.message,
             ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
         )
 
@@ -703,40 +642,6 @@ class Read(Builtin):
                 return SymbolEndOfFile
             except UnicodeDecodeError:
                 evaluation.message("General", "ucdec")
-
-        # End of section to be moved to mathics.core.streams
-        ####################################################
-
-        if isinstance(result, Symbol):
-            return result
-        if len(result) == 1:
-            return from_python(*result)
-
-        return from_python(result)
-
-    # FIXME:
-    # Right now we can't merge in the above and the below code
-    # The below is called right now explicitly from ReadList
-    def newer_apply(self, channel, types, evaluation, options):
-        # "Read[channel_, types_, OptionsPattern[Read]]"
-
-        name, n, stream = read_name_and_stream_from_channel(channel, evaluation)
-        if name is None:
-            return
-
-        types_list = read_list_from_types(types)
-
-        for typ in types_list.leaves:
-            if typ not in READ_TYPES:
-                evaluation.message("Read", "readf", typ)
-                return SymbolFailed
-
-        record_separators, word_separators = read_get_separators(options)
-        result = list(
-            read_from_stream(
-                stream, record_separators + word_separators, evaluation.message
-            )
-        )
 
         if isinstance(result, Symbol):
             return result
