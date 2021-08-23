@@ -126,7 +126,7 @@ def read_get_separators(options):
 
 def read_from_stream(stream, word_separators, msgfn, accepted=None):
     """
-    This is a generator that returns "wors" from stream deliminated by
+    This is a generator that returns "words" from stream deliminated by
     "word_separators"
     """
     eof_seen = False
