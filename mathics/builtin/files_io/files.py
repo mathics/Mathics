@@ -551,14 +551,7 @@ class Read(Builtin):
                 evaluation.message("Read", "readf", typ)
                 return SymbolFailed
 
-        # Options
-        # TODO Implement extra options
-        py_options = self.check_options(options)
-        # null_records = py_options['NullRecords']
-        # null_words = py_options['NullWords']
-        record_separators = py_options["RecordSeparators"]
-        # token_words = py_options['TokenWords']
-        word_separators = py_options["WordSeparators"]
+        record_separators, word_separators = read_get_separators(options)
 
         name = name.to_python()
 
