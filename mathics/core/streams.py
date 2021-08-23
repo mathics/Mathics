@@ -150,7 +150,7 @@ class Stream(object):
     with Stream(pypath, "r") as f:
          ...
 
-    However see mathics_open which wraps this
+    However see MathicsOpen which wraps this
     """
 
     def __init__(self, name: str, mode="r", encoding=None, io=None, channel_num=None):

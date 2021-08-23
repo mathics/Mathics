@@ -44,6 +44,8 @@ Bugs
 * Improve Asymptote ``BezierCurve``implementation
 * ``Rationalize`` gives symmetric results for +/- like MMA does. If
   the result is an integer, it stays that way.
+* stream processing was redone. ``InputStream``, ``OutputStream`` and
+  ``StringToStream`` should all open, close, and assign stream numbers now
 
 4.0.0
 -----

@@ -19,15 +19,20 @@ from itertools import chain
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
 
-from mathics_scanner.errors import IncompleteSyntaxError, InvalidSyntaxError
 from mathics_scanner import TranslateError
-from mathics.core.parser import MathicsFileLineFeeder, MathicsMultiLineFeeder, parse
+from mathics.core.parser import MathicsFileLineFeeder, parse
+from mathics.core.read import (
+    read_get_separators,
+    read_list_from_types,
+    read_from_stream,
+    READ_TYPES,
+    SymbolEndOfFile,
+)
 
 
 from mathics.core.expression import (
     BoxError,
     Complex,
-    BaseExpression,
     Expression,
     Integer,
     MachineReal,
@@ -60,29 +65,11 @@ INPUTFILE_VAR = ""
 TMP_DIR = tempfile.gettempdir()
 SymbolPath = Symbol("$Path")
 
-
-def _channel_to_stream(channel, mode="r"):
-    if isinstance(channel, String):
-        name = channel.get_string_value()
-        opener = mathics_open(name, mode)
-        opener.__enter__()
-        n = opener.n
-        if mode in ["r", "rb"]:
-            head = "InputStream"
-        elif mode in ["w", "a", "wb", "ab"]:
-            head = "OutputStream"
-        else:
-            raise ValueError(f"Unknown format {mode}")
-        return Expression(head, channel, Integer(n))
-    elif channel.has_form("InputStream", 2):
-        return channel
-    elif channel.has_form("OutputStream", 2):
-        return channel
-    else:
-        return None
+### FIXME: All of this is related to Read[]
+### it can be moved somewhere else.
 
 
-class mathics_open(Stream):
+class MathicsOpen(Stream):
     def __init__(self, name, mode="r", encoding=None):
         if encoding is not None:
             encoding = to_python_encoding(encoding)
@@ -121,6 +108,53 @@ class mathics_open(Stream):
         global INPUTFILE_VAR
         INPUTFILE_VAR = self.old_inputfile_var or ""
         super().__exit__(type, value, traceback)
+
+
+def channel_to_stream(channel, mode="r"):
+    if isinstance(channel, String):
+        name = channel.get_string_value()
+        opener = MathicsOpen(name, mode)
+        opener.__enter__()
+        n = opener.n
+        if mode in ["r", "rb"]:
+            head = "InputStream"
+        elif mode in ["w", "a", "wb", "ab"]:
+            head = "OutputStream"
+        else:
+            raise ValueError(f"Unknown format {mode}")
+        return Expression(head, channel, Integer(n))
+    elif channel.has_form("InputStream", 2):
+        return channel
+    elif channel.has_form("OutputStream", 2):
+        return channel
+    else:
+        return None
+
+
+def read_name_and_stream_from_channel(channel, evaluation):
+    if channel.has_form("OutputStream", 2):
+        evaluation.message("General", "openw", channel)
+        return None, None, None
+
+    strm = channel_to_stream(channel, "r")
+
+    if strm is None:
+        return None, None, None
+
+    name, n = strm.get_leaves()
+
+    stream = stream_manager.lookup_stream(n.get_int_value())
+    if stream is None:
+        evaluation.message("Read", "openx", strm)
+        return None, None, None
+
+    if stream.io is None:
+        stream.__enter__()
+
+    if stream.io.closed:
+        evaluation.message("Read", "openx", strm)
+        return None, None, None
+    return name, n, stream
 
 
 class Input(Predefined):
@@ -167,9 +201,6 @@ class EndOfFile(Builtin):
       <dd>is returned by 'Read' when the end of an input stream is reached.
     </dl>
     """
-
-
-SymbolEndOfFile = Symbol("EndOfFile")
 
 
 # TODO: Improve docs for these Read[] arguments.
@@ -477,26 +508,8 @@ class Read(Builtin):
     def apply(self, channel, types, evaluation, options):
         "Read[channel_, types_, OptionsPattern[Read]]"
 
-        if channel.has_form("OutputStream", 2):
-            evaluation.message("General", "openw", channel)
-            return
-
-        strm = _channel_to_stream(channel, "r")
-
-        if strm is None:
-            return
-
-        [name, n] = strm.get_leaves()
-
-        stream = stream_manager.lookup_stream(n.get_int_value())
-        if stream is None:
-            evaluation.message("Read", "openx", strm)
-            return
-        if stream.io is None:
-            stream.__enter__()
-
-        if stream.io.closed:
-            evaluation.message("Read", "openx", strm)
+        name, n, stream = read_name_and_stream_from_channel(channel, evaluation)
+        if name is None:
             return
 
         # Wrap types in a list (if it isn't already one)
@@ -551,6 +564,7 @@ class Read(Builtin):
 
         result = []
 
+        # This CRUD should be moved to mathics.core.streams
         def reader(stream, word_separators, accepted=None):
             while True:
                 word = ""
@@ -610,6 +624,11 @@ class Read(Builtin):
             word_separators + record_separators,
             ["+", "-", ".", "e", "E", "^", "*"] + [str(i) for i in range(10)],
         )
+
+        from mathics.core.expression import BaseExpression
+        from mathics_scanner.errors import IncompleteSyntaxError, InvalidSyntaxError
+        from mathics.core.parser import MathicsMultiLineFeeder, parse
+
         for typ in types.leaves:
             try:
                 if typ == Symbol("Byte"):
@@ -692,6 +711,42 @@ class Read(Builtin):
             except UnicodeDecodeError:
                 evaluation.message("General", "ucdec")
 
+        # End of section to be moved to mathics.core.streams
+        ####################################################
+
+        if isinstance(result, Symbol):
+            return result
+        if len(result) == 1:
+            return from_python(*result)
+
+        return from_python(result)
+
+    # FIXME:
+    # Right now we can't merge in the above and the below code
+    # The below is called right now explicitly from ReadList
+    def newer_apply(self, channel, types, evaluation, options):
+        # "Read[channel_, types_, OptionsPattern[Read]]"
+
+        name, n, stream = read_name_and_stream_from_channel(channel, evaluation)
+        if name is None:
+            return
+
+        types_list = read_list_from_types(types)
+
+        for typ in types_list.leaves:
+            if typ not in READ_TYPES:
+                evaluation.message("Read", "readf", typ)
+                return SymbolFailed
+
+        record_separators, word_separators = read_get_separators(options)
+        result = list(
+            read_from_stream(
+                stream, record_separators + word_separators, evaluation.message
+            )
+        )
+
+        if isinstance(result, Symbol):
+            return result
         if len(result) == 1:
             return from_python(*result)
 
@@ -727,7 +782,7 @@ class Write(Builtin):
     def apply(self, channel, expr, evaluation):
         "Write[channel_, expr___]"
 
-        strm = _channel_to_stream(channel)
+        strm = channel_to_stream(channel)
 
         if strm is None:
             return
@@ -1783,7 +1838,7 @@ class WriteString(Builtin):
 
     def apply(self, channel, expr, evaluation):
         "WriteString[channel_, expr___]"
-        strm = _channel_to_stream(channel, "w")
+        strm = channel_to_stream(channel, "w")
 
         if strm is None:
             return
@@ -1882,7 +1937,7 @@ class _OpenAction(Builtin):
             if not isinstance(encoding, String):
                 return
 
-            opener = mathics_open(
+            opener = MathicsOpen(
                 path_string, mode=mode, encoding=encoding.get_string_value()
             )
             opener.__enter__()
@@ -2056,7 +2111,7 @@ class Get(PrefixOperator):
         try:
             if trace_fn:
                 trace_fn(pypath)
-            with mathics_open(pypath, "r") as f:
+            with MathicsOpen(pypath, "r") as f:
                 feeder = MathicsFileLineFeeder(f, trace_fn)
                 while not feeder.empty():
                     try:
@@ -2451,7 +2506,7 @@ class FilePrint(Builtin):
             return SymbolFailed
 
         try:
-            with mathics_open(pypath, "r") as f:
+            with MathicsOpen(pypath, "r") as f:
                 result = f.read()
         except IOError:
             evaluation.message("General", "noopen", path)
@@ -2510,7 +2565,8 @@ class Close(Builtin):
 
         if channel.has_form(("InputStream", "OutputStream"), 2):
             [name, n] = channel.get_leaves()
-            stream = stream_manager.lookup_stream(n.get_int_value())
+            py_n = n.get_int_value()
+            stream = stream_manager.lookup_stream(py_n)
         else:
             stream = None
 
@@ -2519,6 +2575,7 @@ class Close(Builtin):
             return
 
         stream.io.close()
+        stream_manager.delete(py_n)
         return name
 
 
@@ -2578,7 +2635,7 @@ class SetStreamPosition(Builtin):
      = is
 
     #> SetStreamPosition[stream, -5]
-     : Python2 cannot handle negative seeks.
+     : Invalid I/O Seek.
      = 10
 
     >> SetStreamPosition[stream, Infinity]
@@ -2597,7 +2654,7 @@ class SetStreamPosition(Builtin):
             "Cannot set the current point in stream `1` to position `2`. The "
             "requested position exceeds the number of characters in the file"
         ),
-        "python2": "Python2 cannot handle negative seeks.",  # FIXME: Python3?
+        "seek": "Invalid I/O Seek.",
     }
 
     attributes = "Protected"
@@ -2629,7 +2686,7 @@ class SetStreamPosition(Builtin):
                 else:
                     stream.io.seek(seekpos)
         except IOError:
-            evaluation.message("SetStreamPosition", "python2")
+            evaluation.message("SetStreamPosition", "seek")
 
         return from_python(stream.io.tell())
 

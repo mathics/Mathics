@@ -41,7 +41,7 @@ from mathics.builtin.base import Builtin, Predefined
 from mathics.builtin.files_io.files import (
     DIRECTORY_STACK,
     INITIAL_DIR,  # noqa is used via global
-    mathics_open,
+    MathicsOpen,
 )
 from mathics.builtin.numeric import Hash
 from mathics.builtin.strings import to_regex
@@ -713,7 +713,7 @@ class FileByteCount(Builtin):
         py_filename = py_filename[1:-1]
 
         try:
-            with mathics_open(py_filename, "rb") as f:
+            with MathicsOpen(py_filename, "rb") as f:
                 count = 0
                 tmp = f.read(1)
                 while tmp != b"":
@@ -956,7 +956,7 @@ class FileHash(Builtin):
         py_filename = filename.get_string_value()
 
         try:
-            with mathics_open(py_filename, "rb") as f:
+            with MathicsOpen(py_filename, "rb") as f:
                 dump = f.read()
         except IOError:
             evaluation.message("General", "noopen", filename)
@@ -1514,7 +1514,7 @@ class FindList(Builtin):
         results = []
         for path in py_name:
             try:
-                with mathics_open(path, "r") as f:
+                with MathicsOpen(path, "r") as f:
                     lines = f.readlines()
             except IOError:
                 evaluation.message("General", "noopen", path)

@@ -1433,9 +1433,8 @@ class Import(Builtin):
                         Expression("WriteString", String("")).evaluate(evaluation)
                     Expression("Close", stream).evaluate(evaluation)
                     stream = None
-                tmp = Expression(tmp_function, findfile, *joined_options).evaluate(
-                    evaluation
-                )
+                import_expression = Expression(tmp_function, findfile, *joined_options)
+                tmp = import_expression.evaluate(evaluation)
                 if tmpfile:
                     Expression("DeleteFile", findfile).evaluate(evaluation)
             elif function_channels == Expression(SymbolList, String("Streams")):
