@@ -22,8 +22,10 @@ from mathics.version import __version__  # noqa used in loading to check consist
 from mathics_scanner import TranslateError
 from mathics.core.parser import MathicsFileLineFeeder, parse
 from mathics.core.read import (
+    channel_to_stream,
+    MathicsOpen,
     read_get_separators,
-    read_list_from_types,
+    read_name_and_stream_from_channel,
     read_from_stream,
     READ_TYPES,
     SymbolEndOfFile,
@@ -47,13 +49,11 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import dps
 from mathics.core.streams import (
-    Stream,
     path_search,
     stream_manager,
 )
 import mathics
 from mathics.builtin.base import Builtin, Predefined, BinaryOperator, PrefixOperator
-from mathics.builtin.strings import to_python_encoding
 from mathics.builtin.base import MessageException
 
 INITIAL_DIR = os.getcwd()
@@ -67,94 +67,6 @@ SymbolPath = Symbol("$Path")
 
 ### FIXME: All of this is related to Read[]
 ### it can be moved somewhere else.
-
-
-class MathicsOpen(Stream):
-    def __init__(self, name, mode="r", encoding=None):
-        if encoding is not None:
-            encoding = to_python_encoding(encoding)
-            if "b" in mode:
-                # We should not specify an encoding for a binary mode
-                encoding = None
-            elif encoding is None:
-                raise MessageException("General", "charcode", self.encoding)
-        self.encoding = encoding
-        super().__init__(name, mode, self.encoding)
-        self.old_inputfile_var = None  # Set in __enter__ and __exit__
-
-    def __enter__(self):
-        # find path
-        path = path_search(self.name)
-        if path is None and self.mode in ["w", "a", "wb", "ab"]:
-            path = self.name
-        if path is None:
-            raise IOError
-
-        # open the stream
-        fp = io.open(path, self.mode, encoding=self.encoding)
-        global INPUTFILE_VAR
-        INPUTFILE_VAR = osp.abspath(path)
-
-        stream_manager.add(
-            name=path,
-            mode=self.mode,
-            encoding=self.encoding,
-            io=fp,
-            num=stream_manager.next,
-        )
-        return fp
-
-    def __exit__(self, type, value, traceback):
-        global INPUTFILE_VAR
-        INPUTFILE_VAR = self.old_inputfile_var or ""
-        super().__exit__(type, value, traceback)
-
-
-def channel_to_stream(channel, mode="r"):
-    if isinstance(channel, String):
-        name = channel.get_string_value()
-        opener = MathicsOpen(name, mode)
-        opener.__enter__()
-        n = opener.n
-        if mode in ["r", "rb"]:
-            head = "InputStream"
-        elif mode in ["w", "a", "wb", "ab"]:
-            head = "OutputStream"
-        else:
-            raise ValueError(f"Unknown format {mode}")
-        return Expression(head, channel, Integer(n))
-    elif channel.has_form("InputStream", 2):
-        return channel
-    elif channel.has_form("OutputStream", 2):
-        return channel
-    else:
-        return None
-
-
-def read_name_and_stream_from_channel(channel, evaluation):
-    if channel.has_form("OutputStream", 2):
-        evaluation.message("General", "openw", channel)
-        return None, None, None
-
-    strm = channel_to_stream(channel, "r")
-
-    if strm is None:
-        return None, None, None
-
-    name, n = strm.get_leaves()
-
-    stream = stream_manager.lookup_stream(n.get_int_value())
-    if stream is None:
-        evaluation.message("Read", "openx", strm)
-        return None, None, None
-
-    if stream.io is None:
-        stream.__enter__()
-
-    if stream.io.closed:
-        evaluation.message("Read", "openx", strm)
-        return None, None, None
-    return name, n, stream
 
 
 class Input(Predefined):
