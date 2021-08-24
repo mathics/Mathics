@@ -316,7 +316,7 @@ class Re(SympyFunction):
         return number.real
 
     def apply_number(self, number, evaluation):
-        "Re[number_?NumberQ]"
+        "Re[number_Number]"
 
         return number
 
@@ -353,7 +353,7 @@ class Im(SympyFunction):
         return number.imag
 
     def apply_number(self, number, evaluation):
-        "Im[number_?NumberQ]"
+        "Im[number_NumberQ]"
 
         return Integer0
 
