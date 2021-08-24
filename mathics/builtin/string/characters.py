@@ -100,9 +100,8 @@ class DigitQ(Builtin):
     """
 
     rules = {
-        "DigitQ[string_]": (
-            "If[StringQ[string], StringMatchQ[string, DigitCharacter...], False, False]"
-        ),
+        "DigitQ[string_String]": "StringMatchQ[string, DigitCharacter...]",
+        "DigitQ[notstring_]": "False",
     }
 
 
@@ -133,9 +132,8 @@ class LetterQ(Builtin):
     """
 
     rules = {
-        "LetterQ[string_]": (
-            "If[StringQ[string], StringMatchQ[string, LetterCharacter...], False, False]"
-        ),
+        "LetterQ[string_String]": "StringMatchQ[string, LetterCharacter...]",
+        "LetterQ[notstring_]": "False",
     }
 
 

@@ -123,7 +123,7 @@ class ElementData(Builtin):
         return from_python(sorted(_ELEMENT_DATA[0]))
 
     def apply_name(self, name, prop, evaluation):
-        "ElementData[name_?StringQ, prop_]"
+        "ElementData[name_String, prop_]"
         py_name = name.to_python().strip('"')
         names = ["StandardName", "Name", "Abbreviation"]
         iprops = [_ELEMENT_DATA[0].index(s) for s in names]
@@ -144,7 +144,7 @@ class ElementData(Builtin):
         return self.apply_int(from_python(indx), prop, evaluation)
 
     def apply_int(self, n, prop, evaluation):
-        "ElementData[n_?IntegerQ, prop_]"
+        "ElementData[n_Integer, prop_]"
 
         py_n = n.to_python()
         py_prop = prop.to_python()

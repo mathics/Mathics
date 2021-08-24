@@ -316,7 +316,7 @@ class Re(SympyFunction):
         return number.real
 
     def apply_number(self, number, evaluation):
-        "Re[number_?NumberQ]"
+        "Re[number_Number]"
 
         return number
 
@@ -353,7 +353,7 @@ class Im(SympyFunction):
         return number.imag
 
     def apply_number(self, number, evaluation):
-        "Im[number_?NumberQ]"
+        "Im[number_NumberQ]"
 
         return Integer0
 
@@ -941,7 +941,7 @@ class Complex_(Builtin):
     name = "Complex"
 
     def apply(self, r, i, evaluation):
-        "%(name)s[r_?NumberQ, i_?NumberQ]"
+        "%(name)s[r_Number, i_Number]"
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()
