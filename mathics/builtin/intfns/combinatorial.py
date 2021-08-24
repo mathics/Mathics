@@ -381,7 +381,7 @@ class Subsets(Builtin):
     """
 
     rules = {
-        "Subsets[list_ , Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]": "Take[Subsets[list, n], spec]",
+        "Subsets[list_ , Pattern[n,_List|All|DirectedInfinity[1]], spec_]": "Take[Subsets[list, n], spec]",
     }
 
     messages = {
@@ -421,7 +421,7 @@ class Subsets(Builtin):
             return Expression("List", *nested_list)
 
     def apply_2(self, list, n, evaluation):
-        "Subsets[list_, Pattern[n,_?ListQ|All|DirectedInfinity[1]]]"
+        "Subsets[list_, Pattern[n,_List|All|DirectedInfinity[1]]]"
 
         expr = Expression("Subsets", list, n)
 
@@ -495,7 +495,7 @@ class Subsets(Builtin):
             return Expression("List", *nested_list)
 
     def apply_3(self, list, n, spec, evaluation):
-        "Subsets[list_?AtomQ, Pattern[n,_?ListQ|All|DirectedInfinity[1]], spec_]"
+        "Subsets[list_Atom, Pattern[n,_List|All|DirectedInfinity[1]], spec_]"
 
         return evaluation.message(
             "Subsets", "normal", Expression("Subsets", list, n, spec)

@@ -189,7 +189,7 @@ class Quantity(Builtin):
         return True
 
     def apply_makeboxes(self, mag, unit, f, evaluation):
-        "MakeBoxes[Quantity[mag_, unit_?StringQ], f:StandardForm|TraditionalForm|OutputForm|InputForm]"
+        "MakeBoxes[Quantity[mag_, unit_String], f:StandardForm|TraditionalForm|OutputForm|InputForm]"
 
         q_unit = unit.get_string_value().lower()
         if self.validate(unit, evaluation):
@@ -200,7 +200,7 @@ class Quantity(Builtin):
             )
 
     def apply_n(self, mag, unit, evaluation):
-        "Quantity[mag_, unit_?StringQ]"
+        "Quantity[mag_, unit_String]"
 
         if self.validate(unit, evaluation):
             if mag.has_form("List", None):
