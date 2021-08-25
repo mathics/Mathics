@@ -487,7 +487,7 @@ class NextPrime(Builtin):
     }
 
     def apply(self, n, k, evaluation):
-        "NextPrime[n_?RealQ, k_Integer]"
+        "NextPrime[n_?NumericQ, k_Integer]"
         py_k = k.to_python(n_evaluation=evaluation)
         py_n = n.to_python(n_evaluation=evaluation)
 
@@ -597,7 +597,7 @@ class PrimePi(SympyFunction):
     # TODO: Traditional Form
 
     def apply(self, n, evaluation):
-        "PrimePi[n_?RealQ]"
+        "PrimePi[n_?NumericQ]"
         result = sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation))
         return from_python(result)
 
