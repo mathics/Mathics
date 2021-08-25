@@ -480,7 +480,7 @@ class PatternTest(BinaryOperator, PatternObject):
             if isinstance(candidate, (Integer, Rational, Real)):
                 return True
             return False
-            # pass        
+            # pass
         elif test == "System`Positive":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value > 0
