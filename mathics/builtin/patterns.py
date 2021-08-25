@@ -476,6 +476,16 @@ class PatternTest(BinaryOperator, PatternObject):
     def quick_pattern_test(self, candidate, test, evaluation):
         if test == "System`NumberQ":
             return isinstance(candidate, Number)
+        elif test == "System`RealNumberQ":
+            if isinstance(candidate, (Integer, Rational, Real)):
+                return True
+            return False
+            # pass
+        elif test == "System`Positive":
+            if isinstance(candidate, (Integer, Rational, Real)):
+                return candidate.value > 0
+            return False
+            # pass
         elif test == "System`Negative":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value < 0
