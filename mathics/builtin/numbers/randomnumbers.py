@@ -325,7 +325,7 @@ class RandomInteger(Builtin):
             return Integer(rand.randint(rmin, rmax))
 
     def apply_list(self, rmin, rmax, ns, evaluation):
-        "RandomInteger[{rmin_, rmax_}, ns_?ListQ]"
+        "RandomInteger[{rmin_, rmax_}, ns_List]"
         if not isinstance(rmin, Integer) or not isinstance(rmax, Integer):
             return evaluation.message(
                 "RandomInteger", "unifr", Expression("List", rmin, rmax)
@@ -406,7 +406,7 @@ class RandomReal(Builtin):
             return Real(rand.randreal(min_value, max_value))
 
     def apply_list(self, xmin, xmax, ns, evaluation):
-        "RandomReal[{xmin_, xmax_}, ns_?ListQ]"
+        "RandomReal[{xmin_, xmax_}, ns_List]"
 
         if not (
             isinstance(xmin, (Real, Integer)) and isinstance(xmax, (Real, Integer))
@@ -713,7 +713,7 @@ class Random(Builtin):
         "Random[Integer,  zmax_Integer]": "RandomInteger[zmax]",
         "Random[Integer, {zmin_Integer, zmax_Integer}]": "RandomInteger[{zmin, zmax}]",
         "Random[Real]": "RandomReal[]",
-        "Random[Real,  zmax_?NumberQ]": "RandomReal[zmax]",
+        "Random[Real, zmax_?RealNumberQ]": "RandomReal[zmax]",
         "Random[Real, {zmin_Real, zmax_Real}]": "RandomReal[{zmin, zmax}]",
         "Random[Complex]": "RandomComplex[]",
         "Random[Complex,  zmax_Complex]": "RandomComplex[zmax]",

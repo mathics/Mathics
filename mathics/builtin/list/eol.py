@@ -515,7 +515,7 @@ class FirstPosition(Builtin):
     >> FirstPosition[{1 + x^2, 5, x^4, a + (1 + x^2)^2}, x^2]
      = {1, 2}
 
-    #> FirstPosition[{1, 2, 3}, _?StringQ, "NoStrings"]
+    #> FirstPosition[{1, 2, 3}, _String, "NoStrings"]
      = NoStrings
 
     #> FirstPosition[a, a]

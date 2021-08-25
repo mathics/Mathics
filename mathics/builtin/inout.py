@@ -2526,7 +2526,7 @@ class NumberForm(_NumberForm):
             return man
 
     def apply_list_n(self, expr, n, evaluation, options) -> Expression:
-        "NumberForm[expr_?ListQ, n_, OptionsPattern[NumberForm]]"
+        "NumberForm[expr_List, n_, OptionsPattern[NumberForm]]"
         options = [
             Expression("RuleDelayed", Symbol(key), value)
             for key, value in options.items()
@@ -2537,7 +2537,7 @@ class NumberForm(_NumberForm):
         )
 
     def apply_list_nf(self, expr, n, f, evaluation, options) -> Expression:
-        "NumberForm[expr_?ListQ, {n_, f_}, OptionsPattern[NumberForm]]"
+        "NumberForm[expr_List, {n_, f_}, OptionsPattern[NumberForm]]"
         options = [
             Expression("RuleDelayed", Symbol(key), value)
             for key, value in options.items()

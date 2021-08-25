@@ -941,7 +941,7 @@ class Complex_(Builtin):
     name = "Complex"
 
     def apply(self, r, i, evaluation):
-        "%(name)s[r_?NumberQ, i_?NumberQ]"
+        "%(name)s[r_?RealNumberQ, i_?RealNumberQ]"
 
         if isinstance(r, Complex) or isinstance(i, Complex):
             sym_form = r.to_sympy() + sympy.I * i.to_sympy()

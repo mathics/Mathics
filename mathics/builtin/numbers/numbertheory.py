@@ -268,7 +268,7 @@ class FromContinuedFraction(SympyFunction):
     attributes = ("NumericFunction",)
 
     def apply_1(self, expr, evaluation):
-        "%(name)s[expr_?ListQ]"
+        "%(name)s[expr_List]"
         nums = expr.to_python()
         if all(isinstance(i, int) for i in nums):
             return from_sympy(sympy.continued_fraction_reduce(nums))
@@ -487,7 +487,7 @@ class NextPrime(Builtin):
     }
 
     def apply(self, n, k, evaluation):
-        "NextPrime[n_?NumericQ, k_?IntegerQ]"
+        "NextPrime[n_?RealNumberQ, k_?IntegerQ]"
         py_k = k.to_python(n_evaluation=evaluation)
         py_n = n.to_python(n_evaluation=evaluation)
 
@@ -597,7 +597,7 @@ class PrimePi(SympyFunction):
     # TODO: Traditional Form
 
     def apply(self, n, evaluation):
-        "PrimePi[n_?NumericQ]"
+        "PrimePi[n_?RealNumberQ]"
         result = sympy.ntheory.primepi(n.to_python(n_evaluation=evaluation))
         return from_python(result)
 
@@ -711,8 +711,8 @@ class RandomPrime(Builtin):
 
     rules = {
         "RandomPrime[imax_?NotListQ]": "RandomPrime[{1, imax}, 1]",
-        "RandomPrime[int_?ListQ]": "RandomPrime[int, 1]",
-        "RandomPrime[imax_?ListQ, n_?ArrayQ]": (
+        "RandomPrime[int_List]": "RandomPrime[int, 1]",
+        "RandomPrime[imax_List, n_?ArrayQ]": (
             "ConstantArray[RandomPrime[imax, 1], n]"
         ),
         "RandomPrime[imax_?NotListQ, n_?ArrayQ]": (
@@ -723,7 +723,7 @@ class RandomPrime(Builtin):
     # TODO: Use random state as in other randomised methods within mathics
 
     def apply(self, interval, n, evaluation):
-        "RandomPrime[interval_?ListQ, n_]"
+        "RandomPrime[interval_List, n_]"
 
         if not isinstance(n, Integer):
             evaluation.message("RandomPrime", "posdim", n)
