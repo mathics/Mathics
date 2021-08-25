@@ -301,8 +301,10 @@ class Cylinder(Builtin):
      = -Graphics3D-
     """
 
-    messages = {"oddn": "The number of points must be even.",
-                "nrr": "The radius must be a real number" }
+    messages = {
+        "oddn": "The number of points must be even.",
+        "nrr": "The radius must be a real number",
+    }
 
     rules = {
         "Cylinder[]": "Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]",
