@@ -301,7 +301,8 @@ class Cylinder(Builtin):
      = -Graphics3D-
     """
 
-    messages = {"oddn": "The number of points must be even."}
+    messages = {"oddn": "The number of points must be even.",
+                "nrr": "The radius must be a real number" }
 
     rules = {
         "Cylinder[]": "Cylinder[{{0, 0, 0}, {1, 1, 1}}, 1]",
@@ -309,10 +310,14 @@ class Cylinder(Builtin):
     }
 
     def apply_check(self, positions, radius, evaluation):
-        "Cylinder[positions_List, radius_?NumberQ]"
+        "Cylinder[positions_List, radius_]"
 
         if len(positions.get_leaves()) % 2 == 1:
             # The number of points is odd, so abort.
             evaluation.error("Cylinder", "oddn", positions)
+        if not isinstance(radius, (Integer, Rational, Real)):
+            nradius = Expression(SymbolN, radius).evaluate(evaluation)
+            if not isinstance(nradius, (Integer, Rational, Real)):
+                evaluation.error("Cylinder", "nrr", radius)
 
-        return Expression("Cylinder", positions, radius)
+        return
