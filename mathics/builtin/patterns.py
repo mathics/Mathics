@@ -51,6 +51,7 @@ from mathics.core.expression import (
     Real,
     SymbolFalse,
     SymbolList,
+    SymbolN,
     SymbolTrue,
 )
 from mathics.core.rules import Rule
@@ -476,8 +477,15 @@ class PatternTest(BinaryOperator, PatternObject):
     def quick_pattern_test(self, candidate, test, evaluation):
         if test == "System`NumberQ":
             return isinstance(candidate, Number)
+        if test == "System`NumericQ":
+            if isinstance(candidate, Number):
+                return True
+            # Otherwise, follow the standard evaluation
         elif test == "System`RealNumberQ":
             if isinstance(candidate, (Integer, Rational, Real)):
+                return True
+            candidate = Expression(SymbolN, candidate).evaluate(evaluation)
+            if isinstance(candidate, Real):
                 return True
             return False
             # pass
@@ -486,11 +494,21 @@ class PatternTest(BinaryOperator, PatternObject):
                 return candidate.value > 0
             return False
             # pass
+        elif test == "System`NonPositive":
+            if isinstance(candidate, (Integer, Rational, Real)):
+                return candidate.value <= 0
+            return False
+            # pass            
         elif test == "System`Negative":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value < 0
             return False
             # pass
+        elif test == "System`NonNegative":
+            if isinstance(candidate, (Integer, Rational, Real)):
+                return candidate.value >= 0
+            return False
+            # pass            
         elif test == "System`NegativePowerQ":
             return (
                 candidate.has_form("Power", 2)
