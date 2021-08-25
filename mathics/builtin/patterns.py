@@ -498,7 +498,7 @@ class PatternTest(BinaryOperator, PatternObject):
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value <= 0
             return False
-            # pass            
+            # pass
         elif test == "System`Negative":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value < 0
@@ -508,7 +508,7 @@ class PatternTest(BinaryOperator, PatternObject):
             if isinstance(candidate, (Integer, Rational, Real)):
                 return candidate.value >= 0
             return False
-            # pass            
+            # pass
         elif test == "System`NegativePowerQ":
             return (
                 candidate.has_form("Power", 2)
