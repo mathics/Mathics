@@ -71,7 +71,7 @@ class _Constant_Common(Predefined):
     options = {"Method": "Automatic"}
 
     def apply_N(self, precision, evaluation, options={}):
-        "N[%(name)s, precision_?NumericQ, OptionsPattern[%(name)s]]"
+        "N[%(name)s, precision_?NumberQ, OptionsPattern[%(name)s]]"
 
         preference = self.get_option(options, "Method", evaluation).get_string_value()
         if preference == "Automatic":

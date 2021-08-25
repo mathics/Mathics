@@ -1506,14 +1506,14 @@ class Round(Builtin):
     attributes = ("Listable", "NumericFunction")
 
     rules = {
-        "Round[expr_?NumericQ]": "Round[Re[expr], 1] + I * Round[Im[expr], 1]",
+        "Round[expr_?NumberQ]": "Round[Re[expr], 1] + I * Round[Im[expr], 1]",
         "Round[expr_Complex, k_?RealNumberQ]": (
             "Round[Re[expr], k] + I * Round[Im[expr], k]"
         ),
     }
 
     def apply(self, expr, k, evaluation):
-        "Round[expr_?NumericQ, k_?NumericQ]"
+        "Round[expr_?NumberQ, k_?NumberQ]"
 
         n = Expression("Divide", expr, k).round_to_float(
             evaluation, permit_complex=True
@@ -1652,7 +1652,7 @@ class RealDigits(Builtin):
             return self.apply_with_base(n, from_python(10), evaluation)
 
     def apply_with_base(self, n, b, evaluation, nr_elements=None, pos=None):
-        "%(name)s[n_?NumericQ, b_Integer]"
+        "%(name)s[n_?NumberQ, b_Integer]"
 
         expr = Expression("RealDigits", n)
         rational_no = (
@@ -1762,7 +1762,7 @@ class RealDigits(Builtin):
         return Expression(SymbolList, list_str, exp)
 
     def apply_with_base_and_length(self, n, b, length, evaluation, pos=None):
-        "%(name)s[n_?NumericQ, b_Integer, length_]"
+        "%(name)s[n_?NumberQ, b_Integer, length_]"
         leaves = []
         if pos is not None:
             leaves.append(from_python(pos))
@@ -1775,7 +1775,7 @@ class RealDigits(Builtin):
         )
 
     def apply_with_base_length_and_precision(self, n, b, length, p, evaluation):
-        "%(name)s[n_?NumericQ, b_Integer, length_, p_]"
+        "%(name)s[n_?NumberQ, b_Integer, length_, p_]"
         if not isinstance(p, Integer):
             return evaluation.message(
                 "RealDigits", "intm", Expression("RealDigits", n, b, length, p)

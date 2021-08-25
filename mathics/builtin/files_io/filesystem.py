@@ -1058,7 +1058,7 @@ class FileNameJoin(Builtin):
     }
 
     def apply(self, pathlist, evaluation, options):
-        "FileNameJoin[pathlist_?ListQ, OptionsPattern[FileNameJoin]]"
+        "FileNameJoin[pathlist_List, OptionsPattern[FileNameJoin]]"
 
         py_pathlist = pathlist.to_python()
         if not all(isinstance(p, str) and p[0] == p[-1] == '"' for p in py_pathlist):
@@ -2217,8 +2217,8 @@ class ToFileName(Builtin):
 
     rules = {
         "ToFileName[dir_String, name_String]": "FileNameJoin[{dir, name}]",
-        "ToFileName[dirs_?ListQ, name_String]": "FileNameJoin[Append[dirs, name]]",
-        "ToFileName[dirs_?ListQ]": "FileNameJoin[dirs]",
+        "ToFileName[dirs_List, name_String]": "FileNameJoin[Append[dirs, name]]",
+        "ToFileName[dirs_List]": "FileNameJoin[dirs]",
     }
 
 

@@ -309,7 +309,7 @@ class Cylinder(Builtin):
     }
 
     def apply_check(self, positions, radius, evaluation):
-        "Cylinder[positions_List, radius_?NumericQ]"
+        "Cylinder[positions_List, radius_?NumberQ]"
 
         if len(positions.get_leaves()) % 2 == 1:
             # The number of points is odd, so abort.
