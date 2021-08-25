@@ -712,9 +712,7 @@ class RandomPrime(Builtin):
     rules = {
         "RandomPrime[imax_?NotListQ]": "RandomPrime[{1, imax}, 1]",
         "RandomPrime[int_List]": "RandomPrime[int, 1]",
-        "RandomPrime[imax_List, n_?ArrayQ]": (
-            "ConstantArray[RandomPrime[imax, 1], n]"
-        ),
+        "RandomPrime[imax_List, n_?ArrayQ]": ("ConstantArray[RandomPrime[imax, 1], n]"),
         "RandomPrime[imax_?NotListQ, n_?ArrayQ]": (
             "ConstantArray[RandomPrime[{1, imax}, 1], n]"
         ),
