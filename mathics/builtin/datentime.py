@@ -899,10 +899,6 @@ class DateString(_DateFormat):
 
     rules = {
         "DateString[]": "DateString[DateList[], $DateStringFormat]",
-        "DateString[epochtime_?(VectorQ[#1, NumberQ]&)]": (
-            "DateString[epochtime, $DateStringFormat]"
-        ),
-        "DateString[epochtime_?NumberQ]": ("DateString[epochtime, $DateStringFormat]"),
         "DateString[format_?(VectorQ[#1, StringQ]&)]": (
             "DateString[DateList[], format]"
         ),
