@@ -69,7 +69,7 @@ class Minimize(Builtin):
         )
 
     def apply_multiplevariable(self, f, vars, evaluation):
-        "Minimize[f_?NotListQ, vars_List]"
+        "Minimize[f_?NotListQ, vars_?ListQ]"
 
         head_name = vars.get_head_name()
         vars_or = vars
@@ -149,7 +149,7 @@ class Minimize(Builtin):
         )
 
     def apply_constraints(self, f, vars, evaluation):
-        "Minimize[f_List, vars_List]"
+        "Minimize[f_?ListQ, vars_?ListQ]"
         head_name = vars.get_head_name()
         vars_or = vars
         vars = vars.leaves
@@ -380,7 +380,7 @@ class Maximize(Builtin):
         return from_python(solutions)
 
     def apply_constraints(self, f, vars, evaluation):
-        "Maximize[f_List, vars_]"
+        "Maximize[f_?ListQ, vars_]"
 
         constraints = [function for function in f.leaves]
         constraints[0] = from_sympy(constraints[0].to_sympy() * -1)

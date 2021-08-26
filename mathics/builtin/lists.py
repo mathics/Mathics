@@ -311,7 +311,7 @@ class ContainsOnly(Builtin):
         return None
 
     def apply(self, list1, list2, evaluation, options={}):
-        "ContainsOnly[list1_List, list2_List, OptionsPattern[ContainsOnly]]"
+        "ContainsOnly[list1_?ListQ, list2_?ListQ, OptionsPattern[ContainsOnly]]"
 
         same_test = self.get_option(options, "SameTest", evaluation)
 
@@ -1320,7 +1320,7 @@ class SplitBy(Builtin):
         return outer([inner(l) for l in result])
 
     def apply_multiple(self, mlist, funcs, evaluation):
-        "SplitBy[mlist_, funcs_List]"
+        "SplitBy[mlist_, funcs_?ListQ]"
         expr = Expression("Split", mlist, funcs)
 
         if mlist.is_atom():

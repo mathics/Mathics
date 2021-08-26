@@ -94,7 +94,7 @@ class Environment(Builtin):
     """
 
     def apply(self, var, evaluation):
-        "Environment[var_String]"
+        "Environment[var_?StringQ]"
         env_var = var.get_string_value()
         if env_var not in os.environ:
             return SymbolFailed
@@ -358,7 +358,7 @@ class Run(Builtin):
     """
 
     def apply(self, command, evaluation):
-        "Run[command_String]"
+        "Run[command_?StringQ]"
         command_str = command.to_python()
         return Integer(subprocess.call(command_str, shell=True))
 

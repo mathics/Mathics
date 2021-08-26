@@ -136,7 +136,7 @@ class ImageImport(_ImageBuiltin):
     """
 
     def apply(self, path, evaluation):
-        """ImageImport[path_String]"""
+        """ImageImport[path_?StringQ]"""
         pillow = PIL.Image.open(path.get_string_value())
         pixels = numpy.asarray(pillow)
         is_rgb = len(pixels.shape) >= 3 and pixels.shape[2] >= 3

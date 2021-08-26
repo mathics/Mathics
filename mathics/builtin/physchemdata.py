@@ -144,7 +144,7 @@ class ElementData(Builtin):
         return self.apply_int(from_python(indx), prop, evaluation)
 
     def apply_int(self, n, prop, evaluation):
-        "ElementData[n_Integer, prop_]"
+        "ElementData[n_?IntegerQ, prop_]"
 
         py_n = n.to_python()
         py_prop = prop.to_python()

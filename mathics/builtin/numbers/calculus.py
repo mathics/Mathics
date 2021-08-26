@@ -852,7 +852,7 @@ class Solve(Builtin):
             "Cases[Solve[eqs, vars], {Rule[x_,y_?RealNumberQ]}]"
         ),
         "Solve[eqs_, vars_, Integers]": (
-            "Cases[Solve[eqs, vars], {Rule[x_,y_Integer]}]"
+            "Cases[Solve[eqs, vars], {Rule[x_,y_?IntegerQ]}]"
         ),
     }
 
