@@ -100,7 +100,7 @@ class RSolve(Builtin):
                     left.get_head_name() == func.get_head_name()
                     and len(left.leaves) == 1  # noqa
                     and isinstance(l.leaves[0].to_python(), int)
-                    and r.is_numeric()
+                    and r.is_numeric(evaluation)
                 ):
 
                     r_sympy = r.to_sympy()

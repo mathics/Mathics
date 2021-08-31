@@ -198,7 +198,7 @@ class _InequalityOperator(BinaryOperator):
     def numerify_args(items, evaluation):
         items_sequence = items.get_sequence()
         all_numeric = all(
-            item.is_numeric() and item.get_precision() is None
+            item.is_numeric(evaluation) and item.get_precision() is None
             for item in items_sequence
         )
 

@@ -26,6 +26,41 @@ TESTS_PER_BENCHMARK = None
 
 # Mathics expressions to benchmark
 BENCHMARKS = {
+    "NumericQ": [
+        "NumericQ[Sqrt[2]]",
+        "NumericQ[Sqrt[-2]]",
+        "NumericQ[Sqrt[2.]]",
+        "NumericQ[Sqrt[-2.]]",
+        "NumericQ[q]",
+        'NumericQ["q"]',
+    ],
+    # This function checks for numericQ in ints argument before calling
+    "Positive": [
+        "Positive[Sqrt[2]]",
+        "Positive[Sqrt[-2]]",
+        "Positive[Sqrt[2.]]",
+        "Positive[Sqrt[-2.]]",
+        "Positive[q]",
+        'Positive["q"]',
+    ],
+    # This function uses the WL rules definition, like in master
+    "NonNegative": [
+        "NonNegative[Sqrt[2]]",
+        "NonNegative[Sqrt[-2]]",
+        "NonNegative[Sqrt[2.]]",
+        "NonNegative[Sqrt[-2.]]",
+        "NonNegative[q]",
+        'NonNegative["q"]',
+    ],
+    # This function does the check inside the method.
+    "Negative": [
+        "Negative[Sqrt[2]]",
+        "Negative[Sqrt[-2]]",
+        "Negative[Sqrt[2.]]",
+        "Negative[Sqrt[-2.]]",
+        "Negative[q]",
+        'Negative["q"]',
+    ],
     "Arithmetic": ["1 + 2", "5 * 3"],
     "Plot": [
         "Plot[0, {x, -3, 3}]",

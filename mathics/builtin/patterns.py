@@ -358,7 +358,7 @@ class ReplaceRepeated(BinaryOperator):
             return rules
 
         maxit = self.get_option(options, "MaxIterations", evaluation)
-        if maxit.is_numeric():
+        if maxit.is_numeric(evaluation):
             maxit = maxit.get_int_value()
         else:
             maxit = -1

@@ -2704,7 +2704,7 @@ class _Cluster(Builtin):
                     raise _IllegalDataPoint
                 yield v
 
-        if dist_p[0].is_numeric():
+        if dist_p[0].is_numeric(evaluation):
             numeric_p = [[x] for x in convert_scalars(dist_p)]
         else:
             numeric_p = list(convert_vectors(dist_p))

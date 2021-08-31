@@ -83,7 +83,7 @@ class SparseArray(Builtin):
             for i, leaf in enumerate(array.leaves):
                 if leaf.has_form("SparseArray", None) or leaf.has_form("List", None):
                     return
-                if leaf.is_numeric() and leaf.is_zero:
+                if leaf.is_numeric(evaluation) and leaf.is_zero:
                     continue
                 leaves.append(
                     Expression("Rule", Expression("List", Integer(i + 1)), leaf)

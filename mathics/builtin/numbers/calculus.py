@@ -18,7 +18,6 @@ from mathics.core.expression import (
     SymbolTrue,
     SymbolFalse,
     SymbolList,
-    SymbolN,
     SymbolRule,
     SymbolUndefined,
     from_python,
@@ -27,6 +26,7 @@ from mathics.core.convert import sympy_symbol_prefix, SympyExpression, from_symp
 from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
+from mathics.builtin.numeric import _numeric_evaluation_with_prec
 from mathics import Symbol
 
 import sympy
@@ -1280,9 +1280,8 @@ def find_root_newton(f, x0, x, opts, evaluation) -> (Number, bool):
         # TODO: use Precision goal...
         if x1 == x0:
             break
-        x0 = Expression(SymbolN, x1).evaluate(
-            evaluation
-        )  # N required due to bug in sympy arithmetic
+        x0 = _numeric_evaluation_with_prec(x1, evaluation)
+        # N required due to bug in sympy arithmetic
         count += 1
     else:
         evaluation.message("FindRoot", "maxiter")
@@ -1377,7 +1376,7 @@ class FindRoot(Builtin):
     def apply(self, f, x, x0, evaluation, options):
         "FindRoot[f_, {x_, x0_}, OptionsPattern[]]"
         # First, determine x0 and x
-        x0 = Expression(SymbolN, x0).evaluate(evaluation)
+        x0 = _numeric_evaluation_with_prec(x0, evaluation)
         if not isinstance(x0, Number):
             evaluation.message("FindRoot", "snum", x0)
             return
@@ -1545,7 +1544,7 @@ class SeriesData(Builtin):
 
         expansion = []
         for i, leaf in enumerate(data.leaves):
-            if leaf.is_numeric() and leaf.is_zero:
+            if leaf.is_numeric(evaluation) and leaf.is_zero:
                 continue
             if powers[i].is_zero:
                 expansion.append(leaf)

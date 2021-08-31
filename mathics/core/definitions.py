@@ -735,6 +735,8 @@ def get_tag_position(pattern, name) -> typing.Optional[str]:
         head_name = pattern.get_head_name()
         if head_name == name:
             return "down"
+        elif head_name == "System`N" and len(pattern.leaves) == 2:
+            return "n"
         elif head_name == "System`Condition" and len(pattern.leaves) > 0:
             return get_tag_position(pattern.leaves[0], name)
         elif pattern.get_lookup_name() == name:
@@ -802,8 +804,6 @@ class Definition(object):
         self.downvalues = downvalues
         self.subvalues = subvalues
         self.upvalues = upvalues
-        for rule in rules:
-            self.add_rule(rule)
         self.formatvalues = dict((name, list) for name, list in formatvalues.items())
         self.messages = messages
         self.attributes = set(attributes)
@@ -813,6 +813,8 @@ class Definition(object):
         self.nvalues = nvalues
         self.defaultvalues = defaultvalues
         self.builtin = builtin
+        for rule in rules:
+            self.add_rule(rule)
 
     def get_values_list(self, pos):
         assert pos.isalpha()
