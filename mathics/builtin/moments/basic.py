@@ -49,7 +49,7 @@ class Median(_Rectangular):
                 return self.rect(l)
             except _NotRectangularException:
                 evaluation.message("Median", "rectn", Expression("Median", l))
-        elif all(leaf.is_numeric() for leaf in l.leaves):
+        elif all(leaf.is_numeric(evaluation) for leaf in l.leaves):
             v = l.get_mutable_leaves()  # copy needed for introselect
             n = len(v)
             if n % 2 == 0:  # even number of elements?

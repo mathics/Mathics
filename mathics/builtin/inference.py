@@ -156,7 +156,7 @@ def logical_expand_assumptions(assumptions_list, evaluation):
                 evaluation.message("Assumption", "faas")
                 changed = True
                 continue
-            if assumption.is_numeric():
+            if assumption.is_numeric(evaluation):
                 evaluation.message("Assumption", "baas")
                 changed = True
                 continue
@@ -306,7 +306,7 @@ def get_assumption_rules_dispatch(evaluation):
         if pat.has_form("Equal", 2):
             if value:
                 lhs, rhs = pat._leaves
-                if lhs.is_numeric():
+                if lhs.is_numeric(evaluation):
                     assumption_rules.append(Rule(rhs, lhs))
                 else:
                     assumption_rules.append(Rule(lhs, rhs))

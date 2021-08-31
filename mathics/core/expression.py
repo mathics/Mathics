@@ -348,7 +348,7 @@ class BaseExpression(KeyComparable):
     def is_true(self) -> bool:
         return False
 
-    def is_numeric(self) -> bool:
+    def is_numeric(self, evaluation=None) -> bool:
         # used by NumericQ and expression ordering
         return False
 
@@ -1837,24 +1837,29 @@ class Expression(BaseExpression):
             leaves = [Expression(self._head, *item) for item in items]
             return True, Expression(head, *leaves)
 
-    def is_numeric(self) -> bool:
-        return (
-            self._head.get_name()
-            in system_symbols(
-                "Sqrt",
-                "Times",
-                "Plus",
-                "Subtract",
-                "Minus",
-                "Power",
-                "Abs",
-                "Divide",
-                "Sin",
+    def is_numeric(self, evaluation=None) -> bool:
+        if evaluation:
+            if not "System`NumericFunction" in evaluation.definitions.get_attributes(
+                self._head.get_name()
+            ):
+                return False
+            return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
+        else:
+            return (
+                self._head.get_name()
+                in system_symbols(
+                    "Sqrt",
+                    "Times",
+                    "Plus",
+                    "Subtract",
+                    "Minus",
+                    "Power",
+                    "Abs",
+                    "Divide",
+                    "Sin",
+                )
+                and all(leaf.is_numeric() for leaf in self._leaves)
             )
-            and all(leaf.is_numeric() for leaf in self._leaves)
-        )
-        # TODO: complete list of numeric functions, or access NumericFunction
-        # attribute
 
     def numerify(self, evaluation) -> "Expression":
         _prec = None
@@ -2088,7 +2093,7 @@ class Symbol(Atom):
     def is_true(self) -> bool:
         return self == SymbolTrue
 
-    def is_numeric(self) -> bool:
+    def is_numeric(self, evaluation=None) -> bool:
         return self.name in system_symbols(
             "Pi", "E", "EulerGamma", "GoldenRatio", "MachinePrecision", "Catalan"
         )
@@ -2113,6 +2118,7 @@ SymbolFailed = Symbol("$Failed")
 SymbolFalse = Symbol("False")
 SymbolInfinity = Symbol("Infinity")
 SymbolList = Symbol("List")
+SymbolMachinePrecision = Symbol("MachinePrecision")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
@@ -2120,6 +2126,8 @@ SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
+SymbolLess = Symbol("Less")
+SymbolGreater = Symbol("Greater")
 
 
 @lru_cache(maxsize=1024)
@@ -2145,7 +2153,7 @@ class Number(Atom):
     def __str__(self) -> str:
         return str(self.value)
 
-    def is_numeric(self) -> bool:
+    def is_numeric(self, evaluation=None) -> bool:
         return True
 
 

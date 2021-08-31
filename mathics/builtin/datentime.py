@@ -630,7 +630,7 @@ class DateObject(_DateFormat):
             timezone = Real(-time.timezone / 3600.0)
         else:
             timezone = options["System`TimeZone"].evaluate(evaluation)
-            if not timezone.is_numeric():
+            if not timezone.is_numeric(evaluation):
                 evaluation.message("DateObject", "notz", timezone)
 
         # TODO: if tz != timezone, shift the datetime list.
@@ -1123,7 +1123,7 @@ if sys.platform != "win32" and ("Pyston" not in sys.version):
         def apply_3(self, expr, t, failexpr, evaluation):
             "TimeConstrained[expr_, t_, failexpr_]"
             t = t.evaluate(evaluation)
-            if not t.is_numeric():
+            if not t.is_numeric(evaluation):
                 evaluation.message("TimeConstrained", "timc", t)
                 return
             try:

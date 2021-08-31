@@ -42,6 +42,7 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolTrue,
     SymbolList,
+    SymbolMachinePrecision,
     SymbolN,
     from_python,
 )
@@ -59,6 +60,10 @@ from mathics.core.numbers import (
 @lru_cache(maxsize=1024)
 def log_n_b(py_n, py_b) -> int:
     return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
+
+
+def _numeric_evaluation_with_prec(expression, evaluation, prec=SymbolMachinePrecision):
+    return Expression("N", expression, prec).evaluate(evaluation)
 
 
 def _scipy_interface(integrator, options_map, mandatory=None, adapt_func=None):
@@ -1126,7 +1131,7 @@ class NIntegrate(Builtin):
                             (np.arctanh, lambda u: 1.0 / (1.0 - u ** 2))
                         )
                     else:
-                        if not b.is_numeric():
+                        if not b.is_numeric(evaluation):
                             evaluation.message("nlim", coords[i], b)
                             return
                         z = a.leaves[0].value
@@ -1136,7 +1141,7 @@ class NIntegrate(Builtin):
                             (lambda u: b - z + z / u, lambda u: -z * u ** (-2.0))
                         )
                 elif b.get_head_name() == "System`DirectedInfinity":
-                    if not a.is_numeric():
+                    if not a.is_numeric(evaluation):
                         evaluation.message("nlim", coords[i], a)
                         return
                     a = a.value
@@ -1145,14 +1150,14 @@ class NIntegrate(Builtin):
                     coordtransform.append(
                         (lambda u: a - z + z / u, lambda u: z * u ** (-2.0))
                     )
-                elif a.is_numeric() and b.is_numeric():
+                elif a.is_numeric(evaluation) and b.is_numeric(evaluation):
                     a = Expression(SymbolN, a).evaluate(evaluation).value
                     b = Expression(SymbolN, b).evaluate(evaluation).value
                     subdomain2.append([a, b])
                     coordtransform.append(None)
                 else:
                     for x in (a, b):
-                        if not x.is_numeric():
+                        if not x.is_numeric(evaluation):
                             evaluation.message("nlim", coords[i], x)
                     return
 
@@ -1228,17 +1233,7 @@ class NumericQ(Builtin):
 
     def apply(self, expr, evaluation):
         "NumericQ[expr_]"
-
-        def test(expr):
-            if isinstance(expr, Expression):
-                attr = evaluation.definitions.get_attributes(expr.head.get_name())
-                return "System`NumericFunction" in attr and all(
-                    test(leaf) for leaf in expr.leaves
-                )
-            else:
-                return expr.is_numeric()
-
-        return SymbolTrue if test(expr) else SymbolFalse
+        return SymbolTrue if expr.is_numeric(evaluation) else SymbolFalse
 
 
 class Precision(Builtin):
@@ -1648,7 +1643,7 @@ class RealDigits(Builtin):
         if isinstance(n, Symbol) and n.name.startswith("System`"):
             return evaluation.message("RealDigits", "ndig", n)
 
-        if n.is_numeric():
+        if n.is_numeric(evaluation):
             return self.apply_with_base(n, from_python(10), evaluation)
 
     def apply_with_base(self, n, b, evaluation, nr_elements=None, pos=None):

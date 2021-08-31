@@ -24,11 +24,14 @@ from mathics.core.expression import (
     Integer1,
     Number,
     Symbol,
-    SymbolFalse,
-    SymbolTrue,
-    SymbolDirectedInfinity,
-    SymbolInfinity,
     SymbolComplexInfinity,
+    SymbolDirectedInfinity,
+    SymbolFalse,
+    SymbolGreater,
+    SymbolInfinity,
+    SymbolLess,
+    SymbolSequence,
+    SymbolTrue,
 )
 from mathics.core.numbers import dps
 
@@ -198,7 +201,7 @@ class _InequalityOperator(BinaryOperator):
     def numerify_args(items, evaluation):
         items_sequence = items.get_sequence()
         all_numeric = all(
-            item.is_numeric() and item.get_precision() is None
+            item.is_numeric(evaluation) and item.get_precision() is None
             for item in items_sequence
         )
 
@@ -374,13 +377,10 @@ class _EqualityOperator(_InequalityOperator):
 class _ComparisonOperator(_InequalityOperator):
     "Compares arguments in a chain e.g. a < b < c compares a < b and b < c."
 
-    def apply(self, items, evaluation):
-        "%(name)s[items___]"
-        items_sequence = items.get_sequence()
-        if len(items_sequence) <= 1:
-            return SymbolTrue
-        items = self.numerify_args(items, evaluation)
-        wanted = operators[self.get_name()]
+    @staticmethod
+    def sapply(wanted, items, evaluation):
+        items = _ComparisonOperator.numerify_args(items, evaluation)
+
         for i in range(len(items) - 1):
             x = items[i]
             y = items[i + 1]
@@ -391,6 +391,13 @@ class _ComparisonOperator(_InequalityOperator):
                 return SymbolFalse
             assert c in wanted
         return SymbolTrue
+
+    def apply(self, items, evaluation):
+        "%(name)s[items___]"
+        items_sequence = items.get_sequence()
+        if len(items_sequence) <= 1:
+            return SymbolTrue
+        return self.sapply(operators[self.get_name()], items, evaluation)
 
 
 class Inequality(Builtin):
@@ -824,9 +831,25 @@ class Positive(Builtin):
 
     attributes = ("Listable",)
 
-    rules = {
-        "Positive[x_?NumericQ]": "If[x > 0, True, False, False]",
-    }
+    def apply(self, x, evaluation):
+        "%(name)s[x_]"
+        if not x.is_numeric(evaluation):
+            return
+
+        if isinstance(x, Complex):
+            return
+        elif isinstance(x, Number):
+            res = x.to_python() > 0
+        else:
+            res = Less.sapply(
+                    (-1,),  # operators["System`Less"],
+                    Expression(SymbolSequence, Integer0, x),
+                    evaluation,
+                )
+            if res is None:
+                return
+            res = res.is_true()
+        return SymbolTrue if res else SymbolFalse
 
 
 class Negative(Builtin):
@@ -853,9 +876,25 @@ class Negative(Builtin):
 
     attributes = ("Listable",)
 
-    rules = {
-        "Negative[x_?NumericQ]": "If[x < 0, True, False, False]",
-    }
+    def apply(self, x, evaluation):
+        "%(name)s[x_]"
+
+        if not x.is_numeric(evaluation):
+            return
+
+        if isinstance(x, Complex):
+            return
+        elif isinstance(x, Number):
+            res = x.to_python() < 0
+        else:
+            res =  Less.sapply(
+                    (-1,),  # operators["System`Less"],
+                    Expression(SymbolSequence, x, Integer0),
+                    evaluation,
+            if res is None:
+                return
+            res = res.is_true()
+        return SymbolTrue if res else SymbolFalse
 
 
 class NonNegative(Builtin):
@@ -871,9 +910,25 @@ class NonNegative(Builtin):
 
     attributes = ("Listable",)
 
-    rules = {
-        "NonNegative[x_?NumericQ]": "If[x >= 0, True, False, False]",
-    }
+    def apply(self, x, evaluation):
+        "%(name)s[x_]"
+        if not x.is_numeric(evaluation):
+            return
+
+        if isinstance(x, Complex):
+            return
+        elif isinstance(x, Number):
+            res = x.to_python() < 0
+        else:
+            res = Less.sapply(
+                    (1,),  # operators["System`Less"],
+                    Expression(SymbolSequence, x, Integer0),
+                    evaluation,
+                )
+            if res is None:
+                return
+            res = res.is_true()
+        return SymbolFalse if res else SymbolTrue
 
 
 class NonPositive(Builtin):
@@ -888,10 +943,25 @@ class NonPositive(Builtin):
     """
 
     attributes = ("Listable",)
+    def apply(self, x, evaluation):
+        "%(name)s[x_]"
+        if not x.is_numeric(evaluation):
+            return
 
-    rules = {
-        "NonPositive[x_?NumericQ]": "If[x <= 0, True, False, False]",
-    }
+        if isinstance(x, Complex):
+            return
+        elif isinstance(x, Number):
+            res = x.to_python() > 0
+        else:
+            res = Less.sapply(
+                    (-1,),  # operators["System`Less"],
+                    Expression(SymbolSequence, Integer0, x),
+                    evaluation,
+                )
+            if res is None:
+                return
+            res = res.is_true()
+        return SymbolFalse if res else SymbolTrue
 
 
 def expr_max(items):

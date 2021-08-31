@@ -1476,7 +1476,7 @@ class _CoefficientHandler(Builtin):
         def key_powers(lst):
             key = Expression("Plus", *lst)
             key = key.evaluate(evaluation)
-            if key.is_numeric():
+            if key.is_numeric(evaluation):
                 return key.to_python()
             return 0
 

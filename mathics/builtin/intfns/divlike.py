@@ -367,7 +367,7 @@ class QuotientRemainder(Builtin):
 
     def apply(self, m, n, evaluation):
         "QuotientRemainder[m_, n_]"
-        if m.is_numeric() and n.is_numeric():
+        if m.is_numeric(evaluation) and n.is_numeric():
             py_m = m.to_python()
             py_n = n.to_python()
             if py_n == 0:

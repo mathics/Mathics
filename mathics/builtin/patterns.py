@@ -38,17 +38,19 @@ The attributes 'Flat', 'Orderless', and 'OneIdentity' affect pattern matching.
 
 
 from mathics.version import __version__  # noqa used in loading to check consistency.
-from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator
+from mathics.builtin.base import Builtin, BinaryOperator, PostfixOperator, Test
 from mathics.builtin.base import PatternObject, PatternError
 from mathics.builtin.lists import python_levelspec, InvalidLevelspecError
 
 from mathics.core.expression import (
+    Atom,
     Symbol,
     Expression,
     Number,
     Integer,
     Rational,
     Real,
+    String,
     SymbolFalse,
     SymbolList,
     SymbolN,
@@ -358,7 +360,7 @@ class ReplaceRepeated(BinaryOperator):
             return rules
 
         maxit = self.get_option(options, "MaxIterations", evaluation)
-        if maxit.is_numeric():
+        if maxit.is_numeric(evaluation):
             maxit = maxit.get_int_value()
         else:
             maxit = -1
@@ -475,61 +477,15 @@ class PatternTest(BinaryOperator, PatternObject):
         self.test_name = self.test.get_name()
 
     def quick_pattern_test(self, candidate, test, evaluation):
-        if test == "System`NumberQ":
-            return isinstance(candidate, Number)
         if test == "System`NumericQ":
             if isinstance(candidate, Number):
                 return True
-            # Otherwise, follow the standard evaluation
-        elif test == "System`RealNumberQ":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return True
-            candidate = Expression(SymbolN, candidate).evaluate(evaluation)
-            if isinstance(candidate, Real):
-                return True
-            return False
-            # pass
-        elif test == "System`Positive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value > 0
-            return False
-            # pass
-        elif test == "System`NonPositive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value <= 0
-            return False
-            # pass
-        elif test == "System`Negative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value < 0
-            return False
-            # pass
-        elif test == "System`NonNegative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value >= 0
-            return False
-            # pass
-        elif test == "System`NegativePowerQ":
-            return (
-                candidate.has_form("Power", 2)
-                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
-                and candidate.leaves[1].value < 0
-            )
-        elif test == "System`NotNegativePowerQ":
-            return not (
-                candidate.has_form("Power", 2)
-                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
-                and candidate.leaves[1].value < 0
-            )
-        else:
-            from mathics.builtin.base import Test
-
-            builtin = None
-            builtin = evaluation.definitions.get_definition(test)
-            if builtin:
-                builtin = builtin.builtin
-            if builtin is not None and isinstance(builtin, Test):
-                return builtin.test(candidate)
+        builtin = None
+        builtin = evaluation.definitions.get_definition(test)
+        if builtin:
+            builtin = builtin.builtin
+        if builtin is not None and isinstance(builtin, Test):
+            return builtin.test(candidate)
         return None
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -537,7 +493,8 @@ class PatternTest(BinaryOperator, PatternObject):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
             for item in items:
-                item = item.evaluate(evaluation)
+                if isinstance(item, Symbol) or not isinstance(item, Atom):
+                    item = item.evaluate(evaluation)
                 quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
                 if quick_test is not None:
                     if not quick_test:
