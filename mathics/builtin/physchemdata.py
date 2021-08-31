@@ -123,7 +123,9 @@ class ElementData(Builtin):
         return from_python(sorted(_ELEMENT_DATA[0]))
 
     def apply_name(self, name, prop, evaluation):
-        "ElementData[name_?StringQ, prop_]"
+        "ElementData[name_, prop_]"
+        if not isinstance(name, String):
+            return
         py_name = name.to_python().strip('"')
         names = ["StandardName", "Name", "Abbreviation"]
         iprops = [_ELEMENT_DATA[0].index(s) for s in names]
