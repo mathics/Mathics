@@ -477,7 +477,7 @@ class PatternTest(BinaryOperator, PatternObject):
     def quick_pattern_test(self, candidate, test, evaluation):
         if test == "System`NumberQ":
             return isinstance(candidate, Number)
-        if test == "System`NumericQ":
+        elif test == "System`NumericQ":
             if isinstance(candidate, Number):
                 return True
             # Otherwise, follow the standard evaluation
@@ -485,9 +485,7 @@ class PatternTest(BinaryOperator, PatternObject):
             if isinstance(candidate, (Integer, Rational, Real)):
                 return True
             candidate = Expression(SymbolN, candidate).evaluate(evaluation)
-            if isinstance(candidate, Real):
-                return True
-            return False
+            return isinstance(candidate, Real)
             # pass
         elif test == "System`Positive":
             if isinstance(candidate, (Integer, Rational, Real)):
@@ -539,10 +537,9 @@ class PatternTest(BinaryOperator, PatternObject):
             for item in items:
                 item = item.evaluate(evaluation)
                 quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
-                if quick_test is not None:
-                    if not quick_test:
-                        break
-                        # raise StopGenerator
+                if quick_test is False:
+                    break
+                    # raise StopGenerator
                 else:
                     test_expr = Expression(self.test, item)
                     test_value = test_expr.evaluate(evaluation)
