@@ -876,10 +876,10 @@ class Rational_(Builtin):
     def apply(self, n, m, evaluation):
         "%(name)s[n_Integer, m_Integer]"
 
-        if m.to_sympy() == 1:
-            return Integer(n.to_sympy())
+        if m.value == 1:
+            return n
         else:
-            return Rational(n.to_sympy(), m.to_sympy())
+            return Rational(n.value, m.value)
 
 
 class Complex_(Builtin):
