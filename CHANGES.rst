@@ -1,6 +1,18 @@
 CHANGES
 =======
 
+Internals
+=========
+
+* now `Expression.is_numeric()` accepts an `Evaluation` object as a parameter,
+  to use the definitions.
+* To numerify expressions, the function `_numeric_evaluation_with_prec` was introduced in the module `mathics.builtin.numeric` to avoid the idiom
+  `Expression("N", expr, prec).evaluate(evaluation)`. The idea is to avoid when it is possible to call the Pattern matching routines to obtain the numeric value of an expression.
+* `Positive`,  `Negative`, `NonPositive` and `NonNegative` do not check their arguments using the Pattern matching mechanism, but inside the Python code.
+* special cases for `quick_pattern_test` were reduced as much as possible.
+* A bug comming from a failure in the order in which `mathics.core.definitions` stores the rules was fixed.
+
+
 4.0.1
 -----
 
