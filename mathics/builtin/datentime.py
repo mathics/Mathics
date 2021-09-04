@@ -635,7 +635,7 @@ class DateObject(_DateFormat):
 
         # TODO: if tz != timezone, shift the datetime list.
         if not tz == timezone:
-            dt = timezone.to_python() - tz.to_python()
+            dt = timezone.value - tz.value
             if len(datelist) > 3:
                 newhour = datelist[3] + dt
                 datelist = datelist[:3] + [newhour] + datelist[4:]

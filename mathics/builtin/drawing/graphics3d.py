@@ -264,9 +264,9 @@ class Cuboid(Builtin):
             List(
                 List(xmin, ymin, zmin),
                 List(
-                    Real(xmin.to_python() + 1),
-                    Real(ymin.to_python() + 1),
-                    Real(zmin.to_python() + 1),
+                    Real(xmin.value + 1),
+                    Real(ymin.value + 1),
+                    Real(zmin.value + 1),
                 ),
             ),
         )
