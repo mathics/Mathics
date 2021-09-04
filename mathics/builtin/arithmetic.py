@@ -342,20 +342,15 @@ class Im(SympyFunction):
 
     attributes = ("Listable", "NumericFunction")
 
-    def apply_complex(self, number, evaluation):
-        "Im[number_Complex]"
-
-        return number.imag
-
-    def apply_number(self, number, evaluation):
-        "Im[number_?NumberQ]"
-
-        return Integer0
-
     def apply(self, number, evaluation):
         "Im[number_]"
 
-        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
+        if isinstance(number, Complex):
+            return number.imag
+        elif isinstance(number, (Integer, Real, Rational)):
+            return Integer0
+        else:
+            return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
