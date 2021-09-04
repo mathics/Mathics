@@ -462,10 +462,8 @@ class MakeBoxes(Builtin):
         "MakeBoxes[expr_]": "MakeBoxes[expr, StandardForm]",
         "MakeBoxes[(form:StandardForm|TraditionalForm|OutputForm|TeXForm|"
         "MathMLForm)[expr_], StandardForm|TraditionalForm]": ("MakeBoxes[expr, form]"),
-        "MakeBoxes[(form:OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]": "MakeBoxes[expr, form]",
-        "MakeBoxes[StandardForm[expr_], OutputForm]": "MakeBoxes[expr, OutputForm]",
-        "MakeBoxes[FullForm[expr_], StandardForm|TraditionalForm|OutputForm]": "StyleBox[MakeBoxes[expr, FullForm], ShowStringCharacters->True]",
-        "MakeBoxes[InputForm[expr_], StandardForm|TraditionalForm|OutputForm]": "StyleBox[MakeBoxes[expr, InputForm], ShowStringCharacters->True]",
+        "MakeBoxes[(form:StandardForm|OutputForm|MathMLForm|TeXForm)[expr_], OutputForm]": "MakeBoxes[expr, form]",
+        "MakeBoxes[(form:FullForm|InputForm)[expr_], StandardForm|TraditionalForm|OutputForm]": "StyleBox[MakeBoxes[expr, form], ShowStringCharacters->True]",
         "MakeBoxes[PrecedenceForm[expr_, prec_], f_]": "MakeBoxes[expr, f]",
         "MakeBoxes[Style[expr_, OptionsPattern[Style]], f_]": (
             "StyleBox[MakeBoxes[expr, f], "
@@ -515,15 +513,9 @@ class MakeBoxes(Builtin):
             result.append(String(right))
             return RowBox(Expression(SymbolList, *result))
 
-    def _apply_atom(self, x, f, evaluation):
-        """MakeBoxes[x_?AtomQ,
-        f:TraditionalForm|StandardForm|OutputForm|InputForm|FullForm]"""
-
-        return x.atom_to_boxes(f, evaluation)
-
-    def apply_outerprecedenceform(self, expr, prec, f, evaluation):
+    def apply_outerprecedenceform(self, expr, prec, evaluation):
         """MakeBoxes[OuterPrecedenceForm[expr_, prec_],
-        f:StandardForm|TraditionalForm|OutputForm|InputForm]"""
+        StandardForm|TraditionalForm|OutputForm|InputForm]"""
 
         precedence = prec.get_int_value()
         boxes = MakeBoxes(expr)
