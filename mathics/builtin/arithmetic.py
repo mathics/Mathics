@@ -310,20 +310,15 @@ class Re(SympyFunction):
     attributes = ("Listable", "NumericFunction")
     sympy_name = "re"
 
-    def apply_complex(self, number, evaluation):
-        "Re[number_Complex]"
-
-        return number.real
-
-    def apply_number(self, number, evaluation):
-        "Re[number_?NumberQ]"
-
-        return number
-
     def apply(self, number, evaluation):
         "Re[number_]"
 
-        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+        if isinstance(number, Complex):
+            return number.real
+        elif isinstance(number, (Integer, Real, Rational)):
+            return number
+        else:
+            return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
 
 
 class Im(SympyFunction):
