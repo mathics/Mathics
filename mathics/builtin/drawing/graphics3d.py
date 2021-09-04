@@ -245,41 +245,12 @@ class Cuboid(Builtin):
 
     rules = {
         "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
+        "Cuboid[{xmin_?NumberQ, ymin_?NumberQ}]": "Rectangle[{xmin, ymin}, {xmin + 1, ymin + 1}]",
+        "Cuboid[{xmin_, ymin_}, {xmax_, ymax_}]": "Rectangle[{xmin, ymin}, {xmax, ymax}]",
+        "Cuboid[{xmin_, ymin_, zmin_}]": "Cuboid[{{xmin, ymin, zmin}, {xmin + 1, ymin + 1, zmin + 1}}]",
     }
 
     summary_text = "unit cube"
-
-    def apply_unit_square(self, xmin, ymin, evaluation):
-        "Cuboid[{xmin_, ymin_}]"
-
-        return Expression(
-            "Rectangle",
-            List(xmin, ymin),
-            List(
-                Real(xmin.to_python() + 1),
-                Real(ymin.to_python() + 1),
-            ),
-        )
-
-    def apply_unit_cube(self, xmin, ymin, zmin, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}]"
-
-        return Expression(
-            "Cuboid",
-            List(
-                List(xmin, ymin, zmin),
-                List(
-                    Real(xmin.to_python() + 1),
-                    Real(ymin.to_python() + 1),
-                    Real(zmin.to_python() + 1),
-                ),
-            ),
-        )
-
-    def apply_rectangle(self, xmin, ymin, xmax, ymax, evaluation):
-        "Cuboid[{xmin_, ymin_}, {xmax_, ymax_}]"
-
-        return Expression("Rectangle", List(xmin, ymin), List(xmax, ymax))
 
     def apply_check(self, positions, evaluation):
         "Cuboid[positions_List]"
