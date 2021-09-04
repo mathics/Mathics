@@ -148,7 +148,7 @@ class OptionValue(Builtin):
             return
 
         if type(optname) is String:
-            name = optname.to_python()[1:-1]
+            name = optname.to_python(string_quotes=False)
         else:
             name = optname.get_name()
 
@@ -174,7 +174,7 @@ class OptionValue(Builtin):
     def apply_3(self, f, optvals, optname, evaluation):
         "OptionValue[f_, optvals_, optname_]"
         if type(optname) is String:
-            name = optname.to_python()[1:-1]
+            name = optname.to_python(string_quotes=False)
         else:
             name = optname.get_name()
 
