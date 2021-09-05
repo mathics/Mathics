@@ -681,7 +681,7 @@ class FileBaseName(Builtin):
 
     def apply(self, filename, evaluation, options):
         "FileBaseName[filename_String, OptionsPattern[FileBaseName]]"
-        path = filename.to_python()[1:-1]
+        path = filename.to_python(string_quotes=False)
 
         filename_base, filename_ext = osp.splitext(path)
         return from_python(filename_base)
@@ -787,7 +787,7 @@ class FileDate(Builtin):
 
     def apply(self, path, timetype, evaluation):
         "FileDate[path_, timetype_]"
-        py_path = path_search(path.to_python()[1:-1])
+        py_path = path_search(path.to_python(string_quotes=False))
 
         if py_path is None:
             if timetype is None:
@@ -801,7 +801,7 @@ class FileDate(Builtin):
         if timetype is None:
             time_type = "Modification"
         else:
-            time_type = timetype.to_python()[1:-1]
+            time_type = timetype.to_python(string_quotes=False)
 
         if time_type == "Access":
             result = osp.getatime(py_path)
@@ -895,7 +895,7 @@ class FileExtension(Builtin):
 
     def apply(self, filename, evaluation, options):
         "FileExtension[filename_String, OptionsPattern[FileExtension]]"
-        path = filename.to_python()[1:-1]
+        path = filename.to_python(string_quotes=False)
         filename_base, filename_ext = osp.splitext(path)
         filename_ext = filename_ext.lstrip(".")
         return from_python(filename_ext)
@@ -1128,7 +1128,7 @@ class FileType(Builtin):
         if not isinstance(filename, String):
             evaluation.message("FileType", "fstr", filename)
             return
-        path = filename.to_python()[1:-1]
+        path = filename.to_python(string_quotes=False)
 
         path = path_search(path)
 
@@ -1354,7 +1354,7 @@ class FileNameSplit(Builtin):
     def apply(self, filename, evaluation, options):
         "FileNameSplit[filename_String, OptionsPattern[FileNameSplit]]"
 
-        path = filename.to_python()[1:-1]
+        path = filename.to_python(string_quotes=False)
 
         operating_system = (
             options["System`OperatingSystem"].evaluate(evaluation).to_python()
@@ -1415,13 +1415,13 @@ class FileNameTake(Builtin):
 
     def apply(self, filename, evaluation, options):
         "FileNameTake[filename_String, OptionsPattern[FileBaseName]]"
-        path = pathlib.Path(filename.to_python()[1:-1])
+        path = pathlib.Path(filename.to_python(string_quotes=False))
         return from_python(path.name)
 
     def apply_n(self, filename, n, evaluation, options):
         "FileNameTake[filename_String, n_Integer, OptionsPattern[FileBaseName]]"
         n_int = n.get_int_value()
-        parts = pathlib.Path(filename.to_python()[1:-1]).parts
+        parts = pathlib.Path(filename.to_python(string_quotes=False)).parts
         if n_int >= 0:
             subparts = parts[:n_int]
         else:
@@ -1787,7 +1787,7 @@ class ParentDirectory(Builtin):
             evaluation.message("ParentDirectory", "fstr", path)
             return
 
-        pypath = path.to_python()[1:-1]
+        pypath = path.to_python(string_quotes=False)
 
         result = osp.abspath(osp.join(pypath, osp.pardir))
         return String(result)

@@ -2648,7 +2648,7 @@ class Find(Read):
             tmp = super(Find, self).apply(
                 channel, Symbol("Record"), evaluation, options
             )
-            py_tmp = tmp.to_python()[1:-1]
+            py_tmp = tmp.to_python(string_quotes=False)
 
             if py_tmp == "System`EndOfFile":
                 evaluation.message(
@@ -2725,7 +2725,7 @@ class StringToStream(Builtin):
 
     def apply(self, string, evaluation):
         "StringToStream[string_]"
-        pystring = string.to_python()[1:-1]
+        pystring = string.to_python(string_quotes=False)
         fp = io.StringIO(str(pystring))
 
         name = Symbol("String")

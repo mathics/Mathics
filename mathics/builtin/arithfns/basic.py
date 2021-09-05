@@ -308,7 +308,7 @@ class Plus(BinaryOperator, SympyFunction):
                 real, imag = value.to_sympy().as_real_imag()
                 if real <= 0 and imag <= 0:
                     return True
-            elif isinstance(value, Number) and value.to_sympy() < 0:
+            elif isinstance(value, Number) and value.value < 0:
                 return True
             return False
 
