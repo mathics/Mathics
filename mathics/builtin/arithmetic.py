@@ -133,10 +133,7 @@ class _MPMathFunction(SympyFunction):
         else:
             prec = min_prec(*args)
             d = dps(prec)
-            args = [
-                apply_N(arg, evaluation, Integer(d))
-                for arg in args
-            ]
+            args = [apply_N(arg, evaluation, Integer(d)) for arg in args]
             with mpmath.workprec(prec):
                 mpmath_args = [x.to_mpmath() for x in args]
                 if None in mpmath_args:
