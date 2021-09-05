@@ -62,7 +62,7 @@ def log_n_b(py_n, py_b) -> int:
     return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
 
 
-def _numeric_evaluation_with_prec(expression, evaluation, prec=SymbolMachinePrecision):
+def apply_N(expression, evaluation, prec=SymbolMachinePrecision):
     return Expression("N", expression, prec).evaluate(evaluation)
 
 

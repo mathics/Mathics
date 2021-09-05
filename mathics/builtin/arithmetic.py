@@ -47,7 +47,7 @@ from mathics.builtin.lists import _IterationFunction
 from mathics.core.convert import from_sympy, SympyExpression, sympy_symbol_prefix
 from mathics.builtin.scoping import dynamic_scoping
 from mathics.builtin.inference import get_assumptions_list, evaluate_predicate
-from mathics.builtin.numeric import _numeric_evaluation_with_prec
+from mathics.builtin.numeric import apply_N
 
 
 @lru_cache(maxsize=1024)
@@ -134,7 +134,7 @@ class _MPMathFunction(SympyFunction):
             prec = min_prec(*args)
             d = dps(prec)
             args = [
-                _numeric_evaluation_with_prec(arg, evaluation, Integer(d))
+                apply_N(arg, evaluation, Integer(d))
                 for arg in args
             ]
             with mpmath.workprec(prec):
