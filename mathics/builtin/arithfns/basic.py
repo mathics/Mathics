@@ -201,7 +201,7 @@ class Minus(PrefixOperator):
     def apply_int(self, x, evaluation):
         "Minus[x_Integer]"
 
-        return Integer(-x.to_sympy())
+        return Integer(-x.value)
 
 
 class Plus(BinaryOperator, SympyFunction):

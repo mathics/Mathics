@@ -390,10 +390,8 @@ class Simplify(Builtin):
     """
 
     rules = {
-        "Simplify[list_List]": "Simplify /@ list",
-        "Simplify[rule_Rule]": "Simplify /@ rule",
-        "Simplify[list_List, assum_]": "Simplify[#1, assum]& /@ list",
-        "Simplify[rule_Rule, assum_]": "Simplify[#1, assum]& /@ rule",
+        "Simplify[expr_List|expr_Rule]": "Simplify /@ expr",
+        "Simplify[expr_List|expr_Rule, assum_]": "Simplify[#1, assum]& /@ expr",
         "Simplify[0^a_, assum_]": "ConditionalExpression[0,Simplify[a>0]]",
         "Simplify[b_^a_, assum_]": "ConditionalExpression[b,Simplify[{Or[a>0, b!=0]}]]",
     }
@@ -441,11 +439,9 @@ class FullSimplify(Simplify):
     """
 
     rules = {
-        "FullSimplify[list_List]": "FullSimplify /@ list",
-        "FullSimplify[rule_Rule]": "FullSimplify /@ rule",
+        "FullSimplify[expr_List|expr_Rule]": "FullSimplify /@ expr",
         "FullSimplify[eq_Equal]": "FullSimplify /@ eq",
-        "FullSimplify[list_List, assum_]": "FullSimplify[#1, assum]& /@ list",
-        "FullSimplify[rule_Rule, assum_]": "FullSimplify[#1, assum]& /@ rule",
+        "FullSimplify[expr_List|expr_Rule, assum_]": "FullSimplify[#1, assum]& /@ expr",
         "FullSimplify[eq_Equal, assum_]": "FullSimplify[#1, assum]& /@ eq",
     }
 
@@ -921,11 +917,7 @@ class PowerExpand(Builtin):
         "PowerExpand[(x_ ^ y_) ^ z_]": "x ^ (y * z)",
         "PowerExpand[(x_ * y_) ^ z_]": "x ^ z * y ^ z",
         "PowerExpand[Log[x_ ^ y_]]": "y * Log[x]",
-        "PowerExpand[x_Plus]": "PowerExpand /@ x",
-        "PowerExpand[x_Times]": "PowerExpand /@ x",
-        "PowerExpand[x_Power]": "PowerExpand /@ x",
-        "PowerExpand[x_List]": "PowerExpand /@ x",
-        "PowerExpand[x_Rule]": "PowerExpand /@ x",
+        "PowerExpand[x_Plus|x_Times|x_Power|x_List|x_Rule]": "PowerExpand /@ x",
         "PowerExpand[other_]": "other",
     }
 

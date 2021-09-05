@@ -244,8 +244,6 @@ class ByteArray(Builtin):
 
     def apply_list(self, values, evaluation):
         "ByteArray[values_List]"
-        if not values.has_form("List", None):
-            return
         try:
             ba = bytearray([b.get_int_value() for b in values._leaves])
         except:
