@@ -228,7 +228,10 @@ class Cuboid(Builtin):
     Cuboid also known as interval, rectangle, square, cube, rectangular parallelepiped, tesseract, orthotope, and box.
     <dl>
       <dt>'Cuboid[$p_min$]'
-      <dd>is a unit cube with its lower corner at point $p_min$.
+      <dd>is a unit cube/square with its lower corner at point $p_min$.
+
+      <dt>'Cuboid[$p_min$, $p_max$]
+      <dd>is a 2d square with with lower corner $p_min$ and upper corner $p_max$.
 
       <dt>'Cuboid[{$p_min$, $p_max$}]'
       <dd>is a cuboid with lower corner $p_min$ and upper corner $p_max$.
@@ -245,6 +248,9 @@ class Cuboid(Builtin):
     >> Graphics3D[{Red, Cuboid[{{0, 0, 0}, {1, 1, 0.5}}], Blue, Cuboid[{{0.25, 0.25, 0.5}, {0.75, 0.75, 1}}]}]
      = -Graphics3D-
 
+    >> Graphics[Cuboid[{0, 0}]]
+     = -Graphics-
+
     ##
     """
 
@@ -252,24 +258,12 @@ class Cuboid(Builtin):
 
     rules = {
         "Cuboid[]": "Cuboid[{{0, 0, 0}, {1, 1, 1}}]",
+        "Cuboid[{xmin_?NumberQ, ymin_?NumberQ}]": "Rectangle[{xmin, ymin}, {xmin + 1, ymin + 1}]",
+        "Cuboid[{xmin_, ymin_}, {xmax_, ymax_}]": "Rectangle[{xmin, ymin}, {xmax, ymax}]",
+        "Cuboid[{xmin_, ymin_, zmin_}]": "Cuboid[{{xmin, ymin, zmin}, {xmin + 1, ymin + 1, zmin + 1}}]",
     }
 
     summary_text = "unit cube"
-
-    def apply_unit_cube(self, xmin, ymin, zmin, evaluation):
-        "Cuboid[{xmin_, ymin_, zmin_}]"
-
-        return Expression(
-            "Cuboid",
-            List(
-                List(xmin, ymin, zmin),
-                List(
-                    Real(xmin.to_python() + 1),
-                    Real(ymin.to_python() + 1),
-                    Real(zmin.to_python() + 1),
-                ),
-            ),
-        )
 
     def apply_check(self, positions, evaluation):
         "Cuboid[positions_List]"
