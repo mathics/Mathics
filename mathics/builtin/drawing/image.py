@@ -158,7 +158,7 @@ class ImageExport(_ImageBuiltin):
     messages = {"noimage": "only an Image[] can be exported into an image file"}
 
     def apply(self, path, expr, opts, evaluation):
-        """ImageExport[path_?StringQ, expr_, opts___]"""
+        """ImageExport[path_String, expr_, opts___]"""
         if isinstance(expr, Image):
             expr.pil().save(path.get_string_value())
             return SymbolNull

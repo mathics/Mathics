@@ -488,7 +488,7 @@ class NextPrime(Builtin):
     }
 
     def apply(self, n, k, evaluation):
-        "NextPrime[n_?NumericQ, k_Integer]"
+        "NextPrime[n_?NumberQ, k_Integer]"
         py_k = k.to_python(n_evaluation=evaluation)
         py_n = n.to_python(n_evaluation=evaluation)
 

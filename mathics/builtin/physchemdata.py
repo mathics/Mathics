@@ -14,6 +14,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import (
     Expression,
     from_python,
+    Integer,
     Symbol,
     String,
     strip_context,
@@ -122,76 +123,74 @@ class ElementData(Builtin):
         'ElementData[All, "Properties"]'
         return from_python(sorted(_ELEMENT_DATA[0]))
 
-    def apply_name(self, name, prop, evaluation):
-        "ElementData[name_?StringQ, prop_]"
-        py_name = name.to_python().strip('"')
-        names = ["StandardName", "Name", "Abbreviation"]
-        iprops = [_ELEMENT_DATA[0].index(s) for s in names]
+    def apply_name(self, expr, prop, evaluation):
+        "ElementData[expr_, prop_]"
 
-        indx = None
-        for iprop in iprops:
-            try:
-                indx = [element[iprop] for element in _ELEMENT_DATA[1:]].index(
-                    py_name
-                ) + 1
-            except ValueError:
-                pass
+        if isinstance(expr, String):
+            py_name = expr.to_python(string_quotes=False)
+            names = ["StandardName", "Name", "Abbreviation"]
+            iprops = [_ELEMENT_DATA[0].index(s) for s in names]
 
-        if indx is None:
-            evaluation.message("ElementData", "noent", name)
-            return
+            indx = None
+            for iprop in iprops:
+                try:
+                    indx = [element[iprop] for element in _ELEMENT_DATA[1:]].index(
+                        py_name
+                    ) + 1
+                except ValueError:
+                    pass
 
-        return self.apply_int(from_python(indx), prop, evaluation)
-
-    def apply_int(self, n, prop, evaluation):
-        "ElementData[n_Integer, prop_]"
-
-        py_n = n.to_python()
-        py_prop = prop.to_python()
-
-        # Check element specifier n or "name"
-        if isinstance(py_n, int):
-            if not 1 <= py_n <= 118:
-                evaluation.message("ElementData", "noent", n)
+            if indx is None:
+                evaluation.message("ElementData", "noent", expr)
                 return
-        elif isinstance(py_n, str):
-            pass
-        else:
-            evaluation.message("ElementData", "noent", n)
-            return
 
-        # Check property specifier
-        if isinstance(py_prop, str):
-            py_prop = str(py_prop)
+            # Enter in the next if, but with expr being the index
+            expr = from_python(indx)
+        if isinstance(expr, Integer):
+            py_n = expr.value
+            py_prop = prop.to_python()
 
-        if py_prop == '"Properties"':
-            result = []
-            for i, p in enumerate(_ELEMENT_DATA[py_n]):
-                if p not in ["NOT_AVAILABLE", "NOT_APPLICABLE", "NOT_KNOWN"]:
-                    result.append(_ELEMENT_DATA[0][i])
-            return from_python(sorted(result))
+            # Check element specifier n or "name"
+            if isinstance(py_n, int):
+                if not 1 <= py_n <= 118:
+                    evaluation.message("ElementData", "noent", expr)
+                    return
+            else:
+                evaluation.message("ElementData", "noent", expr)
+                return
 
-        if not (
-            isinstance(py_prop, str)
-            and py_prop[0] == py_prop[-1] == '"'
-            and py_prop.strip('"') in _ELEMENT_DATA[0]
-        ):
-            evaluation.message("ElementData", "noprop", prop)
-            return
+            # Check property specifier
+            if isinstance(py_prop, str):
+                py_prop = str(py_prop)
 
-        iprop = _ELEMENT_DATA[0].index(py_prop.strip('"'))
-        result = _ELEMENT_DATA[py_n][iprop]
+            if py_prop == '"Properties"':
+                result = []
+                for i, p in enumerate(_ELEMENT_DATA[py_n]):
+                    if p not in ["NOT_AVAILABLE", "NOT_APPLICABLE", "NOT_KNOWN"]:
+                        result.append(_ELEMENT_DATA[0][i])
+                return from_python(sorted(result))
 
-        if result == "NOT_AVAILABLE":
-            return Expression("Missing", "NotAvailable")
+            if not (
+                isinstance(py_prop, str)
+                and py_prop[0] == py_prop[-1] == '"'
+                and py_prop.strip('"') in _ELEMENT_DATA[0]
+            ):
+                evaluation.message("ElementData", "noprop", prop)
+                return
 
-        if result == "NOT_APPLICABLE":
-            return Expression("Missing", "NotApplicable")
+            iprop = _ELEMENT_DATA[0].index(py_prop.strip('"'))
+            result = _ELEMENT_DATA[py_n][iprop]
 
-        if result == "NOT_KNOWN":
-            return Expression("Missing", "Unknown")
+            if result == "NOT_AVAILABLE":
+                return Expression("Missing", "NotAvailable")
 
-        result = evaluation.parse(result)
-        if isinstance(result, Symbol):
-            result = String(strip_context(result.get_name()))
-        return result
+            if result == "NOT_APPLICABLE":
+                return Expression("Missing", "NotApplicable")
+
+            if result == "NOT_KNOWN":
+                return Expression("Missing", "Unknown")
+
+            result = evaluation.parse(result)
+            if isinstance(result, Symbol):
+                result = String(strip_context(result.get_name()))
+            return result
