@@ -392,8 +392,7 @@ class MantissaExponent(Builtin):
     attributes = ("Listable",)
 
     rules = {
-        "MantissaExponent[0]": "{0, 0}",
-        "MantissaExponent[0, n_]": "{0, 0}",
+        "MantissaExponent[0, n_:0]": "{0, 0}",
     }
 
     messages = {

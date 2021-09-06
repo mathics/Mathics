@@ -120,6 +120,3 @@ class Tetrahedron(Builtin):
         "Tetrahedron[l_?NumberQ]": """UniformPolyhedron["tetrahedron", {{0, 0, 0}}, l]""",
         "Tetrahedron[positions_List, l_?NumberQ]": """UniformPolyhedron["tetrahedron", positions, l]""",
     }
-
-    def apply_with_length(self, length, evaluation):
-        "Tetrahedron[l_?Numeric]"
