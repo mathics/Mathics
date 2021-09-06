@@ -527,11 +527,13 @@ class BinaryOperator(Operator):
 class Test(Builtin):
     def apply(self, expr, evaluation) -> Symbol:
         "%(name)s[expr_]"
-
-        if self.test(expr):
+        tst = self.test(expr)
+        if tst:
             return SymbolTrue
-        else:
+        elif tst is False:
             return SymbolFalse
+        else:
+            return
 
 
 class SympyFunction(SympyObject):

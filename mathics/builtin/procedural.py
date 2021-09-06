@@ -433,7 +433,7 @@ class FixedPoint(Builtin):
 
         if count is None:
             count = self.get_option(options, "MaxIterations", evaluation)
-            if count.is_numeric():
+            if count.is_numeric(evaluation):
                 count = count.get_int_value()
             else:
                 count = None

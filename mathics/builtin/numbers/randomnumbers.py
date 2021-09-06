@@ -251,7 +251,7 @@ class _RandomBase(Builtin):
 
     def _size_to_python(self, domain, size, evaluation):
         is_proper_spec = size.get_head_name() == "System`List" and all(
-            n.is_numeric() for n in size.leaves
+            n.is_numeric(evaluation) for n in size.leaves
         )
 
         py_size = size.to_python() if is_proper_spec else None
@@ -589,7 +589,7 @@ class _RandomSelection(_RandomBase):
         # we need to normalize weights as numpy.rand.randchoice expects this and as we can limit
         # accuracy problems with very large or very small weights by normalizing with sympy
         is_proper_spec = weights.get_head_name() == "System`List" and all(
-            w.is_numeric() for w in weights.leaves
+            w.is_numeric(evaluation) for w in weights.leaves
         )
 
         if (
@@ -599,7 +599,7 @@ class _RandomSelection(_RandomBase):
                 "Divide", weights, Expression("Total", weights)
             ).evaluate(evaluation)
             if norm_weights is None or not all(
-                w.is_numeric() for w in norm_weights.leaves
+                w.is_numeric(evaluation) for w in norm_weights.leaves
             ):
                 return evaluation.message(self.get_name(), "wghtv", weights), None
             weights = norm_weights
