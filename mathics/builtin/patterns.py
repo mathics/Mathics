@@ -56,6 +56,9 @@ from mathics.core.expression import (
     SymbolN,
     SymbolTrue,
 )
+
+from mathics.builtin.numeric import apply_N
+
 from mathics.core.rules import Rule
 from mathics.core.pattern import Pattern, StopGenerator
 
@@ -487,7 +490,7 @@ class PatternTest(BinaryOperator, PatternObject):
         elif test == "System`RealNumberQ":
             if isinstance(candidate, (Integer, Rational, Real)):
                 return True
-            candidate = Expression(SymbolN, candidate).evaluate(evaluation)
+            candidate = apply_N(candidate, evaluation)
             return isinstance(candidate, Real)
             # pass
         elif test == "System`Positive":

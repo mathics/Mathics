@@ -883,7 +883,7 @@ class N(Builtin):
             )
             if result is not None:
                 if not result.sameQ(nexpr):
-                    result = Expression(SymbolN, result, prec).evaluate(evaluation)
+                    result = apply_N(result, evaluation, prec=prec)
                 return result
 
         if expr.is_atom():
@@ -901,12 +901,10 @@ class N(Builtin):
                     eval_range = ()
             else:
                 eval_range = range(len(expr.leaves))
-            head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
+            head = apply_N(expr.head, evaluation, prec=prec)
             leaves = expr.get_mutable_leaves()
             for index in eval_range:
-                leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
-                    evaluation
-                )
+                leaves[index] = apply_N(leaves[index], evaluation, prec=prec)
             return Expression(head, *leaves)
 
 
@@ -1151,8 +1149,8 @@ class NIntegrate(Builtin):
                         (lambda u: a - z + z / u, lambda u: z * u ** (-2.0))
                     )
                 elif a.is_numeric(evaluation) and b.is_numeric(evaluation):
-                    a = Expression(SymbolN, a).evaluate(evaluation).value
-                    b = Expression(SymbolN, b).evaluate(evaluation).value
+                    a = apply_N(a, evaluation).value
+                    b = apply_N(b, evaluation).value
                     subdomain2.append([a, b])
                     coordtransform.append(None)
                 else:
@@ -1662,7 +1660,7 @@ class RealDigits(Builtin):
                 ).evaluate(evaluation)
             else:
                 if rational_no:
-                    n = Expression(SymbolN, n).evaluate(evaluation)
+                    n = apply_N(n, evaluation)
                 else:
                     return evaluation.message("RealDigits", "ndig", expr)
         py_n = abs(n.value)

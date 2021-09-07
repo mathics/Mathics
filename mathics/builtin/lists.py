@@ -67,6 +67,8 @@ from mathics.core.expression import (
     structure,
 )
 
+from mathics.builtin.numeric import apply_N
+
 
 def deletecases_with_levelspec(expr, pattern, evaluation, levelspec=1, n=-1):
     """
@@ -2511,7 +2513,7 @@ class _LazyDistances(LazyDistances):
 
     def _compute_distance(self, i, j):
         p = self._p
-        d = Expression(SymbolN, self._df(p[i], p[j])).evaluate(self._evaluation)
+        d = apply_N(self._df(p[i], p[j]), self._evaluation)
         return _to_real_distance(d)
 
 

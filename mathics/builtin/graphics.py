@@ -46,6 +46,8 @@ from mathics.core.expression import (
     system_symbols_dict,
 )
 
+from mathics.builtin.numeric import apply_N
+
 from mathics.core.formatter import lookup_method
 from mathics.format.asy_fns import asy_bezier
 
@@ -327,13 +329,11 @@ class Graphics(Builtin):
                                 inset._leaves[0], evaluation, opts
                             )
                         n_leaves = [inset] + [
-                            Expression(SymbolN, leaf).evaluate(evaluation)
-                            for leaf in content.leaves[1:]
+                            apply_N(leaf, evaluation) for leaf in content.leaves[1:]
                         ]
                     else:
                         n_leaves = (
-                            Expression(SymbolN, leaf).evaluate(evaluation)
-                            for leaf in content.leaves
+                            apply_N(leaf, evaluation) for leaf in content.leaves
                         )
                 else:
                     n_leaves = content.leaves
@@ -342,9 +342,7 @@ class Graphics(Builtin):
 
         for option in options:
             if option not in ("System`ImageSize",):
-                options[option] = Expression(SymbolN, options[option]).evaluate(
-                    evaluation
-                )
+                options[option] = apply_N(options[option], evaluation)
 
         from mathics.builtin.box.graphics import GraphicsBox
         from mathics.builtin.box.graphics3d import Graphics3DBox

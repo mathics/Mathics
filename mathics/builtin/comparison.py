@@ -32,6 +32,8 @@ from mathics.core.expression import (
 )
 from mathics.core.numbers import dps
 
+from mathics.builtin.numeric import apply_N
+
 
 def cmp(a, b) -> int:
     "Returns 0 if a == b, -1 if a < b and 1 if a > b"
@@ -205,15 +207,12 @@ class _InequalityOperator(BinaryOperator):
         # All expressions are numeric but exact and they are not all numbers,
         if all_numeric and any(not isinstance(item, Number) for item in items_sequence):
             # so apply N and compare them.
-            items = items_sequence
-            n_items = []
+            items = []
             for item in items:
                 if not isinstance(item, Number):
                     # TODO: use $MaxExtraPrecision insterad of hard-coded 50
-                    n_expr = Expression("N", item, Integer(50))
-                    item = n_expr.evaluate(evaluation)
-                n_items.append(item)
-            items = n_items
+                    item = apply_N(item, evaluation, prec=50)
+                items.append(item)
         else:
             items = items.numerify(evaluation).get_sequence()
         return items

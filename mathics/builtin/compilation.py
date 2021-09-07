@@ -22,6 +22,9 @@ from mathics.core.expression import (
     Symbol,
     from_python,
 )
+
+from mathics.builtin.numeric import apply_N
+
 from types import FunctionType
 
 
@@ -148,7 +151,7 @@ class Compile(Builtin):
                     inner_evaluation = Evaluation(definitions=evaluation.definitions)
                     vars = dict(list(zip(names, x[: len(names)])))
                     pyexpr = expr.replace_vars(vars)
-                    pyexpr = Expression("N", pyexpr).evaluate(inner_evaluation)
+                    pyexpr = apply_N(pyexpr, inner_evaluation)
                     res = pyexpr.to_python(n_evaluation=inner_evaluation)
                     return res
 

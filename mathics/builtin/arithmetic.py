@@ -632,7 +632,7 @@ class PossibleZeroQ(SympyFunction):
             result = _iszero(exprexp)
         if result is None:
             # Can't get exact answer, so try approximate equal
-            numeric_val = Expression(SymbolN, expr).evaluate(evaluation)
+            numeric_val = apply_N(expr, evaluation)
             if numeric_val and hasattr(numeric_val, "is_approx_zero"):
                 result = numeric_val.is_approx_zero
             elif (

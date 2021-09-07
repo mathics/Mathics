@@ -29,7 +29,7 @@ from mathics.core.expression import (
 from mathics.builtin.base import Builtin
 from mathics.builtin.graphics import Graphics
 from mathics.builtin.drawing.graphics3d import Graphics3D
-from mathics.builtin.numeric import chop
+from mathics.builtin.numeric import apply_N, chop
 from mathics.builtin.options import options_to_rules
 from mathics.builtin.scoping import dynamic_scoping
 
@@ -907,7 +907,7 @@ class PieChart(_Chart):
         sector_origin = self.get_option(options, "SectorOrigin", evaluation)
         if not sector_origin.has_form("List", 2):
             return
-        sector_origin = Expression(SymbolN, sector_origin).evaluate(evaluation)
+        sector_origin = apply_N(sector_origin, evaluation)
 
         orientation = sector_origin.leaves[0]
         if (

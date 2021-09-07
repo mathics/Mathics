@@ -413,14 +413,12 @@ class MantissaExponent(Builtin):
             return expr
 
         if n_sympy.is_constant():
-            temp_n = apply_N(n, evaluation)
-            py_n = temp_n.to_python()
+            py_n = apply_N(n, evaluation).to_python()
         else:
             return expr
 
         if b_sympy.is_constant():
-            temp_b = apply_N(b, evaluation)
-            py_b = temp_b.to_python()
+            py_b = apply_N(b, evaluation).to_python()
         else:
             return expr
 
@@ -444,8 +442,7 @@ class MantissaExponent(Builtin):
             return expr
         # Handle Input with special cases such as PI and E
         if n_sympy.is_constant():
-            temp_n = apply_N(n, evaluation)
-            py_n = temp_n.to_python()
+            py_n = apply_N(n, evaluation).to_python()
         else:
             return expr
 

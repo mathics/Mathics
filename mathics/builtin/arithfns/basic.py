@@ -42,6 +42,8 @@ from mathics.core.numbers import min_prec, dps
 
 from mathics.core.convert import from_sympy
 
+from mathics.builtin.numeric import apply_N
+
 
 class CubeRoot(Builtin):
     """
@@ -553,7 +555,7 @@ class Power(BinaryOperator, _MPMathFunction):
             if isinstance(y, Number):
                 y_err = y
             else:
-                y_err = Expression(SymbolN, y).evaluate(evaluation)
+                y_err = apply_N(y, evaluation)
             if isinstance(y_err, Number):
                 py_y = y_err.round_to_float(permit_complex=True).real
                 if py_y > 0:
