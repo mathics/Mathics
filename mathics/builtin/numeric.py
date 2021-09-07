@@ -113,10 +113,7 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
         # TODO: This special cases should be removed after figuring out
         # why when we do it, ExpressionMantissa and FindRoot stop working...
         head = expr.head
-        if (head.sameQ(SymbolPlus) or
-            head.sameQ(SymbolTimes) or
-            head.sameQ(SymbolPower)
-        ):
+        if head.sameQ(SymbolPlus) or head.sameQ(SymbolTimes) or head.sameQ(SymbolPower):
             newleaves = [apply_N(leaf, evaluation, prec) for leaf in expr.leaves]
             return Expression(
                 expr.head,
@@ -127,7 +124,7 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
             ).evaluate(evaluation)
 
         # Now, the general case for `Expression`
-        
+
         attributes = expr.head.get_attributes(evaluation.definitions)
         if "System`NHoldAll" in attributes:
             eval_range = ()
