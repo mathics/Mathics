@@ -44,6 +44,9 @@ from mathics.core.expression import (
     SymbolList,
     SymbolMachinePrecision,
     SymbolN,
+    SymbolPlus,
+    SymbolTimes,
+    SymbolPower,
     from_python,
 )
 
@@ -83,17 +86,6 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
                     for newleaf, leaf in zip(newleaves, expr.leaves)
                 ],
             )
-
-        if expr.get_head_name() in ("System`Plus", "System`Times", "System`Power"):
-            newleaves = [apply_N(leaf, evaluation, prec) for leaf in expr.leaves]
-            return Expression(
-                expr.head,
-                *[
-                    leaf if newleaf is None else newleaf
-                    for newleaf, leaf in zip(newleaves, expr.leaves)
-                ],
-            ).evaluate(evaluation)
-
         # Special case for the Root builtin
         if expr.has_form("Root", 2):
             return from_sympy(sympy.N(expr.to_sympy(), d))
@@ -108,31 +100,53 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
                 if isinstance(result, Number):
                     return result.round(d)
                 if not result.sameQ(nexpr):
-                    result = Expression(SymbolN, result, prec).evaluate(evaluation)
+                    result = apply_N(result, evaluation, prec)
+                    if isinstance(result, Number):
+                        return result.round(d)
+                    if not result._head.sameQ(SymbolN):
+                        result = Expression(SymbolN, result, prec).evaluate(evaluation)
                 return result
 
         if expr.is_atom():
             return expr
-        else:
-            attributes = expr.head.get_attributes(evaluation.definitions)
-            if "System`NHoldAll" in attributes:
-                eval_range = ()
-            elif "System`NHoldFirst" in attributes:
-                eval_range = range(1, len(expr.leaves))
-            elif "System`NHoldRest" in attributes:
-                if len(expr.leaves) > 0:
-                    eval_range = (0,)
-                else:
-                    eval_range = ()
+
+        # TODO: This special cases should be removed after figuring out
+        # why when we do it, ExpressionMantissa and FindRoot stop working...
+        head = expr.head
+        if (head.sameQ(SymbolPlus) or
+            head.sameQ(SymbolTimes) or
+            head.sameQ(SymbolPower)
+        ):
+            newleaves = [apply_N(leaf, evaluation, prec) for leaf in expr.leaves]
+            return Expression(
+                expr.head,
+                *[
+                    leaf if newleaf is None else newleaf
+                    for newleaf, leaf in zip(newleaves, expr.leaves)
+                ],
+            ).evaluate(evaluation)
+
+        # Now, the general case for `Expression`
+        
+        attributes = expr.head.get_attributes(evaluation.definitions)
+        if "System`NHoldAll" in attributes:
+            eval_range = ()
+        elif "System`NHoldFirst" in attributes:
+            eval_range = range(1, len(expr.leaves))
+        elif "System`NHoldRest" in attributes:
+            if len(expr.leaves) > 0:
+                eval_range = (0,)
             else:
-                eval_range = range(len(expr.leaves))
-            head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
-            leaves = expr.get_mutable_leaves()
-            for index in eval_range:
-                leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
-                    evaluation
-                )
-            return Expression(head, *leaves)
+                eval_range = ()
+        else:
+            eval_range = range(len(expr.leaves))
+        head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
+        leaves = expr.get_mutable_leaves()
+        for index in eval_range:
+            leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
+                evaluation
+            )
+        return Expression(head, *leaves)
 
 
 def new_apply_N(expr, evaluation, prec=SymbolMachinePrecision, options={}):
