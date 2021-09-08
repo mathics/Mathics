@@ -99,12 +99,20 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
             if result is not None:
                 if isinstance(result, Number):
                     return result.round(d)
-                if not result.sameQ(nexpr):
-                    result = apply_N(result, evaluation, prec)
-                    if isinstance(result, Number):
-                        return result.round(d)
-                    if not result._head.sameQ(SymbolN):
-                        result = Expression(SymbolN, result, prec).evaluate(evaluation)
+                if not (result.sameQ(nexpr) or result.sameQ(expr)):
+                    if result.is_atom():
+                        return result
+                    if result._head.sameQ(SymbolN):
+                        if len(result.leaves) == 2 and result.leaves[1].is_numeric(
+                            evaluation
+                        ):
+                            return apply_N(
+                                result.leaves[0], evaluation, result.leaves[1]
+                            )
+                        elif len(result.leaves) == 1:
+                            return apply_N(result.leaves[0], evaluation, prec)
+                        else:
+                            return result.evaluate(evaluation)
                 return result
 
         if expr.is_atom():
@@ -137,12 +145,17 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
                 eval_range = ()
         else:
             eval_range = range(len(expr.leaves))
-        head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
+        # head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
+        if head.sameQ(SymbolN):
+            # maybe we should handle the precision...
+            return expr
+
+        head = apply_N(expr.head.evaluate(evaluation), evaluation, prec)
         leaves = expr.get_mutable_leaves()
         for index in eval_range:
-            leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
-                evaluation
-            )
+            leaf = leaves[index].evaluate(evaluation)
+            # leaves[index] = Expression(SymbolN, leaf, prec).evaluate(evaluation)
+            leaves[index] = apply_N(leaf, evaluation, prec)
         return Expression(head, *leaves)
 
 
@@ -444,17 +457,10 @@ class Fold(object):
     SYMBOLIC = 2
 
     math = {
-        FLOAT: ComputationFunctions(
-            cos=math.cos,
-            sin=math.sin,
-        ),
-        MPMATH: ComputationFunctions(
-            cos=mpmath.cos,
-            sin=mpmath.sin,
-        ),
+        FLOAT: ComputationFunctions(cos=math.cos, sin=math.sin,),
+        MPMATH: ComputationFunctions(cos=mpmath.cos, sin=mpmath.sin,),
         SYMBOLIC: ComputationFunctions(
-            cos=lambda x: Expression("Cos", x),
-            sin=lambda x: Expression("Sin", x),
+            cos=lambda x: Expression("Cos", x), sin=lambda x: Expression("Sin", x),
         ),
     }
 
