@@ -457,10 +457,17 @@ class Fold(object):
     SYMBOLIC = 2
 
     math = {
-        FLOAT: ComputationFunctions(cos=math.cos, sin=math.sin,),
-        MPMATH: ComputationFunctions(cos=mpmath.cos, sin=mpmath.sin,),
+        FLOAT: ComputationFunctions(
+            cos=math.cos,
+            sin=math.sin,
+        ),
+        MPMATH: ComputationFunctions(
+            cos=mpmath.cos,
+            sin=mpmath.sin,
+        ),
         SYMBOLIC: ComputationFunctions(
-            cos=lambda x: Expression("Cos", x), sin=lambda x: Expression("Sin", x),
+            cos=lambda x: Expression("Cos", x),
+            sin=lambda x: Expression("Sin", x),
         ),
     }
 
