@@ -314,8 +314,7 @@ class Re(SympyFunction):
             return number.real
         elif isinstance(number, Number):
             return number
-        else:
-            return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
+        return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
 
 
 class Im(SympyFunction):
@@ -345,8 +344,7 @@ class Im(SympyFunction):
             return number.imag
         elif isinstance(number, Number):
             return Integer0
-        else:
-            return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
+        return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
 class Conjugate(_MPMathFunction):
