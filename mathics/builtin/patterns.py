@@ -54,6 +54,9 @@ from mathics.core.expression import (
     SymbolFalse,
     SymbolList,
     SymbolN,
+    SymbolNumberQ,
+    SymbolNumericQ,
+    SymbolStringQ,
     SymbolTrue,
 )
 from mathics.core.rules import Rule
@@ -478,59 +481,14 @@ class PatternTest(BinaryOperator, PatternObject):
         self.test_name = self.test.get_name()
 
     def quick_pattern_test(self, candidate, test, evaluation):
-        if test == "System`NumberQ":
-            return isinstance(candidate, Number)
-        elif test == "System`NumericQ":
-            if isinstance(candidate, Number):
-                return True
-            # Otherwise, follow the standard evaluation
-        elif test == "System`RealNumberQ":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return True
-            candidate = Expression(SymbolN, candidate).evaluate(evaluation)
-            return isinstance(candidate, Real)
-            # pass
-        elif test == "System`Positive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value > 0
-            return False
-            # pass
-        elif test == "System`NonPositive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value <= 0
-            return False
-            # pass
-        elif test == "System`Negative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value < 0
-            return False
-            # pass
-        elif test == "System`NonNegative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value >= 0
-            return False
-            # pass
-        elif test == "System`NegativePowerQ":
-            return (
-                candidate.has_form("Power", 2)
-                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
-                and candidate.leaves[1].value < 0
-            )
-        elif test == "System`NotNegativePowerQ":
-            return not (
-                candidate.has_form("Power", 2)
-                and isinstance(candidate.leaves[1], (Integer, Rational, Real))
-                and candidate.leaves[1].value < 0
-            )
-        else:
-            from mathics.builtin.base import Test
+        from mathics.builtin.base import Test
 
-            builtin = None
-            builtin = evaluation.definitions.get_definition(test)
-            if builtin:
-                builtin = builtin.builtin
-            if builtin is not None and isinstance(builtin, Test):
-                return builtin.test(candidate)
+        builtin = None
+        builtin = evaluation.definitions.get_definition(test)
+        if builtin:
+            builtin = builtin.builtin
+        if builtin is not None and isinstance(builtin, Test):
+            return builtin.test(candidate)
         return None
 
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
@@ -538,6 +496,22 @@ class PatternTest(BinaryOperator, PatternObject):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
             for item in items:
+                # First, check if item is a Number or an string.
+                if isinstance(item, Number):
+                    if self.test.sameQ(SymbolNumberQ) or self.test.sameQ(
+                        SymbolNumericQ
+                    ):
+                        continue
+                    elif self.test.sameQ(SymbolStringQ):
+                        break
+                if isinstance(item, String):
+                    if self.test.sameQ(SymbolStringQ):
+                        continue
+                    elif self.test.sameQ(SymbolNumberQ) or self.test.sameQ(
+                        SymbolNumericQ
+                    ):
+                        break
+                # Otherwise, evaluate and try with quick_pattern_test
                 item = item.evaluate(evaluation)
                 quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
                 if quick_test is False:
