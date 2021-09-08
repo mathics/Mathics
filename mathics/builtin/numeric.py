@@ -146,99 +146,6 @@ def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
         return Expression(head, *leaves)
 
 
-def new_apply_N(expr, evaluation, prec=SymbolMachinePrecision, options={}):
-    return apply_N(expr, evaluation, prec)
-    if options:
-        loption_rules = [Rule(opt, options[opt]) for opt in options]
-    try:
-        d = get_precision(prec, evaluation)
-    except PrecisionValueError:
-        return
-    # Handle numeric cases:
-    if isinstance(expr, Number):
-        return expr.round(d)
-
-    # Now, deal with lists and rules:
-    if expr.get_head_name() in ("System`List", "System`Rule"):
-        newleaves = [apply_N(leaf, evaluation, prec, options) for leaf in expr.leaves]
-        newleaves = [
-            leaf if leaf is not None else old_leaf
-            for leaf, old_leaf in zip(newleaves, expr.leaves)
-        ]
-        return Expression(
-            expr.head,
-            *newleaves,
-        )
-    # Now, deal with arithmetic expressions:
-    if expr.get_head_name() in ("System`Plus", "System`Times"):
-        newleaves = [apply_N(leaf, evaluation, prec, options) for leaf in expr.leaves]
-        newleaves = [
-            leaf if leaf is not None else old_leaf
-            for leaf, old_leaf in zip(newleaves, expr.leaves)
-        ]
-        return Expression(
-            expr.head,
-            *newleaves,
-        ).evaluate(evaluation)
-
-    # Special case for the Root builtin
-    if expr.has_form("Root", 2):
-        return from_sympy(sympy.N(expr.to_sympy(), d))
-
-    name = expr.get_lookup_name()
-    if name != "":
-        while True:
-            print("loop ", expr)
-            if options:
-                nexpr = Expression(SymbolN, expr, prec, *loption_rules)
-            else:
-                nexpr = Expression(SymbolN, expr, prec)
-            result = evaluation.definitions.get_value(
-                name, "System`NValues", nexpr, evaluation
-            )
-
-            if result is None:
-                break
-            if isinstance(result, Number):
-                return result
-            if result.sameQ(nexpr):
-                return nexpr
-            expr = apply_N(result, evaluation, prec, options)
-            if isinstance(expr, Number):
-                return expr
-            expr = expr.evaluate(evaluation)
-            if isinstance(expr, Number):
-                return expr
-            print("   new round")
-
-    if expr.is_atom():
-        return expr.evaluate(evaluation) if isinstance(expr, Symbol) else expr
-    else:
-        if expr.head.sameQ(SymbolN):
-            print("N", (expr, prec))
-            return apply_N(expr.leaves[0], prec, *(expr.leaves[2:]))
-
-        attributes = expr.head.get_attributes(evaluation.definitions)
-        if "System`NHoldAll" in attributes:
-            eval_range = ()
-        elif "System`NHoldFirst" in attributes:
-            eval_range = range(1, len(expr.leaves))
-        elif "System`NHoldRest" in attributes:
-            if len(expr.leaves) > 0:
-                eval_range = (0,)
-            else:
-                eval_range = ()
-        else:
-            eval_range = range(len(expr.leaves))
-        head = apply_N(expr.head, evaluation, prec, options)
-        print("   head:", expr.head, "->", head)
-        leaves = expr.get_mutable_leaves()
-        for index in eval_range:
-            leaves[index] = apply_N(leaves[index], evaluation, prec, options)
-            print("    leaves->", leaves[index])
-        return Expression(head, *leaves).evaluate(evaluation)
-
-
 def _scipy_interface(integrator, options_map, mandatory=None, adapt_func=None):
     """
     This function provides a proxy for scipy.integrate
@@ -1021,9 +928,6 @@ class N(Builtin):
         ),
     }
 
-    rules = {
-        "N[expr_]": "N[expr, MachinePrecision]",
-    }
 
     summary_text = "numerical evaluation to specified precision and accuracy"
 
@@ -1032,6 +936,10 @@ class N(Builtin):
         if not prec.is_numeric(evaluation):
             return
         return apply_N(expr, evaluation, prec)
+
+    def apply(self, expr, evaluation):
+        "N[expr_]"
+        return apply_N(expr, evaluation)
 
 
 class NIntegrate(Builtin):
