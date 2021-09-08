@@ -308,19 +308,12 @@ class Re(SympyFunction):
     attributes = ("Listable", "NumericFunction")
     sympy_name = "re"
 
-    def apply_complex(self, number, evaluation):
-        "Re[number_Complex]"
-
-        return number.real
-
-    def apply_number(self, number, evaluation):
-        "Re[number_?NumberQ]"
-
-        return number
-
     def apply(self, number, evaluation):
         "Re[number_]"
-
+        if isinstance(number, Complex):
+            return number.real
+        elif isinstance(number, Number):
+            return number
         return from_sympy(sympy.re(number.to_sympy().expand(complex=True)))
 
 
@@ -345,19 +338,12 @@ class Im(SympyFunction):
 
     attributes = ("Listable", "NumericFunction")
 
-    def apply_complex(self, number, evaluation):
-        "Im[number_Complex]"
-
-        return number.imag
-
-    def apply_number(self, number, evaluation):
-        "Im[number_?NumberQ]"
-
-        return Integer0
-
     def apply(self, number, evaluation):
-        "Im[number_]"
-
+        "Re[number_]"
+        if isinstance(number, Complex):
+            return number.imag
+        elif isinstance(number, Number):
+            return Integer0
         return from_sympy(sympy.im(number.to_sympy().expand(complex=True)))
 
 
