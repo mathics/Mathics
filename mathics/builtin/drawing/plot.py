@@ -23,6 +23,7 @@ from mathics.core.expression import (
     from_python,
     SymbolList,
     SymbolN,
+    SymbolNull,
     SymbolRule,
 )
 
@@ -270,7 +271,10 @@ def compile_quiet_function(expr, arg_names, evaluation, expect_list):
 
     def quiet_f(*args):
         vars = {arg_name: Real(arg) for arg_name, arg in zip(arg_names, args)}
-        value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
+        try:
+            value = dynamic_scoping(quiet_expr.evaluate, vars, evaluation)
+        except:
+            return None
         if expect_list:
             if value.has_form("List", None):
                 value = [extract_pyreal(item) for item in value.leaves]
@@ -476,7 +480,6 @@ class _Plot(Builtin):
                 self.get_name(), "invmaxrec", maxrecursion, max_recursion_limit
             )
         assert isinstance(maxrecursion, int)
-
         # Exclusions Option
         # TODO: Make exclusions option work properly with ParametricPlot
         def check_exclusion(excl):
@@ -608,7 +611,6 @@ class _Plot(Builtin):
 
             # Cos of the maximum angle between successive line segments
             ang_thresh = cos(pi / 180)
-
             for line, line_xvalues in zip(points, xvalues):
                 recursion_count = 0
                 smooth = False
