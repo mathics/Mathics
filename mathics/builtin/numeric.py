@@ -928,7 +928,6 @@ class N(Builtin):
         ),
     }
 
-
     summary_text = "numerical evaluation to specified precision and accuracy"
 
     def apply_with_prec(self, expr, prec, evaluation):
