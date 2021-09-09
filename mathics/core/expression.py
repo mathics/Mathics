@@ -1847,17 +1847,7 @@ class Expression(BaseExpression):
         else:
             return (
                 self._head.get_name()
-                in system_symbols(
-                    "Sqrt",
-                    "Times",
-                    "Plus",
-                    "Subtract",
-                    "Minus",
-                    "Power",
-                    "Abs",
-                    "Divide",
-                    "Sin",
-                )
+                in arithmetic_head_symbols
                 and all(leaf.is_numeric() for leaf in self._leaves)
             )
 
@@ -2148,6 +2138,17 @@ SymbolStringQ = Symbol("StringQ")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
 
+arithmetic_head_symbols = system_symbols(
+                    "Sqrt",
+                    "Times",
+                    "Plus",
+                    "Subtract",
+                    "Minus",
+                    "Power",
+                    "Abs",
+                    "Divide",
+                    "Sin",
+                )
 predefined_numeric_constants = (
     SymbolMachinePrecision,
     SymbolPi,
