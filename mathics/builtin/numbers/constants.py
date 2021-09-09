@@ -18,6 +18,7 @@ from mathics.core.expression import (
     MachineReal,
     PrecisionReal,
     Symbol,
+    SymbolTrue,
     strip_context,
 )
 from mathics.core.numbers import get_precision, PrecisionValueError, machine_precision
@@ -69,6 +70,10 @@ class _Constant_Common(Predefined):
     attributes = ("Constant", "Protected", "ReadProtected")
     nargs = 0
     options = {"Method": "Automatic"}
+
+    def apply_numericQ(self, evaluation):
+        "NumericQ[%(name)s]"
+        return SymbolTrue
 
     def apply_N(self, precision, evaluation, options={}):
         "N[%(name)s, precision_?NumericQ, OptionsPattern[%(name)s]]"
