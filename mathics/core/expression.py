@@ -130,12 +130,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -1845,10 +1840,8 @@ class Expression(BaseExpression):
                 return False
             return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return (
-                self._head.get_name()
-                in arithmetic_head_symbols
-                and all(leaf.is_numeric() for leaf in self._leaves)
+            return self._head.get_name() in arithmetic_head_symbols and all(
+                leaf.is_numeric() for leaf in self._leaves
             )
 
     def numerify(self, evaluation) -> "Expression":
@@ -2084,7 +2077,8 @@ class Symbol(Atom):
         return self == SymbolTrue
 
     def is_numeric(self, evaluation=None) -> bool:
-        return any([self.sameQ(s) for s in predefined_numeric_constants])
+        return self.name in predefined_numeric_constants
+        # return any([self.sameQ(s) for s in predefined_numeric_constants])
         # unrecheable
 
     """
@@ -2139,23 +2133,10 @@ SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
 
 arithmetic_head_symbols = system_symbols(
-                    "Sqrt",
-                    "Times",
-                    "Plus",
-                    "Subtract",
-                    "Minus",
-                    "Power",
-                    "Abs",
-                    "Divide",
-                    "Sin",
-                )
-predefined_numeric_constants = (
-    SymbolMachinePrecision,
-    SymbolPi,
-    SymbolE,
-    SymbolCatalan,
-    SymbolEulerGamma,
-    SymbolGoldenRatio,
+    "Sqrt", "Times", "Plus", "Subtract", "Minus", "Power", "Abs", "Divide", "Sin",
+)
+predefined_numeric_constants = system_symbols(
+    "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",
 )
 
 
