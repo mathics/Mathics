@@ -130,7 +130,12 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -1840,17 +1845,21 @@ class Expression(BaseExpression):
                 return False
             return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return self._head.get_name() in system_symbols(
-                "Sqrt",
-                "Times",
-                "Plus",
-                "Subtract",
-                "Minus",
-                "Power",
-                "Abs",
-                "Divide",
-                "Sin",
-            ) and all(leaf.is_numeric() for leaf in self._leaves)
+            return (
+                self._head.get_name()
+                in system_symbols(
+                    "Sqrt",
+                    "Times",
+                    "Plus",
+                    "Subtract",
+                    "Minus",
+                    "Power",
+                    "Abs",
+                    "Divide",
+                    "Sin",
+                )
+                and all(leaf.is_numeric() for leaf in self._leaves)
+            )
 
     def numerify(self, evaluation) -> "Expression":
         _prec = None

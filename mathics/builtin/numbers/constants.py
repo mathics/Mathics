@@ -71,7 +71,7 @@ class _Constant_Common(Predefined):
     nargs = 0
     options = {"Method": "Automatic"}
 
-    #def apply_numericQ(self, evaluation):
+    # def apply_numericQ(self, evaluation):
     #    "NumericQ[%(name)s]"
     #    return SymbolTrue
 
