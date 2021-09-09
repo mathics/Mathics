@@ -2085,8 +2085,10 @@ class Symbol(Atom):
         return self == SymbolTrue
 
     def is_numeric(self, evaluation=None) -> bool:
-        if any([self.sameQ(s) for s in predefined_numeric_constants]):
-            return True
+        return any([self.sameQ(s) for s in predefined_numeric_constants])
+        # unrecheable
+
+    """
         if evaluation:
             qexpr = Expression(SymbolNumericQ, self)
             result = evaluation.definitions.get_value(
@@ -2096,6 +2098,7 @@ class Symbol(Atom):
                 if result.is_true():
                     return True
         return False
+    """
 
     def __hash__(self):
         return hash(("Symbol", self.name))  # to distinguish from String
