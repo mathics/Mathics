@@ -1845,10 +1845,8 @@ class Expression(BaseExpression):
                 return False
             return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return (
-                self._head.get_name()
-                in arithmetic_head_symbols
-                and all(leaf.is_numeric() for leaf in self._leaves)
+            return self._head.get_name() in arithmetic_head_symbols and all(
+                leaf.is_numeric() for leaf in self._leaves
             )
 
     def numerify(self, evaluation) -> "Expression":
@@ -2139,16 +2137,16 @@ SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
 
 arithmetic_head_symbols = system_symbols(
-                    "Sqrt",
-                    "Times",
-                    "Plus",
-                    "Subtract",
-                    "Minus",
-                    "Power",
-                    "Abs",
-                    "Divide",
-                    "Sin",
-                )
+    "Sqrt",
+    "Times",
+    "Plus",
+    "Subtract",
+    "Minus",
+    "Power",
+    "Abs",
+    "Divide",
+    "Sin",
+)
 predefined_numeric_constants = (
     SymbolMachinePrecision,
     SymbolPi,
