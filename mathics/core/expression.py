@@ -2136,7 +2136,7 @@ arithmetic_head_symbols = system_symbols(
     "Sqrt", "Times", "Plus", "Subtract", "Minus", "Power", "Abs", "Divide", "Sin",
 )
 predefined_numeric_constants = system_symbols(
-    "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",
+    "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",)
 
 
 @lru_cache(maxsize=1024)
