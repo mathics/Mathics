@@ -339,7 +339,7 @@ class Im(SympyFunction):
     attributes = ("Listable", "NumericFunction")
 
     def apply(self, number, evaluation):
-        "Re[number_]"
+        "Im[number_]"
         if isinstance(number, Complex):
             return number.imag
         elif isinstance(number, Number):
