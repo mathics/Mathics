@@ -130,12 +130,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -1845,21 +1840,17 @@ class Expression(BaseExpression):
                 return False
             return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return (
-                self._head.get_name()
-                in system_symbols(
-                    "Sqrt",
-                    "Times",
-                    "Plus",
-                    "Subtract",
-                    "Minus",
-                    "Power",
-                    "Abs",
-                    "Divide",
-                    "Sin",
-                )
-                and all(leaf.is_numeric() for leaf in self._leaves)
-            )
+            return self._head.get_name() in system_symbols(
+                "Sqrt",
+                "Times",
+                "Plus",
+                "Subtract",
+                "Minus",
+                "Power",
+                "Abs",
+                "Divide",
+                "Sin",
+            ) and all(leaf.is_numeric() for leaf in self._leaves)
 
     def numerify(self, evaluation) -> "Expression":
         _prec = None
@@ -2094,9 +2085,17 @@ class Symbol(Atom):
         return self == SymbolTrue
 
     def is_numeric(self, evaluation=None) -> bool:
-        return self.name in system_symbols(
-            "Pi", "E", "EulerGamma", "GoldenRatio", "MachinePrecision", "Catalan"
-        )
+        if any([self.sameQ(s) for s in predefined_numeric_constants]):
+            return True
+        if evaluation:
+            qexpr = Expression(SymbolNumericQ, self)
+            result = evaluation.definitions.get_value(
+                self.name, "System`UpValues", qexpr, evaluation
+            )
+            if result is not None:
+                if result.is_true():
+                    return True
+        return False
 
     def __hash__(self):
         return hash(("Symbol", self.name))  # to distinguish from String
@@ -2112,22 +2111,38 @@ class Symbol(Atom):
 SymbolAborted = Symbol("$Aborted")
 SymbolAssociation = Symbol("Association")
 SymbolByteArray = Symbol("ByteArray")
+SymbolCatalan = Symbol("Catalan")
 SymbolComplexInfinity = Symbol("ComplexInfinity")
 SymbolDirectedInfinity = Symbol("DirectedInfinity")
+SymbolE = Symbol("E")
+SymbolEulerGamma = Symbol("EulerGamma")
 SymbolFailed = Symbol("$Failed")
 SymbolFalse = Symbol("False")
+SymbolGoldenRatio = Symbol("GoldenRatio")
+SymbolGreater = Symbol("Greater")
 SymbolInfinity = Symbol("Infinity")
+SymbolLess = Symbol("Less")
 SymbolList = Symbol("List")
 SymbolMachinePrecision = Symbol("MachinePrecision")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolNumberQ = Symbol("NumberQ")
+SymbolNumericQ = Symbol("NumericQ")
+SymbolPi = Symbol("Pi")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
-SymbolLess = Symbol("Less")
-SymbolGreater = Symbol("Greater")
+
+predefined_numeric_constants = (
+    SymbolMachinePrecision,
+    SymbolPi,
+    SymbolE,
+    SymbolCatalan,
+    SymbolEulerGamma,
+    SymbolGoldenRatio,
+)
 
 
 @lru_cache(maxsize=1024)
