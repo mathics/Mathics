@@ -130,7 +130,12 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
+            Expression(
+                "Rule",
+                from_python(key),
+                from_python(arg[key]),
+            )
+            for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -2133,10 +2138,24 @@ SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
 
 arithmetic_head_symbols = system_symbols(
-    "Sqrt", "Times", "Plus", "Subtract", "Minus", "Power", "Abs", "Divide", "Sin",
+    "Sqrt",
+    "Times",
+    "Plus",
+    "Subtract",
+    "Minus",
+    "Power",
+    "Abs",
+    "Divide",
+    "Sin",
 )
 predefined_numeric_constants = system_symbols(
-    "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",)
+    "MachinePrecision",
+    "Pi",
+    "E",
+    "Catalan",
+    "EulerGamma",
+    "GoldenRatio",
+)
 
 
 @lru_cache(maxsize=1024)
