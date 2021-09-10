@@ -62,7 +62,7 @@ def strip_context(name) -> str:
 
 # system_symbols('A', 'B', ...) -> ['System`A', 'System`B', ...]
 def system_symbols(*symbols) -> typing.List[str]:
-    return [ensure_context(s) for s in symbols]
+    return set(ensure_context(s) for s in symbols)
 
 
 # system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
