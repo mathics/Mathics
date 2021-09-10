@@ -494,26 +494,23 @@ class PatternTest(BinaryOperator, PatternObject):
     def match(self, yield_func, expression, vars, evaluation, **kwargs):
         # for vars_2, rest in self.pattern.match(expression, vars, evaluation):
         def yield_match(vars_2, rest):
+            testname = self.test_name
             items = expression.get_sequence()
             for item in items:
                 # First, check if item is a Number or an string.
                 if isinstance(item, Number):
-                    if self.test.sameQ(SymbolNumberQ) or self.test.sameQ(
-                        SymbolNumericQ
-                    ):
+                    if testname in ("System`NumberQ", "System`NumericQ"):
                         continue
-                    elif self.test.sameQ(SymbolStringQ):
+                    elif testname == "System`StringQ":
                         break
                 if isinstance(item, String):
-                    if self.test.sameQ(SymbolStringQ):
+                    if testname == "System`StringQ":
                         continue
-                    elif self.test.sameQ(SymbolNumberQ) or self.test.sameQ(
-                        SymbolNumericQ
-                    ):
+                    elif testname in ("System`NumberQ", "System`NumericQ"):
                         break
                 # Otherwise, evaluate and try with quick_pattern_test
                 item = item.evaluate(evaluation)
-                quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
+                quick_test = self.quick_pattern_test(item, testname, evaluation)
                 if quick_test is False:
                     break
                     # raise StopGenerator
