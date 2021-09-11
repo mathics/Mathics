@@ -1,3 +1,5 @@
+**NOTE: This repository is now mostly in archive. Please head over to the [Mathics3 mathics-core github repository](https://Mathics3/mathics-core)**
+
 Welcome to Mathics!
 ===================
 
