@@ -1250,10 +1250,7 @@ class Expression(BaseExpression):
             return False
         if len(self._leaves) != len(other.get_leaves()):
             return False
-        for leaf, other in zip(self._leaves, other.get_leaves()):
-            if not leaf.sameQ(other):
-                return False
-        return True
+        return all(leaf.sameQ(other) in zip(self._leaves, other.get_leaves()))
 
     def flatten(
         self, head, pattern_only=False, callback=None, level=None
