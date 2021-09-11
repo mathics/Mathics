@@ -1247,8 +1247,8 @@ class Expression(BaseExpression):
 
     def sameQ(self, other: BaseExpression) -> bool:
         """Mathics SameQ"""
-        if id(self) == id(other):
-            return True
+        #if id(self) == id(other):
+        #    return True
         if not isinstance(other, Expression):
             return False
         if self.get_head_name() != other.get_head_name():
