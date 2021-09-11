@@ -1473,6 +1473,8 @@ def item_is_free(item, form, evaluation):
 
 
 class Dispatch(Atom):
+    class_head_name = "System`Dispatch"
+
     def __init__(self, rulelist, evaluation):
         self.src = Expression(SymbolList, *rulelist)
         self.rules = [Rule(rule._leaves[0], rule._leaves[1]) for rule in rulelist]
