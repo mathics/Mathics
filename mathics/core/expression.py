@@ -2924,6 +2924,7 @@ class String(Atom):
         elif text and text[0] in "0123456789-.":
             return render("%s", text)
         else:
+            # FIXME: this should be done in a better way.
             if text == "\u2032":
                 return "'"
             elif text == "\u2032\u2032":
@@ -2946,7 +2947,8 @@ class String(Atom):
                 return text
             elif text == "\u222b":
                 return r"\int"
-            elif text == "\u2146":
+            # Tolerate WL or Unicode DifferentialD
+            elif text in ("\u2146", "\U0001D451"):
                 return r"\, d"
             elif text == "\u2211":
                 return r"\sum"
