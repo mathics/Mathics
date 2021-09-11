@@ -1249,13 +1249,15 @@ class Expression(BaseExpression):
         """Mathics SameQ"""
         if id(self) == id(other):
             return True
+        if not isinstance(other, Expression):
+            return False
         if self.get_head_name() != other.get_head_name():
             return False
         if not self._head.sameQ(other.get_head()):
             return False
         if len(self._leaves) != len(other.get_leaves()):
             return False
-        return all(leaf.sameQ(other) in zip(self._leaves, other.get_leaves()))
+        return all(leaf.sameQ(oleaf) for leaf, oleaf in zip(self._leaves, other.get_leaves()))
 
     def flatten(
         self, head, pattern_only=False, callback=None, level=None
