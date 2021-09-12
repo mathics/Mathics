@@ -1,4 +1,4 @@
-**NOTE: This repository is now mostly in archive. Please head over to the [Mathics3 mathics-core github repository](https://Mathics3/mathics-core)**
+**NOTE: This repository is now mostly in archive.** Please head over to the `Mathics3 mathics-core github repository <https://github.com/Mathics3/mathics-core>`_.
 
 Welcome to Mathics!
 ===================
