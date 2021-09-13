@@ -470,47 +470,61 @@ class PatternTest(BinaryOperator, PatternObject):
     precedence = 680
 
     arg_counts = [2]
-
+#    match = None
     def init(self, expr):
         super(PatternTest, self).init(expr)
+        match_functions = {
+            "System`StringQ": self.match_string,
+            "System`NumericQ": self.match_numericq,
+            "System`NumberQ": self.match_numberq,
+            "System`RealNumberQ": self.match_real_numberq,
+        }
+
         self.pattern = Pattern.create(expr.leaves[0])
         self.test = expr.leaves[1]
-        self.test_name = self.test.get_name()
+        testname = self.test.get_name()
+        self.test_name = testname
+        match_function = match_functions.get(testname, self.match_general)
+        if match_function:
+            self.match = match_function
+
+    def match_string(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(isinstance(item, String) for item in items):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_numberq(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(isinstance(item, Number) for item in items):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_numericq(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(
+                isinstance(item, Number) or item.is_numeric(evaluation)
+                for item in items
+            ):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_real_numberq(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(isinstance(item, (Integer, Rational, Real)) for item in items):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
 
     def quick_pattern_test(self, candidate, test, evaluation):
-        if test == "System`NumberQ":
-            return isinstance(candidate, Number)
-        elif test == "System`NumericQ":
-            if isinstance(candidate, Number):
-                return True
-            # Otherwise, follow the standard evaluation
-        elif test == "System`RealNumberQ":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return True
-            candidate = Expression(SymbolN, candidate).evaluate(evaluation)
-            return isinstance(candidate, Real)
-            # pass
-        elif test == "System`Positive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value > 0
-            return False
-            # pass
-        elif test == "System`NonPositive":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value <= 0
-            return False
-            # pass
-        elif test == "System`Negative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value < 0
-            return False
-            # pass
-        elif test == "System`NonNegative":
-            if isinstance(candidate, (Integer, Rational, Real)):
-                return candidate.value >= 0
-            return False
-            # pass
-        elif test == "System`NegativePowerQ":
+        if test == "System`NegativePowerQ":
             return (
                 candidate.has_form("Power", 2)
                 and isinstance(candidate.leaves[1], (Integer, Rational, Real))
@@ -533,7 +547,7 @@ class PatternTest(BinaryOperator, PatternObject):
                 return builtin.test(candidate)
         return None
 
-    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+    def match_general(self, yield_func, expression, vars, evaluation, **kwargs):
         # for vars_2, rest in self.pattern.match(expression, vars, evaluation):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
@@ -1502,6 +1516,8 @@ def item_is_free(item, form, evaluation):
 
 
 class Dispatch(Atom):
+    class_head_atom = "System`Dispatch"
+
     def __init__(self, rulelist, evaluation):
         self.src = Expression(SymbolList, *rulelist)
         self.rules = [Rule(rule._leaves[0], rule._leaves[1]) for rule in rulelist]
@@ -1547,6 +1563,7 @@ class DispatchAtom(AtomBuiltin):
     messages = {
         "invrpl": "`1` is not a valid rule or list of rules.",
     }
+    class_head_atom = "System`DispatchAtom"
 
     def __repr__(self):
         return "dispatchatom"

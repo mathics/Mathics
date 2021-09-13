@@ -62,7 +62,7 @@ def strip_context(name) -> str:
 
 # system_symbols('A', 'B', ...) -> ['System`A', 'System`B', ...]
 def system_symbols(*symbols) -> typing.List[str]:
-    return [ensure_context(s) for s in symbols]
+    return tuple(ensure_context(s) for s in symbols)
 
 
 # system_symbols_dict({'SomeSymbol': ...}) -> {'System`SomeSymbol': ...}
@@ -130,12 +130,7 @@ def from_python(arg):
         #     return Symbol(arg)
     elif isinstance(arg, dict):
         entries = [
-            Expression(
-                "Rule",
-                from_python(key),
-                from_python(arg[key]),
-            )
-            for key in arg
+            Expression("Rule", from_python(key), from_python(arg[key]),) for key in arg
         ]
         return Expression(SymbolList, *entries)
     elif isinstance(arg, BaseExpression):
@@ -327,7 +322,9 @@ class BaseExpression(KeyComparable):
     def get_head(self):
         return None
 
-    def get_head_name(self):
+    def get_head_name(self) -> str:
+        print("get_head_name of ", self)
+        raise NotImplementedError
         return self.get_head().get_name()
 
     def get_leaves(self):
@@ -952,6 +949,9 @@ class Expression(BaseExpression):
     def get_head(self):
         return self._head
 
+    def get_head_name(self):
+        return self._head.name if isinstance(self._head, Symbol) else ""
+
     def set_head(self, head):
         self._head = head
         self._cache = None
@@ -1240,20 +1240,23 @@ class Expression(BaseExpression):
             else:
                 return [1 if self.is_numeric() else 2, 3, self._head, self._leaves, 1]
 
-    def sameQ(self, other) -> bool:
+    def sameQ(self, other: BaseExpression) -> bool:
         """Mathics SameQ"""
+        # if id(self) == id(other):
+        #    return True
+        if not isinstance(other, Expression):
+            return False
         if id(self) == id(other):
             return True
-        if self.get_head_name() != other.get_head_name():
-            return False
-        if not self._head.sameQ(other.get_head()):
+        # if self.get_head_name() != other.get_head_name():
+        #    return False
+        if not self._head.sameQ(other._head):
             return False
         if len(self._leaves) != len(other.get_leaves()):
             return False
-        for leaf, other in zip(self._leaves, other.get_leaves()):
-            if not leaf.sameQ(other):
-                return False
-        return True
+        return all(
+            (id(leaf)==id(oleaf) or leaf.sameQ(oleaf)) for leaf, oleaf in zip(self._leaves, other.get_leaves())
+        )
 
     def flatten(
         self, head, pattern_only=False, callback=None, level=None
@@ -1845,20 +1848,8 @@ class Expression(BaseExpression):
                 return False
             return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return (
-                self._head.get_name()
-                in system_symbols(
-                    "Sqrt",
-                    "Times",
-                    "Plus",
-                    "Subtract",
-                    "Minus",
-                    "Power",
-                    "Abs",
-                    "Divide",
-                    "Sin",
-                )
-                and all(leaf.is_numeric() for leaf in self._leaves)
+            return self._head.get_name() in arithmetic_head_symbols and all(
+                leaf.is_numeric() for leaf in self._leaves
             )
 
     def numerify(self, evaluation) -> "Expression":
@@ -1906,6 +1897,10 @@ class Expression(BaseExpression):
 
 
 class Atom(BaseExpression):
+    _head_name = ""
+    _symbol_head = None
+    class_head_name = ""
+
     def is_atom(self) -> bool:
         return True
 
@@ -1932,7 +1927,10 @@ class Atom(BaseExpression):
         return False
 
     def get_head(self) -> "Symbol":
-        return Symbol(self.get_atom_name())
+        return Symbol(self.class_head_name)
+
+    def get_head_name(self) -> "str":
+        return self.class_head_name  # System`" + self.__class__.__name__
 
     def get_atom_name(self) -> str:
         return self.__class__.__name__
@@ -1974,6 +1972,7 @@ class Symbol(Atom):
     name: str
     sympy_dummy: Any
     defined_symbols = {}
+    class_head_name = "System`Symbol"
 
     def __new__(cls, name, sympy_dummy=None):
         name = ensure_context(name)
@@ -1993,6 +1992,12 @@ class Symbol(Atom):
 
     def boxes_to_text(self, **options) -> str:
         return str(self.name)
+
+    def get_head(self) -> "Symbol":
+        return Symbol("Symbol")
+
+    def get_head_name(self):
+        return "System`Symbol"
 
     def atom_to_boxes(self, f, evaluation) -> "String":
         return String(evaluation.definitions.shorten_name(self.name))
@@ -2069,7 +2074,7 @@ class Symbol(Atom):
 
     def sameQ(self, rhs: Any) -> bool:
         """Mathics SameQ"""
-        return id(self) == id(rhs) or isinstance(rhs, Symbol) and self.name == rhs.name
+        return isinstance(rhs, Symbol) and (id(rhs)==id(self) or self.name == rhs.name)
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)
@@ -2094,9 +2099,21 @@ class Symbol(Atom):
         return self == SymbolTrue
 
     def is_numeric(self, evaluation=None) -> bool:
-        return self.name in system_symbols(
-            "Pi", "E", "EulerGamma", "GoldenRatio", "MachinePrecision", "Catalan"
-        )
+        return self.name in predefined_numeric_constants
+        # return any([self.sameQ(s) for s in predefined_numeric_constants])
+        # unrecheable
+
+    """
+        if evaluation:
+            qexpr = Expression(SymbolNumericQ, self)
+            result = evaluation.definitions.get_value(
+                self.name, "System`UpValues", qexpr, evaluation
+            )
+            if result is not None:
+                if result.is_true():
+                    return True
+        return False
+    """
 
     def __hash__(self):
         return hash(("Symbol", self.name))  # to distinguish from String
@@ -2112,22 +2129,37 @@ class Symbol(Atom):
 SymbolAborted = Symbol("$Aborted")
 SymbolAssociation = Symbol("Association")
 SymbolByteArray = Symbol("ByteArray")
+SymbolCatalan = Symbol("Catalan")
 SymbolComplexInfinity = Symbol("ComplexInfinity")
 SymbolDirectedInfinity = Symbol("DirectedInfinity")
+SymbolE = Symbol("E")
+SymbolEulerGamma = Symbol("EulerGamma")
 SymbolFailed = Symbol("$Failed")
 SymbolFalse = Symbol("False")
+SymbolGoldenRatio = Symbol("GoldenRatio")
+SymbolGreater = Symbol("Greater")
 SymbolInfinity = Symbol("Infinity")
+SymbolLess = Symbol("Less")
 SymbolList = Symbol("List")
 SymbolMachinePrecision = Symbol("MachinePrecision")
 SymbolMakeBoxes = Symbol("MakeBoxes")
 SymbolN = Symbol("N")
 SymbolNull = Symbol("Null")
+SymbolNumberQ = Symbol("NumberQ")
+SymbolNumericQ = Symbol("NumericQ")
+SymbolPi = Symbol("Pi")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
+SymbolStringQ = Symbol("StringQ")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
-SymbolLess = Symbol("Less")
-SymbolGreater = Symbol("Greater")
+
+arithmetic_head_symbols = system_symbols(
+    "Sqrt", "Times", "Plus", "Subtract", "Minus", "Power", "Abs", "Divide", "Sin",
+)
+predefined_numeric_constants = system_symbols(
+    "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",
+)
 
 
 @lru_cache(maxsize=1024)
@@ -2202,12 +2234,16 @@ _number_form_options = {
 
 class Integer(Number):
     value: int
+    class_head_name = "System`Integer"
 
     def __new__(cls, value) -> "Integer":
         n = int(value)
         self = super(Integer, cls).__new__(cls)
         self.value = n
         return self
+
+    def get_head_name(self):
+        return "System`Integer"
 
     @lru_cache()
     def __init__(self, value) -> "Integer":
@@ -2288,11 +2324,16 @@ Integer1 = Integer(1)
 
 
 class Rational(Number):
+    class_head_name = "System`Rational"
+
     @lru_cache()
     def __new__(cls, numerator, denominator=1) -> "Rational":
         self = super().__new__(cls)
         self.value = sympy.Rational(numerator, denominator)
         return self
+
+    def get_head_name(self):
+        return "System`Rational"
 
     def atom_to_boxes(self, f, evaluation):
         return self.format(evaluation, f.get_name())
@@ -2385,6 +2426,8 @@ RationalOneHalf = Rational(1, 2)
 
 
 class Real(Number):
+    class_head_name = "System`Real"
+
     def __new__(cls, value, p=None) -> "Real":
         if isinstance(value, str):
             value = str(value)
@@ -2408,6 +2451,9 @@ class Real(Number):
             return MachineReal.__new__(MachineReal, value)
         else:
             return PrecisionReal.__new__(PrecisionReal, value)
+
+    def get_head_name(self):
+        return "System`Real"
 
     def boxes_to_text(self, **options) -> str:
         return self.make_boxes("System`OutputForm").boxes_to_text(**options)
@@ -2612,6 +2658,7 @@ class Complex(Number):
 
     real: Any
     imag: Any
+    class_head_name = "System`Complex"
 
     def __new__(cls, real, imag):
         self = super().__new__(cls)
@@ -2832,6 +2879,7 @@ extra_operators = set(
 
 class String(Atom):
     value: str
+    class_head_name = "System`String"
 
     def __new__(cls, value):
         self = super().__new__(cls)
@@ -2840,6 +2888,9 @@ class String(Atom):
 
     def __str__(self) -> str:
         return '"%s"' % self.value
+
+    def get_head_name(self):
+        return "System`String"
 
     def boxes_to_text(self, show_string_characters=False, **options) -> str:
         value = self.value
@@ -2924,7 +2975,6 @@ class String(Atom):
         elif text and text[0] in "0123456789-.":
             return render("%s", text)
         else:
-            # FIXME: this should be done in a better way.
             if text == "\u2032":
                 return "'"
             elif text == "\u2032\u2032":
@@ -2947,8 +2997,7 @@ class String(Atom):
                 return text
             elif text == "\u222b":
                 return r"\int"
-            # Tolerate WL or Unicode DifferentialD
-            elif text in ("\u2146", "\U0001D451"):
+            elif text == "\u2146":
                 return r"\, d"
             elif text == "\u2211":
                 return r"\sum"
@@ -3010,6 +3059,7 @@ class String(Atom):
 
 class ByteArrayAtom(Atom):
     value: str
+    class_head_name = "System`ByteArrayAtom"
 
     def __new__(cls, value):
         self = super().__new__(cls)
