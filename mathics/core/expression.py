@@ -589,6 +589,10 @@ class BaseExpression(KeyComparable):
         if evaluation is None:
             value = self
         elif isinstance(evaluation, sympy.core.numbers.NaN):
+            print(
+                "why an evaluation parameter would be set to sympy.NaN and this should happend? "
+            )
+            assert False
             return None
         else:
             value = Expression(SymbolN, self).evaluate(evaluation)
@@ -1441,6 +1445,11 @@ class Expression(BaseExpression):
                             rules_names.add(name)
                             for rule in evaluation.definitions.get_upvalues(name):
                                 yield rule
+            if new.get_head_name() == "System`N":
+                lookup_name = leaves[0].get_lookup_name()
+                for rule in evaluation.definitions.get_nvalues(lookup_name):
+                    yield rule
+
             lookup_name = new.get_lookup_name()
             if lookup_name == new.get_head_name():
                 for rule in evaluation.definitions.get_downvalues(lookup_name):
@@ -1458,6 +1467,18 @@ class Expression(BaseExpression):
                     new._timestamp_cache(evaluation)
                     return new, False
                 else:
+                    if new._head.sameQ(SymbolN) and not (
+                        isinstance(result, (Real, Complex))
+                        or (
+                            not isinstance(result, Atom)
+                            and result.get_head().sameQ(SymbolN)
+                        )
+                        or result.sameQ(new._leaves[0])
+                    ):
+
+                        result = Expression(
+                            SymbolN, result, *(new._leaves[1:])
+                        ).evaluate(evaluation)
                     return result, True
 
         dirty_leaves = None
@@ -2149,6 +2170,7 @@ SymbolFailed = Symbol("$Failed")
 SymbolFalse = Symbol("False")
 SymbolGoldenRatio = Symbol("GoldenRatio")
 SymbolGreater = Symbol("Greater")
+SymbolI = Symbol("I")
 SymbolInfinity = Symbol("Infinity")
 SymbolLess = Symbol("Less")
 SymbolList = Symbol("List")
@@ -2159,9 +2181,12 @@ SymbolNull = Symbol("Null")
 SymbolNumberQ = Symbol("NumberQ")
 SymbolNumericQ = Symbol("NumericQ")
 SymbolPi = Symbol("Pi")
+SymbolPlus = Symbol("Plus")
+SymbolPower = Symbol("Power")
 SymbolRule = Symbol("Rule")
 SymbolSequence = Symbol("Sequence")
 SymbolStringQ = Symbol("StringQ")
+SymbolTimes = Symbol("Times")
 SymbolTrue = Symbol("True")
 SymbolUndefined = Symbol("Undefined")
 
@@ -2170,7 +2195,7 @@ arithmetic_head_symbols = system_symbols(
 )
 predefined_numeric_constants = system_symbols(
     "MachinePrecision", "Pi", "E", "Catalan", "EulerGamma", "GoldenRatio",
-)
+
 
 
 @lru_cache(maxsize=1024)

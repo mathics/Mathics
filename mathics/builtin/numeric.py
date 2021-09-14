@@ -44,6 +44,9 @@ from mathics.core.expression import (
     SymbolList,
     SymbolMachinePrecision,
     SymbolN,
+    SymbolPlus,
+    SymbolTimes,
+    SymbolPower,
     from_python,
 )
 
@@ -62,8 +65,98 @@ def log_n_b(py_n, py_b) -> int:
     return int(mpmath.ceil(mpmath.log(py_n, py_b))) if py_n != 0 and py_n != 1 else 1
 
 
-def apply_N(expression, evaluation, prec=SymbolMachinePrecision):
-    return Expression("N", expression, prec).evaluate(evaluation)
+def apply_N(expr, evaluation, prec=SymbolMachinePrecision):
+    if True:
+        try:
+            d = get_precision(prec, evaluation)
+        except PrecisionValueError:
+            return
+
+        if isinstance(expr, Number):
+            return expr.round(d)
+        if isinstance(expr, String):
+            return expr
+
+        if expr.get_head_name() in ("System`List", "System`Rule"):
+            newleaves = [apply_N(leaf, evaluation, prec) for leaf in expr.leaves]
+            return Expression(
+                expr.head,
+                *[
+                    leaf if newleaf is None else newleaf
+                    for newleaf, leaf in zip(newleaves, expr.leaves)
+                ],
+            )
+        # Special case for the Root builtin
+        if expr.has_form("Root", 2):
+            return from_sympy(sympy.N(expr.to_sympy(), d))
+
+        name = expr.get_lookup_name()
+        if name != "":
+            nexpr = Expression(SymbolN, expr, prec)
+            result = evaluation.definitions.get_value(
+                name, "System`NValues", nexpr, evaluation
+            )
+            if result is not None:
+                if isinstance(result, Number):
+                    return result.round(d)
+                if not (result.sameQ(nexpr) or result.sameQ(expr)):
+                    if result.is_atom():
+                        return result
+                    if result._head.sameQ(SymbolN):
+                        if len(result.leaves) == 2 and result.leaves[1].is_numeric(
+                            evaluation
+                        ):
+                            return apply_N(
+                                result.leaves[0], evaluation, result.leaves[1]
+                            )
+                        elif len(result.leaves) == 1:
+                            return apply_N(result.leaves[0], evaluation, prec)
+                        else:
+                            return result.evaluate(evaluation)
+                return result
+
+        if expr.is_atom():
+            return expr
+
+        # TODO: This special cases should be removed after figuring out
+        # why when we do it, ExpressionMantissa and FindRoot stop working...
+        head = expr.head
+        if head.sameQ(SymbolPlus) or head.sameQ(SymbolTimes) or head.sameQ(SymbolPower):
+            newleaves = [apply_N(leaf, evaluation, prec) for leaf in expr.leaves]
+            return Expression(
+                expr.head,
+                *[
+                    leaf if newleaf is None else newleaf
+                    for newleaf, leaf in zip(newleaves, expr.leaves)
+                ],
+            ).evaluate(evaluation)
+
+        # Now, the general case for `Expression`
+
+        attributes = expr.head.get_attributes(evaluation.definitions)
+        if "System`NHoldAll" in attributes:
+            eval_range = ()
+        elif "System`NHoldFirst" in attributes:
+            eval_range = range(1, len(expr.leaves))
+        elif "System`NHoldRest" in attributes:
+            if len(expr.leaves) > 0:
+                eval_range = (0,)
+            else:
+                eval_range = ()
+        else:
+            eval_range = range(len(expr.leaves))
+        # head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
+        if head.sameQ(SymbolN):
+            # maybe we should handle the precision...
+            return expr
+
+        head = apply_N(expr.head.evaluate(evaluation), evaluation, prec)
+        leaves = expr.get_mutable_leaves()
+        for index in eval_range:
+            leaf = leaves[index].evaluate(evaluation)
+            # leaves[index] = Expression(SymbolN, leaf, prec).evaluate(evaluation)
+            leaves[index] = apply_N(leaf, evaluation, prec)
+        return Expression(head, *leaves)
 
 
 def _scipy_interface(integrator, options_map, mandatory=None, adapt_func=None):
@@ -848,66 +941,17 @@ class N(Builtin):
         ),
     }
 
-    rules = {
-        "N[expr_]": "N[expr, MachinePrecision]",
-    }
-
     summary_text = "numerical evaluation to specified precision and accuracy"
 
     def apply_with_prec(self, expr, prec, evaluation):
         "N[expr_, prec_]"
-
-        try:
-            d = get_precision(prec, evaluation)
-        except PrecisionValueError:
+        if not prec.is_numeric(evaluation):
             return
+        return apply_N(expr, evaluation, prec)
 
-        if expr.get_head_name() in ("System`List", "System`Rule"):
-            return Expression(
-                expr.head,
-                *[self.apply_with_prec(leaf, prec, evaluation) for leaf in expr.leaves],
-            )
-
-        # Special case for the Root builtin
-        if expr.has_form("Root", 2):
-            return from_sympy(sympy.N(expr.to_sympy(), d))
-
-        if isinstance(expr, Number):
-            return expr.round(d)
-
-        name = expr.get_lookup_name()
-        if name != "":
-            nexpr = Expression(SymbolN, expr, prec)
-            result = evaluation.definitions.get_value(
-                name, "System`NValues", nexpr, evaluation
-            )
-            if result is not None:
-                if not result.sameQ(nexpr):
-                    result = Expression(SymbolN, result, prec).evaluate(evaluation)
-                return result
-
-        if expr.is_atom():
-            return expr
-        else:
-            attributes = expr.head.get_attributes(evaluation.definitions)
-            if "System`NHoldAll" in attributes:
-                eval_range = ()
-            elif "System`NHoldFirst" in attributes:
-                eval_range = range(1, len(expr.leaves))
-            elif "System`NHoldRest" in attributes:
-                if len(expr.leaves) > 0:
-                    eval_range = (0,)
-                else:
-                    eval_range = ()
-            else:
-                eval_range = range(len(expr.leaves))
-            head = Expression(SymbolN, expr.head, prec).evaluate(evaluation)
-            leaves = expr.get_mutable_leaves()
-            for index in eval_range:
-                leaves[index] = Expression(SymbolN, leaves[index], prec).evaluate(
-                    evaluation
-                )
-            return Expression(head, *leaves)
+    def apply(self, expr, evaluation):
+        "N[expr_]"
+        return apply_N(expr, evaluation)
 
 
 class NIntegrate(Builtin):

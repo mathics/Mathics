@@ -735,7 +735,7 @@ def get_tag_position(pattern, name) -> typing.Optional[str]:
         head_name = pattern.get_head_name()
         if head_name == name:
             return "down"
-        elif head_name == "System`N" and len(pattern.leaves) == 2:
+        elif head_name == "System`N" and 2 <= len(pattern.leaves) <= 3:
             return "n"
         elif head_name == "System`Condition" and len(pattern.leaves) > 0:
             return get_tag_position(pattern.leaves[0], name)
@@ -853,6 +853,6 @@ class Definition(object):
 
     def __repr__(self) -> str:
         s = "<Definition: name: {}, downvalues: {}, formats: {}, attributes: {}>".format(
-            self.name, self.downvalues, self.formatvalues, self.attributes
+            self.name, self.downvalues, self.nvalues, self.formatvalues, self.attributes
         )
         return s
