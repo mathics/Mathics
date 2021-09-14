@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 
-from mathics.core.expression import Expression, system_symbols, ensure_context
+from mathics.core.expression import Atom, Expression, Symbol, system_symbols, ensure_context
 from mathics.core.util import subsets, subranges, permutations
 from itertools import chain
 
@@ -22,7 +22,7 @@ def Pattern_create(expr):
     pattern_object = pattern_objects.get(name)
     if pattern_object is not None:
         return pattern_object(expr)
-    if expr.is_atom():
+    if isinstance(expr, Atom):
         return AtomPattern(expr)
     else:
         return ExpressionPattern(expr)
@@ -138,9 +138,37 @@ class AtomPattern(Pattern):
     def __init__(self, expr):
         self.atom = expr
         self.expr = expr
+        if isinstance(expr, Symbol):
+            self.match = self.match_symbol
+            self.get_match_candidates = self.get_match_symbol_candidates
 
     def __repr__(self):
         return "<AtomPattern: %s>" % self.atom
+
+    def match_symbol(
+        self,
+        yield_func,
+        expression,
+        vars,
+        evaluation,
+        head=None,
+        leaf_index=None,
+        leaf_count=None,
+        fully=True,
+        wrap_oneid=True,
+    ):
+        if isinstance(expression, Symbol) and expression.name == self.atom.name:
+            # yield vars, None
+            yield_func(vars, None)
+
+    def get_match_symbol_candidates(
+        self, leaves, expression, attributes, evaluation, vars={}
+    ):
+        return [
+            leaf
+            for leaf in leaves
+            if (isinstance(leaf, Symbol) and leaf.name == self.atom.name)
+        ]
 
     def match(
         self,
@@ -154,12 +182,16 @@ class AtomPattern(Pattern):
         fully=True,
         wrap_oneid=True,
     ):
-        if expression.sameQ(self.atom):
+        if isinstance(expression, Atom) and expression.sameQ(self.atom):
             # yield vars, None
             yield_func(vars, None)
 
     def get_match_candidates(self, leaves, expression, attributes, evaluation, vars={}):
-        return [leaf for leaf in leaves if leaf.sameQ(self.atom)]
+        return [
+            leaf
+            for leaf in leaves
+            if (isinstance(leaf, Atom) and leaf.sameQ(self.atom))
+        ]
 
     def get_match_count(self, vars={}):
         return (1, 1)

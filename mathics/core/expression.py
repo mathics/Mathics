@@ -1845,11 +1845,21 @@ class Expression(BaseExpression):
                 self._head.get_name()
             ):
                 return False
-            return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
+            for leaf in self._leaves:
+                if not leaf.is_numeric(evaluation):
+                    return False
+            return True
+            # return all(leaf.is_numeric(evaluation) for leaf in self._leaves)
         else:
-            return self._head.get_name() in arithmetic_head_symbols and all(
-                leaf.is_numeric() for leaf in self._leaves
-            )
+            if self._head.get_name() not in arithmetic_head_symbols:
+                return False
+            for for leaf in self._leaves:
+                if not leaf.is_numeric():
+                    return False
+            return True
+            #return self._head.get_name() in arithmetic_head_symbols and all(
+            #    leaf.is_numeric() for leaf in self._leaves
+            #)
 
     def numerify(self, evaluation) -> "Expression":
         _prec = None
