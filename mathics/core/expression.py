@@ -1255,7 +1255,8 @@ class Expression(BaseExpression):
         if len(self._leaves) != len(other.get_leaves()):
             return False
         return all(
-            (id(leaf)==id(oleaf) or leaf.sameQ(oleaf)) for leaf, oleaf in zip(self._leaves, other.get_leaves())
+            (id(leaf) == id(oleaf) or leaf.sameQ(oleaf))
+            for leaf, oleaf in zip(self._leaves, other.get_leaves())
         )
 
     def flatten(
@@ -2074,7 +2075,9 @@ class Symbol(Atom):
 
     def sameQ(self, rhs: Any) -> bool:
         """Mathics SameQ"""
-        return isinstance(rhs, Symbol) and (id(rhs)==id(self) or self.name == rhs.name)
+        return isinstance(rhs, Symbol) and (
+            id(rhs) == id(self) or self.name == rhs.name
+        )
 
     def replace_vars(self, vars, options={}, in_scoping=True):
         assert all(fully_qualified_symbol_name(v) for v in vars)

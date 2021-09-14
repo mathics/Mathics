@@ -169,6 +169,7 @@ class Compile(Builtin):
 
 class CompiledCode(Atom):
     class_head_name = "System`CompiledCode"
+
     def __init__(self, cfunc, args, **kwargs):
         super(CompiledCode, self).__init__(**kwargs)
         self.cfunc = cfunc

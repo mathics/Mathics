@@ -470,7 +470,7 @@ class PatternTest(BinaryOperator, PatternObject):
     precedence = 680
 
     arg_counts = [2]
-#    match = None
+
     def init(self, expr):
         super(PatternTest, self).init(expr)
         match_functions = {
@@ -478,13 +478,17 @@ class PatternTest(BinaryOperator, PatternObject):
             "System`NumericQ": self.match_numericq,
             "System`NumberQ": self.match_numberq,
             "System`RealNumberQ": self.match_real_numberq,
+            "System`Posive": self.match_positive,
+            "System`Negative": self.match_negative,
+            "System`NonPositive": self.match_nonpositive,
+            "System`NonNegative": self.match_nonnegative,
         }
 
         self.pattern = Pattern.create(expr.leaves[0])
         self.test = expr.leaves[1]
         testname = self.test.get_name()
         self.test_name = testname
-        match_function = match_functions.get(testname, self.match_general)
+        match_function = match_functions.get(testname, None)
         if match_function:
             self.match = match_function
 
@@ -523,7 +527,57 @@ class PatternTest(BinaryOperator, PatternObject):
 
         self.pattern.match(yield_match, expression, vars, evaluation)
 
+    def match_positive(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(
+                isinstance(item, (Integer, Rational, Real)) and item.value > 0
+                for item in items
+            ):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_negative(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(
+                isinstance(item, (Integer, Rational, Real)) and item.value < 0
+                for item in items
+            ):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_nonpositive(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(
+                isinstance(item, (Integer, Rational, Real)) and item.value <= 0
+                for item in items
+            ):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
+    def match_nonnegative(self, yield_func, expression, vars, evaluation, **kwargs):
+        def yield_match(vars_2, rest):
+            items = expression.get_sequence()
+            if all(
+                isinstance(item, (Integer, Rational, Real)) and item.value >= 0
+                for item in items
+            ):
+                yield_func(vars_2, None)
+
+        self.pattern.match(yield_match, expression, vars, evaluation)
+
     def quick_pattern_test(self, candidate, test, evaluation):
+        # if test == "System`RealNumberQ":
+        #    if isinstance(candidate, (Integer, Rational, Real)):
+        #        return True
+        #    candidate = Expression(SymbolN, candidate).evaluate(evaluation)
+        #    return isinstance(candidate, Real)
+        #    # pass
         if test == "System`NegativePowerQ":
             return (
                 candidate.has_form("Power", 2)
@@ -547,7 +601,8 @@ class PatternTest(BinaryOperator, PatternObject):
                 return builtin.test(candidate)
         return None
 
-    def match_general(self, yield_func, expression, vars, evaluation, **kwargs):
+    def match(self, yield_func, expression, vars, evaluation, **kwargs):
+        # def match(self, yield_func, expression, vars, evaluation, **kwargs):
         # for vars_2, rest in self.pattern.match(expression, vars, evaluation):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
