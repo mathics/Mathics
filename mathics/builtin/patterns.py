@@ -572,12 +572,6 @@ class PatternTest(BinaryOperator, PatternObject):
         self.pattern.match(yield_match, expression, vars, evaluation)
 
     def quick_pattern_test(self, candidate, test, evaluation):
-        # if test == "System`RealNumberQ":
-        #    if isinstance(candidate, (Integer, Rational, Real)):
-        #        return True
-        #    candidate = Expression(SymbolN, candidate).evaluate(evaluation)
-        #    return isinstance(candidate, Real)
-        #    # pass
         if test == "System`NegativePowerQ":
             return (
                 candidate.has_form("Power", 2)
@@ -605,12 +599,15 @@ class PatternTest(BinaryOperator, PatternObject):
         # def match(self, yield_func, expression, vars, evaluation, **kwargs):
         # for vars_2, rest in self.pattern.match(expression, vars, evaluation):
         def yield_match(vars_2, rest):
+            testname = self.test_name
             items = expression.get_sequence()
             for item in items:
                 item = item.evaluate(evaluation)
-                quick_test = self.quick_pattern_test(item, self.test_name, evaluation)
+                quick_test = self.quick_pattern_test(item, testname, evaluation)
                 if quick_test is False:
                     break
+                elif quick_test is True:
+                    continue
                     # raise StopGenerator
                 else:
                     test_expr = Expression(self.test, item)
