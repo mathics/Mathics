@@ -1,0 +1,382 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     13071,        373]
+NotebookOptionsPosition[     11621,        321]
+NotebookOutlinePosition[     11995,        337]
+CellTagsIndexPosition[     11952,        334]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["RootsOfUnity package", "Subtitle",
+ CellChangeTimes->{{3.430764258098104*^9, 3.4307642594901056`*^9}}],
+
+Cell["\<\
+A subpackage for QuantumGroups v2.
+Version 2.0, September 18, 2008, Scott Morrison\
+\>", "Text",
+ CellChangeTimes->{{3.4307642617433453`*^9, 3.4307642699551535`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section"],
+
+Cell["", "Text"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"BeginPackage", "[", 
+   RowBox[{"\"\<QuantumGroups`RootsOfUnity`\>\"", ",", 
+    RowBox[{"{", 
+     RowBox[{
+     "\"\<QuantumGroups`\>\"", ",", "\"\<QuantumGroups`RootSystems`\>\""}], 
+     "}"}]}], "]"}], ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.430404683340555*^9, 3.430404683560872*^9}, {
+   3.43076424481901*^9, 3.4307642553040867`*^9}, 3.430764842738776*^9}],
+
+Cell[BoxData[
+ RowBox[{"AlcoveDefiningRoot", ";", "WeightInAlcoveQ", ";", "AlcoveWeights", 
+  ";", "AlcoveWeightsInLattice", ";", "AlcoveRoots", ";", "LevelFromRoot", 
+  ";", "RootFromLevel", ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307643358398914`*^9, 3.430764353855797*^9}, {
+  3.4360485863494415`*^9, 3.4360485875912275`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveDefiningRoot", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"AlcoveDefiningRoot", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "=", 
+   RowBox[{"With", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"lp", "=", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"EvenQ", "[", "l", "]"}], ",", 
+         RowBox[{"l", "/", "2"}], ",", "l"}], "]"}]}], "}"}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{"Divisible", "[", 
+        RowBox[{"lp", ",", 
+         RowBox[{"LacingNumber", "[", "\[CapitalGamma]", "]"}]}], "]"}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"LongDominantRoots", "[", "\[CapitalGamma]", "]"}], 
+        "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"ShortDominantRoots", "[", "\[CapitalGamma]", "]"}], 
+        "\[LeftDoubleBracket]", "1", "\[RightDoubleBracket]"}]}], "]"}]}], 
+    "\[IndentingNewLine]", "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4201291321106224`*^9, 3.42012914983611*^9}, {
+  3.4201293299951663`*^9, 3.420129396901373*^9}, {3.4201294387515507`*^9, 
+  3.420129464618746*^9}, {3.4201295078208675`*^9, 3.420129508071227*^9}, {
+  3.4216219010828657`*^9, 3.421621907482067*^9}, {3.430762247927621*^9, 
+  3.430762252003482*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"WeightInAlcoveQ", "[", 
+    RowBox[{"\[CapitalGamma]_", ",", "l_Integer"}], "]"}], "[", 
+   RowBox[{"\[Lambda]", ":", 
+    RowBox[{"{", "___Integer", "}"}]}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{"And", "@@", 
+     RowBox[{"(", 
+      RowBox[{"NonNegative", "/@", "\[Lambda]"}], ")"}]}], ")"}], "\[And]", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"KillingForm", "[", "\[CapitalGamma]", "]"}], "[", 
+      RowBox[{
+       RowBox[{"AlcoveDefiningRoot", "[", 
+        RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], ",", 
+       RowBox[{"\[Lambda]", "+", 
+        RowBox[{"\[Rho]", "[", "\[CapitalGamma]", "]"}]}]}], "]"}], "<", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{"EvenQ", "[", "l", "]"}], ",", 
+       RowBox[{"l", "/", "2"}], ",", "l"}], "]"}]}], ")"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4201296627736783`*^9, 3.420129705575224*^9}, {
+   3.4201298147421985`*^9, 3.420129892724331*^9}, {3.4201304902935934`*^9, 
+   3.420130490714198*^9}, 3.4307622540764627`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveWeights", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"AlcoveWeights", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"ar", "=", 
+        RowBox[{"AlcoveDefiningRoot", "[", 
+         RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}]}], ",", 
+       RowBox[{"\[Lambda]", "=", 
+        RowBox[{"ZeroVector", "[", 
+         RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], "]"}]}], ",", "p"}], 
+      "}"}], ",", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"Reap", "[", "\[IndentingNewLine]", 
+       RowBox[{"While", "[", "\[IndentingNewLine]", 
+        RowBox[{
+         RowBox[{"Sow", "[", "\[Lambda]", "]"}], ";", "\[IndentingNewLine]", 
+         RowBox[{"\[Lambda]", "+=", 
+          RowBox[{"UnitVector", "[", 
+           RowBox[{
+            RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}], ",", "1"}], 
+           "]"}]}], ";", "\[IndentingNewLine]", 
+         RowBox[{"While", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"\[Not]", 
+             RowBox[{"ZeroVectorQ", "[", "\[Lambda]", "]"}]}], "\[And]", 
+            RowBox[{"\[Not]", 
+             RowBox[{
+              RowBox[{"WeightInAlcoveQ", "[", 
+               RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "[", "\[Lambda]",
+               "]"}]}]}], ",", "\[IndentingNewLine]", 
+           RowBox[{"(*", " ", "odometer", " ", "*)"}], "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{"p", "=", 
+             RowBox[{
+              RowBox[{"Position", "[", 
+               RowBox[{"\[Lambda]", ",", 
+                RowBox[{"x_", "/;", 
+                 RowBox[{"x", ">", "0"}]}]}], "]"}], "\[LeftDoubleBracket]", 
+              RowBox[{"1", ",", "1"}], "\[RightDoubleBracket]"}]}], ";", 
+            "\[IndentingNewLine]", 
+            RowBox[{
+             RowBox[{
+             "\[Lambda]", "\[LeftDoubleBracket]", "p", 
+              "\[RightDoubleBracket]"}], "=", "0"}], ";", 
+            "\[IndentingNewLine]", 
+            RowBox[{"If", "[", 
+             RowBox[{
+              RowBox[{"p", "<", 
+               RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}], ",", 
+              RowBox[{"++", 
+               RowBox[{"\[Lambda]", "\[LeftDoubleBracket]", 
+                RowBox[{"p", "+", "1"}], "\[RightDoubleBracket]"}]}]}], "]"}],
+             ";"}]}], "\[IndentingNewLine]", "]"}], ";", 
+         "\[IndentingNewLine]", 
+         RowBox[{"\[Not]", 
+          RowBox[{"ZeroVectorQ", "[", "\[Lambda]", "]"}]}]}], 
+        "\[IndentingNewLine]", "]"}], "\[IndentingNewLine]", "]"}], 
+      "\[LeftDoubleBracket]", 
+      RowBox[{"2", ",", "1"}], "\[RightDoubleBracket]"}]}], 
+    "\[IndentingNewLine]", "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4201295375936785`*^9, 3.4201295651032352`*^9}, {
+   3.4201296187603903`*^9, 3.420129658076925*^9}, {3.4201298348310847`*^9, 
+   3.4201298415307183`*^9}, {3.4201299001850595`*^9, 3.420130262976728*^9}, {
+   3.4201302952631536`*^9, 3.420130299449173*^9}, {3.4201303355410705`*^9, 
+   3.420130354558416*^9}, {3.4201304157163568`*^9, 3.4201304222858033`*^9}, {
+   3.4201312367469406`*^9, 3.4201312428457108`*^9}, 3.4307622556086655`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveWeightsInLattice", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_", ",", "All"}], "]"}], ":=", 
+  RowBox[{"AlcoveWeights", "[", 
+   RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4306704878307457`*^9, 3.430670501099826*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveWeightsInLattice", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_", ",", "lattice_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"AlcoveWeightsInLattice", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "l", ",", "lattice"}], "]"}], "=", 
+   RowBox[{"Cases", "[", 
+    RowBox[{
+     RowBox[{"AlcoveWeights", "[", 
+      RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], ",", 
+     RowBox[{"\[Lambda]_", "/;", 
+      RowBox[{"WeightInLatticeQ", "[", 
+       RowBox[{"\[CapitalGamma]", ",", "\[Lambda]", ",", "lattice"}], 
+       "]"}]}]}], "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.430669901928259*^9, 3.4306699268440866`*^9}, {
+  3.430670479148261*^9, 3.4306704866790895`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveRoots", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"AlcoveRoots", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "=", 
+   RowBox[{"Cases", "[", 
+    RowBox[{
+     RowBox[{"AlcoveWeights", "[", 
+      RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], ",", 
+     RowBox[{"\[Lambda]_", "/;", 
+      RowBox[{"RootWeightQ", "[", 
+       RowBox[{"\[CapitalGamma]", ",", "\[Lambda]"}], "]"}]}]}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{
+  3.429981641473896*^9, {3.4299860529072256`*^9, 3.4299860632220573`*^9}, 
+   3.4360485709272656`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"LevelFromRoot", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], ":=", 
+  RowBox[{
+   FractionBox["l", 
+    RowBox[{"2", 
+     RowBox[{"LacingNumber", "[", "\[CapitalGamma]", "]"}]}]], "-", 
+   RowBox[{"DualCoxeterNumber", "[", "\[CapitalGamma]", "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4299760870470223`*^9, 3.429976130068885*^9}, {
+   3.4299762105045457`*^9, 3.4299762207893343`*^9}, {3.429976291781416*^9, 
+   3.4299763863073378`*^9}, {3.429976961764805*^9, 3.429976974062488*^9}, 
+   3.436048510169901*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"RootFromLevel", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "k_"}], "]"}], ":=", 
+  RowBox[{"2", 
+   RowBox[{"LacingNumber", "[", "\[CapitalGamma]", "]"}], 
+   RowBox[{"(", 
+    RowBox[{"k", "+", 
+     RowBox[{"DualCoxeterNumber", "[", "\[CapitalGamma]", "]"}]}], 
+    ")"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4299761324122543`*^9, 3.4299761605627327`*^9}, {
+   3.429976213338621*^9, 3.429976222521826*^9}, {3.4299762946255054`*^9, 
+   3.42997629964272*^9}, {3.4299763923460207`*^9, 3.429976417492179*^9}, {
+   3.429976931150784*^9, 3.4299769457918367`*^9}, 3.436048512172781*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"AlcoveRoots", "[", 
+   RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"AlcoveRoots", "[", 
+    RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "=", 
+   RowBox[{"Cases", "[", 
+    RowBox[{
+     RowBox[{"AlcoveWeights", "[", 
+      RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], ",", 
+     RowBox[{"\[Lambda]_", "/;", 
+      RowBox[{"RootWeightQ", "[", 
+       RowBox[{"\[CapitalGamma]", ",", "\[Lambda]"}], "]"}]}]}], 
+    "]"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{
+  3.429981641473896*^9, {3.4299860529072256`*^9, 3.4299860632220573`*^9}, {
+   3.430406278774677*^9, 3.4304062815386515`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"End", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"EndPackage", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{615, 555},
+WindowMargins->{{Automatic, 234}, {46, Automatic}},
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (February 18, 2009)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[567, 22, 108, 1, 46, "Subtitle"],
+Cell[678, 25, 176, 4, 41, "Text"],
+Cell[CellGroupData[{
+Cell[879, 33, 31, 0, 67, "Section"],
+Cell[913, 35, 16, 0, 26, "Text"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[966, 40, 33, 0, 67, "Section"],
+Cell[1002, 42, 424, 10, 43, "Input",
+ InitializationCell->True],
+Cell[1429, 54, 356, 6, 58, "Input",
+ InitializationCell->True],
+Cell[1788, 62, 119, 3, 27, "Input",
+ InitializationCell->True],
+Cell[1910, 67, 1450, 35, 103, "Input",
+ InitializationCell->True],
+Cell[3363, 104, 1089, 28, 73, "Input",
+ InitializationCell->True],
+Cell[4455, 134, 3305, 74, 268, "Input",
+ InitializationCell->True],
+Cell[7763, 210, 324, 7, 27, "Input",
+ InitializationCell->True],
+Cell[8090, 219, 729, 17, 58, "Input",
+ InitializationCell->True],
+Cell[8822, 238, 654, 18, 43, "Input",
+ InitializationCell->True],
+Cell[9479, 258, 583, 13, 49, "Input",
+ InitializationCell->True],
+Cell[10065, 273, 642, 14, 27, "Input",
+ InitializationCell->True],
+Cell[10710, 289, 678, 18, 43, "Input",
+ InitializationCell->True],
+Cell[11391, 309, 96, 3, 27, "Input",
+ InitializationCell->True],
+Cell[11490, 314, 103, 3, 27, "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

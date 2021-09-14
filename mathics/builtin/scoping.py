@@ -650,6 +650,10 @@ class BeginPackage(Builtin):
              Protect[System`Private`$ContextPathStack, System`$Packages];
              context
         """,
+        "BeginPackage[context_String, needs__List]": """
+             Print["Mathics does not support the second argument: ",needs,". Please add Needs[] explicitly inside the package."];
+             BeginPackage[context]
+        """,
     }
 
 

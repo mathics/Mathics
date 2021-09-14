@@ -1,0 +1,384 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     12566,        375]
+NotebookOptionsPosition[     11444,        333]
+NotebookOutlinePosition[     11819,        349]
+CellTagsIndexPosition[     11776,        346]
+WindowFrame->Normal
+ContainsDynamic->False*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["RootsOfUnity package", "Subtitle",
+ CellChangeTimes->{{3.430764258098104*^9, 3.4307642594901056`*^9}}],
+
+Cell["\<\
+A subpackage for QuantumGroups v2.
+Version 2.0, September 18, 2008, Scott Morrison\
+\>", "Text",
+ CellChangeTimes->{{3.4307642617433453`*^9, 3.4307642699551535`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["Introduction", "Section"],
+
+Cell["", "Text"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation", "Section"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"BeginPackage", "[", 
+   RowBox[{"\"\<QuantumGroups`Steinberg`\>\"", ",", 
+    RowBox[{"{", 
+     RowBox[{
+     "\"\<QuantumGroups`\>\"", ",", "\"\<QuantumGroups`RootsOfUnity`\>\"", 
+      ",", "\"\<QuantumGroups`RootsOfUnity`\>\"", ",", 
+      "\"\<QuantumGroups`Representations`\>\"", ",", 
+      "\"\<QuantumGroups`RootSystems`\>\""}], "}"}]}], "]"}], ";"}]], "Input",\
+
+ InitializationCell->True,
+ CellChangeTimes->{{3.430404683340555*^9, 3.430404683560872*^9}, {
+   3.43076424481901*^9, 3.4307642553040867`*^9}, {3.4307645463125362`*^9, 
+   3.4307645554356546`*^9}, 3.430764826745779*^9, {3.430765421300707*^9, 
+   3.4307654610879183`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"SteinbergDecomposeRepresentation", ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4307643358398914`*^9, 3.430764353855797*^9}, 
+   3.4307645193838143`*^9, 3.4307649091242332`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"SteinbergFold", "[", 
+     RowBox[{"\[CapitalGamma]_", ",", "i_"}], "]"}], "[", "c_", "]"}], "/;", 
+   RowBox[{"1", "\[LessEqual]", "i", "\[LessEqual]", 
+    RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}]}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"root", ",", "innerproduct"}], "}"}], ",", "\[IndentingNewLine]",
+     
+    RowBox[{
+     RowBox[{"root", "=", 
+      RowBox[{
+       RowBox[{"SimpleRoots", "[", "\[CapitalGamma]", "]"}], 
+       "\[LeftDoubleBracket]", "i", "\[RightDoubleBracket]"}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"innerproduct", "[", "\[Lambda]_", "]"}], ":=", 
+      RowBox[{
+       RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "=", 
+       RowBox[{
+        RowBox[{"KillingForm", "[", "\[CapitalGamma]", "]"}], "[", 
+        RowBox[{
+         RowBox[{"\[Lambda]", "+", 
+          RowBox[{"\[Rho]", "[", "\[CapitalGamma]", "]"}]}], ",", "root"}], 
+        "]"}]}]}], ";", "\[IndentingNewLine]", 
+     RowBox[{"c", "/.", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Lambda]_", 
+           "]"}], "/;", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "\[Equal]", 
+            "0"}], ")"}]}], "\[RuleDelayed]", "0"}], ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Lambda]_", 
+           "]"}], "/;", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "<", "0"}], 
+           ")"}]}], "\[RuleDelayed]", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"f", "[", "\[Lambda]", "]"}], ";", 
+           RowBox[{"-", 
+            RowBox[{
+             RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", 
+             RowBox[{"\[Lambda]", "-", 
+              RowBox[{
+               RowBox[{"(", 
+                RowBox[{"2", 
+                 FractionBox[
+                  RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], 
+                  RowBox[{"innerproduct", "[", 
+                   RowBox[{"root", "-", 
+                    RowBox[{"\[Rho]", "[", "\[CapitalGamma]", "]"}]}], 
+                   "]"}]]}], ")"}], "root"}]}], "]"}]}]}], ")"}]}]}], 
+       "}"}]}]}]}], "\[IndentingNewLine]", "]"}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.430152906106216*^9, 3.43015293950424*^9}, 
+   3.430153412133848*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"SteinbergAlcoveFold", "[", 
+    RowBox[{"\[CapitalGamma]_", ",", "l_"}], "]"}], "[", "c_", "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"root", ",", "innerproduct", ",", "wall"}], "}"}], ",", 
+    "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"root", "=", 
+      RowBox[{"-", 
+       RowBox[{"AlcoveDefiningRoot", "[", 
+        RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}]}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"innerproduct", "[", "\[Lambda]_", "]"}], ":=", 
+      RowBox[{
+       RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "=", 
+       RowBox[{
+        RowBox[{"KillingForm", "[", "\[CapitalGamma]", "]"}], "[", 
+        RowBox[{
+         RowBox[{"\[Lambda]", "+", 
+          RowBox[{"\[Rho]", "[", "\[CapitalGamma]", "]"}]}], ",", "root"}], 
+        "]"}]}]}], ";", "\[IndentingNewLine]", 
+     RowBox[{"wall", "=", 
+      RowBox[{"-", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"EvenQ", "[", "l", "]"}], ",", 
+         RowBox[{"l", "/", "2"}], ",", "l"}], "]"}]}]}], ";", 
+     "\[IndentingNewLine]", 
+     RowBox[{"c", "/.", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Lambda]_", 
+           "]"}], "/;", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "\[Equal]", 
+            "wall"}], ")"}]}], "\[RuleDelayed]", "0"}], ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Lambda]_", 
+           "]"}], "/;", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "<", "wall"}], 
+           ")"}]}], "\[RuleDelayed]", 
+         RowBox[{"-", 
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", 
+           RowBox[{"\[Lambda]", "-", 
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"2", 
+               FractionBox[
+                RowBox[{
+                 RowBox[{"innerproduct", "[", "\[Lambda]", "]"}], "-", 
+                 "wall"}], 
+                RowBox[{"innerproduct", "[", 
+                 RowBox[{"root", "-", 
+                  RowBox[{"\[Rho]", "[", "\[CapitalGamma]", "]"}]}], "]"}]]}],
+               ")"}], "root"}]}], "]"}]}]}]}], "}"}]}]}]}], 
+   "\[IndentingNewLine]", "]"}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.430152906106216*^9, 3.4301529695874977`*^9}, {
+   3.430153011457704*^9, 3.4301530119383955`*^9}, {3.430153104161005*^9, 
+   3.4301531643675776`*^9}, {3.4301532313238564`*^9, 3.430153232135022*^9}, {
+   3.43015337554123*^9, 3.4301533759718494`*^9}, {3.4301534154386*^9, 
+   3.430153420596016*^9}, 3.4307622821368113`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"SteinbergFoldAll", "[", 
+    RowBox[{"\[CapitalGamma]_", ",", 
+     RowBox[{"l_:", "0"}]}], "]"}], "[", "c_", "]"}], ":=", 
+  "\[IndentingNewLine]", 
+  RowBox[{"Fold", "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"#2", "[", "#1", "]"}], "&"}], ",", "c", ",", 
+    RowBox[{
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{"l", ">", "0"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"SteinbergAlcoveFold", "[", 
+         RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "}"}], ",", 
+       RowBox[{"{", "}"}]}], "]"}], "~", "Join", "~", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"SteinbergFold", "[", 
+        RowBox[{"\[CapitalGamma]", ",", "i"}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"i", ",", "1", ",", 
+         RowBox[{"Rank", "[", "\[CapitalGamma]", "]"}]}], "}"}]}], "]"}]}]}], 
+   "]"}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4301523909053936`*^9, 3.430152418404936*^9}, {
+  3.4301524644010754`*^9, 3.430152567258978*^9}, {3.430152948667416*^9, 
+  3.430152948867704*^9}, {3.430153168753885*^9, 3.4301531722789536`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"SteinbergDecomposeRepresentation", "[", 
+    RowBox[{"\[CapitalGamma]_", ",", 
+     RowBox[{"l_:", "0"}]}], "]"}], "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Irrep", "[", "\[CapitalGamma]_", "]"}], "[", "\[Lambda]_", 
+     "]"}], "\[CircleTimes]", 
+    RowBox[{
+     RowBox[{"Irrep", "[", "\[CapitalGamma]_", "]"}], "[", "\[Mu]_", "]"}]}], 
+   "]"}], ":=", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"SteinbergDecomposeRepresentation", "[", 
+     RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Lambda]", "]"}],
+      "\[CircleTimes]", 
+     RowBox[{
+      RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Mu]", "]"}]}], 
+    "]"}], "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"FixedPoint", "[", 
+      RowBox[{
+       RowBox[{"SteinbergFoldAll", "[", 
+        RowBox[{"\[CapitalGamma]", ",", "l"}], "]"}], ",", 
+       "\[IndentingNewLine]", 
+       RowBox[{"Plus", "@@", 
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"WeightMultiplicities", "[", 
+           RowBox[{"\[CapitalGamma]", ",", 
+            RowBox[{
+             RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "\[Mu]", 
+             "]"}]}], "]"}], "/.", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"\[Kappa]", ":", 
+              RowBox[{"{", "___Integer", "}"}]}], ",", "n_Integer"}], "}"}], 
+           "\[RuleDelayed]", 
+           RowBox[{"n", " ", 
+            RowBox[{
+             RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", 
+             RowBox[{"\[Kappa]", "+", "\[Lambda]"}], "]"}]}]}]}], ")"}]}]}], 
+      "]"}], "/.", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"n_Integer", " ", 
+         RowBox[{"V", ":", 
+          RowBox[{
+           RowBox[{"Irrep", "[", "\[CapitalGamma]", "]"}], "[", "_", 
+           "]"}]}]}], "/;", 
+        RowBox[{"n", ">", "0"}]}], "\[RuleDelayed]", 
+       RowBox[{"DirectSum", "@@", 
+        RowBox[{"Table", "[", 
+         RowBox[{"V", ",", 
+          RowBox[{"{", "n", "}"}]}], "]"}]}]}], "}"}]}], "/.", 
+    RowBox[{"Plus", "\[Rule]", "DirectSum"}]}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4201505399986176`*^9, 3.420150577632733*^9}, {
+   3.420150631039528*^9, 3.4201506973248415`*^9}, {3.430152581158965*^9, 
+   3.4301526160391197`*^9}, {3.430153642024414*^9, 3.4301537257748413`*^9}, 
+   3.4301540699397264`*^9, {3.4303589575701265`*^9, 3.4303589667833743`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"End", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"EndPackage", "[", "]"}], ";"}]], "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{615, 555},
+WindowMargins->{{Automatic, 234}, {46, Automatic}},
+FrontEndVersion->"6.0 for Microsoft Windows (32-bit) (June 19, 2007)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[590, 23, 108, 1, 49, "Subtitle"],
+Cell[701, 26, 176, 4, 47, "Text"],
+Cell[CellGroupData[{
+Cell[902, 34, 31, 0, 71, "Section"],
+Cell[936, 36, 16, 0, 29, "Text"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[989, 41, 33, 0, 71, "Section"],
+Cell[1025, 43, 679, 15, 92, "Input",
+ InitializationCell->True],
+Cell[1707, 60, 222, 4, 31, "Input",
+ InitializationCell->True],
+Cell[1932, 66, 119, 3, 31, "Input",
+ InitializationCell->True],
+Cell[2054, 71, 2602, 69, 229, "Input",
+ InitializationCell->True],
+Cell[4659, 142, 2880, 75, 229, "Input",
+ InitializationCell->True],
+Cell[7542, 219, 1128, 30, 72, "Input",
+ InitializationCell->True],
+Cell[8673, 251, 2538, 68, 172, "Input",
+ InitializationCell->True],
+Cell[11214, 321, 96, 3, 31, "Input",
+ InitializationCell->True],
+Cell[11313, 326, 103, 3, 31, "Input",
+ InitializationCell->True]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

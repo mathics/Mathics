@@ -255,6 +255,8 @@ Package update
 ++++++++++++++
 
 - SymPy 1.8
+- ``KnotTheory`` Mathics package added. This is largely not working, but provided so that others can try, report bugs, and help out.
+
 
 New variables and builtins
 ++++++++++++++++++++++++++
