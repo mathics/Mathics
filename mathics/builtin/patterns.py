@@ -478,6 +478,7 @@ class PatternTest(BinaryOperator, PatternObject):
             "System`NumericQ": self.match_numericq,
             "System`NumberQ": self.match_numberq,
             "System`RealNumberQ": self.match_real_numberq,
+            "Internal`RealValuedNumberQ": self.match_real_numberq,
             "System`Posive": self.match_positive,
             "System`Negative": self.match_negative,
             "System`NonPositive": self.match_nonpositive,

@@ -323,9 +323,7 @@ class BaseExpression(KeyComparable):
         return None
 
     def get_head_name(self) -> str:
-        print("get_head_name of ", self)
         raise NotImplementedError
-        return self.get_head().get_name()
 
     def get_leaves(self):
         return []
