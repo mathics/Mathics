@@ -119,9 +119,19 @@ def create_rules(rules_expr, expr, name, evaluation, extra_args=[]):
         rules = rules_expr.leaves
     else:
         rules = [rules_expr]
-    any_lists = any(item.has_form(("List", "Dispatch"), None) for item in rules)
+    any_lists = False
+    for item in rules:
+        if item.has_form(("List", "Dispatch"), None):
+            any_lists = True
+            break
+
     if any_lists:
-        all_lists = all(item.has_form("List", None) for item in rules)
+        all_lists = True
+        for item in rules:
+            if not item.has_form("List", None):
+                all_lists = False
+                break
+
         if all_lists:
             return (
                 Expression(
@@ -496,7 +506,10 @@ class PatternTest(BinaryOperator, PatternObject):
     def match_string(self, yield_func, expression, vars, evaluation, **kwargs):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
-            if all(isinstance(item, String) for item in items):
+            for item in items:
+                if not isinstance(item, String):
+                    break
+            else:
                 yield_func(vars_2, None)
 
         self.pattern.match(yield_match, expression, vars, evaluation)
@@ -504,7 +517,10 @@ class PatternTest(BinaryOperator, PatternObject):
     def match_numberq(self, yield_func, expression, vars, evaluation, **kwargs):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
-            if all(isinstance(item, Number) for item in items):
+            for item in items:
+                if not isinstance(item, Number):
+                    break
+            else:
                 yield_func(vars_2, None)
 
         self.pattern.match(yield_match, expression, vars, evaluation)
@@ -512,10 +528,10 @@ class PatternTest(BinaryOperator, PatternObject):
     def match_numericq(self, yield_func, expression, vars, evaluation, **kwargs):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
-            if all(
-                isinstance(item, Number) or item.is_numeric(evaluation)
-                for item in items
-            ):
+            for item in items:
+                if not (isinstance(item, Number) or item.is_numeric(evaluation)):
+                    break
+            else:
                 yield_func(vars_2, None)
 
         self.pattern.match(yield_match, expression, vars, evaluation)
@@ -523,7 +539,10 @@ class PatternTest(BinaryOperator, PatternObject):
     def match_real_numberq(self, yield_func, expression, vars, evaluation, **kwargs):
         def yield_match(vars_2, rest):
             items = expression.get_sequence()
-            if all(isinstance(item, (Integer, Rational, Real)) for item in items):
+            for item in items:
+                if not isinstance(item, (Integer, Rational, Real)):
+                    break
+            else:
                 yield_func(vars_2, None)
 
         self.pattern.match(yield_match, expression, vars, evaluation)
